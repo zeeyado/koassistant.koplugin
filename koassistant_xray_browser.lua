@@ -244,7 +244,7 @@ end
 --- @param target_depth number|nil TOC depth filter (nil = deepest)
 --- @return table|nil chapters Array of {title, start_page, end_page, depth, is_current}
 --- @return table toc_info {max_depth, has_toc, depth_counts, depth_titles}
-local function getAllChapterBoundaries(ui, target_depth, coverage_page)
+local function getAllChapterBoundaries(ui, target_depth, coverage_page, scope)
     local toc = ui.toc and ui.toc.toc
     if not toc or #toc == 0 then
         return nil, { has_toc = false, max_depth = 0, entry_count = 0 }
@@ -268,7 +268,13 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
     local current_page = getCurrentPage(ui)
     -- Spoiler gate: max of X-Ray coverage and reading position
     -- Chapters beyond this are marked unread (dimmed + spoiler warning)
-    local gate_page = math.max(coverage_page or current_page, current_page)
+    -- For section X-Rays: scope.end_page replaces coverage_page
+    local gate_page
+    if scope then
+        gate_page = scope.end_page
+    else
+        gate_page = math.max(coverage_page or current_page, current_page)
+    end
 
     -- First pass: collect depth stats
     local max_depth = 0
@@ -351,7 +357,21 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
             end_page = total_pages
         end
         local is_unread = entry.page > gate_page
-        local is_current = not is_unread and current_page >= entry.page and current_page <= end_page
+        -- Section scope: chapters outside scope are out_of_scope (not unread)
+        -- Chapters within scope are never unread
+        local is_out_of_scope = false
+        if scope then
+            is_out_of_scope = entry.page > scope.end_page or end_page < scope.start_page
+            is_unread = false  -- Scope replaces spoiler gating
+        end
+        -- is_current: only within scope (if scoped)
+        local is_current = false
+        if scope then
+            is_current = current_page >= entry.page and current_page <= end_page
+                and current_page >= scope.start_page and current_page <= scope.end_page
+        else
+            is_current = not is_unread and current_page >= entry.page and current_page <= end_page
+        end
         table.insert(chapters, {
             title = entry.title or "",
             start_page = entry.page,
@@ -359,6 +379,7 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page)
             depth = entry.depth or 1,
             is_current = is_current or false,
             unread = is_unread,
+            out_of_scope = is_out_of_scope,
             parent_title = entry._parent_title,
         })
         ::continue::
@@ -403,7 +424,7 @@ end
 --- @param coverage_page number|nil X-Ray coverage page
 --- @return table|nil entries Array of {title, start_page, end_page, depth, is_current, unread}
 --- @return number max_depth Maximum TOC depth found
-local function getHierarchicalChapters(ui, coverage_page)
+local function getHierarchicalChapters(ui, coverage_page, scope)
     local toc = ui.toc and ui.toc.toc
     if not toc or #toc == 0 then return nil, 0 end
 
@@ -421,7 +442,12 @@ local function getHierarchicalChapters(ui, coverage_page)
 
     local total_pages = ui.document.info.number_of_pages or 0
     local current_page = getCurrentPage(ui)
-    local gate_page = math.max(coverage_page or current_page, current_page)
+    local gate_page
+    if scope then
+        gate_page = scope.end_page
+    else
+        gate_page = math.max(coverage_page or current_page, current_page)
+    end
 
     local max_depth = 0
     for _idx, entry in ipairs(effective_toc) do
@@ -444,7 +470,18 @@ local function getHierarchicalChapters(ui, coverage_page)
             end
         end
         local is_unread = entry.page > gate_page
-        local is_current = not is_unread and current_page >= entry.page and current_page <= end_page
+        local is_out_of_scope = false
+        if scope then
+            is_out_of_scope = entry.page > scope.end_page or end_page < scope.start_page
+            is_unread = false
+        end
+        local is_current = false
+        if scope then
+            is_current = current_page >= entry.page and current_page <= end_page
+                and current_page >= scope.start_page and current_page <= scope.end_page
+        else
+            is_current = not is_unread and current_page >= entry.page and current_page <= end_page
+        end
         table.insert(entries, {
             title = entry.title or "",
             start_page = entry.page,
@@ -452,6 +489,7 @@ local function getHierarchicalChapters(ui, coverage_page)
             depth = d,
             is_current = is_current,
             unread = is_unread,
+            out_of_scope = is_out_of_scope,
         })
         ::continue::
     end
@@ -737,10 +775,27 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.is_complete = metadata.full_document == true
         or (metadata.progress_decimal and metadata.progress_decimal >= 0.995) or false
 
+    -- Section X-Ray scope: overrides coverage and gating
+    self.scope = metadata.scope  -- nil for main X-Ray
+    if self.scope then
+        self.is_complete = true
+        if ui and ui.document then
+            local total_pages = ui.document.info and ui.document.info.number_of_pages
+            if total_pages and total_pages > 0 then
+                self.coverage_page = math.min(self.scope.end_page, total_pages)
+            end
+        end
+        self.scope_start = self.scope.start_page
+        self.scope_end = self.scope.end_page
+    end
+
     -- Build update callback from plugin reference (works from all call sites)
     self.on_update = nil
     self.on_update_full = nil
-    if metadata.plugin and ui and ui.document then
+    -- Section X-Rays: no update/redo callbacks (complete-only)
+    if self.scope then
+        -- No-op: section X-Rays don't support incremental update
+    elseif metadata.plugin and ui and ui.document then
         local plugin_ref = metadata.plugin
         self.on_update = function()
             local action = plugin_ref.action_service:getAction("book", "xray")
@@ -886,6 +941,9 @@ end
 --- Build the main title for the browser
 --- @return string title
 function XrayBrowser:buildMainTitle()
+    if self.scope then
+        return T(_("X-Ray § %1"), self.scope.label)
+    end
     local title = "X-Ray"
     if self.metadata.progress then
         title = title .. " (" .. self.metadata.progress .. ")"
@@ -1717,7 +1775,9 @@ function XrayBrowser:chatAboutItem(detail_text)
 
     -- Pass X-Ray source framing as context prefix (injected before action prompt, not into text)
     local framing
-    if not self.metadata.full_document and self.metadata.progress then
+    if self.scope then
+        framing = "(Note: The following is from a Section X-Ray analysis of \"" .. (self.scope.label or "") .. "\" (" .. (self.scope.page_summary or "") .. "), not the referenced work itself.)"
+    elseif not self.metadata.full_document and self.metadata.progress then
         framing = "(Note: The following is from an analysis of the work, not the referenced work itself. The analysis was done at " .. self.metadata.progress .. " progress.)"
     else
         framing = "(Note: The following is from an analysis of the work, not the referenced work itself.)"
@@ -1862,7 +1922,7 @@ function XrayBrowser:showChapterPicker(current_chapter)
     local self_ref = self
 
     -- Get hierarchical TOC (all depths)
-    local entries, max_depth = getHierarchicalChapters(self.ui, self.coverage_page)
+    local entries, max_depth = getHierarchicalChapters(self.ui, self.coverage_page, self.scope)
     if not entries or #entries == 0 then
         -- Fallback: page-range chunks (flat, no hierarchy)
         local chunks = getAllPageRangeChapters(self.ui, self.coverage_page)
@@ -1886,6 +1946,13 @@ function XrayBrowser:showChapterPicker(current_chapter)
         local d = entry.depth or 1
         local title = entry.title
         if not title or title == "" then title = T(_("Page %1"), entry.start_page) end
+        -- Dim: unread (spoiler) or out_of_scope (section boundary)
+        local is_dim = false
+        if self.scope then
+            is_dim = entry.out_of_scope and not self._scope_reveal_warned
+        else
+            is_dim = entry.unread and not self._mentions_spoiler_warned
+        end
         table.insert(full_toc, {
             text = title,
             mandatory = entry.start_page,
@@ -1896,7 +1963,8 @@ function XrayBrowser:showChapterPicker(current_chapter)
             end_page = entry.end_page,
             is_current = entry.is_current,
             unread = entry.unread,
-            dim = entry.unread and not self._mentions_spoiler_warned,
+            out_of_scope = entry.out_of_scope,
+            dim = is_dim,
         })
     end
 
@@ -1936,8 +2004,16 @@ function XrayBrowser:showChapterPicker(current_chapter)
         end
     end
 
-    -- Prepend "Entire document" option(s)
-    if self.is_complete then
+    -- Prepend scope/document options
+    if self.scope then
+        -- Section X-Ray: "Entire section" is the primary scope
+        table.insert(collapsed_toc, 1, {
+            text = T(_("Entire section (%1)"), self.scope.page_summary or ""),
+            bold = current_chapter == "all",
+            separator = true,
+            _is_all_chapters = true,
+        })
+    elseif self.is_complete then
         table.insert(collapsed_toc, 1, {
             text = _("Entire document"),
             bold = current_chapter == "all",
@@ -2221,6 +2297,41 @@ function XrayBrowser:showChapterPicker(current_chapter)
             else
                 selectChapter("all_reveal")
             end
+        elseif item.out_of_scope then
+            if not self_ref._scope_reveal_warned then
+                self_ref._spoiler_dialog = ButtonDialog:new{
+                    text = _("This chapter is outside this Section X-Ray's scope.\n\nReveal mentions?"),
+                    buttons = {
+                        {{
+                            text = _("Cancel"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                            end,
+                        }},
+                        {{
+                            text = _("Reveal"),
+                            callback = function()
+                                UIManager:close(self_ref._spoiler_dialog)
+                                self_ref._scope_reveal_warned = true
+                                selectChapter({
+                                    title = item.text,
+                                    start_page = item.start_page,
+                                    end_page = item.end_page,
+                                    depth = item.depth,
+                                })
+                            end,
+                        }},
+                    },
+                }
+                UIManager:show(self_ref._spoiler_dialog)
+            else
+                selectChapter({
+                    title = item.text,
+                    start_page = item.start_page,
+                    end_page = item.end_page,
+                    depth = item.depth,
+                })
+            end
         elseif item.unread then
             if not self_ref._mentions_spoiler_warned then
                 self_ref._spoiler_dialog = ButtonDialog:new{
@@ -2300,8 +2411,15 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
     local self_ref = self
     local items = {}
 
-    -- "Entire document" at top
-    if self.is_complete then
+    -- "Entire document/section" at top
+    if self.scope then
+        table.insert(items, {
+            text = T(_("Entire section (%1)"), self.scope.page_summary or ""),
+            bold = current_chapter == "all",
+            separator = true,
+            _is_all_chapters = true,
+        })
+    elseif self.is_complete then
         table.insert(items, {
             text = _("Entire document"),
             bold = current_chapter == "all",
@@ -2325,11 +2443,17 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
 
     -- Page-range chunks
     for _idx, ch in ipairs(chunks) do
+        local is_dim = false
+        if self.scope then
+            is_dim = ch.out_of_scope and not self._scope_reveal_warned
+        else
+            is_dim = ch.unread and not self._mentions_spoiler_warned
+        end
         table.insert(items, {
             text = ch.title or "",
             mandatory = ch.start_page,
             mandatory_dim = true,
-            dim = ch.unread and not self._mentions_spoiler_warned,
+            dim = is_dim,
             _chapter = ch,
         })
         if ch.is_current then
@@ -2391,7 +2515,36 @@ function XrayBrowser:_showFlatChapterPicker(chunks, current_chapter)
             end
         elseif item._chapter then
             local ch = item._chapter
-            if ch.unread then
+            if ch.out_of_scope then
+                if not self_ref._scope_reveal_warned then
+                    self_ref._spoiler_dialog = ButtonDialog:new{
+                        text = _("This chapter is outside this Section X-Ray's scope.\n\nReveal mentions?"),
+                        buttons = {
+                            {{
+                                text = _("Cancel"),
+                                callback = function()
+                                    UIManager:close(self_ref._spoiler_dialog)
+                                end,
+                            }},
+                            {{
+                                text = _("Reveal"),
+                                callback = function()
+                                    UIManager:close(self_ref._spoiler_dialog)
+                                    self_ref._scope_reveal_warned = true
+                                    UIManager:close(menu_container)
+                                    self_ref:navigateBack()
+                                    self_ref:showMentions(ch)
+                                end,
+                            }},
+                        },
+                    }
+                    UIManager:show(self_ref._spoiler_dialog)
+                else
+                    UIManager:close(menu_container)
+                    self_ref:navigateBack()
+                    self_ref:showMentions(ch)
+                end
+            elseif ch.unread then
                 if not self_ref._mentions_spoiler_warned then
                     self_ref._spoiler_dialog = ButtonDialog:new{
                         text = _("This chapter is beyond your X-Ray coverage.\n\nReveal mentions?"),
@@ -2468,8 +2621,9 @@ function XrayBrowser:showMentions(chapter)
         local display_chapter = chapter  -- track what we're showing for the picker
 
         if is_all then
-            -- Aggregate: page 1 to end
-            -- "all" = scoped to max(coverage, reading); "all_reveal" = entire book
+            -- Aggregate: page range depends on context
+            -- Section X-Ray "all" = scope bounds; main X-Ray "all" = max(coverage, reading)
+            -- "all_reveal" = entire book
             local total_pages = self_ref.ui.document.info.number_of_pages or 0
             if total_pages == 0 then
                 UIManager:show(InfoMessage:new{
@@ -2478,8 +2632,13 @@ function XrayBrowser:showMentions(chapter)
                 })
                 return
             end
+            local start_page = 1
             local end_page
-            if chapter == "all_reveal" then
+            if self_ref.scope and chapter ~= "all_reveal" then
+                -- Section X-Ray: scope bounds
+                start_page = self_ref.scope_start or 1
+                end_page = self_ref.scope_end or total_pages
+            elseif chapter == "all_reveal" then
                 end_page = total_pages
             else
                 local current_page = getCurrentPage(self_ref.ui)
@@ -2489,7 +2648,7 @@ function XrayBrowser:showMentions(chapter)
                 end
                 if end_page > total_pages then end_page = total_pages end
             end
-            local all_chapter = { start_page = 1, end_page = end_page }
+            local all_chapter = { start_page = start_page, end_page = end_page }
             text = self_ref:_getChapterText(all_chapter)
             chapter_title = ""
         elseif type(chapter) == "table" then
@@ -2544,7 +2703,9 @@ function XrayBrowser:showMentions(chapter)
         local picker_label
         local chapter_depth = type(chapter) == "table" and chapter.depth or nil
         if is_all then
-            if chapter == "all_reveal" or self_ref.is_complete then
+            if self_ref.scope then
+                picker_label = T(_("Entire section (%1) \u{25BE}"), self_ref.scope.page_summary or "")
+            elseif chapter == "all_reveal" or self_ref.is_complete then
                 picker_label = _("Entire document \u{25BE}")
             else
                 picker_label = T(_("To %1 \u{25BE}"), self_ref.metadata.progress or "?%")
@@ -2710,11 +2871,13 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
 
     local items = {}
 
-    -- "Scan entire document" at top when there are unread chapters
+    -- "Scan entire document / beyond scope" at top when there are unread/out-of-scope chapters
     if data.has_unread then
+        local scan_text = self.scope and _("Scan beyond scope") or _("Scan entire document")
+        local scan_hint = self.scope and _("outside section scope") or _("may contain spoilers")
         table.insert(items, {
-            text = _("Scan entire document"),
-            mandatory = _("may contain spoilers"),
+            text = scan_text,
+            mandatory = scan_hint,
             mandatory_dim = true,
             bold = true,
             separator = true,
@@ -2793,10 +2956,10 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                             if ch_count > data.max_count then
                                 data.max_count = ch_count
                             end
-                            -- Check if any unread remain
+                            -- Check if any unread/out-of-scope remain
                             local still_unread = false
                             for j = 1, #chapters do
-                                if chapters[j].unread and chapter_counts[j] == nil then
+                                if (chapters[j].unread or chapters[j].out_of_scope) and chapter_counts[j] == nil then
                                     still_unread = true
                                     break
                                 end
@@ -2808,9 +2971,12 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                         end)
                     end
                     if not data.spoiler_warned then
+                        local warn_text = self_ref.scope
+                            and _("This chapter is outside this Section X-Ray's scope.\n\nReveal mentions?")
+                            or _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?")
                         local confirm_dialog
                         confirm_dialog = ButtonDialog:new{
-                            text = _("This chapter is beyond your X-Ray coverage and may contain spoilers.\n\nReveal mentions?"),
+                            text = warn_text,
                             buttons = {{
                                 {
                                     text = _("Cancel"),
@@ -3009,7 +3175,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
     local self_ref = self
     UIManager:scheduleIn(0.2, function()
         -- Get all chapters (pass coverage_page for spoiler gating)
-        local chapters, _toc_info = getAllChapterBoundaries(self_ref.ui, nil, self_ref.coverage_page)
+        local chapters, _toc_info = getAllChapterBoundaries(self_ref.ui, nil, self_ref.coverage_page, self_ref.scope)
         if not chapters then
             chapters, _toc_info = getAllPageRangeChapters(self_ref.ui, self_ref.coverage_page)
         end
@@ -3021,16 +3187,16 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
             return
         end
 
-        -- Count mentions in each chapter (skip unread)
+        -- Count mentions in each chapter (skip unread/out-of-scope)
         local chapter_counts = {}
         local max_count = 0
         local total_mentions = 0
         local scanned_count = 0
         local has_unread = false
         for _idx, chapter in ipairs(chapters) do
-            if chapter.unread then
+            if chapter.unread or chapter.out_of_scope then
                 has_unread = true
-                -- chapter_counts[i] left nil implicitly (unread = not yet scanned)
+                -- chapter_counts[i] left nil implicitly (unread/out_of_scope = not yet scanned)
             else
                 scanned_count = scanned_count + 1
                 local _raw, lower = self_ref:_getChapterText(chapter)
@@ -3305,13 +3471,17 @@ function XrayBrowser:showOptions()
 
     -- Delete option
     if self.on_delete then
+        local delete_text = self.scope and _("Delete Section X-Ray") or _("Delete X-Ray")
+        local delete_confirm = self.scope
+            and T(_("Delete Section X-Ray \"%1\"? This cannot be undone."), self.scope.label or "")
+            or _("Delete this X-Ray? This cannot be undone.")
         table.insert(buttons, {{
-            text = _("Delete X-Ray"), align = "left",
+            text = delete_text, align = "left",
             callback = function()
                 closeOptions()
                 local ConfirmBox = require("ui/widget/confirmbox")
                 UIManager:show(ConfirmBox:new{
-                    text = _("Delete this X-Ray? This cannot be undone."),
+                    text = delete_confirm,
                     ok_text = _("Delete"),
                     ok_callback = function()
                         self_ref.on_delete()
@@ -3324,10 +3494,14 @@ function XrayBrowser:showOptions()
 
     -- Info
     local info_parts = {}
+    if self.scope then
+        table.insert(info_parts, _("Section:") .. " " .. (self.scope.label or ""))
+        table.insert(info_parts, _("Pages:") .. " " .. (self.scope.page_summary or ""))
+    end
     if self.metadata.model then
         table.insert(info_parts, _("Model:") .. " " .. self.metadata.model)
     end
-    if self.metadata.progress then
+    if not self.scope and self.metadata.progress then
         local progress_label = self.metadata.progress
         if self.metadata.previous_progress then
             progress_label = progress_label .. " (" .. _("updated from") .. " " .. self.metadata.previous_progress .. ")"
@@ -3392,7 +3566,12 @@ function XrayBrowser:_getAvailableArtifacts()
     local book_file = self.metadata.book_file
     if not book_file then return {} end
     local ActionCache = require("koassistant_action_cache")
-    return ActionCache.getAvailableArtifactsWithPinned(book_file, "_xray_cache")
+    -- Exclude current cache key: main _xray_cache or section key
+    local exclude_key = "_xray_cache"
+    if self.scope and self.scope.cache_key then
+        exclude_key = self.scope.cache_key
+    end
+    return ActionCache.getAvailableArtifactsWithPinned(book_file, exclude_key)
 end
 
 -- Open a specific artifact viewer
@@ -3401,7 +3580,9 @@ function XrayBrowser:_openArtifact(art)
     if not plugin then return end
     local book_file = self.metadata.book_file
     local book_title = self.metadata.title or ""
-    if art.is_pinned then
+    if art.is_section_xray_group then
+        self:_showSectionXrayGroupPopup(art.data, art._excluded_section_key)
+    elseif art.is_pinned then
         local ArtifactBrowser = require("koassistant_artifact_browser")
         ArtifactBrowser:showPinnedViewer(art.data, book_file)
     elseif art.is_per_action then
@@ -3413,6 +3594,49 @@ function XrayBrowser:_openArtifact(art)
             name = art.name, key = art.key, data = art.data,
             book_title = book_title, file = book_file })
     end
+end
+
+-- Show popup listing individual section X-Rays from a group entry
+function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
+    local plugin = self.metadata.plugin
+    if not plugin then return end
+    local book_file = self.metadata.book_file
+    local book_title = self.metadata.title or ""
+
+    local buttons = {}
+    for _idx, sec in ipairs(sections) do
+        if sec.key ~= excluded_key then
+            local captured = sec
+            local label = captured.label or captured.key
+            local page_info = captured.data and captured.data.scope_page_summary or ""
+            local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
+            table.insert(buttons, {{
+                text = T(_("View %1"), display),
+                callback = function()
+                    if self._section_group_dialog then
+                        UIManager:close(self._section_group_dialog)
+                    end
+                    plugin:showCacheViewer({
+                        name = label, key = captured.key, data = captured.data,
+                        book_title = book_title, file = book_file })
+                end,
+            }})
+        end
+    end
+
+    if #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No other Section X-Rays available."),
+            timeout = 3,
+        })
+        return
+    end
+
+    self._section_group_dialog = ButtonDialog:new{
+        title = _("Section X-Rays"),
+        buttons = buttons,
+    }
+    UIManager:show(self._section_group_dialog)
 end
 
 -- Show popup listing other cached artifacts (for 2+ artifacts)

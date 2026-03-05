@@ -741,6 +741,30 @@ local XRAY_COMPLETE_REPLACEMENTS = {
     __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the work comprehensively, including all events, resolutions, and conclusions. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.]],
 }
 
+-- Section X-Ray: uses complete-style analysis but scoped to a specific section
+local XRAY_SECTION_REPLACEMENTS = {
+    __SCOPE_LINE__ = 'Analyzing a specific section of the document.',
+    __TEXT_SECTION__ = "{full_document_section}",
+    __SCOPE_INSTRUCTION__ = "Cover this section comprehensively. Focus on what appears within the provided text",
+    __FICTION_STATUS__ = XRAY_COMPLETE_REPLACEMENTS.__FICTION_STATUS__,
+    __FICTION_STATUS_GUIDANCE__ = XRAY_COMPLETE_REPLACEMENTS.__FICTION_STATUS_GUIDANCE__,
+    __NONFICTION_STATUS__ = XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS__,
+    __NONFICTION_STATUS_GUIDANCE__ = XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS_GUIDANCE__,
+    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the section comprehensively. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.]],
+}
+
+--- Build a Section X-Ray prompt for a specific scope.
+--- @param scope_label string The section label (e.g., "Part 1")
+--- @param page_summary string Human-readable page range (e.g., "Ch 1–5, pp 1–120")
+--- @return string prompt The fully resolved prompt
+function Actions.buildSectionXrayPrompt(scope_label, page_summary)
+    local replacements = {}
+    for k, v in pairs(XRAY_SECTION_REPLACEMENTS) do replacements[k] = v end
+    replacements.__SCOPE_LINE__ = string.format(
+        'Analyzing section "%s" (%s) of the document.', scope_label, page_summary)
+    return build_xray_prompt(XRAY_PROMPT_TEMPLATE, replacements)
+end
+
 -- Built-in actions for book context (single book from file browser)
 Actions.book = {
     book_info = {

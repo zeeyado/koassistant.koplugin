@@ -655,6 +655,130 @@ function ContextExtractor:getFullDocumentText(options)
     return result
 end
 
+--- Get text for a specific page range (used for Section X-Ray extraction).
+-- Extracts text bounded to [start_page, end_page], respecting hidden flows.
+-- @param start_page number Start page (inclusive)
+-- @param end_page number End page (inclusive)
+-- @param options table { max_chars = 1000000 }
+-- @return table { text, truncated, char_count, disabled }
+function ContextExtractor:getPageRangeText(start_page, end_page, options)
+    options = options or {}
+    local max_chars = options.max_chars or self.settings.max_book_text_chars or Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS
+
+    logger.info("ContextExtractor:getPageRangeText called, pages", start_page, "-", end_page)
+
+    local result = {
+        text = "",
+        truncated = false,
+        char_count = 0,
+        disabled = false,
+    }
+
+    if not self:isBookTextExtractionEnabled() then
+        result.disabled = true
+        return result
+    end
+
+    if not self:isAvailable() then
+        return result
+    end
+
+    local total_pages = self.ui.document.info and self.ui.document.info.number_of_pages
+    if not total_pages or total_pages <= 0 then
+        return result
+    end
+
+    -- Clamp to valid range
+    start_page = math.max(1, math.min(start_page, total_pages))
+    end_page = math.max(start_page, math.min(end_page, total_pages))
+
+    local book_text = ""
+
+    if not self.ui.document.info.has_pages then
+        -- EPUB: extract using XPointers for the page range
+        local document = self.ui.document
+
+        if document.hasHiddenFlows and document:hasHiddenFlows() then
+            -- Flow-aware: only visible pages within range
+            local success, text = pcall(function()
+                local ranges = ContextExtractor.getVisiblePageRanges(document, start_page, end_page)
+                return extractVisibleText(document, ranges, total_pages)
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed flow-aware page range extraction:", text)
+            end
+        else
+            -- Standard: XPointer-based range extraction
+            local success, text = pcall(function()
+                local start_xp = document:getPageXPointer(start_page)
+                local end_xp = document:getPageXPointer(math.min(end_page + 1, total_pages))
+                if start_xp and end_xp then
+                    return document:getTextFromXPointers(start_xp, end_xp) or ""
+                end
+                return ""
+            end)
+            if success then
+                book_text = text
+            else
+                logger.warn("ContextExtractor: Failed page range EPUB extraction:", text)
+            end
+        end
+    else
+        -- PDF: extract specified page range
+        local success, text = pcall(function()
+            local document = self.ui.document
+            local has_hidden = document.hasHiddenFlows and document:hasHiddenFlows()
+            local pages = {}
+
+            for page = start_page, end_page do
+                if not (has_hidden and document:getPageFlow(page) ~= 0) then
+                    local page_text = document:getPageText(page) or ""
+                    if type(page_text) == "table" then
+                        local words = {}
+                        for _idx, block in ipairs(page_text) do
+                            if type(block) == "table" then
+                                for i = 1, #block do
+                                    local span = block[i]
+                                    if type(span) == "table" and span.word then
+                                        table.insert(words, span.word)
+                                    end
+                                end
+                            end
+                        end
+                        page_text = table.concat(words, " ")
+                    end
+                    table.insert(pages, page_text)
+                end
+            end
+
+            return table.concat(pages, "\n")
+        end)
+
+        if success then
+            book_text = text
+        else
+            logger.warn("ContextExtractor: Failed page range PDF extraction:", text)
+        end
+    end
+
+    -- Truncate if needed (keep end content)
+    if #book_text > max_chars then
+        result.truncated = true
+        local notice = string.format(
+            "[Section text truncated due to extraction limit. Showing last %d characters.]",
+            max_chars)
+        book_text = notice .. "\n\n" .. book_text:sub(-max_chars)
+    end
+
+    result.text = book_text
+    result.char_count = #book_text
+
+    logger.info("ContextExtractor:getPageRangeText - extracted", result.char_count, "chars from pages", start_page, "-", end_page)
+    return result
+end
+
 --- Get highlights from the document (text only, no notes).
 -- @param options table { max_count = 100, include_chapter = true }
 -- @return table { formatted = "...", count = number, items = array }
@@ -1065,9 +1189,16 @@ function ContextExtractor:extractForAction(action)
             end
         end
 
-        -- {full_document} / {full_document_section} → extract entire document
+        -- {full_document} / {full_document_section} → extract entire document (or section scope)
         if prompt:find("{full_document", 1, true) then
-            local full_doc_result = self:getFullDocumentText(options)
+            local full_doc_result
+            if action._section_scope then
+                -- Section X-Ray: extract only the scoped page range
+                local scope = action._section_scope
+                full_doc_result = self:getPageRangeText(scope.start_page, scope.end_page, options)
+            else
+                full_doc_result = self:getFullDocumentText(options)
+            end
             data.full_document = full_doc_result.text
             -- Pass truncation metadata for UI notifications
             if full_doc_result.truncated then

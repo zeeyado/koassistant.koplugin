@@ -3040,6 +3040,27 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     end
                 end
 
+                -- Section X-Ray: save to section-specific cache key (not the main _xray_cache)
+                if config.features and config.features._section_xray and cache_answer then
+                    local scope = config.features._section_xray
+                    local section_metadata = {
+                        model = model_name,
+                        used_book_text = book_text_was_provided,
+                        used_highlights = (message_data.highlights and message_data.highlights ~= "") or false,
+                        used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        web_search_used = web_search_used or false,
+                        full_document = true,
+                        scope_label = scope.label,
+                        scope_start_page = scope.start_page,
+                        scope_end_page = scope.end_page,
+                        scope_page_summary = scope.page_summary,
+                    }
+                    local section_success = ActionCache.set(cache_file, scope.cache_key, cache_answer, 1.0, section_metadata)
+                    if section_success then
+                        logger.info("KOAssistant: Saved Section X-Ray to", scope.cache_key)
+                    end
+                end
+
                 if action.cache_as_analyze then
                     local analyze_metadata = {
                         model = model_name,
@@ -4492,6 +4513,65 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 if not temp_config.features._original_context then
                     temp_config.features._original_context = temp_config.features.dictionary_context or ""
                     temp_config.features._original_context_mode = temp_config.features.dictionary_context_mode or "sentence"
+                end
+            end
+            -- For Section X-Ray: open browser directly from section cache
+            if configuration and configuration.features and configuration.features._section_xray and ui and ui.document and ui.document.file then
+                local ActionCache = require("koassistant_action_cache")
+                local scope = configuration.features._section_xray
+                local section_cache = ActionCache.get(ui.document.file, scope.cache_key)
+                if section_cache and section_cache.result then
+                    local XrayParser = require("koassistant_xray_parser")
+                    local parsed = XrayParser.parse(section_cache.result)
+                    if parsed then
+                        local XrayBrowser = require("koassistant_xray_browser")
+                        local book_title = (book_metadata and book_metadata.title) or ""
+                        local Notification = require("ui/widget/notification")
+                        local config_features = (configuration or CONFIGURATION or {}).features or {}
+                        local source_label = section_cache.used_book_text == false
+                            and _("Based on AI training data knowledge")
+                            or _("Based on extracted document text")
+                        local formatted_date = section_cache.timestamp
+                            and (os.date("%Y-%m-%d", section_cache.timestamp) .. " (" .. _("today") .. ")")
+                        XrayBrowser:show(parsed, {
+                            title = book_title,
+                            progress = "Complete",
+                            model = section_cache.model,
+                            timestamp = section_cache.timestamp,
+                            book_file = ui.document.file,
+                            enable_emoji = config_features.enable_emoji_icons == true,
+                            configuration = configuration,
+                            plugin = plugin,
+                            source_label = source_label,
+                            formatted_date = formatted_date,
+                            progress_decimal = 1.0,
+                            full_document = true,
+                            used_reasoning = section_cache.used_reasoning,
+                            web_search_used = section_cache.web_search_used,
+                            scope = {
+                                label = scope.label,
+                                start_page = scope.start_page,
+                                end_page = scope.end_page,
+                                page_summary = scope.page_summary,
+                                cache_key = scope.cache_key,
+                            },
+                            cache_metadata = {
+                                cache_type = "xray",
+                                book_title = book_title,
+                                progress_decimal = 1.0,
+                                model = section_cache.model,
+                                timestamp = section_cache.timestamp,
+                                used_book_text = section_cache.used_book_text,
+                            },
+                        }, ui, function()
+                            ActionCache.clear(ui.document.file, scope.cache_key)
+                            UIManager:show(Notification:new{
+                                text = T(_("Section X-Ray '%1' deleted"), scope.label),
+                                timeout = 2,
+                            })
+                        end)
+                        return
+                    end
                 end
             end
             -- For X-Ray: open browser directly instead of chat viewer
