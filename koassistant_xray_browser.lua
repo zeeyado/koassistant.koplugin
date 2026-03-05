@@ -1034,7 +1034,7 @@ function XrayBrowser:buildCategoryItems()
                 and (art.name .. " (" .. _("Pinned") .. ")")
                 or art.name
             table.insert(items, {
-                text = Constants.getEmojiText("📋", T(_("View %1"), label), enable_emoji),
+                text = Constants.getEmojiText("📋", label, enable_emoji),
                 callback = function()
                     self_ref:_openArtifact(art)
                 end,
@@ -1877,6 +1877,7 @@ function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, n
     local file = self.metadata.book_file
     local self_ref = self
 
+    local wiki_key = ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name
     local wiki_viewer = ChatGPTViewer:new{
         title = T(_("AI Wiki: %1"), item_name),
         text = cached.result,
@@ -1900,7 +1901,11 @@ function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, n
             })
         end,
         _book_open = self.ui and self.ui.document ~= nil,
+        _plugin = self.metadata.plugin,
         _artifact_file = file,
+        _artifact_key = wiki_key,
+        _artifact_book_title = self.metadata.title,
+        _artifact_book_author = self.metadata.author,
     }
     UIManager:show(wiki_viewer)
 end
@@ -3700,7 +3705,7 @@ function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
             local page_info = captured.data and captured.data.scope_page_summary or ""
             local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
             table.insert(buttons, {{
-                text = T(_("View %1"), display),
+                text = display,
                 callback = function()
                     if self_ref._section_group_dialog then
                         UIManager:close(self_ref._section_group_dialog)
@@ -3795,7 +3800,7 @@ function XrayBrowser:_showOtherArtifacts(available)
             and (captured.name .. " (" .. _("Pinned") .. ")")
             or captured.name
         table.insert(buttons, {{
-            text = T(_("View %1"), label),
+            text = label,
             callback = function()
                 if self_ref._artifacts_dialog then
                     UIManager:close(self_ref._artifacts_dialog)

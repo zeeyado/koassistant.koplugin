@@ -760,7 +760,7 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
             local page_info = captured.data and captured.data.scope_page_summary or ""
             local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
             table.insert(buttons, {{
-                text = T(_("View %1"), display),
+                text = display,
                 callback = function()
                     if self_ref._section_group_dialog then
                         UIManager:close(self_ref._section_group_dialog)

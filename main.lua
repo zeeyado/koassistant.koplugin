@@ -4394,6 +4394,7 @@ function AskGPT:showCacheViewer(cache_info)
           local scope_end = cache_info.data.scope_end_page
           local scope_summary = cache_info.data.scope_page_summary
           -- Reconvert XPointers to current pages if book is open (font-size independence)
+          -- Only reconvert when start_xpointer exists (confirms XPointers were stored at generation)
           local doc = self.ui and self.ui.document
           if doc and doc.getPageFromXPointer then
             local start_xp = cache_info.data.scope_start_xpointer
@@ -4401,15 +4402,25 @@ function AskGPT:showCacheViewer(cache_info)
             if start_xp then
               local new_start = doc:getPageFromXPointer(start_xp)
               if new_start then scope_start = new_start end
+              if end_xp then
+                local new_end = doc:getPageFromXPointer(end_xp)
+                if new_end then scope_end = new_end - 1 end  -- XPointer was at next section start
+              else
+                -- Last section: find last visible page (excluding hidden flows)
+                local total = doc.info.number_of_pages or 0
+                if doc.hasHiddenFlows and doc:hasHiddenFlows() then
+                  for page = total, 1, -1 do
+                    if doc:getPageFlow(page) == 0 then
+                      scope_end = page
+                      break
+                    end
+                  end
+                else
+                  scope_end = total
+                end
+              end
+              scope_summary = T(_("pp %1–%2"), scope_start, scope_end)
             end
-            if end_xp then
-              local new_end = doc:getPageFromXPointer(end_xp)
-              if new_end then scope_end = new_end - 1 end  -- XPointer was at next section start
-            else
-              -- Last section: use total pages
-              scope_end = doc.info.number_of_pages or scope_end
-            end
-            scope_summary = T(_("pp %1–%2"), scope_start, scope_end)
           end
           browser_metadata.scope = {
             label = cache_info.data.scope_label,
@@ -4927,7 +4938,7 @@ function AskGPT:_showSectionXrayPicker(action)
     return
   end
 
-  local total_pages = self.ui.document.info.number_of_pages or 0
+  local raw_total_pages = self.ui.document.info.number_of_pages or 0
   local BD = require("ui/bidi")
   local Blitbuffer = require("ffi/blitbuffer")
   local Button = require("ui/widget/button")
@@ -4939,13 +4950,21 @@ function AskGPT:_showSectionXrayPicker(action)
   local TextWidget = require("ui/widget/textwidget")
   local self_ref = self
 
-  -- Filter hidden flow entries
+  -- Filter hidden flow entries and find last visible page
   local effective_toc = toc
+  local total_pages = raw_total_pages
   if self.ui.document.hasHiddenFlows and self.ui.document:hasHiddenFlows() then
     effective_toc = {}
     for _idx, entry in ipairs(toc) do
       if entry.page and self.ui.document:getPageFlow(entry.page) == 0 then
         table.insert(effective_toc, entry)
+      end
+    end
+    -- Last visible (flow 0) page, excluding hidden flows
+    for page = raw_total_pages, 1, -1 do
+      if self.ui.document:getPageFlow(page) == 0 then
+        total_pages = page
+        break
       end
     end
   end
@@ -5425,7 +5444,18 @@ function AskGPT:_showSectionXrayList(opts)
       new_end = doc:getPageFromXPointer(end_xp)
       if new_end then new_end = new_end - 1 end
     else
-      new_end = doc.info.number_of_pages
+      -- Last section: find last visible page (excluding hidden flows)
+      local total = doc.info.number_of_pages or 0
+      if doc.hasHiddenFlows and doc:hasHiddenFlows() then
+        for page = total, 1, -1 do
+          if doc:getPageFlow(page) == 0 then
+            new_end = page
+            break
+          end
+        end
+      else
+        new_end = total
+      end
     end
     if new_start and new_end then
       return T(_("pp %1–%2"), new_start, new_end)

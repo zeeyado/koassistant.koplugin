@@ -2142,7 +2142,7 @@ function ChatGPTViewer:init()
                 and (captured.name .. " (" .. _("Pinned") .. ")")
                 or captured.name
             table.insert(art_buttons, {{
-              text = _("View") .. " " .. label,
+              text = label,
               callback = function()
                 UIManager:close(self._artifacts_dialog)
                 if captured.is_section_xray_group then
@@ -2155,7 +2155,7 @@ function ChatGPTViewer:init()
                       local page_info = cap_sec.data and cap_sec.data.scope_page_summary or ""
                       local sec_display = page_info ~= "" and (sec_label .. " (" .. page_info .. ")") or sec_label
                       table.insert(sec_buttons, {{
-                        text = T(_("View %1"), sec_display),
+                        text = sec_display,
                         callback = function()
                           UIManager:close(self._section_group_dialog)
                           self:onClose()
