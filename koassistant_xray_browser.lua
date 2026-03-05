@@ -1362,7 +1362,6 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             table.insert(search_row, {
                 text = _("Edit Search Terms"),
                 callback = function()
-                    if viewer then viewer:onClose() end
                     self_ref:editSearchTerms(item, category_key, title, source, nav_context)
                 end,
             })
@@ -1561,8 +1560,7 @@ function XrayBrowser:editSearchTerms(item, category_key, item_title, source, nav
             callback = function()
                 UIManager:close(self_ref._edit_dialog)
                 self_ref._edit_dialog = nil
-                -- Refresh detail view to reflect any changes
-                self_ref:showItemDetail(item, category_key, item_title, source, nav_context)
+                -- Detail viewer already refreshed by each action; just close the dialog
             end,
         },
     })
@@ -1647,6 +1645,13 @@ function XrayBrowser:_editSearchTermAction(item, category_key, item_title, sourc
     if self._dist_cache then
         self._dist_cache[tostring(item)] = nil
     end
+
+    -- Refresh item detail underneath to reflect updated search terms
+    if self._detail_viewer then
+        UIManager:close(self._detail_viewer)
+        self._detail_viewer = nil
+    end
+    self:showItemDetail(item, category_key, item_title, source, nav_context)
 
     -- Re-open edit dialog to reflect changes
     self:editSearchTerms(item, category_key, item_title, source, nav_context)
@@ -1733,6 +1738,13 @@ function XrayBrowser:_addSearchTermInput(item, category_key, item_title, source,
                         if self_ref._dist_cache then
                             self_ref._dist_cache[tostring(item)] = nil
                         end
+
+                        -- Refresh item detail underneath to reflect new search term
+                        if self_ref._detail_viewer then
+                            UIManager:close(self_ref._detail_viewer)
+                            self_ref._detail_viewer = nil
+                        end
+                        self_ref:showItemDetail(item, category_key, item_title, source, nav_context)
 
                         UIManager:show(Notification:new{
                             text = T(_("Added \"%1\""), new_alias),
