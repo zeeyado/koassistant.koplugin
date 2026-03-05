@@ -461,6 +461,57 @@ function ActionCache.clearSummaryCache(document_path)
     return ActionCache.clear(document_path, ActionCache.SUMMARY_CACHE_KEY)
 end
 
+-- Wiki entry prefix for per-item encyclopedia entries (stored in same cache file)
+ActionCache.WIKI_PREFIX = "_wiki:"
+
+--- Clear all wiki entries for a document
+--- @param document_path string The document file path
+--- @return boolean success
+function ActionCache.clearWikiEntries(document_path)
+    local cache = loadCache(document_path)
+    local found = false
+    local prefix_len = #ActionCache.WIKI_PREFIX
+    for key, _v in pairs(cache) do
+        if type(key) == "string" and key:sub(1, prefix_len) == ActionCache.WIKI_PREFIX then
+            cache[key] = nil
+            found = true
+        end
+    end
+    if found then
+        return saveCache(document_path, cache)
+    end
+    return true
+end
+
+--- Get a wiki entry for a specific item
+--- @param document_path string The document file path
+--- @param category_key string The X-Ray category (e.g., "characters")
+--- @param item_name string The item name
+--- @return table|nil cached entry
+function ActionCache.getWikiEntry(document_path, category_key, item_name)
+    return ActionCache.get(document_path, ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name)
+end
+
+--- Save a wiki entry for a specific item
+--- @param document_path string The document file path
+--- @param category_key string The X-Ray category
+--- @param item_name string The item name
+--- @param result string The wiki text
+--- @param metadata table Optional: { model, used_reasoning, web_search_used }
+--- @return boolean success
+function ActionCache.setWikiEntry(document_path, category_key, item_name, result, metadata)
+    return ActionCache.set(document_path, ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name, result, nil, metadata)
+end
+
+--- Clear a single wiki entry
+--- @param document_path string The document file path
+--- @param category_key string The X-Ray category
+--- @param item_name string The item name
+--- @return boolean success
+function ActionCache.clearWikiEntry(document_path, category_key, item_name)
+    return ActionCache.clear(document_path, ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name)
+end
+
 --- Get path to user aliases file for a document
 --- @param document_path string The document file path
 --- @return string|nil path Full path, or nil if not applicable

@@ -4288,6 +4288,8 @@ function AskGPT:showCacheViewer(cache_info)
         ActionCache.clearXrayCache(file)
         -- Also clear per-action cache (X-Ray saves to both document and per-action cache)
         ActionCache.clear(file, "xray")
+        -- Clear all per-item wiki entries (derived from X-Ray data)
+        ActionCache.clearWikiEntries(file)
       elseif cache_key == "_analyze_cache" then
         ActionCache.clearAnalyzeCache(file)
         ActionCache.clear(file, "analyze_full_document")

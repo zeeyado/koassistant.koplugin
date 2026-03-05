@@ -2676,9 +2676,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
         -- Extract surrounding context for any action with use_surrounding_context flag
         if prompt.use_surrounding_context then
-            local context_mode = prompt.context_mode or config.features.dictionary_context_mode or "sentence"
-            local context_chars = prompt.context_chars or config.features.dictionary_context_chars or 100
-            message_data.surrounding_context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
+            if config.features._forced_surrounding_context then
+                message_data.surrounding_context = config.features._forced_surrounding_context
+            else
+                local context_mode = prompt.context_mode or config.features.dictionary_context_mode or "sentence"
+                local context_chars = prompt.context_chars or config.features.dictionary_context_chars or 100
+                message_data.surrounding_context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
+            end
         end
     end
 
@@ -4615,8 +4619,39 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
 end
 
+--- Execute an action and return just the result text + metadata via callback.
+--- Thin wrapper around handlePredefinedPrompt for programmatic use (no viewer shown).
+--- @param action table Action definition from prompts/actions.lua
+--- @param highlighted_text string The text to act on
+--- @param ui table KOReader UI instance
+--- @param configuration table Plugin configuration
+--- @param plugin table Plugin instance
+--- @param book_metadata table Book title/author metadata
+--- @param on_result function Callback: on_result(result_text, metadata) or on_result(nil, error_string)
+local function executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata, on_result)
+    handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, function(history, temp_config_or_error)
+        if history then
+            local messages = history:getMessages()
+            local last = messages[#messages]
+            if last and last.content then
+                local model_info = last.model_info
+                on_result(last.content, {
+                    model = model_info and model_info.model or "",
+                    used_reasoning = last.reasoning ~= nil,
+                    web_search_used = last.web_search_used or false,
+                })
+            else
+                on_result(nil, "No response received")
+            end
+        else
+            on_result(nil, temp_config_or_error or "Unknown error")
+        end
+    end, book_metadata)
+end
+
 return {
     showChatGPTDialog = showChatGPTDialog,
     executeDirectAction = executeDirectAction,
+    executeActionForResult = executeActionForResult,
     extractSurroundingContext = extractSurroundingContext,
 }
