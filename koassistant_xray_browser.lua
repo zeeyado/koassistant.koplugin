@@ -1284,6 +1284,22 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 end
             end,
         })
+        -- AI Wiki button (generates/views per-item encyclopedia entry)
+        if self.metadata.plugin and self.metadata.configuration and self.metadata.book_file then
+            local ActionCache = require("koassistant_action_cache")
+            local item_name = item.name or item.term or ""
+            local wiki_cached = ActionCache.getWikiEntry(self.metadata.book_file, category_key, item_name)
+            table.insert(search_row, {
+                text = wiki_cached and _("View AI Wiki") or _("AI Wiki"),
+                callback = function()
+                    if wiki_cached then
+                        self_ref:showWikiViewer(item, category_key, wiki_cached, title, source, nav_context)
+                    else
+                        self_ref:runWikiForItem(item, category_key, title, source, nav_context)
+                    end
+                end,
+            })
+        end
         if self.metadata.book_file then
             table.insert(search_row, {
                 text = _("Edit Search Terms"),
@@ -1709,6 +1725,90 @@ function XrayBrowser:chatAboutItem(detail_text)
     config.features._xray_context_prefix = framing
 
     Dialogs.showChatGPTDialog(self.ui, detail_text, config, nil, self.metadata.plugin)
+end
+
+--- Generate an AI Wiki entry for an X-Ray item
+--- @param item table The X-Ray item
+--- @param category_key string The X-Ray category
+--- @param title string Display title for re-opening detail view
+--- @param source string|nil Source context for navigation
+--- @param nav_context table|nil Navigation context for back/forward
+function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_context)
+    local Dialogs = require("koassistant_dialogs")
+    local Actions = require("prompts/actions")
+    local ActionCache = require("koassistant_action_cache")
+
+    local wiki_action = Actions.highlight.wiki
+    if not wiki_action then return end
+
+    local item_name = item.name or item.term or ""
+    local file = self.metadata.book_file
+    if not file then return end
+
+    -- Refresh config from settings (same pattern as chatAboutItem)
+    if self.metadata.plugin and self.metadata.plugin.updateConfigFromSettings then
+        self.metadata.plugin:updateConfigFromSettings()
+    end
+    local orig_config = self.metadata.configuration
+    local config = {}
+    for k, v in pairs(orig_config) do config[k] = v end
+    config.features = {}
+    for k, v in pairs(orig_config.features or {}) do config.features[k] = v end
+
+    -- Set item description as disambiguation context (consumed by _forced_surrounding_context)
+    config.features._forced_surrounding_context = XrayParser.formatItemDetail(item, category_key)
+
+    local book_metadata = config.features.book_metadata
+    local self_ref = self
+
+    Dialogs.executeActionForResult(wiki_action, item_name, self.ui, config, self.metadata.plugin, book_metadata,
+        function(result, metadata)
+            if result then
+                ActionCache.setWikiEntry(file, category_key, item_name, result, metadata)
+                local cached = ActionCache.getWikiEntry(file, category_key, item_name)
+                self_ref:showWikiViewer(item, category_key, cached, title, source, nav_context)
+            end
+            -- Error case: handlePredefinedPrompt already shows error UI
+        end
+    )
+end
+
+--- Show a cached wiki entry in a simple viewer with Delete/Regenerate
+--- @param item table The X-Ray item
+--- @param category_key string The X-Ray category
+--- @param cached table The cached wiki entry from ActionCache
+--- @param title string Display title for re-opening detail view
+--- @param source string|nil Source context for navigation
+--- @param nav_context table|nil Navigation context for back/forward
+function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, nav_context)
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    local ActionCache = require("koassistant_action_cache")
+    local item_name = item.name or item.term or ""
+    local file = self.metadata.book_file
+    local self_ref = self
+
+    local wiki_viewer = ChatGPTViewer:new{
+        title = T(_("AI Wiki: %1"), item_name),
+        text = cached.result,
+        simple_view = true,
+        cache_type_name = _("AI Wiki"),
+        on_regenerate = function()
+            self_ref:runWikiForItem(item, category_key, title, source, nav_context)
+        end,
+        regenerate_label = _("Regenerate"),
+        on_delete = function()
+            ActionCache.clearWikiEntry(file, category_key, item_name)
+            -- Re-open item detail to update button state
+            self_ref:showItemDetail(item, category_key, title, source, nav_context)
+            UIManager:show(Notification:new{
+                text = _("AI Wiki deleted"),
+                timeout = 2,
+            })
+        end,
+        _book_open = self.ui and self.ui.document ~= nil,
+        _artifact_file = file,
+    }
+    UIManager:show(wiki_viewer)
 end
 
 -- Short category labels for chapter analysis display
