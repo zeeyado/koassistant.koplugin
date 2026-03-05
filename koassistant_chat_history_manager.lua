@@ -2450,73 +2450,161 @@ function ChatHistoryManager:validateChatIndex()
     end
 end
 
--- Rebuild chat index by scanning .sdr folders (for recovery/maintenance)
+-- Rebuild chat index by discovering documents with chats (for recovery/maintenance)
+-- Uses two-phase discovery:
+--   Phase A: Index-based — collects known doc paths from ReadHistory + KOAssistant indices (all storage modes)
+--   Phase B: Filesystem scan — supplements Phase A for dir/hash modes where scan roots are well-defined
+-- No doc-mode filesystem scan: the old scan root (DataStorage parent) doesn't match book locations
+-- on most platforms. Phase A covers doc mode via ReadHistory.
 -- @return count of documents indexed
 function ChatHistoryManager:rebuildChatIndex()
-    logger.info("Rebuilding chat index by scanning .sdr folders...")
+    logger.info("KOAssistant: Rebuilding chat index...")
 
     local DocSettings = require("docsettings")
     local index = {}
     local doc_count = 0
+    local seen = {}
 
-    -- Scan directory recursively for .sdr folders
-    local function scanForSdrFolders(dir, depth)
-        if depth > 4 then return end  -- Limit recursion depth
+    local function indexDocument(book_path)
+        if not book_path or seen[book_path] then return end
+        seen[book_path] = true
+        if lfs.attributes(book_path, "mode") ~= "file" then return end
+        local ok_open, doc_settings = pcall(DocSettings.open, DocSettings, book_path)
+        if not ok_open then return end
+        local chats = doc_settings:readSetting("koassistant_chats", {})
+        if chats and next(chats) then
+            local chat_ids = {}
+            local count = 0
+            for id in pairs(chats) do
+                count = count + 1
+                table.insert(chat_ids, id)
+            end
+            index[book_path] = {
+                count = count,
+                last_modified = os.time(),
+                chat_ids = chat_ids,
+            }
+            doc_count = doc_count + 1
+            logger.info("KOAssistant: Indexed:", book_path, "(" .. count .. " chats)")
+        end
+    end
 
+    -- Phase A: Index-based discovery (mode-independent, primary)
+    local ok_rh, ReadHistory = pcall(require, "readhistory")
+    if ok_rh and ReadHistory and ReadHistory.hist then
+        for _idx, item in ipairs(ReadHistory.hist) do
+            if item.file then indexDocument(item.file) end
+        end
+    end
+    for doc_path in pairs(G_reader_settings:readSetting("koassistant_notebook_index", {})) do
+        indexDocument(doc_path)
+    end
+    for doc_path in pairs(G_reader_settings:readSetting("koassistant_artifact_index", {})) do
+        indexDocument(doc_path)
+    end
+    for doc_path in pairs(G_reader_settings:readSetting("koassistant_pinned_index", {})) do
+        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__MULTI_BOOK_CHATS__" then
+            indexDocument(doc_path)
+        end
+    end
+
+    -- Phase B: Filesystem scan for dir/hash modes (well-defined roots)
+    local location = G_reader_settings:readSetting("document_metadata_folder", "doc")
+    if location == "dir" then
+        self:_scanDirModeSdr(indexDocument)
+    elseif location == "hash" then
+        self:_scanHashModeSdr(indexDocument)
+    end
+
+    -- Save rebuilt index
+    G_reader_settings:saveSetting("koassistant_chat_index", index)
+    G_reader_settings:flush()
+
+    logger.info("KOAssistant: Chat index rebuilt:", doc_count, "documents indexed")
+    return doc_count
+end
+
+--- Scan centralized docsettings directory for .sdr folders (dir storage mode)
+-- Reconstructs book paths by stripping the docsettings prefix and finding the
+-- file extension from metadata.{ext}.lua inside each .sdr folder.
+function ChatHistoryManager:_scanDirModeSdr(indexDocument)
+    local docsettings_dir = DataStorage:getDocSettingsDir()
+
+    local function scan(dir, depth)
+        if depth > 8 then return end
         local ok, iter = pcall(lfs.dir, dir)
         if not ok then return end
-
         for entry in iter do
-            if entry ~= "." and entry ~= ".." and not entry:match("^%.") then
+            if entry ~= "." and entry ~= ".." then
                 local path = dir .. "/" .. entry
                 local attr = lfs.attributes(path)
-
                 if attr and attr.mode == "directory" then
                     if entry:match("%.sdr$") then
-                        -- Found .sdr folder - check for corresponding book file
-                        local book_path = path:gsub("%.sdr$", "")
-                        if lfs.attributes(book_path, "mode") == "file" then
-                            -- Read chats from metadata.lua
-                            local doc_settings = DocSettings:open(book_path)
-                            local chats = doc_settings:readSetting("koassistant_chats", {})
-
-                            if chats and next(chats) then
-                                -- Build index entry
-                                local chat_ids = {}
-                                local count = 0
-                                for id in pairs(chats) do
-                                    count = count + 1
-                                    table.insert(chat_ids, id)
+                        -- Reconstruct book path: strip docsettings prefix + .sdr suffix
+                        local relative = path:sub(#docsettings_dir + 1):gsub("%.sdr$", "")
+                        -- Find extension from metadata file inside
+                        local meta_ok, meta_iter = pcall(lfs.dir, path)
+                        if meta_ok then
+                            for meta_entry in meta_iter do
+                                local ext = meta_entry:match("^metadata%.(.+)%.lua$")
+                                if ext then
+                                    local book_path = relative .. "." .. ext
+                                    indexDocument(book_path)
+                                    break
                                 end
-
-                                index[book_path] = {
-                                    count = count,
-                                    last_modified = os.time(),
-                                    chat_ids = chat_ids,
-                                }
-                                doc_count = doc_count + 1
-                                logger.info("Indexed: " .. book_path .. " (" .. count .. " chats)")
                             end
                         end
                     else
-                        -- Recurse into subdirectory
-                        scanForSdrFolders(path, depth + 1)
+                        scan(path, depth + 1)
                     end
                 end
             end
         end
     end
 
-    -- Start scanning from KOReader data directory parent
-    local start_dir = DataStorage:getDataDir() .. "/.."
-    scanForSdrFolders(start_dir, 1)
+    logger.dbg("KOAssistant: Scanning dir-mode sidecar location:", docsettings_dir)
+    scan(docsettings_dir, 0)
+end
 
-    -- Save rebuilt index
-    G_reader_settings:saveSetting("koassistant_chat_index", index)
-    G_reader_settings:flush()
+--- Scan hash-based docsettings directory for .sdr folders (hash storage mode)
+-- Structure: {hash_dir}/{2char_prefix}/{full_hash}.sdr/metadata.{ext}.lua
+-- Reads metadata files to extract the original doc_path.
+function ChatHistoryManager:_scanHashModeSdr(indexDocument)
+    local DocSettings = require("docsettings")
+    local hash_dir = DataStorage:getDocSettingsHashDir()
+    if not lfs.attributes(hash_dir, "mode") then return end
 
-    logger.info("Chat index rebuilt: " .. doc_count .. " documents indexed")
-    return doc_count
+    logger.dbg("KOAssistant: Scanning hash-mode sidecar location:", hash_dir)
+    local ok_top, top_iter = pcall(lfs.dir, hash_dir)
+    if not ok_top then return end
+
+    for prefix in top_iter do
+        if prefix ~= "." and prefix ~= ".." and #prefix == 2 then
+            local prefix_dir = hash_dir .. "/" .. prefix
+            local ok_sub, sub_iter = pcall(lfs.dir, prefix_dir)
+            if ok_sub then
+                for entry in sub_iter do
+                    if entry:match("%.sdr$") then
+                        local sdr_path = prefix_dir .. "/" .. entry
+                        -- Find metadata file and read doc_path from it
+                        local ok_sdr, sdr_iter = pcall(lfs.dir, sdr_path)
+                        if ok_sdr then
+                            for meta_entry in sdr_iter do
+                                if meta_entry:match("^metadata%..+%.lua$") then
+                                    local meta_path = sdr_path .. "/" .. meta_entry
+                                    local settings = DocSettings.openSettingsFile(meta_path)
+                                    if settings and settings.data and settings.data.doc_path then
+                                        indexDocument(settings.data.doc_path)
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 --[[

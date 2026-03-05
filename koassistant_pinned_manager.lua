@@ -75,6 +75,44 @@ function PinnedManager.getPath(document_path)
     end
 end
 
+--- Check alternate storage mode locations for a sidecar file (lazy migration on mode switch)
+--- Only applies to book-context paths (not general/multi-book which use settings dir)
+--- @param document_path string The document file path
+--- @param current_path string The expected path in current storage mode
+--- @param filename string The sidecar filename
+--- @return boolean migrated Whether a file was migrated to current_path
+local function migrateSidecarIfNeeded(document_path, current_path, filename)
+    -- Skip for non-book contexts (stored in settings dir, not sidecar)
+    if document_path == PinnedManager.GENERAL_KEY
+        or document_path == PinnedManager.MULTI_BOOK_KEY then
+        return false
+    end
+    local current = G_reader_settings:readSetting("document_metadata_folder", "doc")
+    local alternates = { "doc", "dir" }
+    if DocSettings.isHashLocationEnabled() then
+        table.insert(alternates, "hash")
+    end
+    for _idx, loc in ipairs(alternates) do
+        if loc ~= current then
+            local alt_dir = DocSettings:getSidecarDir(document_path, loc)
+            local alt_path = alt_dir .. "/" .. filename
+            if lfs.attributes(alt_path, "mode") == "file" then
+                local util = require("util")
+                local dir = current_path:match("(.*/)") or ""
+                if dir ~= "" then util.makePath(dir) end
+                local ok, err = os.rename(alt_path, current_path)
+                if ok then
+                    logger.info("KOAssistant: Migrated sidecar file", filename, "from alternate storage location")
+                    return true
+                else
+                    logger.warn("KOAssistant: Failed to migrate sidecar file", filename, ":", err)
+                end
+            end
+        end
+    end
+    return false
+end
+
 --- Load pinned artifacts from file.
 --- @param document_path string Document path or special key
 --- @return table Array of pinned entries
@@ -84,7 +122,10 @@ local function loadPinned(document_path)
 
     local attr = lfs.attributes(path)
     if not attr or attr.mode ~= "file" then
-        return {}
+        -- Try alternate storage mode locations (lazy migration on mode switch)
+        if not migrateSidecarIfNeeded(document_path, path, "koassistant_pinned.lua") then
+            return {}
+        end
     end
 
     local ok, data = pcall(dofile, path)

@@ -20,6 +20,50 @@ local _ = require("koassistant_gettext")
 
 local ActionCache = {}
 
+--- Check alternate storage mode locations for a sidecar file (lazy migration on mode switch)
+--- @param document_path string The document file path
+--- @param filename string The sidecar filename (e.g., "koassistant_cache.lua")
+--- @return string|nil alternate_path Path at alternate location if found
+local function findSidecarInAlternateLocation(document_path, filename)
+    local current = G_reader_settings:readSetting("document_metadata_folder", "doc")
+    local alternates = { "doc", "dir" }
+    if DocSettings.isHashLocationEnabled() then
+        table.insert(alternates, "hash")
+    end
+    for _idx, loc in ipairs(alternates) do
+        if loc ~= current then
+            local alt_dir = DocSettings:getSidecarDir(document_path, loc)
+            local alt_path = alt_dir .. "/" .. filename
+            if lfs.attributes(alt_path, "mode") == "file" then
+                return alt_path
+            end
+        end
+    end
+    return nil
+end
+
+--- Attempt to migrate a sidecar file from an alternate storage mode location
+--- @param document_path string The document file path
+--- @param current_path string The expected path in current storage mode
+--- @param filename string The sidecar filename
+--- @return boolean migrated Whether a file was migrated to current_path
+local function migrateSidecarIfNeeded(document_path, current_path, filename)
+    local alt = findSidecarInAlternateLocation(document_path, filename)
+    if alt then
+        local util = require("util")
+        local dir = current_path:match("(.*/)") or ""
+        if dir ~= "" then util.makePath(dir) end
+        local ok, err = os.rename(alt, current_path)
+        if ok then
+            logger.info("KOAssistant: Migrated sidecar file", filename, "from alternate storage location")
+            return true
+        else
+            logger.warn("KOAssistant: Failed to migrate sidecar file", filename, ":", err)
+        end
+    end
+    return false
+end
+
 -- Cache format version (increment if structure changes)
 -- v2: Added used_annotations and used_book_text fields to track permission state when cache was built
 local CACHE_VERSION = 2
@@ -137,7 +181,10 @@ local function loadCache(document_path)
 
     local attr = lfs.attributes(path)
     if not attr or attr.mode ~= "file" then
-        return {}
+        -- Try alternate storage mode locations (lazy migration on mode switch)
+        if not migrateSidecarIfNeeded(document_path, path, "koassistant_cache.lua") then
+            return {}
+        end
     end
 
     local ok, cache = pcall(dofile, path)
@@ -646,7 +693,10 @@ function ActionCache.getUserAliases(document_path)
 
     local attr = lfs.attributes(path)
     if not attr or attr.mode ~= "file" then
-        return {}
+        -- Try alternate storage mode locations (lazy migration on mode switch)
+        if not migrateSidecarIfNeeded(document_path, path, "koassistant_user_aliases.lua") then
+            return {}
+        end
     end
 
     local ok, data = pcall(dofile, path)

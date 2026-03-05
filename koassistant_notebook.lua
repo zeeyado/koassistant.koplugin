@@ -17,6 +17,38 @@ local logger = require("logger")
 
 local Notebook = {}
 
+--- Check alternate storage mode locations for a sidecar file (lazy migration on mode switch)
+--- @param document_path string The document file path
+--- @param current_path string The expected path in current storage mode
+--- @param filename string The sidecar filename
+--- @return boolean migrated Whether a file was migrated to current_path
+local function migrateSidecarIfNeeded(document_path, current_path, filename)
+    local current = G_reader_settings:readSetting("document_metadata_folder", "doc")
+    local alternates = { "doc", "dir" }
+    if DocSettings.isHashLocationEnabled() then
+        table.insert(alternates, "hash")
+    end
+    for _idx, loc in ipairs(alternates) do
+        if loc ~= current then
+            local alt_dir = DocSettings:getSidecarDir(document_path, loc)
+            local alt_path = alt_dir .. "/" .. filename
+            if lfs.attributes(alt_path, "mode") == "file" then
+                local util = require("util")
+                local dir = current_path:match("(.*/)") or ""
+                if dir ~= "" then util.makePath(dir) end
+                local ok, err = os.rename(alt_path, current_path)
+                if ok then
+                    logger.info("KOAssistant: Migrated sidecar file", filename, "from alternate storage location")
+                    return true
+                else
+                    logger.warn("KOAssistant: Failed to migrate sidecar file", filename, ":", err)
+                end
+            end
+        end
+    end
+    return false
+end
+
 -- Helper to strip message_builder labels from content
 -- Removes [Context], [Request], [Additional user input] structural labels
 -- @param content string Raw message content
@@ -97,7 +129,9 @@ function Notebook.exists(document_path)
     local path = Notebook.getPath(document_path)
     if not path then return false end
     local attr = lfs.attributes(path)
-    return attr and attr.mode == "file"
+    if attr and attr.mode == "file" then return true end
+    -- Try alternate storage mode locations (lazy migration on mode switch)
+    return migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md")
 end
 
 --- Get current page info from ReaderUI
@@ -357,7 +391,13 @@ function Notebook.read(document_path)
     if not path then return nil end
 
     local file = io.open(path, "r")
-    if not file then return nil end
+    if not file then
+        -- Try alternate storage mode locations (lazy migration on mode switch)
+        if migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md") then
+            file = io.open(path, "r")
+        end
+        if not file then return nil end
+    end
 
     local content = file:read("*all")
     file:close()

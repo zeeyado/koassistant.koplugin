@@ -1866,21 +1866,18 @@ The default viewer can be changed in Settings → Notebooks → Viewer Mode (Cha
 3. **Multi-book chats** — Stored in `koassistant_multi_book_chats.lua` (global file)
 
 This means:
-- ✅ **Book chats travel with books** when you move or copy files (in "doc" storage mode)
+- ✅ **Book chats travel with books** when you move or copy files
 - ✅ **No data loss** when reorganizing your library
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
 - ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
 - ✅ **Pinned artifacts travel with books**: Pinned artifacts are stored in the book's sidecar folder (`koassistant_pinned.lua`) and automatically move with the book. General and multi-book pinned artifacts are stored globally.
 
-**Storage Modes**: KOAssistant is designed for and tested with KOReader's default **"Book folder"** storage mode (metadata stored alongside book files in `.sdr` folders).
+**Storage Modes**: KOAssistant supports all three of KOReader's metadata storage modes:
+- **"Book folder"** (default) — `.sdr` folders alongside book files
+- **"KOReader settings folder"** — centralized in KOReader's docsettings directory
+- **"Hash-based"** — content-hash based storage
 
-> **Important**: Other storage modes ("KOReader settings folder", "Hash-based") are **not currently supported** and have known issues:
-> - **Notebook collision**: All books may share the same notebook file, causing overwrites
-> - **Cache collision**: Same issue with X-Ray/Recap cache files
-> - **Mode switching**: Changing storage modes does not migrate existing chat data
-> - **Index rebuild**: Only works with "Book folder" mode folder structure
->
-> **Recommendation**: Use Settings → Document → Book metadata location → **"Book folder"** for full KOAssistant functionality. Full mode support is planned for a future release.
+All per-book data (chats, cache, notebook, pinned artifacts, X-Ray aliases) works across all three modes. If you switch storage modes, sidecar files are automatically migrated to the new location on first access.
 
 **Migration**: If you're upgrading from an older version, your existing chats will be automatically migrated to the new storage system on first launch. The old chat files are backed up to `koassistant_chats.backup/`.
 
