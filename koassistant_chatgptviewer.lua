@@ -2142,7 +2142,9 @@ function ChatGPTViewer:init()
             table.insert(art_buttons, {{
               text = label,
               callback = function()
-                UIManager:close(self._artifacts_dialog)
+                if not (captured.is_section_xray_group or captured.is_wiki_group or captured.is_pinned_group) then
+                  UIManager:close(self._artifacts_dialog)
+                end
                 if captured.is_section_xray_group then
                   -- Show section sub-popup without closing the viewer
                   local sec_buttons = {}
@@ -2157,6 +2159,7 @@ function ChatGPTViewer:init()
                         text = sec_display,
                         callback = function()
                           UIManager:close(self._section_group_dialog)
+                          UIManager:close(self._artifacts_dialog)
                           self:onClose()
                           if self._plugin then
                             self._plugin:showCacheViewer({
@@ -2185,6 +2188,7 @@ function ChatGPTViewer:init()
                       text = cap_wiki.label,
                       callback = function()
                         UIManager:close(self._wiki_group_dialog)
+                        UIManager:close(self._artifacts_dialog)
                         self:onClose()
                         -- ChatGPTViewer already in scope (this IS the chatgptviewer module)
                         local viewer = ChatGPTViewer:new{
@@ -2228,6 +2232,7 @@ function ChatGPTViewer:init()
                       text = pin_label,
                       callback = function()
                         UIManager:close(self._pinned_group_dialog)
+                        UIManager:close(self._artifacts_dialog)
                         self:onClose()
                         local display_name = cap_pin.name or cap_pin.action_text or _("Pinned")
                         local info_parts = {}

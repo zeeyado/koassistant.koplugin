@@ -4002,21 +4002,22 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local ActionCache = require("koassistant_action_cache")
             local caches = ActionCache.getAvailableArtifactsWithPinned(artifact_file)
 
-            local function openArtifact(cache)
+            local function openArtifact(cache, on_select)
                 if cache.is_section_xray_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     local AskGPT = plugin
                     ArtifactBrowser:_showSectionXrayGroupPopup(
                         cache.data, artifact_file,
                         book_metadata and book_metadata.title, AskGPT,
-                        cache._excluded_section_key)
+                        cache._excluded_section_key, on_select)
                 elseif cache.is_wiki_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
-                    ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file, plugin)
+                    ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file, plugin,
+                        book_metadata and book_metadata.title, on_select)
                 elseif cache.is_pinned_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     ArtifactBrowser:_showPinnedGroupPopup(cache.data, artifact_file,
-                        book_metadata and book_metadata.title)
+                        book_metadata and book_metadata.title, on_select)
                 elseif cache.is_per_action then
                     plugin:viewCachedAction({ text = cache.name }, cache.key, cache.data,
                         { file = artifact_file, book_title = book_metadata and book_metadata.title })
@@ -4044,10 +4045,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(btn_rows, {{
                                 text = formatDisplayText(cache),
                                 callback = function()
-                                    UIManager:close(plugin._cache_selector)
-                                    UIManager:close(input_dialog)
-                                    if plugin then plugin.current_input_dialog = nil end
-                                    openArtifact(cache)
+                                    if cache.is_section_xray_group or cache.is_wiki_group or cache.is_pinned_group then
+                                        local selector = plugin._cache_selector
+                                        openArtifact(cache, function()
+                                            UIManager:close(selector)
+                                            UIManager:close(input_dialog)
+                                            if plugin then plugin.current_input_dialog = nil end
+                                        end)
+                                    else
+                                        UIManager:close(plugin._cache_selector)
+                                        UIManager:close(input_dialog)
+                                        if plugin then plugin.current_input_dialog = nil end
+                                        openArtifact(cache)
+                                    end
                                 end,
                             }})
                         end

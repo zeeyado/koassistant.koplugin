@@ -298,19 +298,26 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
         table.insert(buttons, {{
             text = display_name,
             callback = function()
-                UIManager:close(self_ref._cache_selector)
                 if captured.is_section_xray_group then
+                    local selector = self_ref._cache_selector
                     self_ref:_showSectionXrayGroupPopup(
-                        captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key)
+                        captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key,
+                        function() UIManager:close(selector) end)
                 elseif captured.is_wiki_group then
-                    self_ref:_showWikiGroupPopup(captured.data, doc_path, AskGPT, doc_title)
+                    local selector = self_ref._cache_selector
+                    self_ref:_showWikiGroupPopup(captured.data, doc_path, AskGPT, doc_title,
+                        function() UIManager:close(selector) end)
                 elseif captured.is_pinned_group then
-                    self_ref:_showPinnedGroupPopup(captured.data, doc_path, doc_title)
+                    local selector = self_ref._cache_selector
+                    self_ref:_showPinnedGroupPopup(captured.data, doc_path, doc_title,
+                        function() UIManager:close(selector) end)
                 elseif captured.is_per_action then
+                    UIManager:close(self_ref._cache_selector)
                     AskGPT:viewCachedAction(
                         { text = captured.name }, captured.key, captured.data,
                         { file = doc_path, book_title = doc_title })
                 else
+                    UIManager:close(self_ref._cache_selector)
                     AskGPT:showCacheViewer({
                         name = captured.name, key = captured.key, data = captured.data,
                         book_title = doc_title, file = doc_path })
@@ -799,7 +806,8 @@ end
 --- @param doc_title string Document title
 --- @param AskGPT table Plugin instance for opening viewers
 --- @param excluded_key string|nil Section key to exclude from listing
-function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_title, AskGPT, excluded_key)
+--- @param on_select function|nil Called when an item is selected (to close parent popups)
+function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_title, AskGPT, excluded_key, on_select)
     local self_ref = self
     local buttons = {}
     for _idx, sec in ipairs(sections) do
@@ -815,6 +823,7 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
                     if self_ref._section_group_dialog then
                         UIManager:close(self_ref._section_group_dialog)
                     end
+                    if on_select then on_select() end
                     AskGPT:showCacheViewer({
                         name = label, key = captured.key, data = captured.data,
                         book_title = doc_title, file = doc_path })
@@ -842,7 +851,9 @@ end
 --- @param wiki_entries table Array of wiki entries
 --- @param doc_path string Document file path
 --- @param AskGPT table|nil Plugin instance for artifact cross-navigation
-function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc_title)
+--- @param doc_title string|nil Document title
+--- @param on_select function|nil Called when an item is selected (to close parent popups)
+function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc_title, on_select)
     local ChatGPTViewer = require("koassistant_chatgptviewer")
     local self_ref = self
 
@@ -855,6 +866,7 @@ function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc
                 if self_ref._wiki_group_dialog then
                     UIManager:close(self_ref._wiki_group_dialog)
                 end
+                if on_select then on_select() end
                 local viewer = ChatGPTViewer:new{
                     title = T(_("AI Wiki: %1"), captured.label),
                     text = captured.data.result,
@@ -897,7 +909,8 @@ end
 --- @param pinned_entries table Array of pinned entries
 --- @param doc_path string Document file path
 --- @param doc_title string Document title
-function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_title)
+--- @param on_select function|nil Called when an item is selected (to close parent popups)
+function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_title, on_select)
     local ChatGPTViewer = require("koassistant_chatgptviewer")
     local AskGPT = self:getAskGPTInstance()
     local self_ref = self
@@ -912,6 +925,7 @@ function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_tit
                 if self_ref._pinned_group_dialog then
                     UIManager:close(self_ref._pinned_group_dialog)
                 end
+                if on_select then on_select() end
                 local display_name = captured.name or captured.action_text or _("Pinned")
                 -- Build info text (same as showPinnedViewer)
                 local info_parts = {}

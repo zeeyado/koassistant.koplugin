@@ -454,25 +454,32 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
           table.insert(btn_rows, {{
             text = display,
             callback = function()
-              UIManager:close(self_ref._cache_selector)
-              -- Close file browser menu after selection
-              if fb_menu then
-                UIManager:close(fb_menu)
-              end
-              if cache.is_section_xray_group then
+              if cache.is_section_xray_group or cache.is_wiki_group or cache.is_pinned_group then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
-                ArtifactBrowser:_showSectionXrayGroupPopup(
-                    cache.data, file, title, self_ref, cache._excluded_section_key)
-              elseif cache.is_wiki_group then
-                local ArtifactBrowser = require("koassistant_artifact_browser")
-                ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref)
-              elseif cache.is_pinned_group then
-                local ArtifactBrowser = require("koassistant_artifact_browser")
-                ArtifactBrowser:_showPinnedGroupPopup(cache.data, file, title)
-              elseif cache.is_per_action then
-                self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
+                local selector = self_ref._cache_selector
+                local close_all = function()
+                  UIManager:close(selector)
+                  if fb_menu then UIManager:close(fb_menu) end
+                end
+                if cache.is_section_xray_group then
+                  ArtifactBrowser:_showSectionXrayGroupPopup(
+                      cache.data, file, title, self_ref, cache._excluded_section_key, close_all)
+                elseif cache.is_wiki_group then
+                  ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref, title, close_all)
+                else
+                  ArtifactBrowser:_showPinnedGroupPopup(cache.data, file, title, close_all)
+                end
               else
-                self_ref:showCacheViewer(cache)
+                UIManager:close(self_ref._cache_selector)
+                -- Close file browser menu after selection
+                if fb_menu then
+                  UIManager:close(fb_menu)
+                end
+                if cache.is_per_action then
+                  self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
+                else
+                  self_ref:showCacheViewer(cache)
+                end
               end
             end,
           }})
@@ -4170,27 +4177,32 @@ function AskGPT:viewCache(parent_dialog)
     table.insert(buttons, {{
       text = display,
       callback = function()
-        UIManager:close(self_ref._cache_selector)
-        -- Close parent dialog (e.g., QA panel) only when user picks an artifact
-        if parent_dialog then UIManager:close(parent_dialog) end
-        if cache.is_section_xray_group then
+        if cache.is_section_xray_group or cache.is_wiki_group or cache.is_pinned_group then
           local ArtifactBrowser = require("koassistant_artifact_browser")
           local props = self_ref.ui and self_ref.ui.doc_props
           local book_title = props and (props.display_title or props.title)
-          ArtifactBrowser:_showSectionXrayGroupPopup(
-              cache.data, file, book_title, self_ref, cache._excluded_section_key)
-        elseif cache.is_wiki_group then
-          local ArtifactBrowser = require("koassistant_artifact_browser")
-          ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref)
-        elseif cache.is_pinned_group then
-          local ArtifactBrowser = require("koassistant_artifact_browser")
-          local props = self_ref.ui and self_ref.ui.doc_props
-          local book_title = props and (props.display_title or props.title)
-          ArtifactBrowser:_showPinnedGroupPopup(cache.data, file, book_title)
-        elseif cache.is_per_action then
-          self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
+          local selector = self_ref._cache_selector
+          local close_all = function()
+            UIManager:close(selector)
+            if parent_dialog then UIManager:close(parent_dialog) end
+          end
+          if cache.is_section_xray_group then
+            ArtifactBrowser:_showSectionXrayGroupPopup(
+                cache.data, file, book_title, self_ref, cache._excluded_section_key, close_all)
+          elseif cache.is_wiki_group then
+            ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref, book_title, close_all)
+          else
+            ArtifactBrowser:_showPinnedGroupPopup(cache.data, file, book_title, close_all)
+          end
         else
-          self_ref:showCacheViewer(cache)
+          UIManager:close(self_ref._cache_selector)
+          -- Close parent dialog (e.g., QA panel) only when user picks an artifact
+          if parent_dialog then UIManager:close(parent_dialog) end
+          if cache.is_per_action then
+            self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
+          else
+            self_ref:showCacheViewer(cache)
+          end
         end
       end,
     }})
