@@ -1764,7 +1764,7 @@ Select any chat to see the options popup:
 - **Rename**: Change the chat title
 - **Tags**: Add or remove tags
 - **Star / Unstar**: Mark the chat as starred for quick access in the Starred virtual folder
-- **Pin to Artifacts / Unpin**: Snapshot the first AI response as a read-only pinned artifact, browsable from the Artifact Browser
+- **Pin Last Response as Artifact / Unpin**: Snapshot the last AI response as a named read-only artifact, browsable from the Artifact Browser
 - **Export**: Copy to clipboard or save to file
 - **Open Book**: Open the book in the reader (book documents only)
 - **Delete Chat**: Remove the chat
@@ -1900,15 +1900,17 @@ Two complementary features for making important content easily available:
 
 **Star Conversation** - Mark a chat as starred for quick access. Starred chats appear with a ★ prefix and are collected in a virtual "Starred" folder at the top of the Chat History browser. Starring is about the *conversation* — use it when the whole chat is worth revisiting. It stays a regular conversation that you can continue any time. Starring only makes it easily findable and more visible.
 
-**Pin to Artifacts** - Snapshot a chat's first AI response as a read-only pseudo-artifact. Pinned artifacts appear in the Artifact Browser (marked with "(Pinned)") alongside the main artifacts, as well as in the X-Ray browser and other places artifacts appear. Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like Extract Key Insights, Key Arguments, etc. Only the first response from the AI is included in the artifact. The chat it came from stays as is, and can be continued, starred, deleted, etc., without affecting the artifact. Deleting a pinned artifact has no effect on the chat it came from.
+**Pin to Artifacts** - Snapshot a chat's last AI response as a named read-only pseudo-artifact. When you pin, a naming dialog appears with a pre-filled name (the action name, or first ~50 characters of your prompt). Pinned artifacts appear in the Artifact Browser (marked with "(Pinned)") alongside the main artifacts, using your chosen name as the primary label. Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like Extract Key Insights, Key Arguments, etc. Only the most recent response from the AI is included in the artifact. The chat it came from stays as is, and can be continued, starred, deleted, etc., without affecting the artifact. Deleting a pinned artifact has no effect on the chat it came from.
 
 **How to star/pin:**
-- **Chat viewer**: Tap the **Pin / ★** button (first row) → popup with "Pin to Artifacts" and "Star Conversation" options. Labels update to reflect current state (Unpin/Unstar when already active).
-- **Chat history**: Select a chat → "Star"/"Unstar" and "Pin to Artifacts"/"Unpin" in the options popup
+- **Chat viewer**: Tap the **Pin / ★** button (first row) → popup with "Pin Last Response as Artifact" and "Star Conversation" options. Labels update to reflect current state (Unpin/Unstar when already active).
+- **Chat history**: Select a chat → "Star"/"Unstar" and "Pin Last Response as Artifact"/"Unpin" in the options popup
 - **Continued chats**: Pin/Star works on both new and reopened chats
 
 **Pin behavior:**
-- Always captures the **first AI response** in the conversation (not the latest). This makes pinning idempotent — pinning the same chat always references the same content.
+- Captures the **last (most recent) AI response** in the conversation. After a multi-turn chat, the refined final answer is typically more valuable than the initial response. If you send another message and get a new response, the pin button will show "Pin Last Response as Artifact" again (the new response isn't pinned yet).
+- Shows a **naming dialog** before pinning — pre-filled with the action name (e.g., "Extract Key Insights") or the first ~50 characters of your prompt. You can edit the name before confirming.
+- Pinned artifacts display your chosen **name** as the primary label in all UIs (artifact browser, viewer title, cross-navigation). You can **rename** existing pins via the hold menu.
 - Pinned artifacts are stored per-book (in sidecar), per-general, or per-multi-book context and travel with books when moved.
 - Unsaved chats are automatically saved before starring or tagging.
 
@@ -2679,7 +2681,7 @@ X-Ray opens as a browsable category menu (characters, locations, themes, lexicon
 | **Book Info** | Book Info action | Reader-oriented overview from AI knowledge | **Text viewer** — background, reception, and reading context. No text extraction needed. Uses web search when enabled for current information. |
 | **Analyze My Notes** | Analyze My Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 
-Beyond these seven generated artifacts, you can **pin any chat response as a pseudo-artifact** using the Pin / ★ button in the chat viewer. This is useful for non-artifact actions whose output is worth keeping as a reference — Extract Key Insights, Key Arguments, Discussion Questions, etc. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation. See [Starring & Pinning](#starring--pinning) for details.
+Beyond these seven generated artifacts, you can **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. This is useful for non-artifact actions whose output is worth keeping as a reference — Extract Key Insights, Key Arguments, Discussion Questions, etc. A naming dialog lets you give each pin a descriptive label. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
 
 **Viewing artifacts:**
 - **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.

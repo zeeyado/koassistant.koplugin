@@ -1489,27 +1489,31 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         else return document_path end
     end)()
 
-    -- Get first AI response and its preceding user prompt
-    local function getFirstResponseAndPrompt()
+    -- Get last (most recent) AI response and the user prompt that preceded it
+    local function getLastResponseAndPrompt()
         local msgs = history:getMessages()
         if not msgs then return "", "" end
-        local first_response, first_prompt = "", ""
-        for i = 1, #msgs do
-            if msgs[i].role == "user" and first_prompt == "" and not msgs[i].is_context then
-                first_prompt = msgs[i].content or ""
-            end
-            if msgs[i].role == "assistant" and msgs[i].content and first_response == "" then
-                first_response = msgs[i].content
+        local last_response, last_prompt = "", ""
+        for i = #msgs, 1, -1 do
+            if msgs[i].role == "assistant" and msgs[i].content and last_response == "" then
+                last_response = msgs[i].content
+                -- Find the user prompt that preceded this response
+                for j = i - 1, 1, -1 do
+                    if msgs[j].role == "user" and not msgs[j].is_context then
+                        last_prompt = msgs[j].content or ""
+                        break
+                    end
+                end
                 break
             end
         end
-        return first_response, first_prompt
+        return last_response, last_prompt
     end
 
-    -- Check if first AI response is already pinned; returns (is_pinned, pin_id)
+    -- Check if last AI response is already pinned; returns (is_pinned, pin_id)
     local function getPinState()
-        local first_response = getFirstResponseAndPrompt()
-        if first_response == "" then return false, nil end
+        local last_response = getLastResponseAndPrompt()
+        if last_response == "" then return false, nil end
         local ok_pm, PinnedManager = pcall(require, "koassistant_pinned_manager")
         if not ok_pm or not PinnedManager then return false, nil end
         local pinned = PinnedManager.getPinnedForDocument(pin_star_path)
@@ -1519,7 +1523,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if pin_result:sub(-1) == "\n" then
                 pin_result = pin_result:sub(1, -2)
             end
-            if pin_result == first_response then
+            if pin_result == last_response then
                 return true, pin.id
             end
         end
@@ -2087,8 +2091,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         get_star_state = getStarState,
         pin_callback = function()
             local Notification = require("ui/widget/notification")
-            local first_response, first_prompt = getFirstResponseAndPrompt()
-            if first_response == "" then
+            local last_response, last_prompt = getLastResponseAndPrompt()
+            if last_response == "" then
                 UIManager:show(Notification:new{
                     text = _("No response to pin"),
                     timeout = 2,
@@ -2108,33 +2112,72 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     })
                 end
             else
-                -- Pin first AI response
-                local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
-                local entry = {
-                    id = PinnedManager.generateId(),
-                    action_id = history.prompt_action or "chat",
-                    action_text = history.prompt_action or _("Chat"),
-                    result = first_response,
-                    user_prompt = first_prompt,
-                    timestamp = os.time(),
-                    model = history:getModel() or "",
-                    context_type = is_multi and "multi_book" or (document_path and "book" or "general"),
-                    book_title = book_metadata and book_metadata.title,
-                    book_author = book_metadata and book_metadata.author,
-                    document_path = pin_star_path,
-                }
+                -- Pin last AI response — show naming dialog
+                local default_name = history:getSuggestedTitle() or ""
 
-                if PinnedManager.addPin(pin_star_path, entry) then
-                    UIManager:show(Notification:new{
-                        text = _("Pinned to Artifacts"),
-                        timeout = 2,
-                    })
-                else
-                    UIManager:show(Notification:new{
-                        text = _("Failed to pin"),
-                        timeout = 2,
-                    })
-                end
+                local pin_name_dialog
+                pin_name_dialog = InputDialog:new{
+                    title = _("Pin as Artifact"),
+                    input = default_name,
+                    input_hint = _("Enter a name for this artifact"),
+                    buttons = {
+                        {
+                            {
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function()
+                                    UIManager:close(pin_name_dialog)
+                                end,
+                            },
+                            {
+                                text = _("Pin"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local pin_name = pin_name_dialog:getInputText()
+                                    if not pin_name or pin_name == "" then
+                                        UIManager:show(require("ui/widget/infomessage"):new{
+                                            text = _("Please enter a name."),
+                                            timeout = 2,
+                                        })
+                                        return
+                                    end
+                                    if #pin_name > 80 then pin_name = pin_name:sub(1, 80) end
+                                    UIManager:close(pin_name_dialog)
+
+                                    local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
+                                    local pin_entry = {
+                                        id = PinnedManager.generateId(),
+                                        name = pin_name,
+                                        action_id = history.prompt_action or "chat",
+                                        action_text = history.prompt_action or _("Chat"),
+                                        result = last_response,
+                                        user_prompt = last_prompt,
+                                        timestamp = os.time(),
+                                        model = history:getModel() or "",
+                                        context_type = is_multi and "multi_book" or (document_path and "book" or "general"),
+                                        book_title = book_metadata and book_metadata.title,
+                                        book_author = book_metadata and book_metadata.author,
+                                        document_path = pin_star_path,
+                                    }
+
+                                    if PinnedManager.addPin(pin_star_path, pin_entry) then
+                                        UIManager:show(Notification:new{
+                                            text = _("Pinned to Artifacts"),
+                                            timeout = 2,
+                                        })
+                                    else
+                                        UIManager:show(Notification:new{
+                                            text = _("Failed to pin"),
+                                            timeout = 2,
+                                        })
+                                    end
+                                end,
+                            },
+                        },
+                    },
+                }
+                UIManager:show(pin_name_dialog)
+                pin_name_dialog:onShowKeyboard()
             end
         end,
         star_callback = function()

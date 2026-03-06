@@ -165,6 +165,9 @@ local function savePinned(document_path, pinned)
             file:write(string.format("        id = %q,\n", entry.id or ""))
             file:write(string.format("        action_id = %q,\n", entry.action_id or "chat"))
             file:write(string.format("        action_text = %q,\n", entry.action_text or ""))
+            if entry.name then
+                file:write(string.format("        name = %q,\n", entry.name))
+            end
             file:write(string.format("        timestamp = %s,\n", tostring(entry.timestamp or 0)))
             file:write(string.format("        model = %q,\n", entry.model or ""))
             file:write(string.format("        context_type = %q,\n", entry.context_type or "book"))
@@ -294,6 +297,26 @@ function PinnedManager.removePin(document_path, pin_id)
         invalidateFileDialogCache()
     end
     return ok or false
+end
+
+--- Update fields on an existing pinned artifact.
+--- @param document_path string Document path or special key
+--- @param pin_id string The pin ID to update
+--- @param updates table Key-value pairs to merge into the entry
+--- @return boolean success
+function PinnedManager.updatePin(document_path, pin_id, updates)
+    if not document_path or not pin_id or not updates then return false end
+
+    local pinned = loadPinned(document_path)
+    for _idx, entry in ipairs(pinned) do
+        if entry.id == pin_id then
+            for k, v in pairs(updates) do
+                entry[k] = v
+            end
+            return savePinned(document_path, pinned) or false
+        end
+    end
+    return false
 end
 
 --- Get all pinned artifacts for a document.

@@ -976,46 +976,49 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
         },
         {
             text_func = function()
-                -- Check if first response is already pinned
+                -- Check if last response is already pinned
                 local PinnedManager = require("koassistant_pinned_manager")
-                local first_response = ""
+                local last_response = ""
                 if chat.messages then
-                    for i = 1, #chat.messages do
+                    for i = #chat.messages, 1, -1 do
                         if chat.messages[i].role == "assistant" and chat.messages[i].content then
-                            first_response = chat.messages[i].content
+                            last_response = chat.messages[i].content
                             break
                         end
                     end
                 end
-                if first_response ~= "" then
+                if last_response ~= "" then
                     local pinned = PinnedManager.getPinnedForDocument(document_path)
                     for _pidx, pin in ipairs(pinned) do
                         local pin_result = pin.result or ""
                         if pin_result:sub(-1) == "\n" then pin_result = pin_result:sub(1, -2) end
-                        if pin_result == first_response then
+                        if pin_result == last_response then
                             return _("Unpin from Artifacts")
                         end
                     end
                 end
-                return _("Pin to Artifacts")
+                return _("Pin Last Response as Artifact")
             end,
             callback = function()
                 safeClose(dialog)
                 self_ref.current_options_dialog = nil
-                -- Get first AI response and first user prompt
-                local first_response, first_prompt = "", ""
+                -- Get last AI response and its preceding user prompt
+                local last_response, last_prompt = "", ""
                 if chat.messages then
-                    for i = 1, #chat.messages do
-                        if chat.messages[i].role == "user" and first_prompt == "" and not chat.messages[i].is_context then
-                            first_prompt = chat.messages[i].content or ""
-                        end
-                        if chat.messages[i].role == "assistant" and chat.messages[i].content and first_response == "" then
-                            first_response = chat.messages[i].content
+                    for i = #chat.messages, 1, -1 do
+                        if chat.messages[i].role == "assistant" and chat.messages[i].content and last_response == "" then
+                            last_response = chat.messages[i].content
+                            for j = i - 1, 1, -1 do
+                                if chat.messages[j].role == "user" and not chat.messages[j].is_context then
+                                    last_prompt = chat.messages[j].content or ""
+                                    break
+                                end
+                            end
                             break
                         end
                     end
                 end
-                if first_response == "" then
+                if last_response == "" then
                     UIManager:show(Notification:new{
                         text = _("No response to pin"),
                         timeout = 2,
@@ -1029,7 +1032,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 for _pidx, pin in ipairs(pinned) do
                     local pin_result = pin.result or ""
                     if pin_result:sub(-1) == "\n" then pin_result = pin_result:sub(1, -2) end
-                    if pin_result == first_response then
+                    if pin_result == last_response then
                         existing_pin_id = pin.id
                         break
                     end
@@ -1042,31 +1045,66 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                         })
                     end
                 else
-                    local entry = {
-                        id = PinnedManager.generateId(),
-                        action_id = chat.prompt_action or "chat",
-                        action_text = chat.prompt_action or _("Chat"),
-                        result = first_response,
-                        user_prompt = first_prompt,
-                        timestamp = os.time(),
-                        model = chat.model or "",
-                        context_type = document_path == "__MULTI_BOOK_CHATS__" and "multi_book"
-                                       or (document_path == "__GENERAL_CHATS__" and "general" or "book"),
-                        book_title = chat.book_title,
-                        book_author = chat.book_author,
-                        document_path = document_path,
+                    -- Show naming dialog before pinning
+                    local default_name = chat.title or chat.prompt_action or ""
+                    local pin_name_dialog
+                    pin_name_dialog = InputDialog:new{
+                        title = _("Pin as Artifact"),
+                        input = default_name,
+                        input_hint = _("Enter a name for this artifact"),
+                        input_type = "text",
+                        allow_newline = false,
+                        buttons = {{
+                            {
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function()
+                                    UIManager:close(pin_name_dialog)
+                                end,
+                            },
+                            {
+                                text = _("Pin"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local name = pin_name_dialog:getInputText()
+                                    UIManager:close(pin_name_dialog)
+                                    if name and name ~= "" then
+                                        name = name:sub(1, 80)
+                                    else
+                                        name = default_name ~= "" and default_name or _("Chat")
+                                    end
+                                    local entry = {
+                                        id = PinnedManager.generateId(),
+                                        name = name,
+                                        action_id = chat.prompt_action or "chat",
+                                        action_text = chat.prompt_action or _("Chat"),
+                                        result = last_response,
+                                        user_prompt = last_prompt,
+                                        timestamp = os.time(),
+                                        model = chat.model or "",
+                                        context_type = document_path == "__MULTI_BOOK_CHATS__" and "multi_book"
+                                                       or (document_path == "__GENERAL_CHATS__" and "general" or "book"),
+                                        book_title = chat.book_title,
+                                        book_author = chat.book_author,
+                                        document_path = document_path,
+                                    }
+                                    if PinnedManager.addPin(document_path, entry) then
+                                        UIManager:show(Notification:new{
+                                            text = _("Pinned to Artifacts"),
+                                            timeout = 2,
+                                        })
+                                    else
+                                        UIManager:show(Notification:new{
+                                            text = _("Failed to pin"),
+                                            timeout = 2,
+                                        })
+                                    end
+                                end,
+                            },
+                        }},
                     }
-                    if PinnedManager.addPin(document_path, entry) then
-                        UIManager:show(Notification:new{
-                            text = _("Pinned to Artifacts"),
-                            timeout = 2,
-                        })
-                    else
-                        UIManager:show(Notification:new{
-                            text = _("Failed to pin"),
-                            timeout = 2,
-                        })
-                    end
+                    UIManager:show(pin_name_dialog)
+                    pin_name_dialog:onShowKeyboard()
                 end
             end,
         },
@@ -1727,25 +1765,28 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     end
 
     -- Pin/Star helpers (closures shared by callbacks and state checkers)
-    local function getFirstResponseAndPrompt()
+    local function getLastResponseAndPrompt()
         local msgs = history:getMessages()
         if not msgs then return "", "" end
-        local first_response, first_prompt = "", ""
-        for i = 1, #msgs do
-            if msgs[i].role == "user" and first_prompt == "" and not msgs[i].is_context then
-                first_prompt = msgs[i].content or ""
-            end
-            if msgs[i].role == "assistant" and msgs[i].content and first_response == "" then
-                first_response = msgs[i].content
+        local last_response, last_prompt = "", ""
+        for i = #msgs, 1, -1 do
+            if msgs[i].role == "assistant" and msgs[i].content and last_response == "" then
+                last_response = msgs[i].content
+                for j = i - 1, 1, -1 do
+                    if msgs[j].role == "user" and not msgs[j].is_context then
+                        last_prompt = msgs[j].content or ""
+                        break
+                    end
+                end
                 break
             end
         end
-        return first_response, first_prompt
+        return last_response, last_prompt
     end
 
     local function getPinState()
-        local first_response = getFirstResponseAndPrompt()
-        if first_response == "" then return false, nil end
+        local last_response = getLastResponseAndPrompt()
+        if last_response == "" then return false, nil end
         local ok_pm, PinnedManager = pcall(require, "koassistant_pinned_manager")
         if not ok_pm or not PinnedManager then return false, nil end
         local pinned = PinnedManager.getPinnedForDocument(document_path)
@@ -1755,7 +1796,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             if pin_result:sub(-1) == "\n" then
                 pin_result = pin_result:sub(1, -2)
             end
-            if pin_result == first_response then
+            if pin_result == last_response then
                 return true, pin.id
             end
         end
@@ -1993,8 +2034,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             get_star_state = getStarState,
             pin_callback = function()
                 local Notification = require("ui/widget/notification")
-                local first_response, first_prompt = getFirstResponseAndPrompt()
-                if first_response == "" then
+                local last_response, last_prompt = getLastResponseAndPrompt()
+                if last_response == "" then
                     UIManager:show(Notification:new{
                         text = _("No response to pin"),
                         timeout = 2,
@@ -2013,32 +2054,66 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                         })
                     end
                 else
-                    local entry = {
-                        id = PinnedManager.generateId(),
-                        action_id = history.prompt_action or "chat",
-                        action_text = history.prompt_action or _("Chat"),
-                        result = first_response,
-                        user_prompt = first_prompt,
-                        timestamp = os.time(),
-                        model = history:getModel() or "",
-                        context_type = document_path == "__GENERAL_CHATS__" and "general"
-                            or (document_path == "__MULTI_BOOK_CHATS__" and "multi_book" or "book"),
-                        book_title = chat.book_title,
-                        book_author = chat.book_author,
-                        document_path = document_path,
+                    -- Show naming dialog before pinning
+                    local default_name = history:getSuggestedTitle() or ""
+                    local pin_name_dialog
+                    pin_name_dialog = InputDialog:new{
+                        title = _("Pin as Artifact"),
+                        input = default_name,
+                        input_hint = _("Enter a name for this artifact"),
+                        input_type = "text",
+                        allow_newline = false,
+                        buttons = {{
+                            {
+                                text = _("Cancel"),
+                                id = "close",
+                                callback = function()
+                                    UIManager:close(pin_name_dialog)
+                                end,
+                            },
+                            {
+                                text = _("Pin"),
+                                is_enter_default = true,
+                                callback = function()
+                                    local name = pin_name_dialog:getInputText()
+                                    UIManager:close(pin_name_dialog)
+                                    if name and name ~= "" then
+                                        name = name:sub(1, 80)
+                                    else
+                                        name = default_name ~= "" and default_name or _("Chat")
+                                    end
+                                    local entry = {
+                                        id = PinnedManager.generateId(),
+                                        name = name,
+                                        action_id = history.prompt_action or "chat",
+                                        action_text = history.prompt_action or _("Chat"),
+                                        result = last_response,
+                                        user_prompt = last_prompt,
+                                        timestamp = os.time(),
+                                        model = history:getModel() or "",
+                                        context_type = document_path == "__GENERAL_CHATS__" and "general"
+                                            or (document_path == "__MULTI_BOOK_CHATS__" and "multi_book" or "book"),
+                                        book_title = chat.book_title,
+                                        book_author = chat.book_author,
+                                        document_path = document_path,
+                                    }
+                                    if PinnedManager.addPin(document_path, entry) then
+                                        UIManager:show(Notification:new{
+                                            text = _("Pinned to Artifacts"),
+                                            timeout = 2,
+                                        })
+                                    else
+                                        UIManager:show(Notification:new{
+                                            text = _("Failed to pin"),
+                                            timeout = 2,
+                                        })
+                                    end
+                                end,
+                            },
+                        }},
                     }
-
-                    if PinnedManager.addPin(document_path, entry) then
-                        UIManager:show(Notification:new{
-                            text = _("Pinned to Artifacts"),
-                            timeout = 2,
-                        })
-                    else
-                        UIManager:show(Notification:new{
-                            text = _("Failed to pin"),
-                            timeout = 2,
-                        })
-                    end
+                    UIManager:show(pin_name_dialog)
+                    pin_name_dialog:onShowKeyboard()
                 end
             end,
             star_callback = function()

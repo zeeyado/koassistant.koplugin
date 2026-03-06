@@ -494,7 +494,7 @@ function ActionCache.getAvailableArtifactsWithPinned(document_path, exclude_key)
     local pinned = PinnedManager.getPinnedForDocument(document_path)
     for _idx, pin in ipairs(pinned) do
         table.insert(artifacts, {
-            name = pin.action_text or "Pinned",
+            name = pin.name or pin.action_text or "Pinned",
             key = pin.id,
             data = pin,
             is_per_action = false,
