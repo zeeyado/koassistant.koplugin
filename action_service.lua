@@ -1989,16 +1989,16 @@ local INPUT_CONTEXTS = {
         has_open_book = true,
         -- Curated defaults: core highlight actions without heavy data requirements
         default_ids = {"translate", "eli5", "explain", "elaborate", "summarize",
-            "connect", "fact_check", "explain_in_context_smart"},
+            "connect", "fact_check", "explain_in_context"},
     },
     xray_chat = {
         settings_key = "input_xray_chat_actions",
         dismissed_key = "_dismissed_input_xray_chat_actions",
         action_context = "highlight",
         has_open_book = true,
-        -- Curated defaults: core actions + context-aware smart actions for X-Ray items
+        -- Curated defaults: core actions + context-aware actions for X-Ray items
         default_ids = {"explain", "elaborate", "eli5", "fact_check",
-            "explain_in_context_smart", "thematic_connection_smart", "connect"},
+            "explain_in_context", "thematic_connection", "connect"},
     },
     multi_book = {
         settings_key = "input_multi_book_actions",

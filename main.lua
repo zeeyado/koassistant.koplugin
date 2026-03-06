@@ -4053,8 +4053,12 @@ end
 --- Format the source label for cache viewers (AI training data vs extracted text)
 --- @param used_book_text boolean|nil Whether book text was used to build the cache
 --- @return string Label text
-local function formatCacheSourceLabel(used_book_text)
-  if used_book_text == false then
+local function formatCacheSourceLabel(used_book_text, source_mode)
+  if source_mode == "summary" then
+    return _("Based on document summary")
+  elseif source_mode == "ai_knowledge" then
+    return _("Based on AI training data knowledge")
+  elseif used_book_text == false then
     return _("Based on AI training data knowledge")
   else
     return _("Based on extracted document text")
@@ -4088,7 +4092,7 @@ local function buildInfoPopupText(cached_entry, progress_str)
     end
     table.insert(info_lines, _("Progress:") .. " " .. progress_label)
   end
-  table.insert(info_lines, _("Source:") .. " " .. formatCacheSourceLabel(cached_entry.used_book_text))
+  table.insert(info_lines, _("Source:") .. " " .. formatCacheSourceLabel(cached_entry.used_book_text, cached_entry.source_mode))
   if cached_entry.model then
     table.insert(info_lines, _("Model:") .. " " .. cached_entry.model)
   end
@@ -4123,6 +4127,12 @@ local function buildInlineIndicators(cached_entry, config)
   end
   if show_web_search and cached_entry.web_search_used then
     table.insert(indicators, "*[Web search was used]*")
+  end
+  -- Source mode indicator (for source_selection actions with non-default source)
+  if cached_entry.source_mode == "summary" then
+    table.insert(indicators, "*[" .. _("Based on document summary") .. "]*")
+  elseif cached_entry.source_mode == "ai_knowledge" then
+    table.insert(indicators, "*[" .. _("Based on AI knowledge only") .. "]*")
   end
   -- Show unavailable data notice (same format as chat viewer's MessageHistory)
   if cached_entry.unavailable_data_text then
@@ -4371,7 +4381,7 @@ function AskGPT:showCacheViewer(cache_info)
           configuration = configuration,
           plugin = self,
           -- Pre-computed display strings for Full View and Info dialog
-          source_label = formatCacheSourceLabel(cache_info.data.used_book_text),
+          source_label = formatCacheSourceLabel(cache_info.data.used_book_text, cache_info.data.source_mode),
           formatted_date = cache_info.data.timestamp and formatDateWithRelative(cache_info.data.timestamp),
           previous_progress = cache_info.data.previous_progress_decimal and
               (math.floor(cache_info.data.previous_progress_decimal * 100 + 0.5) .. "%"),
@@ -4860,6 +4870,108 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
     }
   end
 
+  UIManager:show(dialog)
+end
+
+--- Show source selection popup for unified actions.
+--- Three options: Full document text, Document summary, AI knowledge only.
+--- Availability depends on text extraction setting and summary cache existence.
+--- @param action table: The action definition
+--- @param on_select function(source_mode): Callback with "full_text" / "summary" / "ai_knowledge"
+function AskGPT:_showSourceSelectionPopup(action, on_select)
+  local action_name = action.text or action.id
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local ActionCache = require("koassistant_action_cache")
+
+  -- Check what's available
+  local features = configuration and configuration.features or {}
+  local text_extraction_enabled = features.enable_book_text_extraction == true
+  -- Trust trusted providers for text extraction
+  if not text_extraction_enabled and features.trusted_providers then
+    local provider = features.provider or ""
+    for _idx, tp in ipairs(features.trusted_providers) do
+      if tp == provider then
+        text_extraction_enabled = true
+        break
+      end
+    end
+  end
+
+  local file = self.ui and self.ui.document and self.ui.document.file
+  local has_summary = false
+  if file then
+    local summary = ActionCache.getSummaryCache(file)
+    has_summary = summary and summary.result and summary.result ~= ""
+  end
+
+  local dialog
+  local buttons = {}
+
+  -- Option 1: Full document text
+  if text_extraction_enabled then
+    table.insert(buttons, {{
+      text = _("Full document text"),
+      callback = function()
+        UIManager:close(dialog)
+        on_select("full_text")
+      end,
+    }})
+  else
+    table.insert(buttons, {{
+      text = _("Full document text (requires text extraction)"),
+      enabled = false,
+      callback = function() end,
+    }})
+  end
+
+  -- Option 2: Document summary
+  if has_summary then
+    table.insert(buttons, {{
+      text = _("Document summary") .. " ✓",
+      callback = function()
+        UIManager:close(dialog)
+        on_select("summary")
+      end,
+    }})
+  elseif text_extraction_enabled then
+    -- Summary doesn't exist but could be generated
+    local self_ref = self
+    table.insert(buttons, {{
+      text = _("Document summary (generate first)"),
+      callback = function()
+        UIManager:close(dialog)
+        -- Trigger summary generation, then re-show this popup
+        self_ref:executeBookLevelAction("summarize_full_document")
+      end,
+    }})
+  else
+    table.insert(buttons, {{
+      text = _("Document summary (requires text extraction)"),
+      enabled = false,
+      callback = function() end,
+    }})
+  end
+
+  -- Option 3: AI knowledge only
+  table.insert(buttons, {{
+    text = _("AI knowledge only"),
+    callback = function()
+      UIManager:close(dialog)
+      on_select("ai_knowledge")
+    end,
+  }})
+
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(dialog)
+    end,
+  }})
+
+  dialog = ButtonDialog:new{
+    title = action_name,
+    buttons = buttons,
+  }
   UIManager:show(dialog)
 end
 
@@ -5971,6 +6083,14 @@ function AskGPT:executeBookLevelAction(action_id)
     return
   end
 
+  -- Source selection popup for unified actions (full text / summary / AI knowledge)
+  if action.source_selection then
+    self:_showSourceSelectionPopup(action, function(source_mode)
+      self:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
+    end)
+    return
+  end
+
   self:_executeBookLevelActionDirect(action, action_id)
 end
 
@@ -6007,6 +6127,10 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   -- Complete analysis: override progress to 1.0 (no spoiler restrictions for Analyze Notes)
   if opts and opts.complete_analysis then
     config_copy.features._complete_analysis = true
+  end
+  -- Source mode: controls which data {document_context_section} resolves to
+  if opts and opts.source_mode then
+    config_copy.features._source_mode = opts.source_mode
   end
   -- Section X-Ray: propagate scope and trigger full extraction
   if opts and opts.section_xray then

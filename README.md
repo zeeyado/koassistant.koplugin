@@ -88,7 +88,7 @@
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
   - [Response Caching](#response-caching) — 7 cacheable artifacts, incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze Notes: viewable guides and reusable context for Smart actions
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze Notes: viewable guides and reusable context
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -288,7 +288,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments (Smart)
+- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, Book Info, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
@@ -445,7 +445,7 @@ Text extraction sends actual book/document content to the AI, enabling features 
 
 **Why it's off by default:**
 
-1. **Token costs and context window** (primary reasons, and also why it is not automatically enabled by Privacy presets, even Full) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost. Large contexts also significantly degrade response quality, especially for follow up questions. That's why it is wise to use Document Summary caches in combination with Smart Actions, where you run your queries (e.g. Explain in Context) on a previously generated summary of the text, rather than the entire document text.
+1. **Token costs and context window** (primary reasons, and also why it is not automatically enabled by Privacy presets, even Full) — Extracting book text uses significantly more context than you might expect. A full book can consume 60k+ tokens per request, which adds up quickly with paid APIs. Users should consciously opt into this cost. Large contexts also significantly degrade response quality, especially for follow up questions. That's why actions with source selection let you choose "Document summary" as an alternative — run your queries on a previously generated summary (~2-8K tokens) rather than the full document text.
 
 2. **Content awareness** (See double-gating below) — For most users reading mainstream books, the text itself isn't privacy-sensitive. However, if you're reading something non-standard, subversive, controversial, or otherwise sensitive, you should be aware that the actual content is being sent to cloud AI providers. This is a secondary consideration for most users but important for some.
 
@@ -521,8 +521,8 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
-| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
+| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Document Analysis, Document Summary, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend Books |
 | **General** | News Update* |
 
@@ -551,11 +551,9 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Annotation Notes, Allow Notebook* |
-| **Explain in Context** | Explain passage using full document text as context ⚠️ *Requires: Allow Text Extraction* |
-| **Explain in Context (Smart)** | Like above, but uses cached document summary for efficiency ⚠️ *Requires: Allow Text Extraction* |
-| **Analyze in Context** | Deep analysis using full document text and your annotations ⚠️ *Requires: Allow Text Extraction, Allow Annotation Notes* |
-| **Analyze in Context (Smart)** | Like above, but uses cached document summary ⚠️ *Requires: Allow Text Extraction, Allow Annotation Notes* |
-| **Thematic Connection (Smart)** | Analyze how a passage connects to the book's larger themes ⚠️ *Requires: Allow Text Extraction* |
+| **Explain in Context** | Explain passage using document context. Source selection: full text, summary, or AI knowledge |
+| **Analyze in Context** | Deep analysis using document context and your annotations. Source selection: full text, summary, or AI knowledge ⚠️ *Requires: Allow Annotation Notes* |
+| **Thematic Connection** | Analyze how a passage connects to the book's larger themes. Source selection: full text, summary, or AI knowledge |
 | **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
 | **Current Context** | Get latest information about a topic using web search ⚠️ *Requires: Web Search* |
 | **Translate** | Translate to your configured language |
@@ -565,46 +563,20 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 | **Look up in X-Ray** | `[Local]` Instant search of cached X-Ray data for selected text — no AI call, works offline. Shows matching characters, locations, themes, or concepts with full detail. Available in highlight menu and dictionary popup. Only appears when the book has an X-Ray cache. |
 
-**Regular vs Smart actions:**
+**Source selection:**
 
-Several actions come in two variants: a **regular** version that sends full document text, and a **Smart** version that uses a cached document summary instead. Both analyze the actual content — the difference is cost and freshness, as well as the AIs performance degradation with large contexts:
+Several actions let you choose which document source the AI uses when you trigger them. A popup appears with three options:
 
-- **Regular** (e.g., Discussion Questions) — Sends the full document text to the AI. Most accurate, but uses more tokens. Best for one-off queries or short documents.
-- **Smart** (e.g., Discussion Questions (Smart)) — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K tokens). Much cheaper and performant for repeated use or follow-up questions, since each follow-up resends the full conversation history to the AI. A smaller initial context means more room for extended discussions. Best for longer documents or repeated actions and follow-up queries.
+- **Full document text** — Sends the actual document text to the AI. Most accurate, but uses more tokens. ⚠️ Requires text extraction to be enabled.
+- **Document summary** — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K+ tokens). Much cheaper for repeated use or follow-up conversations, since each follow-up resends the full history. Requires generating the summary first via the Document Summary action. If no summary exists, this option shows "(generate first)".
+- **AI knowledge only** — No document data sent. The AI uses its training knowledge of the work. Free and fast, but less accurate for obscure works.
 
-| Regular (full text) | Smart (cached summary) | Context |
-|---------------------|------------------------|---------|
-| Explain in Context | Explain in Context (Smart) | Highlight |
-| Analyze in Context | Analyze in Context (Smart) | Highlight |
-| — | Thematic Connection (Smart) | Highlight |
-| Key Arguments | Key Arguments (Smart) | Book |
-| Discussion Questions | Discussion Questions (Smart) | Book |
-| Generate Quiz | Generate Quiz (Smart) | Book |
+Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights.
 
-**When to use Smart variants:**
-- Longer documents (longer research papers, textbooks, novels)
-- Repeated queries on the same book
-- Books the AI isn't trained on (need context for every query)
-- When token cost is a concern
-
-**When to use regular variants:**
-- Short to medium length documents where full text is cheap to send and doesn't choke the context window, thus degrading performance
-- One-off queries where generating a summary first isn't worth it
-- When you need the AI to work from the actual text, not a summary, for detail and accuracy
-
-**How Smart actions work:**
-- First use: Prompts to generate a reusable summary via the **Document Summary** action
-- Subsequent uses: Uses cached summary (much faster and cheaper)
-- The summary is available to other Smart actions and as a placeholder for use as you like
-- Token savings: ~100K raw text → ~2-8K cached summary per query
-
-**Document Summary and Smart actions:**
-
-The **Document Summary** action is the same action that Smart actions trigger automatically when no summary exists — it generates the summary artifact. You can run it yourself proactively (from Reading Features, Quick Actions, gestures, or the book actions menu) or let Smart actions trigger it on demand. When triggered by a Smart action, the summary is generated silently in the background and the Smart action continues automatically. When triggered directly, it opens in the summary viewer.
-
-You can customize the Document Summary action independently (provider, model, temperature, etc.) via Action Manager if you find a setup that works well for summary generation. Smart actions use their own settings (global or per-action overrides) — separate from the Document Summary action's settings.
-
-Even if you remove Document Summary from Quick Actions or Reading Features, or disable it entirely, it still works as the Smart action summary generator — the pre-flight mechanism calls it directly, not through the panel.
+**When to use each source:**
+- **Full text**: Short to medium documents, one-off queries, when you need the AI to work from the actual text
+- **Summary**: Longer documents, repeated queries, extended conversations, when token cost matters
+- **AI knowledge**: Well-known works where the AI has good training data, quick queries
 
 **Accessing summaries:**
 - **Reading Features** → Document Summary (shows View/Redo popup if summary exists, generates if not)
@@ -613,9 +585,7 @@ Even if you remove Document Summary from Quick Actions or Reading Features, or d
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively to save tokens on future queries. The artifacts (Summary, X-Ray, X-Ray (Simple), Analysis, Recap) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
-
-See [Document Artifacts → "Generate Once, Use Many Times"](#document-artifacts) for full details on the summary artifact and Smart actions system.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via the Document Summary action. The artifacts (Summary, X-Ray, X-Ray (Simple), Analysis, Recap) are also useful on their own as viewable reference guides — see [Document Artifacts](#document-artifacts).
 
 **What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted document text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text—depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
@@ -644,15 +614,12 @@ Some actions work from the file browser (using only document metadata like title
 | **X-Ray (Simple)** | Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
-| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
-| **Key Arguments (Smart)** | Like Key Arguments, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
-| **Discussion Questions** | Comprehension, analytical, and interpretive prompts using full book text ⚠️ *Requires: Allow Text Extraction* |
-| **Discussion Questions (Smart)** | Like Discussion Questions, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
-| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay) ⚠️ *Requires: Allow Text Extraction* |
-| **Generate Quiz (Smart)** | Like Generate Quiz, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
+| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge |
+| **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge |
+| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge |
 | **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. ⚠️ *Requires: Allow Text Extraction* |
-| **Document Summary** | Comprehensive summary of entire document. Saved as a Summary artifact — the foundation that all Smart actions rely on. ⚠️ *Requires: Allow Text Extraction* |
-| **Extract Key Insights** | Actionable takeaways and ideas worth remembering ⚠️ *Requires: Allow Text Extraction* |
+| **Document Summary** | Comprehensive summary of entire document. Saved as a Summary artifact, which other actions can use as their document source. ⚠️ *Requires: Allow Text Extraction* |
+| **Extract Key Insights** | Actionable takeaways and ideas worth remembering. Source selection: full text, summary, or AI knowledge |
 
 **What the AI sees**: Document metadata (title, author). For Analyze Notes: your annotations. For full document actions: entire document text.
 
@@ -666,21 +633,16 @@ These actions analyze your actual reading content. They require specific privacy
 | **X-Ray (Simple)** | AI training knowledge + reading progress + highlights | Allow Highlights (optional) |
 | **Recap** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
-| **Key Arguments** | Entire document | Allow Text Extraction |
-| **Key Arguments (Smart)** | Cached summary | Allow Text Extraction |
-| **Discussion Questions** | Entire document | Allow Text Extraction |
-| **Discussion Questions (Smart)** | Cached summary | Allow Text Extraction |
-| **Generate Quiz** | Entire document | Allow Text Extraction |
-| **Generate Quiz (Smart)** | Cached summary | Allow Text Extraction |
+| **Key Arguments** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
+| **Discussion Questions** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
+| **Generate Quiz** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Document Analysis** | Entire document | Allow Text Extraction |
 | **Document Summary** | Entire document | Allow Text Extraction |
-| **Extract Key Insights** | Entire document | Allow Text Extraction |
+| **Extract Key Insights** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Book Info** | AI training knowledge (+ optional web search) | None (web search optional) |
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 
-> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, most actions gracefully fall back: the AI is explicitly guided to use its training knowledge of the work and to say so if it doesn't recognize the title. This produces reasonable results for well-known books but will be less accurate for obscure works and unusable for research papers. A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
->
-> **Smart actions don't fall back this way** — they require a pre-generated summary cache to function, so they prompt you to generate one first. If you decline, the action doesn't run. This is by design: Smart actions are specialized for repeated queries on a condensed summary, and running them without any document context would defeat their purpose.
+> ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions with source selection show "AI knowledge only" as the available option. For other actions, the AI gracefully falls back to its training knowledge, with a "*Response generated without: ...*" notice in the chat. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 
 > **Tip:** Highlight actions can also use text extraction. "Explain in Context" and "Analyze in Context" send the full document text (`{full_document_section}`) to understand your highlighted passage within the complete work. See [Highlight Mode](#highlight-mode) for details.
 
@@ -704,7 +666,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **Search** — find any entry across all categories by name, alias, or description
 - **Local X-Ray Lookup** — select text while reading → instantly look it up in cached X-Ray data. No AI call, no network, instant results. Single match shows full detail; multiple matches show a tappable list. Available in highlight menu and dictionary popup when any X-Ray cache exists (main or section). Smart fallback: prefers a section X-Ray covering the current page, falls back to main X-Ray, uses a sole section even if out of range, or shows a picker when multiple sections exist with none in range. See "Look up in X-Ray" in [Highlight Mode](#highlight-mode).
 - **Full View** — rendered markdown view in the chat viewer (with export)
-- **Chat about this** — from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check, Explain in Context (Smart), Thematic Connection (Smart), Connect by default) since the context is AI-generated analysis. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
+- **Chat about this** — from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check, Explain in Context, Thematic Connection, Connect by default) since the context is AI-generated analysis. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
 - **AI Wiki** — from any item's detail view (same categories as Chapter Appearances), generate a Wikipedia-style encyclopedia entry about the item using AI knowledge. The button passes only the item's name to the AI, with the X-Ray description provided as disambiguation context — so "Jim" is understood as "Jim Hawkins from Treasure Island" without biasing the output. Entries are cached per-item and per-category in the existing cache file. Button shows "AI Wiki" when no entry exists, "View AI Wiki" when cached. The viewer provides Delete and Regenerate options. Cached wiki entries are automatically cleared when the X-Ray cache is deleted.
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
 - **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
@@ -793,7 +755,7 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 > **Tip:** Section X-Rays are ideal for dense chapters in academic works, pivotal scenes in novels, or introductory sections you want to reference independently. They're also useful for collected works where you want a focused analysis of one piece without hiding flows.
 
-**Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context): These actions send the entire document text to the AI regardless of reading position. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Other full document actions gracefully degrade when text extraction is disabled — the AI is guided to use its training knowledge and to be honest about unrecognized works (see [Privacy Controls](#privacy-controls)). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects. Key Arguments, Discussion Questions, and Generate Quiz also have **Smart variants** that use a cached summary instead of full text — cheaper for repeated use on longer books.
+**Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context, Thematic Connection): These actions use the entire document context. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Actions with **source selection** (Key Arguments, Discussion Questions, Generate Quiz, Extract Insights, Explain in Context, Analyze in Context, Thematic Connection) let you choose between full text, a cached summary, or AI knowledge only — see [Source selection](#source-selection). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -806,7 +768,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -849,10 +811,10 @@ All input dialogs (highlight, book, general) show a configurable set of actions 
 
 | Context | Default Actions |
 |---------|----------------|
-| **Highlight** | Translate, ELI5, Explain, Elaborate, Summarize, Connect, Fact Check, Explain in Context (Smart) |
+| **Highlight** | Translate, ELI5, Explain, Elaborate, Summarize, Connect, Fact Check, Explain in Context |
 | **Book** | Book Info, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Book Reviews |
 | **Book (file browser)** | Book Info, Find Similar, Related Thinkers, About Author, Historical Context, Book Reviews |
-| **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context (Smart), Thematic Connection (Smart), Connect |
+| **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context, Thematic Connection, Connect |
 | **General** | *(none — use Send button for freeform chat)* |
 
 All defaults are customizable — add, remove, or reorder actions for each context independently. Remaining enabled actions are always accessible via "Show More Actions" in the grid or the gear icon → "More Actions".
@@ -1125,7 +1087,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 17 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
 - **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including Book Info, Find Similar, Connect, Historical Context, and all multi-book actions.
-- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. Smart actions are excluded because they require a pre-generated summary cache.
+- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
 
@@ -1139,7 +1101,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
 - **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic—if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
 - **Document caches**: Three cache types are available as placeholders: `{summary_cache_section}`, `{xray_cache_section}`, and `{analyze_cache_section}`. All require `use_book_text = true` since the cached content derives from book text. The **summary cache** is the primary one for custom actions — it's a neutral, comprehensive representation of the document designed to be reused. The **X-Ray cache** can also be useful as supplementary context (structured character/concept reference). The **analyze cache** is more specialized — it's an opinionated analysis, so avoid using it as input for another analysis (you'd be analyzing an analysis, a decaying game of telephone where each layer loses nuance). Cache placeholders disappear when empty, so including them is always safe. Two usage patterns:
-  - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Built-in **Smart actions** implement this pattern. Add `requires_summary_cache = true` to your custom actions to trigger automatic summary generation when needed. See [Document Artifacts](#document-artifacts) for details.
+  - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Add `source_selection = true` and `use_summary_cache = true` to let users choose between full text, summary, or AI knowledge at runtime. Or use `{document_context_section}` as a unified placeholder that resolves based on the user's source choice.
   - **Supplement**: Add a cache reference as bonus context alongside other data. For example, append `{xray_cache_section}` to a custom action so the AI has the character/concept reference available if it exists. The placeholder vanishes if no cache exists, so there's no downside.
 
   > *Planned feature: the ability to append files, caches, and other resources to chats and actions — including referencing one book's cache in an action on another book (e.g., comparing an X-Ray across volumes in a series).*
@@ -1224,7 +1186,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 7. **Connect** — Draw connections to other works, thinkers, and broader context
 8. **Fact Check** — Verify claims using web search
 
-**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Current Context, AI Wiki, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Current Context, AI Wiki, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1937,7 +1899,7 @@ Two complementary features for making important content easily available:
 - **Analyze Notes**: Discover patterns and connections in your highlights and annotations
 - **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
 - **Book Info**: Overview, significance, and why to read it — from AI knowledge with optional web search
-- **Document Summary**: Generate a comprehensive document summary — foundation for Smart actions. Requires text extraction
+- **Document Summary**: Generate a comprehensive document summary — reusable by other actions as a document source. Requires text extraction
 - **Document Analysis**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
 
 ### Provider & Model
@@ -2665,7 +2627,7 @@ All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Docu
 
 ### Document Artifacts
 
-When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All seven artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as context for Smart actions — instead of sending full document text (~100K tokens) every time, Smart actions reference the compact summary (~2-8K tokens), which is dramatically cheaper and often better-performing since models handle focused context more effectively than massive text dumps.
+When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All seven artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source — actions with source selection let you choose the compact summary (~2-8K tokens) instead of full document text (~100K tokens), which is dramatically cheaper and often better-performing since models handle focused context more effectively than massive text dumps.
 
 X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, per-item AI Wiki encyclopedia, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. Section X-Rays provide the same browsable experience scoped to a specific chapter or part. X-Ray (Simple) shows a prose overview.
 
@@ -2673,7 +2635,7 @@ X-Ray opens as a browsable category menu (characters, locations, themes, lexicon
 
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
-| **Summary** | Document Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Powers all Smart actions — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
+| **Summary** | Document Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Available as a document source in actions with source selection — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
 | **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Requires text extraction. Also available as supplementary context in custom actions. |
 | **X-Ray (Simple)** | X-Ray (Simple) action | Prose overview: characters, themes, settings, key terms, where things stand | **Text viewer** — prose companion guide from AI knowledge. No text extraction needed. Separate cache from X-Ray; both can coexist. |
 | **Recap** | Recap action | "Previously on..." story refresher | **Text viewer** — helps you resume reading where you left off. Supports incremental updates as you read further. |
@@ -2710,47 +2672,41 @@ The Info popup shows metadata about how the artifact was generated. If reasoning
 >
 > Without the required gates enabled, the placeholder renders empty.
 
-**"Generate Once, Use Many Times" — Summary Artifacts and Smart Actions**
+**"Generate Once, Use Many Times" — Summary Artifacts and Source Selection**
 
 The summary artifact is the centerpiece of the reuse system. For medium and long texts, sending full document text (~100K tokens) for each action is both expensive and counterproductive — models often perform worse with massive contexts than with focused summaries. The pattern:
 
-1. **Generate a summary once** → saved as a reusable artifact (~2-8K tokens)
-2. **Smart actions reference the cached summary** instead of raw book text
+1. **Generate a summary once** via Document Summary → saved as a reusable artifact (~2-8K tokens)
+2. **Actions with source selection** let you choose the summary as the document source
 3. **Result**: Massive token savings AND often better responses for repeated queries
 
 **How to generate a summary:**
 - **Reading Features → Document Summary** (shows View/Redo popup if exists, generates if not)
 - **Quick Actions → Document Summary** (same behavior)
-- **Smart actions auto-prompt** — When you use a Smart action without an existing summary, a dialog offers to generate one first. The Document Summary action runs silently in the background and the Smart action continues automatically
 
-**Built-in Smart actions:**
-- **Explain in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` for context
-- **Analyze in Context (Smart)** — (Highlight) Uses `{summary_cache_section}` + `{annotations_section}`
-- **Thematic Connection (Smart)** — (Highlight) Analyze how passage connects to larger themes
-- **Key Arguments (Smart)** — (Book) Thesis, evidence, and counterargument analysis using summary
-- **Discussion Questions (Smart)** — (Book) Generate discussion prompts grounded in summary
-- **Generate Quiz (Smart)** — (Book) Comprehension quiz with answers using summary
+**Actions with source selection:**
+- **Explain in Context** — (Highlight) Explain a passage using document context
+- **Analyze in Context** — (Highlight) Analyze a passage within the broader work
+- **Thematic Connection** — (Highlight) Analyze how a passage connects to larger themes
+- **Key Arguments** — (Book) Thesis, evidence, and counterargument analysis
+- **Discussion Questions** — (Book) Generate discussion prompts grounded in the document
+- **Generate Quiz** — (Book) Comprehension quiz with answers
+- **Extract Key Insights** — (Book) Actionable takeaways and ideas worth remembering
 
-Note that even the analysis-flavored Smart actions (Analyze in Context (Smart)) use the *summary* artifact, not the analysis artifact. Using an analysis as input for further analysis would be a decaying game of telephone — each layer loses nuance. The summary provides a neutral foundation for the AI to build its own fresh analysis from.
+When you trigger any of these actions, a popup lets you choose:
+1. **Full document text** — Most accurate, uses more tokens. Requires text extraction enabled.
+2. **Document summary** — Uses cached summary (~2-8K tokens). Requires generating the summary first.
+3. **AI knowledge only** — No document data sent. Free and fast, but depends on the AI's training data.
 
-**How Smart actions work:**
-1. User triggers a Smart action (highlight or book context)
-2. If summary artifact exists → Uses it immediately
-3. If no artifact → Shows confirmation dialog: "Generate summary now?"
-4. User confirms → Document Summary action runs silently in the background
-5. Original action continues with newly cached summary — no viewer opens
+The chosen source is recorded in the cache and shown in the viewer (Info popup and inline indicator).
 
-The Document Summary action is the same action available in Reading Features and Quick Actions. When triggered by a Smart action, it generates the summary silently (no viewer) and chains to the original action. When triggered directly by the user, it opens in the summary viewer after generation.
+**Creating custom actions with source selection:**
+Add `source_selection = true` and `use_summary_cache = true` to your action, and use `{document_context_section}` as the unified placeholder. It resolves automatically based on the user's source choice.
 
-You can customize the Document Summary action independently — edit its provider, model, temperature, or other settings in the Action Manager. This lets you optimize summary generation (e.g., using a cheaper model) while keeping your global settings for everything else. Smart actions themselves use their own settings (global or per-action overrides), separate from the Document Summary action.
-
-**Creating custom Smart actions:**
-Add `requires_summary_cache = true` to your action. This triggers the pre-flight check — if no summary exists, the user is prompted to generate one before the action proceeds.
-
-**When to use Smart variants:**
+**When to use summary as source:**
 - Longer documents (research papers, textbooks, novels)
 - Repeated queries on the same book
-- Books the AI isn't trained on (need context for every query)
+- Extended conversations (smaller context = more room for follow-ups)
 - When token cost is a concern
 
 **Token savings example:**
@@ -2818,7 +2774,7 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 
 - **Use Hidden Flows** — KOReader's Hidden Flows feature lets you exclude front matter, appendices, endnotes, and other irrelevant content from extraction. This saves tokens and improves AI results without lowering extraction limits. Particularly useful for collected works, annotated editions, or books with lengthy apparatus
 - **Use response caching** — Run X-Ray/Recap early in your reading. Subsequent runs send only new content since the last cached position, not the entire book again. Starting X-Ray at 80% on a long novel sends the whole 80% at once; starting at 10% and running periodically keeps each request small
-- **Use Smart actions for conversations** — They reference the cached summary (~2-8K tokens) instead of raw book text (~100K+ tokens). Since each follow-up resends the full conversation history, a smaller initial context leaves much more room for extended discussions and keeps per-turn costs low
+- **Choose "Document summary" as source** — Actions with source selection let you use the cached summary (~2-8K tokens) instead of raw book text (~100K+ tokens). Since each follow-up resends the full conversation history, a smaller initial context leaves much more room for extended discussions and keeps per-turn costs low
 - **Lower the extraction limit** if your model is small — Settings → Privacy & Data → Text Extraction → Max Text Characters. Match it to your model's context window rather than leaving it at the default
 - **The max limit (10M chars) exists for future large-context models.** The default (4M chars) is sized for Gemini's 1M-token context. Most other models will never need more than 500k-800k chars. The large extraction warning at 500K chars helps you catch oversized requests before they fail
 - **Keep conversations focused** — Each follow-up adds the AI's previous response and your new message to the history, and the entire history is resent every turn. For actions that used large context (full book text), consider starting a new chat rather than extending a very long conversation. The plugin warns you when conversation context exceeds ~50K tokens
