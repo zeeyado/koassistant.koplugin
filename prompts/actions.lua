@@ -1026,7 +1026,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
     analyze_highlights = {
         id = "analyze_highlights",
         enable_web_search = false,
-        text = _("Analyze My Notes"),
+        text = _("Analyze Notes"),
         description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires highlights or annotations sharing."),
         context = "book",
         behavior_variant = "reader_assistant",

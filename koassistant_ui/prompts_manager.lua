@@ -255,6 +255,10 @@ function PromptsManager:loadPrompts()
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
             use_notebook = prompt.use_notebook,
+            -- Document cache reference flags
+            use_xray_cache = prompt.use_xray_cache,
+            use_analyze_cache = prompt.use_analyze_cache,
+            use_summary_cache = prompt.use_summary_cache,
             -- Requirement flags
             requires_open_book = prompt.requires_open_book,
             -- View mode flags

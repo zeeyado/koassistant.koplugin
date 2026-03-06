@@ -239,7 +239,7 @@ local SettingsSchema = {
                             text = _("Emoji Data Access Indicators"),
                             path = "features.enable_data_access_indicators",
                             default = false,
-                            help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."),
+                            help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."),
                         },
                     },
                 },
@@ -1138,7 +1138,7 @@ local SettingsSchema = {
                     text = _("Allow Annotation Notes"),
                     path = "features.enable_annotations_sharing",
                     default = false,
-                    help_text = _("Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze My Notes, Connect with Notes, and actions with {annotations} placeholders."),
+                    help_text = _("Share your personal notes attached to highlights with the AI. Automatically enables highlight sharing. Used by Analyze Notes, Connect with Notes, and actions with {annotations} placeholders."),
                     on_change = function(new_value, plugin)
                         if new_value then
                             -- Auto-enable highlights (annotations implies highlights)

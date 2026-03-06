@@ -42,7 +42,7 @@
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
-    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes
+    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
   - [Input Dialog Actions](#managing-the-input-dialog) — Per-context action sorting, gear menu, web toggle
@@ -88,7 +88,7 @@
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
   - [Response Caching](#response-caching) — 7 cacheable artifacts, incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze My Notes: viewable guides and reusable context for Smart actions
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze Notes: viewable guides and reusable context for Smart actions
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -205,7 +205,7 @@ Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
 ### 4. Configure Privacy Settings (Optional)
 
 Some features require opt-in to work:
-- **Analyze My Notes, Connect with Notes** → Enable "Allow Annotation Notes"
+- **Analyze Notes, Connect with Notes** → Enable "Allow Annotation Notes"
 - **X-Ray, Recap with your highlights** → Enable "Allow Highlights"
 - **X-Ray, Recap with actual book content** → Enable "Allow Text Extraction" (X-Ray requires this; without it, use X-Ray (Simple) for a prose overview from AI knowledge)
 
@@ -288,8 +288,8 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze My Notes, Extract Key Insights, Key Arguments (Smart)
-- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, Book Info, Analyze My Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
+- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments (Smart)
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, Book Info, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via **Settings → Quick Actions Settings**. Defaults can also be removed.
@@ -391,7 +391,7 @@ lua tests/inspect.lua --web
 
 ## Privacy & Data
 
-> ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze My Notes or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
+> ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Notes or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
 
 KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater or false reassurances of privacy, as the "threat model" here is simply users including sensitive data (Annotations, notes, content, etc.) by accident; you are already being permissive about privacy by using online AIs (especially for personal interest areas) in the first place, and this plugin by its nature does encourage the use of AI to analyze your reading material. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions, e.g. Ollama.
 
@@ -522,7 +522,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Explain in Context (Smart), Analyze in Context, Analyze in Context (Smart), Thematic Connection (Smart), Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
-| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze My Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights |
+| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend Books |
 | **General** | News Update* |
 
@@ -643,7 +643,7 @@ Some actions work from the file browser (using only document metadata like title
 | **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray (Simple)** | Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
 | **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
-| **Analyze My Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
+| **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments using full book text ⚠️ *Requires: Allow Text Extraction* |
 | **Key Arguments (Smart)** | Like Key Arguments, but uses cached summary ⚠️ *Requires: Allow Text Extraction* |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts using full book text ⚠️ *Requires: Allow Text Extraction* |
@@ -654,7 +654,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Document Summary** | Comprehensive summary of entire document. Saved as a Summary artifact — the foundation that all Smart actions rely on. ⚠️ *Requires: Allow Text Extraction* |
 | **Extract Key Insights** | Actionable takeaways and ideas worth remembering ⚠️ *Requires: Allow Text Extraction* |
 
-**What the AI sees**: Document metadata (title, author). For Analyze My Notes: your annotations. For full document actions: entire document text.
+**What the AI sees**: Document metadata (title, author). For Analyze Notes: your annotations. For full document actions: entire document text.
 
 #### Reading Analysis Actions
 
@@ -665,7 +665,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **X-Ray** | Book text + highlights up to current position | Allow Text Extraction (required), Allow Highlights (optional) |
 | **X-Ray (Simple)** | AI training knowledge + reading progress + highlights | Allow Highlights (optional) |
 | **Recap** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
-| **Analyze My Notes** | Your highlights and annotations | Allow Annotation Notes |
+| **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 | **Key Arguments** | Entire document | Allow Text Extraction |
 | **Key Arguments (Smart)** | Cached summary | Allow Text Extraction |
 | **Discussion Questions** | Entire document | Allow Text Extraction |
@@ -676,7 +676,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **Document Summary** | Entire document | Allow Text Extraction |
 | **Extract Key Insights** | Entire document | Allow Text Extraction |
 | **Book Info** | AI training knowledge (+ optional web search) | None (web search optional) |
-| **Analyze My Notes** | Your highlights and annotations | Allow Annotation Notes |
+| **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, most actions gracefully fall back: the AI is explicitly guided to use its training knowledge of the work and to say so if it doesn't recognize the title. This produces reasonable results for well-known books but will be less accurate for obscure works and unusable for research papers. A "*Response generated without: ...*" notice will appear in the chat to indicate what data was requested but not provided. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 >
@@ -806,7 +806,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze My Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Key Arguments (Smart), Discussion Questions, Discussion Questions (Smart), Generate Quiz, Generate Quiz (Smart), Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -1595,7 +1595,7 @@ Behavior defines the AI's personality, communication style, and response guideli
 - **Perplexity Style** (Mini, Standard, Full) — Research-focused with source transparency
 
 **Reading-focused:**
-- **Reader Assistant** (~350 tokens) — Reading companion persona (used by X-Ray, Recap, Analyze My Notes, Connect with Notes)
+- **Reader Assistant** (~350 tokens) — Reading companion persona (used by X-Ray, Recap, Analyze Notes, Connect with Notes)
 
 **General utility:**
 - **Concise** (~55 tokens) — Brevity-focused, minimal guidance for direct responses
@@ -1934,7 +1934,7 @@ Two complementary features for making important content easily available:
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
-- **Analyze My Notes**: Discover patterns and connections in your highlights and annotations
+- **Analyze Notes**: Discover patterns and connections in your highlights and annotations
 - **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
 - **Book Info**: Overview, significance, and why to read it — from AI knowledge with optional web search
 - **Document Summary**: Generate a comprehensive document summary — foundation for Smart actions. Requires text extraction
@@ -2187,7 +2187,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, Book Info, Analyze My Notes) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, Book Info, Analyze Notes) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2651,8 +2651,8 @@ The View/Update popup appears everywhere you can trigger an artifact action (X-R
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
-- Only X-Ray and Recap support incremental caching currently (other artifact actions — X-Ray (Simple), Document Summary, Document Analysis, Book Info, Analyze My Notes — cache results but always regenerate fresh)
-- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), Recap, Book Info, and Analyze My Notes work without it
+- Only X-Ray and Recap support incremental caching currently (other artifact actions — X-Ray (Simple), Document Summary, Document Analysis, Book Info, Analyze Notes — cache results but always regenerate fresh)
+- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), Recap, Book Info, and Analyze Notes work without it
 - Complete X-Rays and Section X-Rays don't support incremental updates (always fresh generation)
 - X-Ray (Simple) doesn't support incremental updates (always fresh generation)
 - Section X-Rays require an open book with a TOC (not available from file browser)
@@ -2661,7 +2661,7 @@ The View/Update popup appears everywhere you can trigger an artifact action (X-R
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Additionally, **Section X-Rays** and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
+All seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes) produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Additionally, **Section X-Rays** and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
 
 ### Document Artifacts
 
@@ -2679,12 +2679,12 @@ X-Ray opens as a browsable category menu (characters, locations, themes, lexicon
 | **Recap** | Recap action | "Previously on..." story refresher | **Text viewer** — helps you resume reading where you left off. Supports incremental updates as you read further. |
 | **Analysis** | Document Analysis | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
 | **Book Info** | Book Info action | Reader-oriented overview from AI knowledge | **Text viewer** — background, reception, and reading context. No text extraction needed. Uses web search when enabled for current information. |
-| **Analyze My Notes** | Analyze My Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
+| **Analyze Notes** | Analyze Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 
 Beyond these seven generated artifacts, you can **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. This is useful for non-artifact actions whose output is worth keeping as a reference — Extract Key Insights, Key Arguments, Discussion Questions, etc. A naming dialog lets you give each pin a descriptive label. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
 
 **Viewing artifacts:**
-- **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze My Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
+- **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
 - **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
@@ -2700,7 +2700,7 @@ Beyond these seven generated artifacts, you can **pin any chat's last response a
 - **Row 1**: Copy, Artifacts (cross-navigate to other cached artifacts for the same book), Export, navigation
 - **Row 2**: MD/Text toggle, Info (popup showing model, date, source, progress, reasoning, web search), Update/Regenerate (when book is open) or Open Doc (when viewing from file browser), Delete, Close
 
-The Info popup shows metadata about how the artifact was generated. If reasoning or web search was used, inline indicators appear at the top of the content (matching chat viewer style). X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze My Notes) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, Book Info) show "Regenerate".
+The Info popup shows metadata about how the artifact was generated. If reasoning or web search was used, inline indicators appear at the top of the content (matching chat viewer style). X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, Book Info) show "Regenerate".
 
 > **Cache source tracking:** Each artifact records metadata about how it was generated: data source (extracted text vs AI training knowledge), model used, generation date, and whether reasoning or web search was used. The Info button in the artifact viewer shows all metadata. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
@@ -3229,13 +3229,13 @@ The current chat viewer stays open underneath — the dictionary popup or AI loo
 
 ### Features Not Working / Empty Data
 
-If actions like Analyze My Notes, Connect with Notes, X-Ray, or Recap seem to ignore your reading data:
+If actions like Analyze Notes, Connect with Notes, X-Ray, or Recap seem to ignore your reading data:
 
 **Most reading data is opt-in.** Check **Settings → Privacy & Data** and enable the relevant setting:
 
 | Feature not working | Enable this setting |
 |---------------------|---------------------|
-| Analyze My Notes shows nothing | Allow Annotation Notes |
+| Analyze Notes shows nothing | Allow Annotation Notes |
 | Connect with Notes ignores your notes | Allow Annotation Notes + Allow Notebook |
 | X-Ray/Recap missing your highlights | Allow Highlights (or Allow Annotation Notes) |
 | X-Ray blocked ("requires text extraction") | Allow Text Extraction (in Text Extraction submenu), or use X-Ray (Simple) instead |

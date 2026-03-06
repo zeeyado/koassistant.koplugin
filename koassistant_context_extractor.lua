@@ -1330,6 +1330,13 @@ function ContextExtractor:extractForAction(action)
         end
     end
 
+    -- Summary cache: check if requested but not available
+    if action.use_summary_cache then
+        if not data.summary_cache or data.summary_cache == "" then
+            table.insert(unavailable, "summary cache (not generated)")
+        end
+    end
+
     -- Store unavailable data list for display in chat
     if #unavailable > 0 then
         data._unavailable_data = unavailable
