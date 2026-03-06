@@ -546,68 +546,134 @@ end
 function ChatHistoryManager:deleteAllChatsForDocument(document_path)
     if not document_path then return 0 end
 
-    local doc_dir = self:getDocumentChatDir(document_path)
-    if not doc_dir or not lfs.attributes(doc_dir, "mode") then
-        return 0
-    end
+    if self:useDocSettingsStorage() then
+        -- v2: DocSettings-based storage
+        if document_path == "__GENERAL_CHATS__" then
+            local chats = self:getGeneralChats()
+            local count = #chats
+            if count > 0 then
+                local settings = LuaSettings:open(self.GENERAL_CHAT_FILE)
+                settings:saveSetting("chats", {})
+                settings:flush()
+            end
+            logger.info("Deleted " .. count .. " general chats")
+            return count
+        elseif document_path == "__MULTI_BOOK_CHATS__" then
+            local chats = self:getMultiBookChats()
+            local count = #chats
+            if count > 0 then
+                local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+                settings:saveSetting("chats", {})
+                settings:flush()
+            end
+            logger.info("Deleted " .. count .. " multi-book chats")
+            return count
+        else
+            -- Book chats: clear from metadata.lua
+            if not lfs.attributes(document_path, "mode") then return 0 end
+            local DocSettings = require("docsettings")
+            local doc_settings = DocSettings:open(document_path)
+            local chats = doc_settings:readSetting("koassistant_chats", {})
+            local count = 0
+            for _ in pairs(chats) do count = count + 1 end
+            if count > 0 then
+                doc_settings:saveSetting("koassistant_chats", {})
+                doc_settings:flush()
+                -- Update chat index
+                self:updateChatIndex(document_path, "delete", nil, {})
+            end
+            logger.info("Deleted " .. count .. " chats for document: " .. document_path)
+            return count
+        end
+    else
+        -- v1: Legacy hash-based storage
+        local doc_dir = self:getDocumentChatDir(document_path)
+        if not doc_dir or not lfs.attributes(doc_dir, "mode") then
+            return 0
+        end
 
-    local deleted_count = 0
+        local deleted_count = 0
 
-    -- Delete all chat files in the document directory
-    for filename in lfs.dir(doc_dir) do
-        if filename ~= "." and filename ~= ".." then
-            local file_path = doc_dir .. "/" .. filename
-            local attr = lfs.attributes(file_path, "mode")
-            if attr == "file" then
-                os.remove(file_path)
-                deleted_count = deleted_count + 1
-                logger.info("Deleted chat file: " .. filename)
+        for filename in lfs.dir(doc_dir) do
+            if filename ~= "." and filename ~= ".." then
+                local file_path = doc_dir .. "/" .. filename
+                local attr = lfs.attributes(file_path, "mode")
+                if attr == "file" then
+                    os.remove(file_path)
+                    deleted_count = deleted_count + 1
+                    logger.info("Deleted chat file: " .. filename)
+                end
             end
         end
-    end
 
-    -- Remove the empty directory
-    local ok, err = os.remove(doc_dir)
-    if ok then
-        logger.info("Removed empty document directory: " .. doc_dir)
-    else
-        logger.warn("Could not remove document directory: " .. (err or "unknown error"))
-    end
+        local ok, err = os.remove(doc_dir)
+        if ok then
+            logger.info("Removed empty document directory: " .. doc_dir)
+        else
+            logger.warn("Could not remove document directory: " .. (err or "unknown error"))
+        end
 
-    logger.info("Deleted " .. deleted_count .. " chats for document: " .. document_path)
-    return deleted_count
+        logger.info("Deleted " .. deleted_count .. " chats for document: " .. document_path)
+        return deleted_count
+    end
 end
 
 -- Delete all chats across all documents
 function ChatHistoryManager:deleteAllChats()
-    if not lfs.attributes(self.CHAT_DIR, "mode") then
-        return 0
-    end
-
     local total_deleted = 0
     local docs_deleted = 0
 
-    -- Iterate through all document directories
-    for doc_hash in lfs.dir(self.CHAT_DIR) do
-        if doc_hash ~= "." and doc_hash ~= ".." then
-            local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-            local attr = lfs.attributes(doc_dir, "mode")
+    if self:useDocSettingsStorage() then
+        -- v2: Delete general chats
+        local general_count = self:deleteAllChatsForDocument("__GENERAL_CHATS__")
+        if general_count > 0 then
+            total_deleted = total_deleted + general_count
+            docs_deleted = docs_deleted + 1
+        end
 
-            if attr == "directory" then
-                -- Delete all files in this directory
-                for filename in lfs.dir(doc_dir) do
-                    if filename ~= "." and filename ~= ".." then
-                        local file_path = doc_dir .. "/" .. filename
-                        if lfs.attributes(file_path, "mode") == "file" then
-                            os.remove(file_path)
-                            total_deleted = total_deleted + 1
+        -- Delete multi-book chats
+        local multi_count = self:deleteAllChatsForDocument("__MULTI_BOOK_CHATS__")
+        if multi_count > 0 then
+            total_deleted = total_deleted + multi_count
+            docs_deleted = docs_deleted + 1
+        end
+
+        -- Delete book chats via chat index
+        local index = self:getChatIndex()
+        for doc_path, _info in pairs(index) do
+            local count = self:deleteAllChatsForDocument(doc_path)
+            if count > 0 then
+                total_deleted = total_deleted + count
+                docs_deleted = docs_deleted + 1
+            end
+        end
+
+        -- Clear the chat index
+        G_reader_settings:saveSetting("koassistant_chat_index", {})
+        G_reader_settings:flush()
+    else
+        -- v1: Legacy hash-based storage
+        if lfs.attributes(self.CHAT_DIR, "mode") then
+            for doc_hash in lfs.dir(self.CHAT_DIR) do
+                if doc_hash ~= "." and doc_hash ~= ".." then
+                    local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
+                    local attr = lfs.attributes(doc_dir, "mode")
+
+                    if attr == "directory" then
+                        for filename in lfs.dir(doc_dir) do
+                            if filename ~= "." and filename ~= ".." then
+                                local file_path = doc_dir .. "/" .. filename
+                                if lfs.attributes(file_path, "mode") == "file" then
+                                    os.remove(file_path)
+                                    total_deleted = total_deleted + 1
+                                end
+                            end
                         end
+
+                        os.remove(doc_dir)
+                        docs_deleted = docs_deleted + 1
                     end
                 end
-
-                -- Remove the empty directory
-                os.remove(doc_dir)
-                docs_deleted = docs_deleted + 1
             end
         end
     end
