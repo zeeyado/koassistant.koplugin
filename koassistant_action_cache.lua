@@ -492,13 +492,12 @@ function ActionCache.getAvailableArtifactsWithPinned(document_path, exclude_key)
     if not ok or not PinnedManager then return artifacts end
 
     local pinned = PinnedManager.getPinnedForDocument(document_path)
-    for _idx, pin in ipairs(pinned) do
+    if #pinned > 0 then
         table.insert(artifacts, {
-            name = pin.name or pin.action_text or "Pinned",
-            key = pin.id,
-            data = pin,
-            is_per_action = false,
-            is_pinned = true,
+            name = string.format(_("Pinned Artifacts (%d)"), #pinned),
+            key = "_pinned_artifacts",
+            data = pinned,
+            is_pinned_group = true,
         })
     end
 

@@ -294,12 +294,7 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
     for _idx, artifact in ipairs(all_artifacts) do
         local captured = artifact
         local display_name
-        if captured.is_pinned then
-            local pin_label = Constants.getEmojiText("\u{1F4CC}", "", enable_emoji)
-            display_name = pin_label .. (captured.name or _("Pinned")) .. " (" .. _("Pinned") .. ")"
-        else
-            display_name = captured.name
-        end
+        display_name = captured.name
         table.insert(buttons, {{
             text = display_name,
             callback = function()
@@ -309,8 +304,8 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                         captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key)
                 elseif captured.is_wiki_group then
                     self_ref:_showWikiGroupPopup(captured.data, doc_path, AskGPT, doc_title)
-                elseif captured.is_pinned then
-                    self_ref:showPinnedViewer(captured.data, doc_path, opts)
+                elseif captured.is_pinned_group then
+                    self_ref:_showPinnedGroupPopup(captured.data, doc_path, doc_title)
                 elseif captured.is_per_action then
                     AskGPT:viewCachedAction(
                         { text = captured.name }, captured.key, captured.data,
@@ -896,6 +891,88 @@ function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc
         buttons = buttons,
     }
     UIManager:show(self._wiki_group_dialog)
+end
+
+--- Show popup listing individual pinned entries from a group entry (artifact selector context)
+--- @param pinned_entries table Array of pinned entries
+--- @param doc_path string Document file path
+--- @param doc_title string Document title
+function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_title)
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    local AskGPT = self:getAskGPTInstance()
+    local self_ref = self
+
+    local buttons = {}
+    for _idx, pin in ipairs(pinned_entries) do
+        local captured = pin
+        local label = captured.name or captured.action_text or _("Pinned")
+        table.insert(buttons, {{
+            text = label,
+            callback = function()
+                if self_ref._pinned_group_dialog then
+                    UIManager:close(self_ref._pinned_group_dialog)
+                end
+                local display_name = captured.name or captured.action_text or _("Pinned")
+                -- Build info text (same as showPinnedViewer)
+                local info_parts = {}
+                if captured.action_text and captured.action_text ~= "" then
+                    table.insert(info_parts, _("Action") .. ": " .. captured.action_text)
+                end
+                if captured.model and captured.model ~= "" then
+                    table.insert(info_parts, _("Model") .. ": " .. captured.model)
+                end
+                if captured.timestamp and captured.timestamp > 0 then
+                    table.insert(info_parts, _("Pinned") .. ": " .. os.date("%B %d, %Y", captured.timestamp))
+                end
+                if captured.user_prompt and captured.user_prompt ~= "" then
+                    local preview = captured.user_prompt:sub(1, 200)
+                    if #captured.user_prompt > 200 then preview = preview .. "..." end
+                    table.insert(info_parts, _("Prompt") .. ": " .. preview)
+                end
+                local viewer = ChatGPTViewer:new{
+                    title = display_name .. " (" .. _("Pinned") .. ")",
+                    text = captured.result or "",
+                    simple_view = true,
+                    cache_type_name = _("pinned artifact"),
+                    cache_metadata = {
+                        cache_type = "pinned",
+                        book_title = captured.book_title,
+                        book_author = captured.book_author,
+                        model = captured.model,
+                        timestamp = captured.timestamp,
+                    },
+                    _info_text = #info_parts > 0 and table.concat(info_parts, "\n") or nil,
+                    on_delete = function()
+                        PinnedManager.removePin(doc_path, captured.id)
+                        UIManager:show(Notification:new{
+                            text = _("Pinned artifact removed"),
+                            timeout = 2,
+                        })
+                    end,
+                    _plugin = AskGPT,
+                    _artifact_file = doc_path,
+                    _artifact_key = "pinned:" .. (captured.id or ""),
+                    _book_open = (AskGPT and AskGPT.ui and AskGPT.ui.document ~= nil),
+                    _artifact_book_title = doc_title,
+                }
+                UIManager:show(viewer)
+            end,
+        }})
+    end
+
+    if #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No pinned artifacts available."),
+            timeout = 3,
+        })
+        return
+    end
+
+    self._pinned_group_dialog = ButtonDialog:new{
+        title = _("Pinned Artifacts"),
+        buttons = buttons,
+    }
+    UIManager:show(self._pinned_group_dialog)
 end
 
 return ArtifactBrowser

@@ -1030,9 +1030,7 @@ function XrayBrowser:buildCategoryItems()
         items[#items].separator = true
         if #artifacts == 1 then
             local art = artifacts[1]
-            local label = art.is_pinned
-                and (art.name .. " (" .. _("Pinned") .. ")")
-                or art.name
+            local label = art.name
             table.insert(items, {
                 text = Constants.getEmojiText("📋", label, enable_emoji),
                 callback = function()
@@ -3675,9 +3673,8 @@ function XrayBrowser:_openArtifact(art)
         self:_showSectionXrayGroupPopup(art.data, art._excluded_section_key)
     elseif art.is_wiki_group then
         self:_showWikiGroupPopup(art.data)
-    elseif art.is_pinned then
-        local ArtifactBrowser = require("koassistant_artifact_browser")
-        ArtifactBrowser:showPinnedViewer(art.data, book_file)
+    elseif art.is_pinned_group then
+        self:_showPinnedGroupPopup(art.data)
     elseif art.is_per_action then
         plugin:viewCachedAction(
             { text = art.name }, art.key, art.data,
@@ -3794,6 +3791,86 @@ function XrayBrowser:_showWikiGroupPopup(wiki_entries)
     UIManager:show(self._wiki_group_dialog)
 end
 
+-- Show popup listing pinned artifacts from a group entry
+function XrayBrowser:_showPinnedGroupPopup(pinned_entries)
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    local PinnedManager = require("koassistant_pinned_manager")
+    local book_file = self.metadata.book_file
+    local self_ref = self
+
+    local buttons = {}
+    for _idx, pin in ipairs(pinned_entries) do
+        local captured = pin
+        local label = captured.name or captured.action_text or _("Pinned")
+        table.insert(buttons, {{
+            text = label,
+            callback = function()
+                if self_ref._pinned_group_dialog then
+                    UIManager:close(self_ref._pinned_group_dialog)
+                end
+                local display_name = captured.name or captured.action_text or _("Pinned")
+                local info_parts = {}
+                if captured.action_text and captured.action_text ~= "" then
+                    table.insert(info_parts, _("Action") .. ": " .. captured.action_text)
+                end
+                if captured.model and captured.model ~= "" then
+                    table.insert(info_parts, _("Model") .. ": " .. captured.model)
+                end
+                if captured.timestamp and captured.timestamp > 0 then
+                    table.insert(info_parts, _("Pinned") .. ": " .. os.date("%B %d, %Y", captured.timestamp))
+                end
+                if captured.user_prompt and captured.user_prompt ~= "" then
+                    local preview = captured.user_prompt:sub(1, 200)
+                    if #captured.user_prompt > 200 then preview = preview .. "..." end
+                    table.insert(info_parts, _("Prompt") .. ": " .. preview)
+                end
+                local viewer = ChatGPTViewer:new{
+                    title = display_name .. " (" .. _("Pinned") .. ")",
+                    text = captured.result or "",
+                    simple_view = true,
+                    cache_type_name = _("pinned artifact"),
+                    cache_metadata = {
+                        cache_type = "pinned",
+                        book_title = captured.book_title,
+                        book_author = captured.book_author,
+                        model = captured.model,
+                        timestamp = captured.timestamp,
+                    },
+                    _info_text = #info_parts > 0 and table.concat(info_parts, "\n") or nil,
+                    on_delete = function()
+                        PinnedManager.removePin(book_file, captured.id)
+                        UIManager:show(Notification:new{
+                            text = _("Pinned artifact removed"),
+                            timeout = 2,
+                        })
+                    end,
+                    _book_open = self_ref.ui and self_ref.ui.document ~= nil,
+                    _plugin = self_ref.metadata.plugin,
+                    _artifact_file = book_file,
+                    _artifact_key = "pinned:" .. (captured.id or ""),
+                    _artifact_book_title = self_ref.metadata.title,
+                    _artifact_book_author = self_ref.metadata.author,
+                }
+                UIManager:show(viewer)
+            end,
+        }})
+    end
+
+    if #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No pinned artifacts available."),
+            timeout = 3,
+        })
+        return
+    end
+
+    self._pinned_group_dialog = ButtonDialog:new{
+        title = _("Pinned Artifacts"),
+        buttons = buttons,
+    }
+    UIManager:show(self._pinned_group_dialog)
+end
+
 -- Show popup listing other cached artifacts (for 2+ artifacts)
 function XrayBrowser:_showOtherArtifacts(available)
     if not available or #available == 0 then return end
@@ -3802,9 +3879,7 @@ function XrayBrowser:_showOtherArtifacts(available)
     local buttons = {}
     for _idx, art in ipairs(available) do
         local captured = art
-        local label = captured.is_pinned
-            and (captured.name .. " (" .. _("Pinned") .. ")")
-            or captured.name
+        local label = captured.name
         table.insert(buttons, {{
             text = label,
             callback = function()

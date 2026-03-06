@@ -2138,9 +2138,7 @@ function ChatGPTViewer:init()
           local art_buttons = {}
           for _idx, art in ipairs(other_artifacts) do
             local captured = art
-            local label = captured.is_pinned
-                and ((captured.data and captured.data.name or captured.name) .. " (" .. _("Pinned") .. ")")
-                or captured.name
+            local label = captured.name
             table.insert(art_buttons, {{
               text = label,
               callback = function()
@@ -2220,10 +2218,72 @@ function ChatGPTViewer:init()
                     }
                     UIManager:show(self._wiki_group_dialog)
                   end
-                elseif captured.is_pinned then
-                  self:onClose()
-                  local ArtifactBrowser = require("koassistant_artifact_browser")
-                  ArtifactBrowser:showPinnedViewer(captured.data, self._artifact_file)
+                elseif captured.is_pinned_group then
+                  -- Show pinned sub-popup (inline viewer, same pattern as wiki group)
+                  local pin_buttons = {}
+                  for _idx2, pin in ipairs(captured.data) do
+                    local cap_pin = pin
+                    local pin_label = cap_pin.name or cap_pin.action_text or _("Pinned")
+                    table.insert(pin_buttons, {{
+                      text = pin_label,
+                      callback = function()
+                        UIManager:close(self._pinned_group_dialog)
+                        self:onClose()
+                        local display_name = cap_pin.name or cap_pin.action_text or _("Pinned")
+                        local info_parts = {}
+                        if cap_pin.action_text and cap_pin.action_text ~= "" then
+                            table.insert(info_parts, _("Action") .. ": " .. cap_pin.action_text)
+                        end
+                        if cap_pin.model and cap_pin.model ~= "" then
+                            table.insert(info_parts, _("Model") .. ": " .. cap_pin.model)
+                        end
+                        if cap_pin.timestamp and cap_pin.timestamp > 0 then
+                            table.insert(info_parts, _("Pinned") .. ": " .. os.date("%B %d, %Y", cap_pin.timestamp))
+                        end
+                        if cap_pin.user_prompt and cap_pin.user_prompt ~= "" then
+                            local preview = cap_pin.user_prompt:sub(1, 200)
+                            if #cap_pin.user_prompt > 200 then preview = preview .. "..." end
+                            table.insert(info_parts, _("Prompt") .. ": " .. preview)
+                        end
+                        local PinnedManager = require("koassistant_pinned_manager")
+                        local viewer = ChatGPTViewer:new{
+                            title = display_name .. " (" .. _("Pinned") .. ")",
+                            text = cap_pin.result or "",
+                            simple_view = true,
+                            cache_type_name = _("pinned artifact"),
+                            cache_metadata = {
+                                cache_type = "pinned",
+                                book_title = cap_pin.book_title,
+                                book_author = cap_pin.book_author,
+                                model = cap_pin.model,
+                                timestamp = cap_pin.timestamp,
+                            },
+                            _info_text = #info_parts > 0 and table.concat(info_parts, "\n") or nil,
+                            on_delete = function()
+                                PinnedManager.removePin(self._artifact_file, cap_pin.id)
+                                UIManager:show(Notification:new{
+                                    text = _("Pinned artifact removed"),
+                                    timeout = 2,
+                                })
+                            end,
+                            _book_open = self._book_open,
+                            _plugin = self._plugin,
+                            _artifact_file = self._artifact_file,
+                            _artifact_key = "pinned:" .. (cap_pin.id or ""),
+                            _artifact_book_title = self._artifact_book_title,
+                            _artifact_book_author = self._artifact_book_author,
+                        }
+                        UIManager:show(viewer)
+                      end,
+                    }})
+                  end
+                  if #pin_buttons > 0 then
+                    self._pinned_group_dialog = ButtonDialog:new{
+                      title = _("Pinned Artifacts"),
+                      buttons = pin_buttons,
+                    }
+                    UIManager:show(self._pinned_group_dialog)
+                  end
                 elseif self._plugin then
                   self:onClose()
                   if captured.is_per_action then

@@ -2690,7 +2690,7 @@ Beyond these seven generated artifacts, you can **pin any chat's last response a
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Top sections**: General Pinned and Multi-Book Pinned appear at the top when pinned artifacts exist in those contexts
   - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
-  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus "Section X-Rays (N)" and "AI Wiki Entries (N)" groups when they exist, plus any pinned artifacts (marked with "(Pinned)"), plus "Open Book"
+  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus "Section X-Rays (N)", "AI Wiki Entries (N)", and "Pinned Artifacts (N)" groups when they exist, plus "Open Book"
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")

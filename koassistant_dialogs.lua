@@ -4013,9 +4013,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 elseif cache.is_wiki_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file, plugin)
-                elseif cache.is_pinned then
+                elseif cache.is_pinned_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
-                    ArtifactBrowser:showPinnedViewer(cache.data, artifact_file)
+                    ArtifactBrowser:_showPinnedGroupPopup(cache.data, artifact_file,
+                        book_metadata and book_metadata.title)
                 elseif cache.is_per_action then
                     plugin:viewCachedAction({ text = cache.name }, cache.key, cache.data,
                         { file = artifact_file, book_title = book_metadata and book_metadata.title })
@@ -4025,24 +4026,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
 
             local function formatDisplayText(cache)
-                if cache.is_pinned then
-                    local parts = { _("Pinned") }
-                    if cache.data and cache.data.timestamp then
-                        local now = os.time()
-                        local today_t = os.date("*t", now)
-                        today_t.hour, today_t.min, today_t.sec = 0, 0, 0
-                        local cached_t = os.date("*t", cache.data.timestamp)
-                        cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
-                        local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
-                        if days == 0 then
-                            table.insert(parts, _("today"))
-                        elseif days < 30 then
-                            table.insert(parts, string.format(_("%dd ago"), days))
-                        else
-                            table.insert(parts, string.format(_("%dm ago"), math.floor(days / 30)))
-                        end
-                    end
-                    return cache.name .. " (" .. table.concat(parts, ", ") .. ")"
+                if cache.is_pinned_group or cache.is_section_xray_group or cache.is_wiki_group then
+                    return cache.name
                 end
                 return formatArtifactDisplayText(cache)
             end

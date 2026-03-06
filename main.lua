@@ -401,7 +401,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local caches = ActionCache.getAvailableArtifactsWithPinned(file)
   -- Add book metadata for file browser context (no open book)
   for _idx, cache in ipairs(caches) do
-    if not cache.is_pinned then
+    if not cache.is_pinned_group then
       cache.book_title = title
       cache.book_author = authors
       cache.file = file
@@ -423,26 +423,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
         local btn_rows = {}
         for _idx, cache in ipairs(caches) do
           local display = cache.name
-          if cache.is_pinned then
-            local meta_parts = {}
-            table.insert(meta_parts, _("Pinned"))
-            if cache.data and cache.data.timestamp then
-              local now = os.time()
-              local today_t = os.date("*t", now)
-              today_t.hour, today_t.min, today_t.sec = 0, 0, 0
-              local cached_t = os.date("*t", cache.data.timestamp)
-              cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
-              local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
-              if days == 0 then
-                table.insert(meta_parts, _("today"))
-              elseif days < 30 then
-                table.insert(meta_parts, string.format(_("%dd ago"), days))
-              else
-                table.insert(meta_parts, string.format(_("%dm ago"), math.floor(days / 30)))
-              end
-            end
-            display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
-          else
+          if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group then
             -- Format with metadata: "X-Ray (100%, today)"
             local meta_parts = {}
             if cache.data then
@@ -485,9 +466,9 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
               elseif cache.is_wiki_group then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
                 ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref)
-              elseif cache.is_pinned then
+              elseif cache.is_pinned_group then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
-                ArtifactBrowser:showPinnedViewer(cache.data, file)
+                ArtifactBrowser:_showPinnedGroupPopup(cache.data, file, title)
               elseif cache.is_per_action then
                 self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data, { file = cache.file, book_title = cache.book_title, book_author = cache.book_author })
               else
@@ -4170,15 +4151,7 @@ function AskGPT:viewCache(parent_dialog)
   for _idx, cache in ipairs(caches) do
     -- Format with metadata: "X-Ray (100%, today)" or pinned indicator
     local display = cache.name
-    if cache.is_pinned then
-      local meta_parts = {}
-      table.insert(meta_parts, _("Pinned"))
-      if cache.data and cache.data.timestamp then
-        local relative = formatRelativeTime(cache.data.timestamp)
-        if relative ~= "" then table.insert(meta_parts, relative) end
-      end
-      display = display .. " (" .. table.concat(meta_parts, ", ") .. ")"
-    else
+    if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group then
       local meta_parts = {}
       if cache.data then
         if cache.data.progress_decimal then
@@ -4209,9 +4182,11 @@ function AskGPT:viewCache(parent_dialog)
         elseif cache.is_wiki_group then
           local ArtifactBrowser = require("koassistant_artifact_browser")
           ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref)
-        elseif cache.is_pinned then
+        elseif cache.is_pinned_group then
           local ArtifactBrowser = require("koassistant_artifact_browser")
-          ArtifactBrowser:showPinnedViewer(cache.data, file)
+          local props = self_ref.ui and self_ref.ui.doc_props
+          local book_title = props and (props.display_title or props.title)
+          ArtifactBrowser:_showPinnedGroupPopup(cache.data, file, book_title)
         elseif cache.is_per_action then
           self_ref:viewCachedAction({ text = cache.name }, cache.key, cache.data)
         else
