@@ -224,9 +224,22 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section)
 
+    -- {document_context_section} - unified placeholder that resolves based on _source_mode
+    -- Replaces separate {full_document_section} / {summary_cache_section} in unified actions
+    local document_context_section = ""
+    local source_mode = data._source_mode
+    if source_mode == "full_text" and data.full_document and data.full_document ~= "" then
+        document_context_section = "Full document:\n" .. data.full_document
+    elseif source_mode == "summary" and data.summary_cache and data.summary_cache ~= "" then
+        document_context_section = "Document summary:\n" .. data.summary_cache
+            .. "\n\nNote: The summary may be in a different language than your response language. Translate or adapt as needed."
+    end
+    -- "ai_knowledge" or missing data: remains empty (text_fallback_nudge will fill in)
+    user_prompt = replace_placeholder(user_prompt, "{document_context_section}", document_context_section)
+
     -- {text_fallback_nudge} - conditional: appears only when document text is empty
     -- Helps actions degrade gracefully by telling AI to use training knowledge
-    local has_document_text = (book_text_section ~= "") or (full_document_section ~= "")
+    local has_document_text = (book_text_section ~= "") or (full_document_section ~= "") or (document_context_section ~= "")
     local text_fallback_nudge = ""
     if not has_document_text and Templates and Templates.TEXT_FALLBACK_NUDGE then
         text_fallback_nudge = Templates.TEXT_FALLBACK_NUDGE
@@ -500,6 +513,8 @@ function MessageBuilder.substituteVariables(prompt_text, data)
         result = replace_placeholder(result, "{text_fallback_nudge}", "")
         -- Highlight analysis nudge (always empty in preview since we don't have extraction data)
         result = replace_placeholder(result, "{highlight_analysis_nudge}", "")
+        -- Document context (always empty in preview since we don't have extraction/source data)
+        result = replace_placeholder(result, "{document_context_section}", "")
     end
 
     -- Common substitutions
@@ -570,6 +585,17 @@ function MessageBuilder.substituteVariables(prompt_text, data)
         full_document_section = "Full document:\n" .. data.full_document
     end
     result = replace_placeholder(result, "{full_document_section}", full_document_section)
+
+    -- {document_context_section} - unified placeholder based on _source_mode
+    local document_context_section = ""
+    local source_mode = data._source_mode
+    if source_mode == "full_text" and data.full_document and data.full_document ~= "" then
+        document_context_section = "Full document:\n" .. data.full_document
+    elseif source_mode == "summary" and data.summary_cache and data.summary_cache ~= "" then
+        document_context_section = "Document summary:\n" .. data.summary_cache
+            .. "\n\nNote: The summary may be in a different language than your response language. Translate or adapt as needed."
+    end
+    result = replace_placeholder(result, "{document_context_section}", document_context_section)
 
     -- {surrounding_context_section}
     local surrounding_context_section = ""

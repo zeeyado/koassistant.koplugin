@@ -2392,68 +2392,8 @@ local function buildConsolidatedMessage(prompt, context, data, system_prompt, do
     })
 end
 
--- Forward declaration for mutual recursion
+-- Forward declaration (assigned as function expression below)
 local handlePredefinedPrompt
-
---- Helper to generate summary cache then continue with original action
---- Used by actions with requires_summary_cache = true
---- @param original_action table: The action that requires the summary cache
---- @param highlightedText string: The highlighted text
---- @param ui table: The UI instance
---- @param configuration table: The configuration table
---- @param existing_history table: Existing message history
---- @param plugin table: The plugin instance
---- @param additional_input string: Additional user input
---- @param on_complete function: Callback for when action completes
---- @param book_metadata table: Book metadata
-local function generateSummaryCacheAndContinue(
-    original_action, highlightedText, ui, configuration,
-    existing_history, plugin, additional_input, on_complete, book_metadata
-)
-    -- Load Actions module directly to avoid ActionService settings dependency
-    local ok, Actions = pcall(require, "prompts.actions")
-    local summary_action = ok and Actions and Actions.book and Actions.book.summarize_full_document
-
-    if not summary_action then
-        logger.warn("KOAssistant: summarize_full_document action not found for cache generation")
-        UIManager:show(InfoMessage:new{
-            text = _("Could not find summary action. Please try again."),
-        })
-        return
-    end
-
-    -- Show progress notification
-    local Notification = require("ui/widget/notification")
-    UIManager:show(Notification:new{
-        text = _("Generating document summary..."),
-        timeout = 2,
-    })
-
-    -- Execute summarize_full_document (which saves to _summary_cache)
-    -- Uses same handlePredefinedPrompt, so it inherits cache_as_summary behavior
-    handlePredefinedPrompt(
-        summary_action, nil, ui, configuration,
-        nil, plugin, nil,
-        function(history, _config_result)
-            if history then
-                -- Cache is now populated, run original action
-                UIManager:scheduleIn(0.3, function()
-                    handlePredefinedPrompt(
-                        original_action, highlightedText, ui, configuration,
-                        existing_history, plugin, additional_input,
-                        on_complete, book_metadata
-                    )
-                end)
-            else
-                -- Summary generation failed
-                UIManager:show(InfoMessage:new{
-                    text = _("Summary generation failed. Please try again."),
-                })
-            end
-        end,
-        book_metadata
-    )
-end
 
 --- Handle a predefined prompt query
 --- @param prompt_type_or_action string|table: The prompt type string ID or action object
@@ -2488,39 +2428,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 return nil
             end
             return nil, err
-        end
-    end
-
-    -- Pre-flight: Check if action requires summary cache
-    if prompt and prompt.requires_summary_cache and ui and ui.document and ui.document.file then
-        local ActionCache = require("koassistant_action_cache")
-        local cache_entry = ActionCache.getSummaryCache(ui.document.file)
-
-        if not cache_entry then
-            -- Summary generation requires text extraction — block if disabled
-            local features = config and config.features or {}
-            if features.enable_book_text_extraction ~= true then
-                UIManager:show(InfoMessage:new{
-                    text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction."),
-                })
-                return nil
-            end
-
-            -- Cache missing - show confirmation dialog
-            local ConfirmBox = require("ui/widget/confirmbox")
-            UIManager:show(ConfirmBox:new{
-                text = _("Smart actions use a shared document summary for context.\n\nGenerate one for this book?\n• One-time — reused by all Smart actions on this book\n• Saved as a viewable artifact\n• Uses your text extraction settings"),
-                ok_text = _("Generate"),
-                cancel_text = _("Cancel"),
-                ok_callback = function()
-                    generateSummaryCacheAndContinue(
-                        prompt, highlightedText, ui, configuration,
-                        existing_history, plugin, additional_input,
-                        on_complete, book_metadata
-                    )
-                end,
-            })
-            return nil  -- Early return, handled via callback
         end
     end
 
@@ -2770,6 +2677,28 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             prompt[k] = v
         end
         prompt.prompt = original_prompt.complete_prompt
+    end
+
+    -- Source mode: skip expensive text extraction when user chose summary or AI knowledge
+    -- Also propagate _source_mode to message_data for {document_context_section} resolution
+    local source_mode = config.features and config.features._source_mode
+    if source_mode then
+        message_data._source_mode = source_mode
+        if source_mode == "summary" or source_mode == "ai_knowledge" then
+            -- Create copy to avoid mutating the original action definition
+            if not prompt._is_copy then
+                local original_prompt = prompt
+                prompt = {}
+                for k, v in pairs(original_prompt) do
+                    prompt[k] = v
+                end
+                prompt._is_copy = true
+            end
+            prompt.use_book_text = false  -- Skip text extraction
+        end
+        if source_mode == "ai_knowledge" then
+            prompt.use_summary_cache = false  -- Skip loading summary cache
+        end
     end
 
     -- Context extraction: auto-extract lightweight data when a document is open
@@ -3060,6 +2989,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                       flow_visible_pages = message_data.flow_visible_pages,
                       progress_page = message_data.progress_page,
                       full_document = config.features and config.features._full_document_xray or nil,
+                      source_mode = source_mode,
                       unavailable_data_text = unavailable_text }
                 )
                 if save_success then
@@ -3712,6 +3642,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 }
             end
             plugin:showCacheActionPopup(action, action_id, runAction, cache_opts)
+            return
+        end
+
+        -- Source selection popup for unified actions (highlight context)
+        if action.source_selection and plugin and plugin._showSourceSelectionPopup then
+            plugin:_showSourceSelectionPopup(action, function(source_mode)
+                configuration.features = configuration.features or {}
+                configuration.features._source_mode = source_mode
+                runAction()
+            end)
             return
         end
 

@@ -264,17 +264,19 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         id = "explain_in_context",
         enable_web_search = false,
         text = _("Explain in Context"),
-        description = _("Explains the passage using the full document text for deeper, contextualized understanding. Requires text extraction; without it, falls back to AI knowledge of the work."),
+        description = _("Explains the passage in the context of the full work. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
         use_book_text = true,
+        use_summary_cache = true,
         include_book_context = true,
+        source_selection = true,  -- Show source selection popup
         prompt = [[Explain this passage in context:
 
 "{highlighted_text}"
 
 From "{title}"{author_clause}.
 
-{full_document_section}
+{document_context_section}
 
 Help me understand:
 1. What this passage means
@@ -294,19 +296,21 @@ Help me understand:
         id = "analyze_in_context",
         enable_web_search = false,
         text = _("Analyze in Context"),
-        description = _("Deep analysis of the passage within the full document, connecting it to themes and your annotations. Requires text extraction; also uses your annotations if shared."),
+        description = _("Deep analysis of the passage within the full work, connecting it to themes and your annotations. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
         use_book_text = true,
+        use_summary_cache = true,
         use_highlights = true,           -- Annotations imply highlights
         use_annotations = true,
         include_book_context = true,
+        source_selection = true,  -- Show source selection popup
         prompt = [[Analyze this passage in the broader context of the work:
 
 "{highlighted_text}"
 
 From "{title}"{author_clause}.
 
-{full_document_section}
+{document_context_section}
 
 {annotations_section}
 
@@ -325,100 +329,29 @@ Provide deeper analysis:
         },
         builtin = true,
     },
-    -- Smart context-aware action using cached summary for efficiency
-    explain_in_context_smart = {
-        id = "explain_in_context_smart",
+    -- Thematic Connection: Analyze how passage relates to larger themes
+    thematic_connection = {
+        id = "thematic_connection",
         enable_web_search = false,
-        text = _("Explain in Context") .. " (Smart)",
-        description = _("Like Explain in Context, but uses a pre-built Summary Cache instead of the full text — faster and cheaper, though less detailed. Requires generating a Summary Cache first."),
+        text = _("Thematic Connection"),
+        description = _("Analyzes how a passage connects to the work's major themes — alignment, significance, recurring patterns, and the author's craft. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
-        use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
-        use_summary_cache = true,    -- Reference the cached summary
+        use_book_text = true,
+        use_summary_cache = true,
         include_book_context = true,
-        requires_summary_cache = true,  -- Trigger pre-flight cache check
-        prompt = [[Explain this passage in context:
-
-"{highlighted_text}"
-
-From "{title}"{author_clause}.
-
-{summary_cache_section}
-
-Using the document summary above as context, help me understand:
-1. What this passage means
-2. How it relates to the document's main themes and arguments
-3. Key concepts or references it builds on
-
-{conciseness_nudge}
-
-Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
-        api_params = {
-            temperature = 0.5,
-            max_tokens = 4096,
-        },
-        builtin = true,
-    },
-    -- Smart deep analysis using cached summary for efficiency
-    analyze_in_context_smart = {
-        id = "analyze_in_context_smart",
-        enable_web_search = false,
-        text = _("Analyze in Context") .. " (Smart)",
-        description = _("Like Analyze in Context, but uses a pre-built Summary Cache instead of the full text. Still includes your annotations if shared. Requires generating a Summary Cache first."),
-        context = "highlight",
-        use_book_text = true,        -- Gate for accessing _summary_cache (derives from book text)
-        use_highlights = true,       -- Annotations imply highlights
-        use_summary_cache = true,    -- Reference the cached summary
-        use_annotations = true,      -- Still include user's annotations
-        include_book_context = true,
-        requires_summary_cache = true,  -- Trigger pre-flight cache check
-        prompt = [[Analyze this passage in the broader context of the document:
-
-"{highlighted_text}"
-
-From "{title}"{author_clause}.
-
-{summary_cache_section}
-
-{annotations_section}
-
-Provide deeper analysis:
-1. **Significance**: Why might this passage matter in the larger work?
-2. **Connections**: How does it relate to the document's main themes and arguments?
-3. **Patterns**: Does it echo or develop ideas mentioned in the summary?
-4. **My notes**: If I've highlighted related passages, show those connections.
-
-{conciseness_nudge}
-
-Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
-        api_params = {
-            temperature = 0.6,
-            max_tokens = 4096,
-        },
-        builtin = true,
-    },
-    -- Thematic Connection (Smart): Analyze how passage relates to larger themes
-    thematic_connection_smart = {
-        id = "thematic_connection_smart",
-        enable_web_search = false,
-        text = _("Thematic Connection") .. " (Smart)",
-        description = _("Analyzes how a passage connects to the work's major themes — alignment, significance, recurring patterns, and the author's craft. Uses Summary Cache."),
-        context = "highlight",
-        use_book_text = true,        -- Gate for accessing _summary_cache
-        use_summary_cache = true,    -- Reference the cached summary
-        include_book_context = true,
-        requires_summary_cache = true,  -- Trigger pre-flight cache check
+        source_selection = true,  -- Show source selection popup
         prompt = [[Analyze how this passage connects to the larger themes of the work:
 
 "{highlighted_text}"
 
 From "{title}"{author_clause}.
 
-{summary_cache_section}
+{document_context_section}
 
 Show me the connections:
 
 ## Theme Alignment
-Which major themes from the summary does this passage touch on? How does it develop, reinforce, or complicate them?
+Which major themes does this passage touch on? How does it develop, reinforce, or complicate them?
 
 ## Significance
 Why might this particular passage matter in the context of the whole work? What work is it doing?
@@ -431,7 +364,7 @@ How does the author's choice of language, structure, or placement enhance the th
 
 Keep analysis grounded in the specific passage while connecting to the broader context. {conciseness_nudge}
 
-Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
+{text_fallback_nudge}]],
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -1129,10 +1062,12 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         description = _("Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Requires text extraction; without it, falls back to AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
+        use_summary_cache = true,
+        source_selection = true,  -- Show source selection popup
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
         prompt = [[Analyze the main arguments in "{title}"{author_clause}.
-{full_document_section}
+{document_context_section}
 
 ## Core Thesis
 What is the central claim or argument?
@@ -1168,65 +1103,19 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         builtin = true,
         in_quick_actions = 7,
     },
-    -- Key Arguments (Smart): Thesis and argument analysis using cached summary
-    key_arguments_smart = {
-        id = "key_arguments_smart",
-        enable_web_search = false,
-        text = _("Key Arguments") .. " (Smart)",
-        description = _("Same analysis as Key Arguments, but uses a pre-built Summary Cache instead of the full text — faster and cheaper. Requires generating a Summary Cache first."),
-        context = "book",
-        use_book_text = true,        -- Gate for accessing _summary_cache
-        use_summary_cache = true,    -- Reference the cached summary
-        requires_summary_cache = true,  -- Trigger pre-flight cache check
-        prompt = [[Analyze the main arguments in "{title}"{author_clause}.
-
-{summary_cache_section}
-
-## Core Thesis
-What is the central claim or argument?
-
-## Supporting Arguments
-What are the key sub-claims that support the thesis?
-
-## Evidence & Methodology
-What types of evidence does the author use?
-What's their approach to building the argument?
-
-## Assumptions
-What does the author take for granted?
-What premises underlie the argument?
-
-## Counterarguments
-What would critics say?
-What are the strongest objections to this position?
-
-## Intellectual Context
-What debates is this work participating in?
-What's the "so what" — why does this argument matter?
-
-If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
-
-This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
-
-Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
-        skip_domain = true,  -- Analysis format is standardized
-        api_params = {
-            temperature = 0.6,
-            max_tokens = 4096,
-        },
-        builtin = true,
-    },
     -- Discussion Questions: Book club and classroom prompts
     discussion_questions = {
         id = "discussion_questions",
         enable_web_search = false,
         text = _("Discussion Questions"),
-        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Requires text extraction; without it, falls back to AI knowledge."),
+        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Source selection: full document text, document summary, or AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
+        use_summary_cache = true,
+        source_selection = true,  -- Show source selection popup
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.
-{full_document_section}
+{document_context_section}
 
 Create 8-10 questions that could spark good conversation:
 
@@ -1258,59 +1147,19 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         },
         builtin = true,
     },
-    -- Discussion Questions (Smart): Generate discussion prompts using cached summary
-    discussion_questions_smart = {
-        id = "discussion_questions_smart",
-        enable_web_search = false,
-        text = _("Discussion Questions") .. " (Smart)",
-        description = _("Same as Discussion Questions, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."),
-        context = "book",
-        use_book_text = true,        -- Gate for accessing _summary_cache
-        use_summary_cache = true,    -- Reference the cached summary
-        requires_summary_cache = true,  -- Trigger pre-flight cache check
-        prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.
-
-{summary_cache_section}
-
-Create 8-10 questions that could spark good conversation:
-
-## Comprehension Questions (2-3)
-Questions that check understanding of key points/events
-
-## Analytical Questions (3-4)
-Questions about how and why — motivations, techniques, implications
-
-## Interpretive Questions (2-3)
-Questions with multiple valid answers that invite debate
-
-## Personal Connection Questions (1-2)
-Questions that connect the work to the reader's own experience/views
-
-Adapt to content type:
-- For fiction: Focus on character decisions, themes, craft choices
-- For non-fiction: Focus on arguments, evidence, real-world applications
-
-{conciseness_nudge} {hallucination_nudge}
-
-Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
-        skip_domain = true,  -- Discussion format is standardized
-        api_params = {
-            temperature = 0.7,
-            max_tokens = 4096,
-        },
-        builtin = true,
-    },
-    -- Generate Quiz: Create comprehension questions from full book text
+    -- Generate Quiz: Create comprehension questions
     generate_quiz = {
         id = "generate_quiz",
         enable_web_search = false,
         text = _("Generate Quiz"),
-        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Requires text extraction; without it, falls back to AI knowledge."),
+        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Source selection: full document text, document summary, or AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
+        use_summary_cache = true,
+        source_selection = true,  -- Show source selection popup
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
 
-{full_document_section}
+{document_context_section}
 
 Generate 8-10 questions with answers to test understanding:
 
@@ -1336,48 +1185,6 @@ Adapt to content type:
 Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}
 
 {text_fallback_nudge}]],
-        api_params = {
-            temperature = 0.6,  -- Balanced variety
-            max_tokens = 4096,
-        },
-        builtin = true,
-    },
-    -- Generate Quiz (Smart): Create comprehension questions using cached summary
-    generate_quiz_smart = {
-        id = "generate_quiz_smart",
-        enable_web_search = false,
-        text = _("Generate Quiz") .. " (Smart)",
-        description = _("Same as Generate Quiz, but uses a pre-built Summary Cache instead of the full text. Requires generating a Summary Cache first."),
-        context = "book",
-        use_book_text = true,        -- Gate for accessing _summary_cache
-        use_summary_cache = true,    -- Reference the cached summary
-        requires_summary_cache = true,  -- Trigger pre-flight cache check
-        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
-
-{summary_cache_section}
-
-Generate 8-10 questions with answers to test understanding:
-
-## Multiple Choice (3-4 questions)
-Test recall of key facts, characters, or concepts.
-Format: Question, options A-D, correct answer with brief explanation.
-
-## Short Answer (3-4 questions)
-Test understanding of themes, arguments, or motivations.
-Format: Question, then model answer (2-3 sentences).
-
-## Discussion/Essay (2 questions)
-Open-ended questions requiring synthesis or analysis.
-Format: Question, then key points a good answer should cover.
-
-Adapt to content type:
-- Fiction: Focus on plot, characters, themes, narrative choices
-- Non-fiction: Focus on arguments, evidence, key concepts, implications
-
-{conciseness_nudge} {hallucination_nudge}
-
-Note: The summary may be in a different language than your response language. Translate or adapt as needed.]],
-        skip_domain = true,  -- Quiz format is standardized
         api_params = {
             temperature = 0.6,  -- Balanced variety
             max_tokens = 4096,
@@ -1416,12 +1223,12 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         builtin = true,
     },
     -- Summarize Full Document: Condense content without evaluation
-    -- Foundation for Smart actions — pre-flight generates this automatically
+    -- Used as "Document summary" source by source_selection actions
     summarize_full_document = {
         id = "summarize_full_document",
         enable_web_search = false,
         text = _("Document Summary"),
-        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact — the foundation that all Smart actions rely on. Requires text extraction."),
+        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact, which other actions can use as their document source. Requires text extraction."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1445,12 +1252,14 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         id = "extract_insights",
         enable_web_search = false,
         text = _("Extract Key Insights"),
-        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Requires text extraction."),
+        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Source selection: full document text, document summary, or AI knowledge."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
+        use_summary_cache = true,
+        source_selection = true,  -- Show source selection popup
         prompt = [[Extract key insights from: "{title}"{author_clause}.
 
-{full_document_section}
+{document_context_section}
 
 What are the most important takeaways? Focus on:
 - Ideas worth remembering
