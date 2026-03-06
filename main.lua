@@ -4124,6 +4124,10 @@ local function buildInlineIndicators(cached_entry, config)
   if show_web_search and cached_entry.web_search_used then
     table.insert(indicators, "*[Web search was used]*")
   end
+  -- Show unavailable data notice (same format as chat viewer's MessageHistory)
+  if cached_entry.unavailable_data_text then
+    table.insert(indicators, "*Response generated without: " .. cached_entry.unavailable_data_text .. "*")
+  end
   if #indicators > 0 then
     return table.concat(indicators, "\n") .. "\n\n"
   end

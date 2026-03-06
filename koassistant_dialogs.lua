@@ -3023,6 +3023,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 book_text_was_provided = true
             end
 
+            -- Pre-format unavailable data for cache metadata (artifact viewers use this)
+            local unavailable_text
+            if message_data._unavailable_data and #message_data._unavailable_data > 0 then
+                unavailable_text = table.concat(message_data._unavailable_data, ", ")
+            end
+
             -- Save to response cache if enabled (for incremental updates)
             -- Skip caching if response was truncated or was an error response (cache_answer set to nil)
             -- For progress actions: require progress_decimal (extraction must succeed)
@@ -3053,7 +3059,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                       previous_progress_decimal = message_data.cached_progress_decimal,
                       flow_visible_pages = message_data.flow_visible_pages,
                       progress_page = message_data.progress_page,
-                      full_document = config.features and config.features._full_document_xray or nil }
+                      full_document = config.features and config.features._full_document_xray or nil,
+                      unavailable_data_text = unavailable_text }
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", save_progress, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
@@ -3089,6 +3096,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         flow_visible_pages = message_data.flow_visible_pages,
                         progress_page = message_data.progress_page,
                         full_document = config.features and config.features._full_document_xray or nil,
+                        unavailable_data_text = unavailable_text,
                     }
                     local xray_success = ActionCache.setXrayCache(cache_file, cache_answer, progress, xray_metadata)
                     if xray_success then
@@ -3112,6 +3120,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         scope_start_xpointer = scope.start_xpointer,
                         scope_end_xpointer = scope.end_xpointer,
                         scope_page_summary = scope.page_summary,
+                        unavailable_data_text = unavailable_text,
                     }
                     local section_success = ActionCache.set(cache_file, scope.cache_key, cache_answer, 1.0, section_metadata)
                     if section_success then
@@ -3126,6 +3135,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                         web_search_used = web_search_used or false,
                         flow_visible_pages = message_data.flow_visible_pages,
+                        unavailable_data_text = unavailable_text,
                     }
                     local analyze_success = ActionCache.setAnalyzeCache(cache_file, answer, 1.0, analyze_metadata)
                     if analyze_success then
@@ -3142,6 +3152,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                         web_search_used = web_search_used or false,
                         flow_visible_pages = message_data.flow_visible_pages,
+                        unavailable_data_text = unavailable_text,
                     }
                     local summary_success = ActionCache.setSummaryCache(cache_file, answer, 1.0, summary_metadata)
                     if summary_success then
