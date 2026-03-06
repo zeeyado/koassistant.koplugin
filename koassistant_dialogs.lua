@@ -953,12 +953,14 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                 -- Build complete chat_data structure (matching old saveChat format)
                                 local chat_id = metadata.id or chat_history_manager:generateChatId()
 
-                                -- Preserve existing tags when updating an existing chat
+                                -- Preserve existing tags and starred when updating an existing chat
                                 local existing_tags = {}
+                                local existing_starred
                                 if metadata.id then
                                     local existing = chat_history_manager:getChatById(document_path, metadata.id)
                                     if existing then
                                         existing_tags = existing.tags or {}
+                                        existing_starred = existing.starred
                                     end
                                 end
 
@@ -976,6 +978,7 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                     launch_context = metadata.launch_context,
                                     domain = metadata.domain,
                                     tags = existing_tags,
+                                    starred = existing_starred,
                                     original_highlighted_text = metadata.original_highlighted_text,
                                     -- Store system prompt metadata for debug display
                                     system_metadata = config and config.system,
@@ -1770,14 +1773,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                 -- v2: DocSettings-based storage
                                 local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
 
-                                -- Preserve existing tags and title when updating an existing chat
+                                -- Preserve existing tags, starred, and title when updating an existing chat
                                 local existing_tags = {}
+                                local existing_starred
                                 local existing_title = suggested_title
                                 local effective_chat_id = metadata.id or history.chat_id
                                 if effective_chat_id and save_path then
                                     local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
                                     if existing then
                                         existing_tags = existing.tags or {}
+                                        existing_starred = existing.starred
                                         existing_title = existing.title or suggested_title
                                     end
                                 end
@@ -1796,6 +1801,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     launch_context = metadata.launch_context,
                                     domain = metadata.domain,
                                     tags = existing_tags,
+                                    starred = existing_starred,
                                     original_highlighted_text = metadata.original_highlighted_text,
                                     -- Store system prompt metadata for debug display
                                     system_metadata = cfg.system,
@@ -1892,14 +1898,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         -- v2: DocSettings-based storage
                         local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
 
-                        -- Preserve existing tags and title when updating an existing chat
+                        -- Preserve existing tags, starred, and title when updating an existing chat
                         local existing_tags = {}
+                        local existing_starred
                         local existing_title = suggested_title
                         local effective_chat_id = metadata.id or history.chat_id
                         if effective_chat_id then
                             local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
                             if existing then
                                 existing_tags = existing.tags or {}
+                                existing_starred = existing.starred
                                 existing_title = existing.title or suggested_title
                             end
                         end
@@ -1918,6 +1926,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             launch_context = metadata.launch_context,
                             domain = metadata.domain,
                             tags = existing_tags,
+                            starred = existing_starred,
                             original_highlighted_text = metadata.original_highlighted_text,
                             -- Store system prompt metadata for debug display
                             system_metadata = viewer_config and viewer_config.system,
@@ -2284,14 +2293,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     -- v2: DocSettings-based storage
                     local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
 
-                    -- Preserve existing tags and title when updating an existing chat
+                    -- Preserve existing tags, starred, and title when updating an existing chat
                     local existing_tags = {}
+                    local existing_starred
                     local existing_title = suggested_title
                     local effective_chat_id = metadata.id or history.chat_id
                     if effective_chat_id and save_path then
                         local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
                         if existing then
                             existing_tags = existing.tags or {}
+                            existing_starred = existing.starred
                             existing_title = existing.title or suggested_title
                         end
                     end
@@ -2310,6 +2321,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         launch_context = metadata.launch_context,
                         domain = metadata.domain,
                         tags = existing_tags,
+                        starred = existing_starred,
                         original_highlighted_text = metadata.original_highlighted_text,
                         -- Store system prompt metadata for debug display
                         system_metadata = temp_config.system,

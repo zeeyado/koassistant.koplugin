@@ -65,10 +65,7 @@ function ChatHistoryDialog:showChatListMenuOptions(ui, document, chat_history_ma
                     -- Close the chat list menu and go back to document list
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
-                    -- Refresh the document list
-                    UIManager:scheduleIn(0.5, function()
-                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
-                    end)
+                    self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
                 end,
             })
         end }},
@@ -103,31 +100,23 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
     local buttons = {
         {{ text = _("Notebooks"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                if ui.koassistant then ui.koassistant:showNotebookBrowser() end
-            end)
+            safeClose(mc)
+            if ui.koassistant then ui.koassistant:showNotebookBrowser() end
         end }},
         {{ text = _("Artifacts"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                if ui.koassistant then ui.koassistant:showArtifactBrowser() end
-            end)
+            safeClose(mc)
+            if ui.koassistant then ui.koassistant:showArtifactBrowser() end
         end }},
         {{ text = _("View by Domain"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
-            end)
+            safeClose(mc)
+            self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
         end }},
         {{ text = _("View by Tag"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
-            end)
+            safeClose(mc)
+            self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
         end }},
         {{ text = _("Delete all chats"), align = "left", callback = function()
             safeClose(dialog)
@@ -143,6 +132,8 @@ function ChatHistoryDialog:showDocumentMenuOptions(ui, chat_history_manager, con
                     })
                     safeClose(self_ref.current_menu)
                     self_ref.current_menu = nil
+                    -- Refresh shows empty state or returns to caller
+                    self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
                 end,
             })
         end }},
@@ -177,31 +168,23 @@ function ChatHistoryDialog:showDomainBrowserMenuOptions(ui, chat_history_manager
     local buttons = {
         {{ text = _("Notebooks"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                if ui.koassistant then ui.koassistant:showNotebookBrowser() end
-            end)
+            safeClose(mc)
+            if ui.koassistant then ui.koassistant:showNotebookBrowser() end
         end }},
         {{ text = _("Artifacts"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                if ui.koassistant then ui.koassistant:showArtifactBrowser() end
-            end)
+            safeClose(mc)
+            if ui.koassistant then ui.koassistant:showArtifactBrowser() end
         end }},
         {{ text = _("View by Tag"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
-            end)
+            safeClose(mc)
+            self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
         end }},
         {{ text = _("Chat History"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
-            end)
+            safeClose(mc)
+            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
         end }},
     }
 
@@ -234,31 +217,23 @@ function ChatHistoryDialog:showTagBrowserMenuOptions(ui, chat_history_manager, c
     local buttons = {
         {{ text = _("Notebooks"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                if ui.koassistant then ui.koassistant:showNotebookBrowser() end
-            end)
+            safeClose(mc)
+            if ui.koassistant then ui.koassistant:showNotebookBrowser() end
         end }},
         {{ text = _("Artifacts"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                if ui.koassistant then ui.koassistant:showArtifactBrowser() end
-            end)
+            safeClose(mc)
+            if ui.koassistant then ui.koassistant:showArtifactBrowser() end
         end }},
         {{ text = _("View by Domain"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
-            end)
+            safeClose(mc)
+            self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
         end }},
         {{ text = _("Chat History"), align = "left", callback = function()
             local mc = navClose()
-            UIManager:nextTick(function()
-                safeClose(mc)
-                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
-            end)
+            safeClose(mc)
+            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
         end }},
     }
 
@@ -438,7 +413,12 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
                         or domain_name,
                     author = chat.book_author,
                 }
-                self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil)
+                self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil, function()
+                    -- Refresh domain chats list (re-fetch to get updated star state)
+                    local fresh_chats = chat_history_manager:getChatsByDomain()
+                    local domain_chats = fresh_chats[domain_key] or {}
+                    self_ref:showChatsForDomain(ui, domain_key, domain_chats, all_domains, chat_history_manager, config)
+                end)
             end
         })
     end
@@ -465,13 +445,9 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
             return true
         end,
         onReturn = function()
-            if self_ref.current_menu then
-                UIManager:close(self_ref.current_menu)
-                self_ref.current_menu = nil
-            end
-            UIManager:nextTick(function()
-                self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
-            end)
+            safeClose(chat_menu)
+            self_ref.current_menu = nil
+            self_ref:showChatsByDomainBrowser(ui, chat_history_manager, config)
         end,
         close_callback = function()
             if self_ref.current_menu == chat_menu then
@@ -729,7 +705,9 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
             help_text = preview,
             callback = function()
                 logger.info("Chat selected: " .. (captured_chat.id or "unknown") .. " - " .. (captured_chat.title or "Untitled"))
-                self_ref:showChatOptions(ui, document.path, captured_chat, chat_history_manager, config, document, nav_context)
+                self_ref:showChatOptions(ui, document.path, captured_chat, chat_history_manager, config, document, nav_context, function()
+                    self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
+                end)
             end,
         })
     end
@@ -833,9 +811,7 @@ function ChatHistoryDialog:showDocumentHoldOptions(ui, doc, chat_history_manager
                         })
                         safeClose(self_ref.current_menu)
                         self_ref.current_menu = nil
-                        UIManager:scheduleIn(0.5, function()
-                            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
-                        end)
+                        self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
                     end,
                 })
             end,
@@ -859,7 +835,7 @@ function ChatHistoryDialog:showDocumentHoldOptions(ui, doc, chat_history_manager
 end
 
 --- Hold options for level 2 chat items (book documents only — "Open Book")
-function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context, on_list_changed)
     local Notification = require("ui/widget/notification")
     logger.info("KOAssistant: showChatOptions - self.current_menu = " .. tostring(self.current_menu))
     -- Close any existing options dialog first
@@ -916,7 +892,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:continueChat(ui, document_path, chat, chat_history_manager, config)
+                    self_ref:continueChat(ui, document_path, chat, chat_history_manager, config, on_list_changed)
                 end,
             },
             {
@@ -924,7 +900,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:showRenameDialog(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+                    self_ref:showRenameDialog(ui, document_path, chat, chat_history_manager, config, document, nav_context, on_list_changed)
                 end,
             },
         },
@@ -934,7 +910,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:showTagsManager(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+                    self_ref:showTagsManager(ui, document_path, chat, chat_history_manager, config, document, nav_context, on_list_changed)
                 end,
             },
             {
@@ -969,7 +945,9 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                     })
                 end
                 -- Refresh chat list to update star indicator
-                if document then
+                if on_list_changed then
+                    on_list_changed()
+                elseif document then
                     self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
                 end
             end,
@@ -1130,7 +1108,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close)
+                    self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close, on_list_changed)
                 end,
             },
         })
@@ -1141,7 +1119,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                 callback = function()
                     safeClose(dialog)
                     self_ref.current_options_dialog = nil
-                    self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close)
+                    self_ref:confirmDeleteWithClose(ui, document_path, chat.id, chat_history_manager, config, document, nav_context, menu_to_close, on_list_changed)
                 end,
             },
         })
@@ -1166,7 +1144,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
     UIManager:show(dialog)
 end
 
-function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_history_manager, config, document, nav_context, on_list_changed)
     local self_ref = self
     local rename_dialog
 
@@ -1196,7 +1174,9 @@ function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_histor
                                 timeout = 2,
                             })
                             -- Refresh the chat list
-                            if document then
+                            if on_list_changed then
+                                on_list_changed()
+                            elseif document then
                                 self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
                             end
                         else
@@ -1214,7 +1194,7 @@ function ChatHistoryDialog:showRenameDialog(ui, document_path, chat, chat_histor
     UIManager:show(rename_dialog)
 end
 
-function ChatHistoryDialog:showTagsManager(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+function ChatHistoryDialog:showTagsManager(ui, document_path, chat, chat_history_manager, config, document, nav_context, on_list_changed)
     local self_ref = self
     local tags_dialog = nil  -- Track current dialog for proper closing
 
@@ -1381,7 +1361,7 @@ function ChatHistoryDialog:showTagsManager(ui, document_path, chat, chat_history
                         tags_dialog = nil
                     end
                     -- Go back to chat options with refreshed chat data
-                    self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context)
+                    self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, document, nav_context, on_list_changed)
                 end,
             },
         })
@@ -1580,7 +1560,7 @@ function ChatHistoryDialog:showTagsMenuForChat(document_path, chat_id, chat_hist
     showTagsMenu()
 end
 
-function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_manager, config)
+function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_manager, config, on_list_changed)
     if not chat or not chat.id then
         UIManager:show(InfoMessage:new{
             text = _("Error: Cannot load chat data."),
@@ -1674,11 +1654,12 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                 -- Auto-save continued chats
                 if config.features.auto_save_all_chats or (config.features.auto_save_chats ~= false) then
-                    -- Reload fresh tags and title from disk to pick up any
-                    -- changes made via the tag/rename UI during this session
+                    -- Reload fresh metadata from disk to pick up any
+                    -- changes made via the tag/rename/star UI during this session
                     local fresh = chat_history_manager:getChatById(document_path, chat.id)
                     local save_tags = (fresh and fresh.tags) or chat.tags or {}
                     local save_title = (fresh and fresh.title) or chat.title
+                    local save_starred = fresh and fresh.starred
 
                     local save_ok
                     -- Check storage version and route to appropriate method
@@ -1698,6 +1679,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             launch_context = chat.launch_context,
                             domain = chat.domain,
                             tags = save_tags,
+                            starred = save_starred,
                             original_highlighted_text = chat.original_highlighted_text,
                             -- Preserve system prompt metadata for debug display
                             system_metadata = chat.system_metadata,
@@ -1912,11 +1894,12 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                         timeout = 2,
                     })
                 else
-                    -- Reload fresh tags and title from disk to pick up any
-                    -- changes made via the tag/rename UI during this session
+                    -- Reload fresh metadata from disk to pick up any
+                    -- changes made via the tag/rename/star UI during this session
                     local fresh = chat_history_manager:getChatById(document_path, chat.id)
                     local save_tags = (fresh and fresh.tags) or chat.tags or {}
                     local save_title = (fresh and fresh.title) or chat.title
+                    local save_starred = fresh and fresh.starred
 
                     local save_ok
                     -- Check storage version and route to appropriate method
@@ -1936,6 +1919,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             launch_context = chat.launch_context,
                             domain = chat.domain,
                             tags = save_tags,
+                            starred = save_starred,
                             original_highlighted_text = chat.original_highlighted_text,
                             -- Preserve system prompt metadata for debug display
                             system_metadata = chat.system_metadata,
@@ -2135,6 +2119,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             end,
             close_callback = function()
                 self_ref.current_chat_viewer = nil
+                -- Refresh parent chat list (updates star prefix, message counts, etc.)
+                if on_list_changed then
+                    on_list_changed()
+                end
             end,
             -- Add rotation support by providing a recreation function
             _recreate_func = function(captured_state)
@@ -2347,7 +2335,7 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
 end
 
 -- Simple delete confirmation - menu is already closed before this is called
-function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_history_manager, config, document, nav_context)
+function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_history_manager, config, document, nav_context, on_list_changed)
     local self_ref = self
 
     UIManager:show(ConfirmBox:new{
@@ -2362,8 +2350,9 @@ function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_
                     timeout = 2,
                 })
 
-                -- Schedule the reload with a small delay to let UI settle
-                UIManager:nextTick(function()
+                if on_list_changed then
+                    on_list_changed()
+                else
                     -- Check if there are any chats left for this document
                     local remaining_chats = chat_history_manager:getChatsUnified(ui, document.path)
                     if #remaining_chats == 0 then
@@ -2373,7 +2362,7 @@ function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_
                         -- Still have chats, reload the chat list
                         self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
                     end
-                end)
+                end
             else
                 UIManager:show(InfoMessage:new{
                     text = _("Failed to delete chat"),
@@ -2385,7 +2374,7 @@ function ChatHistoryDialog:confirmDeleteSimple(ui, document_path, chat_id, chat_
 end
 
 -- Delete confirmation that closes menu only on confirm (not on cancel)
-function ChatHistoryDialog:confirmDeleteWithClose(ui, document_path, chat_id, chat_history_manager, config, document, nav_context, menu_to_close)
+function ChatHistoryDialog:confirmDeleteWithClose(ui, document_path, chat_id, chat_history_manager, config, document, nav_context, menu_to_close, on_list_changed)
     local self_ref = self
 
     UIManager:show(ConfirmBox:new{
@@ -2396,20 +2385,19 @@ function ChatHistoryDialog:confirmDeleteWithClose(ui, document_path, chat_id, ch
             local success = chat_history_manager:deleteChat(document_path, chat_id)
 
             if success then
-                -- Close the menu AFTER delete succeeds
-                if menu_to_close then
-                    UIManager:close(menu_to_close)
-                end
-                self_ref.current_menu = nil
-
                 -- Show info message
                 UIManager:show(InfoMessage:new{
                     text = _("Chat deleted"),
                     timeout = 2,
                 })
 
-                -- Schedule the reload AFTER a delay to let the close complete
-                UIManager:scheduleIn(0.2, function()
+                if on_list_changed then
+                    on_list_changed()
+                else
+                    -- Close the menu AFTER delete succeeds
+                    safeClose(menu_to_close)
+                    self_ref.current_menu = nil
+
                     -- Check if there are any chats left for this document
                     local remaining_chats = chat_history_manager:getChatsUnified(ui, document.path)
                     if #remaining_chats == 0 then
@@ -2419,7 +2407,7 @@ function ChatHistoryDialog:confirmDeleteWithClose(ui, document_path, chat_id, ch
                         -- Still have chats, reload the chat list
                         self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
                     end
-                end)
+                end
             else
                 UIManager:show(InfoMessage:new{
                     text = _("Failed to delete chat"),
@@ -2494,7 +2482,9 @@ function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, na
                     path = captured_path,
                     title = context_label,
                 }
-                self_ref:showChatOptions(ui, captured_path, captured_chat, chat_history_manager, config, document, nav_context or {})
+                self_ref:showChatOptions(ui, captured_path, captured_chat, chat_history_manager, config, document, nav_context or {}, function()
+                    self_ref:showStarredChats(ui, chat_history_manager, config, nav_context)
+                end)
             end,
         })
     end
@@ -2520,13 +2510,9 @@ function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, na
             return true
         end,
         onReturn = function()
-            if self_ref.current_menu then
-                UIManager:close(self_ref.current_menu)
-                self_ref.current_menu = nil
-            end
-            UIManager:nextTick(function()
-                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
-            end)
+            safeClose(self_ref.current_menu)
+            self_ref.current_menu = nil
+            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
         end,
         multilines_show_more_text = true,
         items_max_lines = 2,
@@ -2571,26 +2557,20 @@ function ChatHistoryDialog:showStarredMenuOptions(ui, chat_history_manager, conf
         buttons = {
             {{ text = _("Chat History"), align = "left", callback = function()
                 local mc = navClose()
-                UIManager:nextTick(function()
-                    safeClose(mc)
-                    self_ref:showChatHistoryBrowser(ui, chat_history_manager, config)
-                end)
+                safeClose(mc)
+                self_ref:showChatHistoryBrowser(ui, chat_history_manager, config)
             end }},
             {{ text = _("Notebooks"), align = "left", callback = function()
                 local mc = navClose()
-                UIManager:nextTick(function()
-                    safeClose(mc)
-                    local AskGPT = self_ref:getAskGPTInstance()
-                    if AskGPT then AskGPT:showNotebookBrowser() end
-                end)
+                safeClose(mc)
+                local AskGPT = self_ref:getAskGPTInstance()
+                if AskGPT then AskGPT:showNotebookBrowser() end
             end }},
             {{ text = _("Artifacts"), align = "left", callback = function()
                 local mc = navClose()
-                UIManager:nextTick(function()
-                    safeClose(mc)
-                    local AskGPT = self_ref:getAskGPTInstance()
-                    if AskGPT then AskGPT:showArtifactBrowser() end
-                end)
+                safeClose(mc)
+                local AskGPT = self_ref:getAskGPTInstance()
+                if AskGPT then AskGPT:showArtifactBrowser() end
             end }},
         },
         shrink_unneeded_width = true,
@@ -2747,7 +2727,9 @@ function ChatHistoryDialog:showChatsForTag(ui, tag, chat_history_manager, config
                     title = chat.book_title or (document_path == "__GENERAL_CHATS__" and _("General AI Chats") or "#" .. tag),
                     author = chat.book_author,
                 }
-                self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil)
+                self_ref:showChatOptions(ui, document_path, chat, chat_history_manager, config, doc, nil, function()
+                    self_ref:showChatsForTag(ui, tag, chat_history_manager, config)
+                end)
             end
         })
     end
@@ -2773,13 +2755,9 @@ function ChatHistoryDialog:showChatsForTag(ui, tag, chat_history_manager, config
             return true
         end,
         onReturn = function()
-            if self_ref.current_menu then
-                UIManager:close(self_ref.current_menu)
-                self_ref.current_menu = nil
-            end
-            UIManager:nextTick(function()
-                self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
-            end)
+            safeClose(chat_menu)
+            self_ref.current_menu = nil
+            self_ref:showChatsByTagBrowser(ui, chat_history_manager, config)
         end,
         close_callback = function()
             if self_ref.current_menu == chat_menu then
