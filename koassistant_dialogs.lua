@@ -2820,7 +2820,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Full-document or update-to-100%: override progress to 100% so cache is stored at 1.0
     -- and extraction covers the entire document
-    if config.features and (config.features._full_document_xray or config.features._update_to_full_progress)
+    if config.features and (config.features._full_document_xray or config.features._update_to_full_progress or config.features._complete_analysis)
             and ui and ui.document then
         message_data.progress_decimal = "1.0"
         message_data.reading_progress = "100%"

@@ -4622,6 +4622,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
     return
   end
 
+  -- Analyze Notes: route to scope popup for "to %" / "complete" options
+  if action_id == "analyze_highlights" then
+    self:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached)
+    return
+  end
+
   -- Fallback for dual-cached actions: check document cache for migration
   -- (existing users may have document-level cache but no per-action cache)
   if not cached or not cached.result then
@@ -4726,6 +4732,130 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
       },
     },
   }
+  UIManager:show(dialog)
+end
+
+--- Show Analyze Notes scope popup: choose between "to %" (spoiler guardrails) or "complete" (no restrictions).
+--- Analyze Notes is highlights-based (pseudo-update): all highlights are sent regardless of position,
+--- but the prompt instructs "do not spoil beyond X%." Complete mode sets progress to 100%.
+--- @param action table: The action definition
+--- @param action_id string: The action ID
+--- @param on_update function: Callback to execute normal (to reading position) action
+--- @param cached_entry table|nil: Existing cached entry, or nil if no cache
+function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached_entry)
+  local action_name = action.text or action_id
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+
+  -- Get current reading progress
+  local current_progress
+  if self.ui and self.ui.document then
+    local ContextExtractor = require("koassistant_context_extractor")
+    local extractor = ContextExtractor:new(self.ui)
+    current_progress = extractor:getReadingProgress()
+  end
+
+  local dialog
+  local buttons = {}
+
+  if not cached_entry or not cached_entry.result then
+    -- No cache: Generate (to X%) / Generate (complete) / Cancel
+    if self:_checkRequirements(action) then return end
+
+    -- "to X%" only when not already at ~100%
+    if current_progress and current_progress.decimal < 0.995 then
+      table.insert(buttons, {{
+        text = T(_("Generate %1 (to %2)"), action_name, current_progress.formatted),
+        callback = function()
+          UIManager:close(dialog)
+          on_update()
+        end,
+      }})
+    end
+    table.insert(buttons, {{
+      text = T(_("Generate %1 (complete)"), action_name),
+      callback = function()
+        UIManager:close(dialog)
+        self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+      end,
+    }})
+    table.insert(buttons, {{
+      text = _("Cancel"),
+      callback = function()
+        UIManager:close(dialog)
+      end,
+    }})
+
+    dialog = ButtonDialog:new{
+      title = action_name,
+      buttons = buttons,
+    }
+  else
+    -- Cache exists: View / Update-or-Redo (to X%) / Redo (complete) / Cancel
+    local view_detail = ""
+    local parts = {}
+    if cached_entry.progress_decimal then
+      table.insert(parts, math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%")
+    end
+    local rel_time = formatRelativeTime(cached_entry.timestamp)
+    if rel_time ~= "" then
+      table.insert(parts, rel_time)
+    end
+    if #parts > 0 then
+      view_detail = " (" .. table.concat(parts, ", ") .. ")"
+    end
+
+    -- View
+    table.insert(buttons, {{
+      text = T(_("View %1"), action_name .. view_detail),
+      callback = function()
+        UIManager:close(dialog)
+        self_ref:viewCachedAction(action, action_id, cached_entry, { skip_stale_popup = true })
+      end,
+    }})
+
+    -- Update/Redo (to X%) — skip if already at ~100% (redundant with "complete")
+    if current_progress and current_progress.decimal < 0.995 then
+      local cached_progress = cached_entry.progress_decimal or 0
+      local update_text
+      if current_progress.decimal > cached_progress + 0.01 then
+        update_text = T(_("Update %1 (to %2)"), action_name, current_progress.formatted)
+      else
+        update_text = T(_("Redo %1 (to %2)"), action_name, current_progress.formatted)
+      end
+      table.insert(buttons, {{
+        text = update_text,
+        callback = function()
+          UIManager:close(dialog)
+          if self_ref:_checkRequirements(action) then return end
+          on_update()
+        end,
+      }})
+    end
+
+    -- Redo (complete) — always available
+    table.insert(buttons, {{
+      text = T(_("Redo %1 (complete)"), action_name),
+      callback = function()
+        UIManager:close(dialog)
+        if self_ref:_checkRequirements(action) then return end
+        self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+      end,
+    }})
+
+    table.insert(buttons, {{
+      text = _("Cancel"),
+      callback = function()
+        UIManager:close(dialog)
+      end,
+    }})
+
+    dialog = ButtonDialog:new{
+      title = action_name .. view_detail,
+      buttons = buttons,
+    }
+  end
+
   UIManager:show(dialog)
 end
 
@@ -5869,6 +5999,10 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   -- Update to 100%: override progress to 1.0 (same spoiler-free prompt, no schema change)
   if opts and opts.update_to_full then
     config_copy.features._update_to_full_progress = true
+  end
+  -- Complete analysis: override progress to 1.0 (no spoiler restrictions for Analyze Notes)
+  if opts and opts.complete_analysis then
+    config_copy.features._complete_analysis = true
   end
   -- Section X-Ray: propagate scope and trigger full extraction
   if opts and opts.section_xray then
