@@ -3709,6 +3709,9 @@ function XrayBrowser:_showSectionXrayGroupPopup(sections, excluded_key)
                     if self_ref._section_group_dialog then
                         UIManager:close(self_ref._section_group_dialog)
                     end
+                    if self_ref._artifacts_dialog then
+                        UIManager:close(self_ref._artifacts_dialog)
+                    end
                     -- Close current browser before opening another (prevents stacking)
                     if self_ref.menu then
                         UIManager:close(self_ref.menu)
@@ -3751,6 +3754,9 @@ function XrayBrowser:_showWikiGroupPopup(wiki_entries)
             callback = function()
                 if self_ref._wiki_group_dialog then
                     UIManager:close(self_ref._wiki_group_dialog)
+                end
+                if self_ref._artifacts_dialog then
+                    UIManager:close(self_ref._artifacts_dialog)
                 end
                 local viewer = ChatGPTViewer:new{
                     title = T(_("AI Wiki: %1"), captured.label),
@@ -3807,6 +3813,9 @@ function XrayBrowser:_showPinnedGroupPopup(pinned_entries)
             callback = function()
                 if self_ref._pinned_group_dialog then
                     UIManager:close(self_ref._pinned_group_dialog)
+                end
+                if self_ref._artifacts_dialog then
+                    UIManager:close(self_ref._artifacts_dialog)
                 end
                 local display_name = captured.name or captured.action_text or _("Pinned")
                 local info_parts = {}
@@ -3883,8 +3892,10 @@ function XrayBrowser:_showOtherArtifacts(available)
         table.insert(buttons, {{
             text = label,
             callback = function()
-                if self_ref._artifacts_dialog then
-                    UIManager:close(self_ref._artifacts_dialog)
+                if not (captured.is_section_xray_group or captured.is_wiki_group or captured.is_pinned_group) then
+                    if self_ref._artifacts_dialog then
+                        UIManager:close(self_ref._artifacts_dialog)
+                    end
                 end
                 self_ref:_openArtifact(captured)
             end,
