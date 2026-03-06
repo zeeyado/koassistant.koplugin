@@ -2139,7 +2139,7 @@ function ChatGPTViewer:init()
           for _idx, art in ipairs(other_artifacts) do
             local captured = art
             local label = captured.is_pinned
-                and (captured.name .. " (" .. _("Pinned") .. ")")
+                and ((captured.data and captured.data.name or captured.name) .. " (" .. _("Pinned") .. ")")
                 or captured.name
             table.insert(art_buttons, {{
               text = label,
@@ -3904,7 +3904,7 @@ function ChatGPTViewer:showPinStarDialog()
       is_starred = self.get_star_state()
   end
 
-  local pin_text = is_pinned and _("Unpin from Artifacts") or _("Pin to Artifacts")
+  local pin_text = is_pinned and _("Unpin from Artifacts") or _("Pin Last Response as Artifact")
   local star_text = is_starred
       and ("\u{2605} " .. _("Unstar Conversation"))
       or ("\u{2606} " .. _("Star Conversation"))

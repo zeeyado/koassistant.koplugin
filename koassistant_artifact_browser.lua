@@ -520,7 +520,8 @@ function ArtifactBrowser:showPinnedList(entries, title, context_path, opts)
     for _idx, entry in ipairs(entries) do
         local captured = entry
         local date_str = entry.timestamp > 0 and os.date("%Y-%m-%d", entry.timestamp) or ""
-        local display_text = Constants.getEmojiText("\u{1F4CC}", captured.action_text or _("Chat"), enable_emoji)
+        local display_name = captured.name or captured.action_text or _("Chat")
+        local display_text = Constants.getEmojiText("\u{1F4CC}", display_name, enable_emoji)
         if captured.book_title then
             display_text = display_text .. " \u{00B7} " .. captured.book_title
         end
@@ -610,6 +611,9 @@ function ArtifactBrowser:showPinnedViewer(entry, context_path, opts)
 
     -- Build info text
     local info_parts = {}
+    if entry.action_text and entry.action_text ~= "" then
+        table.insert(info_parts, _("Action") .. ": " .. entry.action_text)
+    end
     if entry.model and entry.model ~= "" then
         table.insert(info_parts, _("Model") .. ": " .. entry.model)
     end
@@ -622,8 +626,9 @@ function ArtifactBrowser:showPinnedViewer(entry, context_path, opts)
         table.insert(info_parts, _("Prompt") .. ": " .. preview)
     end
 
+    local display_name = entry.name or entry.action_text or _("Pinned")
     local viewer = ChatGPTViewer:new{
-        title = (entry.action_text or _("Pinned")) .. " (" .. _("Pinned") .. ")",
+        title = display_name .. " (" .. _("Pinned") .. ")",
         text = entry.result or "",
         simple_view = true,
         cache_type_name = _("pinned artifact"),
@@ -675,7 +680,7 @@ function ArtifactBrowser:showPinnedOptions(entry, context_path, opts)
     local self_ref = self
     local dialog
     dialog = ButtonDialog:new{
-        title = entry.action_text or _("Pinned"),
+        title = entry.name or entry.action_text or _("Pinned"),
         buttons = {
             {
                 {
@@ -683,6 +688,55 @@ function ArtifactBrowser:showPinnedOptions(entry, context_path, opts)
                     callback = function()
                         UIManager:close(dialog)
                         self_ref:showPinnedViewer(entry, context_path, opts)
+                    end,
+                },
+            },
+            {
+                {
+                    text = _("Rename"),
+                    callback = function()
+                        UIManager:close(dialog)
+                        local InputDialog = require("ui/widget/inputdialog")
+                        local input_dialog
+                        input_dialog = InputDialog:new{
+                            title = _("Rename Artifact"),
+                            input = entry.name or entry.action_text or "",
+                            input_hint = _("Enter a new name"),
+                            buttons = {
+                                {
+                                    {
+                                        text = _("Cancel"),
+                                        id = "close",
+                                        callback = function()
+                                            UIManager:close(input_dialog)
+                                        end,
+                                    },
+                                    {
+                                        text = _("Save"),
+                                        is_enter_default = true,
+                                        callback = function()
+                                            local new_name = input_dialog:getInputText()
+                                            if not new_name or new_name == "" then return end
+                                            if #new_name > 80 then new_name = new_name:sub(1, 80) end
+                                            UIManager:close(input_dialog)
+                                            entry.name = new_name
+                                            PinnedManager.updatePin(context_path, entry.id, { name = new_name })
+                                            -- Refresh pinned list
+                                            if self_ref.current_pinned_menu then
+                                                UIManager:close(self_ref.current_pinned_menu)
+                                                self_ref.current_pinned_menu = nil
+                                                local entries = PinnedManager.getPinnedForDocument(context_path)
+                                                if #entries > 0 then
+                                                    self_ref:showPinnedList(entries, _("Pinned"), context_path, opts)
+                                                end
+                                            end
+                                        end,
+                                    },
+                                },
+                            },
+                        }
+                        UIManager:show(input_dialog)
+                        input_dialog:onShowKeyboard()
                     end,
                 },
             },
