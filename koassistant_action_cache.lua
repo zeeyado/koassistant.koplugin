@@ -425,8 +425,9 @@ local PER_ACTION_ARTIFACTS = { recap = true, xray_simple = true, book_info = tru
 --- Central source of truth for discovering cached artifacts.
 --- @param document_path string The document file path
 --- @param exclude_key string|nil Optional artifact key to exclude (e.g. "_xray_cache" when viewing X-Ray)
+--- @param doc table|nil Document object — when provided, section X-Rays covering the current page are promoted to top-level entries
 --- @return table Array of { name, key, data, is_per_action } entries
-function ActionCache.getAvailableArtifacts(document_path, exclude_key)
+function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
     if not document_path then return {} end
     local available = {}
     for _idx, key in ipairs(ARTIFACT_KEYS) do
@@ -442,7 +443,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
             end
         end
     end
-    -- Add section X-Ray group entry if any exist (skip if only the excluded one remains)
+    -- Add section X-Ray entries: promote matching sections to top-level, group the rest
     local sections = ActionCache.getSectionXrays(document_path)
     if #sections > 0 then
         local excluded = false
@@ -454,12 +455,44 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key)
                 end
             end
         end
-        -- Don't show group if the only section is the one being excluded
-        if not (excluded and #sections == 1) then
+
+        -- Find which sections match current reading position
+        local matching_keys = {}
+        if doc then
+            local matching = ActionCache.findMatchingSections(document_path, doc)
+            for _idx, m in ipairs(matching) do
+                matching_keys[m.key] = true
+                -- Promote matching section as top-level entry (unless it's the excluded one)
+                if m.key ~= exclude_key then
+                    local page_info = ActionCache.reconvertPageSummary(m.data, doc)
+                    local display = m.label
+                    if page_info ~= "" then
+                        display = display .. " (" .. page_info .. ")"
+                    end
+                    table.insert(available, {
+                        name = display,
+                        key = m.key,
+                        data = m.data,
+                        is_promoted_section = true,
+                    })
+                end
+            end
+        end
+
+        -- Build group from non-promoted sections
+        local remaining = {}
+        for _idx, sec in ipairs(sections) do
+            if not matching_keys[sec.key] then
+                table.insert(remaining, sec)
+            end
+        end
+        -- Remove excluded section from remaining count
+        local remaining_excl = excluded and #remaining - 1 or #remaining
+        if remaining_excl > 0 then
             table.insert(available, {
-                name = string.format(_("Section X-Rays (%d)"), #sections),
+                name = string.format(_("Section X-Rays (%d)"), #remaining),
                 key = "_xray_sections",
-                data = sections,
+                data = remaining,
                 is_section_xray_group = true,
                 _excluded_section_key = excluded and exclude_key or nil,
             })
@@ -483,9 +516,10 @@ end
 --- Pinned entries have is_pinned=true flag for caller to handle differently.
 --- @param document_path string The document file path
 --- @param exclude_key string|nil Optional artifact key to exclude
+--- @param doc table|nil Document object — passed through to getAvailableArtifacts for section promotion
 --- @return table Array of entries (cached + pinned)
-function ActionCache.getAvailableArtifactsWithPinned(document_path, exclude_key)
-    local artifacts = ActionCache.getAvailableArtifacts(document_path, exclude_key)
+function ActionCache.getAvailableArtifactsWithPinned(document_path, exclude_key, doc)
+    local artifacts = ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
     if not document_path then return artifacts end
 
     local ok, PinnedManager = pcall(require, "koassistant_pinned_manager")
@@ -851,7 +885,7 @@ function ActionCache.reconvertPageSummary(data, doc)
         if new_end then new_end = new_end - 1 end
     else
         -- Last section: find last visible page (excluding hidden flows)
-        local total = doc.info.number_of_pages or 0
+        local total = (doc.info and doc.info.number_of_pages) or 0
         if doc.hasHiddenFlows and doc:hasHiddenFlows() then
             for page = total, 1, -1 do
                 if doc:getPageFlow(page) == 0 then
@@ -864,6 +898,11 @@ function ActionCache.reconvertPageSummary(data, doc)
         end
     end
     if new_start and new_end then
+        -- Convert to visible page numbers (excludes hidden flow pages like footnotes)
+        if doc.getPageNumberInFlow then
+            new_start = doc:getPageNumberInFlow(new_start)
+            new_end = doc:getPageNumberInFlow(new_end)
+        end
         return T(_("pp %1–%2"), new_start, new_end)
     end
     return data.scope_page_summary or ""
@@ -886,6 +925,157 @@ function ActionCache.clearSectionXrays(document_path)
         return saveCache(document_path, cache)
     end
     return true
+end
+
+--- Check if any X-Ray exists for a document (main or section).
+--- Lightweight check for button visibility gating.
+--- @param document_path string The document file path
+--- @return boolean
+function ActionCache.hasAnyXray(document_path)
+    if not document_path then return false end
+    local cached = ActionCache.getXrayCache(document_path)
+    if cached and cached.result then return true end
+    return ActionCache.getSectionXrayCount(document_path) > 0
+end
+
+
+--- Get the current page number from a document object.
+--- Handles both page-based (PDF) and flowing (EPUB) documents.
+--- @param doc table Document object
+--- @return number|nil current_page
+local function getCurrentPageFromDoc(doc)
+    if not doc then return nil end
+    -- Guard: document must have pages (protects against unrendered documents)
+    if not doc.info or not doc.info.number_of_pages or doc.info.number_of_pages == 0 then
+        return nil
+    end
+    if doc.info.has_pages then
+        -- PDF: not easily accessible without ui.view — fall back to xpointer
+    end
+    local xp = doc.getXPointer and doc:getXPointer()
+    if xp and doc.getPageFromXPointer then
+        return doc:getPageFromXPointer(xp)
+    end
+    return nil
+end
+
+--- Get the page range for a section X-Ray entry, using XPointers for accuracy.
+--- Falls back to stored page numbers if XPointers not available.
+--- @param data table Section cache entry with scope_* fields
+--- @param doc table|nil Document object
+--- @return number|nil start_page, number|nil end_page
+local function getSectionPageRange(data, doc)
+    if not data then return nil, nil end
+    local start_page, end_page
+    -- Try xpointer-based conversion first (font-size independent)
+    if doc and doc.getPageFromXPointer then
+        if data.scope_start_xpointer then
+            start_page = doc:getPageFromXPointer(data.scope_start_xpointer)
+        end
+        if data.scope_end_xpointer then
+            end_page = doc:getPageFromXPointer(data.scope_end_xpointer)
+            if end_page then end_page = end_page - 1 end  -- end xpointer is exclusive
+        elseif data.scope_start_xpointer then
+            -- Last section: has start xpointer but no end → use last visible page
+            local total = doc.info and doc.info.number_of_pages or 0
+            if doc.hasHiddenFlows and doc:hasHiddenFlows() then
+                for page = total, 1, -1 do
+                    if doc:getPageFlow(page) == 0 then
+                        end_page = page
+                        break
+                    end
+                end
+            else
+                end_page = total
+            end
+        end
+    end
+    -- Fall back to stored page numbers
+    if not start_page then start_page = data.scope_start_page end
+    if not end_page then end_page = data.scope_end_page end
+    return start_page, end_page
+end
+
+--- Find the best X-Ray for the current reading position.
+--- Priority: section in range > main > sole section out of range.
+--- If multiple sections exist with none/multiple in range, returns needs_selection.
+--- @param document_path string The document file path
+--- @param doc table|nil Document object (needed for page position check)
+--- @return table|nil result { entry, key, is_section, label } or { needs_selection=true, sections={...} }
+function ActionCache.findBestXray(document_path, doc)
+    if not document_path then return nil end
+
+    local current_page = getCurrentPageFromDoc(doc)
+    local sections = ActionCache.getSectionXrays(document_path)
+    local main = ActionCache.getXrayCache(document_path)
+    local has_main = main and main.result
+
+    -- 1. Check section X-Rays for one covering current page
+    if current_page and #sections > 0 then
+        local in_range = {}
+        for _idx, sec in ipairs(sections) do
+            local sp, ep = getSectionPageRange(sec.data, doc)
+            if sp and ep and current_page >= sp and current_page <= ep then
+                table.insert(in_range, sec)
+            end
+        end
+        if #in_range == 1 then
+            return {
+                entry = in_range[1].data,
+                key = in_range[1].key,
+                is_section = true,
+                label = in_range[1].label,
+            }
+        elseif #in_range > 1 then
+            -- Multiple sections in range: let caller show selection popup
+            return { needs_selection = true, sections = in_range }
+        end
+    end
+
+    -- 2. Fall back to main X-Ray
+    if has_main then
+        return {
+            entry = main,
+            key = ActionCache.XRAY_CACHE_KEY,
+            is_section = false,
+        }
+    end
+
+    -- 3. Only section X-Rays, none in range
+    if #sections == 1 then
+        -- Sole section: use it even out of range (better than nothing)
+        return {
+            entry = sections[1].data,
+            key = sections[1].key,
+            is_section = true,
+            label = sections[1].label,
+        }
+    elseif #sections > 1 then
+        -- Multiple sections, none in range: let caller show selection popup
+        return { needs_selection = true, sections = sections }
+    end
+
+    return nil
+end
+
+--- Find section X-Rays matching the current reading position.
+--- @param document_path string The document file path
+--- @param doc table Document object (needed for page position check)
+--- @return table Array of matching section entries from getSectionXrays()
+function ActionCache.findMatchingSections(document_path, doc)
+    if not document_path or not doc then return {} end
+    local current_page = getCurrentPageFromDoc(doc)
+    if not current_page then return {} end
+
+    local sections = ActionCache.getSectionXrays(document_path)
+    local matching = {}
+    for _idx, sec in ipairs(sections) do
+        local sp, ep = getSectionPageRange(sec.data, doc)
+        if sp and ep and current_page >= sp and current_page <= ep then
+            table.insert(matching, sec)
+        end
+    end
+    return matching
 end
 
 return ActionCache

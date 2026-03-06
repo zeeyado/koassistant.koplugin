@@ -423,7 +423,8 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
         local btn_rows = {}
         for _idx, cache in ipairs(caches) do
           local display = cache.name
-          if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group then
+          if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group
+              and not cache.is_promoted_section then
             -- Format with metadata: "X-Ray (100%, today)"
             local meta_parts = {}
             if cache.data then
@@ -4140,7 +4141,7 @@ function AskGPT:viewCache(parent_dialog)
   local ActionCache = require("koassistant_action_cache")
   local file = self.ui.document.file
 
-  local caches = ActionCache.getAvailableArtifactsWithPinned(file)
+  local caches = ActionCache.getAvailableArtifactsWithPinned(file, nil, self.ui.document)
 
   -- Refresh artifact index for this document (populates index for pre-existing artifacts)
   ActionCache.refreshIndex(file)
@@ -4158,7 +4159,8 @@ function AskGPT:viewCache(parent_dialog)
   for _idx, cache in ipairs(caches) do
     -- Format with metadata: "X-Ray (100%, today)" or pinned indicator
     local display = cache.name
-    if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group then
+    if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group
+        and not cache.is_promoted_section then
       local meta_parts = {}
       if cache.data then
         if cache.data.progress_decimal then
@@ -4406,7 +4408,10 @@ function AskGPT:showCacheViewer(cache_info)
                   scope_end = total
                 end
               end
-              scope_summary = T(_("pp %1–%2"), scope_start, scope_end)
+              -- Convert to visible page numbers for display
+              local vis_start = doc.getPageNumberInFlow and doc:getPageNumberInFlow(scope_start) or scope_start
+              local vis_end = doc.getPageNumberInFlow and doc:getPageNumberInFlow(scope_end) or scope_end
+              scope_summary = T(_("pp %1–%2"), vis_start, vis_end)
             end
           end
           browser_metadata.scope = {
@@ -5002,11 +5007,16 @@ function AskGPT:_showSectionXrayPicker(action)
   for i, entry in ipairs(entries) do
     local d = entry.depth or 1
     local title = entry.title
-    if not title or title == "" then title = T(_("Page %1"), entry.start_page) end
+    -- Use visible page numbers for display
+    local vis_sp = self.ui.document.getPageNumberInFlow
+        and self.ui.document:getPageNumberInFlow(entry.start_page) or entry.start_page
+    local vis_ep = self.ui.document.getPageNumberInFlow
+        and self.ui.document:getPageNumberInFlow(entry.end_page) or entry.end_page
+    if not title or title == "" then title = T(_("Page %1"), vis_sp) end
     local is_current = current_page >= entry.start_page and current_page <= entry.end_page
     table.insert(full_toc, {
       text = title,
-      mandatory = T(_("pp %1–%2"), entry.start_page, entry.end_page),
+      mandatory = T(_("pp %1–%2"), vis_sp, vis_ep),
       indent = toc_indent * (d - 1),
       depth = d,
       index = i,
@@ -5291,7 +5301,9 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
   local input_dialog
   input_dialog = InputDialog:new{
     title = _("Section X-Ray Name"),
-    description = T(_("Pages %1–%2"), entry.start_page, entry.end_page),
+    description = T(_("Pages %1–%2"),
+        self.ui.document.getPageNumberInFlow and self.ui.document:getPageNumberInFlow(entry.start_page) or entry.start_page,
+        self.ui.document.getPageNumberInFlow and self.ui.document:getPageNumberInFlow(entry.end_page) or entry.end_page),
     input = default_name,
     input_hint = _("Enter a name for this Section X-Ray"),
     buttons = {
@@ -5364,7 +5376,14 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
   local Actions = require("prompts/actions")
   local ActionCache = require("koassistant_action_cache")
 
-  local page_summary = T(_("pp %1–%2"), entry.start_page, entry.end_page)
+  -- Use visible page numbers for display (excludes hidden flow pages like footnotes)
+  local vis_start = entry.start_page
+  local vis_end = entry.end_page
+  if self.ui.document.getPageNumberInFlow then
+    vis_start = self.ui.document:getPageNumberInFlow(entry.start_page)
+    vis_end = self.ui.document:getPageNumberInFlow(entry.end_page)
+  end
+  local page_summary = T(_("pp %1–%2"), vis_start, vis_end)
 
   -- Clone the xray action and override for section behavior
   local section_action = {}
@@ -7785,8 +7804,7 @@ function AskGPT:syncDictionaryBypass()
       if bypass_action.requires_xray_cache then
         local ActionCache = require("koassistant_action_cache")
         local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
-        local cached = file and ActionCache.getXrayCache(file)
-        if not cached or not cached.result then
+        if not file or not ActionCache.hasAnyXray(file) then
           logger.info("KOAssistant: Dictionary bypass - action requires X-Ray cache, falling through to dictionary")
           if dictionary._koassistant_original_onLookupWord then
             return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
@@ -7995,8 +8013,7 @@ function AskGPT:syncHighlightBypass()
         if action.requires_xray_cache then
           local ActionCache = require("koassistant_action_cache")
           local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
-          local cached = file and ActionCache.getXrayCache(file)
-          if not cached or not cached.result then
+          if not file or not ActionCache.hasAnyXray(file) then
             logger.info("KOAssistant: Highlight bypass - action requires X-Ray cache, falling through to menu")
             return highlight._koassistant_original_onShowHighlightMenu(hl_self, ...)
           end

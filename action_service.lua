@@ -793,8 +793,7 @@ function ActionService:getHighlightMenuActionObjects(has_open_book, document_pat
             local include = true
             if action.requires_xray_cache and document_path then
                 local ActionCache = require("koassistant_action_cache")
-                local cached = ActionCache.getXrayCache(document_path)
-                if not cached or not cached.result then
+                if not ActionCache.hasAnyXray(document_path) then
                     include = false
                 end
             end
@@ -950,8 +949,7 @@ function ActionService:getDictionaryPopupActionObjects(has_open_book, document_p
             local include = true
             if action.requires_xray_cache and document_path then
                 local ActionCache = require("koassistant_action_cache")
-                local cached = ActionCache.getXrayCache(document_path)
-                if not cached or not cached.result then
+                if not ActionCache.hasAnyXray(document_path) then
                     include = false
                 end
             end
