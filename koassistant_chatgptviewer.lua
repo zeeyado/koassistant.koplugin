@@ -2128,7 +2128,8 @@ function ChatGPTViewer:init()
   -- Artifacts button (cross-navigate to other cached artifacts for the same book)
   if self._artifact_file then
     local ActionCache = require("koassistant_action_cache")
-    local other_artifacts = ActionCache.getAvailableArtifactsWithPinned(self._artifact_file, self._artifact_key)
+    local open_doc = self._plugin and self._plugin.ui and self._plugin.ui.document or nil
+    local other_artifacts = ActionCache.getAvailableArtifactsWithPinned(self._artifact_file, self._artifact_key, open_doc)
     if #other_artifacts > 0 then
       table.insert(simple_view_row1, {
         text = _("Artifacts"),

@@ -258,8 +258,11 @@ end
 --- @param doc_title string The document title
 --- @param opts table|nil Config passed through for refresh
 function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
-    -- Load all artifacts including pinned
-    local all_artifacts = ActionCache.getAvailableArtifactsWithPinned(doc_path)
+    -- Load all artifacts including pinned; pass doc for section promotion if this is the open book
+    local ReaderUI = require("apps/reader/readerui")
+    local open_doc = ReaderUI.instance and ReaderUI.instance.document
+        and ReaderUI.instance.document.file == doc_path and ReaderUI.instance.document or nil
+    local all_artifacts = ActionCache.getAvailableArtifactsWithPinned(doc_path, nil, open_doc)
 
     if #all_artifacts == 0 then
         -- All artifacts were removed since index was built; clean up and refresh
@@ -334,8 +337,7 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                 UIManager:close(self_ref.current_menu)
                 self_ref.current_menu = nil
             end
-            local ReaderUI = require("apps/reader/readerui")
-            ReaderUI:showReader(doc_path)
+            require("apps/reader/readerui"):showReader(doc_path)
         end,
     }})
     table.insert(buttons, {{

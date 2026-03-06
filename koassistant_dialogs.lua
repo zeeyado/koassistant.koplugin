@@ -4000,7 +4000,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
-            local caches = ActionCache.getAvailableArtifactsWithPinned(artifact_file)
+            local open_doc = ui_instance and ui_instance.document or nil
+            local caches = ActionCache.getAvailableArtifactsWithPinned(artifact_file, nil, open_doc)
 
             local function openArtifact(cache, on_select)
                 if cache.is_section_xray_group then
@@ -4027,7 +4028,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
 
             local function formatDisplayText(cache)
-                if cache.is_pinned_group or cache.is_section_xray_group or cache.is_wiki_group then
+                if cache.is_pinned_group or cache.is_section_xray_group or cache.is_wiki_group
+                    or cache.is_promoted_section then
                     return cache.name
                 end
                 return formatArtifactDisplayText(cache)
@@ -4334,7 +4336,8 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
 end
 
 -- Handle local X-Ray lookup: search cached X-Ray data for the query
-local function handleLocalXrayLookup(ui, query, document_path, book_metadata, config, plugin)
+-- @param override_best table|nil Pre-selected X-Ray result (from selection popup callback)
+local function handleLocalXrayLookup(ui, query, document_path, book_metadata, config, plugin, override_best)
     local logger = require("logger")
     logger.info("KOAssistant: Local X-Ray lookup for: " .. tostring(query))
 
@@ -4346,17 +4349,49 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         return
     end
 
-    -- Load X-Ray cache
+    -- Find best X-Ray: prefer section covering current page, fall back to main
     local ActionCache = require("koassistant_action_cache")
-    local cached = ActionCache.getXrayCache(document_path)
+    local doc = ui and ui.document
+    local best = override_best or ActionCache.findBestXray(document_path, doc)
 
-    if not cached or not cached.result then
+    if not best then
         UIManager:show(InfoMessage:new{
             text = _("No X-Ray cache found for this book. Generate one first via the X-Ray action."),
             timeout = 4,
         })
         return
     end
+
+    -- Multiple sections available: let user pick which one to search
+    if best.needs_selection then
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local sec_selector
+        local btn_rows = {}
+        for _idx, sec in ipairs(best.sections) do
+            local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+            local label = sec.label
+            if page_info ~= "" then
+                label = label .. " (" .. page_info .. ")"
+            end
+            local captured_sec = sec
+            table.insert(btn_rows, {{
+                text = label,
+                callback = function()
+                    UIManager:close(sec_selector)
+                    handleLocalXrayLookup(ui, query, document_path, book_metadata, config, plugin,
+                        { entry = captured_sec.data, key = captured_sec.key, is_section = true, label = captured_sec.label })
+                end,
+            }})
+        end
+        sec_selector = ButtonDialog:new{
+            title = T(_("Look up \"%1\" in which X-Ray?"), query),
+            buttons = btn_rows,
+        }
+        UIManager:show(sec_selector)
+        return
+    end
+
+    local cached = best.entry
 
     -- Parse the cached JSON
     local XrayParser = require("koassistant_xray_parser")
@@ -4373,17 +4408,20 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
     -- Search across all categories
     local results = XrayParser.searchAll(data, query)
 
-    -- Calculate progress gap
+    -- Calculate progress gap (only for main X-Ray; sections cover fixed ranges)
     local current_progress = getProgressDecimal(ui)
     local cache_progress = cached.progress_decimal
     local progress_gap = nil
-    if current_progress and cache_progress then
+    if not best.is_section and current_progress and cache_progress then
         progress_gap = current_progress - cache_progress
     end
 
     if #results == 0 then
         -- No results
         local msg = T(_("No results for \"%1\" in X-Ray."), query)
+        if best.is_section and best.label then
+            msg = T(_("No results for \"%1\" in Section X-Ray: %2."), query, best.label)
+        end
         if progress_gap and progress_gap > 0.08 then
             local cache_pct = math.floor(cache_progress * 100 + 0.5)
             local current_pct = math.floor(current_progress * 100 + 0.5)
@@ -4407,52 +4445,52 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             XrayBrowser:showSearchResults(query)
         end
 
-        -- Show progress staleness popup AFTER navigation so it's on top of detail view
-        -- Check session-based dismiss (keyed by book + cached progress)
-        local book_file = ui.document and ui.document.file
-        local dismissed = book_file and plugin._xray_stale_dismissed
-            and plugin._xray_stale_dismissed[book_file] == cache_progress
-        if not dismissed and progress_gap and progress_gap > 0.08 and plugin then
-            local ButtonDialog = require("ui/widget/buttondialog")
-            local cache_pct = math.floor(cache_progress * 100 + 0.5)
-            local ContextExtractor = require("koassistant_context_extractor")
-            local extractor = ContextExtractor:new(ui)
-            local current = extractor:getReadingProgress()
-            local info_text = T(_("X-Ray covers to %1%"), cache_pct)
-            info_text = info_text .. "\n" .. T(_("You're now at %1%."), current.percent)
+        -- Show progress staleness popup (main X-Ray only; sections cover fixed ranges)
+        if not best.is_section then
+            local book_file = ui.document and ui.document.file
+            local dismissed = book_file and plugin._xray_stale_dismissed
+                and plugin._xray_stale_dismissed[book_file] == cache_progress
+            if not dismissed and progress_gap and progress_gap > 0.08 and plugin then
+                local ButtonDialog = require("ui/widget/buttondialog")
+                local cache_pct = math.floor(cache_progress * 100 + 0.5)
+                local ContextExtractor = require("koassistant_context_extractor")
+                local extractor = ContextExtractor:new(ui)
+                local current = extractor:getReadingProgress()
+                local info_text = T(_("X-Ray covers to %1%"), cache_pct)
+                info_text = info_text .. "\n" .. T(_("You're now at %1%."), current.percent)
 
-            local stale_dialog
-            stale_dialog = ButtonDialog:new{
-                title = info_text,
-                buttons = {
-                    {{
-                        text = T(_("Update X-Ray (to %1)"), current.formatted),
-                        callback = function()
-                            UIManager:close(stale_dialog)
-                            if XrayBrowser.menu then
-                                UIManager:close(XrayBrowser.menu)
-                            end
-                            local action = plugin.action_service:getAction("book", "xray")
-                            if action then
-                                if plugin:_checkRequirements(action) then return end
-                                plugin:_executeBookLevelActionDirect(action, "xray")
-                            end
-                        end,
-                    }},
-                    {{
-                        text = _("Don't remind me this session"),
-                        callback = function()
-                            UIManager:close(stale_dialog)
-                            -- Suppress for this session until X-Ray is updated
-                            if not plugin._xray_stale_dismissed then
-                                plugin._xray_stale_dismissed = {}
-                            end
-                            plugin._xray_stale_dismissed[book_file] = cache_progress
-                        end,
-                    }},
-                },
-            }
-            UIManager:show(stale_dialog)
+                local stale_dialog
+                stale_dialog = ButtonDialog:new{
+                    title = info_text,
+                    buttons = {
+                        {{
+                            text = T(_("Update X-Ray (to %1)"), current.formatted),
+                            callback = function()
+                                UIManager:close(stale_dialog)
+                                if XrayBrowser.menu then
+                                    UIManager:close(XrayBrowser.menu)
+                                end
+                                local action = plugin.action_service:getAction("book", "xray")
+                                if action then
+                                    if plugin:_checkRequirements(action) then return end
+                                    plugin:_executeBookLevelActionDirect(action, "xray")
+                                end
+                            end,
+                        }},
+                        {{
+                            text = _("Don't remind me this session"),
+                            callback = function()
+                                UIManager:close(stale_dialog)
+                                if not plugin._xray_stale_dismissed then
+                                    plugin._xray_stale_dismissed = {}
+                                end
+                                plugin._xray_stale_dismissed[book_file] = cache_progress
+                            end,
+                        }},
+                    },
+                }
+                UIManager:show(stale_dialog)
+            end
         end
     end
 end

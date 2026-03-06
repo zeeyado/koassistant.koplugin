@@ -3646,7 +3646,8 @@ function XrayBrowser:_getAvailableArtifacts()
     if self.scope and self.scope.cache_key then
         exclude_key = self.scope.cache_key
     end
-    return ActionCache.getAvailableArtifactsWithPinned(book_file, exclude_key)
+    local doc = self.ui and self.ui.document
+    return ActionCache.getAvailableArtifactsWithPinned(book_file, exclude_key, doc)
 end
 
 -- Check if an artifact key would open another X-Ray browser
