@@ -440,6 +440,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             if action.reasoning_config == "off" then
                 -- Force off for all providers
                 action_anthropic_override = false
+                action_anthropic_adaptive_override = false
                 action_openai_override = false
                 action_gemini_override = false
                 action_zai_override = false
