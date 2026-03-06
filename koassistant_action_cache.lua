@@ -69,7 +69,7 @@ end
 local CACHE_VERSION = 2
 
 -- Artifact keys tracked in the browsing index
-local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights" }
+local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights", "key_arguments", "discussion_questions", "generate_quiz", "extract_insights" }
 
 --- Update the artifact index in g_reader_settings after any cache mutation.
 --- Scans the in-memory cache table for known artifact keys and updates the index entry.
@@ -425,11 +425,18 @@ local ARTIFACT_NAMES = {
     ["xray_simple"] = _("X-Ray (Simple)"),
     ["book_info"] = _("Book Info"),
     ["analyze_highlights"] = _("Notes Analysis"),
+    ["key_arguments"] = _("Key Arguments"),
+    ["discussion_questions"] = _("Discussion Questions"),
+    ["generate_quiz"] = _("Generate Quiz"),
+    ["extract_insights"] = _("Key Insights"),
 }
 ActionCache.ARTIFACT_NAMES = ARTIFACT_NAMES
 
 -- Artifact keys that are per-action caches (vs document-level caches)
-local PER_ACTION_ARTIFACTS = { recap = true, xray_simple = true, book_info = true, analyze_highlights = true }
+local PER_ACTION_ARTIFACTS = {
+    recap = true, xray_simple = true, book_info = true, analyze_highlights = true,
+    key_arguments = true, discussion_questions = true, generate_quiz = true, extract_insights = true,
+}
 
 --- Get available artifacts for a document file.
 --- Central source of truth for discovering cached artifacts.

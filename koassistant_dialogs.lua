@@ -2777,7 +2777,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     local cached_progress_display = nil
     local cache_file = (ui and ui.document and ui.document.file)
         or (config.features and config.features.book_metadata and config.features.book_metadata.file)
-    local cache_enabled = prompt and prompt.use_response_caching and cache_file
+    local cache_enabled = prompt and (prompt.use_response_caching or prompt.auto_artifact) and cache_file
 
     if cache_enabled and not (config.features and config.features._full_document_xray) then
         local ActionCache = require("koassistant_action_cache")
@@ -2994,6 +2994,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", save_progress, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
+                    -- Auto-artifact: show toast notification (chat viewer opens normally)
+                    if prompt.auto_artifact then
+                        local Notification = require("ui/widget/notification")
+                        UIManager:show(Notification:new{
+                            text = _("Saved as artifact"),
+                            timeout = 3,
+                        })
+                    end
                 end
             elseif is_truncated and cache_enabled then
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
@@ -3275,7 +3283,7 @@ end
 local function formatArtifactDisplayText(cache)
     local parts = {}
     if cache.data then
-        if cache.data.progress_decimal then
+        if cache.data.progress_decimal and cache.data.progress_decimal < 1.0 then
             local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
             table.insert(parts, pct .. "%")
         end
@@ -3643,6 +3651,70 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
             plugin:showCacheActionPopup(action, action_id, runAction, cache_opts)
             return
+        end
+
+        -- Auto-artifact: check for existing cache before source selection
+        if action.auto_artifact and plugin then
+            local ActionCache = require("koassistant_action_cache")
+            local file = (ui_instance and ui_instance.document and ui_instance.document.file)
+                or (configuration and configuration.features and configuration.features.book_metadata
+                    and configuration.features.book_metadata.file)
+            local cached = file and ActionCache.get(file, action_id)
+            if cached and cached.result then
+                local action_name = action.text or action_id
+                local view_detail = ""
+                if cached.timestamp then
+                    local now = os.time()
+                    local diff = now - cached.timestamp
+                    if diff < 86400 then view_detail = " (" .. _("today") .. ")"
+                    elseif diff < 172800 then view_detail = " (" .. _("yesterday") .. ")"
+                    else view_detail = " (" .. math.floor(diff / 86400) .. "d)" end
+                end
+                local ButtonDialog = require("ui/widget/buttondialog")
+                local dialog
+                dialog = ButtonDialog:new{
+                    title = action_name .. view_detail,
+                    buttons = {
+                        {
+                            {
+                                text = T(_("View %1"), action_name .. view_detail),
+                                callback = function()
+                                    UIManager:close(dialog)
+                                    plugin:viewCachedAction(action, action_id, cached, { file = file })
+                                end,
+                            },
+                        },
+                        {
+                            {
+                                text = T(_("Regenerate %1"), action_name),
+                                callback = function()
+                                    UIManager:close(dialog)
+                                    if action.source_selection and plugin._showSourceSelectionPopup then
+                                        plugin:_showSourceSelectionPopup(action, function(source_mode)
+                                            configuration.features = configuration.features or {}
+                                            configuration.features._source_mode = source_mode
+                                            runAction()
+                                        end)
+                                    else
+                                        runAction()
+                                    end
+                                end,
+                            },
+                        },
+                        {
+                            {
+                                text = _("Cancel"),
+                                callback = function()
+                                    UIManager:close(dialog)
+                                end,
+                            },
+                        },
+                    },
+                }
+                UIManager:show(dialog)
+                return
+            end
+            -- No cache: fall through to source selection
         end
 
         -- Source selection popup for unified actions (highlight context)

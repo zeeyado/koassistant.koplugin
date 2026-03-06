@@ -425,10 +425,10 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
           local display = cache.name
           if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group
               and not cache.is_promoted_section then
-            -- Format with metadata: "X-Ray (100%, today)"
+            -- Format with metadata: "X-Ray (65%, today)"
             local meta_parts = {}
             if cache.data then
-              if cache.data.progress_decimal then
+              if cache.data.progress_decimal and cache.data.progress_decimal < 1.0 then
                 local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
                 table.insert(meta_parts, pct .. "%")
               end
@@ -4171,13 +4171,13 @@ function AskGPT:viewCache(parent_dialog)
   local self_ref = self
   local buttons = {}
   for _idx, cache in ipairs(caches) do
-    -- Format with metadata: "X-Ray (100%, today)" or pinned indicator
+    -- Format with metadata: "X-Ray (65%, today)" or pinned indicator
     local display = cache.name
     if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group
         and not cache.is_promoted_section then
       local meta_parts = {}
       if cache.data then
-        if cache.data.progress_decimal then
+        if cache.data.progress_decimal and cache.data.progress_decimal < 1.0 then
           local pct = math.floor(cache.data.progress_decimal * 100 + 0.5)
           table.insert(meta_parts, pct .. "%")
         end
@@ -4255,9 +4255,9 @@ function AskGPT:showCacheViewer(cache_info)
     end
   end
 
-  -- Format title: Type (XX%) - Book Title
+  -- Format title: Type (XX%) - Book Title (only for partial progress)
   local progress_str
-  if cache_info.data.progress_decimal then
+  if cache_info.data.progress_decimal and cache_info.data.progress_decimal < 1.0 then
     progress_str = math.floor(cache_info.data.progress_decimal * 100 + 0.5) .. "%"
   end
   local title = cache_info.name
@@ -4666,7 +4666,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
   local view_detail = ""
   if cached.progress_decimal or cached.timestamp then
     local parts = {}
-    if cached.progress_decimal then
+    if cached.progress_decimal and cached.progress_decimal < 1.0 then
       table.insert(parts, math.floor(cached.progress_decimal * 100 + 0.5) .. "%")
     end
     local rel_time = formatRelativeTime(cached.timestamp)
@@ -4808,7 +4808,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
     -- Cache exists: View / Update-or-Redo (to X%) / Redo (complete) / Cancel
     local view_detail = ""
     local parts = {}
-    if cached_entry.progress_decimal then
+    if cached_entry.progress_decimal and cached_entry.progress_decimal < 1.0 then
       table.insert(parts, math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%")
     end
     local rel_time = formatRelativeTime(cached_entry.timestamp)
@@ -5074,7 +5074,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     -- Partial cache (< 100%): View / Update-or-Redo / Update to 100% / Cancel
     local view_detail = ""
     local parts = {}
-    if cached_entry.progress_decimal then
+    if cached_entry.progress_decimal and cached_entry.progress_decimal < 1.0 then
       table.insert(parts, math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%")
     end
     local rel_time = formatRelativeTime(cached_entry.timestamp)
@@ -5844,8 +5844,9 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   local action_name = action.text or action_id
 
   -- Build title (same pattern as showCacheViewer)
+  -- Only show progress for incremental actions with partial progress (< 100%)
   local progress_str
-  if cached_entry.progress_decimal then
+  if cached_entry.progress_decimal and cached_entry.progress_decimal < 1.0 then
     progress_str = math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%"
   end
   local title = action_name
@@ -5905,7 +5906,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   -- Update/Regenerate button
   local on_regenerate
   local regenerate_label
-  if action.use_response_caching then
+  if action.use_response_caching or action.auto_artifact then
     local self_ref2 = self
     local captured_action_id = action_id
     if self.ui and self.ui.document then
@@ -5913,7 +5914,13 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
       on_regenerate = function()
         if self_ref2:_checkRequirements(action) then return end
         self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
-        self_ref2:_executeBookLevelActionDirect(action, captured_action_id)
+        if action.source_selection then
+          self_ref2:_showSourceSelectionPopup(action, function(source_mode)
+            self_ref2:_executeBookLevelActionDirect(action, captured_action_id, { source_mode = source_mode })
+          end)
+        else
+          self_ref2:_executeBookLevelActionDirect(action, captured_action_id)
+        end
       end
       -- Determine label based on action type and progress
       if action.use_reading_progress then
@@ -6081,6 +6088,67 @@ function AskGPT:executeBookLevelAction(action_id)
       self_ref:_executeBookLevelActionDirect(action, action_id)
     end)
     return
+  end
+
+  -- Auto-artifact actions: check for existing cache before source selection
+  if action.auto_artifact then
+    local ActionCache = require("koassistant_action_cache")
+    local file = self.ui and self.ui.document and self.ui.document.file
+    local cached = file and ActionCache.get(file, action_id)
+    if cached and cached.result then
+      -- Show View/Regenerate popup
+      local action_name = action.text or action_id
+      local view_detail = ""
+      if cached.timestamp then
+        local rel_time = formatRelativeTime(cached.timestamp)
+        if rel_time ~= "" then
+          view_detail = " (" .. rel_time .. ")"
+        end
+      end
+      local ButtonDialog = require("ui/widget/buttondialog")
+      local self_ref = self
+      local dialog
+      dialog = ButtonDialog:new{
+        title = action_name .. view_detail,
+        buttons = {
+          {
+            {
+              text = T(_("View %1"), action_name .. view_detail),
+              callback = function()
+                UIManager:close(dialog)
+                self_ref:viewCachedAction(action, action_id, cached)
+              end,
+            },
+          },
+          {
+            {
+              text = T(_("Regenerate %1"), action_name),
+              callback = function()
+                UIManager:close(dialog)
+                if action.source_selection then
+                  self_ref:_showSourceSelectionPopup(action, function(source_mode)
+                    self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
+                  end)
+                else
+                  self_ref:_executeBookLevelActionDirect(action, action_id)
+                end
+              end,
+            },
+          },
+          {
+            {
+              text = _("Cancel"),
+              callback = function()
+                UIManager:close(dialog)
+              end,
+            },
+          },
+        },
+      }
+      UIManager:show(dialog)
+      return
+    end
+    -- No cache: fall through to source selection
   end
 
   -- Source selection popup for unified actions (full text / summary / AI knowledge)
