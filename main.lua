@@ -5087,16 +5087,6 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     current_progress = extractor:getReadingProgress()
   end
 
-  -- Direct-to-viewer for 100% caches (full-document or partial updated to 100%)
-  -- Even if reader turned back pages — the X-Ray is complete, popup is just friction
-  if cached_entry and cached_entry.result then
-    local cached_pct = cached_entry.progress_decimal or 0
-    if cached_entry.full_document or cached_pct >= 0.995 then
-      self:viewCachedAction(action, action_id, cached_entry)
-      return
-    end
-  end
-
   local dialog
   local buttons = {}
 
@@ -5163,7 +5153,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       buttons = buttons,
     }
   else
-    -- Partial cache (< 100%): View / Update-or-Redo / Update to 100% / Cancel
+    -- Cached X-Ray: View / Update-or-Redo / Update to 100% / Sections / Cancel
     local view_detail = ""
     local parts = {}
     if cached_entry.progress_decimal and cached_entry.progress_decimal < 1.0 then
