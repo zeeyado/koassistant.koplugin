@@ -306,6 +306,12 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                     self_ref:_showSectionXrayGroupPopup(
                         captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key,
                         function() UIManager:close(selector) end)
+                elseif captured.is_section_group then
+                    local selector = self_ref._cache_selector
+                    self_ref:_showSectionGroupPopup(
+                        captured.data, doc_path, doc_title, AskGPT, captured.section_type,
+                        captured._excluded_section_key,
+                        function() UIManager:close(selector) end)
                 elseif captured.is_wiki_group then
                     local selector = self_ref._cache_selector
                     self_ref:_showWikiGroupPopup(captured.data, doc_path, AskGPT, doc_title,
@@ -844,6 +850,58 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
 
     self._section_group_dialog = ButtonDialog:new{
         title = _("Section X-Rays"),
+        buttons = buttons,
+    }
+    UIManager:show(self._section_group_dialog)
+end
+
+--- Show popup listing individual section entries from a generic (non-X-Ray) section group.
+--- @param sections table Array of { key, label, data } section entries
+--- @param doc_path string Document file path
+--- @param doc_title string|nil Document title
+--- @param AskGPT table Plugin instance for viewer
+--- @param section_type string Section type key (e.g., "summary", "recap")
+--- @param excluded_key string|nil Key to exclude
+--- @param on_select function|nil Called when an item is selected (to close parent popups)
+function ArtifactBrowser:_showSectionGroupPopup(sections, doc_path, doc_title, AskGPT, section_type, excluded_key, on_select)
+    local self_ref = self
+    local buttons = {}
+    local type_label = ActionCache.SECTION_TYPE_LABELS[section_type] or section_type
+    for _idx, sec in ipairs(sections) do
+        if sec.key ~= excluded_key then
+            local captured = sec
+            local label = captured.label or captured.key
+            local doc = AskGPT and AskGPT.ui and AskGPT.ui.document
+            local page_info = captured.data and ActionCache.reconvertPageSummary(captured.data, doc) or ""
+            local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
+            table.insert(buttons, {{
+                text = display,
+                callback = function()
+                    if self_ref._section_group_dialog then
+                        UIManager:close(self_ref._section_group_dialog)
+                    end
+                    if on_select then on_select() end
+                    AskGPT:showCacheViewer({
+                        name = T(_("Section %1: %2"), type_label, label),
+                        key = captured.key, data = captured.data,
+                        book_title = doc_title, file = doc_path })
+                end,
+            }})
+        end
+    end
+
+    if #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("No sections available."),
+            timeout = 3,
+        })
+        return
+    end
+
+    local group_title = ActionCache.SECTION_GROUP_NAMES[section_type]
+        or (section_type .. " sections")
+    self._section_group_dialog = ButtonDialog:new{
+        title = group_title,
         buttons = buttons,
     }
     UIManager:show(self._section_group_dialog)

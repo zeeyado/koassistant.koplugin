@@ -423,7 +423,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
         local btn_rows = {}
         for _idx, cache in ipairs(caches) do
           local display = cache.name
-          if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group
+          if not cache.is_pinned_group and not cache.is_section_group and not cache.is_wiki_group
               and not cache.is_promoted_section then
             -- Format with metadata: "X-Ray (65%, today)"
             local meta_parts = {}
@@ -455,7 +455,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
           table.insert(btn_rows, {{
             text = display,
             callback = function()
-              if cache.is_section_xray_group or cache.is_wiki_group or cache.is_pinned_group then
+              if cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
                 local selector = self_ref._cache_selector
                 local close_all = function()
@@ -465,6 +465,9 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
                 if cache.is_section_xray_group then
                   ArtifactBrowser:_showSectionXrayGroupPopup(
                       cache.data, file, title, self_ref, cache._excluded_section_key, close_all)
+                elseif cache.is_section_group then
+                  ArtifactBrowser:_showSectionGroupPopup(
+                      cache.data, file, title, self_ref, cache.section_type, cache._excluded_section_key, close_all)
                 elseif cache.is_wiki_group then
                   ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref, title, close_all)
                 else
@@ -4173,7 +4176,7 @@ function AskGPT:viewCache(parent_dialog)
   for _idx, cache in ipairs(caches) do
     -- Format with metadata: "X-Ray (65%, today)" or pinned indicator
     local display = cache.name
-    if not cache.is_pinned_group and not cache.is_section_xray_group and not cache.is_wiki_group
+    if not cache.is_pinned_group and not cache.is_section_group and not cache.is_wiki_group
         and not cache.is_promoted_section then
       local meta_parts = {}
       if cache.data then
@@ -4193,7 +4196,7 @@ function AskGPT:viewCache(parent_dialog)
     table.insert(buttons, {{
       text = display,
       callback = function()
-        if cache.is_section_xray_group or cache.is_wiki_group or cache.is_pinned_group then
+        if cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
           local ArtifactBrowser = require("koassistant_artifact_browser")
           local props = self_ref.ui and self_ref.ui.doc_props
           local book_title = props and (props.display_title or props.title)
@@ -4205,6 +4208,9 @@ function AskGPT:viewCache(parent_dialog)
           if cache.is_section_xray_group then
             ArtifactBrowser:_showSectionXrayGroupPopup(
                 cache.data, file, book_title, self_ref, cache._excluded_section_key, close_all)
+          elseif cache.is_section_group then
+            ArtifactBrowser:_showSectionGroupPopup(
+                cache.data, file, book_title, self_ref, cache.section_type, cache._excluded_section_key, close_all)
           elseif cache.is_wiki_group then
             ArtifactBrowser:_showWikiGroupPopup(cache.data, file, self_ref, book_title, close_all)
           else
@@ -4653,10 +4659,66 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
   end
 
   if not cached or not cached.result then
-    if self:_checkRequirements(action) then
-      return
+    -- Check if action supports sections and book is open with TOC
+    local section_prefix = ActionCache.getSectionPrefix(action_id)
+    local has_toc = section_prefix and self.ui and self.ui.document and self.ui.toc
+        and self.ui.toc.toc and #self.ui.toc.toc > 0
+    if has_toc then
+      -- Show scope popup: Generate full document / sections / cancel
+      local action_name = action.text or action_id
+      local ButtonDialog = require("ui/widget/buttondialog")
+      local self_ref = self
+      local no_cache_dialog
+      local nc_buttons = {}
+      -- Generate full document
+      table.insert(nc_buttons, {{
+        text = T(_("Generate %1"), action_name),
+        callback = function()
+          UIManager:close(no_cache_dialog)
+          if self_ref:_checkRequirements(action) then return end
+          on_update()
+        end,
+      }})
+      -- Existing sections
+      local sec_count = ActionCache.getSectionCount(file, section_prefix)
+      if sec_count > 0 then
+        table.insert(nc_buttons, {{
+          text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or action_name, sec_count),
+          callback = function()
+            UIManager:close(no_cache_dialog)
+            self_ref:_showSectionList(action, action_id)
+          end,
+        }})
+      end
+      -- Focus on a section
+      table.insert(nc_buttons, {{
+        text = _("Focus on a section…"),
+        callback = function()
+          UIManager:close(no_cache_dialog)
+          if self_ref:_checkRequirements(action) then return end
+          self_ref:_showSectionPicker(action, {
+            title = T(_("Select Section for %1"), action_name),
+            on_select = function(entry)
+              self_ref:_showSectionNameInput(action, action_id, entry)
+            end,
+          })
+        end,
+      }})
+      table.insert(nc_buttons, {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(no_cache_dialog)
+        end,
+      }})
+      no_cache_dialog = ButtonDialog:new{
+        title = action_name,
+        buttons = nc_buttons,
+      }
+      UIManager:show(no_cache_dialog)
+    else
+      if self:_checkRequirements(action) then return end
+      on_update()
     end
-    on_update()
     return
   end
 
@@ -4709,42 +4771,72 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
   local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
   local dialog
+  local buttons = {}
+
+  -- View
+  table.insert(buttons, {{
+    text = T(_("View %1"), action_name .. view_detail),
+    callback = function()
+      UIManager:close(dialog)
+      self_ref:viewCachedAction(action, action_id, cached, {
+        skip_stale_popup = true,
+        file = file,
+        book_title = opts and opts.book_title,
+        book_author = opts and opts.book_author,
+      })
+    end,
+  }})
+
+  -- Update/Regenerate
+  table.insert(buttons, {{
+    text = update_text,
+    callback = function()
+      UIManager:close(dialog)
+      if self_ref:_checkRequirements(action) then return end
+      on_update()
+    end,
+  }})
+
+  -- Section buttons (when book is open with TOC and action supports sections)
+  local section_prefix = ActionCache.getSectionPrefix(action_id)
+  if section_prefix and self.ui and self.ui.document and self.ui.toc
+      and self.ui.toc.toc and #self.ui.toc.toc > 0 then
+    local sec_count = ActionCache.getSectionCount(file, section_prefix)
+    if sec_count > 0 then
+      table.insert(buttons, {{
+        text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or action_name, sec_count),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:_showSectionList(action, action_id)
+        end,
+      }})
+    end
+    table.insert(buttons, {{
+      text = _("Focus on a section…"),
+      callback = function()
+        UIManager:close(dialog)
+        if self_ref:_checkRequirements(action) then return end
+        self_ref:_showSectionPicker(action, {
+          title = T(_("Select Section for %1"), action_name),
+          on_select = function(entry)
+            self_ref:_showSectionNameInput(action, action_id, entry)
+          end,
+        })
+      end,
+    }})
+  end
+
+  -- Cancel
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(dialog)
+    end,
+  }})
+
   dialog = ButtonDialog:new{
     title = action_name .. view_detail,
-    buttons = {
-      {
-        {
-          text = T(_("View %1"), action_name .. view_detail),
-          callback = function()
-            UIManager:close(dialog)
-            self_ref:viewCachedAction(action, action_id, cached, {
-              skip_stale_popup = true,
-              file = file,
-              book_title = opts and opts.book_title,
-              book_author = opts and opts.book_author,
-            })
-          end,
-        },
-      },
-      {
-        {
-          text = update_text,
-          callback = function()
-            UIManager:close(dialog)
-            if self_ref:_checkRequirements(action) then return end
-            on_update()
-          end,
-        },
-      },
-      {
-        {
-          text = _("Cancel"),
-          callback = function()
-            UIManager:close(dialog)
-          end,
-        },
-      },
-    },
+    buttons = buttons,
   }
   UIManager:show(dialog)
 end
@@ -5054,7 +5146,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           text = _("New Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionXrayPicker(action)
+            self_ref:_showSectionPicker(action)
           end,
         }})
       end
@@ -5143,7 +5235,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           text = _("New Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionXrayPicker(action)
+            self_ref:_showSectionPicker(action)
           end,
         }})
       end
@@ -5167,7 +5259,11 @@ end
 --- Show a TOC picker for selecting a section scope for Section X-Ray generation.
 --- Uses the same collapsible hierarchical TOC pattern as the chapter picker in mentions.
 --- @param action table: The base xray action definition
-function AskGPT:_showSectionXrayPicker(action)
+--- Show TOC picker for section selection.
+--- @param action table Action definition (used by X-Ray legacy path)
+--- @param opts table|nil { title = string, on_select = function(entry) }
+---   When on_select is provided, it's called with the TOC entry instead of the X-Ray name input flow.
+function AskGPT:_showSectionPicker(action, opts)
   if not self.ui or not self.ui.document or not self.ui.toc then return end
 
   local toc = self.ui.toc.toc
@@ -5310,8 +5406,9 @@ function AskGPT:_showSectionXrayPicker(action)
   end
 
   -- Create the TOC menu (full-screen widget)
+  local picker_title = (opts and opts.title) or _("Select Section")
   local toc_menu = Menu:new{
-    title = _("Select Section for X-Ray"),
+    title = picker_title,
     state_w = can_collapse and button_width or 0,
     is_borderless = true,
     is_popout = false,
@@ -5506,7 +5603,11 @@ function AskGPT:_showSectionXrayPicker(action)
     local entry = item._entry
     if not entry then return true end
     UIManager:close(menu_container)
-    self_ref:_showSectionXrayNameInput(action, entry)
+    if opts and opts.on_select then
+      opts.on_select(entry)
+    else
+      self_ref:_showSectionXrayNameInput(action, entry)
+    end
     return true
   end
 
@@ -5613,16 +5714,14 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
   input_dialog:onShowKeyboard()
 end
 
---- Generate a Section X-Ray for the given entry.
---- @param action table: The base xray action definition
---- @param entry table: TOC entry { title, start_page, end_page }
---- @param label string: Display label for the section
---- @param cache_label string: Sanitized label for cache key
-function AskGPT:_generateSectionXray(action, entry, label, cache_label)
-  local Actions = require("prompts/actions")
-  local ActionCache = require("koassistant_action_cache")
-
-  -- Use visible page numbers for display (excludes hidden flow pages like footnotes)
+--- Build section scope metadata from a TOC entry.
+--- Extracts XPointers for font-size-independent storage (EPUB only), computes page summary.
+--- @param entry table TOC entry { start_page, end_page }
+--- @param label string Display label
+--- @param cache_label string Sanitized label (no colons)
+--- @param prefix string Section prefix (e.g., ActionCache.SECTION_XRAY_PREFIX)
+--- @return table scope { label, cache_label, start_page, end_page, start_xpointer, end_xpointer, page_summary, cache_key }
+function AskGPT:_buildSectionScope(entry, label, cache_label, prefix)
   local vis_start = entry.start_page
   local vis_end = entry.end_page
   if self.ui.document.getPageNumberInFlow then
@@ -5631,19 +5730,7 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
   end
   local page_summary = T(_("pp %1–%2"), vis_start, vis_end)
 
-  -- Clone the xray action and override for section behavior
-  local section_action = {}
-  for k, v in pairs(action) do section_action[k] = v end
-
-  section_action.id = "section_xray"
-  section_action.prompt = Actions.buildSectionXrayPrompt(label, page_summary)
-  section_action.complete_prompt = nil
-  section_action.update_prompt = nil
-  section_action.use_reading_progress = false
-  section_action.use_response_caching = false
-  section_action.cache_as_xray = false
   -- Extract XPointers for font-size-independent storage (EPUB only; nil for PDF)
-  -- Use last visible page (excluding hidden flows) to avoid XPointers into hidden content
   local raw_total = self.ui.document.info.number_of_pages or 0
   local visible_total = raw_total
   if self.ui.document.hasHiddenFlows and self.ui.document:hasHiddenFlows() then
@@ -5657,14 +5744,12 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
   local start_xp, end_xp
   if self.ui.document.getPageXPointer then
     start_xp = self.ui.document:getPageXPointer(entry.start_page)
-    -- Store XPointer at start of next section (end_page + 1) to mark the boundary
     if entry.end_page < visible_total then
       end_xp = self.ui.document:getPageXPointer(entry.end_page + 1)
     end
-    -- nil end_xp = last section (use last visible page at reconversion)
   end
 
-  section_action._section_scope = {
+  return {
     label = label,
     cache_label = cache_label,
     start_page = entry.start_page,
@@ -5672,10 +5757,254 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
     start_xpointer = start_xp,
     end_xpointer = end_xp,
     page_summary = page_summary,
-    cache_key = ActionCache.SECTION_XRAY_PREFIX .. cache_label,
+    cache_key = prefix .. cache_label,
   }
+end
 
-  self:_executeBookLevelActionDirect(section_action, "section_xray", { section_xray = section_action._section_scope })
+--- Generate a Section X-Ray for the given entry.
+--- @param action table: The base xray action definition
+--- @param entry table: TOC entry { title, start_page, end_page }
+--- @param label string: Display label for the section
+--- @param cache_label string: Sanitized label for cache key
+function AskGPT:_generateSectionXray(action, entry, label, cache_label)
+  local Actions = require("prompts/actions")
+  local ActionCache = require("koassistant_action_cache")
+
+  local scope = self:_buildSectionScope(entry, label, cache_label, ActionCache.SECTION_XRAY_PREFIX)
+
+  -- Clone the xray action and override for section behavior
+  local section_action = {}
+  for k, v in pairs(action) do section_action[k] = v end
+
+  section_action.id = "section_xray"
+  section_action.prompt = Actions.buildSectionXrayPrompt(label, scope.page_summary)
+  section_action.complete_prompt = nil
+  section_action.update_prompt = nil
+  section_action.use_reading_progress = false
+  section_action.use_response_caching = false
+  section_action.cache_as_xray = false
+  section_action._section_scope = scope
+
+  self:_executeBookLevelActionDirect(section_action, "section_xray", { section_xray = scope })
+end
+
+--- Execute a generic section action (non-X-Ray).
+--- Builds scope metadata, clones the action for section behavior, and executes.
+--- @param action table The action definition
+--- @param action_id string The action ID (e.g., "key_arguments")
+--- @param entry table TOC entry { title, start_page, end_page }
+--- @param label string Display label for the section
+--- @param opts table|nil { source_mode = string } for source_selection actions
+function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
+  local ActionCache = require("koassistant_action_cache")
+
+  local cache_label = label:gsub(":", "-")
+  local prefix = ActionCache.getSectionPrefix(action_id)
+  if not prefix then return end
+
+  local scope = self:_buildSectionScope(entry, label, cache_label, prefix)
+
+  -- Clone the action and override for section behavior
+  local section_action = {}
+  for k, v in pairs(action) do section_action[k] = v end
+
+  section_action.update_prompt = nil
+  section_action.use_reading_progress = false
+  section_action.use_response_caching = false
+  section_action.auto_artifact = false
+  -- Document cache actions: disable document-level cache writes (section saves via _section_scope)
+  section_action.cache_as_summary = false
+  section_action.cache_as_analyze = false
+  section_action._section_scope = scope
+
+  -- Inject section scope context into the prompt
+  if section_action.prompt then
+    local scope_line = string.format(
+        'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your analysis on this section only.\n\n',
+        label, scope.page_summary)
+    section_action.prompt = scope_line .. section_action.prompt
+  end
+
+  local exec_opts = { section_scope = scope }
+  if opts and opts.source_mode then
+    exec_opts.source_mode = opts.source_mode
+  elseif action.source_selection then
+    -- Section actions for source_selection actions default to full_text
+    -- so {document_context_section} resolves with the extracted section text
+    exec_opts.source_mode = "full_text"
+  end
+
+  self:_executeBookLevelActionDirect(section_action, action_id, exec_opts)
+end
+
+--- Show name input for a section action, with duplicate check, then execute.
+--- @param action table The action definition
+--- @param action_id string The action ID
+--- @param entry table TOC entry { title, start_page, end_page }
+--- @param opts table|nil { source_mode = string, action_label = string }
+function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
+  local InputDialog = require("ui/widget/inputdialog")
+  local ActionCache = require("koassistant_action_cache")
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+
+  local action_label = (opts and opts.action_label) or action.text or action_id
+  local default_name = entry.title or ""
+
+  local input_dialog
+  input_dialog = InputDialog:new{
+    title = T(_("Section %1 Name"), action_label),
+    description = T(_("Pages %1–%2"),
+        self.ui.document.getPageNumberInFlow and self.ui.document:getPageNumberInFlow(entry.start_page) or entry.start_page,
+        self.ui.document.getPageNumberInFlow and self.ui.document:getPageNumberInFlow(entry.end_page) or entry.end_page),
+    input = default_name,
+    input_hint = _("Enter a name for this section"),
+    buttons = {
+      {
+        {
+          text = _("Cancel"),
+          id = "close",
+          callback = function()
+            UIManager:close(input_dialog)
+          end,
+        },
+        {
+          text = _("Generate"),
+          is_enter_default = true,
+          callback = function()
+            local label = input_dialog:getInputText()
+            if not label or label == "" then
+              UIManager:show(InfoMessage:new{ text = _("Please enter a name."), timeout = 2 })
+              return
+            end
+            if #label > 80 then label = label:sub(1, 80) end
+            UIManager:close(input_dialog)
+
+            local cache_label = label:gsub(":", "-")
+            local prefix = ActionCache.getSectionPrefix(action_id)
+            if not prefix then return end
+            local cache_key = prefix .. cache_label
+            local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+
+            if file and ActionCache.get(file, cache_key) then
+              local confirm_dialog
+              confirm_dialog = ButtonDialog:new{
+                title = T(_("A section '%1' already exists for %2. Replace it?"), label, action_label),
+                buttons = {
+                  {{
+                    text = _("Replace"),
+                    callback = function()
+                      UIManager:close(confirm_dialog)
+                      self_ref:_executeSectionAction(action, action_id, entry, label, opts)
+                    end,
+                  }},
+                  {{
+                    text = _("Cancel"),
+                    callback = function()
+                      UIManager:close(confirm_dialog)
+                    end,
+                  }},
+                },
+              }
+              UIManager:show(confirm_dialog)
+            else
+              self_ref:_executeSectionAction(action, action_id, entry, label, opts)
+            end
+          end,
+        },
+      },
+    },
+  }
+  UIManager:show(input_dialog)
+  input_dialog:onShowKeyboard()
+end
+
+--- Show a list popup of existing sections for any action type.
+--- @param action table The action definition
+--- @param action_id string The action ID
+function AskGPT:_showSectionList(action, action_id)
+  local ActionCache = require("koassistant_action_cache")
+  local ButtonDialog = require("ui/widget/buttondialog")
+
+  local file = self.ui and self.ui.document and self.ui.document.file
+  if not file then return end
+
+  local prefix = ActionCache.getSectionPrefix(action_id)
+  if not prefix then return end
+
+  local sections = ActionCache.getSections(file, prefix)
+  if #sections == 0 then
+    UIManager:show(InfoMessage:new{ text = _("No sections found."), timeout = 2 })
+    return
+  end
+
+  local doc = self.ui and self.ui.document
+  local self_ref = self
+  local section_dialog
+  local buttons = {}
+  local action_name = action.text or action_id
+  for _idx, sec in ipairs(sections) do
+    local detail_parts = {}
+    local page_summary = ActionCache.reconvertPageSummary(sec.data, doc)
+    if page_summary and page_summary ~= "" then
+      table.insert(detail_parts, page_summary)
+    end
+    local rel_time = formatRelativeTime(sec.data.timestamp)
+    if rel_time ~= "" then
+      table.insert(detail_parts, rel_time)
+    end
+    local detail = #detail_parts > 0 and (" (" .. table.concat(detail_parts, ", ") .. ")") or ""
+
+    table.insert(buttons, {{
+      text = sec.label .. detail,
+      callback = function()
+        UIManager:close(section_dialog)
+        self_ref:viewCachedAction(action, action_id, sec.data, {
+          section_key = sec.key,
+          section_label = sec.label,
+        })
+      end,
+      hold_callback = function()
+        UIManager:close(section_dialog)
+        -- Delete section on hold
+        local confirm
+        confirm = ButtonDialog:new{
+          title = T(_("Delete section '%1'?"), sec.label),
+          buttons = {
+            {{
+              text = _("Delete"),
+              callback = function()
+                UIManager:close(confirm)
+                ActionCache.clear(file, sec.key)
+                self_ref:_showSectionList(action, action_id)
+              end,
+            }},
+            {{
+              text = _("Cancel"),
+              callback = function()
+                UIManager:close(confirm)
+              end,
+            }},
+          },
+        }
+        UIManager:show(confirm)
+      end,
+    }})
+  end
+
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(section_dialog)
+    end,
+  }})
+
+  local group_name = ActionCache.getSectionGroupName(action_id) or action_name
+  section_dialog = ButtonDialog:new{
+    title = string.format("%s (%d)", group_name, #sections),
+    buttons = buttons,
+  }
+  UIManager:show(section_dialog)
 end
 
 --- Show a list popup of all section X-Rays for the current book.
@@ -5819,13 +6148,25 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     return
   end
   if action.cache_as_analyze then
-    local info = { name = _("Analysis"), key = "_analyze_cache", data = cached_entry }
+    local name = _("Analysis")
+    local key = "_analyze_cache"
+    if opts and opts.section_label then
+      name = T(_("Section Analysis: %1"), opts.section_label)
+      key = opts.section_key
+    end
+    local info = { name = name, key = key, data = cached_entry }
     if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
     self:showCacheViewer(info)
     return
   end
   if action.cache_as_summary then
-    local info = { name = _("Summary"), key = "_summary_cache", data = cached_entry }
+    local name = _("Summary")
+    local key = "_summary_cache"
+    if opts and opts.section_label then
+      name = T(_("Section Summary: %1"), opts.section_label)
+      key = opts.section_key
+    end
+    local info = { name = name, key = key, data = cached_entry }
     if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
     self:showCacheViewer(info)
     return
@@ -5850,6 +6191,9 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     progress_str = math.floor(cached_entry.progress_decimal * 100 + 0.5) .. "%"
   end
   local title = action_name
+  if opts and opts.section_label then
+    title = T(_("Section %1: %2"), action_name, opts.section_label)
+  end
   if progress_str then
     title = title .. " (" .. progress_str .. ")"
   end
@@ -5884,6 +6228,8 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     timestamp = cached_entry.timestamp,
     used_annotations = cached_entry.used_annotations,
     used_book_text = cached_entry.used_book_text,
+    scope_label = cached_entry.scope_label,
+    scope_page_summary = cached_entry.scope_page_summary,
   }
 
   -- Delete callback (open book or file browser via opts.file)
@@ -5892,21 +6238,23 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   local file = (opts and opts.file) or (self.ui and self.ui.document and self.ui.document.file)
   if file then
     local ActionCache = require("koassistant_action_cache")
+    local delete_key = (opts and opts.section_key) or action_id
+    local delete_name = (opts and opts.section_label) and title or action_name
     on_delete = function()
-      ActionCache.clear(file, action_id)
+      ActionCache.clear(file, delete_key)
       -- Invalidate file browser row cache so deleted artifacts don't reappear
       self._file_dialog_row_cache = { file = nil, rows = nil }
       UIManager:show(require("ui/widget/notification"):new{
-        text = T(_("%1 deleted"), action_name),
+        text = T(_("%1 deleted"), delete_name),
         timeout = 2,
       })
     end
   end
 
-  -- Update/Regenerate button
+  -- Update/Regenerate button (skip for section entries — regenerate via section flow)
   local on_regenerate
   local regenerate_label
-  if action.use_response_caching or action.auto_artifact then
+  if (action.use_response_caching or action.auto_artifact) and not (opts and opts.section_key) then
     local self_ref2 = self
     local captured_action_id = action_id
     if self.ui and self.ui.document then
@@ -6108,54 +6456,137 @@ function AskGPT:executeBookLevelAction(action_id)
       local ButtonDialog = require("ui/widget/buttondialog")
       local self_ref = self
       local dialog
+      local aa_buttons = {}
+      table.insert(aa_buttons, {{
+        text = T(_("View %1"), action_name .. view_detail),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:viewCachedAction(action, action_id, cached)
+        end,
+      }})
+      table.insert(aa_buttons, {{
+        text = T(_("Regenerate %1"), action_name),
+        callback = function()
+          UIManager:close(dialog)
+          if action.source_selection then
+            self_ref:_showSourceSelectionPopup(action, function(source_mode)
+              self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
+            end)
+          else
+            self_ref:_executeBookLevelActionDirect(action, action_id)
+          end
+        end,
+      }})
+      -- Section buttons
+      local section_prefix = ActionCache.getSectionPrefix(action_id)
+      if section_prefix and file then
+        local sec_count = ActionCache.getSectionCount(file, section_prefix)
+        if sec_count > 0 then
+          table.insert(aa_buttons, {{
+            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:_showSectionList(action, action_id)
+            end,
+          }})
+        end
+        if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
+          table.insert(aa_buttons, {{
+            text = _("Focus on a section…"),
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:_showSectionPicker(action, {
+                title = T(_("Select Section for %1"), action_name),
+                on_select = function(entry)
+                  self_ref:_showSectionNameInput(action, action_id, entry)
+                end,
+              })
+            end,
+          }})
+        end
+      end
+      table.insert(aa_buttons, {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(dialog)
+        end,
+      }})
       dialog = ButtonDialog:new{
         title = action_name .. view_detail,
-        buttons = {
-          {
-            {
-              text = T(_("View %1"), action_name .. view_detail),
-              callback = function()
-                UIManager:close(dialog)
-                self_ref:viewCachedAction(action, action_id, cached)
-              end,
-            },
-          },
-          {
-            {
-              text = T(_("Regenerate %1"), action_name),
-              callback = function()
-                UIManager:close(dialog)
-                if action.source_selection then
-                  self_ref:_showSourceSelectionPopup(action, function(source_mode)
-                    self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
-                  end)
-                else
-                  self_ref:_executeBookLevelActionDirect(action, action_id)
-                end
-              end,
-            },
-          },
-          {
-            {
-              text = _("Cancel"),
-              callback = function()
-                UIManager:close(dialog)
-              end,
-            },
-          },
-        },
+        buttons = aa_buttons,
       }
       UIManager:show(dialog)
       return
     end
-    -- No cache: fall through to source selection
+    -- No cache: fall through to source selection (with scope interceptor if TOC available)
   end
 
   -- Source selection popup for unified actions (full text / summary / AI knowledge)
   if action.source_selection then
-    self:_showSourceSelectionPopup(action, function(source_mode)
-      self:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
-    end)
+    -- Check if action supports sections and book has TOC — show scope popup first
+    local ActionCache = require("koassistant_action_cache")
+    local section_prefix = ActionCache.getSectionPrefix(action_id)
+    local has_toc = section_prefix and self.ui and self.ui.toc
+        and self.ui.toc.toc and #self.ui.toc.toc > 0
+    if has_toc then
+      local action_name = action.text or action_id
+      local ButtonDialog = require("ui/widget/buttondialog")
+      local self_ref = self
+      local scope_dialog
+      local scope_buttons = {}
+      -- Full document → source selection
+      table.insert(scope_buttons, {{
+        text = T(_("%1 (full document)"), action_name),
+        callback = function()
+          UIManager:close(scope_dialog)
+          self_ref:_showSourceSelectionPopup(action, function(source_mode)
+            self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
+          end)
+        end,
+      }})
+      -- Existing sections
+      local file = self.ui.document.file
+      if file then
+        local sec_count = ActionCache.getSectionCount(file, section_prefix)
+        if sec_count > 0 then
+          table.insert(scope_buttons, {{
+            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+            callback = function()
+              UIManager:close(scope_dialog)
+              self_ref:_showSectionList(action, action_id)
+            end,
+          }})
+        end
+      end
+      -- Focus on a section
+      table.insert(scope_buttons, {{
+        text = T(_("Focus on a section…")),
+        callback = function()
+          UIManager:close(scope_dialog)
+          self_ref:_showSectionPicker(action, {
+            title = T(_("Select Section for %1"), action_name),
+            on_select = function(entry)
+              self_ref:_showSectionNameInput(action, action_id, entry)
+            end,
+          })
+        end,
+      }})
+      table.insert(scope_buttons, {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(scope_dialog)
+        end,
+      }})
+      scope_dialog = ButtonDialog:new{
+        title = action_name,
+        buttons = scope_buttons,
+      }
+      UIManager:show(scope_dialog)
+    else
+      self:_showSourceSelectionPopup(action, function(source_mode)
+        self:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
+      end)
+    end
     return
   end
 
@@ -6203,6 +6634,11 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   -- Section X-Ray: propagate scope and trigger full extraction
   if opts and opts.section_xray then
     config_copy.features._section_xray = opts.section_xray
+    config_copy.features._full_document_xray = true  -- Triggers full extraction + 100% progress
+  end
+  -- Generic section scope: propagate scope for any action type
+  if opts and opts.section_scope then
+    config_copy.features._section_scope = opts.section_scope
     config_copy.features._full_document_xray = true  -- Triggers full extraction + 100% progress
   end
 

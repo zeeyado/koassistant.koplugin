@@ -3042,9 +3042,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     end
                 end
 
-                -- Section X-Ray: save to section-specific cache key (not the main _xray_cache)
-                if config.features and config.features._section_xray and cache_answer then
-                    local scope = config.features._section_xray
+                -- Section scope: save to section-specific cache key (any action type)
+                -- Transient flag: _section_scope for generic sections, _section_xray for legacy X-Ray path
+                local section_scope = config.features and (config.features._section_scope or config.features._section_xray)
+                if section_scope and cache_answer then
                     local section_metadata = {
                         model = model_name,
                         used_book_text = book_text_was_provided,
@@ -3052,17 +3053,18 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                         web_search_used = web_search_used or false,
                         full_document = true,
-                        scope_label = scope.label,
-                        scope_start_page = scope.start_page,
-                        scope_end_page = scope.end_page,
-                        scope_start_xpointer = scope.start_xpointer,
-                        scope_end_xpointer = scope.end_xpointer,
-                        scope_page_summary = scope.page_summary,
+                        source_mode = source_mode,
+                        scope_label = section_scope.label,
+                        scope_start_page = section_scope.start_page,
+                        scope_end_page = section_scope.end_page,
+                        scope_start_xpointer = section_scope.start_xpointer,
+                        scope_end_xpointer = section_scope.end_xpointer,
+                        scope_page_summary = section_scope.page_summary,
                         unavailable_data_text = unavailable_text,
                     }
-                    local section_success = ActionCache.set(cache_file, scope.cache_key, cache_answer, 1.0, section_metadata)
+                    local section_success = ActionCache.set(cache_file, section_scope.cache_key, cache_answer, 1.0, section_metadata)
                     if section_success then
-                        logger.info("KOAssistant: Saved Section X-Ray to", scope.cache_key)
+                        logger.info("KOAssistant: Saved section artifact to", section_scope.cache_key)
                     end
                 end
 
@@ -3169,7 +3171,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local tokens_high = math.floor(extracted_chars / 2000)
             local warning_dialog
             warning_dialog = ButtonDialog:new{
-                title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens). Make sure your model's context window can accommodate this.\n\nYou can also use Hidden Flows to exclude irrelevant sections of the document."), chars_k, tokens_low, tokens_high),
+                title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens). Make sure your model's context window can accommodate this.\n\nYou can use Hidden Flows to exclude irrelevant content, or focus on a specific section instead of the full document."), chars_k, tokens_low, tokens_high),
                 buttons = {
                     {{
                         text = _("Cancel"),
@@ -3233,7 +3235,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     if truncation_msg then
         truncation_msg = truncation_msg .. "\n\n"
-            .. _("You can increase the limit in Settings → Privacy & Data → Text Extraction, or use Hidden Flows to exclude irrelevant sections.")
+            .. _("You can increase the limit in Settings → Privacy & Data → Text Extraction, use Hidden Flows to exclude irrelevant content, or focus on a specific section.")
         local truncation_dialog
         truncation_dialog = ButtonDialog:new{
             title = truncation_msg,
@@ -4047,6 +4049,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         cache.data, artifact_file,
                         book_metadata and book_metadata.title, AskGPT,
                         cache._excluded_section_key, on_select)
+                elseif cache.is_section_group then
+                    local ArtifactBrowser = require("koassistant_artifact_browser")
+                    ArtifactBrowser:_showSectionGroupPopup(
+                        cache.data, artifact_file,
+                        book_metadata and book_metadata.title, plugin,
+                        cache.section_type, cache._excluded_section_key, on_select)
                 elseif cache.is_wiki_group then
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     ArtifactBrowser:_showWikiGroupPopup(cache.data, artifact_file, plugin,
@@ -4064,7 +4072,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
 
             local function formatDisplayText(cache)
-                if cache.is_pinned_group or cache.is_section_xray_group or cache.is_wiki_group
+                if cache.is_pinned_group or cache.is_section_group or cache.is_wiki_group
                     or cache.is_promoted_section then
                     return cache.name
                 end
@@ -4083,7 +4091,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(btn_rows, {{
                                 text = formatDisplayText(cache),
                                 callback = function()
-                                    if cache.is_section_xray_group or cache.is_wiki_group or cache.is_pinned_group then
+                                    if cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
                                         local selector = plugin._cache_selector
                                         openArtifact(cache, function()
                                             UIManager:close(selector)

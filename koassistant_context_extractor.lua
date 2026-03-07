@@ -1189,11 +1189,12 @@ function ContextExtractor:extractForAction(action)
             end
         end
 
-        -- {full_document} / {full_document_section} → extract entire document (or section scope)
-        if prompt:find("{full_document", 1, true) then
+        -- {full_document} / {full_document_section} / {document_context_section} → extract entire document (or section scope)
+        -- {document_context_section} resolves to full_document when source_mode is "full_text"
+        if prompt:find("{full_document", 1, true) or prompt:find("{document_context_section}", 1, true) then
             local full_doc_result
             if action._section_scope then
-                -- Section X-Ray: extract only the scoped page range
+                -- Section scope: extract only the scoped page range
                 local scope = action._section_scope
                 full_doc_result = self:getPageRangeText(scope.start_page, scope.end_page, options)
             else

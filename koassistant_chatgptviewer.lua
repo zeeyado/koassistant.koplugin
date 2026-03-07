@@ -2143,11 +2143,11 @@ function ChatGPTViewer:init()
             table.insert(art_buttons, {{
               text = label,
               callback = function()
-                if not (captured.is_section_xray_group or captured.is_wiki_group or captured.is_pinned_group) then
+                if not (captured.is_section_group or captured.is_wiki_group or captured.is_pinned_group) then
                   UIManager:close(self._artifacts_dialog)
                 end
                 if captured.is_section_xray_group then
-                  -- Show section sub-popup without closing the viewer
+                  -- Show section X-Ray sub-popup without closing the viewer
                   local sec_buttons = {}
                   for _idx2, sec in ipairs(captured.data) do
                     if sec.key ~= captured._excluded_section_key then
@@ -2176,6 +2176,46 @@ function ChatGPTViewer:init()
                   if #sec_buttons > 0 then
                     self._section_group_dialog = ButtonDialog:new{
                       title = _("Section X-Rays"),
+                      buttons = sec_buttons,
+                    }
+                    UIManager:show(self._section_group_dialog)
+                  end
+                elseif captured.is_section_group then
+                  -- Show generic section sub-popup without closing the viewer
+                  local sec_buttons = {}
+                  local type_label = ActionCache.SECTION_TYPE_LABELS
+                      and ActionCache.SECTION_TYPE_LABELS[captured.section_type] or captured.section_type
+                  for _idx2, sec in ipairs(captured.data) do
+                    if sec.key ~= captured._excluded_section_key then
+                      local cap_sec = sec
+                      local sec_label = cap_sec.label or cap_sec.key
+                      local sec_doc = self._plugin and self._plugin.ui and self._plugin.ui.document
+                      local page_info = cap_sec.data and ActionCache.reconvertPageSummary(cap_sec.data, sec_doc) or ""
+                      local sec_display = page_info ~= "" and (sec_label .. " (" .. page_info .. ")") or sec_label
+                      table.insert(sec_buttons, {{
+                        text = sec_display,
+                        callback = function()
+                          UIManager:close(self._section_group_dialog)
+                          UIManager:close(self._artifacts_dialog)
+                          self:onClose()
+                          if self._plugin then
+                            self._plugin:showCacheViewer({
+                              name = T(_("Section %1: %2"), type_label, sec_label),
+                              key = cap_sec.key, data = cap_sec.data,
+                              book_title = self._artifact_book_title,
+                              book_author = self._artifact_book_author,
+                              file = self._artifact_file })
+                          end
+                        end,
+                      }})
+                    end
+                  end
+                  if #sec_buttons > 0 then
+                    local group_title = ActionCache.SECTION_GROUP_NAMES
+                        and ActionCache.SECTION_GROUP_NAMES[captured.section_type]
+                        or (captured.section_type .. " sections")
+                    self._section_group_dialog = ButtonDialog:new{
+                      title = group_title,
                       buttons = sec_buttons,
                     }
                     UIManager:show(self._section_group_dialog)
