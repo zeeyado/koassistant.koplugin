@@ -6718,7 +6718,7 @@ function AskGPT:executeBookLevelAction(action_id)
         end,
       }})
       table.insert(aa_buttons, {{
-        text = T(_("Regenerate %1"), action_name),
+        text = T(_("Regenerate %1…"), action_name),
         callback = function()
           UIManager:close(dialog)
           if action.source_selection then
@@ -6732,7 +6732,7 @@ function AskGPT:executeBookLevelAction(action_id)
           end
         end,
       }})
-      -- Section buttons: show existing sections and "Focus on a section" for all actions with section support
+      -- Section buttons: browse existing section artifacts (scope selection is in the unified popup via "Regenerate")
       local section_prefix = ActionCache.getSectionPrefix(action_id)
       if section_prefix and file then
         local sec_count = ActionCache.getSectionCount(file, section_prefix)
@@ -6742,20 +6742,6 @@ function AskGPT:executeBookLevelAction(action_id)
             callback = function()
               UIManager:close(dialog)
               self_ref:_showSectionList(action, action_id)
-            end,
-          }})
-        end
-        if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
-          table.insert(aa_buttons, {{
-            text = _("Focus on a section…"),
-            callback = function()
-              UIManager:close(dialog)
-              self_ref:_showSectionPicker(action, {
-                title = T(_("Select Section for %1"), action_name),
-                on_select = function(entry)
-                  self_ref:_showSectionNameInput(action, action_id, entry)
-                end,
-              })
             end,
           }})
         end
