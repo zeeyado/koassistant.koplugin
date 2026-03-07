@@ -2550,6 +2550,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     if highlightedText and highlightedText ~= "" and not is_book_level then
         history.source_highlight = highlightedText
     end
+    -- For book-level actions with section scope, use section label for chat naming
+    if is_book_level then
+        local section_scope = config.features and (config.features._section_scope or config.features._section_xray)
+        if section_scope and section_scope.label then
+            history.source_highlight = section_scope.label
+        end
+    end
     if additional_input and additional_input ~= "" then
         history.source_input = additional_input
     end
