@@ -2039,7 +2039,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     end
                 else
                     -- Show naming dialog before pinning
-                    local default_name = history:getSuggestedTitle() or ""
+                    local default_name = history:getPinTitle() or ""
                     local pin_name_dialog
                     pin_name_dialog = InputDialog:new{
                         title = _("Pin as Artifact"),

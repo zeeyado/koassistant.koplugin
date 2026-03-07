@@ -5551,11 +5551,22 @@ function AskGPT:_showSectionPicker(action, opts)
           break
         end
       end
+      -- Find parent title for sub-chapters (used in section name suggestions)
+      local parent_title
+      if d > 1 then
+        for j = #entries, 1, -1 do
+          if entries[j].depth < d then
+            parent_title = entries[j].title
+            break
+          end
+        end
+      end
       table.insert(entries, {
         title = entry.title or "",
         start_page = entry.page,
         end_page = end_page,
         depth = d,
+        parent_title = parent_title,
       })
     end
   end
@@ -5871,8 +5882,13 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
   local Actions = require("prompts/actions")
   local self_ref = self
 
-  -- Default name: full TOC title (menus truncate long text naturally)
+  -- Default name: full TOC title, with truncated parent for sub-chapters
   local default_name = entry.title or ""
+  if entry.parent_title and entry.parent_title ~= "" then
+    local parent = entry.parent_title
+    if #parent > 15 then parent = parent:sub(1, 15) .. "…" end
+    default_name = parent .. " > " .. default_name
+  end
 
   local input_dialog
   input_dialog = InputDialog:new{
@@ -6079,6 +6095,12 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
 
   local action_label = (opts and opts.action_label) or action.text or action_id
   local default_name = entry.title or ""
+  -- Prepend truncated parent title for sub-chapters (disambiguation)
+  if entry.parent_title and entry.parent_title ~= "" then
+    local parent = entry.parent_title
+    if #parent > 15 then parent = parent:sub(1, 15) .. "…" end
+    default_name = parent .. " > " .. default_name
+  end
 
   local input_dialog
   input_dialog = InputDialog:new{
@@ -6840,6 +6862,9 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
     book_context = book_context .. string.format(" Language: %s.", doc_props.language)
   end
   config_copy.features.book_context = book_context
+  -- Signal that highlighted_text is synthetic book metadata, not user-selected text
+  -- (used by handlePredefinedPrompt to skip source_highlight for chat naming)
+  config_copy.features._is_book_level_action = true
 
   -- Execute the action with book context as highlighted text
   NetworkMgr:runWhenOnline(function()
@@ -6911,6 +6936,9 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
     for k, v in pairs((configuration or {}).features or {}) do
       config_copy.features[k] = v
     end
+
+    -- Signal synthetic book metadata (same as _executeBookLevelActionDirect)
+    config_copy.features._is_book_level_action = true
 
     if self:_checkRequirements(action) then return end
 

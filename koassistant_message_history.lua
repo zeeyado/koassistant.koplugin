@@ -317,8 +317,35 @@ function MessageHistory:getSuggestedTitle()
         end
     end
 
-    -- Ultimate fallback
-    return action_prefix .. "Chat"
+    -- Ultimate fallback: just the action name (e.g. "Discussion Questions"), or "Chat"
+    return self.prompt_action or "Chat"
+end
+
+--- Suggest a name for pinning the last AI response as an artifact.
+--- Tries the first meaningful line of the response (better for pin naming),
+--- then falls back to getSuggestedTitle().
+function MessageHistory:getPinTitle()
+    -- Try first meaningful line from last AI response
+    for i = #self.messages, 1, -1 do
+        if self.messages[i].role == self.ROLES.ASSISTANT then
+            local content = self.messages[i].content or ""
+            -- Find first non-empty line, strip markdown heading markers
+            for line in content:gmatch("[^\n]+") do
+                local clean = line:gsub("^#+%s*", ""):gsub("^%s+", ""):gsub("%s+$", "")
+                -- Skip empty, very short, or markdown-only lines (e.g., "---", "***")
+                if #clean > 3 and not clean:match("^[-*_=]+$") then
+                    local max = 50
+                    local action_prefix = self.prompt_action and (self.prompt_action .. " - ") or ""
+                    if #clean > max then
+                        clean = clean:sub(1, max) .. "..."
+                    end
+                    return action_prefix .. clean
+                end
+            end
+            break
+        end
+    end
+    return self:getSuggestedTitle()
 end
 
 function MessageHistory:createResultText(highlightedText, config)

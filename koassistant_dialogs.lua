@@ -2123,7 +2123,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 end
             else
                 -- Pin last AI response — show naming dialog
-                local default_name = history:getSuggestedTitle() or ""
+                local default_name = history:getPinTitle() or ""
 
                 local pin_name_dialog
                 pin_name_dialog = InputDialog:new{
@@ -2545,7 +2545,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     local history = MessageHistory:new(nil, prompt.text)
 
     -- Store source data for title generation (avoids fragile regex on message content)
-    if highlightedText and highlightedText ~= "" then
+    -- Skip for book-level actions where highlightedText is synthetic book metadata (Title: X. Author: Y.)
+    local is_book_level = config.features and config.features._is_book_level_action
+    if highlightedText and highlightedText ~= "" and not is_book_level then
         history.source_highlight = highlightedText
     end
     if additional_input and additional_input ~= "" then
