@@ -3216,7 +3216,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local tokens_high = math.floor(extracted_chars / 2000)
             local warning_dialog
             warning_dialog = ButtonDialog:new{
-                title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens). Make sure your model's context window can accommodate this.\n\nYou can use Hidden Flows to exclude irrelevant content, or focus on a specific section instead of the full document."), chars_k, tokens_low, tokens_high),
+                title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens). Make sure your model's context window can accommodate this.\n\nYou can focus on a specific Section instead of the full document, or use KOReader's Hidden Flows to exclude irrelevant content."), chars_k, tokens_low, tokens_high),
                 buttons = {
                     {{
                         text = _("Cancel"),
