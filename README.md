@@ -565,13 +565,18 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 
 **Source selection:**
 
-Several actions let you choose which document source the AI uses when you trigger them. A popup appears with three options:
+Several actions let you choose which document source the AI uses when you trigger them. A unified popup combines **scope** (full document or a specific section) and **source** (what data to send) in a single dialog:
 
-- **Full document text** — Sends the actual document text to the AI. Most accurate, but uses more tokens. ⚠️ Requires text extraction to be enabled.
-- **Document summary** — Uses a pre-generated summary (~2-8K tokens) instead of raw text (~100K+ tokens). Much cheaper for repeated use or follow-up conversations, since each follow-up resends the full history. Requires generating the summary first via the Document Summary action. If no summary exists, this option shows "(generate first)".
+**Scope** (shown when the book has a table of contents):
+- **Full document** — Use the entire document
+- **Pick section…** — Focus on a specific chapter or part via a hierarchical TOC picker. The selected section name appears below the scope buttons. Section results are stored as independent artifacts (e.g., "Section Key Arguments: Chapter 5")
+
+**Source:**
+- **Extract text** — Sends the actual document text to the AI. Most accurate, but uses more tokens. ⚠️ Requires text extraction to be enabled. When scoped to a section, only that section's text is extracted.
+- **Use summary** — Uses a pre-generated summary (~2-8K tokens) instead of raw text. Much cheaper for repeated use or follow-up conversations. Requires generating the summary first via the Document Summary action. When scoped to a section, uses the section summary if available. If no summary exists, this option shows "(generate first)".
 - **AI knowledge only** — No document data sent. The AI uses its training knowledge of the work. Free and fast, but less accurate for obscure works.
 
-Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights.
+Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage.
 
 **When to use each source:**
 - **Full text**: Short to medium documents, one-off queries, when you need the AI to work from the actual text
@@ -759,7 +764,7 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 <a id="section-support"></a>
 
-**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. When a book has a table of contents, the action popup offers **"Focus on a section…"** — a hierarchical TOC picker lets you choose the scope. Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser alongside the main artifact. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Sections are ideal for collected works, textbooks, or long documents where analyzing a specific part saves tokens and produces more focused results. Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
+**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. For actions with [source selection](#source-selection), scope and source are combined in a single unified popup — tap "Pick section…" to choose via a hierarchical TOC picker. For other actions (Document Summary, Document Analysis, X-Ray), the action's own popup offers section options. Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser alongside the main artifact. A "Saved as artifact" toast confirms when a section artifact is cached. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Sections are ideal for collected works, textbooks, or long documents where analyzing a specific part saves tokens and produces more focused results. Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -2701,12 +2706,9 @@ The summary artifact is the centerpiece of the reuse system. For medium and long
 - **Generate Quiz** — (Book) Comprehension quiz with answers
 - **Extract Key Insights** — (Book) Actionable takeaways and ideas worth remembering
 
-When you trigger any of these actions, a popup lets you choose:
-1. **Full document text** — Most accurate, uses more tokens. Requires text extraction enabled.
-2. **Document summary** — Uses cached summary (~2-8K tokens). Requires generating the summary first.
-3. **AI knowledge only** — No document data sent. Free and fast, but depends on the AI's training data.
+When you trigger any of these actions, a unified popup lets you choose scope (full document or a specific section) and source (extract text, use summary, or AI knowledge only). See [Source selection](#source-selection) above for details.
 
-The chosen source is recorded in the cache and shown in the viewer (Info popup and inline indicator).
+The chosen source is recorded in the cache and shown in the viewer (Info popup and inline indicator). Section results are stored as independent artifacts and appear as groups in the Artifact Browser.
 
 **Creating custom actions with source selection:**
 Add `source_selection = true` and `use_summary_cache = true` to your action, and use `{document_context_section}` as the unified placeholder. It resolves automatically based on the user's source choice.

@@ -4980,9 +4980,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
 
   -- Determine if scope row should be shown
   local section_prefix = ActionCache.getSectionPrefix(action_id)
-  local has_toc = section_prefix and self.ui and self.ui.document
+  local toc_available = self.ui and self.ui.document
       and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0
-  local show_scope = has_toc
+  -- Show scope for: book actions with section prefix + TOC, or highlight actions with TOC
+  -- (highlight scope controls text extraction range via _highlight_section_scope)
+  local show_scope = toc_available and (section_prefix or opts.for_highlight)
 
   -- Check text extraction availability
   local features = configuration and configuration.features or {}
@@ -5180,7 +5182,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
           callback = function()
             UIManager:close(current_dialog)
             local function continueWithAction()
-              if state.scope == "section" and state.section_entry then
+              if state.scope == "section" and state.section_entry and not opts.for_highlight then
                 self_ref:_showSectionNameInput(action, action_id, state.section_entry, {
                   source_mode = state.source,
                 })
@@ -5221,11 +5223,14 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     }
     local movable = MovableContainer:new{ widget_frame }
 
-    -- Build the dialog as a WidgetContainer with tap-outside-to-close
-    current_dialog = WidgetContainer:new{
-      align = "center",
+    -- Build the dialog as an InputContainer with tap-outside-to-close
+    local InputContainer = require("ui/widget/container/inputcontainer")
+    current_dialog = InputContainer:new{
       dimen = Geom:new{ x = 0, y = 0, w = screen_width, h = screen_height },
-      movable,
+      CenterContainer:new{
+        dimen = Geom:new{ w = screen_width, h = screen_height },
+        movable,
+      },
     }
     current_dialog._widget_frame = widget_frame
     current_dialog.ges_events = {
@@ -6697,34 +6702,32 @@ function AskGPT:executeBookLevelAction(action_id)
           end
         end,
       }})
-      -- Section buttons (non-source_selection actions only — source_selection has sections in unified popup)
-      if not action.source_selection then
-        local section_prefix = ActionCache.getSectionPrefix(action_id)
-        if section_prefix and file then
-          local sec_count = ActionCache.getSectionCount(file, section_prefix)
-          if sec_count > 0 then
-            table.insert(aa_buttons, {{
-              text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
-              callback = function()
-                UIManager:close(dialog)
-                self_ref:_showSectionList(action, action_id)
-              end,
-            }})
-          end
-          if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
-            table.insert(aa_buttons, {{
-              text = _("Focus on a section…"),
-              callback = function()
-                UIManager:close(dialog)
-                self_ref:_showSectionPicker(action, {
-                  title = T(_("Select Section for %1"), action_name),
-                  on_select = function(entry)
-                    self_ref:_showSectionNameInput(action, action_id, entry)
-                  end,
-                })
-              end,
-            }})
-          end
+      -- Section buttons: show existing sections and "Focus on a section" for all actions with section support
+      local section_prefix = ActionCache.getSectionPrefix(action_id)
+      if section_prefix and file then
+        local sec_count = ActionCache.getSectionCount(file, section_prefix)
+        if sec_count > 0 then
+          table.insert(aa_buttons, {{
+            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:_showSectionList(action, action_id)
+            end,
+          }})
+        end
+        if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
+          table.insert(aa_buttons, {{
+            text = _("Focus on a section…"),
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:_showSectionPicker(action, {
+                title = T(_("Select Section for %1"), action_name),
+                on_select = function(entry)
+                  self_ref:_showSectionNameInput(action, action_id, entry)
+                end,
+              })
+            end,
+          }})
         end
       end
       table.insert(aa_buttons, {{

@@ -2234,7 +2234,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     
     -- Show the viewer
     UIManager:show(chatgpt_viewer)
-    
+
+    -- Auto-artifact: show toast after viewer (shown here so it paints on top of viewer)
+    if history.auto_artifact_saved then
+        local Notification = require("ui/widget/notification")
+        UIManager:show(Notification:new{
+            text = _("Saved as artifact"),
+            timeout = 3,
+        })
+    end
+
     -- Auto-save if enabled
     if temp_config and temp_config.features and temp_config.features.auto_save_all_chats then
         -- Schedule auto-save to run after viewer is displayed
@@ -2689,12 +2698,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         config.features._highlight_section_scope = nil
     end
 
-    -- Source mode: skip expensive text extraction when user chose summary or AI knowledge
+    -- Source mode: skip extraction for non-selected sources
     -- Also propagate _source_mode to message_data for {document_context_section} resolution
     if source_mode then
         message_data._source_mode = source_mode
-        if source_mode == "summary" or source_mode == "ai_knowledge" then
-            -- Create copy to avoid mutating the original action definition
+        if source_mode ~= "full_text" then
+            -- Summary or AI knowledge: skip text extraction
             if not prompt._is_copy then
                 local original_prompt = prompt
                 prompt = {}
@@ -2703,10 +2712,19 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 end
                 prompt._is_copy = true
             end
-            prompt.use_book_text = false  -- Skip text extraction
+            prompt.use_book_text = false
         end
-        if source_mode == "ai_knowledge" then
-            prompt.use_summary_cache = false  -- Skip loading summary cache
+        if source_mode ~= "summary" then
+            -- Full text or AI knowledge: skip summary cache loading
+            if not prompt._is_copy then
+                local original_prompt = prompt
+                prompt = {}
+                for k, v in pairs(original_prompt) do
+                    prompt[k] = v
+                end
+                prompt._is_copy = true
+            end
+            prompt.use_summary_cache = false
         end
     end
 
@@ -3018,13 +3036,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", save_progress, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
-                    -- Auto-artifact: show toast notification (chat viewer opens normally)
+                    -- Auto-artifact: flag for toast after viewer opens (toast shown here gets covered by viewer)
                     if prompt.auto_artifact then
-                        local Notification = require("ui/widget/notification")
-                        UIManager:show(Notification:new{
-                            text = _("Saved as artifact"),
-                            timeout = 3,
-                        })
+                        history.auto_artifact_saved = true
                     end
                 end
             elseif is_truncated and cache_enabled then
@@ -3089,6 +3103,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local section_success = ActionCache.set(cache_file, section_scope.cache_key, cache_answer, 1.0, section_metadata)
                     if section_success then
                         logger.info("KOAssistant: Saved section artifact to", section_scope.cache_key)
+                        history.auto_artifact_saved = true
                     end
                 end
 
@@ -3716,12 +3731,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 callback = function()
                                     UIManager:close(dialog)
                                     if action.source_selection and plugin._showUnifiedActionPopup then
+                                        local is_hl = action.context == "highlight" or action.context == "both"
                                         plugin:_showUnifiedActionPopup(action, action_id, {
-                                            for_highlight = true,
+                                            for_highlight = is_hl or nil,
                                             on_execute = function(popup_state)
                                                 configuration.features = configuration.features or {}
                                                 configuration.features._source_mode = popup_state.source
-                                                if popup_state.scope == "section" and popup_state.section_entry then
+                                                if is_hl and popup_state.scope == "section" and popup_state.section_entry then
                                                     configuration.features._highlight_section_scope = {
                                                         start_page = popup_state.section_entry.start_page,
                                                         end_page = popup_state.section_entry.end_page,
@@ -3752,14 +3768,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             -- No cache: fall through to source selection
         end
 
-        -- Unified action popup for source_selection actions (highlight context)
+        -- Unified action popup for source_selection actions
         if action.source_selection and plugin and plugin._showUnifiedActionPopup then
+            local is_highlight = action.context == "highlight" or action.context == "both"
             plugin:_showUnifiedActionPopup(action, action_id, {
-                for_highlight = true,
+                for_highlight = is_highlight or nil,
                 on_execute = function(popup_state)
                     configuration.features = configuration.features or {}
                     configuration.features._source_mode = popup_state.source
-                    if popup_state.scope == "section" and popup_state.section_entry then
+                    -- Highlight actions: set _highlight_section_scope for text extraction range
+                    if is_highlight and popup_state.scope == "section" and popup_state.section_entry then
                         configuration.features._highlight_section_scope = {
                             start_page = popup_state.section_entry.start_page,
                             end_page = popup_state.section_entry.end_page,
