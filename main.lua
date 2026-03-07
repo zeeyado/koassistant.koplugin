@@ -4965,20 +4965,29 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
   UIManager:show(dialog)
 end
 
---- Show source selection popup for unified actions.
---- Three options: Full document text, Document summary, AI knowledge only.
---- Availability depends on text extraction setting and summary cache existence.
+--- Show unified action popup combining scope (full document / section) and source
+--- (extract text / use summary / AI knowledge) selection in a single dialog.
+--- Radio buttons via bullet prefixes; state changes rebuild the dialog.
 --- @param action table: The action definition
---- @param on_select function(source_mode): Callback with "full_text" / "summary" / "ai_knowledge"
-function AskGPT:_showSourceSelectionPopup(action, on_select)
-  local action_name = action.text or action.id
+--- @param action_id string: The action ID
+--- @param opts table: { on_execute = function(state), for_highlight = boolean }
+---   state = { source = "full_text"|"summary"|"ai_knowledge", scope = "full"|"section",
+---             section_entry = table|nil, section_label = string|nil }
+function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
+  local action_name = action.text or action_id
   local ButtonDialog = require("ui/widget/buttondialog")
   local ActionCache = require("koassistant_action_cache")
+  local self_ref = self
 
-  -- Check what's available
+  -- Determine if scope row should be shown
+  local section_prefix = ActionCache.getSectionPrefix(action_id)
+  local has_toc = section_prefix and self.ui and self.ui.document
+      and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0
+  local show_scope = has_toc
+
+  -- Check text extraction availability
   local features = configuration and configuration.features or {}
   local text_extraction_enabled = features.enable_book_text_extraction == true
-  -- Trust trusted providers for text extraction
   if not text_extraction_enabled and features.trusted_providers then
     local provider = features.provider or ""
     for _idx, tp in ipairs(features.trusted_providers) do
@@ -4989,87 +4998,231 @@ function AskGPT:_showSourceSelectionPopup(action, on_select)
     end
   end
 
-  local file = self.ui and self.ui.document and self.ui.document.file
-  local has_summary = false
-  if file then
-    local summary = ActionCache.getSummaryCache(file)
-    has_summary = summary and summary.result and summary.result ~= ""
-  end
-
-  local dialog
-  local buttons = {}
-
-  -- Option 1: Extract text
-  if text_extraction_enabled then
-    table.insert(buttons, {{
-      text = _("Extract text"),
-      callback = function()
-        UIManager:close(dialog)
-        on_select("full_text")
-      end,
-    }})
-  else
-    table.insert(buttons, {{
-      text = _("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")",
-      enabled = false,
-      callback = function() end,
-    }})
-  end
-
-  -- Option 2: Use summary
-  if has_summary then
-    table.insert(buttons, {{
-      text = _("Use summary"),
-      callback = function()
-        UIManager:close(dialog)
-        on_select("summary")
-      end,
-    }})
-  elseif text_extraction_enabled then
-    -- Summary doesn't exist but could be generated
-    local self_ref = self
-    table.insert(buttons, {{
-      text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")",
-      callback = function()
-        UIManager:close(dialog)
-        -- Trigger summary generation, then re-show this popup
-        self_ref:executeBookLevelAction("summarize_full_document")
-      end,
-    }})
-  else
-    table.insert(buttons, {{
-      text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")",
-      enabled = false,
-      callback = function() end,
-    }})
-  end
-
-  -- Option 3: AI knowledge only
-  table.insert(buttons, {{
-    text = _("AI knowledge only"),
-    callback = function()
-      UIManager:close(dialog)
-      on_select("ai_knowledge")
-    end,
-  }})
-
-  table.insert(buttons, {{
-    text = _("Cancel"),
-    callback = function()
-      UIManager:close(dialog)
-    end,
-  }})
-
-  dialog = ButtonDialog:new{
-    title = action_name,
-    buttons = buttons,
+  -- State (persists across rebuilds)
+  local state = {
+    scope = "full",
+    source = text_extraction_enabled and "full_text" or "ai_knowledge",
+    section_entry = nil,
+    section_label = nil,
   }
-  UIManager:show(dialog)
+
+  local current_dialog
+
+  local function getSummaryAvailable()
+    local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+    if not file then return false end
+    if state.scope == "section" and state.section_label then
+      local sum_key = "_summary_section:" .. state.section_label:gsub(":", "-")
+      local summary = ActionCache.get(file, sum_key)
+      return summary and summary.result and summary.result ~= ""
+    else
+      local summary = ActionCache.getSummaryCache(file)
+      return summary and summary.result and summary.result ~= ""
+    end
+  end
+
+  local function buildAndShow()
+    local buttons = {}
+    local has_summary = getSummaryAvailable()
+
+    -- Scope row
+    if show_scope then
+      local scope_row = {}
+      -- Full document
+      table.insert(scope_row, {
+        text = (state.scope == "full" and "● " or "○ ") .. _("Full document"),
+        callback = function()
+          if state.scope == "full" then return end
+          UIManager:close(current_dialog)
+          state.scope = "full"
+          state.section_entry = nil
+          state.section_label = nil
+          -- Reset source if summary availability changed
+          if state.source == "summary" and not getSummaryAvailable() then
+            state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+          end
+          buildAndShow()
+        end,
+      })
+      -- Section (or selected section label)
+      if state.scope == "section" and state.section_label then
+        table.insert(scope_row, {
+          text = "● " .. state.section_label,
+          callback = function()
+            -- Tap selected section to re-pick
+            UIManager:close(current_dialog)
+            self_ref:_showSectionPicker(action, {
+              title = T(_("Select Section for %1"), action_name),
+              on_select = function(entry)
+                state.section_entry = entry
+                state.section_label = entry.title or ""
+                if state.source == "summary" and not getSummaryAvailable() then
+                  state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                end
+                buildAndShow()
+              end,
+            })
+          end,
+        })
+      else
+        table.insert(scope_row, {
+          text = "○ " .. _("Section…"),
+          callback = function()
+            UIManager:close(current_dialog)
+            self_ref:_showSectionPicker(action, {
+              title = T(_("Select Section for %1"), action_name),
+              on_select = function(entry)
+                state.scope = "section"
+                state.section_entry = entry
+                state.section_label = entry.title or ""
+                if state.source == "summary" and not getSummaryAvailable() then
+                  state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                end
+                buildAndShow()
+              end,
+            })
+          end,
+        })
+      end
+      table.insert(buttons, scope_row)
+    end
+
+    -- Source: Extract text
+    if text_extraction_enabled then
+      table.insert(buttons, {{
+        text = (state.source == "full_text" and "● " or "○ ") .. _("Extract text"),
+        callback = function()
+          if state.source == "full_text" then return end
+          UIManager:close(current_dialog)
+          state.source = "full_text"
+          buildAndShow()
+        end,
+      }})
+    else
+      table.insert(buttons, {{
+        text = "○ " .. _("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")",
+        enabled = false,
+        callback = function() end,
+      }})
+    end
+
+    -- Source: Use summary — same dynamic naming as old popup
+    if has_summary then
+      table.insert(buttons, {{
+        text = (state.source == "summary" and "● " or "○ ") .. _("Use summary"),
+        callback = function()
+          if state.source == "summary" then return end
+          UIManager:close(current_dialog)
+          state.source = "summary"
+          buildAndShow()
+        end,
+      }})
+    elseif text_extraction_enabled then
+      table.insert(buttons, {{
+        text = (state.source == "summary" and "● " or "○ ")
+            .. _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")",
+        callback = function()
+          if state.source == "summary" then return end
+          UIManager:close(current_dialog)
+          state.source = "summary"
+          buildAndShow()
+        end,
+      }})
+    else
+      table.insert(buttons, {{
+        text = "○ " .. _("Use summary") .. "  (" .. _("enable text extraction first") .. ")",
+        enabled = false,
+        callback = function() end,
+      }})
+    end
+
+    -- Source: AI knowledge only
+    table.insert(buttons, {{
+      text = (state.source == "ai_knowledge" and "● " or "○ ") .. _("AI knowledge only"),
+      callback = function()
+        if state.source == "ai_knowledge" then return end
+        UIManager:close(current_dialog)
+        state.source = "ai_knowledge"
+        buildAndShow()
+      end,
+    }})
+
+    -- Execute
+    local execute_label = opts.for_highlight
+        and action_name
+        or T(_("Generate %1"), action_name)
+    table.insert(buttons, {{
+      text = execute_label,
+      callback = function()
+        UIManager:close(current_dialog)
+        local function continueWithAction()
+          if state.scope == "section" and state.section_entry then
+            self_ref:_showSectionNameInput(action, action_id, state.section_entry, {
+              source_mode = state.source,
+            })
+          else
+            opts.on_execute(state)
+          end
+        end
+        -- When summary source is selected but no summary exists yet,
+        -- generate it first (cache_as_summary saves it), then continue
+        if state.source == "summary" and not getSummaryAvailable() then
+          self_ref:_generateSummaryAndContinue(continueWithAction)
+        else
+          continueWithAction()
+        end
+      end,
+    }})
+
+    current_dialog = ButtonDialog:new{
+      title = action_name,
+      buttons = buttons,
+      dismissable = true,
+    }
+    UIManager:show(current_dialog)
+  end
+
+  buildAndShow()
+end
+
+--- Generate document summary cache, then call on_done() on success.
+--- Builds book config and delegates to Dialogs.generateSummaryCache.
+--- @param on_done function: Called when summary generation succeeds
+function AskGPT:_generateSummaryAndContinue(on_done)
+  self:updateConfigFromSettings()
+  local config_copy = {}
+  for k, v in pairs(configuration or {}) do
+    config_copy[k] = v
+  end
+  config_copy.features = {}
+  for k, v in pairs((configuration or {}).features or {}) do
+    config_copy.features[k] = v
+  end
+  config_copy.features.is_book_context = true
+
+  local doc_props = self.ui.doc_props or {}
+  local title = doc_props.display_title or doc_props.title or "Unknown"
+  local authors = doc_props.authors or ""
+  if authors:find("\n") then
+    authors = authors:gsub("\n", ", ")
+  end
+  config_copy.features.book_metadata = {
+    title = title,
+    author = authors,
+    author_clause = (authors ~= "") and (" by " .. authors) or "",
+  }
+
+  NetworkMgr:runWhenOnline(function()
+    Dialogs.generateSummaryCache(self.ui, config_copy, self, config_copy.features.book_metadata, function(success)
+      if success and on_done then
+        on_done()
+      end
+    end)
+  end)
 end
 
 --- Show X-Ray scope popup: choose between partial (to reading position) or full-document X-Ray.
---- For 100% caches (full-document or partial at 100%), goes directly to viewer.
---- Otherwise handles two cases: no cache, partial cache (< 100%).
+--- Handles two cases: no cache (generate options), cached (view/update/redo/sections).
 --- @param action table: The action definition
 --- @param action_id string: The action ID
 --- @param on_update function: Callback to execute partial (to reading position) action
@@ -6253,9 +6406,11 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
         if self_ref2:_checkRequirements(action) then return end
         self_ref2._file_dialog_row_cache = { file = nil, rows = nil }
         if action.source_selection then
-          self_ref2:_showSourceSelectionPopup(action, function(source_mode)
-            self_ref2:_executeBookLevelActionDirect(action, captured_action_id, { source_mode = source_mode })
-          end)
+          self_ref2:_showUnifiedActionPopup(action, captured_action_id, {
+            on_execute = function(popup_state)
+              self_ref2:_executeBookLevelActionDirect(action, captured_action_id, { source_mode = popup_state.source })
+            end,
+          })
         else
           self_ref2:_executeBookLevelActionDirect(action, captured_action_id)
         end
@@ -6459,40 +6614,44 @@ function AskGPT:executeBookLevelAction(action_id)
         callback = function()
           UIManager:close(dialog)
           if action.source_selection then
-            self_ref:_showSourceSelectionPopup(action, function(source_mode)
-              self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
-            end)
+            self_ref:_showUnifiedActionPopup(action, action_id, {
+              on_execute = function(popup_state)
+                self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+              end,
+            })
           else
             self_ref:_executeBookLevelActionDirect(action, action_id)
           end
         end,
       }})
-      -- Section buttons
-      local section_prefix = ActionCache.getSectionPrefix(action_id)
-      if section_prefix and file then
-        local sec_count = ActionCache.getSectionCount(file, section_prefix)
-        if sec_count > 0 then
-          table.insert(aa_buttons, {{
-            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
-            callback = function()
-              UIManager:close(dialog)
-              self_ref:_showSectionList(action, action_id)
-            end,
-          }})
-        end
-        if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
-          table.insert(aa_buttons, {{
-            text = _("Focus on a section…"),
-            callback = function()
-              UIManager:close(dialog)
-              self_ref:_showSectionPicker(action, {
-                title = T(_("Select Section for %1"), action_name),
-                on_select = function(entry)
-                  self_ref:_showSectionNameInput(action, action_id, entry)
-                end,
-              })
-            end,
-          }})
+      -- Section buttons (non-source_selection actions only — source_selection has sections in unified popup)
+      if not action.source_selection then
+        local section_prefix = ActionCache.getSectionPrefix(action_id)
+        if section_prefix and file then
+          local sec_count = ActionCache.getSectionCount(file, section_prefix)
+          if sec_count > 0 then
+            table.insert(aa_buttons, {{
+              text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+              callback = function()
+                UIManager:close(dialog)
+                self_ref:_showSectionList(action, action_id)
+              end,
+            }})
+          end
+          if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
+            table.insert(aa_buttons, {{
+              text = _("Focus on a section…"),
+              callback = function()
+                UIManager:close(dialog)
+                self_ref:_showSectionPicker(action, {
+                  title = T(_("Select Section for %1"), action_name),
+                  on_select = function(entry)
+                    self_ref:_showSectionNameInput(action, action_id, entry)
+                  end,
+                })
+              end,
+            }})
+          end
         end
       end
       table.insert(aa_buttons, {{
@@ -6511,72 +6670,14 @@ function AskGPT:executeBookLevelAction(action_id)
     -- No cache: fall through to source selection (with scope interceptor if TOC available)
   end
 
-  -- Source selection popup for unified actions (full text / summary / AI knowledge)
+  -- Unified popup for source_selection actions (scope + source in one dialog)
   if action.source_selection then
-    -- Check if action supports sections and book has TOC — show scope popup first
-    local ActionCache = require("koassistant_action_cache")
-    local section_prefix = ActionCache.getSectionPrefix(action_id)
-    local has_toc = section_prefix and self.ui and self.ui.toc
-        and self.ui.toc.toc and #self.ui.toc.toc > 0
-    if has_toc then
-      local action_name = action.text or action_id
-      local ButtonDialog = require("ui/widget/buttondialog")
-      local self_ref = self
-      local scope_dialog
-      local scope_buttons = {}
-      -- Full document → source selection
-      table.insert(scope_buttons, {{
-        text = T(_("%1 (full document)"), action_name),
-        callback = function()
-          UIManager:close(scope_dialog)
-          self_ref:_showSourceSelectionPopup(action, function(source_mode)
-            self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
-          end)
-        end,
-      }})
-      -- Existing sections
-      local file = self.ui.document.file
-      if file then
-        local sec_count = ActionCache.getSectionCount(file, section_prefix)
-        if sec_count > 0 then
-          table.insert(scope_buttons, {{
-            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
-            callback = function()
-              UIManager:close(scope_dialog)
-              self_ref:_showSectionList(action, action_id)
-            end,
-          }})
-        end
-      end
-      -- Focus on a section
-      table.insert(scope_buttons, {{
-        text = T(_("Focus on a section…")),
-        callback = function()
-          UIManager:close(scope_dialog)
-          self_ref:_showSectionPicker(action, {
-            title = T(_("Select Section for %1"), action_name),
-            on_select = function(entry)
-              self_ref:_showSectionNameInput(action, action_id, entry)
-            end,
-          })
-        end,
-      }})
-      table.insert(scope_buttons, {{
-        text = _("Cancel"),
-        callback = function()
-          UIManager:close(scope_dialog)
-        end,
-      }})
-      scope_dialog = ButtonDialog:new{
-        title = action_name,
-        buttons = scope_buttons,
-      }
-      UIManager:show(scope_dialog)
-    else
-      self:_showSourceSelectionPopup(action, function(source_mode)
-        self:_executeBookLevelActionDirect(action, action_id, { source_mode = source_mode })
-      end)
-    end
+    local self_ref = self
+    self:_showUnifiedActionPopup(action, action_id, {
+      on_execute = function(popup_state)
+        self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+      end,
+    })
     return
   end
 

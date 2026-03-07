@@ -2681,7 +2681,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Source mode: skip expensive text extraction when user chose summary or AI knowledge
     -- Also propagate _source_mode to message_data for {document_context_section} resolution
+    -- Capture and clear transient flags to prevent leaking across invocations
     local source_mode = config.features and config.features._source_mode
+    local highlight_section = config.features and config.features._highlight_section_scope
+    if config.features then
+        config.features._source_mode = nil
+        config.features._highlight_section_scope = nil
+    end
+
+    -- Source mode: skip expensive text extraction when user chose summary or AI knowledge
+    -- Also propagate _source_mode to message_data for {document_context_section} resolution
     if source_mode then
         message_data._source_mode = source_mode
         if source_mode == "summary" or source_mode == "ai_knowledge" then
@@ -2699,6 +2708,21 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if source_mode == "ai_knowledge" then
             prompt.use_summary_cache = false  -- Skip loading summary cache
         end
+    end
+
+    -- Highlight section scope: limit text extraction to a specific section's page range.
+    -- Set by unified action popup when highlight actions are scoped to a section.
+    -- Only affects text extraction (book_text, full_document) — not cache saving.
+    if highlight_section then
+        if not prompt._is_copy then
+            local original_prompt = prompt
+            prompt = {}
+            for k, v in pairs(original_prompt) do
+                prompt[k] = v
+            end
+            prompt._is_copy = true
+        end
+        prompt._section_scope = highlight_section
     end
 
     -- Context extraction: auto-extract lightweight data when a document is open
@@ -3691,12 +3715,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 text = T(_("Regenerate %1"), action_name),
                                 callback = function()
                                     UIManager:close(dialog)
-                                    if action.source_selection and plugin._showSourceSelectionPopup then
-                                        plugin:_showSourceSelectionPopup(action, function(source_mode)
-                                            configuration.features = configuration.features or {}
-                                            configuration.features._source_mode = source_mode
-                                            runAction()
-                                        end)
+                                    if action.source_selection and plugin._showUnifiedActionPopup then
+                                        plugin:_showUnifiedActionPopup(action, action_id, {
+                                            for_highlight = true,
+                                            on_execute = function(popup_state)
+                                                configuration.features = configuration.features or {}
+                                                configuration.features._source_mode = popup_state.source
+                                                if popup_state.scope == "section" and popup_state.section_entry then
+                                                    configuration.features._highlight_section_scope = {
+                                                        start_page = popup_state.section_entry.start_page,
+                                                        end_page = popup_state.section_entry.end_page,
+                                                    }
+                                                end
+                                                runAction()
+                                            end,
+                                        })
                                     else
                                         runAction()
                                     end
@@ -3719,13 +3752,22 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             -- No cache: fall through to source selection
         end
 
-        -- Source selection popup for unified actions (highlight context)
-        if action.source_selection and plugin and plugin._showSourceSelectionPopup then
-            plugin:_showSourceSelectionPopup(action, function(source_mode)
-                configuration.features = configuration.features or {}
-                configuration.features._source_mode = source_mode
-                runAction()
-            end)
+        -- Unified action popup for source_selection actions (highlight context)
+        if action.source_selection and plugin and plugin._showUnifiedActionPopup then
+            plugin:_showUnifiedActionPopup(action, action_id, {
+                for_highlight = true,
+                on_execute = function(popup_state)
+                    configuration.features = configuration.features or {}
+                    configuration.features._source_mode = popup_state.source
+                    if popup_state.scope == "section" and popup_state.section_entry then
+                        configuration.features._highlight_section_scope = {
+                            start_page = popup_state.section_entry.start_page,
+                            end_page = popup_state.section_entry.end_page,
+                        }
+                    end
+                    runAction()
+                end,
+            })
             return
         end
 
@@ -4861,9 +4903,59 @@ local function executeActionForResult(action, highlighted_text, ui, configuratio
     end, book_metadata)
 end
 
+--- Generate document summary cache, then call on_done(true) on success.
+--- Used by unified action popup when user selects "Generate summary" source.
+--- Chains handlePredefinedPrompt for summarize_full_document with a completion callback.
+--- @param ui table: The UI instance
+--- @param configuration table: The configuration table
+--- @param plugin table: The plugin instance
+--- @param book_metadata table: Book metadata {title, author}
+--- @param on_done function(success): Called when summary generation completes
+local function generateSummaryCache(ui, configuration, plugin, book_metadata, on_done)
+    local ok, Actions = pcall(require, "prompts.actions")
+    local summary_action = ok and Actions and Actions.book and Actions.book.summarize_full_document
+
+    if not summary_action then
+        logger.warn("KOAssistant: summarize_full_document action not found for cache generation")
+        UIManager:show(InfoMessage:new{
+            text = _("Could not find summary action. Please try again."),
+        })
+        if on_done then on_done(false) end
+        return
+    end
+
+    -- Show progress notification
+    local Notification = require("ui/widget/notification")
+    UIManager:show(Notification:new{
+        text = _("Generating document summary..."),
+        timeout = 2,
+    })
+
+    -- Execute summarize_full_document (which saves to _summary_cache via cache_as_summary)
+    handlePredefinedPrompt(
+        summary_action, nil, ui, configuration,
+        nil, plugin, nil,
+        function(history, _config_result)
+            if history then
+                -- Cache is now populated, continue with original action
+                UIManager:scheduleIn(0.3, function()
+                    if on_done then on_done(true) end
+                end)
+            else
+                UIManager:show(InfoMessage:new{
+                    text = _("Summary generation failed. Please try again."),
+                })
+                if on_done then on_done(false) end
+            end
+        end,
+        book_metadata
+    )
+end
+
 return {
     showChatGPTDialog = showChatGPTDialog,
     executeDirectAction = executeDirectAction,
     executeActionForResult = executeActionForResult,
+    generateSummaryCache = generateSummaryCache,
     extractSurroundingContext = extractSurroundingContext,
 }
