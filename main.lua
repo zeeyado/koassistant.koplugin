@@ -4907,10 +4907,10 @@ function AskGPT:_showSourceSelectionPopup(action, on_select)
   local dialog
   local buttons = {}
 
-  -- Option 1: Full document text
+  -- Option 1: Extract text
   if text_extraction_enabled then
     table.insert(buttons, {{
-      text = _("Full document text"),
+      text = _("Extract text"),
       callback = function()
         UIManager:close(dialog)
         on_select("full_text")
@@ -4918,16 +4918,16 @@ function AskGPT:_showSourceSelectionPopup(action, on_select)
     }})
   else
     table.insert(buttons, {{
-      text = _("Full document text (requires text extraction)"),
+      text = _("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")",
       enabled = false,
       callback = function() end,
     }})
   end
 
-  -- Option 2: Document summary
+  -- Option 2: Use summary
   if has_summary then
     table.insert(buttons, {{
-      text = _("Document summary") .. " ✓",
+      text = _("Use summary") .. " ✓",
       callback = function()
         UIManager:close(dialog)
         on_select("summary")
@@ -4937,7 +4937,7 @@ function AskGPT:_showSourceSelectionPopup(action, on_select)
     -- Summary doesn't exist but could be generated
     local self_ref = self
     table.insert(buttons, {{
-      text = _("Document summary (generate first)"),
+      text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")",
       callback = function()
         UIManager:close(dialog)
         -- Trigger summary generation, then re-show this popup
@@ -4946,7 +4946,7 @@ function AskGPT:_showSourceSelectionPopup(action, on_select)
     }})
   else
     table.insert(buttons, {{
-      text = _("Document summary (requires text extraction)"),
+      text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")",
       enabled = false,
       callback = function() end,
     }})
