@@ -1244,6 +1244,8 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         end,
     })
 
+    -- Navigation closures for prev/next (used by buttons and page-turn keys)
+    local navigatePrev, navigateNext
     if has_nav then
         local is_mixed = nav_context.entries ~= nil
         local nav_list = is_mixed and nav_context.entries or nav_context.items
@@ -1252,46 +1254,43 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         local prev_idx = nav_idx > 1 and nav_idx - 1 or total
         local next_idx = nav_idx < total and nav_idx + 1 or 1
 
-        table.insert(row, {
-            text = "◀",
-            callback = function()
-                if viewer then viewer:onClose() end
-                if is_mixed then
-                    local entry = nav_list[prev_idx]
-                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
-                        entries = nav_list, index = prev_idx,
-                        source = nav_context.source,
-                    })
-                else
-                    local prev_item = nav_list[prev_idx]
-                    local prev_name = XrayParser.getItemName(prev_item, nav_context.category_key)
-                    self_ref:showItemDetail(prev_item, nav_context.category_key, prev_name, nil, {
-                        items = nav_list, index = prev_idx,
-                        category_key = nav_context.category_key, category_label = nav_context.category_label,
-                    })
-                end
-            end,
-        })
-        table.insert(row, {
-            text = "▶",
-            callback = function()
-                if viewer then viewer:onClose() end
-                if is_mixed then
-                    local entry = nav_list[next_idx]
-                    self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
-                        entries = nav_list, index = next_idx,
-                        source = nav_context.source,
-                    })
-                else
-                    local next_item = nav_list[next_idx]
-                    local next_name = XrayParser.getItemName(next_item, nav_context.category_key)
-                    self_ref:showItemDetail(next_item, nav_context.category_key, next_name, nil, {
-                        items = nav_list, index = next_idx,
-                        category_key = nav_context.category_key, category_label = nav_context.category_label,
-                    })
-                end
-            end,
-        })
+        navigatePrev = function()
+            if viewer then viewer:onClose() end
+            if is_mixed then
+                local entry = nav_list[prev_idx]
+                self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
+                    entries = nav_list, index = prev_idx,
+                    source = nav_context.source,
+                })
+            else
+                local prev_item = nav_list[prev_idx]
+                local prev_name = XrayParser.getItemName(prev_item, nav_context.category_key)
+                self_ref:showItemDetail(prev_item, nav_context.category_key, prev_name, nil, {
+                    items = nav_list, index = prev_idx,
+                    category_key = nav_context.category_key, category_label = nav_context.category_label,
+                })
+            end
+        end
+        navigateNext = function()
+            if viewer then viewer:onClose() end
+            if is_mixed then
+                local entry = nav_list[next_idx]
+                self_ref:showItemDetail(entry.item, entry.category_key, entry.name, nav_context.source, {
+                    entries = nav_list, index = next_idx,
+                    source = nav_context.source,
+                })
+            else
+                local next_item = nav_list[next_idx]
+                local next_name = XrayParser.getItemName(next_item, nav_context.category_key)
+                self_ref:showItemDetail(next_item, nav_context.category_key, next_name, nil, {
+                    items = nav_list, index = next_idx,
+                    category_key = nav_context.category_key, category_label = nav_context.category_label,
+                })
+            end
+        end
+
+        table.insert(row, { text = "◀", callback = navigatePrev })
+        table.insert(row, { text = "▶", callback = navigateNext })
     else
         table.insert(row, {
             text = "⇱",
@@ -1473,6 +1472,26 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             and viewer.ges_events.HoldPanText[1] then
         viewer.ges_events.HoldPanText[1].ges = "hold_pan"
         viewer.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
+    end
+    -- Hook page-turn keys for prev/next navigation when at scroll boundaries.
+    -- ScrollTextWidget.onScrollUp/Down return nil at top/bottom boundaries,
+    -- letting the event propagate. We catch it to navigate items.
+    if navigatePrev and navigateNext and viewer.scroll_text_w then
+        local stw = viewer.scroll_text_w
+        local orig_onScrollUp = stw.onScrollUp
+        stw.onScrollUp = function(self_w)
+            local result = orig_onScrollUp(self_w)
+            if result then return result end
+            navigatePrev()
+            return true
+        end
+        local orig_onScrollDown = stw.onScrollDown
+        stw.onScrollDown = function(self_w)
+            local result = orig_onScrollDown(self_w)
+            if result then return result end
+            navigateNext()
+            return true
+        end
     end
     -- Store reference so wiki generation can close and re-open with fresh button state
     self._detail_viewer = viewer

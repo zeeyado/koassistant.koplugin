@@ -538,6 +538,17 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                     return orig_onPanRelease(self_w, ...)
                 end
             end
+
+            -- Hook onScrollUp to catch page-up key when content fits on one page.
+            -- ScrollTextWidget.onScrollUp() only calls scrollText() when virtual_line_num > 1,
+            -- so on page 1 the scrollText hook above never fires.
+            local orig_onScrollUp = inner.onScrollUp
+            if orig_onScrollUp then
+                inner.onScrollUp = function(self_w, ...)
+                    turnOffAutoScroll()
+                    return orig_onScrollUp(self_w, ...)
+                end
+            end
         end
 
         local original_initTextBox = streamDialog._input_widget.initTextBox
