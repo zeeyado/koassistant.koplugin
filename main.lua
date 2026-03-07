@@ -5019,7 +5019,7 @@ function AskGPT:_showSourceSelectionPopup(action, on_select)
   -- Option 2: Use summary
   if has_summary then
     table.insert(buttons, {{
-      text = _("Use summary") .. " ✓",
+      text = _("Use summary"),
       callback = function()
         UIManager:close(dialog)
         on_select("summary")
