@@ -753,9 +753,13 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 **Font-size independence:** Section X-Rays store XPointers (stable document positions) alongside page numbers. When you change font size and reopen the book, page ranges in the section list and browser automatically update to reflect the new layout.
 
-> **Tip:** Section X-Rays are ideal for dense chapters in academic works, pivotal scenes in novels, or introductory sections you want to reference independently. They're also useful for collected works where you want a focused analysis of one piece without hiding flows.
+> **Tip:** Section X-Rays are ideal for dense chapters in academic works, pivotal scenes in novels, or introductory sections you want to reference independently. They're also useful for collected works where you want a focused analysis of one piece without hiding flows. Section scoping is also available for other text-extraction actions — see [Section support](#section-support) below.
 
 **Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context, Thematic Connection): These actions use the entire document context. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Actions with **source selection** (Key Arguments, Discussion Questions, Generate Quiz, Extract Insights, Explain in Context, Analyze in Context, Thematic Connection) let you choose between full text, a cached summary, or AI knowledge only — see [Source selection](#source-selection). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
+
+<a id="section-support"></a>
+
+**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. When a book has a table of contents, the action popup offers **"Focus on a section…"** — a hierarchical TOC picker lets you choose the scope. Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser alongside the main artifact. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Sections are ideal for collected works, textbooks, or long documents where analyzing a specific part saves tokens and produces more focused results. Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -2656,7 +2660,7 @@ Beyond these eleven generated artifacts, you can **pin any chat's last response 
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Top sections**: General Pinned and Multi-Book Pinned appear at the top when pinned artifacts exist in those contexts
   - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
-  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus "Section X-Rays (N)", "AI Wiki Entries (N)", and "Pinned Artifacts (N)" groups when they exist, plus "Open Book". When a book is open, section X-Rays covering the current page appear as top-level entries; remaining sections stay in the group. Group popups (Section X-Rays, AI Wiki, Pinned) layer over the artifact selector — dismiss to return to the selector
+  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus section groups ("Section X-Rays (N)", "Section Summaries (N)", etc.), "AI Wiki Entries (N)", and "Pinned Artifacts (N)" when they exist, plus "Open Book". When a book is open, section X-Rays covering the current page appear as top-level entries; remaining sections stay in the group. Group popups (sections, AI Wiki, Pinned) layer over the artifact selector — dismiss to return to the selector
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")

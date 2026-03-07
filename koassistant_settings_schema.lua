@@ -1208,7 +1208,7 @@ local SettingsSchema = {
                             text = _("Allow Text Extraction"),
                             path = "features.enable_book_text_extraction",
                             default = false,
-                            help_text = _("When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders.\n\nTip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. from extraction — saving tokens and improving results."),
+                            help_text = _("When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, and actions with text placeholders.\n\nTip: Use Hidden Flows to exclude front matter, appendices, etc. You can also focus actions on a specific section to extract only a chapter or part."),
                             on_change = function(new_value, plugin)
                                 if new_value then
                                     -- Unlock QS panel toggle after first manual enable
@@ -1221,7 +1221,7 @@ local SettingsSchema = {
                                     local InfoMessage = require("ui/widget/infomessage")
                                     local UIManager = require("ui/uimanager")
                                     UIManager:show(InfoMessage:new{
-                                        text = _("Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress.\n\nTip: Use KOReader's Hidden Flows feature to exclude front matter, appendices, etc. — saving tokens and improving AI results."),
+                                        text = _("Text extraction sends actual book content to the AI. This uses tokens (increases API costs) and processing time. Features like X-Ray and Recap use this to analyze your reading progress.\n\nTip: Use Hidden Flows to exclude front matter, appendices, etc. You can also focus actions on a specific section to extract only a chapter or part."),
                                     })
                                 end
                             end,
@@ -1236,7 +1236,7 @@ local SettingsSchema = {
                             max = 10000000,
                             step = 100000,
                             precision = "%d",
-                            help_text = _("Maximum characters to extract (100,000-10,000,000). Higher = more context but more tokens. Default: 4,000,000 (~1M tokens). The API will reject requests that exceed the model's context window.\n\nTip: Use KOReader's Hidden Flows to exclude front matter, appendices, etc. — saving tokens without reducing the limit."),
+                            help_text = _("Maximum characters to extract (100,000-10,000,000). Higher = more context but more tokens. Default: 4,000,000 (~1M tokens). The API will reject requests that exceed the model's context window.\n\nTip: Use Hidden Flows to exclude irrelevant content, or focus on a specific section instead of the full document."),
                             depends_on = { id = "enable_book_text_extraction", value = true },
                         },
                         {
@@ -1249,7 +1249,7 @@ local SettingsSchema = {
                             max = 5000,
                             step = 100,
                             precision = "%d",
-                            help_text = _("Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ (100-5,000). Higher = more context but slower. Default: 2,000.\n\nTip: Use KOReader's Hidden Flows to exclude irrelevant pages — saving tokens without reducing the limit."),
+                            help_text = _("Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ (100-5,000). Higher = more context but slower. Default: 2,000.\n\nTip: Use Hidden Flows to exclude irrelevant pages, or focus on a specific section instead of the full document."),
                             depends_on = { id = "enable_book_text_extraction", value = true },
                         },
                         {

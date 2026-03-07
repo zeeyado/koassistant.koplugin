@@ -3672,6 +3672,11 @@ function XrayBrowser:_openArtifact(art)
     end
     if art.is_section_xray_group then
         self:_showSectionXrayGroupPopup(art.data, art._excluded_section_key)
+    elseif art.is_section_group then
+        local ArtifactBrowser = require("koassistant_artifact_browser")
+        ArtifactBrowser:_showSectionGroupPopup(
+            art.data, book_file, book_title, plugin,
+            art.section_type, art._excluded_section_key)
     elseif art.is_wiki_group then
         self:_showWikiGroupPopup(art.data)
     elseif art.is_pinned_group then
@@ -3893,7 +3898,7 @@ function XrayBrowser:_showOtherArtifacts(available)
         table.insert(buttons, {{
             text = label,
             callback = function()
-                if not (captured.is_section_xray_group or captured.is_wiki_group or captured.is_pinned_group) then
+                if not (captured.is_section_group or captured.is_wiki_group or captured.is_pinned_group) then
                     if self_ref._artifacts_dialog then
                         UIManager:close(self_ref._artifacts_dialog)
                     end

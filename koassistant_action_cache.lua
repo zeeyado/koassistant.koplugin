@@ -511,8 +511,40 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
                 key = "_xray_sections",
                 data = remaining,
                 is_section_xray_group = true,
+                is_section_group = true,
+                section_type = "xray",
                 _excluded_section_key = excluded and exclude_key or nil,
             })
+        end
+    end
+    -- Add non-X-Ray section groups
+    local other_section_types = { "summary", "analyze", "key_arguments",
+        "discussion_questions", "generate_quiz", "extract_insights" }
+    for _idx, sec_type in ipairs(other_section_types) do
+        local prefix = ActionCache.SECTION_PREFIXES[sec_type]
+        if prefix then
+            local type_sections = ActionCache.getSections(document_path, prefix)
+            if #type_sections > 0 then
+                local type_count = #type_sections
+                if exclude_key then
+                    for _idx2, sec in ipairs(type_sections) do
+                        if sec.key == exclude_key then
+                            type_count = type_count - 1
+                            break
+                        end
+                    end
+                end
+                if type_count > 0 then
+                    table.insert(available, {
+                        name = string.format("%s (%d)", ActionCache.SECTION_GROUP_NAMES[sec_type] or sec_type, #type_sections),
+                        key = "_" .. sec_type .. "_sections",
+                        data = type_sections,
+                        is_section_group = true,
+                        section_type = sec_type,
+                        _excluded_section_key = exclude_key,
+                    })
+                end
+            end
         end
     end
     -- Add wiki entries group if any exist
@@ -637,6 +669,40 @@ end
 
 -- Section X-Ray prefix for per-section X-Ray entries (stored in same cache file)
 ActionCache.SECTION_XRAY_PREFIX = "_xray_section:"
+
+-- Section prefixes for all section-capable action types
+-- Maps action_id (or document cache type) to its section prefix
+ActionCache.SECTION_PREFIXES = {
+    xray = "_xray_section:",
+    summary = "_summary_section:",
+    analyze = "_analyze_section:",
+    key_arguments = "key_arguments_section:",
+    discussion_questions = "discussion_questions_section:",
+    generate_quiz = "generate_quiz_section:",
+    extract_insights = "extract_insights_section:",
+}
+
+-- Human-readable names for section group display (plural for group titles)
+ActionCache.SECTION_GROUP_NAMES = {
+    xray = _("Section X-Rays"),
+    summary = _("Section Summaries"),
+    analyze = _("Section Analyses"),
+    key_arguments = _("Section Key Arguments"),
+    discussion_questions = _("Section Discussion Questions"),
+    generate_quiz = _("Section Quizzes"),
+    extract_insights = _("Section Key Insights"),
+}
+
+-- Singular type labels for individual section viewer titles
+ActionCache.SECTION_TYPE_LABELS = {
+    xray = _("X-Ray"),
+    summary = _("Summary"),
+    analyze = _("Analysis"),
+    key_arguments = _("Key Arguments"),
+    discussion_questions = _("Discussion Questions"),
+    generate_quiz = _("Quiz"),
+    extract_insights = _("Key Insights"),
+}
 
 -- Wiki entry prefix for per-item encyclopedia entries (stored in same cache file)
 ActionCache.WIKI_PREFIX = "_wiki:"
@@ -836,18 +902,18 @@ function ActionCache.setUserAliases(document_path, aliases_table)
 end
 
 -- =============================================================================
--- Section X-Ray API
--- Multiple X-Rays per book, each scoped to a TOC entry's page range
+-- Section API (generic for all section-capable action types)
+-- Each type uses a prefix: "_xray_section:", "_summary_section:", etc.
 -- =============================================================================
 
---- Get all section X-Rays for a document, sorted by start page.
+--- Get all sections for a given prefix, sorted by start page.
 --- @param document_path string The document file path
+--- @param prefix string The section prefix (e.g., ActionCache.SECTION_XRAY_PREFIX)
 --- @return table Array of { key, label, data } sorted by scope_start_page
-function ActionCache.getSectionXrays(document_path)
-    if not document_path then return {} end
+function ActionCache.getSections(document_path, prefix)
+    if not document_path or not prefix then return {} end
     local cache = loadCache(document_path)
     local sections = {}
-    local prefix = ActionCache.SECTION_XRAY_PREFIX
     local prefix_len = #prefix
     for key, entry in pairs(cache) do
         if type(key) == "string" and key:sub(1, prefix_len) == prefix
@@ -859,21 +925,20 @@ function ActionCache.getSectionXrays(document_path)
             })
         end
     end
-    -- Sort by start page (earliest first)
     table.sort(sections, function(a, b)
         return (a.data.scope_start_page or 0) < (b.data.scope_start_page or 0)
     end)
     return sections
 end
 
---- Get count of section X-Rays for a document (lightweight, no full data load).
+--- Get count of sections for a given prefix (lightweight, no full data load).
 --- @param document_path string The document file path
+--- @param prefix string The section prefix
 --- @return number count
-function ActionCache.getSectionXrayCount(document_path)
-    if not document_path then return 0 end
+function ActionCache.getSectionCount(document_path, prefix)
+    if not document_path or not prefix then return 0 end
     local cache = loadCache(document_path)
     local count = 0
-    local prefix = ActionCache.SECTION_XRAY_PREFIX
     local prefix_len = #prefix
     for key, entry in pairs(cache) do
         if type(key) == "string" and key:sub(1, prefix_len) == prefix
@@ -882,6 +947,27 @@ function ActionCache.getSectionXrayCount(document_path)
         end
     end
     return count
+end
+
+--- Clear all section entries for a given prefix.
+--- @param document_path string The document file path
+--- @param prefix string The section prefix
+--- @return boolean success
+function ActionCache.clearSections(document_path, prefix)
+    if not prefix then return true end
+    local cache = loadCache(document_path)
+    local found = false
+    local prefix_len = #prefix
+    for key, _v in pairs(cache) do
+        if type(key) == "string" and key:sub(1, prefix_len) == prefix then
+            cache[key] = nil
+            found = true
+        end
+    end
+    if found then
+        return saveCache(document_path, cache)
+    end
+    return true
 end
 
 --- Reconvert stored page summary using XPointers for font-size independence.
@@ -925,23 +1011,52 @@ function ActionCache.reconvertPageSummary(data, doc)
     return data.scope_page_summary or ""
 end
 
---- Clear all section X-Ray entries for a document
+--- Get the section prefix for an action, based on its cache key or action ID.
+--- @param action_id string The action ID or document cache type
+--- @return string|nil prefix The section prefix, or nil if action doesn't support sections
+function ActionCache.getSectionPrefix(action_id)
+    -- Map document cache keys to their section type
+    if action_id == "_xray_cache" or action_id == "xray" then return ActionCache.SECTION_PREFIXES.xray end
+    if action_id == "_summary_cache" or action_id == "summarize_full_document" then return ActionCache.SECTION_PREFIXES.summary end
+    if action_id == "_analyze_cache" or action_id == "analyze_full_document" then return ActionCache.SECTION_PREFIXES.analyze end
+    return ActionCache.SECTION_PREFIXES[action_id]
+end
+
+-- Maps action IDs to SECTION_GROUP_NAMES keys (for actions whose ID differs from section type)
+local SECTION_TYPE_FOR_ACTION = {
+    summarize_full_document = "summary",
+    analyze_full_document = "analyze",
+}
+
+--- Get the section group display name for a section type or action ID.
+--- @param key string The section type key (e.g., "xray", "summary") or action ID (e.g., "summarize_full_document")
+--- @return string|nil display name, or nil if not found
+function ActionCache.getSectionGroupName(key)
+    local section_type = SECTION_TYPE_FOR_ACTION[key] or key
+    return ActionCache.SECTION_GROUP_NAMES[section_type]
+end
+
+-- Backward-compatible wrappers for X-Ray-specific callers
+
+--- Get all section X-Rays for a document, sorted by start page.
+--- @param document_path string The document file path
+--- @return table Array of { key, label, data } sorted by scope_start_page
+function ActionCache.getSectionXrays(document_path)
+    return ActionCache.getSections(document_path, ActionCache.SECTION_XRAY_PREFIX)
+end
+
+--- Get count of section X-Rays for a document.
+--- @param document_path string The document file path
+--- @return number count
+function ActionCache.getSectionXrayCount(document_path)
+    return ActionCache.getSectionCount(document_path, ActionCache.SECTION_XRAY_PREFIX)
+end
+
+--- Clear all section X-Ray entries for a document.
 --- @param document_path string The document file path
 --- @return boolean success
 function ActionCache.clearSectionXrays(document_path)
-    local cache = loadCache(document_path)
-    local found = false
-    local prefix_len = #ActionCache.SECTION_XRAY_PREFIX
-    for key, _v in pairs(cache) do
-        if type(key) == "string" and key:sub(1, prefix_len) == ActionCache.SECTION_XRAY_PREFIX then
-            cache[key] = nil
-            found = true
-        end
-    end
-    if found then
-        return saveCache(document_path, cache)
-    end
-    return true
+    return ActionCache.clearSections(document_path, ActionCache.SECTION_XRAY_PREFIX)
 end
 
 --- Check if any X-Ray exists for a document (main or section).
@@ -1075,16 +1190,17 @@ function ActionCache.findBestXray(document_path, doc)
     return nil
 end
 
---- Find section X-Rays matching the current reading position.
+--- Find sections matching the current reading position for a given prefix.
 --- @param document_path string The document file path
 --- @param doc table Document object (needed for page position check)
---- @return table Array of matching section entries from getSectionXrays()
-function ActionCache.findMatchingSections(document_path, doc)
+--- @param prefix string|nil Section prefix (defaults to SECTION_XRAY_PREFIX for backward compat)
+--- @return table Array of matching section entries from getSections()
+function ActionCache.findMatchingSections(document_path, doc, prefix)
     if not document_path or not doc then return {} end
     local current_page = getCurrentPageFromDoc(doc)
     if not current_page then return {} end
 
-    local sections = ActionCache.getSectionXrays(document_path)
+    local sections = ActionCache.getSections(document_path, prefix or ActionCache.SECTION_XRAY_PREFIX)
     local matching = {}
     for _idx, sec in ipairs(sections) do
         local sp, ep = getSectionPageRange(sec.data, doc)
