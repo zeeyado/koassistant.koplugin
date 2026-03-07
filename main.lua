@@ -4975,7 +4975,6 @@ end
 ---             section_entry = table|nil, section_label = string|nil }
 function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local action_name = action.text or action_id
-  local ButtonDialog = require("ui/widget/buttondialog")
   local ActionCache = require("koassistant_action_cache")
   local self_ref = self
 
@@ -5022,52 +5021,85 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   end
 
   local function buildAndShow()
-    local buttons = {}
     local has_summary = getSummaryAvailable()
+    local Blitbuffer = require("ffi/blitbuffer")
+    local ButtonTable = require("ui/widget/buttontable")
+    local CenterContainer = require("ui/widget/container/centercontainer")
+    local Font = require("ui/font")
+    local FrameContainer = require("ui/widget/container/framecontainer")
+    local Geom = require("ui/geometry")
+    local GestureRange = require("ui/gesturerange")
+    local MovableContainer = require("ui/widget/container/movablecontainer")
+    local RadioButtonTable = require("ui/widget/radiobuttontable")
+    local Size = require("ui/size")
+    local TextWidget = require("ui/widget/textwidget")
+    local TitleBar = require("ui/widget/titlebar")
+    local VerticalGroup = require("ui/widget/verticalgroup")
+    local VerticalSpan = require("ui/widget/verticalspan")
 
-    -- Scope row
-    if show_scope then
-      local scope_row = {}
-      -- Full document
-      table.insert(scope_row, {
-        text = (state.scope == "full" and "● " or "○ ") .. _("Full document"),
-        callback = function()
-          if state.scope == "full" then return end
-          UIManager:close(current_dialog)
-          state.scope = "full"
-          state.section_entry = nil
-          state.section_label = nil
-          -- Reset source if summary availability changed
-          if state.source == "summary" and not getSummaryAvailable() then
-            state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
-          end
-          buildAndShow()
-        end,
+    local screen_width = Screen:getWidth()
+    local screen_height = Screen:getHeight()
+    local dialog_width = math.floor(math.min(screen_width, screen_height) * 0.8)
+    local content_width = dialog_width - 2 * Size.padding.large
+    local label_face = Font:getFace("cfont", 18)
+    local radio_face = Font:getFace("cfont", 20)
+    local info_face = Font:getFace("cfont", 16)
+
+    local vgroup = VerticalGroup:new{ align = "left" }
+
+    -- Title bar
+    local title_bar = TitleBar:new{
+      width = dialog_width,
+      align = "left",
+      with_bottom_line = true,
+      title = action_name,
+      title_shrink_font_to_fit = true,
+      close_callback = function()
+        UIManager:close(current_dialog)
+      end,
+    }
+
+    -- Helper: section label
+    local function addLabel(text)
+      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.large })
+      table.insert(vgroup, TextWidget:new{
+        text = text,
+        face = label_face,
+        bold = true,
+        fgcolor = Blitbuffer.COLOR_DARK_GRAY,
       })
-      -- Section (or selected section label)
-      if state.scope == "section" and state.section_label then
-        table.insert(scope_row, {
-          text = "● " .. state.section_label,
-          callback = function()
-            -- Tap selected section to re-pick
+      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+    end
+
+    -- === Scope section ===
+    if show_scope then
+      addLabel(_("Scope"))
+
+      local scope_table = RadioButtonTable:new{
+        radio_buttons = {
+          {
+            { text = _("Full document"), provider = "full", checked = state.scope == "full" },
+            { text = _("Pick section..."), provider = "section", checked = state.scope == "section" },
+          },
+        },
+        width = content_width,
+        no_sep = true,
+        sep_width = 0,
+        face = radio_face,
+        show_parent = self_ref,
+        parent = self_ref,
+        button_select_callback = function(btn_entry)
+          if btn_entry.provider == "full" then
+            if state.scope == "full" then return end
             UIManager:close(current_dialog)
-            self_ref:_showSectionPicker(action, {
-              title = T(_("Select Section for %1"), action_name),
-              on_select = function(entry)
-                state.section_entry = entry
-                state.section_label = entry.title or ""
-                if state.source == "summary" and not getSummaryAvailable() then
-                  state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
-                end
-                buildAndShow()
-              end,
-            })
-          end,
-        })
-      else
-        table.insert(scope_row, {
-          text = "○ " .. _("Section…"),
-          callback = function()
+            state.scope = "full"
+            state.section_entry = nil
+            state.section_label = nil
+            if state.source == "summary" and not getSummaryAvailable() then
+              state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+            end
+            buildAndShow()
+          elseif btn_entry.provider == "section" then
             UIManager:close(current_dialog)
             self_ref:_showSectionPicker(action, {
               title = T(_("Select Section for %1"), action_name),
@@ -5081,104 +5113,145 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                 buildAndShow()
               end,
             })
-          end,
+          end
+        end,
+      }
+      table.insert(vgroup, scope_table)
+
+      -- Show selected section name (truncated to fit)
+      if state.scope == "section" and state.section_label then
+        table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+        table.insert(vgroup, TextWidget:new{
+          text = state.section_label,
+          face = info_face,
+          max_width = content_width,
+          fgcolor = Blitbuffer.COLOR_DARK_GRAY,
         })
       end
-      table.insert(buttons, scope_row)
     end
 
-    -- Source: Extract text
-    if text_extraction_enabled then
-      table.insert(buttons, {{
-        text = (state.source == "full_text" and "● " or "○ ") .. _("Extract text"),
-        callback = function()
-          if state.source == "full_text" then return end
-          UIManager:close(current_dialog)
-          state.source = "full_text"
-          buildAndShow()
-        end,
-      }})
-    else
-      table.insert(buttons, {{
-        text = "○ " .. _("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")",
-        enabled = false,
-        callback = function() end,
-      }})
-    end
+    -- === Source section ===
+    addLabel(_("Source"))
 
-    -- Source: Use summary — same dynamic naming as old popup
+    -- Build source option texts
+    local extract_text = text_extraction_enabled
+        and _("Extract text")
+        or (_("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")")
+    local summary_text, summary_enabled
     if has_summary then
-      table.insert(buttons, {{
-        text = (state.source == "summary" and "● " or "○ ") .. _("Use summary"),
-        callback = function()
-          if state.source == "summary" then return end
-          UIManager:close(current_dialog)
-          state.source = "summary"
-          buildAndShow()
-        end,
-      }})
+      summary_text = _("Use summary")
+      summary_enabled = true
     elseif text_extraction_enabled then
-      table.insert(buttons, {{
-        text = (state.source == "summary" and "● " or "○ ")
-            .. _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")",
-        callback = function()
-          if state.source == "summary" then return end
-          UIManager:close(current_dialog)
-          state.source = "summary"
-          buildAndShow()
-        end,
-      }})
+      summary_text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")"
+      summary_enabled = true
     else
-      table.insert(buttons, {{
-        text = "○ " .. _("Use summary") .. "  (" .. _("enable text extraction first") .. ")",
-        enabled = false,
-        callback = function() end,
-      }})
+      summary_text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")"
+      summary_enabled = false
     end
 
-    -- Source: AI knowledge only
-    table.insert(buttons, {{
-      text = (state.source == "ai_knowledge" and "● " or "○ ") .. _("AI knowledge only"),
-      callback = function()
-        if state.source == "ai_knowledge" then return end
+    local source_table = RadioButtonTable:new{
+      radio_buttons = {
+        { { text = extract_text, provider = "full_text", checked = state.source == "full_text", enabled = text_extraction_enabled } },
+        { { text = summary_text, provider = "summary", checked = state.source == "summary", enabled = summary_enabled } },
+        { { text = _("AI knowledge only"), provider = "ai_knowledge", checked = state.source == "ai_knowledge" } },
+      },
+      width = content_width,
+      no_sep = true,
+      face = radio_face,
+      show_parent = self_ref,
+      parent = self_ref,
+      button_select_callback = function(btn_entry)
+        if btn_entry.provider == state.source then return end
         UIManager:close(current_dialog)
-        state.source = "ai_knowledge"
+        state.source = btn_entry.provider
         buildAndShow()
       end,
-    }})
-
-    -- Execute
-    local execute_label = opts.for_highlight
-        and action_name
-        or T(_("Generate %1"), action_name)
-    table.insert(buttons, {{
-      text = execute_label,
-      callback = function()
-        UIManager:close(current_dialog)
-        local function continueWithAction()
-          if state.scope == "section" and state.section_entry then
-            self_ref:_showSectionNameInput(action, action_id, state.section_entry, {
-              source_mode = state.source,
-            })
-          else
-            opts.on_execute(state)
-          end
-        end
-        -- When summary source is selected but no summary exists yet,
-        -- generate it first (cache_as_summary saves it), then continue
-        if state.source == "summary" and not getSummaryAvailable() then
-          self_ref:_generateSummaryAndContinue(continueWithAction)
-        else
-          continueWithAction()
-        end
-      end,
-    }})
-
-    current_dialog = ButtonDialog:new{
-      title = action_name,
-      buttons = buttons,
-      dismissable = true,
     }
+    table.insert(vgroup, source_table)
+
+    -- Action button (ButtonTable's zero_sep provides the separator line)
+    table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
+
+    local action_buttons = ButtonTable:new{
+      width = content_width,
+      buttons = {{
+        {
+          text = _("Run"),
+          callback = function()
+            UIManager:close(current_dialog)
+            local function continueWithAction()
+              if state.scope == "section" and state.section_entry then
+                self_ref:_showSectionNameInput(action, action_id, state.section_entry, {
+                  source_mode = state.source,
+                })
+              else
+                opts.on_execute(state)
+              end
+            end
+            -- When summary source is selected but no summary exists yet,
+            -- generate it first (cache_as_summary saves it), then continue
+            if state.source == "summary" and not getSummaryAvailable() then
+              self_ref:_generateSummaryAndContinue(continueWithAction)
+            else
+              continueWithAction()
+            end
+          end,
+        },
+      }},
+      zero_sep = true,
+      show_parent = current_dialog,
+    }
+    table.insert(vgroup, CenterContainer:new{
+      dimen = Geom:new{ w = content_width, h = action_buttons:getSize().h },
+      action_buttons,
+    })
+    table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
+
+    -- Wrap in dialog frame
+    local widget_frame = FrameContainer:new{
+      radius = Size.radius.window,
+      padding = Size.padding.large,
+      margin = 0,
+      background = Blitbuffer.COLOR_WHITE,
+      VerticalGroup:new{
+        align = "left",
+        title_bar,
+        vgroup,
+      },
+    }
+    local movable = MovableContainer:new{ widget_frame }
+
+    -- Build the dialog as a WidgetContainer with tap-outside-to-close
+    current_dialog = WidgetContainer:new{
+      align = "center",
+      dimen = Geom:new{ x = 0, y = 0, w = screen_width, h = screen_height },
+      movable,
+    }
+    current_dialog._widget_frame = widget_frame
+    current_dialog.ges_events = {
+      TapClose = { GestureRange:new{
+        ges = "tap",
+        range = Geom:new{ w = screen_width, h = screen_height },
+      }},
+    }
+    function current_dialog:onTapClose(arg, ges_ev)
+      if ges_ev.pos:notIntersectWith(widget_frame.dimen) then
+        UIManager:close(self)
+      end
+      return true
+    end
+    function current_dialog:onCloseWidget()
+      UIManager:setDirty(nil, function()
+        return "ui", widget_frame.dimen
+      end)
+    end
+    function current_dialog:onShow()
+      UIManager:setDirty(self, function()
+        return "ui", widget_frame.dimen
+      end)
+      return true
+    end
+
     UIManager:show(current_dialog)
   end
 
