@@ -1250,8 +1250,24 @@ function ContextExtractor:extractForAction(action)
     end
 
     -- {summary_cache} / {summary_cache_section} → cached document summary
+    -- When executing a section action with source=summary, find matching section summary
+    -- by position (not name) with fallback: exact match > containing match > main summary
     if action.use_summary_cache then
-        local summary = self:getSummaryCache()
+        local summary
+        if action._section_scope and self.ui and self.ui.document then
+            local ActionCache = require("koassistant_action_cache")
+            local file = self.ui.document.file
+            local scope = action._section_scope
+            local match = ActionCache.findBestSectionForScope(
+                file, self.ui.document, ActionCache.SECTION_PREFIXES.summary,
+                scope.start_page, scope.end_page)
+            if match then
+                summary = { text = match.data.result or "", used_book_text = match.data.used_book_text }
+            end
+        end
+        if not summary then
+            summary = self:getSummaryCache()
+        end
         local requires_text = summary.used_book_text ~= false
         if not requires_text or text_extraction_allowed then
             data.summary_cache = summary.text

@@ -3745,6 +3745,43 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         plugin:viewCachedAction(action, action_id, cached, { file = file })
                     end,
                 }})
+                -- Surface in-range section artifacts
+                local section_prefix = ActionCache.getSectionPrefix(action_id)
+                local doc = ui_instance and ui_instance.document
+                if section_prefix and file and doc then
+                    local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+                    for _idx2, sec in ipairs(in_range) do
+                        local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+                        local sec_parts = {}
+                        if page_info and page_info ~= "" then
+                            table.insert(sec_parts, page_info)
+                        end
+                        local sec_rel_time = sec.data.timestamp and os.difftime(os.time(), sec.data.timestamp) or nil
+                        local sec_rel = ""
+                        if sec_rel_time then
+                            local diff = sec_rel_time
+                            if diff < 3600 then sec_rel = _("now")
+                            elseif diff < 86400 then sec_rel = _("today")
+                            else sec_rel = math.floor(diff / 86400) .. "d" end
+                        end
+                        if sec_rel ~= "" then
+                            table.insert(sec_parts, sec_rel)
+                        end
+                        local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+                        local captured_sec = sec
+                        table.insert(popup_buttons, {{
+                            text = T(_("View \"%1\""), sec.label) .. sec_detail,
+                            callback = function()
+                                UIManager:close(dialog)
+                                plugin:viewCachedAction(action, action_id, captured_sec.data, {
+                                    file = file,
+                                    section_key = captured_sec.key,
+                                    section_label = captured_sec.label,
+                                })
+                            end,
+                        }})
+                    end
+                end
                 -- Update/Redo for position-relevant actions (e.g. Recap)
                 if action.use_reading_progress and ui_instance and ui_instance.document then
                     local cached_progress = cached.progress_decimal or 0
@@ -3768,8 +3805,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         end,
                     }})
                 end
-                -- Browse existing section artifacts
-                local section_prefix = ActionCache.getSectionPrefix(action_id)
+                -- Browse remaining section artifacts (all sections in group)
                 if section_prefix and file then
                     local sec_count = ActionCache.getSectionCount(file, section_prefix)
                     if sec_count > 0 then
@@ -3914,8 +3950,44 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         plugin:viewCachedAction(action, action_id, cached, { file = file })
                     end,
                 }})
-                -- Browse existing section artifacts
+                -- Surface in-range section artifacts
                 local section_prefix = ActionCache.getSectionPrefix(action_id)
+                local aa_doc = ui_instance and ui_instance.document
+                if section_prefix and file and aa_doc then
+                    local in_range = ActionCache.findMatchingSections(file, aa_doc, section_prefix)
+                    for _idx2, sec in ipairs(in_range) do
+                        local page_info = ActionCache.reconvertPageSummary(sec.data, aa_doc)
+                        local sec_parts = {}
+                        if page_info and page_info ~= "" then
+                            table.insert(sec_parts, page_info)
+                        end
+                        local sec_rel_time = sec.data.timestamp and os.difftime(os.time(), sec.data.timestamp) or nil
+                        local sec_rel = ""
+                        if sec_rel_time then
+                            local diff2 = sec_rel_time
+                            if diff2 < 3600 then sec_rel = _("now")
+                            elseif diff2 < 86400 then sec_rel = _("today")
+                            else sec_rel = math.floor(diff2 / 86400) .. "d" end
+                        end
+                        if sec_rel ~= "" then
+                            table.insert(sec_parts, sec_rel)
+                        end
+                        local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+                        local captured_sec = sec
+                        table.insert(aa_buttons, {{
+                            text = T(_("View \"%1\""), sec.label) .. sec_detail,
+                            callback = function()
+                                UIManager:close(dialog)
+                                plugin:viewCachedAction(action, action_id, captured_sec.data, {
+                                    file = file,
+                                    section_key = captured_sec.key,
+                                    section_label = captured_sec.label,
+                                })
+                            end,
+                        }})
+                    end
+                end
+                -- Browse remaining section artifacts
                 if section_prefix and file then
                     local sec_count = ActionCache.getSectionCount(file, section_prefix)
                     if sec_count > 0 then
@@ -4334,8 +4406,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
 
             local function formatDisplayText(cache)
-                if cache.is_pinned_group or cache.is_section_group or cache.is_wiki_group
-                    or cache.is_promoted_section then
+                if cache.is_pinned_group or cache.is_section_group or cache.is_wiki_group then
                     return cache.name
                 end
                 return formatArtifactDisplayText(cache)
