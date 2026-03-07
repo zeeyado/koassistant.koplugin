@@ -1787,6 +1787,10 @@ function XrayBrowser:chatAboutItem(detail_text)
     -- Action filtering is now handled by the xray_chat input context sorting
     config.features._xray_chat_context = true
     config.features._hide_artifacts = true
+    -- When no book is open, exclude actions that need document data (text extraction, annotations)
+    if not self.ui or not self.ui.document then
+        config.features._exclude_action_flags = {"use_book_text", "use_annotations"}
+    end
 
     -- Pass X-Ray source framing as context prefix (injected before action prompt, not into text)
     local framing

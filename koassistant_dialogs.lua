@@ -2726,6 +2726,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
             prompt.use_summary_cache = false
         end
+        -- AI knowledge only: allow web search to follow global setting
+        -- (these actions have enable_web_search = false, but without document text
+        -- web search becomes useful for verification)
+        if source_mode == "ai_knowledge" and prompt.enable_web_search == false then
+            prompt.enable_web_search = nil
+        end
     end
 
     -- Highlight section scope: limit text extraction to a specific section's page range.
@@ -4231,6 +4237,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if configuration and configuration.features then
             if is_xray_chat then configuration.features._xray_chat_context = true end
             if hide_artifacts then configuration.features._hide_artifacts = true end
+            if exclude_action_flags then configuration.features._exclude_action_flags = exclude_action_flags end
             if xray_context_prefix then configuration.features._xray_context_prefix = xray_context_prefix end
             if show_all_actions then configuration.features._show_all_actions = true end
         end
@@ -4391,7 +4398,7 @@ end
 
 -- Open X-Ray browser with cached data and metadata
 -- Returns the XrayBrowser module for chaining (e.g., showItemDetail, showSearchResults)
-local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
+local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best)
     local XrayBrowser = require("koassistant_xray_browser")
     local ActionCache = require("koassistant_action_cache")
     local Notification = require("ui/widget/notification")
@@ -4404,7 +4411,7 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
     local formatted_date = cached.timestamp
         and os.date("%Y-%m-%d", cached.timestamp)
 
-    XrayBrowser:show(data, {
+    local browser_metadata = {
         title = book_title,
         progress = cached.progress_decimal and
             (math.floor(cached.progress_decimal * 100 + 0.5) .. "%"),
@@ -4429,7 +4436,47 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
             used_annotations = cached.used_annotations,
             used_book_text = cached.used_book_text,
         },
-    }, ui, function()
+    }
+
+    -- Section X-Ray: set scope metadata and override progress display
+    if best and best.is_section then
+        local scope_start = cached.scope_start_page
+        local scope_end = cached.scope_end_page
+        local scope_summary = cached.scope_page_summary
+        -- Reconvert XPointers to current pages if book is open
+        local doc = ui and ui.document
+        if doc and doc.getPageFromXPointer and cached.scope_start_xpointer then
+            local new_start = doc:getPageFromXPointer(cached.scope_start_xpointer)
+            if new_start then scope_start = new_start end
+            if cached.scope_end_xpointer then
+                local new_end = doc:getPageFromXPointer(cached.scope_end_xpointer)
+                if new_end then scope_end = new_end - 1 end
+            else
+                local total = doc.info.number_of_pages or 0
+                if doc.hasHiddenFlows and doc:hasHiddenFlows() then
+                    for page = total, 1, -1 do
+                        if doc:getPageFlow(page) == 0 then scope_end = page; break end
+                    end
+                else
+                    scope_end = total
+                end
+            end
+            local vis_start = doc.getPageNumberInFlow and doc:getPageNumberInFlow(scope_start) or scope_start
+            local vis_end = doc.getPageNumberInFlow and doc:getPageNumberInFlow(scope_end) or scope_end
+            scope_summary = T(_("pp %1–%2"), vis_start, vis_end)
+        end
+        browser_metadata.scope = {
+            label = best.label or cached.scope_label,
+            start_page = scope_start,
+            end_page = scope_end,
+            page_summary = scope_summary,
+            cache_key = best.key,
+        }
+        browser_metadata.progress = _("Complete")
+        browser_metadata.full_document = true
+    end
+
+    XrayBrowser:show(data, browser_metadata, ui, function()
         ActionCache.clearXrayCache(ui.document.file)
         UIManager:show(Notification:new{
             text = T(_("%1 deleted"), "X-Ray"),
@@ -4537,7 +4584,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         })
     else
         -- Open X-Ray browser directly
-        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata)
+        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best)
 
         if #results == 1 then
             -- Single result: navigate directly to item detail
