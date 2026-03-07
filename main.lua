@@ -4982,9 +4982,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local section_prefix = ActionCache.getSectionPrefix(action_id)
   local toc_available = self.ui and self.ui.document
       and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0
-  -- Show scope for: book actions with section prefix + TOC, or highlight actions with TOC
-  -- (highlight scope controls text extraction range via _highlight_section_scope)
-  local show_scope = toc_available and (section_prefix or opts.for_highlight)
+  -- Show scope for: book actions with section prefix + TOC, highlight actions with TOC,
+  -- or source_selection actions without sections (grayed scope teaches the concept)
+  local show_scope = toc_available and (section_prefix or opts.for_highlight or action.source_selection)
+  -- Must be boolean (not nil) — nil won't override CheckButton's default enabled=true
+  local scope_sections_enabled = section_prefix ~= nil or opts.for_highlight == true
 
   -- Check text extraction availability
   local features = configuration and configuration.features or {}
@@ -4999,10 +5001,22 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     end
   end
 
+  -- Check if action requires book_text (constrains source to text extraction only)
+  local requires_book_text = false
+  if action.requires then
+    for _idx, req in ipairs(action.requires) do
+      if req == "book_text" then
+        requires_book_text = true
+        break
+      end
+    end
+  end
+
   -- State (persists across rebuilds)
   local state = {
     scope = "full",
-    source = text_extraction_enabled and "full_text" or "ai_knowledge",
+    source = requires_book_text and "full_text"
+        or (text_extraction_enabled and "full_text" or "ai_knowledge"),
     section_entry = nil,
     section_label = nil,
   }
@@ -5050,14 +5064,26 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     local radio_face = Font:getFace("cfont", 20)
     local info_face = Font:getFace("cfont", 16)
 
+    local TextBoxWidget = require("ui/widget/textboxwidget")
     local vgroup = VerticalGroup:new{ align = "left" }
+
+    -- Title: show progress for position-relevant actions (e.g. "Recap (to 55%)")
+    local popup_title = action_name
+    if action.use_reading_progress and self_ref.ui and self_ref.ui.document then
+      local ContextExtractor = require("koassistant_context_extractor")
+      local extractor = ContextExtractor:new(self_ref.ui)
+      local progress = extractor:getReadingProgress()
+      if progress.decimal < 1.0 then
+        popup_title = action_name .. " (" .. T(_("to %1"), progress.formatted) .. ")"
+      end
+    end
 
     -- Title bar
     local title_bar = TitleBar:new{
       width = dialog_width,
       align = "left",
       with_bottom_line = true,
-      title = action_name,
+      title = popup_title,
       title_shrink_font_to_fit = true,
       close_callback = function()
         UIManager:close(current_dialog)
@@ -5084,7 +5110,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         radio_buttons = {
           {
             { text = _("Full document"), provider = "full", checked = state.scope == "full" },
-            { text = _("Pick section..."), provider = "section", checked = state.scope == "section" },
+            { text = _("Pick section…"), provider = "section", checked = state.scope == "section", enabled = scope_sections_enabled },
           },
         },
         width = content_width,
@@ -5094,6 +5120,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         show_parent = self_ref,
         parent = self_ref,
         button_select_callback = function(btn_entry)
+          if btn_entry.enabled == false then return end
           if btn_entry.provider == "full" then
             if state.scope == "full" then return end
             UIManager:close(current_dialog)
@@ -5109,13 +5136,29 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             self_ref:_showSectionPicker(action, {
               title = T(_("Select Section for %1"), action_name),
               on_select = function(entry)
-                state.scope = "section"
-                state.section_entry = entry
-                state.section_label = entry.title or ""
-                if state.source == "summary" and not getSummaryAvailable() then
-                  state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                if opts.for_highlight then
+                  -- Highlight scope: no naming needed, just set the section
+                  state.scope = "section"
+                  state.section_entry = entry
+                  state.section_label = entry.title or ""
+                  if state.source == "summary" and not getSummaryAvailable() then
+                    state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                  end
+                  buildAndShow()
+                else
+                  -- Book scope: name the section now (shows in popup before Run)
+                  self_ref:_showSectionNameInput(action, action_id, entry, {
+                    on_confirm = function(label)
+                      state.scope = "section"
+                      state.section_entry = entry
+                      state.section_label = label
+                      if state.source == "summary" and not getSummaryAvailable() then
+                        state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                      end
+                      buildAndShow()
+                    end,
+                  })
                 end
-                buildAndShow()
               end,
             })
           end
@@ -5123,13 +5166,21 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       }
       table.insert(vgroup, scope_table)
 
-      -- Show selected section name (truncated to fit)
+      -- Show selected section name or explanation for unavailable sections
       if state.scope == "section" and state.section_label then
         table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-        table.insert(vgroup, TextWidget:new{
+        table.insert(vgroup, TextBoxWidget:new{
           text = state.section_label,
           face = info_face,
-          max_width = content_width,
+          width = content_width,
+          fgcolor = Blitbuffer.COLOR_DARK_GRAY,
+        })
+      elseif not scope_sections_enabled then
+        table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+        table.insert(vgroup, TextBoxWidget:new{
+          text = _("Sections not available for this action.") .. "\n" .. _("Use KOReader's hidden flows to limit scope."),
+          face = info_face,
+          width = content_width,
           fgcolor = Blitbuffer.COLOR_DARK_GRAY,
         })
       end
@@ -5143,27 +5194,44 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         and _("Extract text")
         or (_("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")")
     local summary_text, summary_enabled
-    if has_summary then
-      local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
-      if age ~= "" then
-        summary_text = _("Use existing summary") .. "  (" .. age .. ")"
-      else
-        summary_text = _("Use existing summary")
-      end
-      summary_enabled = true
-    elseif text_extraction_enabled then
-      summary_text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")"
-      summary_enabled = true
-    else
-      summary_text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")"
+    local ai_knowledge_text, ai_knowledge_enabled
+    -- Check if action supports summary as source (has use_summary_cache)
+    local supports_summary = action.use_summary_cache == true
+    if requires_book_text then
+      -- Action requires text extraction — other sources grayed with explanation
+      summary_text = _("Use summary") .. "  (" .. _("this action requires text extraction") .. ")"
       summary_enabled = false
+      ai_knowledge_text = _("AI knowledge only") .. "  (" .. _("this action requires text extraction") .. ")"
+      ai_knowledge_enabled = false
+    else
+      ai_knowledge_text = _("AI knowledge only")
+      ai_knowledge_enabled = true
+      if not supports_summary then
+        -- Action doesn't use summary cache (e.g., Recap — summary isn't chronological)
+        summary_text = _("Use summary") .. "  (" .. _("not available for this action") .. ")"
+        summary_enabled = false
+      elseif has_summary then
+        local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
+        if age ~= "" then
+          summary_text = _("Use existing summary") .. "  (" .. age .. ")"
+        else
+          summary_text = _("Use existing summary")
+        end
+        summary_enabled = true
+      elseif text_extraction_enabled then
+        summary_text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")"
+        summary_enabled = true
+      else
+        summary_text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")"
+        summary_enabled = false
+      end
     end
 
     local source_table = RadioButtonTable:new{
       radio_buttons = {
         { { text = extract_text, provider = "full_text", checked = state.source == "full_text", enabled = text_extraction_enabled } },
         { { text = summary_text, provider = "summary", checked = state.source == "summary", enabled = summary_enabled } },
-        { { text = _("AI knowledge only"), provider = "ai_knowledge", checked = state.source == "ai_knowledge" } },
+        { { text = ai_knowledge_text, provider = "ai_knowledge", checked = state.source == "ai_knowledge", enabled = ai_knowledge_enabled } },
       },
       width = content_width,
       no_sep = true,
@@ -5171,6 +5239,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       show_parent = self_ref,
       parent = self_ref,
       button_select_callback = function(btn_entry)
+        if btn_entry.enabled == false then return end
         if btn_entry.provider == state.source then return end
         UIManager:close(current_dialog)
         state.source = btn_entry.provider
@@ -5191,14 +5260,16 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             UIManager:close(current_dialog)
             local function continueWithAction()
               if state.scope == "section" and state.section_entry and not opts.for_highlight then
-                self_ref:_showSectionNameInput(action, action_id, state.section_entry, {
+                -- Name already confirmed during scope selection — execute directly
+                self_ref:_executeSectionAction(action, action_id, state.section_entry, state.section_label, {
                   source_mode = state.source,
                 })
               elseif state.scope == "full" and not opts.for_highlight then
                 -- Check for existing full-document cache and warn before replacing
+                -- Skip for incremental actions (update_prompt) — they handle update/redo downstream
                 local aa_file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
                 local aa_cache = require("koassistant_action_cache")
-                local existing = aa_file and aa_cache.get(aa_file, action_id)
+                local existing = aa_file and not action.update_prompt and aa_cache.get(aa_file, action_id)
                 if existing and existing.result then
                   local aa_action_name = action.text or action_id
                   local aa_dialog
@@ -6112,11 +6183,12 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
   self:_executeBookLevelActionDirect(section_action, action_id, exec_opts)
 end
 
---- Show name input for a section action, with duplicate check, then execute.
+--- Show name input for a section action, with duplicate check, then execute or confirm.
 --- @param action table The action definition
 --- @param action_id string The action ID
 --- @param entry table TOC entry { title, start_page, end_page }
---- @param opts table|nil { source_mode = string, action_label = string }
+--- @param opts table|nil { source_mode = string, action_label = string, on_confirm = function(label) }
+---   When on_confirm is provided, calls it with the confirmed name instead of executing.
 function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
   local InputDialog = require("ui/widget/inputdialog")
   local ActionCache = require("koassistant_action_cache")
@@ -6124,12 +6196,21 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
   local self_ref = self
 
   local action_label = (opts and opts.action_label) or action.text or action_id
+  local on_confirm = opts and opts.on_confirm
   local default_name = entry.title or ""
   -- Prepend truncated parent title for sub-chapters (disambiguation)
   if entry.parent_title and entry.parent_title ~= "" then
     local parent = entry.parent_title
     if #parent > 15 then parent = parent:sub(1, 15) .. "…" end
     default_name = parent .. " > " .. default_name
+  end
+
+  local function onNameConfirmed(label)
+    if on_confirm then
+      on_confirm(label)
+    else
+      self_ref:_executeSectionAction(action, action_id, entry, label, opts)
+    end
   end
 
   local input_dialog
@@ -6150,7 +6231,7 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
           end,
         },
         {
-          text = _("Generate"),
+          text = on_confirm and _("Confirm") or _("Generate"),
           is_enter_default = true,
           callback = function()
             local label = input_dialog:getInputText()
@@ -6176,7 +6257,7 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
                     text = _("Replace"),
                     callback = function()
                       UIManager:close(confirm_dialog)
-                      self_ref:_executeSectionAction(action, action_id, entry, label, opts)
+                      onNameConfirmed(label)
                     end,
                   }},
                   {{
@@ -6189,7 +6270,7 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
               }
               UIManager:show(confirm_dialog)
             else
-              self_ref:_executeSectionAction(action, action_id, entry, label, opts)
+              onNameConfirmed(label)
             end
           end,
         },
@@ -6712,7 +6793,165 @@ function AskGPT:executeBookLevelAction(action_id)
     return
   end
 
-  -- For incremental actions with existing cache: show View/Update popup
+  -- Cache actions with source_selection: View/Sections/New popup (or direct to unified popup)
+  if action.use_response_caching and action.source_selection then
+    local ActionCache = require("koassistant_action_cache")
+    local file = self.ui and self.ui.document and self.ui.document.file
+    local cached = file and ActionCache.get(file, action_id)
+    -- Fallback: check document-level cache (migration from pre-per-action cache)
+    if not cached or not cached.result then
+      if action.cache_as_summary then
+        cached = ActionCache.getSummaryCache(file)
+      elseif action.cache_as_analyze then
+        cached = ActionCache.getAnalyzeCache(file)
+      end
+    end
+    if cached and cached.result then
+      -- Show View / [Update/Redo] / Sections / New initial popup
+      local action_name = action.text or action_id
+      local view_detail = ""
+      if cached.progress_decimal or cached.timestamp then
+        local parts = {}
+        if cached.progress_decimal and cached.progress_decimal < 1.0 then
+          table.insert(parts, math.floor(cached.progress_decimal * 100 + 0.5) .. "%")
+        end
+        local rel_time = formatRelativeTime(cached.timestamp)
+        if rel_time ~= "" then
+          table.insert(parts, rel_time)
+        end
+        if #parts > 0 then
+          view_detail = " (" .. table.concat(parts, ", ") .. ")"
+        end
+      end
+      local ButtonDialog = require("ui/widget/buttondialog")
+      local self_ref = self
+      local dialog
+      local popup_buttons = {}
+      -- View existing artifact
+      table.insert(popup_buttons, {{
+        text = T(_("View %1"), action_name .. view_detail),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:viewCachedAction(action, action_id, cached, {
+            skip_stale_popup = true,
+            file = file,
+          })
+        end,
+      }})
+      -- Update/Redo for position-relevant actions (e.g. Recap)
+      if action.use_reading_progress then
+        local cached_progress = cached.progress_decimal or 0
+        local update_text
+        if self.ui and self.ui.document then
+          local ContextExtractor = require("koassistant_context_extractor")
+          local extractor = ContextExtractor:new(self.ui)
+          local progress = extractor:getReadingProgress()
+          if progress.decimal > cached_progress + 0.01 then
+            update_text = T(_("Update %1"), action_name .. " (" .. T(_("to %1"), progress.formatted) .. ")")
+          else
+            update_text = T(_("Redo %1"), action_name)
+          end
+        else
+          update_text = T(_("Redo %1"), action_name)
+        end
+        table.insert(popup_buttons, {{
+          text = update_text,
+          callback = function()
+            UIManager:close(dialog)
+            -- Use cached source_mode for update/redo (same source)
+            self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = cached.source_mode })
+          end,
+        }})
+      end
+      -- Browse existing section artifacts
+      local section_prefix = ActionCache.getSectionPrefix(action_id)
+      if section_prefix and file then
+        local sec_count = ActionCache.getSectionCount(file, section_prefix)
+        if sec_count > 0 then
+          table.insert(popup_buttons, {{
+            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:_showSectionList(action, action_id)
+            end,
+          }})
+        end
+      end
+      -- New generation (opens scope/source popup)
+      table.insert(popup_buttons, {{
+        text = T(_("New %1…"), action_name),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:_showUnifiedActionPopup(action, action_id, {
+            on_execute = function(popup_state)
+              self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+            end,
+          })
+        end,
+      }})
+      table.insert(popup_buttons, {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(dialog)
+        end,
+      }})
+      dialog = ButtonDialog:new{
+        title = action_name,
+        buttons = popup_buttons,
+      }
+      UIManager:show(dialog)
+    else
+      -- No cache: check for existing section artifacts before going to scope/source popup
+      local self_ref = self
+      local section_prefix = ActionCache.getSectionPrefix(action_id)
+      local sec_count = section_prefix and file and ActionCache.getSectionCount(file, section_prefix) or 0
+      if sec_count > 0 then
+        -- Show Sections / New popup
+        local action_name = action.text or action_id
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local nc_dialog
+        nc_dialog = ButtonDialog:new{
+          title = action_name,
+          buttons = {
+            {{
+              text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+              callback = function()
+                UIManager:close(nc_dialog)
+                self_ref:_showSectionList(action, action_id)
+              end,
+            }},
+            {{
+              text = T(_("New %1…"), action_name),
+              callback = function()
+                UIManager:close(nc_dialog)
+                self_ref:_showUnifiedActionPopup(action, action_id, {
+                  on_execute = function(popup_state)
+                    self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+                  end,
+                })
+              end,
+            }},
+            {{
+              text = _("Cancel"),
+              callback = function()
+                UIManager:close(nc_dialog)
+              end,
+            }},
+          },
+        }
+        UIManager:show(nc_dialog)
+      else
+        self:_showUnifiedActionPopup(action, action_id, {
+          on_execute = function(popup_state)
+            self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+          end,
+        })
+      end
+    end
+    return
+  end
+
+  -- For other cache actions (without source_selection): show View/Update popup
   if action.use_response_caching then
     local self_ref = self
     self:showCacheActionPopup(action, action_id, function()
@@ -6785,7 +7024,7 @@ function AskGPT:executeBookLevelAction(action_id)
         end,
       }})
       dialog = ButtonDialog:new{
-        title = action_name .. view_detail,
+        title = action_name,
         buttons = aa_buttons,
       }
       UIManager:show(dialog)
@@ -6960,11 +7199,68 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
 
     if self:_checkRequirements(action) then return end
 
-    if action.use_response_caching then
+    if action.use_response_caching and not action.source_selection then
       local self_ref = self
       self:showCacheActionPopup(action, action_id, function()
         Dialogs.executeDirectAction(self_ref.ui, action, book_context, config_copy, self_ref)
       end, { file = file, book_title = title, book_author = authors })
+    elseif action.use_response_caching and action.source_selection then
+      -- Cache + source_selection: View/New popup (file browser — no scope available)
+      local ActionCache = require("koassistant_action_cache")
+      local cached = ActionCache.get(file, action_id)
+      if not cached or not cached.result then
+        if action.cache_as_summary then
+          cached = ActionCache.getSummaryCache(file)
+        elseif action.cache_as_analyze then
+          cached = ActionCache.getAnalyzeCache(file)
+        end
+      end
+      if cached and cached.result then
+        local action_name = action.text or action_id
+        local view_detail = ""
+        if cached.timestamp then
+          local rel_time = formatRelativeTime(cached.timestamp)
+          if rel_time ~= "" then
+            view_detail = " (" .. rel_time .. ")"
+          end
+        end
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local self_ref = self
+        local fb_dialog
+        local fb_buttons = {}
+        table.insert(fb_buttons, {{
+          text = T(_("View %1"), action_name .. view_detail),
+          callback = function()
+            UIManager:close(fb_dialog)
+            self_ref:viewCachedAction(action, action_id, cached, {
+              skip_stale_popup = true,
+              file = file,
+              book_title = title,
+              book_author = authors,
+            })
+          end,
+        }})
+        table.insert(fb_buttons, {{
+          text = T(_("New %1…"), action_name),
+          callback = function()
+            UIManager:close(fb_dialog)
+            Dialogs.executeDirectAction(self_ref.ui, action, book_context, config_copy, self_ref)
+          end,
+        }})
+        table.insert(fb_buttons, {{
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(fb_dialog)
+          end,
+        }})
+        fb_dialog = ButtonDialog:new{
+          title = action_name,
+          buttons = fb_buttons,
+        }
+        UIManager:show(fb_dialog)
+      else
+        Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self)
+      end
     else
       Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self)
     end

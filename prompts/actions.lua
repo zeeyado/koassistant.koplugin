@@ -932,6 +932,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         -- Response caching: enables incremental updates as reading progresses
         storage_key = "__SKIP__",       -- Cache, not chat history
         use_response_caching = true,
+        source_selection = true,  -- Unified scope/source popup (scope grayed: no sections; summary grayed: not chronological)
         update_prompt = [[Update this Recap for "{title}"{author_clause}.
 
 Previous recap (at {cached_progress}):
@@ -1204,7 +1205,8 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
-        use_response_caching = true,  -- View/Redo popup + per-action cache
+        use_response_caching = true,  -- Per-action cache + viewer buttons
+        source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
         in_reading_features = 7,  -- After Document Summary (6)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Analyze this document: "{title}"{author_clause}.
@@ -1236,7 +1238,8 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
-        use_response_caching = true,  -- View/Redo popup + per-action cache
+        use_response_caching = true,  -- Per-action cache + viewer buttons
+        source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
         in_reading_features = 6,  -- After Book Info (5)
         in_quick_actions = 4,  -- After Book Info (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history

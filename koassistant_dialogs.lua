@@ -2852,8 +2852,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 logger.info("KOAssistant: Legacy markdown X-Ray cache detected, forcing full regeneration for JSON output")
             end
 
+            -- AI-knowledge source: skip incremental update_prompt (it expects {incremental_book_text_section})
+            -- Use fresh prompt with updated {reading_progress} instead (pseudo-update like X-Ray Simple)
+            local skip_incremental = source_mode == "ai_knowledge" and prompt.update_prompt
+
             -- Use cache if we've progressed by at least 1% since last time
-            if not skip_legacy and current_progress > cached_progress + 0.01 and prompt.update_prompt then
+            if not skip_legacy and not skip_incremental
+                    and current_progress > cached_progress + 0.01 and prompt.update_prompt then
                 using_cache = true
                 cached_progress_display = math.floor(cached_progress * 100) .. "%"
                 logger.info("KOAssistant: Using cached response from", cached_progress_display, "for", prompt.id)
@@ -3693,8 +3698,180 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         end
 
-        -- Pre-flight: show View/Update popup for cached actions
-        if action.use_response_caching and plugin and plugin.showCacheActionPopup then
+        -- Pre-flight: cache actions with source_selection use View/Sections/New popup
+        if action.use_response_caching and action.source_selection and plugin then
+            local ActionCache = require("koassistant_action_cache")
+            local file = (ui_instance and ui_instance.document and ui_instance.document.file)
+                or (configuration and configuration.features and configuration.features.book_metadata
+                    and configuration.features.book_metadata.file)
+            local cached = file and ActionCache.get(file, action_id)
+            -- Fallback: document-level cache (migration)
+            if not cached or not cached.result then
+                if action.cache_as_summary then
+                    cached = ActionCache.getSummaryCache(file)
+                elseif action.cache_as_analyze then
+                    cached = ActionCache.getAnalyzeCache(file)
+                end
+            end
+            if cached and cached.result then
+                local action_name = action.text or action_id
+                local view_detail = ""
+                if cached.progress_decimal or cached.timestamp then
+                    local parts = {}
+                    if cached.progress_decimal and cached.progress_decimal < 1.0 then
+                        table.insert(parts, math.floor(cached.progress_decimal * 100 + 0.5) .. "%")
+                    end
+                    if cached.timestamp then
+                        local now = os.time()
+                        local diff = now - cached.timestamp
+                        local rel_time
+                        if diff < 86400 then rel_time = _("today")
+                        elseif diff < 172800 then rel_time = _("yesterday")
+                        else rel_time = math.floor(diff / 86400) .. "d" end
+                        table.insert(parts, rel_time)
+                    end
+                    if #parts > 0 then
+                        view_detail = " (" .. table.concat(parts, ", ") .. ")"
+                    end
+                end
+                local ButtonDialog = require("ui/widget/buttondialog")
+                local dialog
+                local popup_buttons = {}
+                -- View existing artifact
+                table.insert(popup_buttons, {{
+                    text = T(_("View %1"), action_name .. view_detail),
+                    callback = function()
+                        UIManager:close(dialog)
+                        plugin:viewCachedAction(action, action_id, cached, { file = file })
+                    end,
+                }})
+                -- Update/Redo for position-relevant actions (e.g. Recap)
+                if action.use_reading_progress and ui_instance and ui_instance.document then
+                    local cached_progress = cached.progress_decimal or 0
+                    local update_text
+                    local ContextExtractor = require("koassistant_context_extractor")
+                    local extractor = ContextExtractor:new(ui_instance)
+                    local progress = extractor:getReadingProgress()
+                    if progress.decimal > cached_progress + 0.01 then
+                        update_text = T(_("Update %1"), action_name .. " (" .. T(_("to %1"), progress.formatted) .. ")")
+                    else
+                        update_text = T(_("Redo %1"), action_name)
+                    end
+                    table.insert(popup_buttons, {{
+                        text = update_text,
+                        callback = function()
+                            UIManager:close(dialog)
+                            -- Use cached source_mode for update/redo (same source)
+                            configuration.features = configuration.features or {}
+                            configuration.features._source_mode = cached.source_mode
+                            runAction()
+                        end,
+                    }})
+                end
+                -- Browse existing section artifacts
+                local section_prefix = ActionCache.getSectionPrefix(action_id)
+                if section_prefix and file then
+                    local sec_count = ActionCache.getSectionCount(file, section_prefix)
+                    if sec_count > 0 then
+                        table.insert(popup_buttons, {{
+                            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+                            callback = function()
+                                UIManager:close(dialog)
+                                plugin:_showSectionList(action, action_id)
+                            end,
+                        }})
+                    end
+                end
+                -- New generation (opens scope/source popup)
+                table.insert(popup_buttons, {{
+                    text = T(_("New %1…"), action_name),
+                    callback = function()
+                        UIManager:close(dialog)
+                        local is_hl = action.context == "highlight" or action.context == "both"
+                        plugin:_showUnifiedActionPopup(action, action_id, {
+                            for_highlight = is_hl or nil,
+                            on_execute = function(popup_state)
+                                configuration.features = configuration.features or {}
+                                configuration.features._source_mode = popup_state.source
+                                if is_hl and popup_state.scope == "section" and popup_state.section_entry then
+                                    configuration.features._highlight_section_scope = {
+                                        start_page = popup_state.section_entry.start_page,
+                                        end_page = popup_state.section_entry.end_page,
+                                    }
+                                end
+                                runAction()
+                            end,
+                        })
+                    end,
+                }})
+                table.insert(popup_buttons, {{
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                    end,
+                }})
+                dialog = ButtonDialog:new{
+                    title = action_name,
+                    buttons = popup_buttons,
+                }
+                UIManager:show(dialog)
+                return
+            end
+            -- No cache: check for sections before falling through to source_selection
+            local section_prefix = ActionCache.getSectionPrefix(action_id)
+            local sec_count = section_prefix and file and ActionCache.getSectionCount(file, section_prefix) or 0
+            if sec_count > 0 then
+                local action_name = action.text or action_id
+                local ButtonDialog = require("ui/widget/buttondialog")
+                local nc_dialog
+                local nc_buttons = {}
+                table.insert(nc_buttons, {{
+                    text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+                    callback = function()
+                        UIManager:close(nc_dialog)
+                        plugin:_showSectionList(action, action_id)
+                    end,
+                }})
+                table.insert(nc_buttons, {{
+                    text = T(_("New %1…"), action_name),
+                    callback = function()
+                        UIManager:close(nc_dialog)
+                        local is_hl = action.context == "highlight" or action.context == "both"
+                        plugin:_showUnifiedActionPopup(action, action_id, {
+                            for_highlight = is_hl or nil,
+                            on_execute = function(popup_state)
+                                configuration.features = configuration.features or {}
+                                configuration.features._source_mode = popup_state.source
+                                if is_hl and popup_state.scope == "section" and popup_state.section_entry then
+                                    configuration.features._highlight_section_scope = {
+                                        start_page = popup_state.section_entry.start_page,
+                                        end_page = popup_state.section_entry.end_page,
+                                    }
+                                end
+                                runAction()
+                            end,
+                        })
+                    end,
+                }})
+                table.insert(nc_buttons, {{
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(nc_dialog)
+                    end,
+                }})
+                nc_dialog = ButtonDialog:new{
+                    title = action_name,
+                    buttons = nc_buttons,
+                }
+                UIManager:show(nc_dialog)
+                return
+            end
+            -- No cache, no sections: fall through to source_selection handler below
+        end
+
+        -- Pre-flight: show View/Update popup for other cached actions (without source_selection)
+        if action.use_response_caching and not action.source_selection
+                and plugin and plugin.showCacheActionPopup then
             local cache_opts
             local cfg_bm = configuration and configuration.features
                 and configuration.features.book_metadata
@@ -3728,54 +3905,64 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end
                 local ButtonDialog = require("ui/widget/buttondialog")
                 local dialog
-                dialog = ButtonDialog:new{
-                    title = action_name .. view_detail,
-                    buttons = {
-                        {
-                            {
-                                text = T(_("View %1"), action_name .. view_detail),
-                                callback = function()
-                                    UIManager:close(dialog)
-                                    plugin:viewCachedAction(action, action_id, cached, { file = file })
-                                end,
-                            },
-                        },
-                        {
-                            {
-                                text = T(_("Regenerate %1"), action_name),
-                                callback = function()
-                                    UIManager:close(dialog)
-                                    if action.source_selection and plugin._showUnifiedActionPopup then
-                                        local is_hl = action.context == "highlight" or action.context == "both"
-                                        plugin:_showUnifiedActionPopup(action, action_id, {
-                                            for_highlight = is_hl or nil,
-                                            on_execute = function(popup_state)
-                                                configuration.features = configuration.features or {}
-                                                configuration.features._source_mode = popup_state.source
-                                                if is_hl and popup_state.scope == "section" and popup_state.section_entry then
-                                                    configuration.features._highlight_section_scope = {
-                                                        start_page = popup_state.section_entry.start_page,
-                                                        end_page = popup_state.section_entry.end_page,
-                                                    }
-                                                end
-                                                runAction()
-                                            end,
-                                        })
-                                    else
-                                        runAction()
+                local aa_buttons = {}
+                -- View existing artifact
+                table.insert(aa_buttons, {{
+                    text = T(_("View %1"), action_name .. view_detail),
+                    callback = function()
+                        UIManager:close(dialog)
+                        plugin:viewCachedAction(action, action_id, cached, { file = file })
+                    end,
+                }})
+                -- Browse existing section artifacts
+                local section_prefix = ActionCache.getSectionPrefix(action_id)
+                if section_prefix and file then
+                    local sec_count = ActionCache.getSectionCount(file, section_prefix)
+                    if sec_count > 0 then
+                        table.insert(aa_buttons, {{
+                            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+                            callback = function()
+                                UIManager:close(dialog)
+                                plugin:_showSectionList(action, action_id)
+                            end,
+                        }})
+                    end
+                end
+                -- New generation (opens scope/source popup)
+                table.insert(aa_buttons, {{
+                    text = T(_("New %1…"), action_name),
+                    callback = function()
+                        UIManager:close(dialog)
+                        if action.source_selection and plugin._showUnifiedActionPopup then
+                            local is_hl = action.context == "highlight" or action.context == "both"
+                            plugin:_showUnifiedActionPopup(action, action_id, {
+                                for_highlight = is_hl or nil,
+                                on_execute = function(popup_state)
+                                    configuration.features = configuration.features or {}
+                                    configuration.features._source_mode = popup_state.source
+                                    if is_hl and popup_state.scope == "section" and popup_state.section_entry then
+                                        configuration.features._highlight_section_scope = {
+                                            start_page = popup_state.section_entry.start_page,
+                                            end_page = popup_state.section_entry.end_page,
+                                        }
                                     end
+                                    runAction()
                                 end,
-                            },
-                        },
-                        {
-                            {
-                                text = _("Cancel"),
-                                callback = function()
-                                    UIManager:close(dialog)
-                                end,
-                            },
-                        },
-                    },
+                            })
+                        else
+                            runAction()
+                        end
+                    end,
+                }})
+                table.insert(aa_buttons, {{
+                    text = _("Cancel"),
+                    callback = function()
+                        UIManager:close(dialog)
+                    end,
+                }})
+                dialog = ButtonDialog:new{
+                    title = action_name,
+                    buttons = aa_buttons,
                 }
                 UIManager:show(dialog)
                 return
