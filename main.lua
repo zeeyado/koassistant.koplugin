@@ -5012,18 +5012,21 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local function getSummaryAvailable()
     local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
     if not file then return false end
+    local summary
     if state.scope == "section" and state.section_label then
       local sum_key = "_summary_section:" .. state.section_label:gsub(":", "-")
-      local summary = ActionCache.get(file, sum_key)
-      return summary and summary.result and summary.result ~= ""
+      summary = ActionCache.get(file, sum_key)
     else
-      local summary = ActionCache.getSummaryCache(file)
-      return summary and summary.result and summary.result ~= ""
+      summary = ActionCache.getSummaryCache(file)
     end
+    if summary and summary.result and summary.result ~= "" then
+      return true, summary.timestamp
+    end
+    return false
   end
 
   local function buildAndShow()
-    local has_summary = getSummaryAvailable()
+    local has_summary, summary_timestamp = getSummaryAvailable()
     local Blitbuffer = require("ffi/blitbuffer")
     local ButtonTable = require("ui/widget/buttontable")
     local CenterContainer = require("ui/widget/container/centercontainer")
@@ -5141,7 +5144,12 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         or (_("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")")
     local summary_text, summary_enabled
     if has_summary then
-      summary_text = _("Use summary")
+      local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
+      if age ~= "" then
+        summary_text = _("Use existing summary") .. "  (" .. age .. ")"
+      else
+        summary_text = _("Use existing summary")
+      end
       summary_enabled = true
     elseif text_extraction_enabled then
       summary_text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")"
@@ -6074,8 +6082,8 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
 
   local input_dialog
   input_dialog = InputDialog:new{
-    title = T(_("Section %1 Name"), action_label),
-    description = T(_("Pages %1–%2"),
+    title = _("Name this section"),
+    description = T(_("%1 · Pages %2–%3"), action_label,
         self.ui.document.getPageNumberInFlow and self.ui.document:getPageNumberInFlow(entry.start_page) or entry.start_page,
         self.ui.document.getPageNumberInFlow and self.ui.document:getPageNumberInFlow(entry.end_page) or entry.end_page),
     input = default_name,

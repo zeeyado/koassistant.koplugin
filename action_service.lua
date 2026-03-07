@@ -1996,9 +1996,10 @@ local INPUT_CONTEXTS = {
         dismissed_key = "_dismissed_input_xray_chat_actions",
         action_context = "highlight",
         has_open_book = true,
-        -- Curated defaults: core actions + context-aware actions for X-Ray items
-        default_ids = {"explain", "elaborate", "eli5", "fact_check",
-            "explain_in_context", "thematic_connection", "connect"},
+        -- Curated defaults: core actions for discussing X-Ray items
+        -- Excludes actions needing document text (explain_in_context, thematic_connection)
+        -- since X-Ray chat may operate without an open book
+        default_ids = {"explain", "elaborate", "eli5", "fact_check", "connect"},
     },
     multi_book = {
         settings_key = "input_multi_book_actions",
