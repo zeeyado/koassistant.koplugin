@@ -5194,6 +5194,36 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                 self_ref:_showSectionNameInput(action, action_id, state.section_entry, {
                   source_mode = state.source,
                 })
+              elseif state.scope == "full" and not opts.for_highlight then
+                -- Check for existing full-document cache and warn before replacing
+                local aa_file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+                local aa_cache = require("koassistant_action_cache")
+                local existing = aa_file and aa_cache.get(aa_file, action_id)
+                if existing and existing.result then
+                  local aa_action_name = action.text or action_id
+                  local aa_dialog
+                  aa_dialog = ButtonDialog:new{
+                    title = T(_("A full-document %1 already exists. Replace it?"), aa_action_name),
+                    buttons = {
+                      {{
+                        text = _("Replace"),
+                        callback = function()
+                          UIManager:close(aa_dialog)
+                          opts.on_execute(state)
+                        end,
+                      }},
+                      {{
+                        text = _("Cancel"),
+                        callback = function()
+                          UIManager:close(aa_dialog)
+                        end,
+                      }},
+                    },
+                  }
+                  UIManager:show(aa_dialog)
+                else
+                  opts.on_execute(state)
+                end
               else
                 opts.on_execute(state)
               end
@@ -6697,7 +6727,7 @@ function AskGPT:executeBookLevelAction(action_id)
     local file = self.ui and self.ui.document and self.ui.document.file
     local cached = file and ActionCache.get(file, action_id)
     if cached and cached.result then
-      -- Show View/Regenerate popup
+      -- Show View / Sections / New popup
       local action_name = action.text or action_id
       local view_detail = ""
       if cached.timestamp then
@@ -6710,6 +6740,7 @@ function AskGPT:executeBookLevelAction(action_id)
       local self_ref = self
       local dialog
       local aa_buttons = {}
+      -- View existing artifact
       table.insert(aa_buttons, {{
         text = T(_("View %1"), action_name .. view_detail),
         callback = function()
@@ -6717,22 +6748,7 @@ function AskGPT:executeBookLevelAction(action_id)
           self_ref:viewCachedAction(action, action_id, cached)
         end,
       }})
-      table.insert(aa_buttons, {{
-        text = T(_("Regenerate %1…"), action_name),
-        callback = function()
-          UIManager:close(dialog)
-          if action.source_selection then
-            self_ref:_showUnifiedActionPopup(action, action_id, {
-              on_execute = function(popup_state)
-                self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
-              end,
-            })
-          else
-            self_ref:_executeBookLevelActionDirect(action, action_id)
-          end
-        end,
-      }})
-      -- Section buttons: browse existing section artifacts (scope selection is in the unified popup via "Regenerate")
+      -- Browse existing section artifacts (before "New" to group viewing options together)
       local section_prefix = ActionCache.getSectionPrefix(action_id)
       if section_prefix and file then
         local sec_count = ActionCache.getSectionCount(file, section_prefix)
@@ -6746,6 +6762,22 @@ function AskGPT:executeBookLevelAction(action_id)
           }})
         end
       end
+      -- New generation (opens scope/source popup)
+      table.insert(aa_buttons, {{
+        text = T(_("New %1…"), action_name),
+        callback = function()
+          UIManager:close(dialog)
+          if action.source_selection then
+            self_ref:_showUnifiedActionPopup(action, action_id, {
+              on_execute = function(popup_state)
+                self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+              end,
+            })
+          else
+            self_ref:_executeBookLevelActionDirect(action, action_id)
+          end
+        end,
+      }})
       table.insert(aa_buttons, {{
         text = _("Cancel"),
         callback = function()
