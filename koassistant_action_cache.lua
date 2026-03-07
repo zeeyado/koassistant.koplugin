@@ -460,60 +460,28 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
             end
         end
     end
-    -- Add section X-Ray entries: promote matching sections to top-level, group the rest
+    -- Add section X-Ray entries as a group (no position-based promotion here;
+    -- surfacing is done in the action popups themselves)
     local sections = ActionCache.getSectionXrays(document_path)
     if #sections > 0 then
-        local excluded = false
+        local count = #sections
         if exclude_key then
             for _idx, sec in ipairs(sections) do
                 if sec.key == exclude_key then
-                    excluded = true
+                    count = count - 1
                     break
                 end
             end
         end
-
-        -- Find which sections match current reading position
-        local matching_keys = {}
-        if doc then
-            local matching = ActionCache.findMatchingSections(document_path, doc)
-            for _idx, m in ipairs(matching) do
-                matching_keys[m.key] = true
-                -- Promote matching section as top-level entry (unless it's the excluded one)
-                if m.key ~= exclude_key then
-                    local page_info = ActionCache.reconvertPageSummary(m.data, doc)
-                    local display = m.label
-                    if page_info ~= "" then
-                        display = display .. " (" .. page_info .. ")"
-                    end
-                    table.insert(available, {
-                        name = display,
-                        key = m.key,
-                        data = m.data,
-                        is_promoted_section = true,
-                    })
-                end
-            end
-        end
-
-        -- Build group from non-promoted sections
-        local remaining = {}
-        for _idx, sec in ipairs(sections) do
-            if not matching_keys[sec.key] then
-                table.insert(remaining, sec)
-            end
-        end
-        -- Remove excluded section from remaining count
-        local remaining_excl = excluded and #remaining - 1 or #remaining
-        if remaining_excl > 0 then
+        if count > 0 then
             table.insert(available, {
-                name = string.format(_("Section X-Rays (%d)"), #remaining),
+                name = string.format(_("Section X-Rays (%d)"), #sections),
                 key = "_xray_sections",
-                data = remaining,
+                data = sections,
                 is_section_xray_group = true,
                 is_section_group = true,
                 section_type = "xray",
-                _excluded_section_key = excluded and exclude_key or nil,
+                _excluded_section_key = exclude_key,
             })
         end
     end
@@ -1209,6 +1177,53 @@ function ActionCache.findMatchingSections(document_path, doc, prefix)
         end
     end
     return matching
+end
+
+--- Find the best section artifact covering a given page range (scope).
+--- Used to match an existing section summary/artifact against a user-picked section scope.
+--- Priority: exact match > containing match. Most recent wins ties.
+--- @param document_path string The document file path
+--- @param doc table Document object (needed for xpointer-based page conversion)
+--- @param prefix string Section prefix (e.g., SECTION_PREFIXES.summary)
+--- @param scope_start number Start page of the scope to match
+--- @param scope_end number End page of the scope to match
+--- @return table|nil Best matching section { key, label, data } or nil
+function ActionCache.findBestSectionForScope(document_path, doc, prefix, scope_start, scope_end)
+    if not document_path or not prefix or not scope_start or not scope_end then return nil end
+    local sections = ActionCache.getSections(document_path, prefix)
+    if #sections == 0 then return nil end
+
+    local best_exact, best_containing
+    for _idx, sec in ipairs(sections) do
+        local sp, ep = getSectionPageRange(sec.data, doc)
+        if sp and ep then
+            if sp == scope_start and ep == scope_end then
+                -- Exact match: prefer most recent
+                if not best_exact or (sec.data.timestamp or 0) > (best_exact.data.timestamp or 0) then
+                    best_exact = sec
+                end
+            elseif sp <= scope_start and ep >= scope_end then
+                -- Containing match: prefer tightest fit (smallest range), then most recent
+                local range = ep - sp
+                if not best_containing then
+                    best_containing = sec
+                    best_containing._range = range
+                else
+                    local prev_range = best_containing._range
+                    if range < prev_range or (range == prev_range and (sec.data.timestamp or 0) > (best_containing.data.timestamp or 0)) then
+                        best_containing = sec
+                        best_containing._range = range
+                    end
+                end
+            end
+        end
+    end
+
+    local result = best_exact or best_containing
+    if result then
+        result._range = nil  -- clean up temporary field
+    end
+    return result
 end
 
 return ActionCache

@@ -423,8 +423,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
         local btn_rows = {}
         for _idx, cache in ipairs(caches) do
           local display = cache.name
-          if not cache.is_pinned_group and not cache.is_section_group and not cache.is_wiki_group
-              and not cache.is_promoted_section then
+          if not cache.is_pinned_group and not cache.is_section_group and not cache.is_wiki_group then
             -- Format with metadata: "X-Ray (65%, today)"
             local meta_parts = {}
             if cache.data then
@@ -4176,8 +4175,7 @@ function AskGPT:viewCache(parent_dialog)
   for _idx, cache in ipairs(caches) do
     -- Format with metadata: "X-Ray (65%, today)" or pinned indicator
     local display = cache.name
-    if not cache.is_pinned_group and not cache.is_section_group and not cache.is_wiki_group
-        and not cache.is_promoted_section then
+    if not cache.is_pinned_group and not cache.is_section_group and not cache.is_wiki_group then
       local meta_parts = {}
       if cache.data then
         if cache.data.progress_decimal and cache.data.progress_decimal < 1.0 then
@@ -4787,6 +4785,37 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
     end,
   }})
 
+  -- Surface in-range section artifacts
+  local section_prefix = ActionCache.getSectionPrefix(action_id)
+  local doc = self.ui and self.ui.document
+  if section_prefix and file and doc then
+    local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+    for _idx, sec in ipairs(in_range) do
+      local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+      local sec_parts = {}
+      if page_info and page_info ~= "" then
+        table.insert(sec_parts, page_info)
+      end
+      local sec_rel = formatRelativeTime(sec.data.timestamp)
+      if sec_rel ~= "" then
+        table.insert(sec_parts, sec_rel)
+      end
+      local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+      local captured_sec = sec
+      table.insert(buttons, {{
+        text = T(_("View \"%1\""), sec.label) .. sec_detail,
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+            skip_stale_popup = true,
+            section_key = captured_sec.key,
+            section_label = captured_sec.label,
+          })
+        end,
+      }})
+    end
+  end
+
   -- Update/Regenerate
   table.insert(buttons, {{
     text = update_text,
@@ -4796,9 +4825,6 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
       on_update()
     end,
   }})
-
-  -- Section buttons (when book is open with TOC and action supports sections)
-  local section_prefix = ActionCache.getSectionPrefix(action_id)
   if section_prefix and self.ui and self.ui.document and self.ui.toc
       and self.ui.toc.toc and #self.ui.toc.toc > 0 then
     local sec_count = ActionCache.getSectionCount(file, section_prefix)
@@ -5026,21 +5052,31 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local function getSummaryAvailable()
     local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
     if not file then return false end
-    local summary
-    if state.scope == "section" and state.section_label then
-      local sum_key = "_summary_section:" .. state.section_label:gsub(":", "-")
-      summary = ActionCache.get(file, sum_key)
+    local summary, is_section_match
+    if state.scope == "section" and state.section_entry then
+      -- Position-based matching: find section summary covering the picked scope
+      local doc = self_ref.ui and self_ref.ui.document
+      local match = ActionCache.findBestSectionForScope(
+          file, doc, ActionCache.SECTION_PREFIXES.summary,
+          state.section_entry.start_page, state.section_entry.end_page)
+      if match then
+        summary = match.data
+        is_section_match = true
+      else
+        -- Fall back to main document summary
+        summary = ActionCache.getSummaryCache(file)
+      end
     else
       summary = ActionCache.getSummaryCache(file)
     end
     if summary and summary.result and summary.result ~= "" then
-      return true, summary.timestamp
+      return true, summary.timestamp, is_section_match
     end
     return false
   end
 
   local function buildAndShow()
-    local has_summary, summary_timestamp = getSummaryAvailable()
+    local has_summary, summary_timestamp, is_section_summary = getSummaryAvailable()
     local Blitbuffer = require("ffi/blitbuffer")
     local ButtonTable = require("ui/widget/buttontable")
     local CenterContainer = require("ui/widget/container/centercontainer")
@@ -5212,10 +5248,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         summary_enabled = false
       elseif has_summary then
         local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
+        local base_label = is_section_summary and _("Use matching section summary") or _("Use existing summary")
         if age ~= "" then
-          summary_text = _("Use existing summary") .. "  (" .. age .. ")"
+          summary_text = base_label .. "  (" .. age .. ")"
         else
-          summary_text = _("Use existing summary")
+          summary_text = base_label
         end
         summary_enabled = true
       elseif text_extraction_enabled then
@@ -5525,6 +5562,38 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         self_ref:viewCachedAction(action, action_id, cached_entry, { skip_stale_popup = true })
       end,
     }})
+    -- Surface in-range section X-Rays
+    local ActionCache = require("koassistant_action_cache")
+    local sx_file = (self.ui and self.ui.document and self.ui.document.file)
+        or (opts and opts.file)
+    local doc = self.ui and self.ui.document
+    if sx_file and doc then
+      local in_range = ActionCache.findMatchingSections(sx_file, doc)
+      for _idx, sec in ipairs(in_range) do
+        local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+        local sec_parts = {}
+        if page_info and page_info ~= "" then
+          table.insert(sec_parts, page_info)
+        end
+        local sec_rel = formatRelativeTime(sec.data.timestamp)
+        if sec_rel ~= "" then
+          table.insert(sec_parts, sec_rel)
+        end
+        local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+        local captured_sec = sec
+        table.insert(buttons, {{
+          text = T(_("View \"%1\""), sec.label) .. sec_detail,
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+              skip_stale_popup = true,
+              section_key = captured_sec.key,
+              section_label = captured_sec.label,
+            })
+          end,
+        }})
+      end
+    end
     table.insert(buttons, {{
       text = update_text,
       callback = function()
@@ -5546,9 +5615,6 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       }})
     end
     -- Section X-Rays: list existing + new
-    local ActionCache = require("koassistant_action_cache")
-    local sx_file = (self.ui and self.ui.document and self.ui.document.file)
-        or (opts and opts.file)
     if sx_file then
       local sx_count = ActionCache.getSectionXrayCount(sx_file)
       if sx_count > 0 then
@@ -6838,6 +6904,36 @@ function AskGPT:executeBookLevelAction(action_id)
           })
         end,
       }})
+      -- Surface in-range section artifacts
+      local section_prefix = ActionCache.getSectionPrefix(action_id)
+      local doc = self.ui and self.ui.document
+      if section_prefix and file and doc then
+        local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+        for _idx, sec in ipairs(in_range) do
+          local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+          local sec_detail_parts = {}
+          if page_info and page_info ~= "" then
+            table.insert(sec_detail_parts, page_info)
+          end
+          local sec_rel = formatRelativeTime(sec.data.timestamp)
+          if sec_rel ~= "" then
+            table.insert(sec_detail_parts, sec_rel)
+          end
+          local sec_detail = #sec_detail_parts > 0 and " (" .. table.concat(sec_detail_parts, ", ") .. ")" or ""
+          local captured_sec = sec
+          table.insert(popup_buttons, {{
+            text = T(_("View \"%1\""), sec.label) .. sec_detail,
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+                skip_stale_popup = true,
+                section_key = captured_sec.key,
+                section_label = captured_sec.label,
+              })
+            end,
+          }})
+        end
+      end
       -- Update/Redo for position-relevant actions (e.g. Recap)
       if action.use_reading_progress then
         local cached_progress = cached.progress_decimal or 0
@@ -6863,8 +6959,7 @@ function AskGPT:executeBookLevelAction(action_id)
           end,
         }})
       end
-      -- Browse existing section artifacts
-      local section_prefix = ActionCache.getSectionPrefix(action_id)
+      -- Browse remaining section artifacts (all sections in group)
       if section_prefix and file then
         local sec_count = ActionCache.getSectionCount(file, section_prefix)
         if sec_count > 0 then
