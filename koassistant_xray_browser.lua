@@ -2723,6 +2723,11 @@ function XrayBrowser:showMentions(chapter)
         return
     end
 
+    -- Section X-Rays: default to entire scope instead of current chapter
+    if chapter == nil and self.scope then
+        chapter = "all"
+    end
+
     -- Determine notification text
     local is_all = (chapter == "all" or chapter == "all_reveal")
     local notif_text = is_all and _("Analyzing book…") or _("Analyzing chapter…")
@@ -2793,22 +2798,6 @@ function XrayBrowser:showMentions(chapter)
 
         local found = XrayParser.findItemsInChapter(self_ref.xray_data, text)
 
-        if #found == 0 then
-            local msg
-            if is_all then
-                msg = _("No X-Ray items found in book text.")
-            elseif chapter_title and chapter_title ~= "" then
-                msg = T(_("No X-Ray items found in \"%1\"."), chapter_title)
-            else
-                msg = _("No X-Ray items found in current chapter.")
-            end
-            UIManager:show(InfoMessage:new{
-                text = msg,
-                timeout = 4,
-            })
-            return
-        end
-
         -- Build menu items
         local items = {}
 
@@ -2839,6 +2828,14 @@ function XrayBrowser:showMentions(chapter)
             end,
             separator = true,
         })
+
+        if #found == 0 then
+            -- No results: show picker with empty-state message so user can try other chapters
+            table.insert(items, {
+                text = _("No X-Ray items found in this text."),
+                dim = true,
+            })
+        end
 
         -- Build nav entries for prev/next navigation in detail view
         local nav_entries = {}
