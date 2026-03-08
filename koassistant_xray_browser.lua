@@ -3570,7 +3570,8 @@ end
 
 --- Show search results (navigates forward)
 --- @param query string The search query
-function XrayBrowser:showSearchResults(query)
+--- @param skip_cross_search boolean|nil Skip "Search other X-Rays" button (already searched)
+function XrayBrowser:showSearchResults(query, skip_cross_search)
     local results = XrayParser.searchAll(self.xray_data, query)
 
     local items = {}
@@ -3618,7 +3619,8 @@ function XrayBrowser:showSearchResults(query)
     end
 
     -- "Search other X-Rays" button when others exist
-    local other_count = self:_countOtherXrays()
+    -- Skip when caller already performed cross-section search (e.g., "Look up in X-Ray")
+    local other_count = not skip_cross_search and self:_countOtherXrays() or 0
     if other_count > 0 then
         local captured_query = query
         table.insert(items, {

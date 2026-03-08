@@ -1163,8 +1163,9 @@ end
 --- @param document_path string The document file path
 --- @param query string Search query
 --- @param doc table|nil Document object (for current page detection)
+--- @param opts table|nil Options passed to searchAll (e.g., skip_description)
 --- @return table Array of { key, label, is_section, scope_summary, results, cache_entry }
-function ActionCache.searchAllXrays(document_path, query, doc)
+function ActionCache.searchAllXrays(document_path, query, doc, opts)
     if not document_path or not query or query == "" then return {} end
 
     local XrayParser = require("koassistant_xray_parser")
@@ -1177,7 +1178,7 @@ function ActionCache.searchAllXrays(document_path, query, doc)
     if main and main.result then
         local data = XrayParser.parse(main.result)
         if data then
-            local results = XrayParser.searchAll(data, query)
+            local results = XrayParser.searchAll(data, query, opts)
             if #results > 0 then
                 table.insert(all_results, {
                     key = ActionCache.XRAY_CACHE_KEY,
@@ -1196,7 +1197,7 @@ function ActionCache.searchAllXrays(document_path, query, doc)
     for _idx, sec in ipairs(sections) do
         local data = XrayParser.parse(sec.data.result)
         if data then
-            local results = XrayParser.searchAll(data, query)
+            local results = XrayParser.searchAll(data, query, opts)
             if #results > 0 then
                 local sp, ep = getSectionPageRange(sec.data, doc)
                 local in_range = sp and ep and current_page

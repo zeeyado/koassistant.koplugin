@@ -4924,8 +4924,8 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         end
 
         if total_xrays > 1 then
-            -- Multiple X-Rays: search across all
-            local grouped = ActionCache.searchAllXrays(document_path, query, doc)
+            -- Multiple X-Rays: search across all (name + alias only for lookup)
+            local grouped = ActionCache.searchAllXrays(document_path, query, doc, { skip_description = true })
             if #grouped == 0 then
                 -- No results anywhere
                 UIManager:show(InfoMessage:new{
@@ -5004,8 +5004,8 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         return
     end
 
-    -- Search across all categories
-    local results = XrayParser.searchAll(data, query)
+    -- Search name + alias only (description matches are noise for dictionary lookup)
+    local results = XrayParser.searchAll(data, query, { skip_description = true })
 
     -- Calculate progress gap (only for main X-Ray; sections cover fixed ranges)
     local current_progress = getProgressDecimal(ui)
@@ -5042,7 +5042,8 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             XrayBrowser:showItemDetail(result.item, result.category_key, name)
         else
             -- Multiple results: show search results in browser
-            XrayBrowser:showSearchResults(query)
+            -- Skip "Search other X-Rays" button — cross-section search already ran
+            XrayBrowser:showSearchResults(query, true)
         end
 
         -- Show progress staleness popup (main X-Ray only; sections cover fixed ranges)

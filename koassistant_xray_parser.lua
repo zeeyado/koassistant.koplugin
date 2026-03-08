@@ -1158,9 +1158,11 @@ end
 --- Search across all categories (name, term, event, description, etc.)
 --- @param data table Parsed X-Ray data
 --- @param query string Search query
+--- @param opts table|nil Options: skip_description (bool) to search name+alias only
 --- @return table results Array of {item, category_key, category_label, match_field}
-function XrayParser.searchAll(data, query)
+function XrayParser.searchAll(data, query, opts)
     if not query or query == "" then return {} end
+    local skip_description = opts and opts.skip_description
 
     local categories = XrayParser.getCategories(data)
     local query_lower = XrayParser.normalizeArabic(query:lower())
@@ -1201,7 +1203,7 @@ function XrayParser.searchAll(data, query)
                     end
                 end
                 -- Check description/definition/significance
-                if not match_field then
+                if not match_field and not skip_description then
                     local desc = item.description or item.definition or item.significance or ""
                     if desc ~= "" then
                         local d = normalize(desc:lower())
