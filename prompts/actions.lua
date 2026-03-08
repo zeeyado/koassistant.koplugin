@@ -283,7 +283,7 @@ Help me understand what this passage means:
 2. **Context**: What leads up to this moment — what has the reader already encountered that makes this passage land?
 3. **References**: Key concepts, terms, or prior ideas it builds on or assumes
 
-Focus on comprehension — help me grasp what I'm reading, not evaluate it. {conciseness_nudge}
+Focus on comprehension — help me grasp what I'm reading, not evaluate it. {conciseness_nudge} {hallucination_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -320,7 +320,7 @@ Connect this passage to my engagement with the work:
 3. **Developing threads**: Does this advance, complicate, or echo ideas I've been tracking?
 4. **What to notice**: Based on this passage and my notes, what might be worth paying attention to going forward?
 
-This is about what this passage means for ME as a reader — not just what it means in the abstract. {conciseness_nudge}
+This is about what this passage means for ME as a reader — not just what it means in the abstract. {conciseness_nudge} {hallucination_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -359,7 +359,7 @@ Which major themes does this passage develop, reinforce, or complicate? What is 
 ## Patterns
 Does this passage echo, subvert, or resolve patterns established elsewhere? How does it fit into the work's internal logic?
 
-Ground the analysis in the specific passage — what makes THIS particular piece of writing work the way it does. {conciseness_nudge}
+Ground the analysis in the specific passage — what makes THIS particular piece of writing work the way it does. {conciseness_nudge} {hallucination_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -1299,11 +1299,10 @@ Adapt to the work — a novel's insights look different from a research paper's 
         builtin = true,
         in_quick_actions = 6,
     },
-    -- What to Watch For: Spoiler-free reading guide for upcoming content
-    what_to_watch_for = {
-        id = "what_to_watch_for",
-        enable_web_search = false,
-        text = _("What to Watch For"),
+    -- Reading Guide: Spoiler-free guide for upcoming content
+    reading_guide = {
+        id = "reading_guide",
+        text = _("Reading Guide"),
         description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Source selection: full document text, document summary, or AI knowledge. Can target a specific section."),
         context = "book",
         behavior_variant = "reader_assistant",
@@ -1341,7 +1340,7 @@ Adapt to the work's nature:
 
 CRITICAL: No spoilers beyond {reading_progress}. Guide attention without revealing outcomes.
 
-{conciseness_nudge}
+{conciseness_nudge} {hallucination_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
