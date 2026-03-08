@@ -617,14 +617,14 @@ Some actions work from the file browser (using only document metadata like title
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
 | **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search, chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray (Simple)** | Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
-| **Recap** | "Previously on..." style summary to help you resume reading ⚠️ *Best with: Allow Text Extraction* |
+| **Recap** | "Previously on..." style summary to help you resume reading. Source selection: extracted text (with incremental updates) or AI knowledge. Use Hidden Flows to limit scope ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
-| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge |
-| **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge |
-| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge |
-| **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. ⚠️ *Requires: Allow Text Extraction* |
-| **Document Summary** | Comprehensive summary of entire document. Saved as a Summary artifact, which other actions can use as their document source. ⚠️ *Requires: Allow Text Extraction* |
-| **Extract Key Insights** | Actionable takeaways and ideas worth remembering. Source selection: full text, summary, or AI knowledge |
+| **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
+| **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
+| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
+| **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
+| **Document Summary** | Comprehensive summary. Saved as a Summary artifact, which other actions can use as their document source. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
+| **Extract Key Insights** | Actionable takeaways and ideas worth remembering. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
 
 **What the AI sees**: Document metadata (title, author). For Analyze Notes: your annotations. For full document actions: entire document text.
 
@@ -636,13 +636,13 @@ These actions analyze your actual reading content. They require specific privacy
 |--------|------------------|--------------------------|
 | **X-Ray** | Book text + highlights up to current position | Allow Text Extraction (required), Allow Highlights (optional) |
 | **X-Ray (Simple)** | AI training knowledge + reading progress + highlights | Allow Highlights (optional) |
-| **Recap** | Book text + highlights up to current position | Allow Text Extraction, Allow Highlights |
+| **Recap** | Book text or AI knowledge (user choice) + highlights up to current position | Allow Text Extraction (for extracted text), Allow Highlights |
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 | **Key Arguments** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Discussion Questions** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Generate Quiz** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
-| **Document Analysis** | Entire document | Allow Text Extraction |
-| **Document Summary** | Entire document | Allow Text Extraction |
+| **Document Analysis** | Entire document or section (user choice) | Allow Text Extraction |
+| **Document Summary** | Entire document or section (user choice) | Allow Text Extraction |
 | **Extract Key Insights** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Book Info** | AI training knowledge (+ optional web search) | None (web search optional) |
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
@@ -713,7 +713,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 
 **X-Ray (Simple)** is a separate action that produces a prose overview (Characters, Themes, Setting, Key Terms, Where Things Stand) from the AI's training knowledge — no text extraction needed. Uses your reading progress for spoiler gating and optionally includes your highlights. Available in the Reading Features menu and as a separate artifact. Every generation is fresh (no incremental updates). Best for well-known books when you don't want to enable text extraction. For obscure works or research papers, results will be limited since the AI may not recognize the title.
 
-**Recap** works in two modes:
+**Recap** works with source selection: choose between extracted text (recommended, with incremental updates as you read) or AI knowledge only. Use KOReader's Hidden Flows to limit scope to specific chapters or parts of the book.
 - **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results. Results are cached and labeled "Based on extracted document text."
 - **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results. Results are labeled "Based on AI training data knowledge."
 
@@ -722,15 +722,15 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 **Two-track X-Ray:** When generating a new X-Ray, you choose between two tracks:
 
 - **Incremental** (default) — Spoiler-free: extracts text only up to your current reading position. Produces a **Current State** (fiction) or **Current Position** (non-fiction) section capturing active conflicts, open questions, and narrative momentum. Supports incremental updates as you read further — only new content is sent, and the AI's additions are diff-merged into the existing analysis. Updates are fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration). You can also **Update to 100%** to extend the incremental X-Ray to the end of the book using the same spoiler-free prompt. The scope popup offers: "Generate X-Ray (to 42%)" for a new incremental X-Ray, or "Update X-Ray (to 100%)" for an existing one.
-- **Complete** (entire document) — Holistic: extracts and analyzes the entire document in one pass. Produces a **Conclusion** section with resolutions, themes resolved (fiction) or key findings, implications (non-fiction). Always generates fresh — no incremental updates, no diff-merging. Best for articles, research papers, short works, or finished books where spoiler-free scoping isn't needed. The scope popup offers: "Generate X-Ray (entire document)".
+- **Complete** (entire document) — Holistic: extracts and analyzes the entire document in one pass. Produces a **Conclusion** section with resolutions, themes resolved (fiction) or key findings, implications (non-fiction). Always generates fresh — no incremental updates, no diff-merging. Best for articles, research papers, short works, or finished books where spoiler-free scoping isn't needed. The scope popup offers: "Generate Complete X-Ray".
 
 The track is chosen at initial generation and cannot be converted. To switch tracks, delete the cache and regenerate. Both tracks use the same browsable category menu, the same JSON structure for all shared categories (characters, locations, themes, etc.), and the same privacy gates. The only structural difference is the final status section (Current State/Current Position vs Conclusion).
 
 When an X-Ray cache covers 100% — whether from a complete generation, an incremental "Update to 100%", or simply reading to the end and updating — tapping X-Ray goes directly to the browser viewer with no popup (Redo is available in the browser's options menu).
 
-> **Spoiler safety:** By default, X-Ray and Recap use the **incremental** track, which limits extraction to your current reading position (`{book_text_section}`). Choosing "Generate X-Ray (entire document)" uses the **complete** track, which sends the full document (`{full_document_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — always send the full document. If you need a spoiler-free variant of any action, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
+> **Spoiler safety:** By default, X-Ray and Recap use the **incremental** track, which limits extraction to your current reading position (`{book_text_section}`). Choosing "Generate Complete X-Ray" uses the **complete** track, which sends the full document (`{full_document_section}`). All other text extraction actions — including "Explain in Context" and "Analyze in Context" — always send the full document. If you need a spoiler-free variant of any action, create a custom action using `{book_text_section}` instead of `{full_document_section}`.
 
-> **Note:** Marking a book as "finished" in KOReader does not affect text extraction. Incremental X-Ray and Recap still extract up to your actual page position, not 100%. This means you can navigate to a specific point in a finished book and get a spoiler-free analysis up to that point. For a full analysis of a finished book, use "Generate X-Ray (entire document)" to get the complete track with Conclusion.
+> **Note:** Marking a book as "finished" in KOReader does not affect text extraction. Incremental X-Ray and Recap still extract up to your actual page position, not 100%. This means you can navigate to a specific point in a finished book and get a spoiler-free analysis up to that point. For a full analysis of a finished book, use "Generate Complete X-Ray" to get the complete track with Conclusion.
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
 

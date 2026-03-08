@@ -759,7 +759,7 @@ Actions.book = {
         id = "xray",
         enable_web_search = false,
         text = _("X-Ray"),
-        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can also generate a complete analysis of the entire document."),
+        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can generate a complete whole-document X-Ray, or focus on a specific section from the table of contents."),
         context = "book",
         behavior_variant = "reader_assistant",
         requires = {"book_text"},       -- Block if text extraction is off
@@ -878,7 +878,7 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
         id = "recap",
         enable_web_search = false,
         text = _("Recap"),
-        description = _("A 'Previously on...' refresher to help you get back into a book after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Requires text extraction; updates incrementally as you read."),
+        description = _("A 'Previously on...' refresher to help you get back into a book after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Source selection: extracted text (with incremental updates) or AI knowledge. Use KOReader's hidden flows to limit scope to specific chapters."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
@@ -1060,7 +1060,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         id = "key_arguments",
         enable_web_search = false,
         text = _("Key Arguments"),
-        description = _("Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Requires text extraction; without it, falls back to AI knowledge."),
+        description = _("Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1110,7 +1110,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         id = "discussion_questions",
         enable_web_search = false,
         text = _("Discussion Questions"),
-        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1155,7 +1155,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         id = "generate_quiz",
         enable_web_search = false,
         text = _("Generate Quiz"),
-        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1200,7 +1200,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         id = "analyze_full_document",
         enable_web_search = false,
         text = _("Document Analysis"),
-        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Requires text extraction."),
+        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Can target a specific section. Requires text extraction."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1233,7 +1233,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         id = "summarize_full_document",
         enable_web_search = false,
         text = _("Document Summary"),
-        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact, which other actions can use as their document source. Requires text extraction."),
+        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact, which other actions can use as their document source. Can target a specific section. Requires text extraction."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1258,7 +1258,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         id = "extract_insights",
         enable_web_search = false,
         text = _("Extract Key Insights"),
-        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         use_summary_cache = true,
