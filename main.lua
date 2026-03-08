@@ -3782,6 +3782,9 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
         if action.local_handler then
           -- Local actions don't need network or dictionary-specific config
           self_ref:updateConfigFromSettings()
+          -- Pass dictionary popup reference so X-Ray browser can close it
+          -- when launching book text search (prevents widget stack blocking)
+          configuration.features._source_widget = dict_popup
           Dialogs.executeDirectAction(self_ref.ui, action, word, configuration, self_ref)
         else
           -- Ensure network is available

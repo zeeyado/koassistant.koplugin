@@ -767,6 +767,8 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.on_delete = on_delete
     self.nav_stack = {}
     self._mentions_spoiler_warned = nil
+    -- Widgets to close when launching book text search (e.g., dictionary popup, cross-section results)
+    self._cleanup_widgets = metadata._cleanup_widgets
 
     -- Compute X-Ray coverage page for spoiler gating
     -- Text-matching features (Mentions, Chapter Appearances) gate to max(coverage, reading),
@@ -3147,6 +3149,13 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                         if captured_ui.search and #search_name > 2 then
                             -- Close browser, navigate to chapter, then search
                             local function navigateAndSearch(term, use_regex)
+                                -- Close underlying widgets that would block search highlights
+                                -- (e.g., dictionary popup, cross-section results menu)
+                                if self_ref._cleanup_widgets then
+                                    for _cw, widget in ipairs(self_ref._cleanup_widgets) do
+                                        UIManager:close(widget)
+                                    end
+                                end
                                 UIManager:close(self_ref.menu)
                                 captured_ui:handleEvent(Event:new("GotoPage", captured_chapter.start_page))
                                 UIManager:scheduleIn(0.2, function()
@@ -3463,6 +3472,7 @@ function XrayBrowser:_openOtherXrayAtItem(group, result)
         progress_decimal = ce.progress_decimal,
         full_document = ce.full_document,
         scope = scope,
+        _cleanup_widgets = self._cleanup_widgets,  -- preserve across X-Ray swaps
     }
 
     -- XrayBrowser is a singleton — close current browser before opening the new one.

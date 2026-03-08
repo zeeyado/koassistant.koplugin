@@ -4694,7 +4694,7 @@ end
 
 -- Open X-Ray browser with cached data and metadata
 -- Returns the XrayBrowser module for chaining (e.g., showItemDetail, showSearchResults)
-local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best)
+local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best, cleanup_widgets)
     local XrayBrowser = require("koassistant_xray_browser")
     local ActionCache = require("koassistant_action_cache")
     local Notification = require("ui/widget/notification")
@@ -4772,6 +4772,9 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
         browser_metadata.full_document = true
     end
 
+    -- Pass cleanup widgets so browser can close them when launching book text search
+    browser_metadata._cleanup_widgets = cleanup_widgets
+
     XrayBrowser:show(data, browser_metadata, ui, function()
         ActionCache.clearXrayCache(ui.document.file)
         UIManager:show(Notification:new{
@@ -4789,7 +4792,7 @@ end
 -- @param config table Configuration
 -- @param plugin table Plugin reference
 -- @param book_metadata table Book metadata
-local function showCrossSectionResults(grouped_results, query, ui, config, plugin, book_metadata)
+local function showCrossSectionResults(grouped_results, query, ui, config, plugin, book_metadata, cleanup_widgets)
     local Menu = require("ui/widget/menu")
     local XrayParser = require("koassistant_xray_parser")
 
@@ -4847,7 +4850,8 @@ local function showCrossSectionResults(grouped_results, query, ui, config, plugi
                     local data = XrayParser.parse(captured_group.cache_entry.result)
                     if not data then return end
                     local XrayBrowser = openXrayBrowserFromCache(
-                        ui, data, captured_group.cache_entry, config, plugin, book_metadata, best)
+                        ui, data, captured_group.cache_entry, config, plugin, book_metadata, best,
+                        cleanup_widgets)
                     XrayBrowser:showItemDetail(
                         captured_result.item, captured_result.category_key, captured_name)
                 end,
@@ -4871,6 +4875,12 @@ local function showCrossSectionResults(grouped_results, query, ui, config, plugi
         -- No close_callback (Menu calls it after EVERY item tap, not just X button)
         -- No onReturn (hides the return arrow; X button works via Menu's default onClose)
     }
+
+    -- Add results menu to cleanup list so browser can close it during book text search
+    if cleanup_widgets then
+        table.insert(cleanup_widgets, results_menu)
+    end
+
     UIManager:show(results_menu)
 end
 
@@ -4890,6 +4900,14 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
 
     local ActionCache = require("koassistant_action_cache")
     local doc = ui and ui.document
+
+    -- Build cleanup list: widgets to close when browser launches book text search.
+    -- Prevents dictionary popup and cross-section results from blocking search highlights.
+    local cleanup_widgets = {}
+    local source_widget = config and config.features and config.features._source_widget
+    if source_widget then
+        table.insert(cleanup_widgets, source_widget)
+    end
 
     -- Cross-section search: when multiple X-Rays exist and no override, search all
     if not override_best then
@@ -4926,7 +4944,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                 -- Fall through to existing single-X-Ray handling below
             else
                 -- Results in multiple X-Rays: show cross-section results
-                showCrossSectionResults(grouped, query, ui, config, plugin, book_metadata)
+                showCrossSectionResults(grouped, query, ui, config, plugin, book_metadata, cleanup_widgets)
                 return
             end
         end
@@ -5014,7 +5032,8 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         })
     else
         -- Open X-Ray browser directly
-        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best)
+        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best,
+            #cleanup_widgets > 0 and cleanup_widgets or nil)
 
         if #results == 1 then
             -- Single result: navigate directly to item detail
