@@ -1021,7 +1021,7 @@ function XrayBrowser:buildCategoryItems()
 
     -- Search
     table.insert(items, {
-        text = Constants.getEmojiText("🔍", _("Search"), enable_emoji),
+        text = Constants.getEmojiText("🔍", _("Search X-Ray"), enable_emoji),
         callback = function()
             self_ref:showSearch()
         end,
@@ -3410,50 +3410,213 @@ function XrayBrowser:showSearch()
     input_dialog:onShowKeyboard()
 end
 
+--- Count other X-Rays available for cross-search (excludes current browser's X-Ray).
+--- @return number count Number of other X-Rays
+function XrayBrowser:_countOtherXrays()
+    local book_file = self.metadata.book_file
+    if not book_file then return 0 end
+    local ActionCache = require("koassistant_action_cache")
+    local sections = ActionCache.getSectionXrays(book_file)
+    local main = ActionCache.getXrayCache(book_file)
+    local total = #sections + (main and main.result and 1 or 0)
+    return total > 1 and (total - 1) or 0
+end
+
+--- Open another X-Ray's browser from cross-section search results.
+--- @param group table A result group from searchAllXrays()
+--- @param result table A search result item to navigate to
+function XrayBrowser:_openOtherXrayAtItem(group, result)
+    local data = XrayParser.parse(group.cache_entry.result)
+    if not data then return end
+    local ActionCache = require("koassistant_action_cache")
+
+    -- Merge user aliases
+    if self.metadata.book_file then
+        local user_aliases = ActionCache.getUserAliases(self.metadata.book_file)
+        if next(user_aliases) then
+            XrayParser.mergeUserAliases(data, user_aliases)
+        end
+    end
+
+    -- Build scope for section X-Rays
+    local scope = nil
+    if group.is_section then
+        scope = {
+            label = group.label,
+            start_page = group.cache_entry.scope_start_page,
+            end_page = group.cache_entry.scope_end_page,
+            page_summary = group.scope_summary or group.cache_entry.scope_page_summary,
+            cache_key = group.key,
+        }
+    end
+
+    local ce = group.cache_entry
+    local browser_metadata = {
+        title = self.metadata.title,
+        progress = ce.progress_decimal and (math.floor(ce.progress_decimal * 100 + 0.5) .. "%"),
+        model = ce.model,
+        timestamp = ce.timestamp,
+        book_file = self.metadata.book_file,
+        enable_emoji = self.metadata.enable_emoji,
+        configuration = self.metadata.configuration,
+        plugin = self.metadata.plugin,
+        progress_decimal = ce.progress_decimal,
+        full_document = ce.full_document,
+        scope = scope,
+    }
+
+    -- XrayBrowser is a singleton — close current browser before opening the new one.
+    -- User returns to the book when they close the new browser.
+    if self.menu then
+        UIManager:close(self.menu)
+    end
+    self:show(data, browser_metadata, self.ui)
+    local item_name = XrayParser.getItemName(result.item, result.category_key)
+    self:showItemDetail(result.item, result.category_key, item_name)
+end
+
+--- Show cross-section search results (searches all OTHER X-Rays, navigates forward).
+--- @param query string The search query
+function XrayBrowser:_showCrossXrayResults(query)
+    local ActionCache = require("koassistant_action_cache")
+    local book_file = self.metadata.book_file
+    if not book_file then return end
+
+    UIManager:show(Notification:new{
+        text = _("Searching other X-Rays…"),
+    })
+    local self_ref = self
+    UIManager:scheduleIn(0.1, function()
+        local doc = self_ref.ui and self_ref.ui.document
+        local grouped = ActionCache.searchAllXrays(book_file, query, doc)
+
+        -- Exclude current X-Ray from results
+        local my_key = (self_ref.scope and self_ref.scope.cache_key) or "_xray_cache"
+        local filtered = {}
+        for _idx, group in ipairs(grouped) do
+            if group.key ~= my_key then
+                filtered[#filtered + 1] = group
+            end
+        end
+
+        if #filtered == 0 then
+            UIManager:show(InfoMessage:new{
+                text = T(_("No results for \"%1\" in other X-Rays."), query),
+                timeout = 3,
+            })
+            return
+        end
+
+        -- Build grouped results view
+        local items = {}
+        local total_results = 0
+        for _idx, group in ipairs(filtered) do
+            total_results = total_results + #group.results
+
+            -- Section header
+            local header_label
+            if not group.is_section then
+                header_label = _("Main X-Ray")
+            else
+                header_label = group.label or ""
+                if group.scope_summary and group.scope_summary ~= "" then
+                    header_label = header_label .. " (" .. group.scope_summary .. ")"
+                end
+            end
+            table.insert(items, {
+                text = header_label,
+                bold = group.in_range,
+                separator = true,
+                callback = function() end,
+            })
+
+            -- Result items
+            for _idx2, result in ipairs(group.results) do
+                local item_name = XrayParser.getItemName(result.item, result.category_key)
+                local match_label = result.category_label
+                if result.match_field == "alias" then
+                    match_label = match_label .. " (" .. _("alias") .. ")"
+                elseif result.match_field == "description" then
+                    match_label = match_label .. " (" .. _("desc.") .. ")"
+                end
+                local captured_group = group
+                local captured_result = result
+                table.insert(items, {
+                    text = "  " .. item_name,
+                    mandatory = match_label,
+                    mandatory_dim = true,
+                    callback = function()
+                        self_ref:_openOtherXrayAtItem(captured_group, captured_result)
+                    end,
+                })
+            end
+        end
+
+        local title = T(_("Other X-Rays: \"%1\" (%2 across %3)"),
+            query, total_results, #filtered)
+        self_ref:navigateForward(title, items)
+    end)
+end
+
 --- Show search results (navigates forward)
 --- @param query string The search query
 function XrayBrowser:showSearchResults(query)
     local results = XrayParser.searchAll(self.xray_data, query)
 
-    if #results == 0 then
-        UIManager:show(InfoMessage:new{
-            text = T(_("No results for \"%1\"."), query),
-            timeout = 3,
-        })
-        return
-    end
-
     local items = {}
     local self_ref = self
 
-    -- Build nav entries for prev/next navigation in detail view
-    local nav_entries = {}
-    for _idx, result in ipairs(results) do
-        table.insert(nav_entries, {
-            item = result.item,
-            category_key = result.category_key,
-            name = XrayParser.getItemName(result.item, result.category_key),
+    if #results == 0 then
+        -- Dimmed "no results" message
+        table.insert(items, {
+            text = _("No results in this X-Ray"),
+            dim = true,
+            callback = function() end,
         })
-    end
-
-    for _idx, result in ipairs(results) do
-        local nav_entry = nav_entries[_idx]
-        local match_label = result.category_label
-        if result.match_field == "alias" then
-            match_label = match_label .. " (" .. _("alias") .. ")"
-        elseif result.match_field == "description" then
-            match_label = match_label .. " (" .. _("desc.") .. ")"
+    else
+        -- Build nav entries for prev/next navigation in detail view
+        local nav_entries = {}
+        for _idx, result in ipairs(results) do
+            table.insert(nav_entries, {
+                item = result.item,
+                category_key = result.category_key,
+                name = XrayParser.getItemName(result.item, result.category_key),
+            })
         end
 
-        local captured_idx = _idx
+        for _idx, result in ipairs(results) do
+            local nav_entry = nav_entries[_idx]
+            local match_label = result.category_label
+            if result.match_field == "alias" then
+                match_label = match_label .. " (" .. _("alias") .. ")"
+            elseif result.match_field == "description" then
+                match_label = match_label .. " (" .. _("desc.") .. ")"
+            end
+
+            local captured_idx = _idx
+            table.insert(items, {
+                text = nav_entry.name,
+                mandatory = match_label,
+                mandatory_dim = true,
+                callback = function()
+                    self_ref:showItemDetail(nav_entry.item, nav_entry.category_key, nav_entry.name, nil, {
+                        entries = nav_entries, index = captured_idx,
+                    })
+                end,
+            })
+        end
+    end
+
+    -- "Search other X-Rays" button when others exist
+    local other_count = self:_countOtherXrays()
+    if other_count > 0 then
+        local captured_query = query
         table.insert(items, {
-            text = nav_entry.name,
-            mandatory = match_label,
-            mandatory_dim = true,
+            text = T(_("Search other X-Rays (%1)"), other_count),
+            bold = true,
+            separator = true,
             callback = function()
-                self_ref:showItemDetail(nav_entry.item, nav_entry.category_key, nav_entry.name, nil, {
-                    entries = nav_entries, index = captured_idx,
-                })
+                self_ref:_showCrossXrayResults(captured_query)
             end,
         })
     end
