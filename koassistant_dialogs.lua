@@ -4814,9 +4814,12 @@ local function showCrossSectionResults(grouped_results, query, ui, config, plugi
                 header_label = header_label .. " (" .. group.scope_summary .. ")"
             end
         end
+        if group.in_range then
+            header_label = "▸ " .. header_label
+        end
         table.insert(items, {
             text = header_label,
-            bold = group.in_range,
+            bold = true,
             dim = false,
             separator = true,
             callback = function() end, -- non-tappable but needs callback for Menu

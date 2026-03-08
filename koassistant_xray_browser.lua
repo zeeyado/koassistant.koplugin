@@ -3533,9 +3533,12 @@ function XrayBrowser:_showCrossXrayResults(query)
                     header_label = header_label .. " (" .. group.scope_summary .. ")"
                 end
             end
+            if group.in_range then
+                header_label = "▸ " .. header_label
+            end
             table.insert(items, {
                 text = header_label,
-                bold = group.in_range,
+                bold = true,
                 separator = true,
                 callback = function() end,
             })
@@ -3576,6 +3579,26 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
 
     local items = {}
     local self_ref = self
+
+    -- Show X-Ray identity header when launched from external lookup
+    -- (user needs to know which X-Ray these results are from)
+    if skip_cross_search then
+        local header
+        if self.scope then
+            header = self.scope.label or ""
+            if self.scope.page_summary and self.scope.page_summary ~= "" then
+                header = header .. " (" .. self.scope.page_summary .. ")"
+            end
+        else
+            header = _("Main X-Ray")
+        end
+        table.insert(items, {
+            text = header,
+            bold = true,
+            separator = true,
+            callback = function() end,
+        })
+    end
 
     if #results == 0 then
         -- Dimmed "no results" message
