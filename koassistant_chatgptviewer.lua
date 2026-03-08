@@ -2175,7 +2175,7 @@ function ChatGPTViewer:init()
                   end
                   if #sec_buttons > 0 then
                     self._section_group_dialog = ButtonDialog:new{
-                      title = _("Section X-Rays"),
+                      title = _("View Section X-Rays"),
                       buttons = sec_buttons,
                     }
                     UIManager:show(self._section_group_dialog)

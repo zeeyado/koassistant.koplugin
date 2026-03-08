@@ -4677,6 +4677,36 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
           on_update()
         end,
       }})
+      -- Surface in-range section artifacts
+      local doc = self.ui and self.ui.document
+      if doc then
+        local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+        for _idx, sec in ipairs(in_range) do
+          local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+          local sec_parts = {}
+          if page_info and page_info ~= "" then
+            table.insert(sec_parts, page_info)
+          end
+          local sec_rel = formatRelativeTime(sec.data.timestamp)
+          if sec_rel ~= "" then
+            table.insert(sec_parts, sec_rel)
+          end
+          local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+          local captured_sec = sec
+          table.insert(nc_buttons, {{
+            text = T(_("View \"%1\""), sec.label) .. sec_detail,
+            callback = function()
+              UIManager:close(no_cache_dialog)
+              self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+                skip_stale_popup = true,
+                file = file,
+                section_key = captured_sec.key,
+                section_label = captured_sec.label,
+              })
+            end,
+          }})
+        end
+      end
       -- Existing sections
       local sec_count = ActionCache.getSectionCount(file, section_prefix)
       if sec_count > 0 then
@@ -5486,31 +5516,59 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       end,
     }})
     table.insert(buttons, {{
-      text = T(_("Generate %1 (entire document)"), action_name),
+      text = T(_("Generate Complete %1"), action_name),
       callback = function()
         UIManager:close(dialog)
         self_ref:_executeBookLevelActionDirect(action, action_id, { full_document = true })
       end,
     }})
-    -- Section X-Rays: list existing + new
+    -- Surface in-range section X-Rays + list existing + new
     local ActionCache = require("koassistant_action_cache")
     local sx_file = (self.ui and self.ui.document and self.ui.document.file)
         or (opts and opts.file)
     if sx_file then
+      local doc = self.ui and self.ui.document
+      if doc then
+        local in_range = ActionCache.findMatchingSections(sx_file, doc)
+        for _idx, sec in ipairs(in_range) do
+          local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+          local sec_parts = {}
+          if page_info and page_info ~= "" then
+            table.insert(sec_parts, page_info)
+          end
+          local sec_rel = formatRelativeTime(sec.data.timestamp)
+          if sec_rel ~= "" then
+            table.insert(sec_parts, sec_rel)
+          end
+          local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+          local captured_sec = sec
+          table.insert(buttons, {{
+            text = T(_("View \"%1\""), sec.label) .. sec_detail,
+            callback = function()
+              UIManager:close(dialog)
+              self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+                skip_stale_popup = true,
+                section_key = captured_sec.key,
+                section_label = captured_sec.label,
+              })
+            end,
+          }})
+        end
+      end
       local sx_count = ActionCache.getSectionXrayCount(sx_file)
       if sx_count > 0 then
         table.insert(buttons, {{
-          text = T(_("Section X-Rays (%1)"), sx_count),
+          text = T(_("View Section X-Rays (%1)"), sx_count),
           callback = function()
             UIManager:close(dialog)
             self_ref:_showSectionXrayList(opts)
           end,
         }})
       end
-      -- "New Section X-Ray..." only when book is open and has TOC
+      -- "Generate Section X-Ray..." only when book is open and has TOC
       if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
         table.insert(buttons, {{
-          text = _("New Section X-Ray…"),
+          text = _("Generate Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
             self_ref:_showSectionPicker(action)
@@ -5619,7 +5677,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       local sx_count = ActionCache.getSectionXrayCount(sx_file)
       if sx_count > 0 then
         table.insert(buttons, {{
-          text = T(_("Section X-Rays (%1)"), sx_count),
+          text = T(_("View Section X-Rays (%1)"), sx_count),
           callback = function()
             UIManager:close(dialog)
             self_ref:_showSectionXrayList(opts)
@@ -5628,7 +5686,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       end
       if self.ui and self.ui.toc and self.ui.toc.toc and #self.ui.toc.toc > 0 then
         table.insert(buttons, {{
-          text = _("New Section X-Ray…"),
+          text = _("Generate Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
             self_ref:_showSectionPicker(action)
@@ -6315,6 +6373,7 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
             local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
 
             if file and ActionCache.get(file, cache_key) then
+              -- Name-based duplicate: same name exists, offer to replace
               local confirm_dialog
               confirm_dialog = ButtonDialog:new{
                 title = T(_("A section '%1' already exists for %2. Replace it?"), label, action_label),
@@ -6336,7 +6395,34 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
               }
               UIManager:show(confirm_dialog)
             else
-              onNameConfirmed(label)
+              -- Scope-based duplicate: different name but same page range
+              local doc = self_ref.ui and self_ref.ui.document
+              local scope_match = file and doc and entry.start_page and entry.end_page
+                  and ActionCache.findBestSectionForScope(file, doc, prefix, entry.start_page, entry.end_page)
+              if scope_match and scope_match.key ~= cache_key then
+                local confirm_dialog
+                confirm_dialog = ButtonDialog:new{
+                  title = T(_("A %1 for this page range already exists: \"%2\". Create another?"), action_label, scope_match.label),
+                  buttons = {
+                    {{
+                      text = _("Create another"),
+                      callback = function()
+                        UIManager:close(confirm_dialog)
+                        onNameConfirmed(label)
+                      end,
+                    }},
+                    {{
+                      text = _("Cancel"),
+                      callback = function()
+                        UIManager:close(confirm_dialog)
+                      end,
+                    }},
+                  },
+                }
+                UIManager:show(confirm_dialog)
+              else
+                onNameConfirmed(label)
+              end
             end
           end,
         },
@@ -6496,7 +6582,7 @@ function AskGPT:_showSectionXrayList(opts)
   }})
 
   section_dialog = ButtonDialog:new{
-    title = T(_("Section X-Rays (%1)"), #sections),
+    title = T(_("View Section X-Rays (%1)"), #sections),
     buttons = buttons,
   }
   UIManager:show(section_dialog)
@@ -7001,38 +7087,68 @@ function AskGPT:executeBookLevelAction(action_id)
       local section_prefix = ActionCache.getSectionPrefix(action_id)
       local sec_count = section_prefix and file and ActionCache.getSectionCount(file, section_prefix) or 0
       if sec_count > 0 then
-        -- Show Sections / New popup
+        -- Show surfaced sections / Sections group / New popup
         local action_name = action.text or action_id
         local ButtonDialog = require("ui/widget/buttondialog")
         local nc_dialog
-        nc_dialog = ButtonDialog:new{
-          title = action_name,
-          buttons = {
-            {{
-              text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+        local nc_buttons = {}
+        -- Surface in-range section artifacts
+        local doc = self.ui and self.ui.document
+        if section_prefix and file and doc then
+          local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+          for _idx, sec in ipairs(in_range) do
+            local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+            local sec_parts = {}
+            if page_info and page_info ~= "" then
+              table.insert(sec_parts, page_info)
+            end
+            local sec_rel = formatRelativeTime(sec.data.timestamp)
+            if sec_rel ~= "" then
+              table.insert(sec_parts, sec_rel)
+            end
+            local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+            local captured_sec = sec
+            table.insert(nc_buttons, {{
+              text = T(_("View \"%1\""), sec.label) .. sec_detail,
               callback = function()
                 UIManager:close(nc_dialog)
-                self_ref:_showSectionList(action, action_id)
-              end,
-            }},
-            {{
-              text = T(_("New %1…"), action_name),
-              callback = function()
-                UIManager:close(nc_dialog)
-                self_ref:_showUnifiedActionPopup(action, action_id, {
-                  on_execute = function(popup_state)
-                    self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
-                  end,
+                self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+                  skip_stale_popup = true,
+                  file = file,
+                  section_key = captured_sec.key,
+                  section_label = captured_sec.label,
                 })
               end,
-            }},
-            {{
-              text = _("Cancel"),
-              callback = function()
-                UIManager:close(nc_dialog)
+            }})
+          end
+        end
+        table.insert(nc_buttons, {{
+          text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+          callback = function()
+            UIManager:close(nc_dialog)
+            self_ref:_showSectionList(action, action_id)
+          end,
+        }})
+        table.insert(nc_buttons, {{
+          text = T(_("New %1…"), action_name),
+          callback = function()
+            UIManager:close(nc_dialog)
+            self_ref:_showUnifiedActionPopup(action, action_id, {
+              on_execute = function(popup_state)
+                self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
               end,
-            }},
-          },
+            })
+          end,
+        }})
+        table.insert(nc_buttons, {{
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(nc_dialog)
+          end,
+        }})
+        nc_dialog = ButtonDialog:new{
+          title = action_name,
+          buttons = nc_buttons,
         }
         UIManager:show(nc_dialog)
       else
@@ -7082,9 +7198,37 @@ function AskGPT:executeBookLevelAction(action_id)
           self_ref:viewCachedAction(action, action_id, cached)
         end,
       }})
-      -- Browse existing section artifacts (before "New" to group viewing options together)
+      -- Surface in-range section artifacts + browse all sections
       local section_prefix = ActionCache.getSectionPrefix(action_id)
       if section_prefix and file then
+        local doc = self.ui and self.ui.document
+        if doc then
+          local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+          for _idx, sec in ipairs(in_range) do
+            local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+            local sec_parts = {}
+            if page_info and page_info ~= "" then
+              table.insert(sec_parts, page_info)
+            end
+            local sec_rel = formatRelativeTime(sec.data.timestamp)
+            if sec_rel ~= "" then
+              table.insert(sec_parts, sec_rel)
+            end
+            local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+            local captured_sec = sec
+            table.insert(aa_buttons, {{
+              text = T(_("View \"%1\""), sec.label) .. sec_detail,
+              callback = function()
+                UIManager:close(dialog)
+                self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+                  skip_stale_popup = true,
+                  section_key = captured_sec.key,
+                  section_label = captured_sec.label,
+                })
+              end,
+            }})
+          end
+        end
         local sec_count = ActionCache.getSectionCount(file, section_prefix)
         if sec_count > 0 then
           table.insert(aa_buttons, {{

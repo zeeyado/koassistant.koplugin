@@ -849,7 +849,7 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
     end
 
     self._section_group_dialog = ButtonDialog:new{
-        title = _("Section X-Rays"),
+        title = _("View Section X-Rays"),
         buttons = buttons,
     }
     UIManager:show(self._section_group_dialog)
