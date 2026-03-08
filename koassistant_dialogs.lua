@@ -195,6 +195,37 @@ end
 -- This is context for disambiguation, not document extraction.
 local SURROUNDING_CONTEXT_MAX_CHARS = 2000
 
+-- string.sub operates on bytes, splitting multibyte UTF-8 chars
+local UTF8_CHAR_PATTERN = '[%z\1-\127\194-\253][\128-\191]*'
+
+local function utf8_first(str, n)
+    local count = 0
+    local byte_end = 0
+    for uchar in str:gmatch(UTF8_CHAR_PATTERN) do
+        count = count + 1
+        if count > n then
+            return str:sub(1, byte_end), true
+        end
+        byte_end = byte_end + #uchar
+    end
+    return str:sub(1, byte_end), false
+end
+
+local function utf8_last(str, n)
+    local offsets = {}
+    local count = 0
+    local pos = 1
+    for uchar in str:gmatch(UTF8_CHAR_PATTERN) do
+        count = count + 1
+        offsets[count] = pos
+        pos = pos + #uchar
+    end
+    if count <= n then
+        return str, false
+    end
+    return str:sub(offsets[count - n + 1]), true
+end
+
 local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
     mode = mode or "sentence"
 
@@ -232,13 +263,13 @@ local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
 
     if mode == "characters" then
         -- Return fixed character count before/after
-        local before = prev_context:sub(-char_count)
-        local after = next_context:sub(1, char_count)
+        local before, before_truncated = utf8_last(prev_context, char_count)
+        local after, after_truncated = utf8_first(next_context, char_count)
         -- Add ellipsis if text was truncated
-        if #prev_context > char_count then
+        if before_truncated then
             before = "..." .. before
         end
-        if #next_context > char_count then
+        if after_truncated then
             after = after .. "..."
         end
         return before .. " " .. word_marker .. " " .. after
@@ -248,12 +279,8 @@ local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
         local before = prev_context
         local after = next_context
         -- Truncate each side to half the max
-        if #before > max_per_side then
-            before = before:sub(-max_per_side)
-        end
-        if #after > max_per_side then
-            after = after:sub(1, max_per_side)
-        end
+        before = utf8_last(before, max_per_side)
+        after = utf8_first(after, max_per_side)
         -- Add ellipsis to indicate this is an excerpt
         if #before > 0 then
             before = "..." .. before
@@ -301,8 +328,10 @@ local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
         end
 
         -- Enforce hard cap on sentence mode result
-        if #result > SURROUNDING_CONTEXT_MAX_CHARS then
-            result = result:sub(1, SURROUNDING_CONTEXT_MAX_CHARS) .. "..."
+        local _truncated
+        result, _truncated = utf8_first(result, SURROUNDING_CONTEXT_MAX_CHARS)
+        if _truncated then
+            result = result .. "..."
         end
 
         return result
