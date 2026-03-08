@@ -21,8 +21,8 @@ local SIGN_PAT = string.char(0xD8) .. "[" .. string.char(0x90) .. "-" .. string.
 local QURAN_MARK_PAT1 = string.char(0xDB) .. "[" .. string.char(0x96) .. "-" .. string.char(0x9C) .. "]"
 -- Extended Quranic marks: U+06DE-U+06ED (includes U+06E1 small sukun)
 local QURAN_MARK_PAT2 = string.char(0xDB) .. "[" .. string.char(0x9E) .. "-" .. string.char(0xAD) .. "]"
--- Individual characters to strip
-local SUPERSCRIPT_ALEF = string.char(0xD9, 0xB0)  -- U+0670
+-- Individual characters to strip/replace
+local SUPERSCRIPT_ALEF = string.char(0xD9, 0xB0)  -- U+0670 (dagger alef → regular alef)
 local TATWEEL          = string.char(0xD9, 0x80)   -- U+0640
 local WORD_JOINER      = string.char(0xE2, 0x81, 0xA0) -- U+2060
 -- Alef normalization: variants → regular alef (U+0627)
@@ -31,6 +31,8 @@ local ALEF_WASLA       = string.char(0xD9, 0xB1)   -- U+0671
 local ALEF_MADDA       = string.char(0xD8, 0xA2)   -- U+0622
 local ALEF_HAMZA_ABOVE = string.char(0xD8, 0xA3)   -- U+0623
 local ALEF_HAMZA_BELOW = string.char(0xD8, 0xA5)   -- U+0625
+-- Tanwin fathah + alef: accusative ending ًا — strip before tashkeel removal
+local TANWIN_FATHAH_ALEF = string.char(0xD9, 0x8B, 0xD8, 0xA7) -- U+064B + U+0627
 
 --- Normalize Arabic text for fuzzy matching.
 --- Strips diacritical marks (tashkeel), Quranic annotation marks,
@@ -46,12 +48,15 @@ function XrayParser.normalizeArabic(str)
         and not str:find(ARABIC_QUICK_CHECK_DB, 1, true) then
         return str
     end
+    -- Strip tanwin fathah + alef (accusative ending ًا) before tashkeel removal,
+    -- so "نَارًا" normalizes to "نار" not "نارا"
+    str = str:gsub(TANWIN_FATHAH_ALEF, "")
     -- Strip combining marks
     str = str:gsub(TASHKEEL_PAT, "")
     str = str:gsub(SIGN_PAT, "")
     str = str:gsub(QURAN_MARK_PAT1, "")
     str = str:gsub(QURAN_MARK_PAT2, "")
-    str = str:gsub(SUPERSCRIPT_ALEF, "")
+    str = str:gsub(SUPERSCRIPT_ALEF, ALEF)
     str = str:gsub(TATWEEL, "")
     str = str:gsub(WORD_JOINER, "")
     -- Normalize alef variants to regular alef
@@ -109,7 +114,10 @@ local function arabicToRegex(normalized)
             local cp = (b - 0xC0) * 64 + (b2 - 0x80)
             if cp >= 0x0600 and cp <= 0x06FF then
                 if cp == 0x0627 then
-                    parts[#parts + 1] = SRELL_ALEF_CLASS .. SRELL_OPT_MARKS
+                    -- Alef: optional group — dagger alef (U+0670) in Quranic text
+                    -- is consumed by preceding OPT_MARKS, so the full alef letter
+                    -- may be absent. Making it optional lets "الغاشية" match "ٱلۡغَٰشِيَةِ".
+                    parts[#parts + 1] = "(?:" .. SRELL_ALEF_CLASS .. SRELL_OPT_MARKS .. ")?"
                 else
                     parts[#parts + 1] = string.format("\\u%04X", cp) .. SRELL_OPT_MARKS
                 end
@@ -1157,6 +1165,12 @@ function XrayParser.searchAll(data, query)
     local categories = XrayParser.getCategories(data)
     local query_lower = XrayParser.normalizeArabic(query:lower())
     local normalize = XrayParser.normalizeArabic
+    -- Arabic: also try ال-stripped query so "النار" finds "نار" and vice versa
+    local query_stripped = nil
+    if XrayParser.containsArabic(query_lower) then
+        local s = stripArabicArticle(query_lower)
+        if s ~= query_lower and #s > 2 then query_stripped = s end
+    end
     local results = {}
 
     for _idx, cat in ipairs(categories) do
@@ -1167,14 +1181,20 @@ function XrayParser.searchAll(data, query)
                 local match_field = nil
                 -- Check primary name/term/event
                 local name = item.name or item.term or item.event or ""
-                if name ~= "" and normalize(name:lower()):find(query_lower, 1, true) then
-                    match_field = "name"
+                if name ~= "" then
+                    local n = normalize(name:lower())
+                    if n:find(query_lower, 1, true)
+                        or (query_stripped and n:find(query_stripped, 1, true)) then
+                        match_field = "name"
+                    end
                 end
                 -- Check aliases
                 local i_aliases = ensure_array(item.aliases)
                 if not match_field and i_aliases then
                     for _idx3, alias in ipairs(i_aliases) do
-                        if normalize(alias:lower()):find(query_lower, 1, true) then
+                        local a = normalize(alias:lower())
+                        if a:find(query_lower, 1, true)
+                            or (query_stripped and a:find(query_stripped, 1, true)) then
                             match_field = "alias"
                             break
                         end
@@ -1183,8 +1203,12 @@ function XrayParser.searchAll(data, query)
                 -- Check description/definition/significance
                 if not match_field then
                     local desc = item.description or item.definition or item.significance or ""
-                    if desc ~= "" and normalize(desc:lower()):find(query_lower, 1, true) then
-                        match_field = "description"
+                    if desc ~= "" then
+                        local d = normalize(desc:lower())
+                        if d:find(query_lower, 1, true)
+                            or (query_stripped and d:find(query_stripped, 1, true)) then
+                            match_field = "description"
+                        end
                     end
                 end
                 if match_field then

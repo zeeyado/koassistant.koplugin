@@ -1173,7 +1173,7 @@ Generate 8-10 questions to test understanding. Present ALL questions first, then
 
 ### Multiple Choice (3-4 questions)
 Test recall of key facts, characters, or concepts.
-Format: Numbered question, options A-D. Do NOT indicate which option is correct.
+Format: Numbered question, options A-D in a bullet list. Do NOT indicate which option is correct.
 
 ### Short Answer (3-4 questions)
 Test understanding of themes, arguments, or motivations.
