@@ -576,7 +576,7 @@ Several actions let you choose which document source the AI uses when you trigge
 - **Use summary** — Uses a pre-generated summary (~2-8K tokens) instead of raw text. Much cheaper for repeated use or follow-up conversations. Requires generating the summary first via the Document Summary action. When scoped to a section, uses the section summary if available. If no summary exists, this option shows "(generate first)".
 - **AI knowledge only** — No document data sent. The AI uses its training knowledge of the work. Free and fast, but less accurate for obscure works.
 
-Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage.
+Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights, Document Summary, Document Analysis, Recap. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage. Document Summary and Document Analysis require text extraction (other sources are grayed out). Recap doesn't support section scoping (scope row is grayed with an explanation).
 
 **When to use each source:**
 - **Full text**: Short to medium documents, one-off queries, when you need the AI to work from the actual text
@@ -739,14 +739,15 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 **Section X-Rays** — focused X-Rays for individual chapters, parts, or sections of a book. Unlike the main X-Ray (which covers the whole document), Section X-Rays analyze only a specific page range chosen from the book's table of contents. You can have multiple Section X-Rays per book alongside the main X-Ray — each is independent and stored separately.
 
 **How to create a Section X-Ray:**
-1. From the X-Ray scope popup, tap **"New Section X-Ray..."**
+1. From the X-Ray scope popup, tap **"Generate Section X-Ray…"**
 2. A hierarchical TOC picker shows all chapters/parts — tap the section you want
 3. Optionally rename it (defaults to the TOC entry title, 30-character limit)
 4. The AI analyzes only the text within that page range and produces a complete X-Ray
 
 **How to browse Section X-Rays:**
-- From the X-Ray scope popup → **"Section X-Rays (N)"** — lists all sections with page ranges and timestamps
-- From **View Artifacts** (Quick Actions, file browser, artifact browser) → **"Section X-Rays (N)"** group
+- From the X-Ray scope popup → **"View Section X-Rays (N)"** — lists all sections with page ranges and timestamps
+- If you're currently reading within a section's page range, a **"View 'Section Name' (pp X–Y, Nd ago)"** button appears directly in the popup for quick access
+- From **View Artifacts** (Quick Actions, file browser, artifact browser) → **"View Section X-Rays (N)"** group
 - Tap any entry to open it in the X-Ray browser; hold for rename/delete options
 
 **Section X-Ray browsing differences:**
@@ -764,7 +765,7 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 <a id="section-support"></a>
 
-**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. For actions with [source selection](#source-selection), scope and source are combined in a single unified popup — tap "Pick section…" to choose via a hierarchical TOC picker. For other actions (Document Summary, Document Analysis, X-Ray), the action's own popup offers section options. Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser alongside the main artifact. A "Saved as artifact" toast confirms when a section artifact is cached. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Sections are ideal for collected works, textbooks, or long documents where analyzing a specific part saves tokens and produces more focused results. Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
+**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. Scope and source are combined in a single unified popup — tap "Pick section…" to choose via a hierarchical TOC picker. For X-Ray, the action's own popup offers section options (see [Section X-Rays](#section-x-rays)). Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser. When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the action popup. Naming a section with the same page range as an existing one replaces the old entry. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -2594,11 +2595,9 @@ X-Ray and Recap responses are automatically cached per book. For **incremental**
 
 **Complete X-Ray caching:** Complete (entire document) X-Rays are cached like any other, but they don't support incremental updates. Redoing a complete X-Ray always generates fresh from the full document. The cache is labeled "Complete" instead of a percentage.
 
-**Section X-Ray caching:** Section X-Rays are stored with a `_xray_section:` prefix alongside the main X-Ray cache. Each is independent — you can have multiple Section X-Rays per book plus the main X-Ray. Section X-Rays are always complete (no incremental updates) since they analyze a bounded page range. They store XPointers for font-size-independent page reconversion (EPUB only). When viewing artifacts with a book open, section X-Rays whose scope includes the current reading position are promoted to top-level entries in the artifact selector — no need to tap into the "Section X-Rays (N)" group to reach the relevant one.
+**Section X-Ray caching:** Section X-Rays are stored with a `_xray_section:` prefix alongside the main X-Ray cache. Each is independent — you can have multiple Section X-Rays per book plus the main X-Ray. Section X-Rays are always complete (no incremental updates) since they analyze a bounded page range. They store XPointers for font-size-independent page reconversion (EPUB only). When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the X-Ray popup (both cached and no-cache states). All sections are also browsable via the "View Section X-Rays (N)" group button.
 
-**Direct-to-viewer:** When any X-Ray cache covers 100% — whether complete, incremental updated to 100%, or simply read to the end — tapping X-Ray goes directly to the browser viewer with no scope popup. Redo is available in the browser's options menu (☰).
-
-The View/Update popup appears everywhere you can trigger an artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis): Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate X-Ray (entire document)". For non-incremental actions (Summarize, Analyze, X-Ray (Simple)), the popup shows "View" and "Redo" (since there's nothing to incrementally update).
+The View/Update popup appears everywhere you can trigger an artifact action: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate Complete X-Ray". For non-incremental actions (Summarize, Analyze, X-Ray (Simple)), the popup shows "View" and "Redo" (since there's nothing to incrementally update). All action popups also surface in-range section artifacts — if you're reading within a section's page range, a quick-access "View" button appears directly in the popup.
 
 **Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position. Stale notifications don't appear for 100% caches (reader is always at or behind the cache).
 
@@ -2632,7 +2631,7 @@ The View/Update popup appears everywhere you can trigger an artifact action (X-R
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-Eleven actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes) open directly in an artifact viewer. Four auto-artifact actions (Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights) open in the chat viewer but silently cache the first response as a browsable artifact. Additionally, **Section X-Rays** and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
+Eleven actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes) open directly in an artifact viewer. Four auto-artifact actions (Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights) open in the chat viewer but silently cache the first response as a browsable artifact. Additionally, **section artifacts** (Section X-Rays, Section Summaries, Section Analyses, etc.) and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
 
 ### Document Artifacts
 
@@ -2665,7 +2664,7 @@ Beyond these eleven generated artifacts, you can **pin any chat's last response 
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Top sections**: General Pinned and Multi-Book Pinned appear at the top when pinned artifacts exist in those contexts
   - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
-  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus section groups ("Section X-Rays (N)", "Section Summaries (N)", etc.), "AI Wiki Entries (N)", and "Pinned Artifacts (N)" when they exist, plus "Open Book". When a book is open, section X-Rays covering the current page appear as top-level entries; remaining sections stay in the group. Group popups (sections, AI Wiki, Pinned) layer over the artifact selector — dismiss to return to the selector
+  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus section groups ("View Section X-Rays (N)", "View Section Summaries (N)", etc.), "AI Wiki Entries (N)", and "Pinned Artifacts (N)" when they exist, plus "Open Book". Group popups (sections, AI Wiki, Pinned) layer over the artifact selector — dismiss to return to the selector
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
