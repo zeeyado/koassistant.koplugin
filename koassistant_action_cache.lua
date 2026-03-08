@@ -475,7 +475,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
         end
         if count > 0 then
             table.insert(available, {
-                name = string.format(_("Section X-Rays (%d)"), #sections),
+                name = string.format(_("View Section X-Rays (%d)"), #sections),
                 key = "_xray_sections",
                 data = sections,
                 is_section_xray_group = true,
@@ -652,13 +652,13 @@ ActionCache.SECTION_PREFIXES = {
 
 -- Human-readable names for section group display (plural for group titles)
 ActionCache.SECTION_GROUP_NAMES = {
-    xray = _("Section X-Rays"),
-    summary = _("Section Summaries"),
-    analyze = _("Section Analyses"),
-    key_arguments = _("Section Key Arguments"),
-    discussion_questions = _("Section Discussion Questions"),
-    generate_quiz = _("Section Quizzes"),
-    extract_insights = _("Section Key Insights"),
+    xray = _("View Section X-Rays"),
+    summary = _("View Section Summaries"),
+    analyze = _("View Section Analyses"),
+    key_arguments = _("View Section Key Arguments"),
+    discussion_questions = _("View Section Discussion Questions"),
+    generate_quiz = _("View Section Quizzes"),
+    extract_insights = _("View Section Key Insights"),
 }
 
 -- Singular type labels for individual section viewer titles
