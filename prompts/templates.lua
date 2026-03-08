@@ -158,6 +158,8 @@ Be concise. For intellectual influences and lineage, the reader can use "Related
 - How the work reflects or responds to its historical moment
 - Its historical significance or impact
 
+Adapt to the work's nature — a novel reflects its era differently than a manifesto, a religious text, or a research paper.
+
 {hallucination_nudge}]],
 }
 
