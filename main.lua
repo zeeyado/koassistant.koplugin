@@ -6657,7 +6657,13 @@ end
 function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   -- Route to document cache viewer for actions that write to document caches
   if action.cache_as_xray then
-    local info = { name = "X-Ray", key = "_xray_cache", data = cached_entry }
+    local name = "X-Ray"
+    local key = "_xray_cache"
+    if opts and opts.section_label then
+      name = T(_("Section X-Ray: %1"), opts.section_label)
+      key = opts.section_key
+    end
+    local info = { name = name, key = key, data = cached_entry }
     if opts then info.file = opts.file; info.book_title = opts.book_title; info.book_author = opts.book_author end
     if opts and opts.skip_stale_popup then info.skip_stale_popup = true end
     self:showCacheViewer(info)

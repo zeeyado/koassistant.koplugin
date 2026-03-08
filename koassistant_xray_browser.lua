@@ -936,6 +936,8 @@ function XrayBrowser:_getChapterText(chapter)
         local NBSP        = string.char(0xC2, 0xA0)   -- U+00A0: non-breaking space
         local ZWSP        = string.char(0xE2, 0x80, 0x8B) -- U+200B: zero-width space
         lower = lower:gsub(SOFT_HYPHEN, ""):gsub(NBSP, " "):gsub(ZWSP, "")
+        -- Normalize Arabic diacritics for fuzzy matching (no-op on non-Arabic text)
+        lower = XrayParser.normalizeArabic(lower)
     end
     self._text_cache[key] = { raw = raw, lower = lower }
     return raw, lower
@@ -1034,7 +1036,13 @@ function XrayBrowser:buildCategoryItems()
             table.insert(items, {
                 text = Constants.getEmojiText("📋", label, enable_emoji),
                 callback = function()
-                    self_ref:_openArtifact(art)
+                    -- Fetch fresh in case new artifacts were created while browser is open
+                    local fresh = self_ref:_getAvailableArtifacts()
+                    if #fresh == 1 then
+                        self_ref:_openArtifact(fresh[1])
+                    elseif #fresh > 1 then
+                        self_ref:_showOtherArtifacts(fresh)
+                    end
                 end,
             })
         else
@@ -1042,7 +1050,9 @@ function XrayBrowser:buildCategoryItems()
                 text = Constants.getEmojiText("📋", _("Other Artifacts") .. "…", enable_emoji),
                 mandatory = tostring(#artifacts),
                 callback = function()
-                    self_ref:_showOtherArtifacts(artifacts)
+                    -- Fetch fresh in case new artifacts were created while browser is open
+                    local fresh = self_ref:_getAvailableArtifacts()
+                    self_ref:_showOtherArtifacts(fresh)
                 end,
             })
         end
@@ -1084,7 +1094,13 @@ function XrayBrowser:navigateBack()
 
     -- Remove from paths so back arrow disables when we reach root
     table.remove(self.menu.paths)
-    self.menu:switchItemTable(prev.title, prev.items)
+    if #self.nav_stack == 0 then
+        -- Back at root — rebuild to reflect any new artifacts (wiki, pins)
+        local fresh_items = self:buildCategoryItems()
+        self.menu:switchItemTable(self:buildMainTitle(), fresh_items, -1)
+    else
+        self.menu:switchItemTable(prev.title, prev.items)
+    end
 
     -- Reopen item detail TextViewer if distribution was entered from one
     if prev.reopen_detail then
@@ -3214,13 +3230,23 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
         self.current_title = title
         self.menu:switchItemTable(title, items, data._focus_idx)
     else
-        -- For section X-Rays, scroll to first in-scope chapter
+        -- For section X-Rays, scroll to current chapter (or first in-scope)
         local initial_focus
         if self.scope and not data._focus_idx then
+            -- Prefer current reading chapter
             for i, chapter in ipairs(chapters) do
-                if not chapter.out_of_scope and chapter_to_item[i] then
+                if chapter.is_current and chapter_to_item[i] then
                     initial_focus = chapter_to_item[i]
                     break
+                end
+            end
+            -- Fall back to first in-scope chapter
+            if not initial_focus then
+                for i, chapter in ipairs(chapters) do
+                    if not chapter.out_of_scope and chapter_to_item[i] then
+                        initial_focus = chapter_to_item[i]
+                        break
+                    end
                 end
             end
         end

@@ -476,6 +476,7 @@ Write in an encyclopedic tone: factual, neutral, well-organized. Prioritize accu
         requires_xray_cache = true,
         in_highlight_menu = 2,
         in_dictionary_popup = 6,
+        exclude_from_compact = true,
         no_duplicate = true,
         builtin = true,
     },

@@ -1818,7 +1818,8 @@ function ChatGPTViewer:init()
     if action_service then
       local all_dict_actions = action_service:getDictionaryPopupActionObjects(true)
       for _i, action in ipairs(all_dict_actions) do
-        if not current_action or action.id ~= current_action.id then
+        if (not current_action or action.id ~= current_action.id)
+            and not action.exclude_from_compact then
           table.insert(other_actions, action)
         end
       end

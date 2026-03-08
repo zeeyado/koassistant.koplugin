@@ -8,6 +8,60 @@ local _ = require("koassistant_gettext")
 
 local XrayParser = {}
 
+-- Arabic diacritics normalization constants (built once)
+-- All use string.char() for Lua 5.1 compatibility (no \xNN escapes)
+local ARABIC_QUICK_CHECK_D8 = string.char(0xD8)
+local ARABIC_QUICK_CHECK_D9 = string.char(0xD9)
+local ARABIC_QUICK_CHECK_DB = string.char(0xDB)
+-- Tashkeel: U+064B-U+065F (fathah, dammah, kasrah, shadda, sukun, etc.)
+local TASHKEEL_PAT = string.char(0xD9) .. "[" .. string.char(0x8B) .. "-" .. string.char(0x9F) .. "]"
+-- Quranic annotation signs: U+0610-U+061A
+local SIGN_PAT = string.char(0xD8) .. "[" .. string.char(0x90) .. "-" .. string.char(0x9A) .. "]"
+-- Quranic marks: U+06D6-U+06DC
+local QURAN_MARK_PAT1 = string.char(0xDB) .. "[" .. string.char(0x96) .. "-" .. string.char(0x9C) .. "]"
+-- Extended Quranic marks: U+06DE-U+06ED (includes U+06E1 small sukun)
+local QURAN_MARK_PAT2 = string.char(0xDB) .. "[" .. string.char(0x9E) .. "-" .. string.char(0xAD) .. "]"
+-- Individual characters to strip
+local SUPERSCRIPT_ALEF = string.char(0xD9, 0xB0)  -- U+0670
+local TATWEEL          = string.char(0xD9, 0x80)   -- U+0640
+local WORD_JOINER      = string.char(0xE2, 0x81, 0xA0) -- U+2060
+-- Alef normalization: variants → regular alef (U+0627)
+local ALEF             = string.char(0xD8, 0xA7)   -- U+0627 regular alef
+local ALEF_WASLA       = string.char(0xD9, 0xB1)   -- U+0671
+local ALEF_MADDA       = string.char(0xD8, 0xA2)   -- U+0622
+local ALEF_HAMZA_ABOVE = string.char(0xD8, 0xA3)   -- U+0623
+local ALEF_HAMZA_BELOW = string.char(0xD8, 0xA5)   -- U+0625
+
+--- Normalize Arabic text for fuzzy matching.
+--- Strips diacritical marks (tashkeel), Quranic annotation marks,
+--- and normalizes alef variants to regular alef.
+--- No-op on non-Arabic text (fast byte check).
+--- @param str string Input string (typically already lowered)
+--- @return string Normalized string
+function XrayParser.normalizeArabic(str)
+    if not str or str == "" then return str end
+    -- Quick check: skip if no Arabic-range leading bytes present
+    if not str:find(ARABIC_QUICK_CHECK_D8, 1, true)
+        and not str:find(ARABIC_QUICK_CHECK_D9, 1, true)
+        and not str:find(ARABIC_QUICK_CHECK_DB, 1, true) then
+        return str
+    end
+    -- Strip combining marks
+    str = str:gsub(TASHKEEL_PAT, "")
+    str = str:gsub(SIGN_PAT, "")
+    str = str:gsub(QURAN_MARK_PAT1, "")
+    str = str:gsub(QURAN_MARK_PAT2, "")
+    str = str:gsub(SUPERSCRIPT_ALEF, "")
+    str = str:gsub(TATWEEL, "")
+    str = str:gsub(WORD_JOINER, "")
+    -- Normalize alef variants to regular alef
+    str = str:gsub(ALEF_WASLA, ALEF)
+    str = str:gsub(ALEF_MADDA, ALEF)
+    str = str:gsub(ALEF_HAMZA_ABOVE, ALEF)
+    str = str:gsub(ALEF_HAMZA_BELOW, ALEF)
+    return str
+end
+
 -- AI responses sometimes return strings for array fields. Normalize to table.
 local function ensure_array(val)
     if type(val) == "table" then return val end
@@ -216,6 +270,11 @@ function XrayParser.countItemOccurrences(item, text_lower)
         end
     end
 
+    -- Normalize terms for Arabic diacritics matching
+    for i = 1, #terms do
+        terms[i] = XrayParser.normalizeArabic(terms[i])
+    end
+
     -- Collect all match spans from all terms
     local all_spans = {}
     for _idx, term in ipairs(terms) do
@@ -290,7 +349,8 @@ function XrayParser.resolveConnection(data, connection_string)
     if not name_portion or name_portion == "" then return nil end
 
     local categories = XrayParser.getCategories(data)
-    local name_lower = name_portion:lower()
+    local normalize = XrayParser.normalizeArabic
+    local name_lower = normalize(name_portion:lower())
 
     -- Build flat list of searchable items with their category keys
     -- Skip singleton categories (current_state, current_position, reader_engagement)
@@ -308,7 +368,7 @@ function XrayParser.resolveConnection(data, connection_string)
     -- Pass 1: exact name match (name, term, or event)
     for _idx, entry in ipairs(searchable) do
         local item_name = getItemSearchName(entry.item)
-        if item_name and item_name:lower() == name_lower then
+        if item_name and normalize(item_name:lower()) == name_lower then
             return { item = entry.item, category_key = entry.category_key,
                      name_portion = name_portion, relationship = relationship }
         end
@@ -319,7 +379,7 @@ function XrayParser.resolveConnection(data, connection_string)
         local aliases = ensure_array(entry.item.aliases)
         if aliases then
             for _idx2, alias in ipairs(aliases) do
-                if alias:lower() == name_lower then
+                if normalize(alias:lower()) == name_lower then
                     return { item = entry.item, category_key = entry.category_key,
                              name_portion = name_portion, relationship = relationship }
                 end
@@ -330,7 +390,7 @@ function XrayParser.resolveConnection(data, connection_string)
     -- Pass 3: substring match on name (e.g., "Elizabeth" matches "Elizabeth Bennet")
     for _idx, entry in ipairs(searchable) do
         local item_name = getItemSearchName(entry.item)
-        if item_name and item_name:lower():find(name_lower, 1, true) then
+        if item_name and normalize(item_name:lower()):find(name_lower, 1, true) then
             return { item = entry.item, category_key = entry.category_key,
                      name_portion = name_portion, relationship = relationship }
         end
@@ -923,14 +983,15 @@ function XrayParser.searchCharacters(data, query)
     local characters = XrayParser.getCharacters(data)
     if not characters or #characters == 0 then return {} end
 
-    local query_lower = query:lower()
+    local query_lower = XrayParser.normalizeArabic(query:lower())
     local results = {}
 
+    local normalize = XrayParser.normalizeArabic
     for _idx, char in ipairs(characters) do
         local match_field = nil
 
         -- Check name (highest priority)
-        if char.name and char.name:lower():find(query_lower, 1, true) then
+        if char.name and normalize(char.name:lower()):find(query_lower, 1, true) then
             match_field = "name"
         end
 
@@ -938,7 +999,7 @@ function XrayParser.searchCharacters(data, query)
         local s_aliases = ensure_array(char.aliases)
         if not match_field and s_aliases then
             for _idx2, alias in ipairs(s_aliases) do
-                if alias:lower():find(query_lower, 1, true) then
+                if normalize(alias:lower()):find(query_lower, 1, true) then
                     match_field = "alias"
                     break
                 end
@@ -947,7 +1008,7 @@ function XrayParser.searchCharacters(data, query)
 
         -- Check description (lowest priority)
         if not match_field and char.description then
-            if char.description:lower():find(query_lower, 1, true) then
+            if normalize(char.description:lower()):find(query_lower, 1, true) then
                 match_field = "description"
             end
         end
@@ -974,7 +1035,8 @@ function XrayParser.searchAll(data, query)
     if not query or query == "" then return {} end
 
     local categories = XrayParser.getCategories(data)
-    local query_lower = query:lower()
+    local query_lower = XrayParser.normalizeArabic(query:lower())
+    local normalize = XrayParser.normalizeArabic
     local results = {}
 
     for _idx, cat in ipairs(categories) do
@@ -985,14 +1047,14 @@ function XrayParser.searchAll(data, query)
                 local match_field = nil
                 -- Check primary name/term/event
                 local name = item.name or item.term or item.event or ""
-                if name ~= "" and name:lower():find(query_lower, 1, true) then
+                if name ~= "" and normalize(name:lower()):find(query_lower, 1, true) then
                     match_field = "name"
                 end
                 -- Check aliases
                 local i_aliases = ensure_array(item.aliases)
                 if not match_field and i_aliases then
                     for _idx3, alias in ipairs(i_aliases) do
-                        if alias:lower():find(query_lower, 1, true) then
+                        if normalize(alias:lower()):find(query_lower, 1, true) then
                             match_field = "alias"
                             break
                         end
@@ -1001,7 +1063,7 @@ function XrayParser.searchAll(data, query)
                 -- Check description/definition/significance
                 if not match_field then
                     local desc = item.description or item.definition or item.significance or ""
-                    if desc ~= "" and desc:lower():find(query_lower, 1, true) then
+                    if desc ~= "" and normalize(desc:lower()):find(query_lower, 1, true) then
                         match_field = "description"
                     end
                 end
@@ -1036,7 +1098,7 @@ function XrayParser.findItemsInChapter(data, chapter_text)
     local categories = XrayParser.getCategories(data)
     if not categories or #categories == 0 then return {} end
 
-    local text_lower = chapter_text:lower()
+    local text_lower = XrayParser.normalizeArabic(chapter_text:lower())
     local results = {}
 
     for _idx, cat in ipairs(categories) do
@@ -1073,7 +1135,7 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     local characters = XrayParser.getCharacters(data)
     if not characters or #characters == 0 then return {} end
 
-    local text_lower = chapter_text:lower()
+    local text_lower = XrayParser.normalizeArabic(chapter_text:lower())
     local results = {}
 
     for _idx, char in ipairs(characters) do
