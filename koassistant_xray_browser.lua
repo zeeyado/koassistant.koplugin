@@ -3202,18 +3202,22 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                                     buttons = buttons,
                                 }
                                 UIManager:show(self_ref._search_picker)
-                            elseif can_regex and #alias_terms > 0 then
-                                -- EPUB: regex OR pattern with all terms
-                                local function esc(s)
-                                    return s:gsub("([%.%+%*%?%[%]%^%$%(%)%{%}%|\\])", "\\%1")
+                            elseif can_regex and (#alias_terms > 0
+                                    or XrayParser.containsArabic(search_name)) then
+                                -- EPUB: build regex pattern
+                                -- For Arabic terms: diacritics-tolerant regex so
+                                -- "الفلق" matches "ٱلْفَلَقِ" in diacritized text
+                                local function buildTerm(s)
+                                    return XrayParser.buildArabicSearchRegex(s)
+                                        or s:gsub("([%.%+%*%?%[%]%^%$%(%)%{%}%|\\])", "\\%1")
                                 end
-                                local pattern = esc(search_name)
+                                local pattern = buildTerm(search_name)
                                 for _idx2, a in ipairs(alias_terms) do
-                                    pattern = pattern .. "|" .. esc(a)
+                                    pattern = pattern .. "|" .. buildTerm(a)
                                 end
                                 navigateAndSearch(pattern, true)
                             else
-                                -- No aliases or single term: plain search
+                                -- Non-Arabic single term or PDF: plain search
                                 navigateAndSearch(search_name, false)
                             end
                         end
