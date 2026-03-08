@@ -475,7 +475,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
         end
         if count > 0 then
             table.insert(available, {
-                name = string.format(_("View Section X-Rays (%d)"), #sections),
+                name = string.format(_("View Section X-Rays (%d)"), count),
                 key = "_xray_sections",
                 data = sections,
                 is_section_xray_group = true,
@@ -504,7 +504,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
                 end
                 if type_count > 0 then
                     table.insert(available, {
-                        name = string.format("%s (%d)", ActionCache.SECTION_GROUP_NAMES[sec_type] or sec_type, #type_sections),
+                        name = string.format("%s (%d)", ActionCache.SECTION_GROUP_NAMES[sec_type] or sec_type, type_count),
                         key = "_" .. sec_type .. "_sections",
                         data = type_sections,
                         is_section_group = true,
