@@ -6395,19 +6395,21 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
               }
               UIManager:show(confirm_dialog)
             else
-              -- Scope-based duplicate: different name but same page range
+              -- Scope-based duplicate: different name but same page range — replace old entry
               local doc = self_ref.ui and self_ref.ui.document
               local scope_match = file and doc and entry.start_page and entry.end_page
                   and ActionCache.findBestSectionForScope(file, doc, prefix, entry.start_page, entry.end_page)
               if scope_match and scope_match.key ~= cache_key then
                 local confirm_dialog
                 confirm_dialog = ButtonDialog:new{
-                  title = T(_("A %1 for this page range already exists: \"%2\". Create another?"), action_label, scope_match.label),
+                  title = T(_("A %1 for this page range already exists: \"%2\". Replace it?"), action_label, scope_match.label),
                   buttons = {
                     {{
-                      text = _("Create another"),
+                      text = _("Replace"),
                       callback = function()
                         UIManager:close(confirm_dialog)
+                        -- Delete old entry (different name, same scope)
+                        ActionCache.clear(file, scope_match.key)
                         onNameConfirmed(label)
                       end,
                     }},
