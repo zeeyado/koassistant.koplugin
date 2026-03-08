@@ -71,7 +71,9 @@ local function showSearchReturnButton(return_state)
                     local ActionCache = require("koassistant_action_cache")
                     local book_file = ui and ui.document and ui.document.file
                     if book_file then
-                        local cached = ActionCache.getXrayCache(book_file)
+                        local scope = return_state.scope
+                        local cache_key = (scope and scope.cache_key) or "_xray_cache"
+                        local cached = ActionCache.get(book_file, cache_key)
                         if cached then
                             -- Set navigate_to so show() auto-navigates to the distribution view
                             XrayBrowser._pending_navigate_to = {
@@ -79,9 +81,13 @@ local function showSearchReturnButton(return_state)
                                 item_name = return_state.item_name,
                                 open_distribution = true,
                             }
+                            local name = "X-Ray"
+                            if scope and scope.label then
+                                name = T(_("Section X-Ray: %1"), scope.label)
+                            end
                             plugin:showCacheViewer({
-                                name = "X-Ray",
-                                key = "_xray_cache",
+                                name = name,
+                                key = cache_key,
                                 data = cached,
                                 skip_stale_popup = true,
                             })
@@ -356,6 +362,9 @@ local function getAllChapterBoundaries(ui, target_depth, coverage_page, scope)
         else
             end_page = total_pages
         end
+        -- Skip ghost entries (pointers/markers sharing a page with a real chapter,
+        -- e.g., Juz markers in Quran TOC) — end_page < start_page means no content
+        if end_page < entry.page then goto continue end
         local is_unread = entry.page > gate_page
         -- Section scope: chapters outside scope are out_of_scope (not unread)
         -- A chapter is in-scope only if it starts within [scope.start_page, scope.end_page]
@@ -3154,12 +3163,17 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                                     end
                                     -- Show floating "Back to X-Ray" button after search starts
                                     UIManager:scheduleIn(0.3, function()
-                                        showSearchReturnButton({
+                                        local return_info = {
                                             ui = captured_ui,
                                             plugin_ref = self_ref.metadata and self_ref.metadata.plugin,
                                             category_key = category_key,
                                             item_name = item_title,
-                                        })
+                                        }
+                                        -- Thread section metadata for section X-Rays
+                                        if self_ref.scope then
+                                            return_info.scope = self_ref.scope
+                                        end
+                                        showSearchReturnButton(return_info)
                                     end)
                                 end)
                             end
