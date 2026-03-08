@@ -1988,7 +1988,7 @@ local INPUT_CONTEXTS = {
         action_context = "highlight",
         has_open_book = true,
         -- Curated defaults: core highlight actions without heavy data requirements
-        default_ids = {"translate", "eli5", "explain", "elaborate", "summarize",
+        default_ids = {"translate", "explain", "eli5", "elaborate", "summarize",
             "connect", "fact_check", "explain_in_context"},
     },
     xray_chat = {

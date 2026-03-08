@@ -135,7 +135,7 @@ Actions.highlight = {
         description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
         template = "explain",
-        in_highlight_menu = 4,  -- Default in highlight menu
+        in_highlight_menu = 3,  -- Default in highlight menu
         -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
@@ -159,7 +159,7 @@ Actions.highlight = {
         },
         include_book_context = true,
         builtin = true,
-        in_highlight_menu = 3,    -- Appears in Highlight menu
+        in_highlight_menu = 4,    -- Appears in Highlight menu
     },
     summarize = {
         id = "summarize",
@@ -264,7 +264,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         id = "explain_in_context",
         enable_web_search = false,
         text = _("Explain in Context"),
-        description = _("Explains the passage in the context of the full work. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Helps you understand what a passage means — its content, context, and the ideas it builds on. Comprehension-focused. Source selection: full document text, document summary, or AI knowledge. Works well for longer passages or particularly difficult ones that require document context."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
@@ -278,12 +278,12 @@ From "{title}"{author_clause}.
 
 {document_context_section}
 
-Help me understand:
-1. What this passage means
-2. How it connects to the broader work
-3. Key references or concepts it builds on
+Help me understand what this passage means:
+1. **Meaning**: What is being said, argued, or shown here?
+2. **Context**: What leads up to this moment — what has the reader already encountered that makes this passage land?
+3. **References**: Key concepts, terms, or prior ideas it builds on or assumes
 
-{conciseness_nudge}
+Focus on comprehension — help me grasp what I'm reading, not evaluate it. {conciseness_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -296,7 +296,7 @@ Help me understand:
         id = "analyze_in_context",
         enable_web_search = false,
         text = _("Analyze in Context"),
-        description = _("Deep analysis of the passage within the full work, connecting it to themes and your annotations. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Connects the passage to your own reading — your highlights, annotations, and the threads you've been tracking. Reader-focused. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
@@ -304,7 +304,7 @@ Help me understand:
         use_annotations = true,
         include_book_context = true,
         source_selection = true,  -- Show source selection popup
-        prompt = [[Analyze this passage in the broader context of the work:
+        prompt = [[Analyze this passage through the lens of my reading:
 
 "{highlighted_text}"
 
@@ -314,13 +314,13 @@ From "{title}"{author_clause}.
 
 {annotations_section}
 
-Provide deeper analysis:
-1. **Significance**: Why might this passage matter in the larger work?
-2. **Connections**: How does it relate to the work's themes, arguments, or events?
-3. **Patterns**: Does it echo or develop ideas from elsewhere in the text?
-4. **My notes**: If I've highlighted related passages, show those connections.
+Connect this passage to my engagement with the work:
+1. **Why it matters**: What makes this passage significant at this point in my reading?
+2. **My reading so far**: If I've highlighted or annotated related passages, how does this connect to what I've already found notable?
+3. **Developing threads**: Does this advance, complicate, or echo ideas I've been tracking?
+4. **What to notice**: Based on this passage and my notes, what might be worth paying attention to going forward?
 
-{conciseness_nudge}
+This is about what this passage means for ME as a reader — not just what it means in the abstract. {conciseness_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -334,13 +334,13 @@ Provide deeper analysis:
         id = "thematic_connection",
         enable_web_search = false,
         text = _("Thematic Connection"),
-        description = _("Analyzes how a passage connects to the work's major themes — alignment, significance, recurring patterns, and the author's craft. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Examines the author's craft — how language, structure, and technique achieve the passage's effect, and how it fits into the work's thematic architecture. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
         include_book_context = true,
         source_selection = true,  -- Show source selection popup
-        prompt = [[Analyze how this passage connects to the larger themes of the work:
+        prompt = [[Analyze the craft and thematic work of this passage:
 
 "{highlighted_text}"
 
@@ -348,21 +348,18 @@ From "{title}"{author_clause}.
 
 {document_context_section}
 
-Show me the connections:
-
-## Theme Alignment
-Which major themes does this passage touch on? How does it develop, reinforce, or complicate them?
-
-## Significance
-Why might this particular passage matter in the context of the whole work? What work is it doing?
-
-## Echoes & Patterns
-Does this passage echo earlier ideas, or introduce something new? Does it resolve, extend, or subvert established patterns?
+Examine how this passage works:
 
 ## Craft
-How does the author's choice of language, structure, or placement enhance the thematic resonance?
+How does the author's choice of language, structure, imagery, or placement achieve its effect? What techniques are at play?
 
-Keep analysis grounded in the specific passage while connecting to the broader context. {conciseness_nudge}
+## Thematic Weight
+Which major themes does this passage develop, reinforce, or complicate? What is it doing in the larger architecture of the work?
+
+## Patterns
+Does this passage echo, subvert, or resolve patterns established elsewhere? How does it fit into the work's internal logic?
+
+Ground the analysis in the specific passage — what makes THIS particular piece of writing work the way it does. {conciseness_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -712,7 +709,7 @@ Actions.book = {
         template = "book_info",
         use_response_caching = true,
         api_params = {
-            temperature = 0.7,
+            temperature = 0.5,  -- Factual overview, lower variance
         },
         builtin = true,
         in_quick_actions = 3,     -- Appears in Quick Actions menu
@@ -746,6 +743,7 @@ Actions.book = {
     },
     historical_context = {
         id = "historical_context",
+        reasoning_config = "off",  -- Factual/contextual recall doesn't benefit from reasoning
         text = _("Historical Context"),
         description = _("Explores when the book was written, what was happening at the time, and how the work reflects or responds to its era."),
         context = "book",
@@ -925,7 +923,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         skip_domain = true,
         -- Inherits global reasoning setting (user choice)
         api_params = {
-            temperature = 0.7,
+            temperature = 0.5,  -- Factual recall, lower variance
             max_tokens = 8192,
         },
         builtin = true,
@@ -1118,6 +1116,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         auto_artifact = true,  -- Silently cache first response as artifact
+        in_quick_actions = 8,     -- Appears in Quick Actions menu
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.
 {document_context_section}
@@ -1141,7 +1140,7 @@ Adapt to content type:
 - For non-fiction: Focus on arguments, evidence, real-world applications
 - For academic: Include questions about methodology and scholarly implications
 
-{conciseness_nudge}
+Use key terms and proper nouns in the work's original language where applicable. {conciseness_nudge}
 
 Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}
 
@@ -1163,6 +1162,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         auto_artifact = true,  -- Silently cache first response as artifact
+        in_quick_actions = 9,     -- Appears in Quick Actions menu
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
 
 {document_context_section}
@@ -1194,7 +1194,7 @@ After all questions, provide a consolidated answer key:
 - Short answer: Model answer (2-3 sentences)
 - Discussion/Essay: Key points a good answer should cover
 
-{conciseness_nudge}
+Use key terms and proper nouns in the work's original language where applicable. {conciseness_nudge}
 
 Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}
 
@@ -1274,15 +1274,21 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         auto_artifact = true,  -- Silently cache first response as artifact
-        prompt = [[Extract key insights from: "{title}"{author_clause}.
+        prompt = [[Extract the key insights from: "{title}"{author_clause}.
 
 {document_context_section}
 
-What are the most important takeaways? Focus on:
-- Ideas worth remembering
-- Novel perspectives or findings
-- Actionable conclusions
-- Connections to broader concepts
+Distill what's most worth taking away from this work. For each insight:
+- State the idea clearly and specifically (not just "discusses X" — what is actually claimed or shown?)
+- Why it matters — what makes this insight valuable, surprising, or useful?
+
+Look for:
+- Central ideas that define the work
+- Perspectives that challenge conventional thinking
+- Findings or conclusions with real-world application
+- Connections to larger questions or other fields
+
+Adapt to the work — a novel's insights look different from a research paper's or a religious text's. Focus on quality over quantity: fewer sharp insights beat many vague ones.
 
 {conciseness_nudge}
 
@@ -1292,6 +1298,57 @@ What are the most important takeaways? Focus on:
         },
         builtin = true,
         in_quick_actions = 6,
+    },
+    -- What to Watch For: Spoiler-free reading guide for upcoming content
+    what_to_watch_for = {
+        id = "what_to_watch_for",
+        enable_web_search = false,
+        text = _("What to Watch For"),
+        description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Source selection: full document text, document summary, or AI knowledge. Can target a specific section."),
+        context = "book",
+        behavior_variant = "reader_assistant",
+        skip_domain = true,
+        use_book_text = true,
+        use_summary_cache = true,
+        use_reading_progress = true,
+        source_selection = true,  -- Unified scope/source popup
+        auto_artifact = true,  -- Silently cache first response as artifact
+        prompt = [[Create a spoiler-free reading guide for what lies ahead in "{title}"{author_clause}.
+
+I'm at {reading_progress}.
+
+{document_context_section}
+
+Based on what I've read so far, help me read more attentively going forward:
+
+## Threads in Motion
+What questions, tensions, or ideas are actively developing at this point? What should I be holding in mind as I continue?
+
+## Patterns Worth Noticing
+Are there recurring elements — images, phrases, structural choices, argumentative moves — that are worth paying attention to? Don't reveal where they lead, just point them out.
+
+## Context That Helps
+Is there background knowledge — historical, cultural, scientific, philosophical — that would deepen my understanding of what's coming? Things the author may assume the reader knows.
+
+## How to Read This
+Any guidance on how to approach the rest — pacing, what to linger on, what benefits rereading, sections that reward close attention?
+
+Adapt to the work's nature:
+- Fiction: narrative threads, character dynamics, motifs, tonal shifts
+- Non-fiction: argument structure, evidence patterns, conceptual building blocks
+- Religious/philosophical: interpretive traditions, key concepts, layers of meaning
+- Academic: methodology, theoretical framework, disciplinary context
+
+CRITICAL: No spoilers beyond {reading_progress}. Guide attention without revealing outcomes.
+
+{conciseness_nudge}
+
+{text_fallback_nudge}]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
     },
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
