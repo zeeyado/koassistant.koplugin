@@ -1167,24 +1167,32 @@ Note: These are general questions for the complete work. If the reader is mid-bo
 
 {document_context_section}
 
-Generate 8-10 questions with answers to test understanding:
+Generate 8-10 questions to test understanding. Present ALL questions first, then ALL answers in a separate Answer Key at the end.
 
-## Multiple Choice (3-4 questions)
+## Questions
+
+### Multiple Choice (3-4 questions)
 Test recall of key facts, characters, or concepts.
-Format: Question, options A-D, correct answer with brief explanation.
+Format: Numbered question, options A-D. Do NOT indicate which option is correct.
 
-## Short Answer (3-4 questions)
+### Short Answer (3-4 questions)
 Test understanding of themes, arguments, or motivations.
-Format: Question, then model answer (2-3 sentences).
+Format: Numbered question only (no hints or answer).
 
-## Discussion/Essay (2 questions)
+### Discussion/Essay (2 questions)
 Open-ended questions requiring synthesis or analysis.
-Format: Question, then key points a good answer should cover.
+Format: Numbered question only.
 
 Adapt to content type:
 - Fiction: Focus on plot, characters, themes, narrative choices
 - Non-fiction: Focus on arguments, evidence, key concepts, implications
 - Academic: Include questions about methodology and scholarly implications
+
+## Answer Key
+After all questions, provide a consolidated answer key:
+- Multiple choice: Correct letter with brief explanation
+- Short answer: Model answer (2-3 sentences)
+- Discussion/Essay: Key points a good answer should cover
 
 {conciseness_nudge}
 
