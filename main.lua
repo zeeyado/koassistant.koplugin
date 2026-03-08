@@ -7271,7 +7271,85 @@ function AskGPT:executeBookLevelAction(action_id)
       UIManager:show(dialog)
       return
     end
-    -- No cache: fall through to source selection (with scope interceptor if TOC available)
+    -- No main cache: check for section-only artifacts before falling through
+    local section_prefix = ActionCache.getSectionPrefix(action_id)
+    if section_prefix and file then
+      local doc = self.ui and self.ui.document
+      local sec_count = ActionCache.getSectionCount(file, section_prefix)
+      if sec_count > 0 then
+        -- Section artifacts exist without a main artifact — show intermediary popup
+        local action_name = action.text or action_id
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local self_ref = self
+        local sec_dialog
+        local sec_buttons = {}
+        -- Surface in-range section artifacts
+        if doc then
+          local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
+          for _idx, sec in ipairs(in_range) do
+            local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
+            local sec_parts = {}
+            if page_info and page_info ~= "" then
+              table.insert(sec_parts, page_info)
+            end
+            local sec_rel = formatRelativeTime(sec.data.timestamp)
+            if sec_rel ~= "" then
+              table.insert(sec_parts, sec_rel)
+            end
+            local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
+            local captured_sec = sec
+            table.insert(sec_buttons, {{
+              text = T(_("View \"%1\""), sec.label) .. sec_detail,
+              callback = function()
+                UIManager:close(sec_dialog)
+                self_ref:viewCachedAction(action, action_id, captured_sec.data, {
+                  skip_stale_popup = true,
+                  section_key = captured_sec.key,
+                  section_label = captured_sec.label,
+                })
+              end,
+            }})
+          end
+        end
+        -- Browse all sections
+        table.insert(sec_buttons, {{
+          text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
+          callback = function()
+            UIManager:close(sec_dialog)
+            self_ref:_showSectionList(action, action_id)
+          end,
+        }})
+        -- New generation
+        table.insert(sec_buttons, {{
+          text = T(_("New %1…"), action_name),
+          callback = function()
+            UIManager:close(sec_dialog)
+            if action.source_selection then
+              self_ref:_showUnifiedActionPopup(action, action_id, {
+                on_execute = function(popup_state)
+                  self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+                end,
+              })
+            else
+              self_ref:_executeBookLevelActionDirect(action, action_id)
+            end
+          end,
+        }})
+        table.insert(sec_buttons, {{
+          text = _("Cancel"),
+          callback = function()
+            UIManager:close(sec_dialog)
+          end,
+        }})
+        sec_dialog = ButtonDialog:new{
+          title = action_name,
+          buttons = sec_buttons,
+        }
+        UIManager:show(sec_dialog)
+        return
+      end
+    end
+    -- No artifacts at all: fall through to source selection
   end
 
   -- Unified popup for source_selection actions (scope + source in one dialog)
