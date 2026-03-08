@@ -4782,6 +4782,98 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
     return XrayBrowser
 end
 
+-- Show cross-section X-Ray search results as a standalone picker Menu.
+-- @param grouped_results table From ActionCache.searchAllXrays()
+-- @param query string The search query
+-- @param ui table UI context
+-- @param config table Configuration
+-- @param plugin table Plugin reference
+-- @param book_metadata table Book metadata
+local function showCrossSectionResults(grouped_results, query, ui, config, plugin, book_metadata)
+    local Menu = require("ui/widget/menu")
+    local XrayParser = require("koassistant_xray_parser")
+
+    -- Count total results across all X-Rays
+    local total_results = 0
+    for _idx, group in ipairs(grouped_results) do
+        total_results = total_results + #group.results
+    end
+
+    local items = {}
+    for _idx, group in ipairs(grouped_results) do
+        -- Section header (non-tappable separator)
+        local header_label
+        if not group.is_section then
+            header_label = _("Main X-Ray")
+        else
+            header_label = group.label or ""
+            if group.scope_summary and group.scope_summary ~= "" then
+                header_label = header_label .. " (" .. group.scope_summary .. ")"
+            end
+        end
+        table.insert(items, {
+            text = header_label,
+            bold = group.in_range,
+            dim = false,
+            separator = true,
+            callback = function() end, -- non-tappable but needs callback for Menu
+        })
+
+        -- Result items under this section
+        for _idx2, result in ipairs(group.results) do
+            local item_name = XrayParser.getItemName(result.item, result.category_key)
+            local match_label = result.category_label
+            if result.match_field == "alias" then
+                match_label = match_label .. " (" .. _("alias") .. ")"
+            elseif result.match_field == "description" then
+                match_label = match_label .. " (" .. _("desc.") .. ")"
+            end
+
+            local captured_group = group
+            local captured_result = result
+            local captured_name = item_name
+            table.insert(items, {
+                text = "  " .. item_name,
+                mandatory = match_label,
+                mandatory_dim = true,
+                callback = function()
+                    -- Open that section's X-Ray browser at this item
+                    local best = {
+                        entry = captured_group.cache_entry,
+                        key = captured_group.key,
+                        is_section = captured_group.is_section,
+                        label = captured_group.label,
+                    }
+                    local data = XrayParser.parse(captured_group.cache_entry.result)
+                    if not data then return end
+                    local XrayBrowser = openXrayBrowserFromCache(
+                        ui, data, captured_group.cache_entry, config, plugin, book_metadata, best)
+                    XrayBrowser:showItemDetail(
+                        captured_result.item, captured_result.category_key, captured_name)
+                end,
+            })
+        end
+    end
+
+    local title = T(_("Results for \"%1\" (%2 across %3)"),
+        query, total_results, #grouped_results)
+
+    local results_menu = Menu:new{
+        title = title,
+        item_table = items,
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
+        single_line = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+        -- No close_callback (Menu calls it after EVERY item tap, not just X button)
+        -- No onReturn (hides the return arrow; X button works via Menu's default onClose)
+    }
+    UIManager:show(results_menu)
+end
+
 -- Handle local X-Ray lookup: search cached X-Ray data for the query
 -- @param override_best table|nil Pre-selected X-Ray result (from selection popup callback)
 local function handleLocalXrayLookup(ui, query, document_path, book_metadata, config, plugin, override_best)
@@ -4796,9 +4888,51 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         return
     end
 
-    -- Find best X-Ray: prefer section covering current page, fall back to main
     local ActionCache = require("koassistant_action_cache")
     local doc = ui and ui.document
+
+    -- Cross-section search: when multiple X-Rays exist and no override, search all
+    if not override_best then
+        local sections = ActionCache.getSectionXrays(document_path)
+        local main = ActionCache.getXrayCache(document_path)
+        local total_xrays = #sections + (main and main.result and 1 or 0)
+
+        if total_xrays == 0 then
+            UIManager:show(InfoMessage:new{
+                text = _("No X-Ray cache found for this book. Generate one first via the X-Ray action."),
+                timeout = 4,
+            })
+            return
+        end
+
+        if total_xrays > 1 then
+            -- Multiple X-Rays: search across all
+            local grouped = ActionCache.searchAllXrays(document_path, query, doc)
+            if #grouped == 0 then
+                -- No results anywhere
+                UIManager:show(InfoMessage:new{
+                    text = T(_("No results for \"%1\" across %2 X-Rays."), query, total_xrays),
+                    timeout = 5,
+                })
+                return
+            elseif #grouped == 1 then
+                -- Results in only 1 X-Ray: use standard single-X-Ray flow
+                override_best = {
+                    entry = grouped[1].cache_entry,
+                    key = grouped[1].key,
+                    is_section = grouped[1].is_section,
+                    label = grouped[1].label,
+                }
+                -- Fall through to existing single-X-Ray handling below
+            else
+                -- Results in multiple X-Rays: show cross-section results
+                showCrossSectionResults(grouped, query, ui, config, plugin, book_metadata)
+                return
+            end
+        end
+    end
+
+    -- Find best X-Ray: prefer section covering current page, fall back to main
     local best = override_best or ActionCache.findBestXray(document_path, doc)
 
     if not best then

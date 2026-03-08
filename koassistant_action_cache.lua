@@ -1158,6 +1158,83 @@ function ActionCache.findBestXray(document_path, doc)
     return nil
 end
 
+--- Search for a query across all X-Rays (main + sections) for a document.
+--- Returns results grouped by X-Ray, sorted: main first, then in-range section, then chronological.
+--- @param document_path string The document file path
+--- @param query string Search query
+--- @param doc table|nil Document object (for current page detection)
+--- @return table Array of { key, label, is_section, scope_summary, results, cache_entry }
+function ActionCache.searchAllXrays(document_path, query, doc)
+    if not document_path or not query or query == "" then return {} end
+
+    local XrayParser = require("koassistant_xray_parser")
+    local sections = ActionCache.getSectionXrays(document_path)
+    local main = ActionCache.getXrayCache(document_path)
+    local current_page = getCurrentPageFromDoc(doc)
+    local all_results = {}
+
+    -- Search main X-Ray
+    if main and main.result then
+        local data = XrayParser.parse(main.result)
+        if data then
+            local results = XrayParser.searchAll(data, query)
+            if #results > 0 then
+                table.insert(all_results, {
+                    key = ActionCache.XRAY_CACHE_KEY,
+                    label = nil, -- signals "Main X-Ray" to caller
+                    is_section = false,
+                    scope_summary = nil,
+                    results = results,
+                    cache_entry = main,
+                    _sort_page = -1, -- always first
+                })
+            end
+        end
+    end
+
+    -- Search each section X-Ray
+    for _idx, sec in ipairs(sections) do
+        local data = XrayParser.parse(sec.data.result)
+        if data then
+            local results = XrayParser.searchAll(data, query)
+            if #results > 0 then
+                local sp, ep = getSectionPageRange(sec.data, doc)
+                local in_range = sp and ep and current_page
+                    and current_page >= sp and current_page <= ep
+                local page_summary = sec.data.scope_page_summary
+                -- Reconvert if doc available
+                if doc and doc.getPageFromXPointer and sec.data.scope_start_xpointer then
+                    page_summary = ActionCache.reconvertPageSummary(sec.data, doc)
+                end
+                table.insert(all_results, {
+                    key = sec.key,
+                    label = sec.label,
+                    is_section = true,
+                    scope_summary = page_summary,
+                    in_range = in_range,
+                    results = results,
+                    cache_entry = sec.data,
+                    _sort_page = sp or 0,
+                })
+            end
+        end
+    end
+
+    -- Sort: main first (sort_page=-1), in-range sections next, then chronological
+    table.sort(all_results, function(a, b)
+        -- Main always first
+        if not a.is_section then return true end
+        if not b.is_section then return false end
+        -- In-range sections before out-of-range
+        if a.in_range and not b.in_range then return true end
+        if not a.in_range and b.in_range then return false end
+        -- Chronological by start page
+        return a._sort_page < b._sort_page
+    end)
+
+    return all_results
+end
+
 --- Find sections matching the current reading position for a given prefix.
 --- @param document_path string The document file path
 --- @param doc table Document object (needed for page position check)
