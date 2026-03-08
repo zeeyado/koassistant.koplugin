@@ -3349,7 +3349,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
             end
         end
 
-        if total_mentions == 0 and scanned_count > 0 then
+        if total_mentions == 0 and scanned_count > 0 and not has_unread then
             local msg = self_ref.ui.document.info.has_pages
                 and T(_("No mentions of \"%1\" found. PDF text extraction may not be available for this document."), item_title)
                 or T(_("No mentions of \"%1\" found in book text."), item_title)

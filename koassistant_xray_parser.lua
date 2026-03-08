@@ -170,7 +170,7 @@ function XrayParser.buildArabicSearchRegex(term)
 
     -- Also match without ال (definite article) on each word
     local stripped = stripArabicArticle(normalized)
-    if stripped ~= normalized and #stripped > 2 then
+    if stripped ~= normalized and #stripped > 4 then
         regex = regex .. "|" .. arabicToRegex(stripped)
     end
 
@@ -397,7 +397,7 @@ function XrayParser.countItemOccurrences(item, text_lower)
         local t = terms[i]
         if XrayParser.containsArabic(t) then
             local stripped = stripArabicArticle(t)
-            if stripped ~= t and #stripped > 2 then
+            if stripped ~= t and #stripped > 4 then
                 terms[#terms + 1] = stripped
             end
         end
@@ -1169,7 +1169,7 @@ function XrayParser.searchAll(data, query)
     local query_stripped = nil
     if XrayParser.containsArabic(query_lower) then
         local s = stripArabicArticle(query_lower)
-        if s ~= query_lower and #s > 2 then query_stripped = s end
+        if s ~= query_lower and #s > 4 then query_stripped = s end
     end
     local results = {}
 

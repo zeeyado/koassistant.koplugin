@@ -123,8 +123,9 @@
 1. ✅ **[Quick Setup](#quick-setup)** — Install, add API key, restart (5 minutes)
 2. 🔒 **[Privacy Settings](#privacy--data)** — Some features require opt-in; configure what data you share
 3. 🎯 **[Recommended Setup](#recommended-setup)** — Configure gestures and explore key features (10 minutes)
-4. 🧪 **[Testing Your Setup](#testing-your-setup)** — Web inspector for experimenting (optional but highly recommended)
-5. 💰 **[Free Tiers](#free-tier-providers)** — Don't want to pay? See free provider options
+4. 💰 **[Free Tiers](#free-tier-providers)** — Don't want to pay? See free provider options
+
+You can also [test Your Setup](#testing-your-setup)** — Web inspector for experimenting
 
 **Want to go deeper?** The rest of this README covers all features in detail.
 
@@ -200,18 +201,13 @@ See [Supported Providers](#supported-providers) for full list with links to get 
 
 ### 3. Restart KOReader
 
-Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant**
+Find KOAssistant Settings in: **Tools → Page 2 → KOAssistant** and follow the Setup Wizard.
 
 ### 4. Configure Privacy Settings (Optional)
 
-Some features require opt-in to work:
-- **Analyze Notes, Connect with Notes** → Enable "Allow Annotation Notes"
-- **X-Ray, Recap with your highlights** → Enable "Allow Highlights"
-- **X-Ray, Recap with actual book content** → Enable "Allow Text Extraction" (X-Ray requires this; without it, use X-Ray (Simple) for a prose overview from AI knowledge)
+Some features require opt-in to work. Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privacy--data) for details.
 
-Go to **Settings → Privacy & Data** to configure. See [Privacy & Data](#privacy--data) for details.
-
-> **Quick option:** Use **Preset: Full** to enable all data sharing at once. Or leave defaults (personal content private, basic context shared).
+> **Quick option:** Use **Preset: Full** to enable all data sharing at once. Text extraction is enabled separately.
 
 ---
 
@@ -1872,7 +1868,7 @@ Two complementary features for making important content easily available:
 
 **Star Conversation** - Mark a chat as starred for quick access. Starred chats appear with a ★ prefix and are collected in a virtual "Starred" folder at the top of the Chat History browser. Starring is about the *conversation* — use it when the whole chat is worth revisiting. It stays a regular conversation that you can continue any time. Starring only makes it easily findable and more visible.
 
-**Pin to Artifacts** - Snapshot a chat's last AI response as a named read-only pseudo-artifact. When you pin, a naming dialog appears with a pre-filled name (the action name, or first ~50 characters of your prompt). Pinned artifacts appear in the Artifact Browser (marked with "(Pinned)") alongside the main artifacts, using your chosen name as the primary label. Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like Extract Key Insights, Key Arguments, etc. Only the most recent response from the AI is included in the artifact. The chat it came from stays as is, and can be continued, starred, deleted, etc., without affecting the artifact. Deleting a pinned artifact has no effect on the chat it came from.
+**Pin to Artifacts** - Snapshot a chat's last AI response as a named read-only pseudo-artifact. When you pin, a naming dialog appears with a pre-filled name (the action name, or first ~50 characters of your prompt). Pinned artifacts appear in the Artifact Browser (marked with "(Pinned)") alongside the main artifacts, using your chosen name as the primary label. Pinning is about a specific *response* — use it for non-Artifact actions whose output is still worth keeping as a reference, like if you get a very good response in a chat. Only the most recent response from the AI is included in the artifact. The chat it came from stays as is, and can be continued, starred, deleted, etc., without affecting the artifact. Deleting a pinned artifact has no effect on the chat it came from.
 
 **How to star/pin:**
 - **Chat viewer**: Tap the **Pin / ★** button (first row) → popup with "Pin Last Response as Artifact" and "Star Conversation" options. Labels update to reflect current state (Unpin/Unstar when already active).
@@ -2631,11 +2627,11 @@ The View/Update popup appears everywhere you can trigger an artifact action: Qui
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-Eleven actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes) open directly in an artifact viewer. Four auto-artifact actions (Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights) open in the chat viewer but silently cache the first response as a browsable artifact. Additionally, **section artifacts** (Section X-Rays, Section Summaries, Section Analyses, etc.) and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
+Eleven actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes) open directly in an artifact viewer. Four auto-artifact actions (Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights) open in the chat viewer (so you can follow up the conversation) but silently cache the first response as a browsable artifact. Additionally, **section artifacts** (Section X-Rays, Section Summaries, Section Analyses, etc.) and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
 
 ### Document Artifacts
 
-When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source — actions with source selection let you choose the compact summary (~2-8K tokens) instead of full document text (~100K tokens), which is dramatically cheaper and often better-performing since models handle focused context more effectively than massive text dumps.
+When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source — actions with source selection let you choose the compact summary (~Few thousand tokens) instead of full document text (~100K+ tokens). While full document text is preferable, it can be expensive, sometimes overkill, and even not possible for large works.
 
 X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, per-item AI Wiki encyclopedia, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. Section X-Rays provide the same browsable experience scoped to a specific chapter or part. X-Ray (Simple) shows a prose overview.
 
@@ -2686,7 +2682,7 @@ The Info popup shows metadata about how the artifact was generated. If reasoning
 
 **"Generate Once, Use Many Times" — Summary Artifacts and Source Selection**
 
-The summary artifact is the centerpiece of the reuse system. For medium and long texts, sending full document text (~100K tokens) for each action is both expensive and counterproductive — models often perform worse with massive contexts than with focused summaries. The pattern:
+The summary artifact is the centerpiece of the reuse system. For medium and long texts, sending full document text (~100K+ tokens) for each action is expensive and sometimes not possible for large documents. The pattern:
 
 1. **Generate a summary once** via Document Summary → saved as a reusable artifact (~2-8K tokens)
 2. **Actions with source selection** let you choose the summary as the document source
