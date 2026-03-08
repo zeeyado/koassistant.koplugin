@@ -72,26 +72,19 @@ function XrayParser.containsArabic(str)
         or str:find(ARABIC_QUICK_CHECK_D9, 1, true) ~= nil
 end
 
---- Build a diacritics-tolerant regex for searching Arabic text.
---- Converts an Arabic search term into a SRELL-compatible regex where each
---- Arabic letter is followed by an optional combining marks class, so that
---- "الفلق" matches "ٱلْفَلَقِ" in diacritized text.
---- Returns nil for non-Arabic terms (caller should use plain search).
---- @param term string The search term
---- @return string|nil regex SRELL regex pattern, or nil if not Arabic
-function XrayParser.buildArabicSearchRegex(term)
-    if not term or term == "" then return nil end
-    if not XrayParser.containsArabic(term) then return nil end
+-- SRELL optional combining marks class: tashkeel + superscript alef +
+-- Quranic signs + Quranic marks + tatweel + ZWJ/ZWNJ + word joiner
+local SRELL_OPT_MARKS = "[\\u064B-\\u065F\\u0670\\u0610-\\u061A\\u06D6-\\u06ED\\u0640\\u200C-\\u200D\\u2060]*"
+-- Alef variants: match any alef form in the document
+local SRELL_ALEF_CLASS = "[\\u0627\\u0671\\u0622\\u0623\\u0625]"
+-- Arabic definite article ال (UTF-8)
+local AL_PREFIX = string.char(0xD8, 0xA7, 0xD9, 0x84)
+local AL_PREFIX_LEN = #AL_PREFIX
 
-    -- Normalize: strip diacritics and unify alef variants
-    local normalized = XrayParser.normalizeArabic(term:lower())
-
-    -- SRELL optional combining marks class: tashkeel + superscript alef +
-    -- Quranic signs + Quranic marks + tatweel + ZWJ/ZWNJ + word joiner
-    local OPT = "[\\u064B-\\u065F\\u0670\\u0610-\\u061A\\u06D6-\\u06ED\\u0640\\u200C-\\u200D\\u2060]*"
-    -- Alef variants: match any alef form in the document
-    local ALEF_CLASS = "[\\u0627\\u0671\\u0622\\u0623\\u0625]"
-
+--- Convert a normalized Arabic string to a SRELL regex with optional combining marks.
+--- @param normalized string Already-normalized Arabic text
+--- @return string regex SRELL regex pattern
+local function arabicToRegex(normalized)
     local parts = {}
     local i = 1
     local len = #normalized
@@ -99,9 +92,7 @@ function XrayParser.buildArabicSearchRegex(term)
     while i <= len do
         local b = normalized:byte(i)
         if b < 128 then
-            -- ASCII
             if b == 0x20 then
-                -- Space: flexible whitespace matching
                 parts[#parts + 1] = "\\s+"
             else
                 local ch = normalized:sub(i, i)
@@ -113,39 +104,69 @@ function XrayParser.buildArabicSearchRegex(term)
             end
             i = i + 1
         elseif b >= 0xC0 and b < 0xE0 then
-            -- 2-byte UTF-8
             local b2 = normalized:byte(i + 1)
             if not b2 then break end
             local cp = (b - 0xC0) * 64 + (b2 - 0x80)
-
             if cp >= 0x0600 and cp <= 0x06FF then
-                -- Arabic block: \uXXXX with optional marks after
                 if cp == 0x0627 then
-                    -- Alef: match any variant
-                    parts[#parts + 1] = ALEF_CLASS .. OPT
+                    parts[#parts + 1] = SRELL_ALEF_CLASS .. SRELL_OPT_MARKS
                 else
-                    parts[#parts + 1] = string.format("\\u%04X", cp) .. OPT
+                    parts[#parts + 1] = string.format("\\u%04X", cp) .. SRELL_OPT_MARKS
                 end
             else
-                -- Non-Arabic 2-byte
                 parts[#parts + 1] = string.format("\\u%04X", cp)
             end
             i = i + 2
         elseif b >= 0xE0 and b < 0xF0 then
-            -- 3-byte UTF-8
             local b2, b3 = normalized:byte(i + 1), normalized:byte(i + 2)
             if not b2 or not b3 then break end
             local cp = (b - 0xE0) * 4096 + (b2 - 0x80) * 64 + (b3 - 0x80)
             parts[#parts + 1] = string.format("\\u%04X", cp)
             i = i + 3
         elseif b >= 0xF0 then
-            i = i + 4  -- 4-byte: skip (emoji/supplementary)
+            i = i + 4
         else
-            i = i + 1  -- continuation byte: skip
+            i = i + 1
         end
     end
 
     return table.concat(parts)
+end
+
+--- Strip Arabic definite article ال from the beginning and after spaces.
+--- @param normalized string Already-normalized Arabic text
+--- @return string stripped Text with ال removed, or original if no ال found
+local function stripArabicArticle(normalized)
+    local stripped = normalized
+    if stripped:sub(1, AL_PREFIX_LEN) == AL_PREFIX then
+        stripped = stripped:sub(AL_PREFIX_LEN + 1)
+    end
+    stripped = stripped:gsub(" " .. AL_PREFIX, " ")
+    return stripped
+end
+
+--- Build a diacritics-tolerant regex for searching Arabic text.
+--- Converts an Arabic search term into a SRELL-compatible regex where each
+--- Arabic letter is followed by an optional combining marks class, so that
+--- "الفلق" matches "ٱلْفَلَقِ" in diacritized text.
+--- Also includes an ال-stripped alternative so "النادي" matches "نَادِيَهُۥ".
+--- Returns nil for non-Arabic terms (caller should use plain search).
+--- @param term string The search term
+--- @return string|nil regex SRELL regex pattern, or nil if not Arabic
+function XrayParser.buildArabicSearchRegex(term)
+    if not term or term == "" then return nil end
+    if not XrayParser.containsArabic(term) then return nil end
+
+    local normalized = XrayParser.normalizeArabic(term:lower())
+    local regex = arabicToRegex(normalized)
+
+    -- Also match without ال (definite article) on each word
+    local stripped = stripArabicArticle(normalized)
+    if stripped ~= normalized and #stripped > 2 then
+        regex = regex .. "|" .. arabicToRegex(stripped)
+    end
+
+    return regex
 end
 
 -- AI responses sometimes return strings for array fields. Normalize to table.
@@ -359,6 +380,19 @@ function XrayParser.countItemOccurrences(item, text_lower)
     -- Normalize terms for Arabic diacritics matching
     for i = 1, #terms do
         terms[i] = XrayParser.normalizeArabic(terms[i])
+    end
+
+    -- Arabic: also try matching without ال (definite article) on each word.
+    -- "النادي" won't substring-match "ناديه" but "نادي" will.
+    local term_count = #terms
+    for i = 1, term_count do
+        local t = terms[i]
+        if XrayParser.containsArabic(t) then
+            local stripped = stripArabicArticle(t)
+            if stripped ~= t and #stripped > 2 then
+                terms[#terms + 1] = stripped
+            end
+        end
     end
 
     -- Collect all match spans from all terms
