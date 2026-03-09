@@ -146,9 +146,8 @@ end
 Constants.QS_ITEMS_DEFAULT_ORDER = {
     "provider", "model", "behavior", "domain",
     "temperature", "extended_thinking", "web_search",
+    "text_extraction", "h_bypass", "d_bypass",
     "language", "translation_language", "dictionary_language",
-    "h_bypass", "d_bypass",
-    "text_extraction",
     "chat_history", "browse_notebooks", "browse_artifacts",
     "multi_book_actions",
     "general_chat", "continue_last_chat",
