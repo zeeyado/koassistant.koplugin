@@ -634,18 +634,20 @@ function Notebook.create(document_path)
     if location == "sidecar" then
         notebook_path = Notebook.getPath(document_path)
     else
-        -- Vault mode: generate filename with collision handling
+        -- Vault mode: generate filename, adopt existing on collision (relink)
         local base_dir = Notebook.getBaseDir(features)
         if not base_dir then return false, "No notebook directory configured" end
         final_filename = Notebook.generateFilename(document_path, doc_props)
         notebook_path = base_dir .. "/" .. final_filename
-        -- Handle filename collision
-        local stem = final_filename:match("^(.+)%.md$") or final_filename
-        local counter = 1
-        while lfs.attributes(notebook_path, "mode") == "file" do
-            counter = counter + 1
-            final_filename = stem .. " (" .. counter .. ").md"
-            notebook_path = base_dir .. "/" .. final_filename
+        -- If file already exists, adopt it (likely same book moved/re-added)
+        if lfs.attributes(notebook_path, "mode") == "file" then
+            logger.info("KOAssistant Notebook: Adopting existing notebook:", final_filename)
+            doc_settings:saveSetting("koassistant_notebook_ref", {
+                filename = final_filename,
+                created = os.time(),
+            })
+            doc_settings:flush()
+            return true, nil
         end
     end
 
