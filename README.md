@@ -43,7 +43,7 @@
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
     - [Research Mode](#research-mode) — Automatic academic enhancements for papers with DOI
-    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes
+    - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, About, Analyze Notes
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
   - [Input Dialog Actions](#managing-the-input-dialog) — Per-context action sorting, gear menu, web toggle
@@ -89,7 +89,7 @@
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
   - [Response Caching](#response-caching) — 7 cacheable artifacts, incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, Book Info, Analyze Notes: viewable guides and reusable context
+  - [Document Artifacts](#document-artifacts) — Summary, X-Ray, X-Ray (Simple), Recap, Analysis, About, Analyze Notes: viewable guides and reusable context
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -285,8 +285,8 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz
-- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, Book Info, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
+- **Default actions** — X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz
+- **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via **Settings → Quick Actions Settings**. Defaults can also be removed.
@@ -520,8 +520,8 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
-| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
-| **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend Books |
+| **Book** | About, Find Similar, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
+| **Multi-book** | Compare, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend |
 | **General** | News Update* |
 
 *Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
@@ -598,7 +598,7 @@ Actions with source selection: Explain in Context, Analyze in Context, Thematic 
 
 ### Book/Document Mode
 
-<a href="screenshots/bookinfowmetadata.png"><img src="screenshots/bookinfowmetadata.png" width="300" alt="Book Info chat response"></a>
+<a href="screenshots/bookinfowmetadata.png"><img src="screenshots/bookinfowmetadata.png" width="300" alt="About chat response"></a>
 
 **Access**: Long-press a book in File Browser → "Chat/Action (KOA)" or while reading, use gesture or menu
 
@@ -607,12 +607,12 @@ Some actions work from the file browser (using only document metadata like title
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Book Info** | Overview, significance, and why to read it |
-| **Find Similar** | Recommendations for similar books |
+| **About** | Overview, significance, and why to read it |
+| **Find Similar** | Recommendations for similar works |
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance. Adapts to work type (novel, manifesto, religious text, research paper) |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
-| **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
+| **Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
 | **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search (including cross-section search across all X-Rays), chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray (Simple)** | Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
 | **Recap** | "Previously on..." style summary to help you resume reading. Source selection: extracted text (with incremental updates) or AI knowledge. Use Hidden Flows to limit scope ⚠️ *Best with: Allow Text Extraction* |
@@ -638,6 +638,7 @@ When KOAssistant detects a DOI (Digital Object Identifier) in your document, **R
 | Enhancement | What it does |
 |-------------|-------------|
 | **Academic X-Ray** | Replaces fiction/non-fiction categories with 7 research-appropriate categories: Key Concepts, Foundations (intellectual lineage, paradigms), Methodology, Findings, Referenced Works (with aliases and connections), Technical Terms, Figures & Data |
+| **Academic Prompt Tracks** | About, Find Similar, and X-Ray (Simple) switch to research-oriented prompts (research context, methodology, cited works instead of characters/themes). Recap, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Analyze Notes include expanded academic adaptation (methodology, evidence evaluation, field positioning) |
 | **Research Nudge** | System prompt addition guiding the AI to ground analysis in the provided text, verify claims via web search, and contextualize within the paper's field |
 | **Web Search Override** | Actions that normally have web search disabled (X-Ray, Summarize, etc.) follow your global web search setting instead — if web search is on globally, academic papers get web-enriched analysis |
 | **DOI in Prompts** | Every book-context prompt includes the DOI, helping the AI identify the exact paper and its citation context |
@@ -670,7 +671,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **Document Summary** | Entire document or section (user choice) | Allow Text Extraction |
 | **Extract Key Insights** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Reading Guide** | Full text, summary, or AI knowledge (user choice) + reading progress | Allow Text Extraction (for full text/summary) |
-| **Book Info** | AI training knowledge (+ optional web search) | None (web search optional) |
+| **About** | AI training knowledge (+ optional web search) | None (web search optional) |
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions with source selection show "AI knowledge only" as the available option. For other actions, the AI gracefully falls back to its training knowledge, with a "*Response generated without: ...*" notice in the chat. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
@@ -821,12 +822,12 @@ Both paths lead to the same multi-book action picker, which shows the number of 
 **Built-in Actions**:
 | Action | Description |
 |--------|-------------|
-| **Compare Books** | What makes each book distinct — contrasts, not just similarities |
+| **Compare** | What makes each work distinct — contrasts, not just similarities |
 | **Find Common Themes** | Shared DNA — recurring themes, influences, connections |
 | **Analyze Collection** | What this selection reveals about the reader's interests |
-| **Quick Summaries** | Brief summary of each book |
+| **Quick Summaries** | Brief summary of each work |
 | **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
-| **Recommend Books** | Suggests 5-8 new books based on patterns across your selected books |
+| **Recommend** | Suggests 5-8 new works based on patterns across your selected works |
 
 **What the AI sees**: List of titles, authors, and identifiers
 
@@ -850,8 +851,8 @@ All input dialogs (highlight, book, general) show a configurable set of actions 
 | Context | Default Actions |
 |---------|----------------|
 | **Highlight** | Translate, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, Explain in Context |
-| **Book** | Book Info, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Book Reviews |
-| **Book (file browser)** | Book Info, Find Similar, Related Thinkers, About Author, Historical Context, Book Reviews |
+| **Book** | About, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Reviews |
+| **Book (file browser)** | About, Find Similar, Related Thinkers, About Author, Historical Context, Reviews |
 | **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context, Thematic Connection, Connect |
 | **General** | *(none — use Send button for freeform chat)* |
 
@@ -1124,7 +1125,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 17 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
-- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including Book Info, Find Similar, Connect, Historical Context, and all multi-book actions.
+- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all multi-book actions.
 - **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
@@ -1869,7 +1870,7 @@ This means:
 - ✅ **Book chats travel with books** when you move or copy files
 - ✅ **No data loss** when reorganizing your library
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
-- ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare Books, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
+- ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
 - ✅ **Pinned artifacts travel with books**: Pinned artifacts are stored in the book's sidecar folder (`koassistant_pinned.lua`) and automatically move with the book. General and multi-book pinned artifacts are stored globally.
 
 **Storage Modes**: KOAssistant supports all three of KOReader's metadata storage modes:
@@ -1936,7 +1937,7 @@ Two complementary features for making important content easily available:
 - **Recap**: Get a "Previously on..." style summary to help you resume reading
 - **Analyze Notes**: Discover patterns and connections in your highlights and annotations
 - **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
-- **Book Info**: Overview, significance, and why to read it — from AI knowledge with optional web search
+- **About**: Overview, significance, and why to read it — from AI knowledge with optional web search
 - **Document Summary**: Generate a comprehensive document summary — reusable by other actions as a document source. Requires text extraction
 - **Document Analysis**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
 
@@ -2187,7 +2188,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, Book Info, Analyze Notes) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2649,8 +2650,8 @@ The View/Update popup appears everywhere you can trigger an artifact action: Qui
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Limitations:**
-- Only X-Ray and Recap support incremental caching currently (other artifact actions — X-Ray (Simple), Document Summary, Document Analysis, Book Info, Analyze Notes — cache results but always regenerate fresh)
-- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), Recap, Book Info, and Analyze Notes work without it
+- Only X-Ray and Recap support incremental caching currently (other artifact actions — X-Ray (Simple), Document Summary, Document Analysis, About, Analyze Notes — cache results but always regenerate fresh)
+- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), Recap, About, and Analyze Notes work without it
 - Complete X-Rays and Section X-Rays don't support incremental updates (always fresh generation)
 - X-Ray (Simple) doesn't support incremental updates (always fresh generation)
 - Section X-Rays require an open book with a TOC (not available from file browser)
@@ -2659,7 +2660,7 @@ The View/Update popup appears everywhere you can trigger an artifact action: Qui
 - Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
 - To switch between incremental and complete tracks, delete the cache and regenerate
 
-Eleven actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes) open directly in an artifact viewer. Four auto-artifact actions (Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights) open in the chat viewer (so you can follow up the conversation) but silently cache the first response as a browsable artifact. Additionally, **section artifacts** (Section X-Rays, Section Summaries, Section Analyses, etc.) and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
+Eleven actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. Seven artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, About, Analyze Notes) open directly in an artifact viewer. Four auto-artifact actions (Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights) open in the chat viewer (so you can follow up the conversation) but silently cache the first response as a browsable artifact. Additionally, **section artifacts** (Section X-Rays, Section Summaries, Section Analyses, etc.) and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
 
 ### Document Artifacts
 
@@ -2676,7 +2677,7 @@ X-Ray opens as a browsable category menu (fiction: characters, locations, themes
 | **X-Ray (Simple)** | X-Ray (Simple) action | Prose overview: characters, themes, settings, key terms, where things stand | **Text viewer** — prose companion guide from AI knowledge. No text extraction needed. Separate cache from X-Ray; both can coexist. |
 | **Recap** | Recap action | "Previously on..." story refresher | **Text viewer** — helps you resume reading where you left off. Supports incremental updates as you read further. |
 | **Analysis** | Document Analysis | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
-| **Book Info** | Book Info action | Reader-oriented overview from AI knowledge | **Text viewer** — background, reception, and reading context. No text extraction needed. Uses web search when enabled for current information. |
+| **About** | About action | Reader-oriented overview from AI knowledge | **Text viewer** — background, reception, and reading context. No text extraction needed. Uses web search when enabled for current information. |
 | **Analyze Notes** | Analyze Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 | **Key Arguments** | Key Arguments action | Thesis, evidence, assumptions, counterarguments | **Auto-artifact** — first response silently cached. Chat opens normally for follow-ups. |
 | **Discussion Questions** | Discussion Questions action | Comprehension, analytical, interpretive, personal questions | **Auto-artifact** — first response silently cached. |
@@ -2687,7 +2688,7 @@ X-Ray opens as a browsable category menu (fiction: characters, locations, themes
 Beyond these twelve generated artifacts, you can **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
 
 **Viewing artifacts:**
-- **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
+- **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, About, Analyze Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
 - **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
@@ -2703,7 +2704,7 @@ Beyond these twelve generated artifacts, you can **pin any chat's last response 
 - **Row 1**: Copy, Artifacts (cross-navigate to other cached artifacts for the same book), Export, navigation
 - **Row 2**: MD/Text toggle, Info (popup showing model, date, source, progress, reasoning, web search), Update/Regenerate (when book is open) or Open Doc (when viewing from file browser), Delete, Close
 
-The Info popup shows metadata about how the artifact was generated. If reasoning or web search was used, inline indicators appear at the top of the content (matching chat viewer style). X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, Book Info) show "Regenerate".
+The Info popup shows metadata about how the artifact was generated. If reasoning or web search was used, inline indicators appear at the top of the content (matching chat viewer style). X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, About) show "Regenerate".
 
 > **Cache source tracking:** Each artifact records metadata about how it was generated: data source (extracted text vs AI training knowledge), model used, generation date, and whether reasoning or web search was used. The Info button in the artifact viewer shows all metadata. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 

@@ -1409,7 +1409,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         -- Characters/key_figures: resolve connections (other characters/items)
         -- Other categories: resolve references or characters field
         local names_list
-        if category_key == "characters" or category_key == "key_figures" then
+        if category_key == "characters" or category_key == "key_figures" or category_key == "referenced_works" then
             names_list = item.connections
         else
             names_list = item.references or item.characters

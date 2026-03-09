@@ -405,7 +405,7 @@ If multiple claims are present, address each separately. If the passage is opini
         id = "current_context",
         enable_web_search = true,  -- Force web search even if global setting is off
         text = _("Current Context"),
-        description = _("Searches the web for the latest developments on the topic discussed in the selected passage — what has changed since the book was written."),
+        description = _("Searches the web for the latest developments on the topic discussed in the selected passage — what has changed since it was written."),
         context = "highlight",
         include_book_context = true,
         skip_domain = true,  -- Current events format is standardized
@@ -847,7 +847,7 @@ Actions.book = {
         id = "book_info",
         reasoning_config = "off",  -- Straightforward recall doesn't benefit from reasoning
         doi_web_override = true,
-        text = _("Book Info"),
+        text = _("About"),
         description = _("Comprehensive overview: what the work is about, its themes, significance, and reading experience. Based on AI knowledge — no book data needed."),
         context = "book",
         template = "book_info",
@@ -923,7 +923,7 @@ If web search is available, consider searching for the DOI or citation context t
         id = "explain_author",
         reasoning_config = "off",  -- Biographical info doesn't benefit from reasoning
         text = _("About Author"),
-        description = _("Biography, major works, writing style, and suggested reading order for the book's author."),
+        description = _("Biography, major works, writing style, and suggested reading order for the author."),
         context = "book",
         template = "explain_author",
         api_params = {
@@ -936,7 +936,7 @@ If web search is available, consider searching for the DOI or citation context t
         id = "historical_context",
         reasoning_config = "off",  -- Factual/contextual recall doesn't benefit from reasoning
         text = _("Historical Context"),
-        description = _("Explores when the book was written, what was happening at the time, and how the work reflects or responds to its era."),
+        description = _("Explores when the work was written, what was happening at the time, and how it reflects or responds to its era."),
         context = "book",
         template = "historical_context",
         api_params = {
@@ -1142,7 +1142,7 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
         id = "recap",
         enable_web_search = false,
         text = _("Recap"),
-        description = _("A 'Previously on...' refresher to help you get back into a book after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Source selection: extracted text (with incremental updates) or AI knowledge. Use KOReader's hidden flows to limit scope to specific chapters."),
+        description = _("A 'Previously on...' refresher to help you get back into reading after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Source selection: extracted text (with incremental updates) or AI knowledge. Use KOReader's hidden flows to limit scope to specific chapters."),
         context = "book",
         behavior_variant = "reader_assistant",
         -- Context extraction flags
@@ -1232,7 +1232,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         enable_web_search = false,
         doi_web_override = true,
         text = _("Analyze Notes"),
-        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires highlights or annotations sharing."),
+        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the work. Requires highlights or annotations sharing."),
         context = "book",
         behavior_variant = "reader_assistant",
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
@@ -1332,7 +1332,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         enable_web_search = false,
         doi_web_override = true,
         text = _("Key Arguments"),
-        description = _("Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
+        description = _("Breaks down the work's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1526,8 +1526,8 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
         use_response_caching = true,  -- Per-action cache + viewer buttons
         source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
-        in_reading_features = 6,  -- After Book Info (5)
-        in_quick_actions = 4,  -- After Book Info (3)
+        in_reading_features = 6,  -- After About (5)
+        in_quick_actions = 4,  -- After About (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Summarize: "{title}"{author_clause}.{doi_clause}
 
@@ -1631,8 +1631,8 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         id = "book_reviews",
         reasoning_config = "off",  -- Review aggregation doesn't benefit from reasoning
         enable_web_search = true,  -- Force web search even if global setting is off
-        text = _("Book Reviews"),
-        description = _("Searches the web for critical and reader reviews, awards, and any controversy around the book."),
+        text = _("Reviews"),
+        description = _("Searches the web for critical and reader reviews, awards, and any controversy about the work."),
         context = "book",
         skip_domain = true,  -- Reviews format is standardized
         prompt = [[Find reviews and reception for "{title}"{author_clause}.{doi_clause}
@@ -1662,8 +1662,8 @@ Attribute opinions to their sources where possible. Distinguish between critical
 Actions.multi_book = {
     compare_books = {
         id = "compare_books",
-        text = _("Compare Books"),
-        description = _("Compares the selected books, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."),
+        text = _("Compare"),
+        description = _("Compares the selected works, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."),
         context = "multi_book",
         template = "compare_books",
         api_params = {
@@ -1675,7 +1675,7 @@ Actions.multi_book = {
     common_themes = {
         id = "common_themes",
         text = _("Find Common Themes"),
-        description = _("Identifies shared themes, intellectual traditions, and deeper patterns across the selected books — beyond surface-level genre labels."),
+        description = _("Identifies shared themes, intellectual traditions, and deeper patterns across the selected works — beyond surface-level genre labels."),
         context = "multi_book",
         template = "common_themes",
         api_params = {
@@ -1700,7 +1700,7 @@ Actions.multi_book = {
         id = "quick_summaries",
         reasoning_config = "off",  -- Brief summaries don't benefit from reasoning
         text = _("Quick Summaries"),
-        description = _("A brief 2-3 sentence summary of each selected book, focusing on premise and appeal."),
+        description = _("A brief 2-3 sentence summary of each selected work, focusing on premise and appeal."),
         context = "multi_book",
         template = "quick_summaries",
         api_params = {
@@ -1723,8 +1723,8 @@ Actions.multi_book = {
     },
     recommend_books = {
         id = "recommend_books",
-        text = _("Recommend Books"),
-        description = _("Recommends 5-8 new books based on the patterns across your selected books — matching the intersection of your interests, not just similarity to one title."),
+        text = _("Recommend"),
+        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title."),
         context = "multi_book",
         template = "recommend_books",
         api_params = {
