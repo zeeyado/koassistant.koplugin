@@ -3193,10 +3193,25 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                             local can_regex = not captured_ui.document.info.has_pages
                             if not can_regex and #alias_terms > 0 then
                                 -- PDF with aliases: show picker for which term to search
+                                -- Count per-term hits (text already cached from distribution scan)
+                                local _raw, ch_text_lower = self_ref:_getChapterText(captured_chapter)
+                                local function countInChapter(term)
+                                    if not ch_text_lower or ch_text_lower == "" then return 0 end
+                                    local tl = term:lower()
+                                    local n, pos = 0, 1
+                                    while true do
+                                        local s = ch_text_lower:find(tl, pos, true)
+                                        if not s then break end
+                                        n = n + 1
+                                        pos = s + #tl
+                                    end
+                                    return n
+                                end
                                 local buttons = {}
                                 -- Main name as first button
+                                local main_hits = countInChapter(search_name)
                                 table.insert(buttons, {{
-                                    text = search_name,
+                                    text = main_hits > 0 and search_name .. " (" .. main_hits .. ")" or search_name,
                                     callback = function()
                                         UIManager:close(self_ref._search_picker)
                                         navigateAndSearch(search_name, false)
@@ -3204,8 +3219,9 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                                 }})
                                 -- Each alias as a separate button
                                 for _idx2, a in ipairs(alias_terms) do
+                                    local alias_hits = countInChapter(a)
                                     table.insert(buttons, {{
-                                        text = a,
+                                        text = alias_hits > 0 and a .. " (" .. alias_hits .. ")" or a,
                                         callback = function()
                                             UIManager:close(self_ref._search_picker)
                                             navigateAndSearch(a, false)
@@ -3856,7 +3872,9 @@ function XrayBrowser:showOptions()
     elseif self.metadata.timestamp then
         table.insert(info_parts, _("Date:") .. " " .. os.date("%Y-%m-%d %H:%M", self.metadata.timestamp))
     end
-    local type_label = XrayParser.isFiction(self.xray_data) and _("Fiction") or _("Non-Fiction")
+    local type_label = XrayParser.isAcademic(self.xray_data) and _("Academic")
+        or XrayParser.isFiction(self.xray_data) and _("Fiction")
+        or _("Non-Fiction")
     table.insert(info_parts, _("Type:") .. " " .. type_label)
     if self.metadata.source_label then
         table.insert(info_parts, _("Source:") .. " " .. self.metadata.source_label)
