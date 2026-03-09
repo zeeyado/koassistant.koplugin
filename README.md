@@ -125,7 +125,7 @@
 3. 🎯 **[Recommended Setup](#recommended-setup)** — Configure gestures and explore key features (10 minutes)
 4. 💰 **[Free Tiers](#free-tier-providers)** — Don't want to pay? See free provider options
 
-You can also [test Your Setup](#testing-your-setup)** — Web inspector for experimenting
+You can also [test your setup](#testing-your-setup) — Web inspector for experimenting
 
 **Want to go deeper?** The rest of this README covers all features in detail.
 
