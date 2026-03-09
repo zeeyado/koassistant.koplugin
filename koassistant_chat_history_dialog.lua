@@ -1614,6 +1614,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         history = MessageHistory:fromSavedMessages(chat.messages, chat.model, chat.id, chat.prompt_action, chat.launch_context, chat_metadata)
     end)
 
+    if ok and history then
+        history.created_at = chat.timestamp
+    end
+
     if not ok or not history then
         logger.warn("Failed to load message history: " .. (err or "unknown error"))
         UIManager:show(InfoMessage:new{

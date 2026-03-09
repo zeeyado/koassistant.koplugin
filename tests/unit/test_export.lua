@@ -494,9 +494,10 @@ local function runFromHistoryTests()
     print("\n--- Export.fromHistory() ---")
 
     -- Create a minimal mock MessageHistory
-    local function createMockHistory(messages, model, prompt_action)
+    local function createMockHistory(messages, model, prompt_action, created_at)
         return {
             prompt_action = prompt_action,
+            created_at = created_at,
             getMessages = function(self_hist)
                 return messages
             end,
@@ -549,6 +550,19 @@ local function runFromHistoryTests()
         local history = createMockHistory(msgs, "gpt-4", nil)
         local data = Export.fromHistory(history, nil, nil, nil)
         TestRunner:assertEqual(data.last_response, "Answer text")
+    end)
+
+    TestRunner:test("uses created_at for date", function()
+        local history = createMockHistory({}, "gpt-4", nil, 1700000000)
+        local data = Export.fromHistory(history, nil, nil, nil)
+        TestRunner:assertContains(data.date, "2023-11-14")
+    end)
+
+    TestRunner:test("falls back to current time when no created_at", function()
+        local history = createMockHistory({}, "gpt-4", nil, nil)
+        local data = Export.fromHistory(history, nil, nil, nil)
+        local today = os.date("%Y-%m-%d")
+        TestRunner:assertContains(data.date, today)
     end)
 end
 
@@ -629,6 +643,28 @@ local function runFromSavedChatTests()
 end
 
 -- =============================================================================
+-- Export.getCacheFilename()
+-- =============================================================================
+
+local function runGetCacheFilenameTests()
+    print("\n--- Export.getCacheFilename() ---")
+
+    TestRunner:test("uses provided timestamp in filename", function()
+        local result = Export.getCacheFilename("Book", "xray", 1700000000)
+        TestRunner:assertContains(result, "2023")
+        TestRunner:assertContains(result, "X-Ray")
+        TestRunner:assertContains(result, ".md")
+    end)
+
+    TestRunner:test("defaults to current time when no timestamp", function()
+        local result = Export.getCacheFilename("Book", "xray", nil)
+        local year = os.date("%Y")
+        TestRunner:assertContains(result, year)
+        TestRunner:assertContains(result, "X-Ray")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -644,6 +680,7 @@ local function runAll()
     runFormatCacheContentTests()
     runFromHistoryTests()
     runFromSavedChatTests()
+    runGetCacheFilenameTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
