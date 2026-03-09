@@ -16,6 +16,7 @@
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
 - **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, Section X-Rays for focused chapter/part analysis, AI Wiki for per-item encyclopedia entries, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **Research Mode** → automatic academic enhancements for papers with DOI: discipline-agnostic academic X-Ray (7 research categories), web search override, research-aware system prompts — zero configuration, DOI detection triggers everything
+- **Notebooks** → per-book markdown notebooks for curating AI insights and personal notes, with Obsidian vault integration (three save locations: alongside book, central folder, or custom folder like an Obsidian vault)
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
@@ -74,7 +75,7 @@
   - [Auto-Save](#auto-save)
   - [Chat History](#chat-history)
   - [Export & Save to File](#export--save-to-file) — Clipboard, file, multiple formats
-  - [Notebooks (Per-Book Notes)](#notebooks-per-book-notes)
+  - [Notebooks (Per-Book Notes)](#notebooks-per-book-notes) — Markdown notebooks with Obsidian vault integration
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
   - [Starring & Pinning](#starring--pinning) — Star conversations for quick access, pin responses as artifacts
@@ -330,6 +331,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Research Mode](#research-mode)** | Automatic academic enhancements when DOI detected (academic X-Ray, web search, research prompts) | Automatic — no configuration needed |
 | **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, chapter tracking | Reading Features or Quick Actions → X-Ray |
 | **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (8 defaults including Translate, ELI5, Explain) | Manage Actions → Add to Highlight Menu |
+| **[Notebooks](#notebooks-per-book-notes)** | Per-book markdown notes with Obsidian vault support | Settings → Notebook Settings |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
 | **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
@@ -883,7 +885,7 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Link Handling**: Tapping a link in the chat viewer opens KOReader's external link dialog — Copy, Show QR code, Open in browser, and any registered plugin actions (e.g., Add to Wallabag). When no book is open, a basic version of the dialog is shown.
-- **Text Selection Lookup**: Selecting 1–3 words in the chat viewer triggers a dictionary lookup (KOReader's built-in dictionary when [bypass](#dictionary-bypass) is off, or your configured AI action when on). Selecting 4+ words copies to clipboard. Your chat stays open underneath. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
+- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options. Consistent across all viewer types (chat, X-Ray browser, compact, dictionary, translate views). See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
@@ -895,7 +897,7 @@ When working with highlighted text, the **Save to Note** button lets you save th
 **How it works:**
 1. Highlight text and use any KOAssistant action (Explain, Translate, etc.)
 2. Review the AI response in the chat viewer
-3. Tap the **Save to Note** button (appears between Copy and Add to Notebook)
+3. Tap the **Save to Note** button (appears between Copy and Notebook)
 4. KOReader's Edit Note dialog opens with the response pre-filled
 5. Edit if desired, then save — the highlight is created with your note attached
 
@@ -1810,53 +1812,89 @@ The export uses your global Export Style setting (Markdown or Plain Text).
 
 ### Notebooks (Per-Book Notes)
 
-Notebooks function like book logs that you can append chat content to and edit (with TextEdit directly in KOReader or dedicated markdown editor). They are persistent markdown files stored alongside each book in its sidecar folder (`.sdr/koassistant_notebook.md`). Unlike chat history which stores full conversations, notebooks let you curate AI insights for long-term reference, along with your own notes.
+Notebooks are persistent markdown files for curating AI insights, personal notes, and reading observations — one per book. Unlike chat history which stores full conversations, notebooks let you build a long-term reference alongside your reading.
 
 You can include notebook content in your custom actions using the `{notebook}` placeholder (see [Template Variables](#template-variables)). This lets actions reference your accumulated notes and insights.
 
-**Saving to a notebook:**
-1. Have a conversation with the AI about your book
-2. Tap the **Add to Notebook** button in the chat viewer toolbar
-3. The response (with context) is appended to the book's notebook
+#### Save Locations
 
-**What gets saved** (Settings → Notebooks → Content Format):
+Notebooks can be stored in three locations (Settings → Notebook Settings → Save Location):
+
+| Location | Description | Filename |
+|----------|-------------|----------|
+| **Alongside book** (default) | In the book's sidecar folder (`.sdr/`) | `koassistant_notebook.md` |
+| **KOAssistant notebooks folder** | Central `koassistant_notebooks/` folder | `Author — Title.md` |
+| **Custom folder** | Any directory (e.g., Obsidian vault) | `Author — Title.md` |
+
+Changing the save location offers to migrate all existing notebooks to the new location.
+
+#### Obsidian / Synced Folder Integration
+
+Point the custom folder to your Obsidian vault (or any synced folder) and notebooks become regular vault files:
+
+- **Named for discovery**: `Author — Title.md` (e.g., `Dostoevsky — Crime and Punishment.md`)
+- **YAML frontmatter**: Title, author, book path, creation date — visible in Obsidian's metadata panel
+- **Standard markdown**: Works with any markdown editor, Obsidian plugins, or sync service
+- **No conflicts**: Uses em dash (` — `) separator vs `obsidian-koreader-highlights`'s hyphen — different files for different content
+
+The em dash naming avoids conflicts with the popular `obsidian-koreader-highlights` plugin, which exports KOReader highlights to `Author - Title.md` (hyphen). KOAssistant notebooks and KOReader highlights target different content, so separate files are appropriate.
+
+#### Saving to a Notebook
+
+**From chat viewer** — Tap the **Notebook** button in the toolbar. A popup offers:
+- **Add Chat to Notebook**: Append the current AI response (with context) to the notebook
+- **View Notebook**: Open notebook in view mode (on top of the chat viewer)
+- **Edit Notebook**: Open notebook in text editor (on top of the chat viewer)
+
+If no notebook exists yet, only "Add Chat to Notebook" is shown (creates the notebook automatically).
+
+**From text selection** — Select 2+ words in any KOAssistant viewer → tap **Add to Notebook** in the popup. Appends the selected text with a timestamp header. Works across chat viewer, X-Ray browser, and all view modes.
+
+**What gets saved** (Settings → Notebook Settings → Content Format):
 - **Response only**: Just the AI response
 - **Q&A**: Highlighted text + your question + AI response
-- **Full Q&A** (recommended, default): Same as Q&A for notebooks (notebooks are book-specific, so additional book context is redundant)
+- **Full Q&A** (recommended, default): Same as Q&A for notebooks
 
 Each entry includes timestamp, page number, progress percentage, and chapter title.
 
-**Accessing notebooks:**
-- **Browse all notebooks**: Settings → Notebooks → Browse Notebooks (shows all books with notebooks, sorted by last modified; 📓 prefix with [Emoji Menu Icons](#display-settings))
+#### Accessing Notebooks
+
+- **Browse all notebooks**: Settings → Notebook Settings → Browse Notebooks (sorted by last modified)
 - **From file browser**: Long-press a book → "Notebook (KOA)" button (if notebook exists)
-- **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture for quick access (Settings → Gesture Manager → General → KOAssistant)
+- **From chat viewer**: Notebook button → View or Edit
+- **Via gestures**: Assign "View Notebook" or "Browse Notebooks" to a gesture (Settings → Gesture Manager → General → KOAssistant)
+- **External editor**: Open the `.md` file directly in any markdown editor or Obsidian
 
 The notebook browser has a **hamburger menu** (☰) for navigating to Chat History or Browse Artifacts.
 
-**Viewing vs Editing:**
-- **Tap** a notebook → Options popup: View, Edit, Open Book, Delete Notebook
+#### Viewing vs Editing
+
+- **Tap** a notebook in the browser → Options popup: View, Edit, Open Book, Delete Notebook
   - **View** → Opens in Chat Viewer (default) with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
   - **Edit** → Opens in text editor for direct editing
   - **Open Book** → Opens the book in the reader
 - **Open in Reader** button (in Chat Viewer) → Opens the notebook in KOReader's full reader (markdown rendering, page navigation)
-- **External editor**: Edit `.sdr/koassistant_notebook.md` directly with any markdown editor
 
-The default viewer can be changed in Settings → Notebooks → Viewer Mode (Chat Viewer or KOReader).
+The default viewer can be changed in Settings → Notebook Settings → Viewer Mode (Chat Viewer or KOReader).
 
-**Key features:**
-- ✅ **Travels with books**: Notebooks automatically move when you reorganize files
-- ✅ **Cumulative**: New entries append to existing content
-- ✅ **Portable markdown**: Edit or view `.sdr/koassistant_notebook.md` with any text editor
-- ✅ **Separate from chats**: Notebooks are curated excerpts; full chats remain in Chat History
+#### Key Features
+
+- **Flexible storage**: Alongside book (travels with files), central folder, or custom folder (Obsidian vault)
+- **Obsidian-ready**: YAML frontmatter, standard markdown, descriptive filenames
+- **Multiple entry points**: Chat viewer button, text selection popup, file browser, gestures
+- **Cumulative**: New entries append to existing content
+- **Portable markdown**: Standard `.md` files editable with any text editor
+- **Auto-migration**: Changing save location moves all notebooks with frontmatter add/strip as needed
+- **Auto-relink**: If a book is re-added after losing its settings, the plugin detects the existing notebook file by matching the generated filename
 
 **Notebook vs Chat History:**
 | Feature | Notebooks | Chat History |
 |---------|-----------|--------------|
 | Purpose | Curated insights | Full conversation logs |
-| Storage | One file per book | Multiple chats per book |
+| Storage | One `.md` file per book | Multiple chats per book |
 | Content | Selected responses and notes | Complete back-and-forth |
 | Editing | Manual editing allowed | Immutable after save |
-| Format | Markdown | Structured Lua data |
+| Format | Markdown (Obsidian-compatible) | Structured Lua data |
 
 ### Chat Storage & File Moves
 
@@ -2156,8 +2194,12 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
 - **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
 
-### Notebooks
+### Notebook Settings
 - **Browse Notebooks...**: Open the Notebook Manager to view all notebooks
+- **Save Location**: Where notebook files are stored
+  - **Alongside book** (default): In the book's sidecar folder (`.sdr/koassistant_notebook.md`). Travels with the book automatically.
+  - **KOAssistant notebooks folder**: Central `koassistant_notebooks/` folder. Files named `Author — Title.md` with YAML frontmatter.
+  - **Custom folder**: User-selected directory (e.g., Obsidian vault folder). Same naming and frontmatter as central. Selecting this opens a path picker; re-selecting reopens the picker.
 - **Content Format**: What to include when saving to notebook
   - **Response only**: Just the AI response
   - **Q&A**: Highlighted text + question + response
@@ -2167,8 +2209,9 @@ Configure the Quick Actions panel (available via gesture in reader mode).
   - **KOReader**: Opens as a full document in KOReader's reader with page navigation
 - **Show in file browser menu**: Show "Notebook (KOA)" button when long-pressing books (default: on)
 - **Only for books with notebooks**: Only show button if notebook already exists (default: on). Disable to allow creating notebooks from file browser.
+- **Allow Notebook sharing** (Privacy): Controls whether notebook content is sent to the AI via `{notebook}` placeholder
 
-**Filename format**: Files are named `[book_title]_[chat_title]_[timestamp].md` (or `.txt`). Book title is truncated to 30 characters, chat title to 25 characters. Timestamp uses the chat's creation time for saved chats, or export time for unsaved chats from the viewer.
+Changing save location prompts to migrate existing notebooks. Vault/central filenames use `Author — Title.md` pattern with sanitization and collision handling.
 
 ### Privacy & Data
 See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers and the reasoning behind these defaults.
@@ -3196,26 +3239,29 @@ If the action uses Dictionary view directly (e.g., Deep Analysis), step 1 is ski
 
 ### Text Selection in Chat Viewer
 
-When you select text inside any KOAssistant chat viewer (compact, translate, full chat, or artifact views), the behavior depends on how many words you selected:
+Text selection works consistently across all KOAssistant viewers — chat viewer, X-Ray browser, compact, dictionary, and translate views:
 
 | Selection | Behavior |
 |-----------|----------|
-| **1–3 words** | Dictionary lookup (see below) |
-| **4+ words** | Copies to clipboard |
+| **1 word** | Auto-dictionary lookup (matches KOReader reader behavior) |
+| **2+ words** | Action popup |
 
-**Dictionary lookup behavior** depends on your [Dictionary Bypass](#dictionary-bypass) setting:
+**Single word** opens KOReader's built-in offline dictionary. The current viewer stays open underneath — the dictionary popup opens on top, and you return to your viewer when you close it.
 
-| Bypass Setting | What happens on 1–3 word selection |
-|----------------|-------------------------------------|
-| **Bypass ON** | Runs your configured bypass action (e.g., Dictionary, Quick Define) as a compact AI lookup |
-| **Bypass OFF** | Opens KOReader's built-in dictionary (offline, instant) |
-| **No dictionary available** (e.g., general chat from file browser) | Copies to clipboard |
+**Multi-word selection popup** (2-column grid layout):
 
-The current chat viewer stays open underneath — the dictionary popup or AI lookup opens on top, and you return to your chat when you close it. This lets you naturally chain lookups: look up a word, see an unfamiliar word in the result, select it to look that up too.
+| Button | Action |
+|--------|--------|
+| **Copy** | Copy to clipboard |
+| **Dictionary** | KOReader offline dictionary lookup |
+| **Translate** | Translate via KOAssistant's Translate action |
+| **Add to Notebook** | Append text with timestamp to the book's notebook (auto-creates if needed) |
 
-**Why bypass matters:** With bypass off, selecting a word opens KOReader's offline dictionary — useful when reading a saved chat offline, reviewing cache results, or when you simply want a quick definition without an API call. With bypass on, you get the full AI-powered lookup instead.
+Buttons are conditional — Dictionary requires an open book with dictionary support, Translate requires the plugin, Add to Notebook requires book context (not available for general/multi-book chats). The popup is dismissable by tapping outside.
 
-**Coming soon:** Configurable text selection behavior — choose what action to trigger, adjust the word count threshold, and select what to do with text after highlighting (translate, run any action, etc.).
+**Highlight clearing**: Selected text highlight clears automatically after any action or when dismissing the popup.
+
+**Chaining lookups**: Look up a word, see an unfamiliar word in the AI response, select it to look that up too — the viewer stays open underneath throughout.
 
 ### Document Metadata
 
