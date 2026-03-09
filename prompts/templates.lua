@@ -65,6 +65,11 @@ Templates.HALLUCINATION_NUDGE_WEB = "If you don't recognize this or the content 
 -- The {title} placeholder inside will be substituted by MessageBuilder
 Templates.TEXT_FALLBACK_NUDGE = 'Note: No document text was provided. Use your knowledge of "{title}" to provide the best response you can. If you don\'t recognize this work, say so honestly rather than fabricating details.'
 
+-- Research nudge - added to system prompt when DOI detected and web search active
+-- Guides AI on academic-appropriate use of web search
+-- Injected by system_prompts.lua buildUnifiedSystem(), not a user prompt placeholder
+Templates.RESEARCH_NUDGE = [[This is an academic/research paper. Ground your analysis primarily in the provided text. If web search is available, use it to verify technical claims, understand the paper's position within its field, look up referenced works or foundational concepts, and search for the DOI directly for citation context and related work. Use relevant academic sources as you see fit — adapt to the discipline and field.]]
+
 -- Highlight analysis nudge - appears only when highlights are provided
 -- Available as {highlight_analysis_nudge} conditional placeholder in X-Ray prompts
 Templates.HIGHLIGHT_ANALYSIS_NUDGE = [[If highlights are provided, add a "reader_engagement" section to the JSON:
@@ -104,7 +109,7 @@ Unpack key concepts, add helpful context, explore implications and connections. 
 
 -- Book context templates
 Templates.book = {
-    book_info = [[Tell me about "{title}"{author_clause}. Provide a comprehensive overview:
+    book_info = [[Tell me about "{title}"{author_clause}.{doi_clause} Provide a comprehensive overview:
 
 ## About the Work
 - What it's about — premise and central conflict (fiction) or thesis and scope (non-fiction)
@@ -129,7 +134,7 @@ Adapt depth and focus to the type of work — a literary novel deserves attentio
 
 Be substantive but not exhaustive. {hallucination_nudge}]],
 
-    similar_books = [[Based on "{title}"{author_clause}, recommend 5-7 similar works.
+    similar_books = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 similar works.
 
 For each recommendation, specify:
 - WHY it's similar (themes? style? subject matter? reading experience?)
@@ -142,7 +147,7 @@ Adapt to content type:
 
 {hallucination_nudge}]],
 
-    explain_author = [[Tell me about the author of "{title}"{author_clause}. Include:
+    explain_author = [[Tell me about the author of "{title}"{author_clause}.{doi_clause} Include:
 
 - Brief biography and background
 - Their major works and how their style evolved
@@ -152,7 +157,7 @@ Adapt to content type:
 
 Be concise. For intellectual influences and lineage, the reader can use "Related Thinkers". {hallucination_nudge}]],
 
-    historical_context = [[Provide historical context for "{title}"{author_clause}:
+    historical_context = [[Provide historical context for "{title}"{author_clause}:{doi_clause}
 - When was it written and what was happening at that time
 - Historical events or movements that influenced the work
 - How the work reflects or responds to its historical moment
@@ -288,11 +293,13 @@ function Templates.buildVariables(context_type, data)
         vars.title = data.title or ""
         vars.author = data.author or ""
         vars.author_clause = data.author and data.author ~= "" and (" by " .. data.author) or ""
+        vars.doi_clause = data.doi_clause or ""
 
     elseif context_type == "book" then
         vars.title = data.title or ""
         vars.author = data.author or ""
         vars.author_clause = data.author and data.author ~= "" and (" by " .. data.author) or ""
+        vars.doi_clause = data.doi_clause or ""
 
     elseif context_type == "multi_book" then
         vars.count = data.count or (data.books_info and #data.books_info) or 0

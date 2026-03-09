@@ -379,6 +379,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         user_languages = features.user_languages or "",
         primary_language = features.primary_language,
         skip_language_instruction = action and action.skip_language_instruction,
+        -- Research mode: DOI triggers academic nudge in system prompt
+        book_metadata = features.book_metadata,
     })
 
     config.system = system_config
@@ -2673,6 +2675,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 message_data.book_title = book_metadata.title
                 message_data.book_author = book_metadata.author
             end
+            -- Pass DOI clause from book metadata (for {doi_clause} placeholder)
+            if book_metadata and book_metadata.doi_clause then
+                message_data.doi_clause = book_metadata.doi_clause
+            end
         end
 
         -- Extract surrounding context for dictionary action if not already provided
@@ -2770,6 +2776,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if source_mode == "ai_knowledge" and prompt.enable_web_search == false then
             prompt.enable_web_search = nil
         end
+    end
+
+    -- DOI web search override: academic papers benefit from web enrichment
+    -- Actions with doi_web_override=true have their enable_web_search=false lifted to nil
+    -- (follow global setting) when a DOI is detected in document metadata
+    local doi_metadata = config.features and config.features.book_metadata
+    if doi_metadata and doi_metadata.doi
+            and prompt.doi_web_override and prompt.enable_web_search == false then
+        prompt.enable_web_search = nil
     end
 
     -- Highlight section scope: limit text extraction to a specific section's page range.

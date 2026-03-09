@@ -115,6 +115,66 @@ local function copyFileContent(src, dest)
     return true
 end
 
+--- Match a DOI pattern in a text string.
+--- DOI format: 10.XXXX/suffix (4-9 digit registrant code)
+--- @param text string|nil Text to search for DOI
+--- @return string|nil The extracted DOI, or nil
+local function matchDOI(text)
+    if not text or text == "" then return nil end
+    local doi = text:match("10%.%d%d%d%d%d?%d?%d?%d?%d?/[^%s,;\"'%)%]>]+")
+    if doi then
+        -- Strip trailing punctuation that's likely not part of the DOI
+        doi = doi:gsub("[%.%)%]};,]+$", "")
+        return doi
+    end
+    return nil
+end
+
+--- Extract DOI from document properties.
+--- Checks identifiers (EPUB), description (PDF), and keywords fields.
+--- @param doc_props table|nil Document properties table
+--- @return string|nil The extracted DOI, or nil
+local function extractDOI(doc_props)
+    if not doc_props then return nil end
+    return matchDOI(doc_props.identifiers)
+        or matchDOI(doc_props.description)
+        or matchDOI(doc_props.keywords)
+end
+
+--- Get raw doc_props (with identifiers) from DocSettings for a file.
+--- Raw props include the identifiers field that extendProps() filters out.
+--- @param file string Document file path
+--- @return table|nil Raw document properties, or nil
+local function getRawDocProps(file)
+    if not file then return nil end
+    local DocSettings = require("docsettings")
+    local ok, doc_settings = pcall(DocSettings.open, DocSettings, file)
+    if ok and doc_settings then
+        return doc_settings:readSetting("doc_props")
+    end
+    return nil
+end
+
+--- Build standardized book metadata table for template substitution.
+--- Extracts DOI when doc_props are available.
+--- @param title string Book title
+--- @param authors string Author name(s)
+--- @param file string|nil File path for chat saving
+--- @param doc_props table|nil Document properties (raw preferred, for identifiers)
+--- @return table Book metadata with title, author, author_clause, file, doi, doi_clause
+local function buildBookMetadata(title, authors, file, doc_props)
+    authors = authors or ""
+    local doi = extractDOI(doc_props)
+    return {
+        title = title or "Unknown",
+        author = authors,
+        author_clause = authors ~= "" and (" by " .. authors) or "",
+        file = file,
+        doi = doi,
+        doi_clause = doi and ("\nDOI: " .. doi) or "",
+    }
+end
+
 local AskGPT = WidgetContainer:extend{
   name = "koassistant",
   is_doc_only = false,
@@ -806,12 +866,9 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   end
 
   -- Store the book metadata for template substitution
-  configuration.features.book_metadata = {
-    title = title,
-    author = authors,
-    author_clause = authors ~= "" and string.format(" by %s", authors) or "",
-    file = file  -- Add file path for chat saving
-  }
+  -- Use raw doc_props (from DocSettings) for DOI extraction — includes identifiers field
+  local raw_doc_props = getRawDocProps(file) or book_props
+  configuration.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props)
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
@@ -965,12 +1022,10 @@ function AskGPT:compareSelectedBooks(selected_files)
   configuration.features.books_info = books_info  -- Store the parsed book info for template substitution
 
   -- Store metadata for template substitution (using first book's info)
+  -- No DOI for multi-book context (no single document to identify)
   if #books_info > 0 then
-    configuration.features.book_metadata = {
-      title = books_info[1].title,
-      author = books_info[1].authors,
-      author_clause = books_info[1].authors ~= "" and string.format(" by %s", books_info[1].authors) or ""
-    }
+    configuration.features.book_metadata = buildBookMetadata(
+      books_info[1].title, books_info[1].authors)
   end
 
   NetworkMgr:runWhenOnline(function()
@@ -5463,11 +5518,9 @@ function AskGPT:_generateSummaryAndContinue(on_done)
   if authors:find("\n") then
     authors = authors:gsub("\n", ", ")
   end
-  config_copy.features.book_metadata = {
-    title = title,
-    author = authors,
-    author_clause = (authors ~= "") and (" by " .. authors) or "",
-  }
+  local raw_doc_props = getRawDocProps(self.ui and self.ui.document and self.ui.document.file)
+      or doc_props
+  config_copy.features.book_metadata = buildBookMetadata(title, authors, nil, raw_doc_props)
 
   NetworkMgr:runWhenOnline(function()
     Dialogs.generateSummaryCache(self.ui, config_copy, self, config_copy.features.book_metadata, function(success)
@@ -6826,12 +6879,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
           configuration.features.is_general_context = nil
           configuration.features.is_book_context = true
           configuration.features.is_multi_book_context = nil
-          configuration.features.book_metadata = {
-            title = bt,
-            author = ba,
-            author_clause = (ba ~= "") and (" by " .. ba) or "",
-            file = file,
-          }
+          configuration.features.book_metadata = buildBookMetadata(bt, ba, file, getRawDocProps(file))
           local book_ctx = string.format("Title: %s.", bt)
           if ba ~= "" then
             book_ctx = book_ctx .. string.format(" Author: %s.", ba)
@@ -7432,11 +7480,9 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   if authors:find("\n") then
     authors = authors:gsub("\n", ", ")
   end
-  config_copy.features.book_metadata = {
-    title = title,
-    author = authors,
-    author_clause = (authors ~= "") and (" by " .. authors) or "",
-  }
+  local raw_doc_props = getRawDocProps(self.ui and self.ui.document and self.ui.document.file)
+      or doc_props
+  config_copy.features.book_metadata = buildBookMetadata(title, authors, nil, raw_doc_props)
 
   -- Build book context string for display at top of chat viewer
   local book_context = string.format("Title: %s.", title)
@@ -7480,12 +7526,7 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = true
   configuration.features.is_multi_book_context = nil
-  configuration.features.book_metadata = {
-    title = title,
-    author = authors,
-    author_clause = (authors and authors ~= "") and (" by " .. authors) or "",
-    file = file,
-  }
+  configuration.features.book_metadata = buildBookMetadata(title, authors, file, getRawDocProps(file) or book_props)
 
   -- Build book context string for display at top of chat viewer
   local book_context = string.format("Title: %s.", title)

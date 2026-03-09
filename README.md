@@ -284,7 +284,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments
+- **Default actions** — X-Ray, Recap, Book Info, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, Book Info, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
@@ -518,7 +518,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
-| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Document Analysis, Document Summary, Extract Key Insights |
+| **Book** | Book Info, Find Similar, About Author, Historical Context, Related Thinkers, Book Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
 | **Multi-book** | Compare Books, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend Books |
 | **General** | News Update* |
 
@@ -547,9 +547,9 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Annotation Notes, Allow Notebook* |
-| **Explain in Context** | Explain passage using document context. Source selection: full text, summary, or AI knowledge |
-| **Analyze in Context** | Deep analysis using document context and your annotations. Source selection: full text, summary, or AI knowledge ⚠️ *Requires: Allow Annotation Notes* |
-| **Thematic Connection** | Analyze how a passage connects to the book's larger themes. Source selection: full text, summary, or AI knowledge |
+| **Explain in Context** | Comprehension-focused: what the passage means, what leads up to it, and what it builds on. Source selection: full text, summary, or AI knowledge |
+| **Analyze in Context** | Reader-focused: connects the passage to your highlights, annotations, and the threads you've been tracking. Source selection: full text, summary, or AI knowledge ⚠️ *Requires: Allow Annotation Notes* |
+| **Thematic Connection** | Craft-focused: examines the author's technique — language, structure, imagery — and how the passage fits into the work's thematic architecture. Source selection: full text, summary, or AI knowledge |
 | **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
 | **Current Context** | Get latest information about a topic using web search ⚠️ *Requires: Web Search* |
 | **Translate** | Translate to your configured language |
@@ -608,7 +608,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Book Info** | Overview, significance, and why to read it |
 | **Find Similar** | Recommendations for similar books |
 | **About Author** | Author biography and writing style |
-| **Historical Context** | When written and historical significance |
+| **Historical Context** | When written and historical significance. Adapts to work type (novel, manifesto, religious text, research paper) |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Book Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
 | **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline — opens in a structured menu with search (including cross-section search across all X-Rays), chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
@@ -617,10 +617,11 @@ Some actions work from the file browser (using only document metadata like title
 | **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
-| **Generate Quiz** | Comprehension quiz with answers (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
+| **Generate Quiz** | Comprehension quiz — questions first, answer key at the bottom (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
+| **Reading Guide** | Spoiler-free guide to what's ahead — threads in motion, patterns to notice, helpful background, how to approach the rest. Uses reading position to stay safe. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
 | **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
 | **Document Summary** | Comprehensive summary. Saved as a Summary artifact, which other actions can use as their document source. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
-| **Extract Key Insights** | Actionable takeaways and ideas worth remembering. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
+| **Extract Key Insights** | Distills the most important takeaways — ideas worth remembering, novel perspectives, actionable conclusions. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
 
 **What the AI sees**: Document metadata (title, author). For Analyze Notes: your annotations. For full document actions: entire document text.
 
@@ -640,6 +641,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **Document Analysis** | Entire document or section (user choice) | Allow Text Extraction |
 | **Document Summary** | Entire document or section (user choice) | Allow Text Extraction |
 | **Extract Key Insights** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
+| **Reading Guide** | Full text, summary, or AI knowledge (user choice) + reading progress | Allow Text Extraction (for full text/summary) |
 | **Book Info** | AI training knowledge (+ optional web search) | None (web search optional) |
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 
@@ -776,7 +778,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 - **File browser** has access to book **metadata** only: title, author, identifiers
 - **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
 
-**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
 
 Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
 
@@ -819,7 +821,7 @@ All input dialogs (highlight, book, general) show a configurable set of actions 
 
 | Context | Default Actions |
 |---------|----------------|
-| **Highlight** | Translate, ELI5, Explain, Elaborate, Summarize, Connect, Fact Check, Explain in Context |
+| **Highlight** | Translate, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, Explain in Context |
 | **Book** | Book Info, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Book Reviews |
 | **Book (file browser)** | Book Info, Find Similar, Related Thinkers, About Author, Historical Context, Book Reviews |
 | **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context, Thematic Connection, Connect |
@@ -1187,8 +1189,8 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 **Default actions** (included automatically):
 1. **Translate** — Instant translation of selected text
 2. **Look up in X-Ray** — Local search of cached X-Ray data (only appears when cache exists)
-3. **ELI5** — Explain Like I'm 5, simplified explanation
-4. **Explain** — Get an explanation of the passage
+3. **Explain** — Get an explanation of the passage
+4. **ELI5** — Explain Like I'm 5, simplified explanation
 5. **Elaborate** — Expand on concepts, provide additional context
 6. **Summarize** — Condense the passage to its essential points
 7. **Connect** — Draw connections to other works, thinkers, and broader context
@@ -2650,10 +2652,11 @@ X-Ray opens as a browsable category menu (characters, locations, themes, lexicon
 | **Analyze Notes** | Analyze Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 | **Key Arguments** | Key Arguments action | Thesis, evidence, assumptions, counterarguments | **Auto-artifact** — first response silently cached. Chat opens normally for follow-ups. |
 | **Discussion Questions** | Discussion Questions action | Comprehension, analytical, interpretive, personal questions | **Auto-artifact** — first response silently cached. |
-| **Generate Quiz** | Generate Quiz action | Multiple choice, short answer, and essay questions | **Auto-artifact** — first response silently cached. |
+| **Generate Quiz** | Generate Quiz action | Multiple choice, short answer, and essay questions with answer key at bottom | **Auto-artifact** — first response silently cached. |
+| **Reading Guide** | Reading Guide action | Spoiler-free guide: threads, patterns, context, approach | **Auto-artifact** — first response silently cached. |
 | **Key Insights** | Extract Key Insights action | Important takeaways, novel perspectives, actionable conclusions | **Auto-artifact** — first response silently cached. |
 
-Beyond these eleven generated artifacts, you can **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
+Beyond these twelve generated artifacts, you can **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
 
 **Viewing artifacts:**
 - **Reading Features** → Tap any artifact action (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes). If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
@@ -2695,13 +2698,14 @@ The summary artifact is the centerpiece of the reuse system. For medium and long
 - **Quick Actions → Document Summary** (same behavior)
 
 **Actions with source selection:**
-- **Explain in Context** — (Highlight) Explain a passage using document context
-- **Analyze in Context** — (Highlight) Analyze a passage within the broader work
-- **Thematic Connection** — (Highlight) Analyze how a passage connects to larger themes
+- **Explain in Context** — (Highlight) Comprehension: what the passage means in context
+- **Analyze in Context** — (Highlight) Reader-focused: connect to your highlights and annotations
+- **Thematic Connection** — (Highlight) Craft analysis: technique, structure, and thematic architecture
 - **Key Arguments** — (Book) Thesis, evidence, and counterargument analysis
 - **Discussion Questions** — (Book) Generate discussion prompts grounded in the document
-- **Generate Quiz** — (Book) Comprehension quiz with answers
+- **Generate Quiz** — (Book) Comprehension quiz with answer key at bottom
 - **Extract Key Insights** — (Book) Actionable takeaways and ideas worth remembering
+- **Reading Guide** — (Book) Spoiler-free guide to what's ahead
 
 When you trigger any of these actions, a unified popup lets you choose scope (full document or a specific section) and source (extract text, use summary, or AI knowledge only). See [Source selection](#source-selection) above for details.
 

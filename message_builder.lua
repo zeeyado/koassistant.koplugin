@@ -419,6 +419,7 @@ function MessageBuilder.build(params)
             user_prompt = replace_placeholder(user_prompt, "{title}", metadata.title or "Unknown")
             user_prompt = replace_placeholder(user_prompt, "{author}", metadata.author or "")
             user_prompt = replace_placeholder(user_prompt, "{author_clause}", metadata.author_clause or "")
+            user_prompt = replace_placeholder(user_prompt, "{doi_clause}", metadata.doi_clause or "")
         elseif data.book_context then
             -- Fallback: use pre-formatted book context string if metadata not available
             table.insert(parts, "[Context]")
@@ -476,6 +477,7 @@ function MessageBuilder.build(params)
             user_prompt = replace_placeholder(user_prompt, "{author}", data.book_author or "")
             user_prompt = replace_placeholder(user_prompt, "{author_clause}",
                 (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or "")
+            user_prompt = replace_placeholder(user_prompt, "{doi_clause}", data.doi_clause or "")
         end
         if data.highlighted_text then
             user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text)
@@ -535,6 +537,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.author_clause then
         result = replace_placeholder(result, "{author_clause}", data.author_clause)
+    end
+    if data.doi_clause then
+        result = replace_placeholder(result, "{doi_clause}", data.doi_clause)
     end
     if data.highlighted_text then
         result = replace_placeholder(result, "{highlighted_text}", data.highlighted_text)

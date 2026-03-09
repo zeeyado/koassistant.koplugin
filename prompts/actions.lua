@@ -164,6 +164,7 @@ Actions.highlight = {
     summarize = {
         id = "summarize",
         enable_web_search = false,
+        doi_web_override = true,
         reasoning_config = "off",  -- Condensation doesn't benefit from reasoning
         text = _("Summarize"),
         description = _("Condenses the selected passage to its essential points, keeping what matters and trimming the rest."),
@@ -274,7 +275,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
 
 "{highlighted_text}"
 
-From "{title}"{author_clause}.
+From "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
 
@@ -308,7 +309,7 @@ Focus on comprehension — help me grasp what I'm reading, not evaluate it. {con
 
 "{highlighted_text}"
 
-From "{title}"{author_clause}.
+From "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
 
@@ -333,6 +334,7 @@ This is about what this passage means for ME as a reader — not just what it me
     thematic_connection = {
         id = "thematic_connection",
         enable_web_search = false,
+        doi_web_override = true,
         text = _("Thematic Connection"),
         description = _("Examines the author's craft — how language, structure, and technique achieve the passage's effect, and how it fits into the work's thematic architecture. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
@@ -344,7 +346,7 @@ This is about what this passage means for ME as a reader — not just what it me
 
 "{highlighted_text}"
 
-From "{title}"{author_clause}.
+From "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
 
@@ -446,7 +448,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
 
 {surrounding_context_section}
 
-Use the surrounding text and book context (from "{title}"{author_clause}) only to disambiguate what topic is being asked about. Do not analyze or reference the source text directly.
+Use the surrounding text and book context (from "{title}"{author_clause}{doi_clause}) only to disambiguate what topic is being asked about. Do not analyze or reference the source text directly.
 
 Structure the entry as:
 - **Opening paragraph:** Clear definition and significance of the topic
@@ -496,7 +498,7 @@ local function build_xray_prompt(template, replacements)
     return result
 end
 
-local XRAY_PROMPT_TEMPLATE = [[Create a structured reader's companion for "{title}"{author_clause}.
+local XRAY_PROMPT_TEMPLATE = [[Create a structured reader's companion for "{title}"{author_clause}.{doi_clause}
 
 __SCOPE_LINE__
 
@@ -758,6 +760,7 @@ Actions.book = {
     xray = {
         id = "xray",
         enable_web_search = false,
+        doi_web_override = true,  -- When DOI: follow global setting instead of forcing off
         text = _("X-Ray"),
         description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can generate a complete whole-document X-Ray, or focus on a specific section from the table of contents."),
         context = "book",
@@ -786,7 +789,7 @@ Actions.book = {
         storage_key = "__SKIP__",  -- Result lives in X-Ray cache, not chat history
         -- Response caching: enables incremental updates as reading progresses
         use_response_caching = true,
-        update_prompt = [[Update this X-Ray for "{title}"{author_clause}.
+        update_prompt = [[Update this X-Ray for "{title}"{author_clause}.{doi_clause}
 
 Previous analysis (at {cached_progress}):
 {cached_result}
@@ -828,7 +831,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         use_highlights = true,          -- Optional, gated by enable_highlights_sharing
         use_reading_progress = true,    -- For spoiler avoidance
         -- NO use_book_text — intentionally omitted
-        prompt = [[Create a reader's companion for "{title}"{author_clause}.
+        prompt = [[Create a reader's companion for "{title}"{author_clause}.{doi_clause}
 
 I'm currently at {reading_progress}. Using your knowledge of this work, provide a spoiler-free reference guide covering ONLY what happens up to approximately this point.
 
@@ -886,7 +889,7 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
         use_highlights = true,
         use_reading_progress = true,
         use_reading_stats = true,
-        prompt = [[Help me get back into "{title}"{author_clause}.
+        prompt = [[Help me get back into "{title}"{author_clause}.{doi_clause}
 
 I'm at {reading_progress} and last read {time_since_last_read}.
 
@@ -933,7 +936,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
         storage_key = "__SKIP__",       -- Cache, not chat history
         use_response_caching = true,
         source_selection = true,  -- Unified scope/source popup (scope grayed: no sections; summary grayed: not chronological)
-        update_prompt = [[Update this Recap for "{title}"{author_clause}.
+        update_prompt = [[Update this Recap for "{title}"{author_clause}.{doi_clause}
 
 Previous recap (at {cached_progress}):
 {cached_result}
@@ -960,6 +963,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
     analyze_highlights = {
         id = "analyze_highlights",
         enable_web_search = false,
+        doi_web_override = true,
         text = _("Analyze Notes"),
         description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the book. Requires highlights or annotations sharing."),
         context = "book",
@@ -972,7 +976,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         use_reading_progress = true,
         use_notebook = true,
         use_summary_cache = true,       -- Optional enrichment: helps AI understand what reader is engaging with
-        prompt = [[Reflect on my reading of "{title}"{author_clause} through my highlights and notes.
+        prompt = [[Reflect on my reading of "{title}"{author_clause}{doi_clause} through my highlights and notes.
 
 I'm at {reading_progress}. Do not reference or spoil any events, reveals, or developments beyond this point.
 
@@ -1029,7 +1033,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
         context = "book",
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise helps here
-        prompt = [[For "{title}"{author_clause}, map the intellectual landscape:
+        prompt = [[For "{title}"{author_clause},{doi_clause} map the intellectual landscape:
 
 ## Influences (Who shaped this author's thinking)
 - Direct mentors or acknowledged influences
@@ -1059,6 +1063,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
     key_arguments = {
         id = "key_arguments",
         enable_web_search = false,
+        doi_web_override = true,
         text = _("Key Arguments"),
         description = _("Breaks down the book's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
@@ -1068,7 +1073,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         auto_artifact = true,  -- Silently cache first response as artifact
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
-        prompt = [[Analyze the main arguments in "{title}"{author_clause}.
+        prompt = [[Analyze the main arguments in "{title}"{author_clause}.{doi_clause}
 {document_context_section}
 
 ## Core Thesis
@@ -1118,7 +1123,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         auto_artifact = true,  -- Silently cache first response as artifact
         in_quick_actions = 8,     -- Appears in Quick Actions menu
         -- User can mention reading progress in follow-up if needed
-        prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.
+        prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.{doi_clause}
 {document_context_section}
 
 Create 8-10 questions that could spark good conversation:
@@ -1163,7 +1168,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         source_selection = true,  -- Show source selection popup
         auto_artifact = true,  -- Silently cache first response as artifact
         in_quick_actions = 9,     -- Appears in Quick Actions menu
-        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
+        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
 
@@ -1209,6 +1214,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
     analyze_full_document = {
         id = "analyze_full_document",
         enable_web_search = false,
+        doi_web_override = true,
         text = _("Document Analysis"),
         description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Can target a specific section. Requires text extraction."),
         context = "book",
@@ -1219,7 +1225,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
         in_reading_features = 7,  -- After Document Summary (6)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
-        prompt = [[Analyze this document: "{title}"{author_clause}.
+        prompt = [[Analyze this document: "{title}"{author_clause}.{doi_clause}
 
 {full_document_section}
 
@@ -1242,6 +1248,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
     summarize_full_document = {
         id = "summarize_full_document",
         enable_web_search = false,
+        doi_web_override = true,
         text = _("Document Summary"),
         description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact, which other actions can use as their document source. Can target a specific section. Requires text extraction."),
         context = "book",
@@ -1253,7 +1260,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         in_reading_features = 6,  -- After Book Info (5)
         in_quick_actions = 4,  -- After Book Info (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
-        prompt = [[Summarize: "{title}"{author_clause}.
+        prompt = [[Summarize: "{title}"{author_clause}.{doi_clause}
 
 {full_document_section}
 
@@ -1267,6 +1274,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
     extract_insights = {
         id = "extract_insights",
         enable_web_search = false,
+        doi_web_override = true,
         text = _("Extract Key Insights"),
         description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
         context = "book",
@@ -1274,7 +1282,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         auto_artifact = true,  -- Silently cache first response as artifact
-        prompt = [[Extract the key insights from: "{title}"{author_clause}.
+        prompt = [[Extract the key insights from: "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
 
@@ -1312,7 +1320,7 @@ Adapt to the work — a novel's insights look different from a research paper's 
         use_reading_progress = true,
         source_selection = true,  -- Unified scope/source popup
         auto_artifact = true,  -- Silently cache first response as artifact
-        prompt = [[Create a spoiler-free reading guide for what lies ahead in "{title}"{author_clause}.
+        prompt = [[Create a spoiler-free reading guide for what lies ahead in "{title}"{author_clause}.{doi_clause}
 
 I'm at {reading_progress}.
 
@@ -1358,7 +1366,7 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         description = _("Searches the web for critical and reader reviews, awards, and any controversy around the book."),
         context = "book",
         skip_domain = true,  -- Reviews format is standardized
-        prompt = [[Find reviews and reception for "{title}"{author_clause}.
+        prompt = [[Find reviews and reception for "{title}"{author_clause}.{doi_clause}
 
 Search for critical and reader responses, then summarize:
 

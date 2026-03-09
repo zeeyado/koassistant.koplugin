@@ -17,6 +17,7 @@
 
 local _ = require("koassistant_gettext")
 local Languages = require("koassistant_languages")
+local Templates = require("prompts.templates")
 
 local SystemPrompts = {}
 
@@ -363,6 +364,19 @@ function SystemPrompts.buildUnifiedSystem(config)
         end
     end
 
+    -- Append research nudge when DOI detected (academic paper)
+    -- The nudge text is self-conditional ("if web search is available")
+    local research_nudge = nil
+    if config.book_metadata and config.book_metadata.doi
+            and Templates and Templates.RESEARCH_NUDGE then
+        research_nudge = Templates.RESEARCH_NUDGE
+        if content then
+            content = content .. "\n\n" .. research_nudge
+        else
+            content = research_nudge
+        end
+    end
+
     return {
         text = content or "",
         enable_caching = config.enable_caching ~= false,
@@ -370,6 +384,7 @@ function SystemPrompts.buildUnifiedSystem(config)
             behavior = (behavior_source ~= "none") and behavior_text or nil,
             domain = config.domain_context,
             language = language_instruction,
+            research = research_nudge,
         },
     }
 end
