@@ -1973,6 +1973,8 @@ function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, n
         _artifact_key = wiki_key,
         _artifact_book_title = self.metadata.title,
         _artifact_book_author = self.metadata.author,
+        on_launch_chat = self.metadata.plugin and self.metadata.plugin._buildLaunchChatCallback
+            and self.metadata.plugin:_buildLaunchChatCallback(file, self.metadata.title, self.metadata.author, cached.result, _("AI Wiki")) or nil,
     }
     UIManager:show(wiki_viewer)
 end
@@ -3756,6 +3758,8 @@ function XrayBrowser:showFullView()
         _artifact_book_author = self.metadata.book_author,
         _book_open = (self.ui and self.ui.document ~= nil),
         _plugin = self.metadata.plugin,
+        on_launch_chat = self.metadata.plugin and self.metadata.plugin._buildLaunchChatCallback
+            and self.metadata.plugin:_buildLaunchChatCallback(self.metadata.book_file, self.metadata.title, self.metadata.book_author, markdown, _("X-Ray")) or nil,
     })
 end
 
@@ -4081,6 +4085,8 @@ function XrayBrowser:_showWikiGroupPopup(wiki_entries)
                     _artifact_key = captured.key,
                     _artifact_book_title = self_ref.metadata.title,
                     _artifact_book_author = self_ref.metadata.author,
+                    on_launch_chat = self_ref.metadata.plugin and self_ref.metadata.plugin._buildLaunchChatCallback
+                        and self_ref.metadata.plugin:_buildLaunchChatCallback(book_file, self_ref.metadata.title, self_ref.metadata.author, captured.data.result, _("AI Wiki")) or nil,
                 }
                 UIManager:show(viewer)
             end,
@@ -4164,6 +4170,8 @@ function XrayBrowser:_showPinnedGroupPopup(pinned_entries)
                     _artifact_key = "pinned:" .. (captured.id or ""),
                     _artifact_book_title = self_ref.metadata.title,
                     _artifact_book_author = self_ref.metadata.author,
+                    on_launch_chat = self_ref.metadata.plugin and self_ref.metadata.plugin._buildLaunchChatCallback
+                        and self_ref.metadata.plugin:_buildLaunchChatCallback(book_file, self_ref.metadata.title, self_ref.metadata.author, captured.result, captured.action_text or _("Pinned")) or nil,
                 }
                 UIManager:show(viewer)
             end,

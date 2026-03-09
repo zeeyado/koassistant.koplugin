@@ -656,6 +656,8 @@ function ArtifactBrowser:showPinnedViewer(entry, context_path, opts)
         _artifact_book_author = entry.book_author,
         _book_open = (AskGPT.ui and AskGPT.ui.document ~= nil),
         _plugin = AskGPT,
+        on_launch_chat = AskGPT._buildLaunchChatCallback
+            and AskGPT:_buildLaunchChatCallback(context_path, entry.book_title, entry.book_author, entry.result, entry.action_text or _("Pinned")) or nil,
         on_delete = function()
             PinnedManager.removePin(context_path, entry.id)
             UIManager:show(Notification:new{
@@ -944,6 +946,8 @@ function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc
                     _artifact_key = captured.key,
                     _book_open = (AskGPT and AskGPT.ui and AskGPT.ui.document ~= nil),
                     _artifact_book_title = doc_title,
+                    on_launch_chat = AskGPT and AskGPT._buildLaunchChatCallback
+                        and AskGPT:_buildLaunchChatCallback(doc_path, doc_title, nil, captured.data.result, _("AI Wiki")) or nil,
                 }
                 UIManager:show(viewer)
             end,
@@ -1028,6 +1032,8 @@ function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_tit
                     _artifact_key = "pinned:" .. (captured.id or ""),
                     _book_open = (AskGPT and AskGPT.ui and AskGPT.ui.document ~= nil),
                     _artifact_book_title = doc_title,
+                    on_launch_chat = AskGPT and AskGPT._buildLaunchChatCallback
+                        and AskGPT:_buildLaunchChatCallback(doc_path, doc_title, nil, captured.result, captured.action_text or _("Pinned")) or nil,
                 }
                 UIManager:show(viewer)
             end,

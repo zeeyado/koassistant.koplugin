@@ -1337,7 +1337,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
-        auto_artifact = true,  -- Silently cache first response as artifact
+        use_response_caching = true,
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
         prompt = [[Analyze the main arguments in "{title}"{author_clause}.{doi_clause}
@@ -1389,7 +1389,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
-        auto_artifact = true,  -- Silently cache first response as artifact
+        use_response_caching = true,
         in_quick_actions = 8,     -- Appears in Quick Actions menu
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.{doi_clause}
@@ -1435,7 +1435,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
-        auto_artifact = true,  -- Silently cache first response as artifact
+        use_response_caching = true,
         in_quick_actions = 9,     -- Appears in Quick Actions menu
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.{doi_clause}
 
@@ -1550,7 +1550,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
-        auto_artifact = true,  -- Silently cache first response as artifact
+        use_response_caching = true,
         prompt = [[Extract the key insights from: "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
@@ -1588,7 +1588,7 @@ Adapt to the work — a novel's insights look different from a research paper's 
         use_summary_cache = true,
         use_reading_progress = true,
         source_selection = true,  -- Unified scope/source popup
-        auto_artifact = true,  -- Silently cache first response as artifact
+        use_response_caching = true,
         prompt = [[Create a spoiler-free reading guide for what lies ahead in "{title}"{author_clause}.{doi_clause}
 
 I'm at {reading_progress}.

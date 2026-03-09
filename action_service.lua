@@ -1789,7 +1789,7 @@ function ActionService:createDuplicateAction(action)
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
         use_notebook = action.use_notebook,
-        -- NOT copying artifact flags: use_response_caching, auto_artifact, cache_as_*, use_*_cache,
+        -- NOT copying artifact flags: use_response_caching, cache_as_*, use_*_cache,
         -- update_prompt, storage_key, source_selection (tightly coupled system)
         -- Requirements & blocking
         blocked_hint = action.blocked_hint,

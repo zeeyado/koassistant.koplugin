@@ -2412,19 +2412,83 @@ function ChatGPTViewer:init()
   })
 
   -- Build second row based on whether callbacks are provided
-  -- Always starts with MD/TXT toggle
-  local simple_view_row2 = {
-    {
-      text_func = function()
-        return self.render_markdown and "MD ON" or "TXT ON"
-      end,
-      id = "toggle_markdown",
+  local simple_view_row2 = {}
+
+  -- → Chat button: launch a new chat about this artifact
+  if self.on_launch_chat then
+    table.insert(simple_view_row2, {
+      text = _("→ Chat"),
+      id = "launch_chat",
       callback = function()
-        self:toggleMarkdown()
+        local artifact_viewer = self
+        local chat_input
+        chat_input = InputDialog:new{
+          title = _("Chat about this artifact"),
+          input = "",
+          input_type = "text",
+          input_hint = _("What would you like to discuss?"),
+          input_height = 8,
+          allow_newline = true,
+          input_multiline = true,
+          text_height = 380,
+          width = UIConstants.DIALOG_WIDTH(),
+          text_widget_width = UIConstants.DIALOG_WIDTH() - Screen:scaleBySize(50),
+          text_widget_height = math.floor(Screen:getHeight() * 0.38),
+          buttons = {{
+            {
+              text = _("Cancel"),
+              id = "close",
+              font_bold = false,
+              callback = function()
+                UIManager:close(chat_input)
+              end,
+            },
+            {
+              text = _("Send"),
+              is_enter_default = true,
+              font_bold = false,
+              callback = function()
+                local input_text = chat_input:getInputText()
+                UIManager:close(chat_input)
+                if input_text and input_text ~= "" then
+                  local launch_fn = artifact_viewer.on_launch_chat
+                  artifact_viewer:onClose()
+                  UIManager:scheduleIn(0.1, function()
+                    launch_fn(input_text)
+                  end)
+                end
+              end,
+            },
+          }},
+        }
+        -- Non-bold title
+        chat_input.title_bar.title_face = Font:getFace("smallinfofont")
+        chat_input.title_bar:init()
+        -- Lighter input field border
+        chat_input._input_widget._frame_textwidget.color = Blitbuffer.COLOR_GRAY
+        UIManager:show(chat_input)
+        chat_input:onShowKeyboard()
       end,
-      hold_callback = self.default_hold_callback,
-    },
-  }
+      hold_callback = function()
+        UIManager:show(Notification:new{
+          text = _("Start a new chat about this artifact"),
+          timeout = 2,
+        })
+      end,
+    })
+  end
+
+  -- MD/TXT toggle
+  table.insert(simple_view_row2, {
+    text_func = function()
+      return self.render_markdown and "MD ON" or "TXT ON"
+    end,
+    id = "toggle_markdown",
+    callback = function()
+      self:toggleMarkdown()
+    end,
+    hold_callback = self.default_hold_callback,
+  })
   -- Info button (shows metadata popup) - in Row 2 for balanced button distribution
   if self._info_text then
     table.insert(simple_view_row2, {
