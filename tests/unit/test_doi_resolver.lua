@@ -528,6 +528,201 @@ TestRunner:test("preserves file path", function()
 end)
 
 -- ============================================================
+-- Real-world PDF fixtures (from docs/pdf/)
+-- ============================================================
+
+-- Metadata extracted from actual academic PDFs via PyMuPDF
+local PDF_FIXTURES = {
+    wei = {
+        name = "Wei et al. 2023",
+        doc_props = {
+            title = "Native language differences in the structural connectome of the human brain",
+            authors = "Xuehu Wei",
+            description = "NeuroImage, 270 (2023) 119955. doi:10.1016/j.neuroimage.2023.119955",
+            keywords = '"Human brain"; "Language connectome"; "Cross-linguistic"; "German"; "Arabic"; "Structural connectivity"; "Diffusion MRI"; "Tractography"',
+        },
+        expected_doi = "10.1016/j.neuroimage.2023.119955",
+        doi_source = "description",
+    },
+    kiverstein = {
+        name = "Kiverstein & Van Dijk 2021",
+        doc_props = {
+            title = "Language without representation: Gibson's first- and second-hand perception on a pragmatic continuum1",
+            authors = "Julian Kiverstein & Ludger van Dijk",
+            description = "Language & Communication, 85 (2021) 101380. doi:10.1016/j.langsci.2021.101380",
+            keywords = "Ecological information, Radical empiricism, Perception, Language, James Gibson, Post-cognitivism, zzzmallowling, zzzarticles",
+        },
+        expected_doi = "10.1016/j.langsci.2021.101380",
+        doi_source = "description",
+    },
+    beecher = {
+        name = "Beecher 2021",
+        doc_props = {
+            title = "Why Are No Animal Communication Systems Simple Languages?",
+            authors = "Michael D. Beecher",
+            description = "Individuals of some animal species have been taught simple versions of human language despite their natural communication systems failing to rise to the level of a simple language.",
+            keywords = "animal communication, language evolution, animal cognition, animal language studies, information, zzzmallowling, zzzarticles",
+        },
+        expected_doi = nil,  -- no DOI in metadata; needs page scan
+        doi_source = "none",
+        page_text_doi = "10.3389/fpsyg.2021.602635",
+    },
+    bender = {
+        name = "Bender & Koller 2020",
+        doc_props = {
+            title = "Climbing towards NLU: On Meaning, Form, and Understanding in the Age of Data",
+            authors = "Emily M. Bender ; Alexander Koller",
+            description = "acl 2020",
+            keywords = "acl 2020, zzzmallowling, zzzarticles",
+        },
+        expected_doi = nil,  -- no DOI anywhere in metadata
+        doi_source = "none",
+        page_text_doi = nil,  -- no DOI on first page either
+    },
+    dingemanse = {
+        name = "Dingemanse et al. 2023",
+        doc_props = {
+            title = "Beyond Single-Mindedness: A Figure-Ground Reversal for the Cognitive Sciences",
+            authors = "",
+            description = "",
+            keywords = "",
+        },
+        expected_doi = nil,  -- empty metadata; needs page scan
+        doi_source = "none",
+        page_text_doi = "10.1111/cogs.13230",
+    },
+    monaghan = {
+        name = "Monaghan et al. 2014",
+        doc_props = {
+            title = "How Arbitrary is Language",
+            authors = "Monaghan et al",
+            description = "Phil. Trans. R. Soc. B 2014.369:20130299",  -- citation format, NOT a DOI
+            keywords = "Phil. Trans. R. Soc. B 2014.369:20130299, zzzmallowling, zzzarticles",
+        },
+        expected_doi = nil,  -- citation format doesn't match DOI pattern
+        doi_source = "none",
+        page_text_doi = "10.1098/rstb.2013.0299",
+    },
+    krauska = {
+        name = "Krauska (no year)",
+        doc_props = {
+            title = "Moving away from lexicalism in psycho- and neuro-linguistics",
+            authors = "Alexandra Krauska",
+            description = "In standard models of language production or comprehension, the elements which are retrieved from memory and combined into a syntactic structure are ``lemmas'' or ``lexical items.''",
+            keywords = "lexicalism, psycholinguistics, neurolinguistics, language production, lemma, aphasia",
+        },
+        expected_doi = nil,  -- no DOI in metadata
+        doi_source = "none",
+        -- Page text DOI has Unicode ligature: 10.3389/ﬂang... (ﬂ = U+FB02 instead of "fl")
+        -- matchDOI handles this: ligature bytes aren't in the exclusion charset
+        -- Result is non-canonical but sufficient to trigger research mode
+        page_text_doi = "10.3389/\xEF\xAC\x82ang.2023.1125127",
+    },
+}
+
+TestRunner:suite("Real-world PDFs — metadata extraction (extractDOI)")
+
+for key, fixture in pairs(PDF_FIXTURES) do
+    TestRunner:test(fixture.name .. " — extractDOI", function()
+        local result = DOIResolver.extractDOI(fixture.doc_props)
+        if fixture.expected_doi then
+            TestRunner:assertEqual(result, fixture.expected_doi,
+                fixture.name .. " DOI from " .. fixture.doi_source)
+        else
+            TestRunner:assertNil(result, fixture.name .. " should return nil from metadata")
+        end
+    end)
+end
+
+TestRunner:suite("Real-world PDFs — full resolution with page text fallback")
+
+for key, fixture in pairs(PDF_FIXTURES) do
+    if fixture.page_text_doi then
+        TestRunner:test(fixture.name .. " — falls back to page text scan", function()
+            local mock_doc = {
+                getPageText = function(self, page)
+                    -- Simulate first-page text containing the DOI
+                    return "Header text doi:" .. fixture.page_text_doi .. " more text"
+                end,
+            }
+            local settings = makeMockSettings({})
+            local result = DOIResolver.resolveDOI(nil, fixture.doc_props, mock_doc, settings)
+            TestRunner:assertEqual(result, fixture.page_text_doi,
+                fixture.name .. " should find DOI via page scan")
+        end)
+    end
+end
+
+TestRunner:test("Bender & Koller — no DOI from any source", function()
+    local fixture = PDF_FIXTURES.bender
+    local mock_doc = {
+        getPageText = function(self, page)
+            return "Proceedings of the 58th Annual Meeting of the Association for Computational Linguistics, pages 5185-5198 July 5-10, 2020."
+        end,
+    }
+    local settings = makeMockSettings({})
+    local result = DOIResolver.resolveDOI(nil, fixture.doc_props, mock_doc, settings)
+    TestRunner:assertNil(result, "Bender & Koller has no DOI anywhere")
+    -- Should cache false sentinel since document was scanned
+    TestRunner:assertEqual(settings._store.koassistant_doi, false, "caches false sentinel")
+end)
+
+TestRunner:suite("Real-world PDFs — buildBookMetadata integration")
+
+TestRunner:test("Wei — DOI from metadata, no page scan needed", function()
+    local f = PDF_FIXTURES.wei
+    local scan_called = false
+    local mock_doc = {
+        getPageText = function(self, page)
+            scan_called = true
+            return "doi:10.1016/j.neuroimage.2023.119955"
+        end,
+    }
+    local result = DOIResolver.buildBookMetadata(
+        f.doc_props.title, f.doc_props.authors, "/path/to/wei.pdf",
+        f.doc_props, mock_doc, makeMockSettings({})
+    )
+    TestRunner:assertEqual(result.doi, "10.1016/j.neuroimage.2023.119955")
+    TestRunner:assertEqual(result.doi_clause, "\nDOI: 10.1016/j.neuroimage.2023.119955")
+    -- Metadata found DOI, so page scan should NOT have been called
+    TestRunner:assertEqual(scan_called, false, "page scan should be skipped when metadata has DOI")
+end)
+
+TestRunner:test("Monaghan — DOI only from page scan", function()
+    local f = PDF_FIXTURES.monaghan
+    local result = DOIResolver.buildBookMetadata(
+        f.doc_props.title, f.doc_props.authors, "/path/to/monaghan.pdf",
+        f.doc_props,
+        { getPageText = function(self, page) return "http://dx.doi.org/10.1098/rstb.2013.0299 One contribution" end },
+        makeMockSettings({})
+    )
+    TestRunner:assertEqual(result.doi, "10.1098/rstb.2013.0299")
+    TestRunner:assertEqual(result.doi_clause, "\nDOI: 10.1098/rstb.2013.0299")
+end)
+
+TestRunner:test("Dingemanse — empty metadata, DOI from page scan", function()
+    local f = PDF_FIXTURES.dingemanse
+    local result = DOIResolver.buildBookMetadata(
+        f.doc_props.title, f.doc_props.authors, "/path/to/dingemanse.pdf",
+        f.doc_props,
+        { getPageText = function(self, page) return "doi: 10.1111/cogs.13230" end },
+        makeMockSettings({})
+    )
+    TestRunner:assertEqual(result.doi, "10.1111/cogs.13230")
+end)
+
+TestRunner:test("Fiction book — no DOI, empty clause", function()
+    local result = DOIResolver.buildBookMetadata(
+        "The Great Gatsby", "F. Scott Fitzgerald", "/path/to/gatsby.epub",
+        { description = "A novel about the American Dream" },
+        { getPageText = function(self, page) return "Chapter 1. In my younger and more vulnerable years..." end },
+        makeMockSettings({})
+    )
+    TestRunner:assertNil(result.doi)
+    TestRunner:assertEqual(result.doi_clause, "")
+end)
+
+-- ============================================================
 -- Summary
 -- ============================================================
 
