@@ -3684,7 +3684,8 @@ function ChatGPTViewer:showExportDialog()
   end
 
   local features = self.configuration and self.configuration.features or {}
-  local content_setting = features.copy_content or "full"
+  local export_setting = features.export_content or "global"
+  local content_setting = (export_setting == "global") and (features.copy_content or "full") or export_setting
   local style = features.export_style or "markdown"
 
   -- Get book title and chat title for filename

@@ -492,6 +492,22 @@ local SettingsSchema = {
                             help_text = _("What to include when saving to note."),
                         },
                         {
+                            id = "export_content",
+                            type = "dropdown",
+                            text = _("Save to File Content"),
+                            path = "features.export_content",
+                            default = "global",
+                            options = {
+                                { value = "global", label = _("Follow Copy Content") },
+                                { value = "ask", label = _("Ask every time") },
+                                { value = "full", label = _("Full (metadata + chat)") },
+                                { value = "qa", label = _("Question + Response") },
+                                { value = "response", label = _("Last response only") },
+                                { value = "everything", label = _("Everything (debug)") },
+                            },
+                            help_text = _("What to include when saving chat to file. 'Follow Copy Content' uses your Copy Content setting."),
+                        },
+                        {
                             id = "history_copy_content",
                             type = "dropdown",
                             text = _("Chat History Export"),
