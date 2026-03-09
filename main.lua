@@ -4264,6 +4264,38 @@ function AskGPT:viewCache(parent_dialog)
   UIManager:show(self._cache_selector)
 end
 
+--- Build a callback for launching a new book chat from an artifact viewer.
+--- Opens the input dialog in book context so the user can ask about the artifact.
+--- @param artifact_file string The book file path
+--- @param artifact_book_title string The book title
+--- @param artifact_book_author string The book author
+--- @return function|nil The callback, or nil if no file
+function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, artifact_book_author, artifact_content, artifact_type_name)
+  if not artifact_file then return nil end
+  local self_ref = self
+  return function(user_question)
+    self_ref:updateConfigFromSettings()
+
+    -- Build a fresh config copy for the chat (book context)
+    local config_copy = {}
+    for k, v in pairs(configuration) do config_copy[k] = v end
+    config_copy.features = {}
+    for k, v in pairs(configuration.features or {}) do config_copy.features[k] = v end
+    config_copy.features.is_general_context = nil
+    config_copy.features.is_book_context = true
+    config_copy.features.is_multi_book_context = nil
+
+    local book_metadata = {
+      title = artifact_book_title or "Unknown",
+      author = artifact_book_author or "",
+      file = artifact_file,
+    }
+    config_copy.features.book_metadata = book_metadata
+
+    Dialogs.launchArtifactChat(user_question, artifact_content or "", artifact_type_name or _("Artifact"), self_ref.ui, config_copy, self_ref, book_metadata)
+  end
+end
+
 --- Show a specific cache in the viewer
 --- @param cache_info table: { name, key, data } where data contains result, progress_decimal, model, timestamp, used_annotations, used_book_text
 function AskGPT:showCacheViewer(cache_info)
@@ -4567,6 +4599,7 @@ function AskGPT:showCacheViewer(cache_info)
     _artifact_book_title = book_title,
     _artifact_book_author = book_author,
     _book_open = (self.ui and self.ui.document ~= nil),
+    on_launch_chat = self:_buildLaunchChatCallback(file, book_title, book_author, cache_info.data.result, cache_info.name),
   }
   UIManager:show(viewer)
 end
@@ -6306,7 +6339,6 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
   section_action.update_prompt = nil
   section_action.use_reading_progress = false
   section_action.use_response_caching = false
-  section_action.auto_artifact = false
   -- Document cache actions: disable document-level cache writes (section saves via _section_scope)
   section_action.cache_as_summary = false
   section_action.cache_as_analyze = false
@@ -6801,7 +6833,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
   -- Update/Regenerate button (skip for section entries — regenerate via section flow)
   local on_regenerate
   local regenerate_label
-  if (action.use_response_caching or action.auto_artifact) and not (opts and opts.section_key) then
+  if action.use_response_caching and not (opts and opts.section_key) then
     local self_ref2 = self
     local captured_action_id = action_id
     if self.ui and self.ui.document then
@@ -6894,6 +6926,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     _artifact_book_title = book_title,
     _artifact_book_author = book_author,
     _book_open = (self.ui and self.ui.document ~= nil),
+    on_launch_chat = self:_buildLaunchChatCallback(file, book_title, book_author, cached_entry.result, action_name),
   }
   UIManager:show(viewer)
 end
@@ -7197,185 +7230,6 @@ function AskGPT:executeBookLevelAction(action_id)
       self_ref:_executeBookLevelActionDirect(action, action_id)
     end)
     return
-  end
-
-  -- Auto-artifact actions: check for existing cache before source selection
-  if action.auto_artifact then
-    local ActionCache = require("koassistant_action_cache")
-    local file = self.ui and self.ui.document and self.ui.document.file
-    local cached = file and ActionCache.get(file, action_id)
-    if cached and cached.result then
-      -- Show View / Sections / New popup
-      local action_name = action.text or action_id
-      local view_detail = ""
-      if cached.timestamp then
-        local rel_time = formatRelativeTime(cached.timestamp)
-        if rel_time ~= "" then
-          view_detail = " (" .. rel_time .. ")"
-        end
-      end
-      local ButtonDialog = require("ui/widget/buttondialog")
-      local self_ref = self
-      local dialog
-      local aa_buttons = {}
-      -- View existing artifact
-      table.insert(aa_buttons, {{
-        text = T(_("View %1"), action_name .. view_detail),
-        callback = function()
-          UIManager:close(dialog)
-          self_ref:viewCachedAction(action, action_id, cached)
-        end,
-      }})
-      -- Surface in-range section artifacts + browse all sections
-      local section_prefix = ActionCache.getSectionPrefix(action_id)
-      if section_prefix and file then
-        local doc = self.ui and self.ui.document
-        if doc then
-          local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
-          for _idx, sec in ipairs(in_range) do
-            local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
-            local sec_parts = {}
-            if page_info and page_info ~= "" then
-              table.insert(sec_parts, page_info)
-            end
-            local sec_rel = formatRelativeTime(sec.data.timestamp)
-            if sec_rel ~= "" then
-              table.insert(sec_parts, sec_rel)
-            end
-            local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
-            local captured_sec = sec
-            table.insert(aa_buttons, {{
-              text = T(_("View \"%1\""), sec.label) .. sec_detail,
-              callback = function()
-                UIManager:close(dialog)
-                self_ref:viewCachedAction(action, action_id, captured_sec.data, {
-                  skip_stale_popup = true,
-                  section_key = captured_sec.key,
-                  section_label = captured_sec.label,
-                })
-              end,
-            }})
-          end
-        end
-        local sec_count = ActionCache.getSectionCount(file, section_prefix)
-        if sec_count > 0 then
-          table.insert(aa_buttons, {{
-            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
-            callback = function()
-              UIManager:close(dialog)
-              self_ref:_showSectionList(action, action_id)
-            end,
-          }})
-        end
-      end
-      -- New generation (opens scope/source popup)
-      table.insert(aa_buttons, {{
-        text = T(_("New %1…"), action_name),
-        callback = function()
-          UIManager:close(dialog)
-          if action.source_selection then
-            self_ref:_showUnifiedActionPopup(action, action_id, {
-              on_execute = function(popup_state)
-                self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
-              end,
-            })
-          else
-            self_ref:_executeBookLevelActionDirect(action, action_id)
-          end
-        end,
-      }})
-      table.insert(aa_buttons, {{
-        text = _("Cancel"),
-        callback = function()
-          UIManager:close(dialog)
-        end,
-      }})
-      dialog = ButtonDialog:new{
-        title = action_name,
-        buttons = aa_buttons,
-      }
-      UIManager:show(dialog)
-      return
-    end
-    -- No main cache: check for section-only artifacts before falling through
-    local section_prefix = ActionCache.getSectionPrefix(action_id)
-    if section_prefix and file then
-      local doc = self.ui and self.ui.document
-      local sec_count = ActionCache.getSectionCount(file, section_prefix)
-      if sec_count > 0 then
-        -- Section artifacts exist without a main artifact — show intermediary popup
-        local action_name = action.text or action_id
-        local ButtonDialog = require("ui/widget/buttondialog")
-        local self_ref = self
-        local sec_dialog
-        local sec_buttons = {}
-        -- Surface in-range section artifacts
-        if doc then
-          local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
-          for _idx, sec in ipairs(in_range) do
-            local page_info = ActionCache.reconvertPageSummary(sec.data, doc)
-            local sec_parts = {}
-            if page_info and page_info ~= "" then
-              table.insert(sec_parts, page_info)
-            end
-            local sec_rel = formatRelativeTime(sec.data.timestamp)
-            if sec_rel ~= "" then
-              table.insert(sec_parts, sec_rel)
-            end
-            local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
-            local captured_sec = sec
-            table.insert(sec_buttons, {{
-              text = T(_("View \"%1\""), sec.label) .. sec_detail,
-              callback = function()
-                UIManager:close(sec_dialog)
-                self_ref:viewCachedAction(action, action_id, captured_sec.data, {
-                  skip_stale_popup = true,
-                  section_key = captured_sec.key,
-                  section_label = captured_sec.label,
-                })
-              end,
-            }})
-          end
-        end
-        -- Browse all sections
-        table.insert(sec_buttons, {{
-          text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
-          callback = function()
-            UIManager:close(sec_dialog)
-            self_ref:_showSectionList(action, action_id)
-          end,
-        }})
-        -- New generation
-        table.insert(sec_buttons, {{
-          text = T(_("New %1…"), action_name),
-          callback = function()
-            UIManager:close(sec_dialog)
-            if action.source_selection then
-              self_ref:_showUnifiedActionPopup(action, action_id, {
-                on_execute = function(popup_state)
-                  self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
-                end,
-              })
-            else
-              self_ref:_executeBookLevelActionDirect(action, action_id)
-            end
-          end,
-        }})
-        table.insert(sec_buttons, {{
-          text = _("Cancel"),
-          callback = function()
-            UIManager:close(sec_dialog)
-          end,
-        }})
-        sec_dialog = ButtonDialog:new{
-          title = action_name,
-          buttons = sec_buttons,
-        }
-        UIManager:show(sec_dialog)
-        return
-      end
-    end
-    -- No artifacts at all: fall through to source selection
   end
 
   -- Unified popup for source_selection actions (scope + source in one dialog)

@@ -2266,15 +2266,6 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     -- Show the viewer
     UIManager:show(chatgpt_viewer)
 
-    -- Auto-artifact: show toast after viewer (shown here so it paints on top of viewer)
-    if history.auto_artifact_saved then
-        local Notification = require("ui/widget/notification")
-        UIManager:show(Notification:new{
-            text = _("Saved as artifact"),
-            timeout = 3,
-        })
-    end
-
     -- Auto-save if enabled
     if temp_config and temp_config.features and temp_config.features.auto_save_all_chats then
         -- Schedule auto-save to run after viewer is displayed
@@ -2894,7 +2885,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     local cached_progress_display = nil
     local cache_file = (ui and ui.document and ui.document.file)
         or (config.features and config.features.book_metadata and config.features.book_metadata.file)
-    local cache_enabled = prompt and (prompt.use_response_caching or prompt.auto_artifact) and cache_file
+    local cache_enabled = prompt and prompt.use_response_caching and cache_file
 
     if cache_enabled and not (config.features and config.features._full_document_xray) then
         local ActionCache = require("koassistant_action_cache")
@@ -3116,10 +3107,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 )
                 if save_success then
                     logger.info("KOAssistant: Saved response to cache for", original_action_id, "at", save_progress, "used_book_text=", book_text_was_provided, "used_highlights=", highlights_were_provided)
-                    -- Auto-artifact: flag for toast after viewer opens (toast shown here gets covered by viewer)
-                    if prompt.auto_artifact then
-                        history.auto_artifact_saved = true
-                    end
                 end
             elseif is_truncated and cache_enabled then
                 logger.info("KOAssistant: Skipping cache for", original_action_id, "- response was truncated")
@@ -3183,7 +3170,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local section_success = ActionCache.set(cache_file, section_scope.cache_key, cache_answer, 1.0, section_metadata)
                     if section_success then
                         logger.info("KOAssistant: Saved section artifact to", section_scope.cache_key)
-                        history.auto_artifact_saved = true
                     end
                 end
 
@@ -3980,126 +3966,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
             plugin:showCacheActionPopup(action, action_id, runAction, cache_opts)
             return
-        end
-
-        -- Auto-artifact: check for existing cache before source selection
-        if action.auto_artifact and plugin then
-            local ActionCache = require("koassistant_action_cache")
-            local file = (ui_instance and ui_instance.document and ui_instance.document.file)
-                or (configuration and configuration.features and configuration.features.book_metadata
-                    and configuration.features.book_metadata.file)
-            local cached = file and ActionCache.get(file, action_id)
-            if cached and cached.result then
-                local action_name = action.text or action_id
-                local view_detail = ""
-                if cached.timestamp then
-                    local now = os.time()
-                    local diff = now - cached.timestamp
-                    if diff < 86400 then view_detail = " (" .. _("today") .. ")"
-                    elseif diff < 172800 then view_detail = " (" .. _("yesterday") .. ")"
-                    else view_detail = " (" .. math.floor(diff / 86400) .. "d)" end
-                end
-                local ButtonDialog = require("ui/widget/buttondialog")
-                local dialog
-                local aa_buttons = {}
-                -- View existing artifact
-                table.insert(aa_buttons, {{
-                    text = T(_("View %1"), action_name .. view_detail),
-                    callback = function()
-                        UIManager:close(dialog)
-                        plugin:viewCachedAction(action, action_id, cached, { file = file })
-                    end,
-                }})
-                -- Surface in-range section artifacts
-                local section_prefix = ActionCache.getSectionPrefix(action_id)
-                local aa_doc = ui_instance and ui_instance.document
-                if section_prefix and file and aa_doc then
-                    local in_range = ActionCache.findMatchingSections(file, aa_doc, section_prefix)
-                    for _idx2, sec in ipairs(in_range) do
-                        local page_info = ActionCache.reconvertPageSummary(sec.data, aa_doc)
-                        local sec_parts = {}
-                        if page_info and page_info ~= "" then
-                            table.insert(sec_parts, page_info)
-                        end
-                        local sec_rel_time = sec.data.timestamp and os.difftime(os.time(), sec.data.timestamp) or nil
-                        local sec_rel = ""
-                        if sec_rel_time then
-                            local diff2 = sec_rel_time
-                            if diff2 < 3600 then sec_rel = _("now")
-                            elseif diff2 < 86400 then sec_rel = _("today")
-                            else sec_rel = math.floor(diff2 / 86400) .. "d" end
-                        end
-                        if sec_rel ~= "" then
-                            table.insert(sec_parts, sec_rel)
-                        end
-                        local sec_detail = #sec_parts > 0 and " (" .. table.concat(sec_parts, ", ") .. ")" or ""
-                        local captured_sec = sec
-                        table.insert(aa_buttons, {{
-                            text = T(_("View \"%1\""), sec.label) .. sec_detail,
-                            callback = function()
-                                UIManager:close(dialog)
-                                plugin:viewCachedAction(action, action_id, captured_sec.data, {
-                                    file = file,
-                                    section_key = captured_sec.key,
-                                    section_label = captured_sec.label,
-                                })
-                            end,
-                        }})
-                    end
-                end
-                -- Browse remaining section artifacts
-                if section_prefix and file then
-                    local sec_count = ActionCache.getSectionCount(file, section_prefix)
-                    if sec_count > 0 then
-                        table.insert(aa_buttons, {{
-                            text = string.format("%s (%d)", ActionCache.getSectionGroupName(action_id) or _("Sections"), sec_count),
-                            callback = function()
-                                UIManager:close(dialog)
-                                plugin:_showSectionList(action, action_id)
-                            end,
-                        }})
-                    end
-                end
-                -- New generation (opens scope/source popup)
-                table.insert(aa_buttons, {{
-                    text = T(_("New %1…"), action_name),
-                    callback = function()
-                        UIManager:close(dialog)
-                        if action.source_selection and plugin._showUnifiedActionPopup then
-                            local is_hl = action.context == "highlight" or action.context == "both"
-                            plugin:_showUnifiedActionPopup(action, action_id, {
-                                for_highlight = is_hl or nil,
-                                on_execute = function(popup_state)
-                                    configuration.features = configuration.features or {}
-                                    configuration.features._source_mode = popup_state.source
-                                    if is_hl and popup_state.scope == "section" and popup_state.section_entry then
-                                        configuration.features._highlight_section_scope = {
-                                            start_page = popup_state.section_entry.start_page,
-                                            end_page = popup_state.section_entry.end_page,
-                                        }
-                                    end
-                                    runAction()
-                                end,
-                            })
-                        else
-                            runAction()
-                        end
-                    end,
-                }})
-                table.insert(aa_buttons, {{
-                    text = _("Cancel"),
-                    callback = function()
-                        UIManager:close(dialog)
-                    end,
-                }})
-                dialog = ButtonDialog:new{
-                    title = action_name,
-                    buttons = aa_buttons,
-                }
-                UIManager:show(dialog)
-                return
-            end
-            -- No cache: fall through to source selection
         end
 
         -- Unified action popup for source_selection actions
@@ -5145,6 +5011,9 @@ local function handleLocalAction(handler_name, ui, highlighted_text, document_pa
     end
 end
 
+-- Forward declaration (assigned below executeDirectAction; used by wiki artifact intercept)
+local executeActionForResult
+
 -- Execute an action directly without showing the intermediate dialog
 -- Used for quick actions from highlight menu
 -- @param ui table: The UI instance
@@ -5416,6 +5285,81 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         end
     end
 
+    -- Wiki artifact: intercept wiki action to cache as artifact (like X-Ray browser does)
+    if action.id == "wiki" and highlighted_text and highlighted_text ~= "" and document_path then
+        local ActionCache = require("koassistant_action_cache")
+        local wiki_category = "highlight"
+        -- Normalize: trim whitespace, truncate long selections for cache key
+        local normalized = highlighted_text:match("^%s*(.-)%s*$") or highlighted_text
+        if #normalized > 200 then
+            normalized = normalized:sub(1, 200)
+        end
+        local wiki_key = ActionCache.WIKI_PREFIX .. wiki_category .. ":" .. normalized
+
+        -- Helper: show wiki in simple_view with regenerate/delete
+        local function showWikiArtifact(wiki_text)
+            local Notification = require("ui/widget/notification")
+            local wiki_viewer = ChatGPTViewer:new{
+                title = T(_("AI Wiki: %1"), normalized),
+                text = wiki_text,
+                simple_view = true,
+                cache_type_name = _("AI Wiki"),
+                configuration = configuration,
+                on_regenerate = function()
+                    executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata,
+                        function(result, meta)
+                            if result then
+                                ActionCache.setWikiEntry(document_path, wiki_category, normalized, result, meta)
+                                showWikiArtifact(result)
+                            else
+                                UIManager:show(InfoMessage:new{
+                                    text = _("Failed to regenerate wiki entry"),
+                                    timeout = 3,
+                                })
+                            end
+                        end)
+                end,
+                regenerate_label = _("Regenerate"),
+                on_delete = function()
+                    ActionCache.clearWikiEntry(document_path, wiki_category, normalized)
+                    UIManager:show(Notification:new{
+                        text = _("AI Wiki deleted"),
+                        timeout = 2,
+                    })
+                end,
+                _plugin = plugin,
+                _artifact_file = document_path,
+                _artifact_key = wiki_key,
+                _artifact_book_title = book_metadata and book_metadata.title,
+                _artifact_book_author = book_metadata and book_metadata.author,
+                on_launch_chat = plugin and plugin._buildLaunchChatCallback
+                    and plugin:_buildLaunchChatCallback(document_path, book_metadata and book_metadata.title, book_metadata and book_metadata.author, wiki_text, _("AI Wiki")) or nil,
+            }
+            UIManager:show(wiki_viewer)
+        end
+
+        local cached_wiki = ActionCache.getWikiEntry(document_path, wiki_category, normalized)
+        if cached_wiki and cached_wiki.result then
+            showWikiArtifact(cached_wiki.result)
+            return
+        end
+
+        -- No cached wiki: run headless, store as artifact, show in simple_view
+        executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata,
+            function(result, metadata)
+                if result then
+                    ActionCache.setWikiEntry(document_path, wiki_category, normalized, result, metadata)
+                    showWikiArtifact(result)
+                else
+                    UIManager:show(InfoMessage:new{
+                        text = _("Error: ") .. (metadata or "Unknown error"),
+                        timeout = 3,
+                    })
+                end
+            end)
+        return
+    end
+
     -- Call handlePredefinedPrompt with the action object directly
     -- (avoids re-lookup which fails for special actions not in ActionService cache)
     logger.info("KOAssistant: executeDirectAction calling handlePredefinedPrompt with highlighted_text:", highlighted_text and #highlighted_text or "nil/empty")
@@ -5431,7 +5375,7 @@ end
 --- @param plugin table Plugin instance
 --- @param book_metadata table Book title/author metadata
 --- @param on_result function Callback: on_result(result_text, metadata) or on_result(nil, error_string)
-local function executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata, on_result)
+executeActionForResult = function(action, highlighted_text, ui, configuration, plugin, book_metadata, on_result)
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, function(history, temp_config_or_error)
         if history then
             local messages = history:getMessages()
@@ -5501,10 +5445,91 @@ local function generateSummaryCache(ui, configuration, plugin, book_metadata, on
     )
 end
 
+--- Launch a chat about an artifact. Follows the Send button flow:
+--- builds consolidated message with artifact as context, queries AI, opens chat viewer.
+--- @param user_question string The user's typed question
+--- @param artifact_content string The full artifact text
+--- @param artifact_type_name string Display name of the artifact (e.g. "Key Arguments")
+--- @param ui table KOReader UI instance
+--- @param configuration table Plugin configuration
+--- @param plugin table Plugin instance
+--- @param book_metadata table {title, author, file}
+local function launchArtifactChat(user_question, artifact_content, artifact_type_name, ui, configuration, plugin, book_metadata)
+    local document_path = book_metadata and book_metadata.file
+    local title = (artifact_type_name or _("Artifact")) .. ": " .. _("Chat")
+
+    -- Build system prompt (standard book chat)
+    buildUnifiedRequestConfig(configuration, nil, nil, plugin)
+
+    -- Create history with artifact type as prompt_action for title generation
+    local history = MessageHistory:new(nil, nil)
+    history.prompt_action = artifact_type_name
+    history.source_input = user_question
+
+    -- Build consolidated message: book context + artifact framing + artifact content + user question
+    local parts = {}
+
+    table.insert(parts, "[Context]")
+    if book_metadata and book_metadata.title then
+        table.insert(parts, string.format('From "%s"%s',
+            book_metadata.title,
+            (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+        table.insert(parts, "")
+    end
+
+    -- Framing prefix (like _xray_context_prefix): explains this is a generated artifact, not book text
+    local framing = "(Note: The following is a previously generated " .. (artifact_type_name or "artifact") .. " artifact for this book, not the book text itself.)"
+    table.insert(parts, framing)
+    table.insert(parts, "")
+
+    table.insert(parts, "Artifact content:")
+    table.insert(parts, '"' .. artifact_content .. '"')
+    table.insert(parts, "")
+
+    table.insert(parts, "[User Question]")
+    table.insert(parts, user_question)
+
+    local consolidated_message = table.concat(parts, "\n")
+    history:addUserMessage(consolidated_message, true)
+
+    -- Query AI with the consolidated message
+    local function onResponseReady(success, answer, err, reasoning, web_search_used)
+        if success and answer then
+            -- Add user's visible question and AI response
+            history:addUserMessage(user_question, false)
+            history:addAssistantMessage(answer, ConfigHelper:getModelInfo(configuration), reasoning, ConfigHelper:buildDebugInfo(configuration), web_search_used)
+
+            local function addMessage(message, is_context, on_complete)
+                history:addUserMessage(message, is_context)
+                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
+                    if msg_success and msg_answer then
+                        history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
+                    end
+                    if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used) end
+                end, plugin and plugin.settings)
+                if not isStreamingInProgress(answer_result) then
+                    return answer_result
+                end
+                return nil
+            end
+
+            showResponseDialog(title, history, nil, addMessage, configuration, document_path, plugin, book_metadata, nil, ui)
+        else
+            UIManager:show(InfoMessage:new{
+                text = _("Error: ") .. (err or "Unknown error"),
+                timeout = 3,
+            })
+        end
+    end
+
+    queryChatGPT(history:getMessages(), configuration, onResponseReady, plugin and plugin.settings)
+end
+
 return {
     showChatGPTDialog = showChatGPTDialog,
     executeDirectAction = executeDirectAction,
     executeActionForResult = executeActionForResult,
     generateSummaryCache = generateSummaryCache,
     extractSurroundingContext = extractSurroundingContext,
+    launchArtifactChat = launchArtifactChat,
 }
