@@ -27,6 +27,15 @@ local NotebookManager = {}
 function NotebookManager:showNotebookBrowser(opts)
     local Notebook = require("koassistant_notebook")
     local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+
+    -- If index is empty, try rebuilding from vault directory scan
+    if not next(index) then
+        local rebuilt = Notebook.scanAndRebuildIndex()
+        if rebuilt > 0 then
+            index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+        end
+    end
+
     local needs_cleanup = false
 
     -- Build sorted list (newest first), validate entries exist
@@ -66,7 +75,7 @@ function NotebookManager:showNotebookBrowser(opts)
     -- Handle empty state
     if #docs == 0 then
         UIManager:show(InfoMessage:new{
-            text = _("No notebooks yet.\n\nUse the NB button in chat viewer to save conversations to a per-book notebook."),
+            text = _("No notebooks yet.\n\nUse the Notebook button in chat viewer to save conversations to a per-book notebook."),
             timeout = 5,
         })
         return
