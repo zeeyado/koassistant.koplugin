@@ -81,22 +81,39 @@ package.loaded["gettext"] = function(str)
 end
 
 -- Mock lfs (luafilesystem - used by behavior_loader and domain_loader)
--- Try to use real lfs if available, otherwise provide minimal mock
+-- Try to use real lfs if available, otherwise use io.popen fallback
 local lfs_ok, real_lfs = pcall(require, "lfs")
 if lfs_ok then
     -- Real lfs available - use it directly
     package.loaded["libs/libkoreader-lfs"] = real_lfs
 else
-    -- Minimal mock for when lfs isn't available
+    -- Fallback using io.popen for basic directory operations
     local mock_lfs = {
         attributes = function(path)
-            -- Return nil for non-existent paths
-            -- Tests can override this if needed
-            return nil
+            local handle = io.popen('test -d "' .. path .. '" && echo dir || (test -f "' .. path .. '" && echo file || echo none)')
+            if not handle then return nil end
+            local result = handle:read("*l")
+            handle:close()
+            if result == "dir" then return { mode = "directory" }
+            elseif result == "file" then return { mode = "file" }
+            else return nil end
         end,
         dir = function(path)
-            -- Return empty iterator
-            return function() return nil end
+            local handle = io.popen('ls -1 "' .. path .. '" 2>/dev/null')
+            if not handle then return function() return nil end end
+            local entries = {}
+            for line in handle:lines() do
+                table.insert(entries, line)
+            end
+            handle:close()
+            -- Include . and .. like real lfs.dir
+            table.insert(entries, 1, ".")
+            table.insert(entries, 2, "..")
+            local i = 0
+            return function()
+                i = i + 1
+                return entries[i]
+            end
         end,
     }
     package.loaded["libs/libkoreader-lfs"] = mock_lfs
