@@ -276,6 +276,23 @@ function Notebook.getPath(document_path)
     return base_dir .. "/" .. Notebook.generateFilename(document_path)
 end
 
+--- Get a user-facing error message explaining why getPath() returned nil
+--- Centralizes error messaging so callers don't need to duplicate checks
+--- @param document_path string|nil The document file path
+--- @return string error_message Localized error message for display
+function Notebook.getPathError(document_path)
+    if not document_path
+        or document_path == "__GENERAL_CHATS__"
+        or document_path == "__MULTI_BOOK_CHATS__" then
+        return _("Notebooks are only available for single-book chats")
+    end
+    local features = getFeatures()
+    if (features.notebook_save_location or "sidecar") == "custom" and not features.notebook_custom_path then
+        return _("Custom notebook folder not set.\n\nPlease set a folder in Settings → Notebook Settings → Save Location.")
+    end
+    return _("No notebook available for this document")
+end
+
 --- Check if notebook exists for a document
 --- @param document_path string The document file path
 --- @return boolean exists Whether the notebook file exists
@@ -476,7 +493,7 @@ end
 function Notebook.saveChat(document_path, history, highlighted_text, ui, content_format, model_name)
     local notebook_path = Notebook.getPath(document_path)
     if not notebook_path then
-        return false, "No document open"
+        return false, "Notebook folder not configured"
     end
 
     -- Auto-create notebook if it doesn't exist (ensures proper header/frontmatter)

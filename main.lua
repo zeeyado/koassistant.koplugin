@@ -12374,19 +12374,10 @@ function AskGPT:openNotebookForFile(file_path, edit_mode)
   local notebook_path = Notebook.getPath(file_path)
 
   if not notebook_path then
-    -- Check if custom folder is configured but path is missing
-    local features = self.settings:readSetting("features") or {}
-    if (features.notebook_save_location or "sidecar") == "custom" and not features.notebook_custom_path then
-      UIManager:show(InfoMessage:new{
-        text = _("Custom notebook folder not set.\n\nPlease set a folder in Settings → Notebook Settings → Save Location."),
-        timeout = 4,
-      })
-    else
-      UIManager:show(InfoMessage:new{
-        text = _("No notebook available for this document"),
-        timeout = 2,
-      })
-    end
+    UIManager:show(InfoMessage:new{
+      text = Notebook.getPathError(file_path),
+      timeout = 4,
+    })
     return
   end
 

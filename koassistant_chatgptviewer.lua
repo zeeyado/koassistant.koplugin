@@ -3546,13 +3546,14 @@ end
 
 function ChatGPTViewer:saveToNotebook()
   -- Save chat to per-book notebook file
+  local Notebook = require("koassistant_notebook")
   local document_path = self.configuration and self.configuration.document_path
-  if not document_path
-      or document_path == "__GENERAL_CHATS__"
-      or document_path == "__MULTI_BOOK_CHATS__" then
-    UIManager:show(Notification:new{
-      text = _("Notebooks are only available for single-book chats"),
-      timeout = 2,
+
+  -- Centralized path check (handles general/multi-book, custom-without-path, etc.)
+  if not Notebook.getPath(document_path) then
+    UIManager:show(InfoMessage:new{
+      text = Notebook.getPathError(document_path),
+      timeout = 4,
     })
     return
   end
@@ -3575,7 +3576,6 @@ function ChatGPTViewer:saveToNotebook()
   local content_format = features.notebook_content_format or "qa"
 
   -- Save to notebook
-  local Notebook = require("koassistant_notebook")
   local model_name = self.configuration and self.configuration.model
   local ok, err = Notebook.saveChat(document_path, history, self.original_highlighted_text, reader_ui, content_format, model_name)
 
