@@ -537,10 +537,15 @@ local SettingsSchema = {
                         { value = "custom", label = _("Custom folder") },
                         { value = "ask", label = _("Ask every time") },
                     },
-                    help_text = function()
+                    help_text = function(plugin)
                         local DataStorage = require("datastorage")
-                        local f = DataStorage:getDataDir() .. "/koassistant_exports"
-                        return T(_("Where to save exported chat files. Creates subfolders for book/general/multi-book chats.\n\nDefault folder:\n%1"), f)
+                        local default_path = DataStorage:getDataDir() .. "/koassistant_exports"
+                        local f = plugin.settings:readSetting("features") or {}
+                        local custom = f.export_custom_path
+                        if custom and custom ~= "" then
+                            return T(_("Where to save exported chat files. Creates subfolders for book/general/multi-book chats.\n\nDefault folder:\n%1\n\nCustom folder:\n%2"), default_path, custom)
+                        end
+                        return T(_("Where to save exported chat files. Creates subfolders for book/general/multi-book chats.\n\nDefault folder:\n%1"), default_path)
                     end,
                     on_change = function(new_value, plugin, old_value)
                         if new_value == "custom" then
@@ -1075,10 +1080,15 @@ local SettingsSchema = {
                         { value = "central", label = _("KOAssistant notebooks folder") },
                         { value = "custom", label = _("Custom folder") },
                     },
-                    help_text = function()
+                    help_text = function(plugin)
                         local DataStorage = require("datastorage")
-                        return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder: choose your own location (e.g. an Obsidian vault)."),
-                            DataStorage:getDataDir() .. "/koassistant_notebooks")
+                        local central = DataStorage:getDataDir() .. "/koassistant_notebooks"
+                        local f = plugin.settings:readSetting("features") or {}
+                        local custom = f.notebook_custom_path
+                        if custom and custom ~= "" then
+                            return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder:\n%2"), central, custom)
+                        end
+                        return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder: choose your own location (e.g. an Obsidian vault)."), central)
                     end,
                     on_change = function(new_value, plugin, old_value)
                         -- Re-selecting custom when already on custom: just reopen picker (no migration)
