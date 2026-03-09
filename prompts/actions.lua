@@ -297,12 +297,13 @@ Focus on comprehension — help me grasp what I'm reading, not evaluate it. {con
         id = "analyze_in_context",
         enable_web_search = false,
         text = _("Analyze in Context"),
-        description = _("Connects the passage to your own reading — your highlights, annotations, and the threads you've been tracking. Reader-focused. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Connects the passage to your own reading — your highlights, annotations, notebook entries, and the threads you've been tracking. Reader-focused. Source selection: full document text, document summary, or AI knowledge."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
         use_highlights = true,           -- Annotations imply highlights
         use_annotations = true,
+        use_notebook = true,
         include_book_context = true,
         source_selection = true,  -- Show source selection popup
         prompt = [[Analyze this passage through the lens of my reading:
@@ -315,10 +316,12 @@ From "{title}"{author_clause}.{doi_clause}
 
 {annotations_section}
 
+{notebook_section}
+
 Connect this passage to my engagement with the work:
 1. **Why it matters**: What makes this passage significant at this point in my reading?
 2. **My reading so far**: If I've highlighted or annotated related passages, how does this connect to what I've already found notable?
-3. **Developing threads**: Does this advance, complicate, or echo ideas I've been tracking?
+3. **Developing threads**: Does this advance, complicate, or echo ideas I've been tracking? If I have notebook entries, do any connect to this passage?
 4. **What to notice**: Based on this passage and my notes, what might be worth paying attention to going forward?
 
 This is about what this passage means for ME as a reader — not just what it means in the abstract. {conciseness_nudge} {hallucination_nudge}
@@ -441,6 +444,7 @@ Focus on what's genuinely new or different from what the text describes. If the 
         include_book_context = true,
         use_surrounding_context = true,  -- For _forced_surrounding_context from X-Ray browser
         exclude_from_compact = true,  -- Not relevant in compact view action switcher
+        in_highlight_menu = 9,    -- After Fact Check (8)
         in_dictionary_popup = 4,  -- After dictionary_deep(3), before xray_lookup(6)
         prompt = [[Write a Wikipedia-style encyclopedia entry about:
 
@@ -1567,7 +1571,7 @@ Look for:
 
 Adapt to the work — a novel's insights look different from a research paper's or a religious text's. Focus on quality over quantity: fewer sharp insights beat many vague ones.
 
-{conciseness_nudge}
+{conciseness_nudge} {hallucination_nudge}
 
 {text_fallback_nudge}]],
         api_params = {
@@ -1874,7 +1878,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
 
 When context is provided, note how this specific form or sense fits the passage, but still analyze the lemma comprehensively. Flag homographs or polysemy when relevant.
 
-Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. {conciseness_nudge}]],
+Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. {conciseness_nudge} {hallucination_nudge}]],
         include_book_context = false,
         reasoning_config = "off",  -- Structured lookups don't benefit from reasoning
         skip_language_instruction = true,
