@@ -121,9 +121,13 @@ function SettingsManager:createMenuItem(plugin, item, schema)
         return true
     end
 
-    -- Support for help_text
+    -- Support for help_text (string or function(plugin))
     if item.help_text then
-        menu_item.help_text = item.help_text
+        if type(item.help_text) == "function" then
+            menu_item.help_text = item.help_text(plugin)
+        else
+            menu_item.help_text = item.help_text
+        end
     end
     
     if item.type == "toggle" then

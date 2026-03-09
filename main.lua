@@ -9256,7 +9256,7 @@ function AskGPT:showFileBrowserActionsManager()
 end
 
 -- Show PathChooser for custom export path
-function AskGPT:showExportPathPicker()
+function AskGPT:showExportPathPicker(revert_on_cancel)
   local PathChooser = require("ui/widget/pathchooser")
 
   local features = self.settings:readSetting("features") or {}
@@ -9264,19 +9264,35 @@ function AskGPT:showExportPathPicker()
   local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
   local current_path = features.export_custom_path or start_path
 
+  local confirmed = false
+  local self_ref = self
+
   local path_chooser = PathChooser:new{
     title = _("Select Export Folder"),
     path = current_path,
     select_directory = true,
     onConfirm = function(selected_path)
+      confirmed = true
       features.export_custom_path = selected_path
-      self.settings:saveSetting("features", features)
+      self_ref.settings:saveSetting("features", features)
       UIManager:show(InfoMessage:new{
         text = T(_("Export path set to:\n%1"), selected_path),
         timeout = 3,
       })
     end,
   }
+
+  -- Revert dropdown to default if user cancels without picking a folder
+  if revert_on_cancel then
+    path_chooser.close_callback = function()
+      if not confirmed then
+        features.export_save_directory = "exports_folder"
+        self_ref.settings:saveSetting("features", features)
+        self_ref:updateConfigFromSettings()
+      end
+    end
+  end
+
   UIManager:show(path_chooser)
 end
 

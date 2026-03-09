@@ -542,7 +542,16 @@ local SettingsSchema = {
                                 { value = "custom", label = _("Custom folder") },
                                 { value = "ask", label = _("Ask every time") },
                             },
-                            help_text = _("Where to save exported chat files. Creates subfolders for book/general/multi-book chats."),
+                            help_text = function()
+                                local DataStorage = require("datastorage")
+                                return T(_("Where to save exported chat files. Creates subfolders for book/general/multi-book chats.\n\nDefault folder:\n%1"),
+                                    DataStorage:getDataDir() .. "/koassistant_exports")
+                            end,
+                            on_change = function(new_value, plugin)
+                                if new_value == "custom" then
+                                    plugin:showExportPathPicker(true)  -- revert_on_cancel
+                                end
+                            end,
                         },
                         {
                             id = "export_custom_path",
