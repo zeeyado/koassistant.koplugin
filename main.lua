@@ -9296,6 +9296,47 @@ function AskGPT:showExportPathPicker(revert_on_cancel)
   UIManager:show(path_chooser)
 end
 
+--- Show path picker for notebook custom folder
+--- @param revert_on_cancel boolean|nil If true, revert save location to "sidecar" on cancel
+function AskGPT:showNotebookPathPicker(revert_on_cancel)
+  local PathChooser = require("ui/widget/pathchooser")
+
+  local features = self.settings:readSetting("features") or {}
+  local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+  local current_path = features.notebook_custom_path or start_path
+
+  local confirmed = false
+  local self_ref = self
+
+  local path_chooser = PathChooser:new{
+    title = _("Select Notebook Folder"),
+    path = current_path,
+    select_directory = true,
+    onConfirm = function(selected_path)
+      confirmed = true
+      features.notebook_custom_path = selected_path
+      self_ref.settings:saveSetting("features", features)
+      UIManager:show(InfoMessage:new{
+        text = T(_("Notebook folder set to:\n%1"), selected_path),
+        timeout = 3,
+      })
+    end,
+  }
+
+  -- Revert dropdown to default if user cancels without picking a folder
+  if revert_on_cancel then
+    path_chooser.close_callback = function()
+      if not confirmed then
+        features.notebook_save_location = "sidecar"
+        self_ref.settings:saveSetting("features", features)
+        self_ref:updateConfigFromSettings()
+      end
+    end
+  end
+
+  UIManager:show(path_chooser)
+end
+
 -- Register quick actions for highlight menu
 -- Called during init to add user-configured actions directly to the highlight popup
 function AskGPT:registerHighlightMenuActions()
@@ -12267,8 +12308,10 @@ function AskGPT:openNotebookForFile(file_path, edit_mode)
         local ok, err = Notebook.create(file_path)
         if ok then
           self:updateNotebookIndex(file_path, "update")
+          -- Re-resolve path (vault mode may have generated collision-safe name)
+          local created_path = Notebook.getPath(file_path)
           -- Open in edit mode for new notebooks
-          self:openNotebookEditor(notebook_path, file_path)
+          self:openNotebookEditor(created_path, file_path)
         else
           UIManager:show(InfoMessage:new{
             text = T(_("Failed to create notebook: %1"), err or "unknown"),

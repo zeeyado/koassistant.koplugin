@@ -1046,11 +1046,11 @@ local SettingsSchema = {
             },
         },
 
-        -- Notebooks submenu
+        -- Notebook Settings submenu
         {
             id = "notebooks",
             type = "submenu",
-            text = _("Notebooks"),
+            text = _("Notebook Settings"),
             emoji = "📓",
             items = {
                 {
@@ -1084,6 +1084,56 @@ local SettingsSchema = {
                         { value = "reader", label = _("KOReader") },
                     },
                     help_text = _("Chat Viewer shows notebook with editing and export buttons. KOReader opens as a full document with navigation."),
+                    separator = true,
+                },
+                -- Save Location submenu
+                {
+                    id = "notebook_save_location",
+                    type = "submenu",
+                    text = _("Save Location"),
+                    items = {
+                        {
+                            id = "notebook_save_location_dropdown",
+                            type = "dropdown",
+                            text = _("Save Location"),
+                            path = "features.notebook_save_location",
+                            default = "sidecar",
+                            options = {
+                                { value = "sidecar", label = _("Alongside book") },
+                                { value = "central", label = _("KOAssistant notebooks folder") },
+                                { value = "custom", label = _("Custom folder") },
+                            },
+                            help_text = function()
+                                local DataStorage = require("datastorage")
+                                return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder: choose your own location (e.g. an Obsidian vault)."),
+                                    DataStorage:getDataDir() .. "/koassistant_notebooks")
+                            end,
+                            on_change = function(new_value, plugin)
+                                if new_value == "custom" then
+                                    plugin:showNotebookPathPicker(true)  -- revert_on_cancel
+                                end
+                            end,
+                        },
+                        {
+                            id = "notebook_custom_path",
+                            type = "action",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local path = f.notebook_custom_path
+                                if path and path ~= "" then
+                                    local short = path:match("([^/]+)$") or path
+                                    return T(_("Custom Folder: %1"), short)
+                                end
+                                return _("Set Custom Folder...")
+                            end,
+                            callback = "showNotebookPathPicker",
+                            enabled_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return (f.notebook_save_location or "sidecar") == "custom"
+                            end,
+                            help_text = _("Select directory for notebook files.\n\nTip: Point this to an Obsidian vault or synced folder to access notebooks from other devices."),
+                        },
+                    },
                     separator = true,
                 },
                 {

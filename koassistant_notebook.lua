@@ -2,11 +2,12 @@
 Notebook module for KOAssistant - Per-book markdown notebooks
 
 Handles:
-- Notebook file path resolution (sidecar-based)
+- Notebook file path resolution (sidecar or vault/central folder)
 - Page/chapter info extraction
 - Entry formatting (Q+A with highlighted text)
 - Appending entries to notebook files
 - File stats for indexing
+- YAML frontmatter for vault mode (Obsidian integration)
 
 @module koassistant_notebook
 ]]
@@ -47,6 +48,113 @@ local function migrateSidecarIfNeeded(document_path, current_path, filename)
         end
     end
     return false
+end
+
+-- Sanitize a string for use as a filename
+-- Strips filesystem-unsafe characters, control chars, collapses whitespace
+-- @param name string Raw name string
+-- @return string|nil Sanitized name, or nil if empty
+local function sanitizeFilename(name)
+    if not name or name == "" then return nil end
+    -- Strip filesystem-unsafe characters: <>:"/\|?* and control chars
+    local safe = name:gsub('[<>:"/\\|%?%*]', "")
+    safe = safe:gsub("%c", "")
+    -- Collapse whitespace
+    safe = safe:gsub("%s+", " ")
+    -- Trim
+    safe = safe:match("^%s*(.-)%s*$")
+    if not safe or safe == "" then return nil end
+    return safe
+end
+
+-- Quote a string for YAML value (handles colons, special chars)
+-- @param str string Raw string
+-- @return string Quoted YAML value
+local function yamlQuote(str)
+    return '"' .. str:gsub('\\', '\\\\'):gsub('"', '\\"') .. '"'
+end
+
+--- Get the base directory for vault/central notebook storage
+--- @param features table|nil Plugin features settings (reads from G_reader_settings if nil)
+--- @return string|nil base_dir The base directory path, or nil for sidecar mode
+function Notebook.getBaseDir(features)
+    if not features then
+        features = G_reader_settings:readSetting("features") or {}
+    end
+    local location = features.notebook_save_location or "sidecar"
+    if location == "sidecar" then return nil end
+    if location == "central" then
+        local DataStorage = require("datastorage")
+        return DataStorage:getDataDir() .. "/koassistant_notebooks"
+    end
+    -- custom
+    return features.notebook_custom_path
+end
+
+--- Generate a filename for a notebook in vault/central mode
+--- Pattern: Author — Title.md (em dash separator)
+--- @param document_path string The document file path
+--- @param doc_props table|nil Pre-loaded doc_props (avoids re-opening DocSettings)
+--- @return string filename The generated filename (e.g. "Dostoevsky — Crime and Punishment.md")
+function Notebook.generateFilename(document_path, doc_props)
+    if not doc_props then
+        local doc_settings = DocSettings:open(document_path)
+        doc_props = doc_settings:readSetting("doc_props")
+    end
+
+    local title = doc_props and (doc_props.display_title or doc_props.title) or nil
+    local author = doc_props and doc_props.authors or nil
+
+    local safe_title = sanitizeFilename(title)
+    local safe_author = sanitizeFilename(author)
+
+    local stem
+    if safe_author and safe_title then
+        stem = safe_author .. " \u{2014} " .. safe_title  -- em dash
+    elseif safe_title then
+        stem = safe_title
+    else
+        -- Fallback to filename without extension
+        stem = document_path:match("([^/]+)%.[^%.]+$") or "Notebook"
+    end
+
+    -- Length cap
+    if #stem > 100 then
+        stem = stem:sub(1, 100)
+    end
+
+    return stem .. ".md"
+end
+
+--- Generate YAML frontmatter for a notebook file (vault/central mode only)
+--- Minimal fields for Obsidian compatibility and relinking
+--- @param document_path string The document file path
+--- @param doc_props table|nil Pre-loaded doc_props (avoids re-opening DocSettings)
+--- @return string frontmatter The YAML frontmatter block including trailing newline
+function Notebook.generateFrontmatter(document_path, doc_props)
+    if not doc_props then
+        local doc_settings = DocSettings:open(document_path)
+        doc_props = doc_settings:readSetting("doc_props")
+    end
+
+    local parts = {"---"}
+
+    local title = doc_props and (doc_props.display_title or doc_props.title) or nil
+    if title and title ~= "" then
+        table.insert(parts, "title: " .. yamlQuote(title))
+    end
+
+    local author = doc_props and doc_props.authors or nil
+    if author and author ~= "" then
+        table.insert(parts, "author: " .. yamlQuote(author))
+    end
+
+    table.insert(parts, "book_path: " .. yamlQuote(document_path))
+    table.insert(parts, "created: " .. os.date("%Y-%m-%d"))
+    table.insert(parts, "---")
+    table.insert(parts, "")
+
+    return table.concat(parts, "\n")
 end
 
 -- Helper to strip message_builder labels from content
@@ -109,6 +217,7 @@ local function extractSelectedText(content)
 end
 
 --- Get notebook file path for a document
+--- Location-aware: resolves to sidecar, central, or custom folder based on settings
 --- Returns nil for general/multi-book chats (no per-book context)
 --- @param document_path string|nil The document file path
 --- @return string|nil notebook_path The full path to the notebook file
@@ -118,8 +227,35 @@ function Notebook.getPath(document_path)
         or document_path == "__MULTI_BOOK_CHATS__" then
         return nil
     end
-    local sidecar_dir = DocSettings:getSidecarDir(document_path)
-    return sidecar_dir .. "/koassistant_notebook.md"
+
+    local features = G_reader_settings:readSetting("features") or {}
+    local location = features.notebook_save_location or "sidecar"
+
+    if location == "sidecar" then
+        local sidecar_dir = DocSettings:getSidecarDir(document_path)
+        return sidecar_dir .. "/koassistant_notebook.md"
+    end
+
+    -- Vault/central mode
+    local base_dir = Notebook.getBaseDir(features)
+    if not base_dir then return nil end
+
+    -- Fast path: check index for cached filename
+    local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+    local entry = index[document_path]
+    if entry and entry.filename then
+        return base_dir .. "/" .. entry.filename
+    end
+
+    -- Fallback: check DocSettings ref
+    local doc_settings = DocSettings:open(document_path)
+    local ref = doc_settings:readSetting("koassistant_notebook_ref")
+    if ref and ref.filename then
+        return base_dir .. "/" .. ref.filename
+    end
+
+    -- New notebook: generate filename (collision check happens in create())
+    return base_dir .. "/" .. Notebook.generateFilename(document_path)
 end
 
 --- Check if notebook exists for a document
@@ -130,8 +266,12 @@ function Notebook.exists(document_path)
     if not path then return false end
     local attr = lfs.attributes(path)
     if attr and attr.mode == "file" then return true end
-    -- Try alternate storage mode locations (lazy migration on mode switch)
-    return migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md")
+    -- Lazy sidecar migration only applies in sidecar mode
+    local features = G_reader_settings:readSetting("features") or {}
+    if (features.notebook_save_location or "sidecar") == "sidecar" then
+        return migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md")
+    end
+    return false
 end
 
 --- Get current page info from ReaderUI
@@ -321,6 +461,15 @@ function Notebook.saveChat(document_path, history, highlighted_text, ui, content
         return false, "No document open"
     end
 
+    -- Auto-create notebook if it doesn't exist (ensures proper header/frontmatter)
+    if not Notebook.exists(document_path) then
+        local ok, err = Notebook.create(document_path)
+        if not ok then return false, err end
+        -- Re-resolve path (vault mode may have generated collision-safe name)
+        notebook_path = Notebook.getPath(document_path)
+        if not notebook_path then return false, "Failed to resolve notebook path" end
+    end
+
     local page_info = Notebook.getPageInfo(ui)
     content_format = content_format or "qa"
 
@@ -392,9 +541,12 @@ function Notebook.read(document_path)
 
     local file = io.open(path, "r")
     if not file then
-        -- Try alternate storage mode locations (lazy migration on mode switch)
-        if migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md") then
-            file = io.open(path, "r")
+        -- Lazy sidecar migration only applies in sidecar mode
+        local features = G_reader_settings:readSetting("features") or {}
+        if (features.notebook_save_location or "sidecar") == "sidecar" then
+            if migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md") then
+                file = io.open(path, "r")
+            end
         end
         if not file then return nil end
     end
@@ -405,8 +557,9 @@ function Notebook.read(document_path)
 end
 
 --- Get file stats for index
+--- Includes filename field in vault/central mode for fast index lookups
 --- @param document_path string The document file path
---- @return table|nil stats Table with size and modified timestamp, or nil if not found
+--- @return table|nil stats Table with size, modified, and optional filename
 function Notebook.getStats(document_path)
     local path = Notebook.getPath(document_path)
     if not path then return nil end
@@ -414,31 +567,75 @@ function Notebook.getStats(document_path)
     local attr = lfs.attributes(path)
     if not attr or attr.mode ~= "file" then return nil end
 
-    return {
+    local stats = {
         size = attr.size,
         modified = attr.modification,
     }
+
+    -- Include filename for vault mode (enables fast path resolution in getPath)
+    local features = G_reader_settings:readSetting("features") or {}
+    if (features.notebook_save_location or "sidecar") ~= "sidecar" then
+        stats.filename = path:match("([^/]+)$")
+    end
+
+    return stats
 end
 
---- Create empty notebook with header
+--- Create empty notebook with header (and frontmatter in vault mode)
+--- In vault mode: generates filename with collision handling, stores DocSettings ref
 --- @param document_path string The document file path
 --- @return boolean success Whether creation succeeded
 --- @return string|nil error Error message if failed
 function Notebook.create(document_path)
-    local notebook_path = Notebook.getPath(document_path)
+    local features = G_reader_settings:readSetting("features") or {}
+    local location = features.notebook_save_location or "sidecar"
+
+    -- Get metadata (shared for frontmatter, header, filename)
+    local doc_settings = DocSettings:open(document_path)
+    local doc_props = doc_settings:readSetting("doc_props")
+
+    local notebook_path, final_filename
+    if location == "sidecar" then
+        notebook_path = Notebook.getPath(document_path)
+    else
+        -- Vault mode: generate filename with collision handling
+        local base_dir = Notebook.getBaseDir(features)
+        if not base_dir then return false, "No notebook directory configured" end
+        final_filename = Notebook.generateFilename(document_path, doc_props)
+        notebook_path = base_dir .. "/" .. final_filename
+        -- Handle filename collision
+        local stem = final_filename:match("^(.+)%.md$") or final_filename
+        local counter = 1
+        while lfs.attributes(notebook_path, "mode") == "file" do
+            counter = counter + 1
+            final_filename = stem .. " (" .. counter .. ").md"
+            notebook_path = base_dir .. "/" .. final_filename
+        end
+    end
+
     if not notebook_path then
         return false, "Invalid document path"
     end
 
-    -- Extract book name from path
-    local book_name = document_path:match("([^/]+)%.[^%.]+$") or "Unknown"
+    -- Build content
+    local content_parts = {}
 
-    local header = "# Notebook: " .. book_name .. "\n\n---\n\n"
+    -- YAML frontmatter (vault mode only)
+    if location ~= "sidecar" then
+        table.insert(content_parts, Notebook.generateFrontmatter(document_path, doc_props))
+    end
 
-    -- Ensure sidecar directory exists
+    -- Book name for header
+    local book_name = doc_props and (doc_props.display_title or doc_props.title) or nil
+    if not book_name or book_name == "" then
+        book_name = document_path:match("([^/]+)%.[^%.]+$") or "Unknown"
+    end
+    table.insert(content_parts, "# Notebook: " .. book_name .. "\n\n---\n\n")
+
+    -- Ensure directory exists
     local util = require("util")
-    local dir = notebook_path:match("(.*/)")
-    if dir then
+    local dir = notebook_path:match("(.*/)") or ""
+    if dir ~= "" then
         util.makePath(dir)
     end
 
@@ -448,8 +645,18 @@ function Notebook.create(document_path)
         return false, "Failed to create: " .. (err or "unknown")
     end
 
-    file:write(header)
+    file:write(table.concat(content_parts, ""))
     file:close()
+
+    -- Store DocSettings ref for vault mode (travels with book on move)
+    if location ~= "sidecar" and final_filename then
+        doc_settings:saveSetting("koassistant_notebook_ref", {
+            filename = final_filename,
+            created = os.time(),
+        })
+        doc_settings:flush()
+    end
+
     return true, nil
 end
 
