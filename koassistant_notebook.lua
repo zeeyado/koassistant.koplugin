@@ -18,6 +18,24 @@ local logger = require("logger")
 
 local Notebook = {}
 
+-- Plugin settings reference (set via Notebook.init)
+local _settings = nil
+
+-- Read features from plugin settings (with G_reader_settings fallback for safety)
+local function getFeatures()
+    if _settings then
+        return _settings:readSetting("features") or {}
+    end
+    return G_reader_settings:readSetting("features") or {}
+end
+
+--- Initialize with plugin settings reference
+--- Must be called from main.lua during plugin init
+--- @param settings table LuaSettings instance (self.settings)
+function Notebook.init(settings)
+    _settings = settings
+end
+
 --- Check alternate storage mode locations for a sidecar file (lazy migration on mode switch)
 --- @param document_path string The document file path
 --- @param current_path string The expected path in current storage mode
@@ -79,7 +97,7 @@ end
 --- @return string|nil base_dir The base directory path, or nil for sidecar mode
 function Notebook.getBaseDir(features)
     if not features then
-        features = G_reader_settings:readSetting("features") or {}
+        features = getFeatures()
     end
     local location = features.notebook_save_location or "sidecar"
     if location == "sidecar" then return nil end
@@ -228,7 +246,7 @@ function Notebook.getPath(document_path)
         return nil
     end
 
-    local features = G_reader_settings:readSetting("features") or {}
+    local features = getFeatures()
     local location = features.notebook_save_location or "sidecar"
 
     if location == "sidecar" then
@@ -267,7 +285,7 @@ function Notebook.exists(document_path)
     local attr = lfs.attributes(path)
     if attr and attr.mode == "file" then return true end
     -- Lazy sidecar migration only applies in sidecar mode
-    local features = G_reader_settings:readSetting("features") or {}
+    local features = getFeatures()
     if (features.notebook_save_location or "sidecar") == "sidecar" then
         return migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md")
     end
@@ -542,7 +560,7 @@ function Notebook.read(document_path)
     local file = io.open(path, "r")
     if not file then
         -- Lazy sidecar migration only applies in sidecar mode
-        local features = G_reader_settings:readSetting("features") or {}
+        local features = getFeatures()
         if (features.notebook_save_location or "sidecar") == "sidecar" then
             if migrateSidecarIfNeeded(document_path, path, "koassistant_notebook.md") then
                 file = io.open(path, "r")
@@ -553,7 +571,8 @@ function Notebook.read(document_path)
 
     local content = file:read("*all")
     file:close()
-    return content
+    -- Strip YAML frontmatter (vault mode adds it for Obsidian, not needed for display/context)
+    return Notebook.stripFrontmatter(content)
 end
 
 --- Get file stats for index
@@ -573,7 +592,7 @@ function Notebook.getStats(document_path)
     }
 
     -- Include filename for vault mode (enables fast path resolution in getPath)
-    local features = G_reader_settings:readSetting("features") or {}
+    local features = getFeatures()
     if (features.notebook_save_location or "sidecar") ~= "sidecar" then
         stats.filename = path:match("([^/]+)$")
     end
@@ -587,7 +606,7 @@ end
 --- @return boolean success Whether creation succeeded
 --- @return string|nil error Error message if failed
 function Notebook.create(document_path)
-    local features = G_reader_settings:readSetting("features") or {}
+    local features = getFeatures()
     local location = features.notebook_save_location or "sidecar"
 
     -- Get metadata (shared for frontmatter, header, filename)
@@ -658,6 +677,234 @@ function Notebook.create(document_path)
     end
 
     return true, nil
+end
+
+--- Strip YAML frontmatter from notebook content
+--- @param content string Notebook content (may or may not have frontmatter)
+--- @return string content Content with frontmatter removed
+function Notebook.stripFrontmatter(content)
+    if not content then return "" end
+    -- Match opening --- through closing --- (YAML block)
+    local stripped = content:match("^%-%-%-\n.-\n%-%-%-\n(.*)")
+    return stripped or content
+end
+
+--- Resolve the notebook path for a document using a specific location setting
+--- Used by migration to find files at old/new locations without changing the global setting
+--- @param document_path string The document file path
+--- @param location string "sidecar", "central", or "custom"
+--- @param features table Features settings (for custom path)
+--- @param index_entry table|nil Index entry with optional filename
+--- @return string|nil path The resolved notebook file path
+function Notebook.resolvePathForLocation(document_path, location, features, index_entry)
+    if location == "sidecar" then
+        local sidecar_dir = DocSettings:getSidecarDir(document_path)
+        return sidecar_dir .. "/koassistant_notebook.md"
+    end
+
+    -- Vault/central mode
+    local base_dir
+    if location == "central" then
+        local DataStorage = require("datastorage")
+        base_dir = DataStorage:getDataDir() .. "/koassistant_notebooks"
+    else
+        base_dir = features.notebook_custom_path
+    end
+    if not base_dir then return nil end
+
+    -- Check index for filename
+    if index_entry and index_entry.filename then
+        return base_dir .. "/" .. index_entry.filename
+    end
+
+    -- Check DocSettings ref
+    local doc_settings = DocSettings:open(document_path)
+    local ref = doc_settings:readSetting("koassistant_notebook_ref")
+    if ref and ref.filename then
+        return base_dir .. "/" .. ref.filename
+    end
+
+    -- Generate filename
+    return base_dir .. "/" .. Notebook.generateFilename(document_path)
+end
+
+--- Migrate all notebooks from one location to another
+--- Handles frontmatter add/strip, filename generation, DocSettings refs, index updates
+--- @param from_location string Old location setting ("sidecar", "central", "custom")
+--- @param to_location string New location setting ("sidecar", "central", "custom")
+--- @param features table Current features settings (contains paths)
+--- @return number moved Count of successfully moved notebooks
+--- @return number failed Count of failed moves
+function Notebook.migrateAll(from_location, to_location, features)
+    local util = require("util")
+    local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+
+    -- Phase 1: Collect all notebooks and their content from old location
+    local notebooks = {}
+    for doc_path, entry in pairs(index) do
+        local old_path = Notebook.resolvePathForLocation(doc_path, from_location, features, entry)
+        if old_path then
+            local file = io.open(old_path, "r")
+            if file then
+                local content = file:read("*all")
+                file:close()
+                table.insert(notebooks, {
+                    doc_path = doc_path,
+                    content = content,
+                    old_path = old_path,
+                })
+            end
+        end
+    end
+
+    -- Phase 2: Write to new locations
+    local moved, failed = 0, 0
+    local new_index = {}
+
+    for _idx, nb in ipairs(notebooks) do
+        local ok = false
+        local new_path
+
+        if to_location == "sidecar" then
+            -- Write to sidecar (strip frontmatter)
+            new_path = Notebook.resolvePathForLocation(nb.doc_path, "sidecar", features)
+            if new_path then
+                local dir = new_path:match("(.*/)") or ""
+                if dir ~= "" then util.makePath(dir) end
+                local clean_content = Notebook.stripFrontmatter(nb.content)
+                local file = io.open(new_path, "w")
+                if file then
+                    file:write(clean_content)
+                    file:close()
+                    ok = true
+                    -- Remove DocSettings ref (no longer needed in sidecar mode)
+                    local ds = DocSettings:open(nb.doc_path)
+                    ds:delSetting("koassistant_notebook_ref")
+                    ds:flush()
+                end
+            end
+        else
+            -- Write to vault/central (add frontmatter if missing)
+            local base_dir
+            if to_location == "central" then
+                local DataStorage = require("datastorage")
+                base_dir = DataStorage:getDataDir() .. "/koassistant_notebooks"
+            else
+                base_dir = features.notebook_custom_path
+            end
+
+            if base_dir then
+                util.makePath(base_dir)
+                local ds = DocSettings:open(nb.doc_path)
+                local doc_props = ds:readSetting("doc_props")
+                local filename = Notebook.generateFilename(nb.doc_path, doc_props)
+                new_path = base_dir .. "/" .. filename
+
+                -- Handle collision
+                local stem = filename:match("^(.+)%.md$") or filename
+                local counter = 1
+                while lfs.attributes(new_path, "mode") == "file" do
+                    counter = counter + 1
+                    filename = stem .. " (" .. counter .. ").md"
+                    new_path = base_dir .. "/" .. filename
+                end
+
+                -- Prepare content: add frontmatter if not already present
+                local content = nb.content
+                if not content:match("^%-%-%-\n") then
+                    content = Notebook.generateFrontmatter(nb.doc_path, doc_props) .. content
+                end
+
+                local file = io.open(new_path, "w")
+                if file then
+                    file:write(content)
+                    file:close()
+                    ok = true
+                    -- Store DocSettings ref
+                    ds:saveSetting("koassistant_notebook_ref", {
+                        filename = filename,
+                        created = os.time(),
+                    })
+                    ds:flush()
+                end
+            end
+        end
+
+        if ok then
+            -- Remove old file
+            os.remove(nb.old_path)
+            moved = moved + 1
+            -- Update index entry
+            local new_entry = {
+                modified = os.time(),
+                size = lfs.attributes(new_path, "size") or 0,
+            }
+            if to_location ~= "sidecar" then
+                new_entry.filename = new_path:match("([^/]+)$")
+            end
+            new_index[nb.doc_path] = new_entry
+        else
+            failed = failed + 1
+            -- Keep old index entry for failed items
+            new_index[nb.doc_path] = index[nb.doc_path]
+        end
+    end
+
+    -- Phase 3: Save updated index
+    G_reader_settings:saveSetting("koassistant_notebook_index", new_index)
+    G_reader_settings:flush()
+
+    return moved, failed
+end
+
+--- Scan vault directory and rebuild missing index entries
+--- Recovery mechanism for when index gets wiped/corrupted
+--- Only works for vault/central mode (single directory to scan)
+--- @param base_dir string|nil Override base directory (for scanning old locations during migration)
+--- @return number count Number of entries rebuilt
+function Notebook.scanAndRebuildIndex(base_dir)
+    if not base_dir then
+        base_dir = Notebook.getBaseDir()
+    end
+    if not base_dir then return 0 end
+
+    local dir_attr = lfs.attributes(base_dir)
+    if not dir_attr or dir_attr.mode ~= "directory" then return 0 end
+
+    local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+    local count = 0
+
+    for filename in lfs.dir(base_dir) do
+        if filename:match("%.md$") then
+            local filepath = base_dir .. "/" .. filename
+            local attr = lfs.attributes(filepath)
+            if attr and attr.mode == "file" then
+                -- Read first 1KB to extract frontmatter book_path
+                local file = io.open(filepath, "r")
+                if file then
+                    local header = file:read(1024)
+                    file:close()
+                    local book_path = header and header:match('book_path:%s*"([^"]*)"')
+                    if book_path and not index[book_path] then
+                        index[book_path] = {
+                            modified = attr.modification,
+                            size = attr.size,
+                            filename = filename,
+                        }
+                        count = count + 1
+                    end
+                end
+            end
+        end
+    end
+
+    if count > 0 then
+        G_reader_settings:saveSetting("koassistant_notebook_index", index)
+        G_reader_settings:flush()
+        logger.info("KOAssistant Notebook: Rebuilt", count, "index entries from vault scan")
+    end
+
+    return count
 end
 
 return Notebook

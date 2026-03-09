@@ -1385,7 +1385,11 @@ function AskGPT:initSettings()
   end
 
   self.settings:flush()
-  
+
+  -- Initialize Notebook module with plugin settings reference
+  local Notebook = require("koassistant_notebook")
+  Notebook.init(self.settings)
+
   -- Update the configuration with settings values
   self:updateConfigFromSettings()
 end
@@ -9297,8 +9301,8 @@ function AskGPT:showExportPathPicker(revert_on_cancel)
 end
 
 --- Show path picker for notebook custom folder
---- @param revert_on_cancel boolean|nil If true, revert save location to "sidecar" on cancel
-function AskGPT:showNotebookPathPicker(revert_on_cancel)
+--- @param revert_to string|nil Previous location to revert to on cancel (nil = no revert)
+function AskGPT:showNotebookPathPicker(revert_to)
   local PathChooser = require("ui/widget/pathchooser")
 
   local features = self.settings:readSetting("features") or {}
@@ -9320,14 +9324,18 @@ function AskGPT:showNotebookPathPicker(revert_on_cancel)
         text = T(_("Notebook folder set to:\n%1"), selected_path),
         timeout = 3,
       })
+      -- Trigger migration offer if switching from another location
+      if revert_to then
+        self_ref:offerNotebookMigration(revert_to, "custom")
+      end
     end,
   }
 
-  -- Revert dropdown to default if user cancels without picking a folder
-  if revert_on_cancel then
+  -- Revert dropdown to previous location if user cancels
+  if revert_to then
     path_chooser.close_callback = function()
       if not confirmed then
-        features.notebook_save_location = "sidecar"
+        features.notebook_save_location = revert_to
         self_ref.settings:saveSetting("features", features)
         self_ref:updateConfigFromSettings()
       end
@@ -12263,6 +12271,78 @@ end
 --- @return table index Map of document_path -> {size, modified}
 function AskGPT:getNotebookIndex()
   return G_reader_settings:readSetting("koassistant_notebook_index", {})
+end
+
+--- Offer to migrate notebooks when save location changes
+--- If no notebooks exist, silently applies the new setting.
+--- If notebooks exist, shows confirmation dialog. Reverts on decline.
+--- @param old_location string Previous save location ("sidecar", "central", "custom")
+--- @param new_location string New save location
+function AskGPT:offerNotebookMigration(old_location, new_location)
+  if old_location == new_location then return end
+
+  local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+  local count = 0
+  for _ in pairs(index) do count = count + 1 end
+
+  -- If index is empty but old location is a vault dir, try scanning for files
+  if count == 0 and old_location ~= "sidecar" then
+    local Notebook = require("koassistant_notebook")
+    local old_base_dir
+    if old_location == "central" then
+      old_base_dir = DataStorage:getDataDir() .. "/koassistant_notebooks"
+    else
+      local features = self.settings:readSetting("features") or {}
+      old_base_dir = features.notebook_custom_path
+    end
+    if old_base_dir then
+      local rebuilt = Notebook.scanAndRebuildIndex(old_base_dir)
+      if rebuilt > 0 then
+        count = rebuilt
+      end
+    end
+  end
+
+  if count == 0 then
+    -- No notebooks to migrate, just apply setting
+    local features = self.settings:readSetting("features") or {}
+    features.notebook_save_location = new_location
+    self.settings:saveSetting("features", features)
+    self:updateConfigFromSettings()
+    return
+  end
+
+  -- Setting is currently reverted to old_location — only commit on accept
+  local self_ref = self
+  local ConfirmBox = require("ui/widget/confirmbox")
+  UIManager:show(ConfirmBox:new{
+    text = T(_("Move %1 notebook(s) to the new location?"), count),
+    ok_text = _("Move"),
+    ok_callback = function()
+      -- Apply new setting
+      local features = self_ref.settings:readSetting("features") or {}
+      features.notebook_save_location = new_location
+      self_ref.settings:saveSetting("features", features)
+      self_ref:updateConfigFromSettings()
+
+      -- Run migration
+      local Notebook = require("koassistant_notebook")
+      local moved, failed = Notebook.migrateAll(old_location, new_location, features)
+
+      if failed > 0 then
+        UIManager:show(InfoMessage:new{
+          text = T(_("Moved %1 notebooks. %2 failed."), moved, failed),
+          timeout = 5,
+        })
+      else
+        UIManager:show(InfoMessage:new{
+          text = T(_("Moved %1 notebooks."), moved),
+          timeout = 3,
+        })
+      end
+    end,
+    -- cancel: setting stays at old_location (already reverted by on_change)
+  })
 end
 
 --- Check if document has saved chats

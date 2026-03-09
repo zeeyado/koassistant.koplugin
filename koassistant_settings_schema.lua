@@ -1108,9 +1108,20 @@ local SettingsSchema = {
                                 return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder: choose your own location (e.g. an Obsidian vault)."),
                                     DataStorage:getDataDir() .. "/koassistant_notebooks")
                             end,
-                            on_change = function(new_value, plugin)
+                            on_change = function(new_value, plugin, old_value)
+                                if new_value == old_value then return end
+                                -- Revert immediately — setting only commits after migration
+                                local features = plugin.settings:readSetting("features") or {}
+                                features.notebook_save_location = old_value or "sidecar"
+                                plugin.settings:saveSetting("features", features)
+                                plugin:updateConfigFromSettings()
+
                                 if new_value == "custom" then
-                                    plugin:showNotebookPathPicker(true)  -- revert_on_cancel
+                                    -- Pick folder first, then migration is offered on confirm
+                                    plugin:showNotebookPathPicker(old_value or "sidecar")
+                                else
+                                    -- Direct switch — offer migration
+                                    plugin:offerNotebookMigration(old_value or "sidecar", new_value)
                                 end
                             end,
                         },
