@@ -89,8 +89,7 @@
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
   - [Prompt Caching](#prompt-caching)
-  - [Response Caching](#response-caching) — 12 cacheable artifacts, incremental X-Ray/Recap updates as you read
-  - [Document Artifacts](#document-artifacts) — 12 artifact actions + AI Wiki + pinned: viewable guides, → Chat, and reusable context
+  - [Document Artifacts](#document-artifacts) — 12 cacheable artifacts, AI Wiki, pinned, → Chat, incremental caching
   - [Reasoning/Thinking](#reasoningthinking)
   - [Web Search](#web-search) — AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
@@ -433,7 +432,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction. When the active provider is trusted, all data types — highlights, annotations, notebook, reading progress, and book text — are available without toggling individual settings.
 
-**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction specifically, actions go a step further: when document text is unavailable, the AI is explicitly guided to use its training knowledge of the work (and to say so honestly if it doesn't recognize the title). This means actions like Explain in Context, Discussion Questions, and others still produce useful results for well-known books even without text extraction enabled — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details. **Exception:** X-Ray requires text extraction and blocks generation without it (use X-Ray (Simple) instead for a prose overview from AI knowledge — see [Reading Analysis Actions](#reading-analysis-actions)).
+**Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction, most actions fall back to AI training knowledge — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details.
 
 **Visibility tip:** If your device supports emoji fonts, enable **[Emoji Data Access Indicators](#display-settings)** (Settings → Display Settings → Emoji) to see at a glance what data each action accesses — 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search — directly on action names throughout the UI.
 
@@ -674,7 +673,6 @@ These actions analyze your actual reading content. They require specific privacy
 | **Extract Key Insights** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Reading Guide** | Full text, summary, or AI knowledge (user choice) + reading progress | Allow Text Extraction (for full text/summary) |
 | **About** | AI training knowledge (+ optional web search) | None (web search optional) |
-| **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions with source selection show "AI knowledge only" as the available option. For other actions, the AI gracefully falls back to its training knowledge, with a "*Response generated without: ...*" notice in the chat. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 
@@ -792,7 +790,7 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 > **Tip:** Section X-Rays are ideal when the full document is too large for a single detailed analysis, or when chapters cover disparate topics (as in many textbooks, academic works, or the Quran surah-by-surah). Rather than trimming the document globally with Hidden Flows, sections let you run deep analyses on specific parts while keeping the full document intact for other actions. Also useful for pivotal scenes in novels, individual essays in collections, or introductory sections you want to reference independently. For trimming away content you never want analyzed (bibliography, indices, notes, apparatus), use [Hidden Flows](#hidden-flows-support) instead — the two approaches are complementary. Section scoping is also available for other text-extraction actions — see [Section support](#section-support) below.
 
-**Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context, Thematic Connection): These actions use the entire document context. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Actions with **source selection** (Key Arguments, Discussion Questions, Generate Quiz, Extract Insights, Explain in Context, Analyze in Context, Thematic Connection) let you choose between full text, a cached summary, or AI knowledge only — see [Source selection](#source-selection). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
+**Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context, Thematic Connection): These actions use the entire document context. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Actions with **source selection** (Key Arguments, Discussion Questions, Generate Quiz, Extract Insights, Explain in Context, Analyze in Context, Thematic Connection) let you choose between full text, a cached summary, or AI knowledge only — see [Source selection](#highlight-mode). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
 
 <a id="section-support"></a>
 
@@ -800,7 +798,7 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
-> **📦 Response Caching**: X-Ray and Recap responses are automatically cached per book. For incremental X-Rays with a partial cache, a popup lets you **View** the cached result (with coverage and age), **Update** it to your current position, or **Update to 100%**. Complete X-Rays and incremental caches at 100% go directly to the browser viewer — Redo is available in the options menu. See [Response Caching](#response-caching) for details.
+> **📦 Artifact Caching**: All artifact actions cache results per book. For incremental X-Rays with a partial cache, a popup lets you **View** the cached result (with coverage and age), **Update** it to your current position, or **Update to 100%**. Complete X-Rays and incremental caches at 100% go directly to the browser viewer — Redo is available in the options menu. See [Document Artifacts](#document-artifacts) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -2651,65 +2649,9 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 
 **Best for**: Multi-turn conversations, especially those that started with large context (book text, summaries). The more stable content at the start of the conversation, the greater the savings.
 
-### Response Caching
-
-X-Ray and Recap responses are automatically cached per book. For **incremental** X-Rays (the default track), this enables **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch. **Complete** X-Rays (entire document) are cached but always generate fresh when redone.
-
-**How incremental caching works:**
-1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
-2. Continue reading to 50%
-3. Tap X-Ray again → A popup shows: **View X-Ray (30%, today)**, **Update X-Ray (to 50%)**, or **Update X-Ray (to 100%)**
-4. Choose Update → Only the new content (30%→50%) is sent along with an index of existing entities. The AI outputs only new or changed entries.
-5. Diff-based merge: new entries are name-matched and merged into existing data (entities update in place, timeline events append, state summaries replace). ~200-500 output tokens vs 2000-4000 for full regeneration.
-6. Result: Faster responses, lower token costs, continuity of analysis
-
-**"Update to 100%"** extends an incremental X-Ray to the end of the book using the same spoiler-free prompt and Current State/Current Position schema. This is *not* a complete X-Ray — it's the incremental track at full coverage. Only shown when you haven't already read to near 100%.
-
-**Complete X-Ray caching:** Complete (entire document) X-Rays are cached like any other, but they don't support incremental updates. Redoing a complete X-Ray always generates fresh from the full document. The cache is labeled "Complete" instead of a percentage.
-
-**Section X-Ray caching:** Section X-Rays are stored with a `_xray_section:` prefix alongside the main X-Ray cache. Each is independent — you can have multiple Section X-Rays per book plus the main X-Ray. Section X-Rays are always complete (no incremental updates) since they analyze a bounded page range. They store XPointers for font-size-independent page reconversion (EPUB only). When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the X-Ray popup (both cached and no-cache states). All sections are also browsable via the "View Section X-Rays (N)" group button.
-
-The View/Update popup appears everywhere you can trigger an artifact action: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. All 12 artifact actions use this popup when a cache exists. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate Complete X-Ray". For non-incremental actions (Summarize, Analyze, X-Ray (Simple), Key Arguments, etc.), the popup shows "View" and "Redo" or "Regenerate" (since there's nothing to incrementally update). Reading Guide shows "Update to X%" when your reading position advances. All action popups also surface in-range section artifacts — if you're reading within a section's page range, a quick-access "View" button appears directly in the popup.
-
-**Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position. Stale notifications don't appear for 100% caches (reader is always at or behind the cache).
-
-**X-Ray format:** X-Ray results are stored as structured JSON with type-specific categories — fiction (characters, locations, themes, lexicon, timeline), non-fiction (key figures, core concepts, arguments, terminology, argument development), or academic (key concepts, foundations, methodology, findings, referenced works, technical terms, figures & data) — plus status sections (Current State/Current Position/Conclusion). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run. Academic type is automatically selected when [Research Mode](#research-mode) detects a DOI.
-
-**Requirements:**
-- You must be reading (not in file browser)
-- Progress must advance by at least 1% to trigger an incremental update (incremental track only)
-
-> **Text extraction required:** X-Ray, Document Analysis, and Document Summary require text extraction to be enabled — they block generation without it. Use X-Ray (Simple) for a prose overview based on AI knowledge when text extraction is not available. Recap still works without text extraction (the AI uses training knowledge), though results are less accurate.
-
-> **X-Ray (Simple) caching:** X-Ray (Simple) results are cached as a separate artifact alongside X-Ray. Unlike X-Ray, it doesn't support incremental updates — every generation is fresh. When your reading position advances, the "View/Update" popup lets you update (regenerate at the new position). Both X-Ray and X-Ray (Simple) can coexist for the same book.
-
-**Cache storage:**
-- Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
-- Automatically moves with the book if you reorganize your library
-
-**Clearing the cache:**
-- **Per-action**: In the artifact viewer, use the Delete button. For X-Ray specifically: options menu → "Delete X-Ray" (or "Delete Section X-Ray" for sections). All other artifacts have a Delete button directly in the viewer. This clears that action's cache for this book. You can then re-run the action — most artifacts also have a Regenerate/Update button in the viewer when the book is open. Deleting the main X-Ray also clears all associated AI Wiki entries.
-- **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
-- Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
-
-**Limitations:**
-- Only X-Ray and Recap support incremental caching (all other artifact actions cache results but regenerate fresh). Reading Guide tracks reading progress ("Update to X%") but regenerates fully each time
-- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), About, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
-- Complete X-Rays and Section X-Rays don't support incremental updates (always fresh generation)
-- X-Ray (Simple) doesn't support incremental updates (always fresh generation)
-- Section X-Rays require an open book with a TOC (not available from file browser)
-- Going backward in progress doesn't use cache (fresh generation)
-- X-Ray cannot be duplicated (its JSON output requires the X-Ray browser). All other actions can be duplicated — they work as one-shot chat actions but don't inherit caching or incremental update behavior
-- Legacy markdown X-Ray caches (from before the JSON update) are still viewable but will be fully regenerated (not incrementally updated) on the next run, producing the new JSON format
-- To switch between incremental and complete tracks, delete the cache and regenerate
-
-Twelve actions produce **Document Artifacts** — reusable results you can view anytime and reference in other actions. All artifact actions (X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, About, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Extract Key Insights) open directly in an artifact viewer. When a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly. Additionally, **section artifacts** (Section X-Rays, Section Summaries, Section Analyses, etc.) and **AI Wiki** entries are stored alongside these artifacts and appear in the artifact browser. See the next section for details.
-
 ### Document Artifacts
 
-When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source — actions with source selection let you choose the compact summary (~Few thousand tokens) instead of full document text (~100K+ tokens). While full document text is preferable, it can be expensive, sometimes overkill, and even not possible for large works.
-
-X-Ray opens as a browsable category menu (fiction: characters, locations, themes, lexicon, timeline; non-fiction: key figures, core concepts, arguments, terminology, argument development; academic: key concepts, foundations, methodology, findings, referenced works, technical terms, figures & data) with search, chapter/book mention analysis, per-item chapter distribution, per-item AI Wiki encyclopedia, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. Section X-Rays provide the same browsable experience scoped to a specific chapter or part. X-Ray (Simple) shows a prose overview.
+Twelve actions produce **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source — actions with source selection let you choose the compact summary (~few thousand tokens) instead of full document text (~100K+ tokens).
 
 **Artifact types:**
 
@@ -2745,53 +2687,75 @@ Beyond these twelve generated artifacts, **AI Wiki** entries (generated from the
 
 **Artifact viewer buttons:**
 - **Row 1**: Copy, Artifacts (cross-navigate to other cached artifacts for the same book), Export, navigation
-- **Row 2**: → Chat (start a new chat about this artifact), MD/Text toggle, Info (popup showing model, date, source, progress, reasoning, web search), Update/Regenerate (when book is open) or Open Doc (when viewing from file browser), Delete, Close
+- **Row 2**: → Chat, MD/Text toggle, Info, Update/Regenerate (when book is open) or Open Doc (when viewing from file browser), Delete, Close
 
 **→ Chat:** Tapping "→ Chat" opens a reply box on top of the artifact viewer. Type your question and hit Send — the artifact viewer closes and a direct chat opens with the AI, using the artifact content as context. The AI knows this is a previously generated artifact (not the book text itself). The resulting chat saves as a regular book chat with full Reply, Save, and Export capabilities.
 
-The Info popup shows metadata about how the artifact was generated. If reasoning or web search was used, inline indicators appear at the top of the content (matching chat viewer style). X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes, Reading Guide) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, About, Key Arguments, etc.) show "Regenerate".
+X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes, Reading Guide) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, About, Key Arguments, etc.) show "Regenerate".
 
 > **Cache source tracking:** Each artifact records metadata about how it was generated: data source (extracted text vs AI training knowledge), model used, generation date, and whether reasoning or web search was used. The Info button in the artifact viewer shows all metadata. Artifacts built without text extraction use the AI's training knowledge — this works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
-> **Permission requirements for artifact placeholders:** Dynamic based on how the artifact was built:
-> - Artifact built **with text extraction**: `{xray_cache_section}` requires **Allow Text Extraction** (plus **Allow Highlights** if built with highlights). `{analyze_cache_section}` and `{summary_cache_section}` require **Allow Text Extraction**.
-> - Artifact built **without text extraction**: No text extraction permission needed — the artifact contains only AI training knowledge. X-Ray (Simple) always falls in this category.
->
-> Without the required gates enabled, the placeholder renders empty.
+#### Caching
 
-**"Generate Once, Use Many Times" — Summary Artifacts and Source Selection**
+All artifact results are cached per book. X-Ray and Recap additionally support **incremental updates** — as you read further, the AI builds on its previous analysis rather than starting from scratch.
 
-The summary artifact is the centerpiece of the reuse system. For medium and long texts, sending full document text (~100K+ tokens) for each action is expensive and sometimes not possible for large documents. The pattern:
+**How incremental caching works (X-Ray):**
+1. Run X-Ray at 30% → Full structured JSON analysis generated and cached
+2. Continue reading to 50%
+3. Tap X-Ray again → A popup shows: **View X-Ray (30%, today)**, **Update X-Ray (to 50%)**, or **Update X-Ray (to 100%)**
+4. Choose Update → Only the new content (30%→50%) is sent along with an index of existing entities. The AI outputs only new or changed entries.
+5. Diff-based merge: new entries are name-matched and merged into existing data (entities update in place, timeline events append, state summaries replace). ~200-500 output tokens vs 2000-4000 for full regeneration.
+6. Result: Faster responses, lower token costs, continuity of analysis
+
+**"Update to 100%"** extends an incremental X-Ray to the end of the book using the same spoiler-free prompt and Current State/Current Position schema. This is *not* a complete X-Ray — it's the incremental track at full coverage. Only shown when you haven't already read to near 100%.
+
+**Complete X-Ray caching:** Complete (entire document) X-Rays are cached but don't support incremental updates — redoing always generates fresh. The cache is labeled "Complete" instead of a percentage.
+
+**Section X-Ray caching:** Section X-Rays are stored alongside the main X-Ray cache. Each is independent — you can have multiple Section X-Rays per book plus the main X-Ray. Section X-Rays are always complete (no incremental updates) since they analyze a bounded page range. They store XPointers for font-size-independent page reconversion (EPUB only). When you're reading within a section's page range, a quick-access "View" button appears directly in the X-Ray popup. All sections are also browsable via the "View Section X-Rays (N)" group button.
+
+**View/Update popup:** Appears everywhere you can trigger an artifact action: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate Complete X-Ray". For non-incremental actions, the popup shows "View" and "Redo" or "Regenerate". Reading Guide shows "Update to X%" when your reading position advances. All action popups also surface in-range section artifacts.
+
+**Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰). Stale notifications don't appear for 100% caches.
+
+**X-Ray format:** X-Ray results are stored as structured JSON with type-specific categories (fiction, non-fiction, or academic — see [Reading Analysis Actions](#reading-analysis-actions)) plus status sections (Current State/Current Position/Conclusion). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run. Academic type is automatically selected when [Research Mode](#research-mode) detects a DOI.
+
+> **X-Ray (Simple) caching:** X-Ray (Simple) results are cached as a separate artifact alongside X-Ray. Unlike X-Ray, it doesn't support incremental updates — every generation is fresh. When your reading position advances, the "View/Update" popup lets you update (regenerate at the new position). Both X-Ray and X-Ray (Simple) can coexist for the same book.
+
+**Cache storage:**
+- Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
+- Automatically moves with the book if you reorganize your library
+
+**Clearing the cache:**
+- **Per-action**: In the artifact viewer, use the Delete button. For X-Ray specifically: options menu → "Delete X-Ray" (or "Delete Section X-Ray" for sections). Deleting the main X-Ray also clears all associated AI Wiki entries.
+- **All actions for book**: Settings → Privacy & Data → Text Extraction → Clear Action Cache (requires book to be open)
+- Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
+
+**Requirements:**
+- You must be reading (not in file browser) to generate or update
+- Progress must advance by at least 1% to trigger an incremental update (incremental track only)
+- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), About, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
+
+**Limitations:**
+- Only X-Ray and Recap support incremental caching (all other artifact actions cache results but regenerate fresh). Reading Guide tracks reading progress ("Update to X%") but regenerates fully each time
+- Complete X-Rays and Section X-Rays don't support incremental updates (always fresh generation)
+- Section X-Rays require an open book with a TOC (not available from file browser)
+- Going backward in progress doesn't use cache (fresh generation)
+- X-Ray cannot be duplicated (its JSON output requires the X-Ray browser). All other actions can be duplicated — they work as one-shot chat actions but don't inherit caching or incremental update behavior
+- Legacy markdown X-Ray caches are still viewable but will be fully regenerated on the next run, producing the new JSON format
+- To switch between incremental and complete tracks, delete the cache and regenerate
+
+#### Summary as Reusable Source
+
+The summary artifact enables a "generate once, use many times" workflow. For medium and long texts, sending full document text (~100K+ tokens) for each action is expensive and sometimes not possible for large documents. The pattern:
 
 1. **Generate a summary once** via Document Summary → saved as a reusable artifact (~2-8K tokens)
 2. **Actions with source selection** let you choose the summary as the document source
 3. **Result**: Massive token savings AND often better responses for repeated queries
 
-**How to generate a summary:**
-- **Reading Features → Document Summary** (shows View/Redo popup if exists, generates if not)
-- **Quick Actions → Document Summary** (same behavior)
-
-**Actions with source selection:**
-- **Explain in Context** — (Highlight) Comprehension: what the passage means in context
-- **Analyze in Context** — (Highlight) Reader-focused: connect to your highlights and annotations
-- **Thematic Connection** — (Highlight) Craft analysis: technique, structure, and thematic architecture
-- **Key Arguments** — (Book) Thesis, evidence, and counterargument analysis
-- **Discussion Questions** — (Book) Generate discussion prompts grounded in the document
-- **Generate Quiz** — (Book) Comprehension quiz with answer key at bottom
-- **Extract Key Insights** — (Book) Actionable takeaways and ideas worth remembering
-- **Reading Guide** — (Book) Spoiler-free guide to what's ahead
-
-When you trigger any of these actions, a unified popup lets you choose scope (full document or a specific section) and source (extract text, use summary, or AI knowledge only). See [Source selection](#source-selection) above for details.
-
-The chosen source is recorded in the cache and shown in the viewer (Info popup and inline indicator). Section results are stored as independent artifacts and appear as groups in the Artifact Browser.
+When you trigger an action with source selection, a unified popup lets you choose scope (full document or a specific section) and source (extract text, use summary, or AI knowledge only). See [Highlight Mode](#highlight-mode) for the full list of actions and details.
 
 **Creating custom actions with source selection:**
 Add `source_selection = true` and `use_summary_cache = true` to your action, and use `{document_context_section}` as the unified placeholder. It resolves automatically based on the user's source choice.
-
-**When to use summary as source:**
-- Longer documents (research papers, textbooks, novels)
-- Repeated queries on the same book
-- Extended conversations (smaller context = more room for follow-ups)
 - When token cost is a concern
 
 **Token savings example:**
