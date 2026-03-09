@@ -525,64 +525,41 @@ local SettingsSchema = {
                         },
                     },
                 },
-                -- Save Location submenu
+                -- Save Location
                 {
-                    id = "save_location",
-                    type = "submenu",
+                    id = "export_save_directory",
+                    type = "dropdown",
                     text = _("Save Location"),
-                    items = {
-                        {
-                            id = "export_save_directory",
-                            type = "dropdown",
-                            text = _("Save Location"),
-                            path = "features.export_save_directory",
-                            default = "exports_folder",
-                            options = {
-                                { value = "exports_folder", label = _("KOAssistant exports folder") },
-                                { value = "custom", label = _("Custom folder") },
-                                { value = "ask", label = _("Ask every time") },
-                            },
-                            help_text = function()
-                                local DataStorage = require("datastorage")
-                                return T(_("Where to save exported chat files. Creates subfolders for book/general/multi-book chats.\n\nDefault folder:\n%1"),
-                                    DataStorage:getDataDir() .. "/koassistant_exports")
-                            end,
-                            on_change = function(new_value, plugin)
-                                if new_value == "custom" then
-                                    plugin:showExportPathPicker(true)  -- revert_on_cancel
-                                end
-                            end,
-                        },
-                        {
-                            id = "export_custom_path",
-                            type = "action",
-                            text_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local path = f.export_custom_path
-                                if path and path ~= "" then
-                                    -- Show shortened path for display
-                                    local short = path:match("([^/]+)$") or path
-                                    return T(_("Custom Folder: %1"), short)
-                                end
-                                return _("Set Custom Folder...")
-                            end,
-                            callback = "showExportPathPicker",
-                            enabled_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local dir_option = f.export_save_directory or "exports_folder"
-                                return dir_option == "custom"
-                            end,
-                            help_text = _("Select directory for exported files."),
-                        },
-                        {
-                            id = "export_book_to_book_folder",
-                            type = "toggle",
-                            text = _("Save book chats alongside books"),
-                            path = "features.export_book_to_book_folder",
-                            default = false,
-                            help_text = _("When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."),
-                        },
+                    path = "features.export_save_directory",
+                    default = "exports_folder",
+                    options = {
+                        { value = "exports_folder", label = _("KOAssistant exports folder") },
+                        { value = "custom", label = _("Custom folder") },
+                        { value = "ask", label = _("Ask every time") },
                     },
+                    help_text = function()
+                        local DataStorage = require("datastorage")
+                        local f = DataStorage:getDataDir() .. "/koassistant_exports"
+                        return T(_("Where to save exported chat files. Creates subfolders for book/general/multi-book chats.\n\nDefault folder:\n%1"), f)
+                    end,
+                    on_change = function(new_value, plugin, old_value)
+                        if new_value == "custom" then
+                            -- Re-selecting custom when already on custom: just reopen picker (no revert needed)
+                            if old_value == "custom" then
+                                plugin:showExportPathPicker()
+                            else
+                                plugin:showExportPathPicker(true)  -- revert_on_cancel
+                            end
+                        end
+                    end,
+                },
+                {
+                    id = "export_book_to_book_folder",
+                    type = "toggle",
+                    text = _("Save book chats alongside books"),
+                    path = "features.export_book_to_book_folder",
+                    default = false,
+                    help_text = _("When enabled, book chats are saved to a 'chats' subfolder next to the book file instead of the central location."),
                 },
             },
         },
@@ -1086,65 +1063,44 @@ local SettingsSchema = {
                     help_text = _("Chat Viewer shows notebook with editing and export buttons. KOReader opens as a full document with navigation."),
                     separator = true,
                 },
-                -- Save Location submenu
+                -- Save Location
                 {
-                    id = "notebook_save_location",
-                    type = "submenu",
+                    id = "notebook_save_location_dropdown",
+                    type = "dropdown",
                     text = _("Save Location"),
-                    items = {
-                        {
-                            id = "notebook_save_location_dropdown",
-                            type = "dropdown",
-                            text = _("Save Location"),
-                            path = "features.notebook_save_location",
-                            default = "sidecar",
-                            options = {
-                                { value = "sidecar", label = _("Alongside book") },
-                                { value = "central", label = _("KOAssistant notebooks folder") },
-                                { value = "custom", label = _("Custom folder") },
-                            },
-                            help_text = function()
-                                local DataStorage = require("datastorage")
-                                return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder: choose your own location (e.g. an Obsidian vault)."),
-                                    DataStorage:getDataDir() .. "/koassistant_notebooks")
-                            end,
-                            on_change = function(new_value, plugin, old_value)
-                                if new_value == old_value then return end
-                                -- Revert immediately — setting only commits after migration
-                                local features = plugin.settings:readSetting("features") or {}
-                                features.notebook_save_location = old_value or "sidecar"
-                                plugin.settings:saveSetting("features", features)
-                                plugin:updateConfigFromSettings()
-
-                                if new_value == "custom" then
-                                    -- Pick folder first, then migration is offered on confirm
-                                    plugin:showNotebookPathPicker(old_value or "sidecar")
-                                else
-                                    -- Direct switch — offer migration
-                                    plugin:offerNotebookMigration(old_value or "sidecar", new_value)
-                                end
-                            end,
-                        },
-                        {
-                            id = "notebook_custom_path",
-                            type = "action",
-                            text_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                local path = f.notebook_custom_path
-                                if path and path ~= "" then
-                                    local short = path:match("([^/]+)$") or path
-                                    return T(_("Custom Folder: %1"), short)
-                                end
-                                return _("Set Custom Folder...")
-                            end,
-                            callback = "showNotebookPathPicker",
-                            enabled_func = function(plugin)
-                                local f = plugin.settings:readSetting("features") or {}
-                                return (f.notebook_save_location or "sidecar") == "custom"
-                            end,
-                            help_text = _("Select directory for notebook files.\n\nTip: Point this to an Obsidian vault or synced folder to access notebooks from other devices."),
-                        },
+                    path = "features.notebook_save_location",
+                    default = "sidecar",
+                    options = {
+                        { value = "sidecar", label = _("Alongside book") },
+                        { value = "central", label = _("KOAssistant notebooks folder") },
+                        { value = "custom", label = _("Custom folder") },
                     },
+                    help_text = function()
+                        local DataStorage = require("datastorage")
+                        return T(_("Where to save notebook files.\n\nAlongside book: in the book's sidecar directory (current default).\n\nKOAssistant notebooks folder:\n%1\n\nCustom folder: choose your own location (e.g. an Obsidian vault)."),
+                            DataStorage:getDataDir() .. "/koassistant_notebooks")
+                    end,
+                    on_change = function(new_value, plugin, old_value)
+                        -- Re-selecting custom when already on custom: just reopen picker (no migration)
+                        if new_value == "custom" and old_value == "custom" then
+                            plugin:showNotebookPathPicker()  -- no revert_to = picker only
+                            return
+                        end
+                        if new_value == old_value then return end
+                        -- Revert immediately — setting only commits after migration
+                        local features = plugin.settings:readSetting("features") or {}
+                        features.notebook_save_location = old_value or "sidecar"
+                        plugin.settings:saveSetting("features", features)
+                        plugin:updateConfigFromSettings()
+
+                        if new_value == "custom" then
+                            -- Pick folder first, then migration is offered on confirm
+                            plugin:showNotebookPathPicker(old_value or "sidecar")
+                        else
+                            -- Direct switch — offer migration
+                            plugin:offerNotebookMigration(old_value or "sidecar", new_value)
+                        end
+                    end,
                     separator = true,
                 },
                 {

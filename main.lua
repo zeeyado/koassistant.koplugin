@@ -9320,6 +9320,7 @@ function AskGPT:showNotebookPathPicker(revert_to)
       confirmed = true
       features.notebook_custom_path = selected_path
       self_ref.settings:saveSetting("features", features)
+      self_ref.settings:flush()
       UIManager:show(InfoMessage:new{
         text = T(_("Notebook folder set to:\n%1"), selected_path),
         timeout = 3,
@@ -12308,6 +12309,7 @@ function AskGPT:offerNotebookMigration(old_location, new_location)
     local features = self.settings:readSetting("features") or {}
     features.notebook_save_location = new_location
     self.settings:saveSetting("features", features)
+    self.settings:flush()
     self:updateConfigFromSettings()
     return
   end
@@ -12323,6 +12325,7 @@ function AskGPT:offerNotebookMigration(old_location, new_location)
       local features = self_ref.settings:readSetting("features") or {}
       features.notebook_save_location = new_location
       self_ref.settings:saveSetting("features", features)
+      self_ref.settings:flush()
       self_ref:updateConfigFromSettings()
 
       -- Run migration
@@ -12371,10 +12374,19 @@ function AskGPT:openNotebookForFile(file_path, edit_mode)
   local notebook_path = Notebook.getPath(file_path)
 
   if not notebook_path then
-    UIManager:show(InfoMessage:new{
-      text = _("No notebook available for this document"),
-      timeout = 2,
-    })
+    -- Check if custom folder is configured but path is missing
+    local features = self.settings:readSetting("features") or {}
+    if (features.notebook_save_location or "sidecar") == "custom" and not features.notebook_custom_path then
+      UIManager:show(InfoMessage:new{
+        text = _("Custom notebook folder not set.\n\nPlease set a folder in Settings → Notebook Settings → Save Location."),
+        timeout = 4,
+      })
+    else
+      UIManager:show(InfoMessage:new{
+        text = _("No notebook available for this document"),
+        timeout = 2,
+      })
+    end
     return
   end
 
