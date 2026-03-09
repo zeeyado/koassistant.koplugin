@@ -155,16 +155,99 @@ local function getRawDocProps(file)
     return nil
 end
 
+--- Extract DOI from the first page of a document's body text.
+--- Text is extracted locally and discarded — only the DOI string is returned.
+--- Works for PDFs (page-based) where publishers print DOI on page 1.
+--- @param document table KOReader document object
+--- @return string|nil The extracted DOI, or nil
+local function extractDOIFromPage(document)
+    local ok, page_text = pcall(function()
+        return document:getPageText(1)
+    end)
+    if not ok or not page_text then return nil end
+    -- Handle table return type (PDF structured text: blocks → spans → words)
+    if type(page_text) == "table" then
+        local words = {}
+        for _, block in ipairs(page_text) do
+            if type(block) == "table" then
+                for i = 1, #block do
+                    local span = block[i]
+                    if type(span) == "table" and span.word then
+                        table.insert(words, span.word)
+                    end
+                end
+            end
+        end
+        page_text = table.concat(words, " ")
+    end
+    if type(page_text) ~= "string" or page_text == "" then return nil end
+    return matchDOI(page_text)
+end
+
+--- Resolve DOI for a document using all available sources.
+--- Check order: doc_settings cache → metadata fields → first-page text scan.
+--- Caches result in doc_settings to avoid re-scanning.
+--- @param file string|nil Document file path (for caching)
+--- @param doc_props table|nil Document properties (raw preferred)
+--- @param document table|nil KOReader document object (for text scan; nil when book not open)
+--- @return string|nil The resolved DOI, or nil
+local function resolveDOI(file, doc_props, document)
+    -- 1. Check doc_settings cache (instant, avoids re-scanning)
+    if file then
+        local DocSettings = require("docsettings")
+        local ok, doc_settings = pcall(DocSettings.open, DocSettings, file)
+        if ok and doc_settings and doc_settings:has("koassistant_doi") then
+            local cached = doc_settings:readSetting("koassistant_doi")
+            -- false sentinel = "scanned, no DOI found"
+            return cached or nil
+        end
+    end
+
+    -- 2. Try metadata extraction (identifiers → description → keywords)
+    local doi = extractDOI(doc_props)
+    if doi then
+        if file then
+            local DocSettings = require("docsettings")
+            local ok, doc_settings = pcall(DocSettings.open, DocSettings, file)
+            if ok and doc_settings then
+                doc_settings:saveSetting("koassistant_doi", doi)
+                doc_settings:flush()
+            end
+        end
+        return doi
+    end
+
+    -- 3. Try first-page text scan (only when document is open)
+    if document then
+        doi = extractDOIFromPage(document)
+        -- Cache result: DOI string or false sentinel (scanned, not found)
+        if file then
+            local DocSettings = require("docsettings")
+            local ok, doc_settings = pcall(DocSettings.open, DocSettings, file)
+            if ok and doc_settings then
+                doc_settings:saveSetting("koassistant_doi", doi or false)
+                doc_settings:flush()
+            end
+        end
+        return doi
+    end
+
+    -- No document access (file browser) and no metadata DOI — don't cache false
+    -- (a future open-book action might find it via text scan)
+    return nil
+end
+
 --- Build standardized book metadata table for template substitution.
---- Extracts DOI when doc_props are available.
+--- Resolves DOI from cache, metadata, or first-page text scan.
 --- @param title string Book title
 --- @param authors string Author name(s)
 --- @param file string|nil File path for chat saving
 --- @param doc_props table|nil Document properties (raw preferred, for identifiers)
+--- @param document table|nil KOReader document object (for first-page DOI scan)
 --- @return table Book metadata with title, author, author_clause, file, doi, doi_clause
-local function buildBookMetadata(title, authors, file, doc_props)
+local function buildBookMetadata(title, authors, file, doc_props, document)
     authors = authors or ""
-    local doi = extractDOI(doc_props)
+    local doi = resolveDOI(file, doc_props, document)
     return {
         title = title or "Unknown",
         author = authors,
@@ -868,7 +951,8 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   -- Store the book metadata for template substitution
   -- Use raw doc_props (from DocSettings) for DOI extraction — includes identifiers field
   local raw_doc_props = getRawDocProps(file) or book_props
-  configuration.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props)
+  configuration.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props,
+      self.ui and self.ui.document)
 
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
@@ -5520,7 +5604,8 @@ function AskGPT:_generateSummaryAndContinue(on_done)
   end
   local raw_doc_props = getRawDocProps(self.ui and self.ui.document and self.ui.document.file)
       or doc_props
-  config_copy.features.book_metadata = buildBookMetadata(title, authors, nil, raw_doc_props)
+  config_copy.features.book_metadata = buildBookMetadata(title, authors, nil, raw_doc_props,
+      self.ui and self.ui.document)
 
   NetworkMgr:runWhenOnline(function()
     Dialogs.generateSummaryCache(self.ui, config_copy, self, config_copy.features.book_metadata, function(success)
@@ -7482,7 +7567,8 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   end
   local raw_doc_props = getRawDocProps(self.ui and self.ui.document and self.ui.document.file)
       or doc_props
-  config_copy.features.book_metadata = buildBookMetadata(title, authors, nil, raw_doc_props)
+  config_copy.features.book_metadata = buildBookMetadata(title, authors, nil, raw_doc_props,
+      self.ui and self.ui.document)
 
   -- Build book context string for display at top of chat viewer
   local book_context = string.format("Title: %s.", title)
