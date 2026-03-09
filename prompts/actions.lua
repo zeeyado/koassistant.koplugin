@@ -784,6 +784,8 @@ Guidance for academic papers:
 
 __CLOSING__
 
+If web search is available, consider searching for the DOI or key referenced works to enrich your analysis with citation context and connections to the broader field.
+
 If you cannot identify this as an academic paper or lack sufficient detail, respond with ONLY this JSON:
 {"error": "I cannot identify this as an academic paper. Please provide more context."}
 Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]]
