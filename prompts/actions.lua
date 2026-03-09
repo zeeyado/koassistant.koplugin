@@ -846,10 +846,41 @@ Actions.book = {
     book_info = {
         id = "book_info",
         reasoning_config = "off",  -- Straightforward recall doesn't benefit from reasoning
+        doi_web_override = true,
         text = _("Book Info"),
         description = _("Comprehensive overview: what the work is about, its themes, significance, and reading experience. Based on AI knowledge — no book data needed."),
         context = "book",
         template = "book_info",
+        doi_prompt = [[Tell me about "{title}"{author_clause}.{doi_clause} Provide a comprehensive overview of this research:
+
+## About the Paper
+- Research question or problem addressed — what gap this work fills
+- Thesis, hypothesis, or central argument
+- Scope and boundaries of the study
+
+## Key Contributions
+- What's new — novel findings, methods, frameworks, or perspectives introduced
+- How it advances the field beyond prior work
+
+## Research Context
+- Where this fits in the field — intellectual tradition, paradigm, or debate it belongs to
+- Key related work it builds on, extends, or challenges
+- The state of the field when this was published
+
+## Methodology & Approach
+- Research design, methods, and analytical approach (brief overview, not full detail)
+- Why this approach was suitable for the research question
+
+## Impact & Reception
+- Influence on the field — citation impact, follow-up work it inspired
+- How the findings have held up or been challenged since publication
+- Cross-disciplinary relevance, if any
+
+Adapt depth to the paper's nature — an empirical study deserves attention to methods and data, a theoretical paper to frameworks and argumentation, a review article to scope and synthesis.
+
+If web search is available, consider searching for the DOI or title to find citation context, reception, and related work.
+
+Be substantive but not exhaustive. {hallucination_nudge}]],
         use_response_caching = true,
         api_params = {
             temperature = 0.5,  -- Factual overview, lower variance
@@ -861,10 +892,27 @@ Actions.book = {
     },
     similar_books = {
         id = "similar_books",
+        doi_web_override = true,
         text = _("Find Similar"),
         description = _("Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which."),
         context = "book",
         template = "similar_books",
+        doi_prompt = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 related academic works.
+
+For each recommendation:
+- **Why it's related** — same research question? competing methodology? extends findings? foundational work? contrasting theoretical framework?
+- **Relationship** — does it build on, challenge, complement, or predate this paper?
+- **Who should read it** — when would a reader choose this over the original, or vice versa?
+
+Include a mix of:
+- **Foundational works** this paper builds on
+- **Competing approaches** to the same problem
+- **Follow-up work** that extends or challenges the findings
+- **Cross-disciplinary connections** if relevant
+
+If web search is available, consider searching for the DOI or citation context to find the most relevant related work.
+
+{hallucination_nudge}]],
         api_params = {
             temperature = 0.8,  -- More creative for recommendations
             max_tokens = 4096,
@@ -999,6 +1047,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
     -- X-Ray (Simple): Prose companion from AI knowledge (no text extraction)
     xray_simple = {
         id = "xray_simple",
+        doi_web_override = true,
         text = _("X-Ray (Simple)"),
         description = _("A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."),
         context = "book",
@@ -1006,6 +1055,43 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         use_highlights = true,          -- Optional, gated by enable_highlights_sharing
         use_reading_progress = true,    -- For spoiler avoidance
         -- NO use_book_text — intentionally omitted
+        doi_prompt = [[Create a research companion for "{title}"{author_clause}.{doi_clause}
+
+I'm currently at {reading_progress}. Using your knowledge of this paper, provide a reference guide covering ONLY content up to approximately this point.
+
+{highlights_section}
+
+## Key Concepts & Frameworks
+Central ideas, theoretical frameworks, and models introduced or used up to this point:
+- **Concept** — What it means, how the paper uses it, and its significance to the argument
+
+## Methodology
+Research methods, experimental design, or analytical approaches described so far:
+- **Method** — What it is, why it's used, and key parameters or design choices
+
+## Findings & Arguments
+Results, claims, and arguments presented up to this point:
+- **Finding** — What was found or argued, supporting evidence, and why it matters
+
+## Referenced Works
+Key cited papers and foundational texts the paper actively engages with:
+- **Author(s) (Year)** — What this work contributes and how the current paper builds on or challenges it
+
+## Technical Terms
+Domain-specific vocabulary and abbreviations:
+- **Term** — Precise definition as used in this paper
+
+## Where Things Stand
+A paragraph capturing what has been established so far — the research context built up, methods described, any results presented, and what the paper appears to be building toward.
+
+Adapt section depth to the paper's discipline and what's been covered by this point. Use **bold** for names and terms. If highlights are provided, note what caught the reader's attention and how it connects to the paper's argument.
+
+If web search is available, consider searching for the DOI or key referenced works to enrich your descriptions.
+
+CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No results, conclusions, or findings that appear later in the paper.
+
+{conciseness_nudge}
+{hallucination_nudge}]],
         prompt = [[Create a reader's companion for "{title}"{author_clause}.{doi_clause}
 
 I'm currently at {reading_progress}. Using your knowledge of this work, provide a spoiler-free reference guide covering ONLY what happens up to approximately this point.
@@ -1088,6 +1174,12 @@ Write a quick recap to help me re-immerse. Adapt your approach based on content 
 3. **Current focus** - What the author is currently examining
 4. **Building toward** - What questions or arguments are being developed
 
+**For ACADEMIC papers** - Use a "Research progress so far..." refresher style:
+1. **Research question** - What the paper is investigating (briefly)
+2. **Methods & approach** - Research design described so far
+3. **Findings so far** - Results or arguments presented up to this point
+4. **Building toward** - What the paper appears to be establishing or testing
+
 Style guidance:
 - Match the work's tone (suspenseful for thrillers, rigorous for academic, accessible for popular non-fiction)
 - Use **bold** for key names, terms, and concepts
@@ -1166,7 +1258,7 @@ Here's what I've marked:
 Analyze MY READING PATTERNS, not just the content:
 
 ## What Catches My Attention
-What types of passages do I tend to highlight? (dialogue, descriptions, ideas, emotions, plot points?)
+What types of passages do I tend to highlight? (ideas, arguments, evidence, methodology, definitions, dialogue, descriptions, emotions?)
 What does this suggest about what I find valuable in this work?
 
 ## Emerging Threads
@@ -1273,7 +1365,9 @@ What are the strongest objections to this position?
 What debates is this work participating in?
 What's the "so what" — why does this argument matter?
 
-If this is fiction, adapt to analyze themes, messages, and the author's apparent worldview instead of formal arguments.
+Adapt to the work's nature:
+- Fiction: Analyze themes, messages, and the author's apparent worldview instead of formal arguments
+- Academic: Emphasize research methodology, limitations, field positioning, and the gap being addressed. "Counterarguments" should focus on methodological critiques and competing interpretations in the literature
 
 This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
 
@@ -1312,13 +1406,13 @@ Questions about how and why — motivations, techniques, implications
 ## Interpretive Questions (2-3)
 Questions with multiple valid answers that invite debate
 
-## Personal Connection Questions (1-2)
-Questions that connect the work to the reader's own experience/views
+## Personal Connection / Broader Implications (1-2)
+Questions that connect the work to the reader's experience, field, or broader questions in the discipline
 
 Adapt to content type:
 - For fiction: Focus on character decisions, themes, craft choices
 - For non-fiction: Focus on arguments, evidence, real-world applications
-- For academic: Include questions about methodology and scholarly implications
+- For academic: Focus on methodology, research design, validity of findings, implications for the field, and connections to other research
 
 Use key terms and proper nouns in the work's original language where applicable. {conciseness_nudge}
 
@@ -1352,11 +1446,11 @@ Generate 8-10 questions to test understanding. Present ALL questions first, then
 ## Questions
 
 ### Multiple Choice (3-4 questions)
-Test recall of key facts, characters, or concepts.
+Test recall of key facts, concepts, or findings.
 Format: Numbered question, options A-D in a bullet list. Do NOT indicate which option is correct.
 
 ### Short Answer (3-4 questions)
-Test understanding of themes, arguments, or motivations.
+Test understanding of themes, arguments, methods, or motivations.
 Format: Numbered question only (no hints or answer).
 
 ### Discussion/Essay (2 questions)
@@ -1366,7 +1460,7 @@ Format: Numbered question only.
 Adapt to content type:
 - Fiction: Focus on plot, characters, themes, narrative choices
 - Non-fiction: Focus on arguments, evidence, key concepts, implications
-- Academic: Include questions about methodology and scholarly implications
+- Academic: Focus on methodology, research design, evidence evaluation, theoretical contributions, and limitations
 
 ## Answer Key
 After all questions, provide a consolidated answer key:
@@ -1519,7 +1613,7 @@ Adapt to the work's nature:
 - Fiction: narrative threads, character dynamics, motifs, tonal shifts
 - Non-fiction: argument structure, evidence patterns, conceptual building blocks
 - Religious/philosophical: interpretive traditions, key concepts, layers of meaning
-- Academic: methodology, theoretical framework, disciplinary context
+- Academic: methodology to watch unfold, theoretical framework being built, prerequisite concepts, how evidence accumulates toward conclusions
 
 CRITICAL: No spoilers beyond {reading_progress}. Guide attention without revealing outcomes.
 
