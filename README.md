@@ -15,7 +15,7 @@
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
 - **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, Section X-Rays for focused chapter/part analysis, AI Wiki for per-item encyclopedia entries, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
-- **Research & analysis** → deep analysis of papers/articles, explore arguments, find connections across works
+- **Research Mode** → automatic academic enhancements for papers with DOI: discipline-agnostic academic X-Ray (7 research categories), web search override, research-aware system prompts — zero configuration, DOI detection triggers everything
 - **Multi-document** → compare texts, find common themes, analyze your collection
 - **General chat** → AI without book/document context
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
@@ -42,6 +42,7 @@
 - [How to Use KOAssistant](#how-to-use-koassistant) — Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
   - [Book/Document Mode](#bookdocument-mode)
+    - [Research Mode](#research-mode) — Automatic academic enhancements for papers with DOI
     - [Reading Analysis Actions](#reading-analysis-actions) — X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, Book Info, Analyze Notes
   - [Multi-Document Mode](#multi-document-mode)
   - [General Chat](#general-chat)
@@ -326,6 +327,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book or document | Gesture → "KOAssistant: Quick Actions" |
+| **[Research Mode](#research-mode)** | Automatic academic enhancements when DOI detected (academic X-Ray, web search, research prompts) | Automatic — no configuration needed |
 | **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, chapter tracking | Reading Features or Quick Actions → X-Ray |
 | **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (8 defaults including Translate, ELI5, Explain) | Manage Actions → Add to Highlight Menu |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
@@ -338,7 +340,7 @@ See detailed sections below for each feature.
 
 ### Tips for Better Results
 
-- **Good document metadata** improves AI responses. Use Calibre or similar tools to ensure titles, authors, and identifiers are correct.
+- **Good document metadata** improves AI responses. Use Calibre or similar tools to ensure titles, authors, and identifiers (including DOI for academic papers) are correct. DOI triggers [Research Mode](#research-mode) with academic X-Ray categories and web-enriched analysis.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
 - **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis. You can set different models for different actions — see [Tuning Built-in Actions](#tuning-built-in-actions).
 - **Try different behavior styles**: 23 built-in behaviors include provider-inspired styles (Claude, GPT, Gemini, Grok, DeepSeek, Perplexity) — all work with any provider. Change via Quick Settings or Settings → Actions & Prompts → Manage Behaviors.
@@ -623,7 +625,33 @@ Some actions work from the file browser (using only document metadata like title
 | **Document Summary** | Comprehensive summary. Saved as a Summary artifact, which other actions can use as their document source. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
 | **Extract Key Insights** | Distills the most important takeaways — ideas worth remembering, novel perspectives, actionable conclusions. Source selection: full text, summary, or AI knowledge. Supports section scope. Auto-artifact |
 
-**What the AI sees**: Document metadata (title, author). For Analyze Notes: your annotations. For full document actions: entire document text.
+**What the AI sees**: Document metadata (title, author, DOI when detected). For Analyze Notes: your annotations. For full document actions: entire document text.
+
+<a id="research-mode"></a>
+
+#### Research Mode
+
+When KOAssistant detects a DOI (Digital Object Identifier) in your document, **Research Mode** activates automatically — no settings, no toggles, no manual configuration. DOI present means academic paper; DOI absent means everything works exactly as before.
+
+**What changes with Research Mode:**
+
+| Enhancement | What it does |
+|-------------|-------------|
+| **Academic X-Ray** | Replaces fiction/non-fiction categories with 7 research-appropriate categories: Key Concepts, Foundations (intellectual lineage, paradigms), Methodology, Findings, Referenced Works (with aliases and connections), Technical Terms, Figures & Data |
+| **Research Nudge** | System prompt addition guiding the AI to ground analysis in the provided text, verify claims via web search, and contextualize within the paper's field |
+| **Web Search Override** | Actions that normally have web search disabled (X-Ray, Summarize, etc.) follow your global web search setting instead — if web search is on globally, academic papers get web-enriched analysis |
+| **DOI in Prompts** | Every book-context prompt includes the DOI, helping the AI identify the exact paper and its citation context |
+
+**How DOI detection works:**
+1. **Cached result** — instant (checked first)
+2. **Document metadata** — EPUB identifiers, PDF description/keywords
+3. **First-page text scan** — extracts page 1 text, finds DOI pattern, discards text (most reliable for PDFs)
+
+The DOI is a public identifier (like a URL). Only the DOI string enters metadata — no document content leaves the device beyond what you've already opted into via privacy settings.
+
+**Academic X-Ray categories** are discipline-agnostic — the prompt tells the AI to adapt categorization to the field (a physics paper has different natural categories than a sociology study or a philosophy paper). The browsable X-Ray browser works identically: category navigation, search, chapter appearances, AI Wiki, linkable cross-references, and all other features carry over. Academic X-Rays use the same two-track design (incremental vs complete) and support Section X-Rays.
+
+> **Tip: Good metadata matters.** DOI detection works best when your documents have clean metadata. Use Calibre or your reference manager (Zotero, Mendeley) to ensure the DOI is in the document's identifier or description fields. For PDFs without metadata DOI, the first-page text scan catches most academic papers since publishers print the DOI on page 1. After the first action run, the detected DOI is cached — subsequent actions (including from the file browser) use the cached result instantly.
 
 #### Reading Analysis Actions
 
@@ -660,7 +688,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray) — a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: KOAssistant uses AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
 
-- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State/Conclusion (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position/Conclusion (non-fiction) — with item counts. Reader Engagement appears only when highlights were provided during generation. Current State/Current Position appears for incremental (spoiler-free) X-Rays; Conclusion appears for complete (entire document) X-Rays — see [two-track design](#x-ray-modes) below.
+- **Category navigation** — Cast, World, Ideas, Lexicon, Story Arc, Reader Engagement, Current State/Conclusion (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Reader Engagement, Current Position/Conclusion (non-fiction) or Key Concepts, Foundations, Methodology, Findings, Referenced Works, Technical Terms, Figures & Data, Reader Engagement, Current Position/Conclusion (academic — see [Research Mode](#research-mode)) — with item counts. Reader Engagement appears only when highlights were provided during generation. Current State/Current Position appears for incremental (spoiler-free) X-Rays; Conclusion appears for complete (entire document) X-Rays — see [two-track design](#x-ray-modes) below.
 - **Item detail** — descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet" — shown for all categories), connections/relationships, your highlights mentioning each item, custom search term editing, and AI Wiki generation
 - **Linkable references** — character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching.
 - **Mentions** — unified chapter-navigable text matching. Opens to your current chapter by default, showing which X-Ray items (characters, locations, themes, lexicon, etc.) appear there with mention counts and category tags. A chapter picker at the top opens a KOReader-style hierarchical TOC with expand/collapse for nested chapters — auto-expands to the current chapter and bolds it; subsequent opens remember your last selection. Tap any entry at any depth (Part, Chapter, Section) to analyze that scope. Includes an "All Chapters (to X%)" aggregate option that scans from page 1 to the coverage boundary, plus an "All Chapters" option that reveals the entire book (bypassing per-chapter spoiler confirmations). Chapters beyond the greater of X-Ray coverage and reading position are dimmed with tap-to-reveal spoiler protection. For complete X-Rays, all chapters are available with no spoiler gating. Books without a TOC fall back to page-range chunks. Excludes event-based categories (timeline, argument development) whose descriptive names produce misleading matches. Uses word-boundary matching against names and aliases.
@@ -672,7 +700,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **Chat about this** — from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check, Connect by default) since the context is AI-generated analysis. Actions requiring document text (Explain in Context, Thematic Connection) are excluded when no book is open. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
 - **AI Wiki** — from any item's detail view (same categories as Chapter Appearances), generate a Wikipedia-style encyclopedia entry about the item using AI knowledge. The button passes only the item's name to the AI, with the X-Ray description provided as disambiguation context — so "Jim" is understood as "Jim Hawkins from Treasure Island" without biasing the output. Entries are cached per-item and per-category in the existing cache file. Button shows "AI Wiki" when no entry exists, "View AI Wiki" when cached. The viewer provides Delete and Regenerate options. Cached wiki entries are automatically cleared when the X-Ray cache is deleted.
 - **Text selection** — hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
-- **Options menu** — info (model, progress, date, fiction/non-fiction type), delete, close
+- **Options menu** — info (model, progress, date, fiction/non-fiction/academic type), delete, close
 
 > **Model selection for X-Ray:** X-Ray generates detailed structured JSON (for the X-Ray browser to work) that can be large (10K-30K+ tokens of output), and it is a complex task for the AI. The action requests up to 32K output tokens to avoid truncation. Weaker models can struggle to follow these instructions, and even if they manage it, will produce low quality content for the actual analysis, and models with low output caps (e.g., some Groq models at 8K, DeepSeek Chat at 8K) will produce shorter, potentially truncated results — use larger models with higher output limits for best results. If you find a model that produces great X-Rays, you can lock it in for this action while keeping your global model for everything else — see the tip below.
 
@@ -2601,7 +2629,7 @@ The View/Update popup appears everywhere you can trigger an artifact action: Qui
 
 **Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰) — it shows **Update X-Ray (to 39%)** when you've read further, or **Redo X-Ray** at the same position. Stale notifications don't appear for 100% caches (reader is always at or behind the cache).
 
-**X-Ray format:** X-Ray results are stored as structured JSON (characters with aliases/connections, locations with references, themes with references, lexicon, timeline, plus Current State/Conclusion). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run.
+**X-Ray format:** X-Ray results are stored as structured JSON with type-specific categories — fiction (characters, locations, themes, lexicon, timeline), non-fiction (key figures, core concepts, arguments, terminology, argument development), or academic (key concepts, foundations, methodology, findings, referenced works, technical terms, figures & data) — plus status sections (Current State/Current Position/Conclusion). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run. Academic type is automatically selected when [Research Mode](#research-mode) detects a DOI.
 
 **Requirements:**
 - You must be reading (not in file browser)
@@ -2637,14 +2665,14 @@ Eleven actions produce **Document Artifacts** — reusable results you can view 
 
 When certain actions complete, their results are saved as **document artifacts** — persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source — actions with source selection let you choose the compact summary (~Few thousand tokens) instead of full document text (~100K+ tokens). While full document text is preferable, it can be expensive, sometimes overkill, and even not possible for large works.
 
-X-Ray opens as a browsable category menu (characters, locations, themes, lexicon, timeline) with search, chapter/book mention analysis, per-item chapter distribution, per-item AI Wiki encyclopedia, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. Section X-Rays provide the same browsable experience scoped to a specific chapter or part. X-Ray (Simple) shows a prose overview.
+X-Ray opens as a browsable category menu (fiction: characters, locations, themes, lexicon, timeline; non-fiction: key figures, core concepts, arguments, terminology, argument development; academic: key concepts, foundations, methodology, findings, referenced works, technical terms, figures & data) with search, chapter/book mention analysis, per-item chapter distribution, per-item AI Wiki encyclopedia, linkable cross-references, and your highlight mentions — useful for quickly checking character details, relationships, or where a character appears across chapters mid-read. Section X-Rays provide the same browsable experience scoped to a specific chapter or part. X-Ray (Simple) shows a prose overview.
 
 **Artifact types:**
 
 | Artifact | Generated by | What it contains | Primary use |
 |----------|-------------|------------------|-------------|
 | **Summary** | Document Summary | Neutral, comprehensive document representation | **Primary artifact for reuse.** Available as a document source in actions with source selection — replaces raw book text with a compact summary. Also useful on its own as a reading reference. |
-| **X-Ray** | X-Ray action | Structured JSON: characters (with aliases, connections), locations (with references), themes (with references), lexicon, timeline | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Requires text extraction. Also available as supplementary context in custom actions. |
+| **X-Ray** | X-Ray action | Structured JSON — fiction: characters, locations, themes, lexicon, timeline; non-fiction: key figures, core concepts, arguments, terminology, argument development; academic ([Research Mode](#research-mode)): key concepts, foundations, methodology, findings, referenced works, technical terms, figures & data | **Browsable menu** with categories, search, chapter/book mention analysis, per-item chapter distribution, linkable cross-references, highlight integration. Requires text extraction. Also available as supplementary context in custom actions. |
 | **X-Ray (Simple)** | X-Ray (Simple) action | Prose overview: characters, themes, settings, key terms, where things stand | **Text viewer** — prose companion guide from AI knowledge. No text extraction needed. Separate cache from X-Ray; both can coexist. |
 | **Recap** | Recap action | "Previously on..." story refresher | **Text viewer** — helps you resume reading where you left off. Supports incremental updates as you read further. |
 | **Analysis** | Document Analysis | Opinionated deep analysis of the document | Viewable analytical overview. *Not recommended as input for further analysis* — analyzing an analysis is a decaying game of telephone where each layer loses nuance. |
@@ -2901,6 +2929,8 @@ Custom actions can override the global setting:
 - `enable_web_search = nil` → Follow global setting (default)
 
 The built-in **News Update** action demonstrates this—it uses `enable_web_search = true` to fetch current news even when web search is globally disabled. See [General Chat](#general-chat) for how to add it to your input dialog.
+
+**Research Mode override:** When a DOI is detected ([Research Mode](#research-mode)), actions like X-Ray and Summarize that normally force web search off (`enable_web_search = false`) are changed to follow your global web search setting instead. If you have web search enabled globally, academic papers automatically get web-enriched analysis. See [Research Mode](#research-mode).
 
 **Best for:** Questions about current events, recent developments, fact-checking, research topics.
 

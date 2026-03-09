@@ -6266,8 +6266,11 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
 
   section_action.id = "section_xray"
   section_action.prompt = Actions.buildSectionXrayPrompt(label, scope.page_summary)
+  section_action.doi_prompt = Actions.buildSectionXrayPrompt(label, scope.page_summary, true)
   section_action.complete_prompt = nil
+  section_action.doi_complete_prompt = nil
   section_action.update_prompt = nil
+  section_action.doi_update_prompt = nil
   section_action.use_reading_progress = false
   section_action.use_response_caching = false
   section_action.cache_as_xray = false

@@ -737,6 +737,10 @@ local CATEGORY_EMOJIS = {
     themes = "💭", arguments = "⚖️",
     lexicon = "📖", terminology = "📖",
     timeline = "📅", argument_development = "📅",
+    key_concepts = "💡", foundations = "📐",
+    methodology = "🔬", findings = "📊",
+    referenced_works = "📚", technical_terms = "📖",
+    figures_data = "📈",
     reader_engagement = "📌",
     current_state = "📍", current_position = "📍",
     conclusion = "🏁",
@@ -753,6 +757,8 @@ local DISTRIBUTION_EXCLUDED = {
     arguments = true,
     argument_development = true,
     timeline = true,
+    findings = true,
+    figures_data = true,
 }
 
 --- Show the top-level X-Ray category menu

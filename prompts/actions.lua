@@ -688,16 +688,155 @@ local XRAY_SECTION_REPLACEMENTS = {
     __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the section comprehensively. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must follow your language instructions.]],
 }
 
+-- ============================================================
+-- Academic X-Ray Prompt Template (DOI-triggered)
+-- ============================================================
+-- Parallel template for academic papers (triggered when DOI is detected).
+-- Uses research-appropriate categories instead of fiction/nonfiction schemas.
+-- Independent replacement tables — no inheritance from standard tables.
+
+local ACADEMIC_XRAY_PROMPT_TEMPLATE = [[Create a structured research companion for "{title}"{author_clause}.{doi_clause}
+
+__SCOPE_LINE__
+
+{highlights_section}
+
+__TEXT_SECTION__
+
+This is an ACADEMIC paper. Output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the schema below. __SCOPE_INSTRUCTION__. Adapt categorization to the paper's discipline.
+
+---
+
+{
+  "type": "academic",
+  "key_concepts": [
+    {
+      "name": "Concept/Theory/Framework",
+      "description": "What it means and how the paper uses it.",
+      "significance": "How central it is to the paper's argument or contribution.",
+      "references": ["Related concept or method"]
+    }
+  ],
+  "foundations": [
+    {
+      "name": "Paradigm/Tradition/Field",
+      "description": "What this intellectual tradition or body of work entails.",
+      "significance": "How the paper situates itself within or draws from this tradition.",
+      "references": ["Related concept or work"]
+    }
+  ],
+  "methodology": [
+    {
+      "name": "Method/Approach/Tool",
+      "description": "What it is and how it's applied in this paper.",
+      "details": "Key parameters, dataset, design decisions, or analytical choices.",
+      "references": ["Related concept or dataset"]
+    }
+  ],
+  "findings": [
+    {
+      "name": "Finding/Result/Claim",
+      "description": "What was found, argued, or demonstrated.",
+      "evidence": "Key data, statistical results, or reasoning supporting this finding.",
+      "significance": "Why it matters — contribution to the field, practical implications, or theoretical import.",
+      "references": ["Related concept or method"]
+    }
+  ],
+  "referenced_works": [
+    {
+      "name": "Author(s) (Year)",
+      "aliases": ["Short citation", "Alternate form"],
+      "description": "What this work contributes and how the current paper engages with it (builds on, challenges, extends).",
+      "connections": ["Related work (relationship)"]
+    }
+  ],
+  "technical_terms": [
+    {
+      "term": "Term",
+      "definition": "Precise definition as used in this paper, including any discipline-specific meaning."
+    }
+  ],
+  "figures_data": [
+    {
+      "name": "Figure/Table/Dataset Name",
+      "description": "What it shows, measures, or represents.",
+      "significance": "Key takeaway or insight from this figure/table/dataset."
+    }
+  ],
+  __STATUS__
+}
+
+Guidance for academic papers:
+- **Key Concepts**: Central ideas, theoretical frameworks, and models the paper introduces, uses, or critiques. For the paper's own novel contributions, explain what's new. For established frameworks, explain how the paper applies or extends them. Include references to related concepts or methods.
+- **Foundations**: Intellectual traditions, research paradigms, and bodies of work this paper belongs to or builds on. What a reader needs to know to situate this research — the "world" it operates in. A neuroscience paper might list "connectionism" or "diffusion MRI methodology"; a linguistics paper might list "ecological psychology" or "usage-based theory." Include references to related concepts or works.
+- **Methodology**: Research methods, experimental design, analytical approaches, and tools. Include enough detail for a reader to understand what was done and why — key parameters, datasets, participant info, statistical methods. Include references to concepts or data the methodology relies on.
+- **Findings**: Results, conclusions, and key claims — not just "we found X" but what the evidence shows and why it matters. For major findings, include statistical details or key data points. Include references to methods and concepts that produce or support each finding.
+- **Referenced Works**: Important cited papers, books, and foundational texts. Focus on works the paper actively engages with (not just parenthetical citations). Explain how each cited work relates to the current paper — does it provide background, methodology, competing claims, supporting evidence?
+- **Technical Terms**: Domain-specific vocabulary, abbreviations, and concepts a non-specialist reader would need defined. Keep definitions precise and context-specific.
+- **Figures & Data**: Key figures, tables, and datasets described in the paper. For each, capture what it shows and its key takeaway. Readers use this to quickly recall what each figure demonstrates. Omit this category entirely if the paper has no significant figures or data.
+- __STATUS_GUIDANCE__
+- **Discipline adaptation**: Adapt your categorization to the discipline — a neuroscience paper emphasizes methods and data differently than a philosophy paper or a linguistics study. Include what's natural for the field.
+- **Output size**: This is a research companion, not a paper summary. Prioritize depth for central items and brevity for peripheral ones. Include all significant items from the text but keep minor entries concise.
+
+---
+
+{highlight_analysis_nudge}
+
+__CLOSING__
+
+If you cannot identify this as an academic paper or lack sufficient detail, respond with ONLY this JSON:
+{"error": "I cannot identify this as an academic paper. Please provide more context."}
+Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]]
+
+local ACADEMIC_PARTIAL_REPLACEMENTS = {
+    __SCOPE_LINE__ = [[I'm at {reading_progress}.]],
+    __TEXT_SECTION__ = "{book_text_section}",
+    __SCOPE_INSTRUCTION__ = "Cover ONLY content up to my current position in the paper",
+    __STATUS__ = [["current_position": {
+    "summary": "What has been established so far — the research context, methods described, and any results presented up to this point.",
+    "questions_addressed": ["Research question or sub-question addressed so far"],
+    "building_toward": ["What the paper appears to be building toward based on what's been read"]
+  }]],
+    __STATUS_GUIDANCE__ = "**Current Position**: A paragraph-length summary of what's been established so far, the current section's focus, and what the paper seems to be building toward.",
+    __CLOSING__ = [[CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. Cover only what has been presented so far. Output ONLY valid JSON — no other text. JSON keys must remain in English. Technical terms, concept names, and figure references must match the paper's language. All other string values (descriptions, summaries, significance, definitions, etc.) must follow your language instructions.]],
+}
+
+local ACADEMIC_COMPLETE_REPLACEMENTS = {
+    __SCOPE_LINE__ = "Analyzing the complete paper.",
+    __TEXT_SECTION__ = "{full_document_section}",
+    __SCOPE_INSTRUCTION__ = "Cover the ENTIRE paper comprehensively, including all methods, results, and conclusions",
+    __STATUS__ = [["conclusion": {
+    "summary": "The paper's overall conclusions, key contributions to the field, and lasting significance.",
+    "key_findings": ["Major conclusion or finding"],
+    "implications": ["Practical implication, future direction, or open question"]
+  }]],
+    __STATUS_GUIDANCE__ = "**Conclusion**: A paragraph-length summary of the paper's overall conclusions, key contributions, and implications for the field.",
+    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the paper comprehensively, including all methods, results, and conclusions. JSON keys must remain in English. Technical terms, concept names, and figure references must match the paper's language. All other string values (descriptions, summaries, significance, definitions, etc.) must follow your language instructions.]],
+}
+
+local ACADEMIC_SECTION_REPLACEMENTS = {
+    __SCOPE_LINE__ = 'Analyzing a specific section of the paper.',
+    __TEXT_SECTION__ = "{full_document_section}",
+    __SCOPE_INSTRUCTION__ = "Cover this section comprehensively. Focus on what appears within the provided text",
+    __STATUS__ = ACADEMIC_COMPLETE_REPLACEMENTS.__STATUS__,
+    __STATUS_GUIDANCE__ = ACADEMIC_COMPLETE_REPLACEMENTS.__STATUS_GUIDANCE__,
+    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the section comprehensively. JSON keys must remain in English. Technical terms, concept names, and figure references must match the paper's language. All other string values (descriptions, summaries, significance, definitions, etc.) must follow your language instructions.]],
+}
+
 --- Build a Section X-Ray prompt for a specific scope.
 --- @param scope_label string The section label (e.g., "Part 1")
 --- @param page_summary string Human-readable page range (e.g., "Ch 1–5, pp 1–120")
+--- @param academic boolean|nil If true, use academic template
 --- @return string prompt The fully resolved prompt
-function Actions.buildSectionXrayPrompt(scope_label, page_summary)
+function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic)
+    local template = academic and ACADEMIC_XRAY_PROMPT_TEMPLATE or XRAY_PROMPT_TEMPLATE
+    local base_replacements = academic and ACADEMIC_SECTION_REPLACEMENTS or XRAY_SECTION_REPLACEMENTS
     local replacements = {}
-    for k, v in pairs(XRAY_SECTION_REPLACEMENTS) do replacements[k] = v end
+    for k, v in pairs(base_replacements) do replacements[k] = v end
     replacements.__SCOPE_LINE__ = string.format(
-        'Analyzing section "%s" (%s) of the document.', scope_label, page_summary)
-    return build_xray_prompt(XRAY_PROMPT_TEMPLATE, replacements)
+        'Analyzing section "%s" (%s) of the %s.', scope_label, page_summary,
+        academic and "paper" or "document")
+    return build_xray_prompt(template, replacements)
 end
 
 -- Built-in actions for book context (single book from file browser)
@@ -773,6 +912,40 @@ Actions.book = {
         use_reading_progress = true,
         prompt = build_xray_prompt(XRAY_PROMPT_TEMPLATE, XRAY_PARTIAL_REPLACEMENTS),
         complete_prompt = build_xray_prompt(XRAY_PROMPT_TEMPLATE, XRAY_COMPLETE_REPLACEMENTS),
+        -- Academic track (DOI-triggered): research-specific categories
+        doi_prompt = build_xray_prompt(ACADEMIC_XRAY_PROMPT_TEMPLATE, ACADEMIC_PARTIAL_REPLACEMENTS),
+        doi_complete_prompt = build_xray_prompt(ACADEMIC_XRAY_PROMPT_TEMPLATE, ACADEMIC_COMPLETE_REPLACEMENTS),
+        doi_update_prompt = [[Update this research X-Ray for "{title}"{author_clause}.{doi_clause}
+
+Previous analysis (at {cached_progress}):
+{cached_result}
+
+{entity_index}
+
+New content since then (now at {reading_progress}):
+{incremental_book_text_section}
+
+{highlights_section}
+
+Output ONLY the new or changed entries as a JSON object. Use exactly the same JSON keys and structure as shown in the previous analysis. Your output will be programmatically merged with the existing data, so:
+- OMIT categories entirely if nothing changed in them — they will be preserved as-is
+- When adding a new entry to a category, include ONLY the new entries in that category's array
+- When modifying an existing entry, output the COMPLETE entry with all fields (it will replace the old version)
+- To reference an existing entity, use the EXACT name from the entity list above
+- You MUST always include "current_position" — this is always considered changed
+
+If the previous analysis is in plain text rather than JSON, produce a fresh COMPLETE JSON analysis using the academic schema.
+
+Guidelines:
+- Add new concepts, foundations, methods, findings, referenced works, terms, or figures from the new content
+- Update existing entries only when new content reveals significant new information
+- Add new findings with their supporting evidence
+- Track methodology details as they emerge
+- If highlights are provided, consider what the reader found notable
+
+{highlight_analysis_nudge}
+
+CRITICAL: This must cover only content up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Technical terms and concept names must match the paper's language. All other string values must follow your language instructions.]],
         skip_language_instruction = false,
         skip_domain = true,  -- X-Ray has specific structure
         -- Inherits global reasoning setting (user choice)

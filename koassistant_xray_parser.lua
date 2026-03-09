@@ -203,6 +203,7 @@ end
 -- Known category keys for validating parsed X-Ray data
 local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline", "reader_engagement", "current_state", "conclusion" }
 local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "reader_engagement", "current_position", "conclusion" }
+local ACADEMIC_KEYS = { "key_concepts", "foundations", "methodology", "findings", "referenced_works", "technical_terms", "figures_data", "reader_engagement", "current_position", "conclusion" }
 
 -- Build normalized key → canonical key map for fuzzy matching.
 -- Normalizing = lowercase + strip separators (_, -, spaces).
@@ -215,6 +216,9 @@ for _idx, key in ipairs(FICTION_KEYS) do
     CANONICAL_KEY_MAP[normalizeKeyString(key)] = key
 end
 for _idx, key in ipairs(NONFICTION_KEYS) do
+    CANONICAL_KEY_MAP[normalizeKeyString(key)] = key
+end
+for _idx, key in ipairs(ACADEMIC_KEYS) do
     CANONICAL_KEY_MAP[normalizeKeyString(key)] = key
 end
 
@@ -253,6 +257,13 @@ local function isValidXrayData(data)
     for _idx, key in ipairs(FICTION_KEYS) do
         if data[key] then
             if not data.type then data.type = "fiction" end
+            return true
+        end
+    end
+    -- Check for academic keys (before nonfiction: unique keys come first in array)
+    for _idx, key in ipairs(ACADEMIC_KEYS) do
+        if data[key] then
+            if not data.type then data.type = "academic" end
             return true
         end
     end
@@ -326,6 +337,16 @@ function XrayParser.isFiction(data)
     if data.type then return data.type == "fiction" end
     -- Infer from keys: fiction has "characters", nonfiction has "key_figures"
     return data.characters ~= nil
+end
+
+--- Check if X-Ray data is academic type
+--- Falls back to key-based detection if type field is missing
+--- @param data table Parsed X-Ray data
+--- @return boolean
+function XrayParser.isAcademic(data)
+    if data.type then return data.type == "academic" end
+    -- Infer from keys: academic has "key_concepts" and "methodology"
+    return data.key_concepts ~= nil and data.methodology ~= nil
 end
 
 --- Get the key used for characters/figures in this X-Ray type
@@ -456,6 +477,8 @@ local TEXT_MATCH_EXCLUDED = {
     arguments = true,
     argument_development = true,
     timeline = true,
+    findings = true,
+    figures_data = true,
 }
 
 --- Resolve a connection/reference string to any X-Ray item
@@ -531,7 +554,26 @@ end
 --- @param data table Parsed X-Ray data
 --- @return table categories Array of {key, label, items, singular_label}
 function XrayParser.getCategories(data)
-    if XrayParser.isFiction(data) then
+    if XrayParser.isAcademic(data) then
+        local cats = {
+            { key = "key_concepts",     label = _("Key Concepts"),     items = data.key_concepts or {} },
+            { key = "foundations",       label = _("Foundations"),      items = data.foundations or {} },
+            { key = "methodology",      label = _("Methodology"),      items = data.methodology or {} },
+            { key = "findings",         label = _("Findings"),         items = data.findings or {} },
+            { key = "referenced_works", label = _("Referenced Works"), items = data.referenced_works or {} },
+            { key = "technical_terms",  label = _("Technical Terms"),  items = data.technical_terms or {} },
+            { key = "figures_data",     label = _("Figures & Data"),   items = data.figures_data or {} },
+        }
+        if data.reader_engagement then
+            table.insert(cats, { key = "reader_engagement", label = _("Reader Engagement"), items = { data.reader_engagement } })
+        end
+        if data.conclusion then
+            table.insert(cats, { key = "conclusion", label = _("Conclusion"), items = { data.conclusion } })
+        elseif data.current_position then
+            table.insert(cats, { key = "current_position", label = _("Current Position"), items = { data.current_position } })
+        end
+        return cats
+    elseif XrayParser.isFiction(data) then
         local cats = {
             { key = "characters",    label = _("Cast"),          items = data.characters or {} },
             { key = "locations",     label = _("World"),         items = data.locations or {} },
@@ -576,7 +618,7 @@ end
 --- @param category_key string The category key
 --- @return string name The display name
 function XrayParser.getItemName(item, category_key)
-    if category_key == "lexicon" or category_key == "terminology" then
+    if category_key == "lexicon" or category_key == "terminology" or category_key == "technical_terms" then
         return item.term or _("Unknown")
     end
     if category_key == "timeline" or category_key == "argument_development" then
@@ -668,13 +710,13 @@ end
 --- @param category_key string The category key
 --- @return string secondary The secondary display text
 function XrayParser.getItemSecondary(item, category_key)
-    if category_key == "characters" or category_key == "key_figures" then
+    if category_key == "characters" or category_key == "key_figures" or category_key == "referenced_works" then
         return item.role or ""
     end
     if category_key == "timeline" or category_key == "argument_development" then
         return item.chapter or ""
     end
-    if category_key == "lexicon" or category_key == "terminology" then
+    if category_key == "lexicon" or category_key == "terminology" or category_key == "technical_terms" then
         return ""
     end
     if category_key == "reader_engagement" then
@@ -690,7 +732,7 @@ end
 function XrayParser.formatItemDetail(item, category_key)
     local parts = {}
 
-    if category_key == "characters" or category_key == "key_figures" then
+    if category_key == "characters" or category_key == "key_figures" or category_key == "referenced_works" then
         local name = item.name or _("Unknown")
         local role = item.role or ""
         if role ~= "" then
@@ -716,11 +758,17 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, _("Connections:") .. " " .. table.concat(connections, ", "))
         end
 
-    elseif category_key == "locations" or category_key == "core_concepts" then
+    elseif category_key == "locations" or category_key == "core_concepts"
+        or category_key == "key_concepts" or category_key == "foundations"
+        or category_key == "methodology" or category_key == "figures_data" then
         table.insert(parts, item.name or _("Unknown"))
         table.insert(parts, "")
         if item.description and item.description ~= "" then
             table.insert(parts, item.description)
+            table.insert(parts, "")
+        end
+        if item.details and item.details ~= "" then
+            table.insert(parts, _("Details:") .. " " .. item.details)
             table.insert(parts, "")
         end
         local sig = item.significance or item.importance
@@ -733,7 +781,7 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
-    elseif category_key == "themes" or category_key == "arguments" then
+    elseif category_key == "themes" or category_key == "arguments" or category_key == "findings" then
         table.insert(parts, item.name or _("Unknown"))
         table.insert(parts, "")
         if item.description and item.description ~= "" then
@@ -744,12 +792,16 @@ function XrayParser.formatItemDetail(item, category_key)
             table.insert(parts, _("Evidence:") .. " " .. item.evidence)
             table.insert(parts, "")
         end
+        if item.significance and item.significance ~= "" then
+            table.insert(parts, _("Significance:") .. " " .. item.significance)
+            table.insert(parts, "")
+        end
         local refs = ensure_array(item.references)
         if refs and #refs > 0 then
             table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
-    elseif category_key == "lexicon" or category_key == "terminology" then
+    elseif category_key == "lexicon" or category_key == "terminology" or category_key == "technical_terms" then
         table.insert(parts, item.term or _("Unknown"))
         table.insert(parts, "")
         if item.definition and item.definition ~= "" then
@@ -910,7 +962,14 @@ function XrayParser.renderToMarkdown(data, title, progress)
     table.insert(lines, header)
     table.insert(lines, "")
 
-    local type_label = XrayParser.isFiction(data) and "FICTION" or "NON-FICTION"
+    local type_label
+    if XrayParser.isAcademic(data) then
+        type_label = "ACADEMIC"
+    elseif XrayParser.isFiction(data) then
+        type_label = "FICTION"
+    else
+        type_label = "NON-FICTION"
+    end
     table.insert(lines, "**Type: " .. type_label .. "**")
     table.insert(lines, "")
 
@@ -978,7 +1037,7 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     end
                     table.insert(lines, "")
                 end
-            elseif cat.key == "characters" or cat.key == "key_figures" then
+            elseif cat.key == "characters" or cat.key == "key_figures" or cat.key == "referenced_works" then
                 for _idx2, char in ipairs(cat.items) do
                     local entry = "**" .. (char.name or "Unknown") .. "**"
                     local desc_parts = {}
@@ -1003,13 +1062,16 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     end
                     table.insert(lines, "")
                 end
-            elseif cat.key == "locations" or cat.key == "core_concepts" then
+            elseif cat.key == "locations" or cat.key == "core_concepts"
+                or cat.key == "key_concepts" or cat.key == "foundations"
+                or cat.key == "methodology" or cat.key == "figures_data" then
                 for _idx2, loc in ipairs(cat.items) do
                     local entry = "**" .. (loc.name or "Unknown") .. "**"
                     local desc = loc.description or ""
                     local sig = loc.significance or loc.importance or ""
                     local detail_parts = {}
                     if desc ~= "" then table.insert(detail_parts, desc) end
+                    if loc.details and loc.details ~= "" then table.insert(detail_parts, loc.details) end
                     if sig ~= "" then table.insert(detail_parts, sig) end
                     if #detail_parts > 0 then
                         entry = entry .. " — " .. table.concat(detail_parts, ". ")
@@ -1021,7 +1083,7 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     end
                     table.insert(lines, "")
                 end
-            elseif cat.key == "themes" or cat.key == "arguments" then
+            elseif cat.key == "themes" or cat.key == "arguments" or cat.key == "findings" then
                 for _idx2, theme in ipairs(cat.items) do
                     local entry = "**" .. (theme.name or "Unknown") .. "**"
                     if theme.description and theme.description ~= "" then
@@ -1030,6 +1092,9 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     if theme.evidence and theme.evidence ~= "" then
                         entry = entry .. " " .. theme.evidence
                     end
+                    if theme.significance and theme.significance ~= "" then
+                        entry = entry .. " " .. theme.significance
+                    end
                     table.insert(lines, entry)
                     local t_refs = ensure_array(theme.references)
                     if t_refs and #t_refs > 0 then
@@ -1037,7 +1102,7 @@ function XrayParser.renderToMarkdown(data, title, progress)
                     end
                     table.insert(lines, "")
                 end
-            elseif cat.key == "lexicon" or cat.key == "terminology" then
+            elseif cat.key == "lexicon" or cat.key == "terminology" or cat.key == "technical_terms" then
                 for _idx2, term in ipairs(cat.items) do
                     local entry = "**" .. (term.term or "Unknown") .. "**"
                     if term.definition and term.definition ~= "" then
@@ -1512,7 +1577,14 @@ function XrayParser.merge(old_data, new_data)
 
     old_data.type = old_data.type or new_data.type
 
-    local keys = XrayParser.isFiction(old_data) and FICTION_KEYS or NONFICTION_KEYS
+    local keys
+    if XrayParser.isAcademic(old_data) then
+        keys = ACADEMIC_KEYS
+    elseif XrayParser.isFiction(old_data) then
+        keys = FICTION_KEYS
+    else
+        keys = NONFICTION_KEYS
+    end
     for _idx, key in ipairs(keys) do
         if new_data[key] ~= nil then
             if SINGLETON_CATEGORIES[key] then

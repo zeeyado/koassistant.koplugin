@@ -2721,6 +2721,22 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
+    -- DOI detected: swap to academic prompt track (if available)
+    -- Must happen BEFORE full-document swap so doi_complete_prompt is available
+    local doi_metadata = config.features and config.features.book_metadata
+    if doi_metadata and doi_metadata.doi and prompt and prompt.doi_prompt then
+        local original_prompt = prompt
+        prompt = {}
+        for k, v in pairs(original_prompt) do prompt[k] = v end
+        prompt.prompt = original_prompt.doi_prompt
+        if original_prompt.doi_complete_prompt then
+            prompt.complete_prompt = original_prompt.doi_complete_prompt
+        end
+        if original_prompt.doi_update_prompt then
+            prompt.update_prompt = original_prompt.doi_update_prompt
+        end
+    end
+
     -- Full-document X-Ray: use complete_prompt (different schema, no spoiler restrictions)
     -- Must happen BEFORE extractForAction() so placeholder detection picks {full_document_section}
     if config.features and config.features._full_document_xray and prompt and prompt.complete_prompt then
