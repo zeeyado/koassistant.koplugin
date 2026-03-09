@@ -698,36 +698,49 @@ local function findItemHighlights(item, ui)
 end
 
 --- Text selection handler matching ChatGPTViewer behavior:
---- ≤3 words → dictionary lookup, 4+ words → clipboard copy
+--- 1 word → auto dictionary, 2+ words → selection popup
 --- @param text string Selected text
---- @param ui table|nil KOReader UI instance
-local function handleTextSelection(text, ui)
-    -- Count words
+--- @param opts table Options: ui, plugin, viewer (TextViewer for highlight clearing)
+local function handleTextSelection(text, opts)
+    local ui = opts.ui
+
+    -- Count words: 1 word → auto dictionary, 2+ → popup
     local word_count = 0
     if text then
         for _w in text:gmatch("%S+") do
             word_count = word_count + 1
-            if word_count > 3 then break end
+            if word_count > 1 then break end
         end
     end
 
-    local did_lookup = false
-    if word_count >= 1 and word_count <= 3 then
+    local function clear_highlight()
+        local viewer = opts.viewer
+        if viewer and viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
+            local tw = viewer.scroll_text_w.text_widget
+            if tw.clearHighlight and tw:clearHighlight() then
+                tw:redrawHighlight()
+            end
+        end
+    end
+
+    if word_count == 1 then
+        -- Single word: auto dictionary lookup (fast path)
         if ui and ui.dictionary then
             ui.dictionary._koassistant_non_reader_lookup = true
             ui.dictionary:onLookupWord(text)
-            did_lookup = true
+            clear_highlight()
+            return
         end
     end
 
-    if not did_lookup then
-        if Device:hasClipboard() then
-            Device.input.setClipboardText(text)
-            UIManager:show(Notification:new{
-                text = _("Copied to clipboard."),
-            })
-        end
-    end
+    -- 2+ words or no dictionary: show selection popup via shared builder
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    ChatGPTViewer.buildTextSelectionPopup(text, {
+        ui = ui,
+        plugin = opts.plugin,
+        configuration = opts.plugin and opts.plugin.configuration,
+        clear_highlight = clear_highlight,
+    })
 end
 
 -- Emoji mappings for category keys (used when enable_emoji_icons is on)
@@ -1492,7 +1505,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         height = Screen:getHeight(),
         buttons_table = buttons_rows,
         text_selection_callback = function(text)
-            handleTextSelection(text, captured_ui)
+            handleTextSelection(text, { ui = captured_ui, plugin = self_ref.metadata.plugin, viewer = viewer })
         end,
     }
     -- Enable gray highlight on text selection (TextViewer doesn't expose this prop)

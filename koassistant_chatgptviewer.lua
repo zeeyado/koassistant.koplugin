@@ -1165,17 +1165,17 @@ function ChatGPTViewer:init()
       end,
     },
     {
-      text = _("Add to Notebook"),
+      text = _("Notebook"),
       id = "save_to_notebook",
       enabled = self.configuration and self.configuration.document_path
                 and self.configuration.document_path ~= "__GENERAL_CHATS__"
                 and self.configuration.document_path ~= "__MULTI_BOOK_CHATS__",
       callback = function()
-        self:saveToNotebook()
+        self:showNotebookPopup()
       end,
       hold_callback = function()
         UIManager:show(Notification:new{
-          text = _("Append chat to per-book notebook file"),
+          text = _("Add chat to notebook, view, or edit"),
           timeout = 2,
         })
       end,
@@ -3193,39 +3193,211 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
     return
   end
 
-  -- Count words: up to 3 words → dictionary lookup, 4+ → clipboard copy
+  -- Count words: 1 word → auto dictionary, 2+ → selection popup
   local word_count = 0
   if text then
     for _w in text:gmatch("%S+") do
       word_count = word_count + 1
-      if word_count > 3 then break end  -- Early exit, no need to count all
+      if word_count > 1 then break end  -- Early exit, only need to know if >1
     end
   end
 
-  local did_lookup = false
-  if word_count >= 1 and word_count <= 3 then
-    -- Use KOReader's dictionary lookup (onLookupWord).
-    -- If bypass is ON, the installed intercept routes to KOAssistant's AI action.
-    -- If bypass is OFF, KOReader's native dictionary popup opens.
-    -- Either way, the current viewer stays open underneath.
+  if word_count == 1 then
+    -- Single word: auto dictionary lookup (fast path)
     local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
     if ui and ui.dictionary then
-      -- Signal that this lookup originates from a non-reader context (AI response text).
-      -- Context extraction from the book page would be irrelevant/misleading.
       ui.dictionary._koassistant_non_reader_lookup = true
       ui.dictionary:onLookupWord(text)
-      did_lookup = true
+      self:clearTextHighlight()
+      return
     end
   end
 
-  if not did_lookup then
-    if Device:hasClipboard() then
-      Device.input.setClipboardText(text)
-      UIManager:show(Notification:new {
-        text = _("Copied to clipboard."),
+  -- 2+ words: show selection popup (all view modes)
+  self:showTextSelectionPopup(text)
+end
+
+function ChatGPTViewer:showTextSelectionPopup(text)
+  local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
+  local document_path = self.configuration and self.configuration.document_path
+  local plugin = self._plugin
+  local self_ref = self
+
+  ChatGPTViewer.buildTextSelectionPopup(text, {
+    ui = ui,
+    plugin = plugin,
+    document_path = document_path,
+    configuration = self.configuration,
+    append_to_notebook = function(selected_text)
+      self_ref:appendSelectionToNotebook(selected_text)
+    end,
+    clear_highlight = function()
+      self_ref:clearTextHighlight()
+    end,
+  })
+end
+
+--- Clear text selection highlight from the scroll widget
+function ChatGPTViewer:clearTextHighlight()
+  if not self.scroll_text_w then return end
+  -- ScrollHtmlWidget uses htmlbox_widget, ScrollTextWidget uses text_widget
+  local inner = self.scroll_text_w.htmlbox_widget or self.scroll_text_w.text_widget
+  if inner and inner.clearHighlight then
+    if inner:clearHighlight() then
+      inner:redrawHighlight()
+    end
+  end
+end
+
+--- Shared text selection popup builder. Used by ChatGPTViewer and X-Ray browser.
+--- @param text string Selected text
+--- @param opts table Options: ui, plugin, document_path, configuration, append_to_notebook, clear_highlight
+function ChatGPTViewer.buildTextSelectionPopup(text, opts)
+  local ui = opts.ui
+  local plugin = opts.plugin
+  local document_path = opts.document_path
+  local clear_highlight = opts.clear_highlight
+
+  local flat_buttons = {}
+  local dialog_ref = {}
+
+  local function close_and_clear()
+    if dialog_ref.dialog then
+      UIManager:close(dialog_ref.dialog)
+    end
+    if clear_highlight then clear_highlight() end
+  end
+
+  -- Copy
+  table.insert(flat_buttons, {
+    text = _("Copy"),
+    callback = function()
+      close_and_clear()
+      if Device:hasClipboard() then
+        Device.input.setClipboardText(text)
+        UIManager:show(Notification:new{
+          text = _("Copied to clipboard."),
+        })
+      end
+    end,
+  })
+
+  -- Dictionary
+  if ui and ui.dictionary then
+    table.insert(flat_buttons, {
+      text = _("Dictionary"),
+      callback = function()
+        close_and_clear()
+        ui.dictionary._koassistant_non_reader_lookup = true
+        ui.dictionary:onLookupWord(text)
+      end,
+    })
+  end
+
+  -- Translate
+  if plugin and ui then
+    table.insert(flat_buttons, {
+      text = _("Translate"),
+      callback = function()
+        close_and_clear()
+        local Actions = require("prompts/actions")
+        local Dialogs = require("koassistant_dialogs")
+        local action = Actions.getById("translate")
+        if action then
+          Dialogs.executeDirectAction(ui, action, text, opts.configuration, plugin)
+        end
+      end,
+    })
+  end
+
+  -- Add to Notebook (book chats only, when notebook path is valid)
+  if opts.append_to_notebook and document_path
+      and document_path ~= "__GENERAL_CHATS__"
+      and document_path ~= "__MULTI_BOOK_CHATS__" then
+    local Notebook = require("koassistant_notebook")
+    if Notebook.getPath(document_path) then
+      table.insert(flat_buttons, {
+        text = _("Add to Notebook"),
+        callback = function()
+          close_and_clear()
+          opts.append_to_notebook(text)
+        end,
       })
     end
   end
+
+  -- Arrange in 2-column grid
+  local buttons = {}
+  for i = 1, #flat_buttons, 2 do
+    if flat_buttons[i + 1] then
+      table.insert(buttons, { flat_buttons[i], flat_buttons[i + 1] })
+    else
+      table.insert(buttons, { flat_buttons[i] })
+    end
+  end
+
+  dialog_ref.dialog = ButtonDialog:new{
+    buttons = buttons,
+    dismissable = true,
+    tap_close_callback = clear_highlight,
+  }
+  UIManager:show(dialog_ref.dialog)
+end
+
+function ChatGPTViewer:appendSelectionToNotebook(text)
+  local Notebook = require("koassistant_notebook")
+  local document_path = self.configuration and self.configuration.document_path
+  local notebook_path = Notebook.getPath(document_path)
+
+  if not notebook_path then
+    UIManager:show(InfoMessage:new{
+      text = Notebook.getPathError(document_path),
+      timeout = 4,
+    })
+    return
+  end
+
+  -- Auto-create notebook if needed
+  if not Notebook.exists(document_path) then
+    local ok, err = Notebook.create(document_path)
+    if not ok then
+      UIManager:show(Notification:new{
+        text = _("Failed to create notebook: ") .. (err or ""),
+        timeout = 3,
+      })
+      return
+    end
+    -- Re-resolve path after creation (vault mode may generate filename)
+    notebook_path = Notebook.getPath(document_path)
+    if not notebook_path then return end
+  end
+
+  local file = io.open(notebook_path, "a")
+  if not file then
+    UIManager:show(Notification:new{
+      text = _("Failed to open notebook"),
+      timeout = 3,
+    })
+    return
+  end
+
+  local date_str = os.date("%Y-%m-%d %H:%M")
+  file:write("\n---\n\n*Note (" .. date_str .. "):*\n\n" .. text .. "\n")
+  file:close()
+
+  -- Update index
+  local stats = Notebook.getStats(document_path)
+  if stats then
+    local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+    index[document_path] = stats
+    G_reader_settings:saveSetting("koassistant_notebook_index", index)
+    G_reader_settings:flush()
+  end
+
+  UIManager:show(Notification:new{
+    text = _("Added to notebook"),
+    timeout = 2,
+  })
 end
 
 function ChatGPTViewer:update(new_text, scroll_to_bottom)
@@ -3542,6 +3714,58 @@ function ChatGPTViewer:saveToNote()
   else
     doSave(content)
   end
+end
+
+function ChatGPTViewer:showNotebookPopup()
+  local Notebook = require("koassistant_notebook")
+  local document_path = self.configuration and self.configuration.document_path
+
+  -- Centralized path check
+  if not Notebook.getPath(document_path) then
+    UIManager:show(InfoMessage:new{
+      text = Notebook.getPathError(document_path),
+      timeout = 4,
+    })
+    return
+  end
+
+  local notebook_exists = Notebook.exists(document_path)
+  local self_ref = self
+  local buttons = {}
+
+  -- Add Chat to Notebook — always available (auto-creates if needed)
+  table.insert(buttons, {{
+    text = _("Add Chat to Notebook"),
+    callback = function()
+      UIManager:close(self_ref._notebook_dialog)
+      self_ref:saveToNotebook()
+    end,
+  }})
+
+  if notebook_exists then
+    table.insert(buttons, {{
+      text = _("View Notebook"),
+      callback = function()
+        UIManager:close(self_ref._notebook_dialog)
+        if self_ref._plugin then
+          self_ref._plugin:openNotebookForFile(document_path)
+        end
+      end,
+    }, {
+      text = _("Edit Notebook"),
+      callback = function()
+        UIManager:close(self_ref._notebook_dialog)
+        if self_ref._plugin then
+          self_ref._plugin:openNotebookForFile(document_path, true)
+        end
+      end,
+    }})
+  end
+
+  self._notebook_dialog = ButtonDialog:new{
+    buttons = buttons,
+  }
+  UIManager:show(self._notebook_dialog)
 end
 
 function ChatGPTViewer:saveToNotebook()
