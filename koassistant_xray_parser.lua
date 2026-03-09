@@ -393,7 +393,7 @@ function XrayParser.countItemOccurrences(item, text_lower)
 
     terms[#terms + 1] = (#clean_name > 2) and clean_name or name_lower
 
-    if paren_content and #paren_content > 2 then
+    if paren_content and #paren_content > 2 and not paren_content:match("^%d+$") then
         terms[#terms + 1] = paren_content
     end
 

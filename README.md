@@ -289,9 +289,9 @@ Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-rela
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via **Settings → Quick Actions Settings**. Defaults can also be removed.
+You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via the hamburger menu in **Manage Actions**. Defaults can also be removed.
 
-> **Tip**: For quick access, assign Quick Settings and Quick Actions to their own gestures (e.g., two-finger tap, corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
+> **Tip**: For quick access, assign Quick Settings and Quick Actions to their own gestures (e.g. corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
 **Alternative: Build a KOReader QuickMenu**
 For full customization, assign multiple KOAssistant actions to one gesture and enable **"Show as QuickMenu"** to get a selection menu with any actions you want, in any order, mixed with non-KOAssistant actions:
