@@ -3733,7 +3733,7 @@ function ChatGPTViewer:showExportDialog()
     end
 
     local extension = (style == "markdown") and "md" or "txt"
-    local filename = Export.getFilename(book_title, chat_title, nil, extension, skip_book_title)  -- nil = use current time
+    local filename = Export.getFilename(book_title, chat_title, history.created_at, extension, skip_book_title)
     local filepath = target_dir .. "/" .. filename
 
     local success, err = Export.saveToFile(text, filepath)
@@ -3831,7 +3831,8 @@ function ChatGPTViewer:exportCacheContent()
       -- Generate filename
       local filename = Export.getCacheFilename(
         self.cache_metadata.book_title,
-        self.cache_metadata.cache_type
+        self.cache_metadata.cache_type,
+        self.cache_metadata.timestamp
       )
       local filepath = selected_path .. "/" .. filename
 

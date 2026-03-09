@@ -28,7 +28,8 @@ function MessageHistory:new(system_prompt, prompt_action)
         model = nil,  -- Will be set after first response
         chat_id = nil, -- Chat ID for existing chats
         prompt_action = prompt_action, -- Store the action/prompt type for naming
-        launch_context = nil -- For general chats launched from within a book
+        launch_context = nil, -- For general chats launched from within a book
+        created_at = os.time(), -- When this chat session began
     }
     
     if system_prompt then

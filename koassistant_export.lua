@@ -209,7 +209,7 @@ function Export.fromHistory(history, highlighted_text, book_metadata, books_info
         messages = messages,
         model = history:getModel(),
         title = history.prompt_action or "Chat",
-        date = os.date("%Y-%m-%d %H:%M"),
+        date = os.date("%Y-%m-%d %H:%M", history.created_at),
         last_response = last_msg and last_msg.content or "",
         highlighted_text = highlighted_text,
         book_title = book_metadata and book_metadata.title,
@@ -600,8 +600,9 @@ end
 --- Generate filename for cache export
 -- @param book_title string|nil Book title
 -- @param cache_type string Cache type: "xray", "summary", "analyze"
+-- @param cache_timestamp number|nil Unix timestamp (optional, uses current time if nil)
 -- @return string Safe filename with timestamp
-function Export.getCacheFilename(book_title, cache_type)
+function Export.getCacheFilename(book_title, cache_type, cache_timestamp)
     -- Cache type display names for filename
     local type_names = {
         xray = "X-Ray",
@@ -626,7 +627,7 @@ function Export.getCacheFilename(book_title, cache_type)
     end
 
     -- Timestamp
-    local timestamp = os.date("%Y%m%d_%H%M%S")
+    local timestamp = os.date("%Y%m%d_%H%M%S", cache_timestamp)
 
     return safe_title .. type_name .. "_" .. timestamp .. ".md"
 end
