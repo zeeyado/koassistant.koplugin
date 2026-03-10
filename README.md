@@ -559,7 +559,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **AI Wiki** | Wikipedia-style encyclopedia entry about the selected text, using AI knowledge. Cached as an artifact (same as X-Ray browser wiki entries). Uses web search if enabled globally. Available in dictionary popup by default |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
-| **Grammar** | Sentence-level grammatical breakdown: word-by-word analysis with part of speech, morphological features, and structural role. Optional constituency parse. Language-aware (e.g., Arabic gets i'rab annotations). Uses compact dictionary popup |
+| **Grammar** | Sentence-level grammatical breakdown: word-by-word analysis with part of speech, morphological features, and structural role. Optional constituency parse. Language-aware (e.g., Arabic gets i'rab annotations) |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 | **Look up in X-Ray** | `[Local]` Instant search of cached X-Ray data for selected text — no AI call, works offline. Searches by name and alias across all X-Rays (main + sections). Single match shows full detail; multiple matches across X-Rays show a grouped results view. Available in highlight menu and dictionary popup. Only appears when the book has an X-Ray cache. |
 
@@ -2262,7 +2262,7 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
   - **Anthropic Adaptive Thinking (4.6+)**: Effort level (low/medium/high, max for Opus 4.6). Claude decides when and how much to think based on the task. Recommended for 4.6 models. Takes priority over Extended Thinking when model supports both. (requires master toggle)
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens. Manual thinking budget mode for all thinking-capable Claude models (4.6, 4.5, 4.1, 4, 3.7). On 4.6 models, Adaptive Thinking takes priority if both are enabled. (requires master toggle)
   - **Gemini Thinking**: Controls thinking for all Gemini models (requires master toggle). Gemini 3: configurable thinking depth (minimal/low/medium/high). Gemini 2.5: configurable thinking budget (dynamic/low/medium/high/max). Gemini 2.5 models think by default — when the master toggle is off, their natural thinking behavior is preserved.
-  - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1 and GPT-5.2 models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults and are not affected by this toggle.
+  - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1, GPT-5.2, and GPT-5.4 models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults and are not affected by this toggle.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter. Perplexity always searches the web (no toggle needed).
@@ -2855,7 +2855,7 @@ For complex questions, supported models can "think" through the problem before r
 1. Enable the master toggle: Settings → Advanced → Enable Reasoning
 2. Enable Gemini Thinking
 3. Set level (minimal/low/medium/high)
-4. Works with: gemini-3-*-preview models
+4. Works with: gemini-3-flash-preview, gemini-3.1-pro-preview, gemini-3.1-flash-lite-preview
 
 **Gemini 2.5 Thinking Budget:**
 1. Enable the master toggle: Settings → Advanced → Enable Reasoning
@@ -2866,7 +2866,7 @@ For complex questions, supported models can "think" through the problem before r
 6. Gemini 2.5 thinks by default — when the toggle is off, natural behavior is preserved (per-action overrides can still suppress thinking)
 
 **OpenAI Reasoning (5.1+):**
-GPT-5.1 and GPT-5.2 ship with reasoning off by default (reasoning_effort=none from OpenAI). To enable:
+GPT-5.1, GPT-5.2, and GPT-5.4 ship with reasoning off by default (reasoning_effort=none from OpenAI). To enable:
 1. Enable the master toggle: Settings → Advanced → Enable Reasoning
 2. Enable OpenAI Reasoning (5.1+)
 3. Set effort level (low/medium/high/xhigh)

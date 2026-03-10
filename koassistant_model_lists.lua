@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-02-27
+-- Last updated: 2026-03-10
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -25,8 +25,11 @@ local ModelLists = {
     },
 
     openai = {
-        -- GPT-5.2 (latest flagship, Dec 2025)
-        "gpt-5.2",                      -- flagship (default)
+        -- GPT-5.4 (latest flagship, Mar 2026)
+        "gpt-5.4",                      -- flagship (default)
+        "gpt-5.4-pro",                  -- premium (Pro/Enterprise)
+        -- GPT-5.2 (Dec 2025)
+        "gpt-5.2",
         "gpt-5.1",
         -- GPT-5 family (Aug 2025)
         "gpt-5",
@@ -60,6 +63,7 @@ local ModelLists = {
         -- Gemini 3 (preview)
         "gemini-3-flash-preview",       -- FREE tier available
         "gemini-3.1-pro-preview",       -- replaces gemini-3-pro-preview (shutdown Mar 9, 2026)
+        "gemini-3.1-flash-lite-preview", -- cost-efficient, fastest TTFT
         -- Gemini 2.0 (DEPRECATED - shutdown Jun 1, 2026)
         "gemini-2.0-flash",
         "gemini-2.0-flash-lite",
@@ -171,8 +175,9 @@ local ModelLists = {
         "anthropic/claude-opus-4.5",
 
         -- OpenAI
+        "openai/gpt-5.4",
+        "openai/gpt-5.4-pro",
         "openai/gpt-5.2",
-        "openai/gpt-5.2-pro",
         "openai/gpt-5.1",
         "openai/gpt-5",
         "openai/gpt-5-mini",
@@ -187,6 +192,7 @@ local ModelLists = {
         "google/gemini-2.5-flash",
         "google/gemini-3.1-pro-preview",
         "google/gemini-3-flash-preview",
+        "google/gemini-3.1-flash-lite-preview",
         "google/gemma-3-27b-it",
         "google/gemma-3-27b-it:free",
 
@@ -402,7 +408,7 @@ local ModelLists = {
         -- Provider's most capable general-purpose model
         flagship = {
             anthropic = "claude-sonnet-4-6",
-            openai = "gpt-5.2",
+            openai = "gpt-5.4",
             deepseek = "deepseek-chat",
             gemini = "gemini-2.5-pro",
             groq = "llama-3.3-70b-versatile",
