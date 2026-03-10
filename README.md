@@ -190,7 +190,7 @@ Edit `apikeys.lua` and add your API key(s):
 return {
     anthropic = "your-key-here",  -- console.anthropic.com
     openai = "",                  -- platform.openai.com
-    -- See apikeys.lua.sample for all 17 providers
+    -- See apikeys.lua.sample for all 18 providers
 }
 ```
 
@@ -520,7 +520,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions:
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray† |
 | **Book** | About, Find Similar, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
 | **Multi-book** | Compare, Find Common Themes, Analyze Collection, Quick Summaries, Reading Order, Recommend |
 | **General** | News Update* |
@@ -559,6 +559,7 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **AI Wiki** | Wikipedia-style encyclopedia entry about the selected text, using AI knowledge. Cached as an artifact (same as X-Ray browser wiki entries). Uses web search if enabled globally. Available in dictionary popup by default |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
+| **Grammar** | Sentence-level grammatical breakdown: word-by-word analysis with part of speech, morphological features, and structural role. Optional constituency parse. Language-aware (e.g., Arabic gets i'rab annotations). Uses compact dictionary popup |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 | **Look up in X-Ray** | `[Local]` Instant search of cached X-Ray data for selected text — no AI call, works offline. Searches by name and alias across all X-Rays (main + sections). Single match shows full detail; multiple matches across X-Rays show a grouped results view. Available in highlight menu and dictionary popup. Only appears when the book has an X-Ray cache. |
 
@@ -1225,7 +1226,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 7. **Connect** — Draw connections to other works, thinkers, and broader context
 8. **Fact Check** — Verify claims using web search
 
-**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Current Context, AI Wiki, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Current Context, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -2133,7 +2134,7 @@ This setup means: AI responds in English by default, translates to Spanish, defi
 
 ### Dictionary Settings
 See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
-- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 3 built-in actions)
+- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 4 built-in actions)
 - **Response Language**: Language for definitions (`↵T` follows Translation Language by default)
 - **Context Mode**: Surrounding text to include: None (default), Sentence, Paragraph, or Characters
 - **Context Characters**: Character count for Characters mode (default: 100)
@@ -2903,6 +2904,8 @@ These models always reason — you can only adjust the effort level, not turn re
 - **Fireworks** (deepseek-r1, qwen3-235b): Effort low/medium/high (default: high)
 
 **Mistral Magistral:** Always reasons (structured content blocks). Thinking content is automatically extracted and viewable via "Show Reasoning" — no toggle or effort control.
+
+**R1-style `<think>` tag extraction:** Models that use `<think>` tags for reasoning (DeepSeek-R1, Qwen3, and others on Groq, Together, Fireworks, SambaNova, Ollama, Perplexity) have their thinking content automatically extracted during streaming and made viewable via "Show Reasoning".
 
 **Per-action overrides:** Any action can override reasoning settings for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This works for all reasoning-capable models, including those not controlled by the master toggle. See [Tuning Built-in Actions](#tuning-built-in-actions).
 
