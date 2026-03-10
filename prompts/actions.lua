@@ -1888,7 +1888,6 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
     },
     deep = {
         id = "dictionary_deep",
-        enable_web_search = false,
         text = _("Deep Analysis"),
         description = _("Deep linguistic analysis covering morphology, word family, etymology, cognates, and cross-language borrowings. Adapts to the word's language family (Semitic roots, Indo-European stems, etc.)."),
         context = "highlight",  -- Only for highlighted text
@@ -1896,30 +1895,30 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         dictionary_view = true,  -- Full-size dictionary view (more room for detailed analysis)
         minimal_buttons = true,  -- Dictionary button set
         in_dictionary_popup = 3,  -- Default order in dictionary popup
-        prompt = [[Deep analysis of the word "{highlighted_text}":
+        prompt = [[Deep analysis of "{highlighted_text}":
 
-**{highlighted_text}** /IPA/ _part of speech_ of **lemma**
+**{highlighted_text}** /IPA/ — _part of speech_ of **lemma**
 
-**Morphology:** [Semitic: root + pattern/wazn + verb form if applicable | IE: stem + affixes + compounds | Other: what's morphologically salient]
+**Morphology:** Use labeled bullet points:
+- Root, pattern/wazn, verb form (Semitic) | stem, affixes, compounds (IE) | what's morphologically salient
+- Plural forms, irregular inflection, notable morphophonological processes
 
-**Word Family:** Related forms from same root/stem, showing how derivation affects meaning
+**Word Family:** Bulleted list of key derived forms from the same root/stem — show form, gloss, and how derivation shifts meaning
 
-**Etymology:** Origin → transmission path → semantic shifts
-
-**Cognates:** Related words in sister languages; notable borrowings
+**Etymology:** Origin → transmission path → semantic shifts. Then bullet cognates by language. Do not narrate — use concise chains and labeled points.
 
 {context_section}
 
 When context is provided, note how this specific form or sense fits the passage, but still analyze the lemma comprehensively. Flag homographs or polysemy when relevant.
 
-Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. Inline bold labels, no headers. {conciseness_nudge} {hallucination_nudge}]],
+Format: bold labels, bullet points and labeled fields within sections — not prose paragraphs. Dense and scannable. Non-Latin script: use complete words only, never isolated letters or characters mixed with operators (+, →, =) on the same line — use transliteration for structural breakdowns. Write in {dictionary_language}. Headwords, lemmas, and cognates stay in original script. {hallucination_nudge}]],
         include_book_context = false,
         reasoning_config = "off",  -- Structured lookups don't benefit from reasoning
         skip_language_instruction = true,
         skip_domain = true,  -- Domain context not relevant for dictionary lookups
         -- storage_key set dynamically based on dictionary_disable_auto_save setting
         api_params = {
-            temperature = 0.3,
+            temperature = 0.4,
             max_tokens = 4096,  -- Detailed analysis needs more space
         },
         builtin = true,
