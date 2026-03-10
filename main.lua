@@ -3381,7 +3381,7 @@ function AskGPT:buildTranslationLanguageMenu()
 
   -- Add "Use Primary" option at top
   table.insert(menu_items, {
-    text = T(_("Use Primary (%1)"), getLanguageDisplay(effective_primary)),
+    text = T(_("Follow Primary (%1)"), getLanguageDisplay(effective_primary)),
     checked_func = function()
       local f = self_ref.settings:readSetting("features") or {}
       -- Primary is selected when: toggle is on, OR translation_language is sentinel/nil
