@@ -482,12 +482,15 @@ Write in an encyclopedic tone: factual, neutral, well-organized. Prioritize accu
 
 If this text is in a different language from your response language, open with a one-line translation. Otherwise skip translation entirely.
 
+**Parse** — constituency parse on one line using parentheses and phrase labels (S, NP, VP, PP, AdjP, etc.). No word-level POS tags — the word list covers those. Words in the same leaf phrase go in one bold span with one set of parens — never split into individual words. Every open paren must have a matching close. Example:
+"She sat on the old bench" → ((**She**)NP ((**sat**) ((**on**) (**the old bench**)NP)PP)VP)S
+
 **Word list** — bullet points, one word per bullet:
 - **word** — POS abbreviation (native term in native script), syntactic role, "gloss"
 
 CRITICAL: Write all grammatical terms in their native script, NEVER transliterate. Arabic terms must be in Arabic script (فعل ماض NOT fiʿl māḍī, حرف جر NOT ḥarf jarr). Use standard linguistic abbreviations (n, v, adj, prep, conj) first, then the native term in parentheses. Write all explanations, glosses, and syntactic role labels in your response language.
 
-Per word: POS, case/tense/mood, syntactic role. Root and pattern only for content words (nouns, verbs, adjectives) — skip for particles/pronouns/conjunctions. For Arabic verb patterns, show both form number and wazn: "Form IV (أَفْعَلَ)". If response language differs from text language: brief gloss in quotes.
+Per word: POS, case/tense/mood, syntactic role. Root and pattern only for content words (nouns, verbs, adjectives) — skip for particles/pronouns/conjunctions. Skip root when it is identical to the word itself. For Arabic verb patterns, show both form number and wazn: "Form IV (أَفْعَلَ)". If response language differs from text language: brief gloss in quotes.
 
 Keep bullets short — essential grammar only, no explanatory asides or parenthetical notes. No blank lines between bullets. No section headers, no trailing notes or commentary. If uncertain, flag inline. {conciseness_nudge} {hallucination_nudge}]],
         include_book_context = false,
