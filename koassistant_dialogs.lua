@@ -5399,12 +5399,14 @@ end
 --- Generate document summary cache, then call on_done(true) on success.
 --- Used by unified action popup when user selects "Generate summary" source.
 --- Chains handlePredefinedPrompt for summarize_full_document with a completion callback.
+--- For section scope: clones the action, scopes text extraction, saves to section cache.
 --- @param ui table: The UI instance
 --- @param configuration table: The configuration table
 --- @param plugin table: The plugin instance
 --- @param book_metadata table: Book metadata {title, author}
 --- @param on_done function(success): Called when summary generation completes
-local function generateSummaryCache(ui, configuration, plugin, book_metadata, on_done)
+--- @param section_scope table|nil: Section scope for section summary generation
+local function generateSummaryCache(ui, configuration, plugin, book_metadata, on_done, section_scope)
     local ok, Actions = pcall(require, "prompts.actions")
     local summary_action = ok and Actions and Actions.book and Actions.book.summarize_full_document
 
@@ -5417,14 +5419,33 @@ local function generateSummaryCache(ui, configuration, plugin, book_metadata, on
         return
     end
 
+    -- For section scope: clone and modify the action
+    if section_scope then
+        local section_action = {}
+        for k, v in pairs(summary_action) do section_action[k] = v end
+        section_action.cache_as_summary = false  -- Don't save to main summary cache
+        section_action.update_prompt = nil
+        section_action.use_reading_progress = false
+        section_action.use_response_caching = false
+        section_action._section_scope = section_scope  -- Scopes text extraction to section pages
+        -- Inject section scope context into prompt
+        if section_action.prompt then
+            local scope_line = string.format(
+                'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your summary on this section only.\n\n',
+                section_scope.label, section_scope.page_summary)
+            section_action.prompt = scope_line .. section_action.prompt
+        end
+        summary_action = section_action
+    end
+
     -- Show progress notification
     local Notification = require("ui/widget/notification")
     UIManager:show(Notification:new{
-        text = _("Generating document summary..."),
+        text = section_scope and _("Generating section summary...") or _("Generating document summary..."),
         timeout = 2,
     })
 
-    -- Execute summarize_full_document (which saves to _summary_cache via cache_as_summary)
+    -- Execute summarize action (saves to _summary_cache or section cache via _section_scope)
     handlePredefinedPrompt(
         summary_action, nil, ui, configuration,
         nil, plugin, nil,
@@ -5436,7 +5457,8 @@ local function generateSummaryCache(ui, configuration, plugin, book_metadata, on
                 end)
             else
                 UIManager:show(InfoMessage:new{
-                    text = _("Summary generation failed. Please try again."),
+                    text = section_scope and _("Section summary generation failed. Please try again.")
+                        or _("Summary generation failed. Please try again."),
                 })
                 if on_done then on_done(false) end
             end
