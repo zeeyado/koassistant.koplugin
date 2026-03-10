@@ -468,6 +468,37 @@ Write in an encyclopedic tone: factual, neutral, well-organized. Prioritize accu
         },
         builtin = true,
     },
+    grammar = {
+        id = "grammar",
+        enable_web_search = false,
+        text = _("Grammar"),
+        description = _("Breaks down sentence structure with constituency parse and word-by-word grammatical analysis. Shows both modern linguistic and traditional frameworks for Classical Arabic."),
+        context = "highlight",
+        behavior_variant = "dictionary_detailed",
+        in_highlight_menu = 10,
+        prompt = [[Grammatical breakdown of:
+
+"{highlighted_text}"
+
+If this text is in a different language from your response language, open with a one-line translation. Otherwise skip translation entirely.
+
+**Word list** — bullet points, one word per bullet:
+- **word** — POS abbreviation (native term in native script), syntactic role, "gloss"
+
+CRITICAL: Write all grammatical terms in their native script, NEVER transliterate. Arabic terms must be in Arabic script (فعل ماض NOT fiʿl māḍī, حرف جر NOT ḥarf jarr). Use standard linguistic abbreviations (n, v, adj, prep, conj) first, then the native term in parentheses. Write all explanations, glosses, and syntactic role labels in your response language.
+
+Per word: POS, case/tense/mood, syntactic role. Root and pattern only for content words (nouns, verbs, adjectives) — skip for particles/pronouns/conjunctions. For Arabic verb patterns, show both form number and wazn: "Form IV (أَفْعَلَ)". If response language differs from text language: brief gloss in quotes.
+
+Keep bullets short — essential grammar only, no explanatory asides or parenthetical notes. No blank lines between bullets. No section headers, no trailing notes or commentary. If uncertain, flag inline. {conciseness_nudge} {hallucination_nudge}]],
+        include_book_context = false,
+        reasoning_config = "off",
+        skip_domain = true,
+        api_params = {
+            temperature = 0.3,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
     -- Local X-Ray lookup: search cached X-Ray data for selected text (no AI call)
     xray_lookup = {
         id = "xray_lookup",
