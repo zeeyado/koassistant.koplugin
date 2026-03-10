@@ -64,9 +64,6 @@ local ModelLists = {
         "gemini-3-flash-preview",       -- FREE tier available
         "gemini-3.1-pro-preview",       -- replaces gemini-3-pro-preview (shutdown Mar 9, 2026)
         "gemini-3.1-flash-lite-preview", -- cost-efficient, fastest TTFT
-        -- Gemini 2.0 (DEPRECATED - shutdown Jun 1, 2026)
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
     },
 
     ollama = {
