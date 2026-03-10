@@ -12,6 +12,7 @@ Handles:
 @module koassistant_notebook
 ]]
 
+local _ = require("koassistant_gettext")
 local DocSettings = require("docsettings")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
