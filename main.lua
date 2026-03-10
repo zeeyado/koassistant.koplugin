@@ -5135,34 +5135,39 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
 
   local current_dialog
 
+  -- Returns: (has_any, timestamp, is_section_match, has_full_doc, full_doc_timestamp)
+  -- When scope=section: checks both section and full doc summaries independently
   local function getSummaryAvailable()
     local file = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
     if not file then return false end
-    local summary, is_section_match
     if state.scope == "section" and state.section_entry then
-      -- Position-based matching: find section summary covering the picked scope
+      -- Check for matching section summary
       local doc = self_ref.ui and self_ref.ui.document
       local match = ActionCache.findBestSectionForScope(
           file, doc, ActionCache.SECTION_PREFIXES.summary,
           state.section_entry.start_page, state.section_entry.end_page)
-      if match then
-        summary = match.data
-        is_section_match = true
+      -- Also check full document summary (independent)
+      local full_doc = ActionCache.getSummaryCache(file)
+      local has_section = match and match.data and match.data.result and match.data.result ~= ""
+      local has_full = full_doc and full_doc.result and full_doc.result ~= ""
+      if has_section then
+        return true, match.data.timestamp, true, has_full, has_full and full_doc.timestamp
+      elseif has_full then
+        return true, full_doc.timestamp, false, true, full_doc.timestamp
       else
-        -- Fall back to main document summary
-        summary = ActionCache.getSummaryCache(file)
+        return false, nil, nil, false, nil
       end
     else
-      summary = ActionCache.getSummaryCache(file)
+      local summary = ActionCache.getSummaryCache(file)
+      if summary and summary.result and summary.result ~= "" then
+        return true, summary.timestamp, false
+      end
+      return false
     end
-    if summary and summary.result and summary.result ~= "" then
-      return true, summary.timestamp, is_section_match
-    end
-    return false
   end
 
   local function buildAndShow()
-    local has_summary, summary_timestamp, is_section_summary = getSummaryAvailable()
+    local has_summary, summary_timestamp, is_section_summary, has_full_doc, full_doc_timestamp = getSummaryAvailable()
     local Blitbuffer = require("ffi/blitbuffer")
     local ButtonTable = require("ui/widget/buttontable")
     local CenterContainer = require("ui/widget/container/centercontainer")
@@ -5249,7 +5254,14 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             state.scope = "full"
             state.section_entry = nil
             state.section_label = nil
-            if state.source == "summary" and not getSummaryAvailable() then
+            if state.source == "section_summary" then
+              -- "section_summary" not valid for full scope — try "summary" if action supports it
+              if action.use_summary_cache == true and (getSummaryAvailable() or text_extraction_enabled) then
+                state.source = "summary"
+              else
+                state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+              end
+            elseif state.source == "summary" and not getSummaryAvailable() then
               state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
             end
             buildAndShow()
@@ -5263,7 +5275,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                   state.scope = "section"
                   state.section_entry = entry
                   state.section_label = entry.title or ""
-                  if state.source == "summary" and not getSummaryAvailable() then
+                  if state.source == "section_summary" then
+                    -- Check if new section already has a summary
+                    local _has, _ts, is_sec = getSummaryAvailable()
+                    if is_sec then state.source = "summary" end
+                  elseif state.source == "summary" and not getSummaryAvailable() then
                     state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
                   end
                   buildAndShow()
@@ -5274,7 +5290,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                       state.scope = "section"
                       state.section_entry = entry
                       state.section_label = label
-                      if state.source == "summary" and not getSummaryAvailable() then
+                      if state.source == "section_summary" then
+                        -- Check if new section already has a summary
+                        local _has, _ts, is_sec = getSummaryAvailable()
+                        if is_sec then state.source = "summary" end
+                      elseif state.source == "summary" and not getSummaryAvailable() then
                         state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
                       end
                       buildAndShow()
@@ -5311,51 +5331,96 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     -- === Source section ===
     addLabel(_("Source"))
 
-    -- Build source option texts
+    -- Build source radio buttons dynamically (section scope may add extra summary rows)
     local extract_text = text_extraction_enabled
         and _("Extract text")
         or (_("Extract text") .. "  (" .. _("enable in Settings → Privacy") .. ")")
-    local summary_text, summary_enabled
-    local ai_knowledge_text, ai_knowledge_enabled
-    -- Check if action supports summary as source (has use_summary_cache)
     local supports_summary = action.use_summary_cache == true
+    local source_radio_buttons = {}
+
+    -- Row 1: Extract text (always present)
+    table.insert(source_radio_buttons, {
+      { text = extract_text, provider = "full_text", checked = state.source == "full_text", enabled = text_extraction_enabled },
+    })
+
+    -- Summary row(s): varies by scope and availability
     if requires_book_text then
-      -- Action requires text extraction — other sources grayed with explanation
-      summary_text = _("Use summary") .. "  (" .. _("this action requires text extraction") .. ")"
-      summary_enabled = false
+      table.insert(source_radio_buttons, {
+        { text = _("Use summary") .. "  (" .. _("this action requires text extraction") .. ")", provider = "summary", checked = false, enabled = false },
+      })
+    elseif not supports_summary then
+      table.insert(source_radio_buttons, {
+        { text = _("Use summary") .. "  (" .. _("not available for this action") .. ")", provider = "summary", checked = false, enabled = false },
+      })
+    elseif state.scope == "section" and state.section_entry then
+      -- Section scope: show section-specific summary options
+      if is_section_summary then
+        -- Matching section summary exists
+        local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
+        local label = _("Use section summary")
+        if age ~= "" then label = label .. "  (" .. age .. ")" end
+        table.insert(source_radio_buttons, {
+          { text = label, provider = "summary", checked = state.source == "summary", enabled = true },
+        })
+      else
+        -- No matching section summary
+        if has_full_doc then
+          -- Full doc summary exists as fallback
+          local age = full_doc_timestamp and formatRelativeTime(full_doc_timestamp) or ""
+          local label = _("Use document summary")
+          if age ~= "" then label = label .. "  (" .. age .. ")" end
+          table.insert(source_radio_buttons, {
+            { text = label, provider = "summary", checked = state.source == "summary", enabled = true },
+          })
+        end
+        if text_extraction_enabled then
+          -- Offer to generate section summary
+          table.insert(source_radio_buttons, {
+            { text = _("Generate section summary") .. " (" .. _("one-time, reusable by other actions") .. ")", provider = "section_summary", checked = state.source == "section_summary", enabled = true },
+          })
+        end
+        if not has_full_doc and not text_extraction_enabled then
+          -- No summary available and can't generate
+          table.insert(source_radio_buttons, {
+            { text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")", provider = "summary", checked = false, enabled = false },
+          })
+        end
+      end
+    else
+      -- Full scope: existing logic
+      if has_summary then
+        local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
+        local summary_label = _("Use existing summary")
+        if age ~= "" then summary_label = summary_label .. "  (" .. age .. ")" end
+        table.insert(source_radio_buttons, {
+          { text = summary_label, provider = "summary", checked = state.source == "summary", enabled = true },
+        })
+      elseif text_extraction_enabled then
+        table.insert(source_radio_buttons, {
+          { text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")", provider = "summary", checked = state.source == "summary", enabled = true },
+        })
+      else
+        table.insert(source_radio_buttons, {
+          { text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")", provider = "summary", checked = false, enabled = false },
+        })
+      end
+    end
+
+    -- AI knowledge row
+    local ai_knowledge_text, ai_knowledge_enabled
+    if requires_book_text then
       ai_knowledge_text = _("AI knowledge only") .. "  (" .. _("this action requires text extraction") .. ")"
       ai_knowledge_enabled = false
     else
       ai_knowledge_text = _("AI knowledge only")
       ai_knowledge_enabled = true
-      if not supports_summary then
-        -- Action doesn't use summary cache (e.g., Recap — summary isn't chronological)
-        summary_text = _("Use summary") .. "  (" .. _("not available for this action") .. ")"
-        summary_enabled = false
-      elseif has_summary then
-        local age = summary_timestamp and formatRelativeTime(summary_timestamp) or ""
-        local base_label = is_section_summary and _("Use matching section summary") or _("Use existing summary")
-        if age ~= "" then
-          summary_text = base_label .. "  (" .. age .. ")"
-        else
-          summary_text = base_label
-        end
-        summary_enabled = true
-      elseif text_extraction_enabled then
-        summary_text = _("Generate summary") .. " (" .. _("one-time, reusable by other actions") .. ")"
-        summary_enabled = true
-      else
-        summary_text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")"
-        summary_enabled = false
-      end
     end
+    table.insert(source_radio_buttons, {
+      { text = ai_knowledge_text, provider = "ai_knowledge", checked = state.source == "ai_knowledge", enabled = ai_knowledge_enabled },
+    })
 
     local source_table = RadioButtonTable:new{
-      radio_buttons = {
-        { { text = extract_text, provider = "full_text", checked = state.source == "full_text", enabled = text_extraction_enabled } },
-        { { text = summary_text, provider = "summary", checked = state.source == "summary", enabled = summary_enabled } },
-        { { text = ai_knowledge_text, provider = "ai_knowledge", checked = state.source == "ai_knowledge", enabled = ai_knowledge_enabled } },
-      },
+      radio_buttons = source_radio_buttons,
       width = content_width,
       no_sep = true,
       face = radio_face,
@@ -5385,7 +5450,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
               if state.scope == "section" and state.section_entry and not opts.for_highlight then
                 -- Name already confirmed during scope selection — execute directly
                 self_ref:_executeSectionAction(action, action_id, state.section_entry, state.section_label, {
-                  source_mode = state.source,
+                  source_mode = state.source == "section_summary" and "summary" or state.source,
                 })
               elseif state.scope == "full" and not opts.for_highlight then
                 -- Check for existing full-document cache and warn before replacing
@@ -5423,8 +5488,17 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
               end
             end
             -- When summary source is selected but no summary exists yet,
-            -- generate it first (cache_as_summary saves it), then continue
-            if state.source == "summary" and not getSummaryAvailable() then
+            -- generate it first (cache saves it), then continue
+            if state.source == "section_summary" then
+              -- Generate section summary, then switch source and continue
+              local cache_label = state.section_label:gsub(":", "-")
+              local scope = self_ref:_buildSectionScope(
+                  state.section_entry, state.section_label, cache_label, ActionCache.SECTION_PREFIXES.summary)
+              self_ref:_generateSummaryAndContinue(function()
+                state.source = "summary"
+                continueWithAction()
+              end, scope)
+            elseif state.source == "summary" and not getSummaryAvailable() then
               self_ref:_generateSummaryAndContinue(continueWithAction)
             else
               continueWithAction()
@@ -5495,10 +5569,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   buildAndShow()
 end
 
---- Generate document summary cache, then call on_done() on success.
+--- Generate document or section summary cache, then call on_done() on success.
 --- Builds book config and delegates to Dialogs.generateSummaryCache.
 --- @param on_done function: Called when summary generation succeeds
-function AskGPT:_generateSummaryAndContinue(on_done)
+--- @param section_scope table|nil: Section scope from _buildSectionScope() for section summaries
+function AskGPT:_generateSummaryAndContinue(on_done, section_scope)
   self:updateConfigFromSettings()
   local config_copy = {}
   for k, v in pairs(configuration or {}) do
@@ -5509,6 +5584,12 @@ function AskGPT:_generateSummaryAndContinue(on_done)
     config_copy.features[k] = v
   end
   config_copy.features.is_book_context = true
+
+  -- Section scope: propagate to config for text extraction scoping and cache saving
+  if section_scope then
+    config_copy.features._section_scope = section_scope
+    config_copy.features._full_document_xray = true  -- Triggers full extraction for section range
+  end
 
   local doc_props = self.ui.doc_props or {}
   local title = doc_props.display_title or doc_props.title or "Unknown"
@@ -5526,7 +5607,7 @@ function AskGPT:_generateSummaryAndContinue(on_done)
       if success and on_done then
         on_done()
       end
-    end)
+    end, section_scope)
   end)
 end
 

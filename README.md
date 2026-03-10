@@ -26,7 +26,7 @@
 
 **Status:** Active development — [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and don't want to wait for tested releases, you can run off main branch to get the latest features. Breakage may happen. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
-> **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents or search to navigate.
+> **Note:** This README is intentionally detailed to help users discover all features. Use the table of contents or search (Ctrl+F) to navigate.
 
 ---
 
