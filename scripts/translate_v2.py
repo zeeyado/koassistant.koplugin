@@ -40,7 +40,7 @@ from typing import Dict, List, Optional, Set, Tuple
 # ============================================================================
 
 # MUST appear unchanged if in source - ERROR if missing
-BRANDS = ["KOAssistant", "KOReader", "(KOA)", "(Smart)"]
+BRANDS = ["KOAssistant", "KOReader", "(KOA)"]
 
 # Should appear unchanged - WARNING if missing
 PROVIDERS = [
@@ -1167,7 +1167,7 @@ def cmd_run(args, entries: List[POEntry], po_path: Path, script_dir: Path):
     if args.model:
         model = args.model
     elif provider == 'anthropic':
-        model = 'claude-sonnet-4-5-20250929'
+        model = 'claude-sonnet-4-6'
     else:
         model = 'gpt-5.2'
 
@@ -1366,7 +1366,7 @@ def cmd_all_run(args, script_dir: Path, locale_dir: Path):
     if args.model:
         model = args.model
     elif provider == 'anthropic':
-        model = 'claude-sonnet-4-5-20250929'
+        model = 'claude-sonnet-4-6'
     else:
         model = 'gpt-5.2'
 
@@ -1497,7 +1497,7 @@ def cmd_multi_run(args, langs: List[str], script_dir: Path, locale_dir: Path):
     if args.model:
         model = args.model
     elif provider == 'anthropic':
-        model = 'claude-sonnet-4-5-20250929'
+        model = 'claude-sonnet-4-6'
     else:
         model = 'gpt-5.2'
 
