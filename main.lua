@@ -8576,7 +8576,7 @@ function AskGPT:testProviderConnection()
           timeout = 5,
         })
       end
-    end)
+    end, self.settings)
   end)
 end
 
