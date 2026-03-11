@@ -122,9 +122,14 @@ function BaseHandler:backgroundRequest(url, headers, body)
 
         -- Wrap subprocess body in pcall to catch any initialization errors
         local subprocess_ok, subprocess_err = pcall(function()
-            -- Longer timeout for reasoning models (they can take 60+ seconds)
-            if string.sub(url, 1, 8) == "https://" then
-                https.TIMEOUT = 180  -- 3 minutes for reasoning models
+            -- Ensure socketutil's TCP timeout monkey-patch is active and set
+            -- generous timeouts to accommodate reasoning models (60+ second pauses).
+            -- This runs in a subprocess so global mutations are isolated.
+            local su_ok, socketutil = pcall(require, "socketutil")
+            if su_ok and socketutil then
+                socketutil:set_timeout(180, -1)  -- 180s block, no total limit
+            elseif string.sub(url, 1, 8) == "https://" then
+                https.TIMEOUT = 180  -- fallback if socketutil unavailable
             end
 
             local pipe_w = wrap_fd(child_write_fd)

@@ -953,13 +953,18 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
         if not subprocess_pid or not child_write_fd then return end
 
         local ok, err = pcall(function()
-            local https = require("ssl.https")
             local http = require("socket.http")
-            local subprocess_socket = require("socket")
             local subprocess_ltn12 = require("ltn12")
 
-            -- Set a reasonable timeout for the HTTP request itself
-            https.TIMEOUT = 8
+            -- Set tight timeouts for update check (fail fast).
+            -- socketutil monkey-patches socket.tcp to enforce TCP-level timeouts.
+            local su_ok, socketutil = pcall(require, "socketutil")
+            if su_ok and socketutil then
+                socketutil:set_timeout(8, 15)  -- 8s block, 15s total
+            else
+                local https = require("ssl.https")
+                https.TIMEOUT = 8
+            end
 
             local pipe_w = wrap_fd(child_write_fd)
             local request = {
@@ -974,7 +979,7 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
 
             -- Use http.request (KOReader's http.lua handles HTTPS via SCHEMES table)
             local req_ok, code = pcall(function()
-                return select(2, subprocess_socket.skip(1, http.request(request)))
+                return select(2, http.request(request))
             end)
 
             if not req_ok or (code and code ~= 200) then
