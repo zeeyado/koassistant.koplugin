@@ -122,15 +122,9 @@ function BaseHandler:backgroundRequest(url, headers, body)
 
         -- Wrap subprocess body in pcall to catch any initialization errors
         local subprocess_ok, subprocess_err = pcall(function()
-            -- Re-require socket modules in subprocess after fork
-            -- CRITICAL: Must re-require base socket module, not just http/https
-            local subprocess_socket = require("socket")
-            local subprocess_http = require("socket.http")
-            local subprocess_https = require("ssl.https")
-
             -- Longer timeout for reasoning models (they can take 60+ seconds)
             if string.sub(url, 1, 8) == "https://" then
-                subprocess_https.TIMEOUT = 180  -- 3 minutes for reasoning models
+                https.TIMEOUT = 180  -- 3 minutes for reasoning models
             end
 
             local pipe_w = wrap_fd(child_write_fd)
@@ -142,12 +136,11 @@ function BaseHandler:backgroundRequest(url, headers, body)
                 sink = ltn12.sink.file(pipe_w),
             }
 
-            -- Use https.request for HTTPS URLs, http.request for HTTP
-            local request_func = string.sub(url, 1, 8) == "https://" and subprocess_https.request or subprocess_http.request
-
+            -- Use http.request for all URLs (KOReader's http.lua handles HTTPS
+            -- via its SCHEMES table, delegating to ssl.https.tcp automatically)
             local ok, code, _headers, status  -- _headers intentionally unused
             ok, code, _headers, status = pcall(function()
-                return subprocess_socket.skip(1, request_func(request))
+                return socket.skip(1, http.request(request))
             end)
 
             if not ok then

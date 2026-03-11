@@ -953,11 +953,13 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
         if not subprocess_pid or not child_write_fd then return end
 
         local ok, err = pcall(function()
-            local subprocess_https = require("ssl.https")
+            local https = require("ssl.https")
+            local http = require("socket.http")
+            local subprocess_socket = require("socket")
             local subprocess_ltn12 = require("ltn12")
 
             -- Set a reasonable timeout for the HTTP request itself
-            subprocess_https.TIMEOUT = 8
+            https.TIMEOUT = 8
 
             local pipe_w = wrap_fd(child_write_fd)
             local request = {
@@ -970,8 +972,9 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
                 sink = subprocess_ltn12.sink.file(pipe_w),
             }
 
+            -- Use http.request (KOReader's http.lua handles HTTPS via SCHEMES table)
             local req_ok, code = pcall(function()
-                return select(2, subprocess_https.request(request))
+                return select(2, subprocess_socket.skip(1, http.request(request)))
             end)
 
             if not req_ok or (code and code ~= 200) then
