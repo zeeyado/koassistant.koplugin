@@ -69,7 +69,8 @@ local function getApiKey(provider, settings)
         local features = settings:readSetting("features") or {}
         local gui_keys = features.api_keys or {}
         if gui_keys[provider] and gui_keys[provider] ~= "" then
-            return gui_keys[provider]
+            -- Trim whitespace (Kindle clipboard can add trailing spaces/newlines)
+            return gui_keys[provider]:match("^%s*(.-)%s*$")
         end
     end
 

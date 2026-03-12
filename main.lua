@@ -2805,6 +2805,7 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional)
     input = "",  -- Start empty, show hint with masked value
     input_hint = hint_text,
     input_type = "text",
+    use_available_height = true,
     buttons = {
       {
         {
@@ -2835,6 +2836,10 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional)
           is_enter_default = true,
           callback = function()
             local new_key = input_dialog:getInputText()
+            -- Trim whitespace (Kindle clipboard often adds trailing spaces/newlines)
+            if new_key then
+              new_key = new_key:match("^%s*(.-)%s*$")
+            end
             if new_key and new_key ~= "" then
               local f = self_ref.settings:readSetting("features") or {}
               f.api_keys = f.api_keys or {}
