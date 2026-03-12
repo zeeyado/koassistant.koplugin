@@ -211,88 +211,116 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         return
     end
 
+    -- Process accumulated response data
+    local function processResponse()
+        local full_response = table.concat(response_data)
+
+        -- Check for error marker (plain find — PROTOCOL_NON_200 contains '-'
+        -- which is a Lua pattern quantifier, so pattern matching fails)
+        local marker_pos = full_response:find(PROTOCOL_NON_200, 1, true)
+        if marker_pos then
+            -- Try to extract detailed error from JSON body (before the marker)
+            local body = full_response:sub(1, marker_pos - 1):match("^%s*(.-)%s*$")
+            if body and #body > 0 then
+                local decode_ok, j = pcall(json.decode, body)
+                if decode_ok and j then
+                    local err = (j.error and j.error.message) or j.message
+                    if err then
+                        finish(false, nil, err)
+                        return
+                    end
+                end
+            end
+            -- Fallback to status line from marker
+            local err_msg = full_response:sub(marker_pos + #PROTOCOL_NON_200)
+            if err_msg then
+                err_msg = err_msg:gsub("^%s*", ""):gsub("%s*$", "")  -- trim
+            end
+            finish(false, nil, err_msg ~= "" and err_msg or "Request failed")
+            return
+        end
+
+        -- Parse JSON response
+        local ok, parsed = pcall(json.decode, full_response)
+        if not ok then
+            logger.warn("Failed to parse non-streaming response:", full_response:sub(1, 200))
+            finish(false, nil, "Failed to parse response from " .. provider)
+            return
+        end
+
+        -- Debug: Print token usage
+        if config and config.features and config.features.debug then
+            DebugUtils.printUsage(provider, parsed)
+        end
+
+        -- Use response parser to extract content
+        if response_parser then
+            local parse_success, content, reasoning, web_search_used = response_parser(parsed)
+            if parse_success then
+                finish(true, content, nil, reasoning, web_search_used)
+            else
+                finish(false, nil, content)  -- content is error message when parse fails
+            end
+        else
+            -- Fallback: just return the parsed response
+            finish(true, parsed, nil)
+        end
+    end
+
+    -- Drain any remaining data from the pipe
+    local function drainPipe()
+        local remaining = ffiutil.getNonBlockingReadSize(parent_read_fd)
+        while remaining and remaining > 0 do
+            local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer_ptr, chunksize))
+            if bytes_read and bytes_read > 0 then
+                table.insert(response_data, ffi.string(buffer, bytes_read))
+            else
+                break
+            end
+            remaining = ffiutil.getNonBlockingReadSize(parent_read_fd)
+        end
+    end
+
     -- Poll for completion
+    -- On some Android devices, waitpid(WNOHANG) takes minutes to report
+    -- subprocess exit even though the pipe is already closed.
+    -- Workaround: once we have data and the pipe is idle for several polls,
+    -- the subprocess has finished writing — process the response immediately.
+    local idle_polls = 0  -- consecutive polls with no new data after first data received
+    local IDLE_POLL_THRESHOLD = 5  -- 500ms at 100ms intervals = pipe definitely closed
     local function pollForData()
         if completed or user_cancelled then
             return
         end
 
+        local got_data = false
         local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
         if readsize > 0 then
             local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer_ptr, chunksize))
             if bytes_read and bytes_read > 0 then
-                local chunk = ffi.string(buffer, bytes_read)
-                table.insert(response_data, chunk)
+                table.insert(response_data, ffi.string(buffer, bytes_read))
+                got_data = true
             end
         end
 
-        -- Check if subprocess is done
+        if got_data then
+            idle_polls = 0
+        elseif #response_data > 0 then
+            -- We have data but nothing new — pipe may be at EOF
+            idle_polls = idle_polls + 1
+        end
+
+        -- If we have data and pipe has been idle, subprocess is done writing
+        if #response_data > 0 and idle_polls >= IDLE_POLL_THRESHOLD then
+            drainPipe()
+            processResponse()
+            return
+        end
+
+        -- Also check waitpid (works on most devices, instant)
         if ffiutil.isSubProcessDone(pid) then
-            -- Read any remaining data
-            local remaining = ffiutil.getNonBlockingReadSize(parent_read_fd)
-            while remaining and remaining > 0 do
-                local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer_ptr, chunksize))
-                if bytes_read and bytes_read > 0 then
-                    table.insert(response_data, ffi.string(buffer, bytes_read))
-                else
-                    break
-                end
-                remaining = ffiutil.getNonBlockingReadSize(parent_read_fd)
-            end
-
-            -- Process complete response
-            local full_response = table.concat(response_data)
-
-            -- Check for error marker (plain find — PROTOCOL_NON_200 contains '-'
-            -- which is a Lua pattern quantifier, so pattern matching fails)
-            local marker_pos = full_response:find(PROTOCOL_NON_200, 1, true)
-            if marker_pos then
-                -- Try to extract detailed error from JSON body (before the marker)
-                local body = full_response:sub(1, marker_pos - 1):match("^%s*(.-)%s*$")
-                if body and #body > 0 then
-                    local decode_ok, j = pcall(json.decode, body)
-                    if decode_ok and j then
-                        local err = (j.error and j.error.message) or j.message
-                        if err then
-                            finish(false, nil, err)
-                            return
-                        end
-                    end
-                end
-                -- Fallback to status line from marker
-                local err_msg = full_response:sub(marker_pos + #PROTOCOL_NON_200)
-                if err_msg then
-                    err_msg = err_msg:gsub("^%s*", ""):gsub("%s*$", "")  -- trim
-                end
-                finish(false, nil, err_msg ~= "" and err_msg or "Request failed")
-                return
-            end
-
-            -- Parse JSON response
-            local ok, parsed = pcall(json.decode, full_response)
-            if not ok then
-                logger.warn("Failed to parse non-streaming response:", full_response:sub(1, 200))
-                finish(false, nil, "Failed to parse response from " .. provider)
-                return
-            end
-
-            -- Debug: Print token usage
-            if config and config.features and config.features.debug then
-                DebugUtils.printUsage(provider, parsed)
-            end
-
-            -- Use response parser to extract content
-            if response_parser then
-                local parse_success, content, reasoning, web_search_used = response_parser(parsed)
-                if parse_success then
-                    finish(true, content, nil, reasoning, web_search_used)
-                else
-                    finish(false, nil, content)  -- content is error message when parse fails
-                end
-            else
-                -- Fallback: just return the parsed response
-                finish(true, parsed, nil)
-            end
+            drainPipe()
+            processResponse()
             return
         end
 
