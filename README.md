@@ -2254,7 +2254,7 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
 - **Create Backup**: Save settings, API keys, custom content, and chat history
 - **Restore from Backup**: Restore from a previous backup
 - **View Backups**: Manage existing backups and restore points
-- **Reset Settings**: Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
+- **Reset Settings**: Re-run Setup Wizard, Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
 
 ### Advanced
 - **Reasoning/Thinking**: Per-provider reasoning settings:
@@ -2577,6 +2577,10 @@ KOAssistant provides clear reset options for different use cases.
 
 #### Quick Resets
 
+**Re-run Setup Wizard** — Run the initial setup wizard again to reconfigure language, emoji settings, and gesture assignments. The wizard detects your current configuration and only offers to change what's needed.
+
+#### Quick Resets
+
 Three preset options that cover most needs:
 
 **Quick: Settings only**
@@ -2588,8 +2592,9 @@ Three preset options that cover most needs:
 - Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
 **Quick: Fresh start**
-- Resets everything except API keys, language preferences, and chat history (all settings, all actions, custom behaviors/domains, custom providers/models, gesture registrations)
-- Keeps: API keys, language preferences, chat history only
+- Resets everything except API keys and chat history (all settings, all actions, custom behaviors/domains, custom providers/models, gesture registrations)
+- Also clears the setup wizard flag — the wizard will re-run on next launch to help reconfigure
+- Keeps: API keys, chat history only
 
 #### Custom Reset
 
@@ -3396,7 +3401,8 @@ If you're experiencing issues after updating the plugin, or want a fresh start w
 
 **For broader issues:**
 - **Strange behavior after update?** Use "Quick: Settings only" (safest)
-- **Many things broken?** Use "Quick: Fresh start" (resets everything except API keys and chats)
+- **Many things broken?** Use "Quick: Fresh start" (resets everything except API keys and chats, re-runs setup wizard)
+- **Want to reconfigure language/gestures/emoji?** Use "Re-run Setup Wizard"
 - **Want full control?** Use "Custom reset..." and check everything you want to reset
 
 See [Reset Settings](#reset-settings) for detailed descriptions of each option.

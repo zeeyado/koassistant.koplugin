@@ -1488,6 +1488,15 @@ local SettingsSchema = {
                     type = "submenu",
                     text = _("Reset Settings..."),
                     items = {
+                        -- Re-run setup wizard
+                        {
+                            id = "rerun_setup_wizard",
+                            type = "action",
+                            text = _("Re-run Setup Wizard"),
+                            help_text = _("Run the initial setup wizard again to reconfigure language, emoji settings, and gesture assignments."),
+                            callback = "rerunSetupWizard",
+                            separator = true,
+                        },
                         -- Quick: Settings only
                         {
                             id = "quick_reset_settings",

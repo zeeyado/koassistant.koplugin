@@ -10260,6 +10260,13 @@ function AskGPT:_resetFeatureSettingsInternal()
   self:updateConfigFromSettings()
 end
 
+-- Re-run setup wizard
+function AskGPT:rerunSetupWizard()
+  self.settings:delSetting("setup_wizard_completed")
+  self.settings:flush()
+  self:showSetupWizard()
+end
+
 -- Quick reset: Settings only
 function AskGPT:quickResetSettings()
   self:_resetFeatureSettingsInternal()
@@ -10294,8 +10301,11 @@ function AskGPT:quickResetFreshStart()
   self.settings:delSetting("qa_utilities_order")
   self.settings:delSetting("qs_items_order")
 
+  -- Fresh start: clear wizard flag so it re-runs on next launch
+  self.settings:delSetting("setup_wizard_completed")
+
   -- Fresh start: also clear user choices preserved by _resetFeatureSettingsInternal
-  -- (keeps API keys, languages, and migration flags)
+  -- (keeps API keys and migration flags)
   local features = self.settings:readSetting("features") or {}
   features.selected_behavior = nil
   features.selected_domain = nil
