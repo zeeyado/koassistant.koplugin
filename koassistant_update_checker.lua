@@ -1013,40 +1013,60 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
         return
     end
 
-    -- Poll for data using pattern from stream_handler.lua
+    -- Poll for data
+    -- Uses idle pipe detection alongside waitpid to handle Android devices
+    -- where waitpid(WNOHANG) takes minutes to report subprocess exit.
     local chunksize = 8192
     local buffer = ffi.new("char[?]", chunksize)
+    local idle_polls = 0
+    local IDLE_POLL_THRESHOLD = 5  -- 500ms at 100ms intervals
+
+    local function processResult()
+        closeFd()
+        cleanup(true)  -- skip_fd_close since we already closed it
+
+        -- Check for error marker
+        local error_msg = accumulated_data:match("__UPDATE_CHECK_ERROR__:(.+)")
+        if error_msg then
+            callback(false, error_msg)
+        else
+            callback(true, accumulated_data)
+        end
+    end
 
     local function pollForData()
         if completed then return end
 
+        local got_data = false
         local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
         if readsize and readsize > 0 then
             local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
             if bytes_read and bytes_read > 0 then
                 accumulated_data = accumulated_data .. ffi.string(buffer, bytes_read)
+                got_data = true
             end
         end
 
-        -- Check if subprocess is done
+        if got_data then
+            idle_polls = 0
+        elseif #accumulated_data > 0 then
+            idle_polls = idle_polls + 1
+        end
+
+        -- Idle pipe detection: data received but pipe quiet for 500ms
+        if #accumulated_data > 0 and idle_polls >= IDLE_POLL_THRESHOLD then
+            processResult()
+            return
+        end
+
+        -- Also check waitpid (works on most devices, instant)
         if ffiutil.isSubProcessDone(pid) then
             -- Read any remaining data
             local final_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
             if final_read and final_read > 0 then
                 accumulated_data = accumulated_data .. ffi.string(buffer, final_read)
             end
-
-            -- Close fd and cleanup
-            closeFd()
-            cleanup(true)  -- skip_fd_close since we already closed it
-
-            -- Check for error marker
-            local error_msg = accumulated_data:match("__UPDATE_CHECK_ERROR__:(.+)")
-            if error_msg then
-                callback(false, error_msg)
-            else
-                callback(true, accumulated_data)
-            end
+            processResult()
             return
         end
 
@@ -1191,43 +1211,64 @@ local function downloadFile(url, dest_path, callback)
     end
 
     -- Poll for subprocess completion (small buffer - pipe only carries status)
+    -- Uses idle pipe detection alongside waitpid for Android compatibility.
     local chunksize = 256
     local buffer = ffi.new("char[?]", chunksize)
+    local idle_polls = 0
+    local IDLE_POLL_THRESHOLD = 5
+
+    local function processResult()
+        closeFd()
+        cleanup(true)
+
+        local error_msg = status_data:match("^ERROR:(.+)")
+        if error_msg then
+            os.remove(dest_path)
+            callback(false, error_msg)
+        else
+            -- Verify file exists and is non-empty
+            local attr = lfs.attributes(dest_path)
+            if not attr or attr.size == 0 then
+                os.remove(dest_path)
+                callback(false, _("Downloaded file is empty"))
+            else
+                callback(true)
+            end
+        end
+    end
 
     local function pollForData()
         if completed then return end
 
+        local got_data = false
         local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
         if readsize and readsize > 0 then
             local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
             if bytes_read and bytes_read > 0 then
                 status_data = status_data .. ffi.string(buffer, bytes_read)
+                got_data = true
             end
         end
 
+        if got_data then
+            idle_polls = 0
+        elseif #status_data > 0 then
+            idle_polls = idle_polls + 1
+        end
+
+        -- Idle pipe detection
+        if #status_data > 0 and idle_polls >= IDLE_POLL_THRESHOLD then
+            processResult()
+            return
+        end
+
+        -- Also check waitpid (works on most devices, instant)
         if ffiutil.isSubProcessDone(pid) then
             local final_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
             if final_read and final_read > 0 then
                 status_data = status_data .. ffi.string(buffer, final_read)
             end
-
-            closeFd()
-            cleanup(true)
-
-            local error_msg = status_data:match("^ERROR:(.+)")
-            if error_msg then
-                os.remove(dest_path)
-                callback(false, error_msg)
-            else
-                -- Verify file exists and is non-empty
-                local attr = lfs.attributes(dest_path)
-                if not attr or attr.size == 0 then
-                    os.remove(dest_path)
-                    callback(false, _("Downloaded file is empty"))
-                else
-                    callback(true)
-                end
-            end
+            processResult()
             return
         end
 
