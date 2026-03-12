@@ -32,37 +32,49 @@ else
     logger.warn("UpdateChecker: loaded via require, got plugin:", meta.name)
 end
 
-local InfoMessage = require("ui/widget/infomessage")
+-- Core modules always loaded (needed for subprocess fetch/poll)
 local UIManager = require("ui/uimanager")
-local ConfirmBox = require("ui/widget/confirmbox")
-local Device = require("device")
-local Screen = Device.screen
-local BD = require("ui/bidi")
-local ButtonDialog = require("ui/widget/buttondialog")
-local Notification = require("ui/widget/notification")
-local NetworkMgr = require("ui/network/manager")
-local LuaSettings = require("luasettings")
-local DataStorage = require("datastorage")
 local T = require("ffi/util").template
 local _ = require("koassistant_gettext")
 
--- For markdown rendering
-local Blitbuffer = require("ffi/blitbuffer")
-local ButtonTable = require("ui/widget/buttontable")
-local CenterContainer = require("ui/widget/container/centercontainer")
-local Font = require("ui/font")
-local FrameContainer = require("ui/widget/container/framecontainer")
-local Geom = require("ui/geometry")
-local InputContainer = require("ui/widget/container/inputcontainer")
-local MovableContainer = require("ui/widget/container/movablecontainer")
-local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
-local ScrollTextWidget = require("ui/widget/scrolltextwidget")
-local Size = require("ui/size")
-local TitleBar = require("ui/widget/titlebar")
-local VerticalGroup = require("ui/widget/verticalgroup")
-local GestureRange = require("ui/gesturerange")
-local MD = require("apps/filemanager/lib/md")
-local Languages = require("koassistant_languages")
+-- UI modules lazy-loaded on first use to avoid blocking startup.
+-- The auto-check path (checkForUpdates with auto=true) only needs core modules
+-- above; the ~25 UI widget modules below are only needed when showing popups.
+local InfoMessage, ConfirmBox, Device, Screen, BD, ButtonDialog, Notification
+local NetworkMgr, LuaSettings, DataStorage
+local Blitbuffer, ButtonTable, CenterContainer, Font, FrameContainer, Geom
+local InputContainer, MovableContainer, ScrollHtmlWidget, ScrollTextWidget
+local Size, TitleBar, VerticalGroup, GestureRange, MD, Languages
+
+local function loadUI()
+    if Device then return end -- already loaded
+    InfoMessage = require("ui/widget/infomessage")
+    ConfirmBox = require("ui/widget/confirmbox")
+    Device = require("device")
+    Screen = Device.screen
+    BD = require("ui/bidi")
+    ButtonDialog = require("ui/widget/buttondialog")
+    Notification = require("ui/widget/notification")
+    NetworkMgr = require("ui/network/manager")
+    LuaSettings = require("luasettings")
+    DataStorage = require("datastorage")
+    Blitbuffer = require("ffi/blitbuffer")
+    ButtonTable = require("ui/widget/buttontable")
+    CenterContainer = require("ui/widget/container/centercontainer")
+    Font = require("ui/font")
+    FrameContainer = require("ui/widget/container/framecontainer")
+    Geom = require("ui/geometry")
+    InputContainer = require("ui/widget/container/inputcontainer")
+    MovableContainer = require("ui/widget/container/movablecontainer")
+    ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
+    ScrollTextWidget = require("ui/widget/scrolltextwidget")
+    Size = require("ui/size")
+    TitleBar = require("ui/widget/titlebar")
+    VerticalGroup = require("ui/widget/verticalgroup")
+    GestureRange = require("ui/gesturerange")
+    MD = require("apps/filemanager/lib/md")
+    Languages = require("koassistant_languages")
+end
 
 -- Session flag to prevent multiple auto-checks per session
 -- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
@@ -276,6 +288,7 @@ end
 local link_dialog  -- Forward declaration for closures
 local function showLinkDialog(link_url)
     if not link_url then return end
+    loadUI()
 
     local QRMessage = require("ui/widget/qrmessage")
 
@@ -345,143 +358,149 @@ local function handleLinkTap(link)
     end
 end
 
--- Simple Markdown Viewer widget for release notes
-local MarkdownViewer = InputContainer:extend{
-    title = "Release Notes",
-    markdown_text = "",
-    width = nil,
-    height = nil,
-    buttons_table = nil,
-    text_padding = Size.padding.default,
-    text_margin = 0,
-    is_rtl = false,  -- Use text mode with RTL direction when true
-}
+-- Simple Markdown Viewer widget for release notes (lazy-initialized)
+local MarkdownViewer
 
-function MarkdownViewer:init()
-    self.width = self.width or math.floor(Screen:getWidth() * 0.85)
-    self.height = self.height or math.floor(Screen:getHeight() * 0.85)
-
-    -- Auto-detect RTL if not already set by language check
-    if not self.is_rtl and hasDominantRTL(self.markdown_text) then
-        self.is_rtl = true
-    end
-
-    -- Auto-linkify plain URLs before markdown conversion
-    local preprocessed_text = autoLinkUrls(self.markdown_text)
-
-    -- Convert markdown to HTML
-    local html_body, err = MD(preprocessed_text, {})
-    if err then
-        logger.warn("MarkdownViewer: could not generate HTML", err)
-        html_body = "<pre>" .. (self.markdown_text or "No content.") .. "</pre>"
-    end
-
-    -- Create title bar
-    local titlebar = TitleBar:new{
-        title = self.title,
-        width = self.width,
-        with_bottom_line = true,
-        close_callback = function()
-            UIManager:close(self)
-        end,
+local function ensureMarkdownViewer()
+    if MarkdownViewer then return end
+    loadUI()
+    MarkdownViewer = InputContainer:extend{
+        title = "Release Notes",
+        markdown_text = "",
+        width = nil,
+        height = nil,
+        buttons_table = nil,
+        text_padding = Size.padding.default,
+        text_margin = 0,
+        is_rtl = false,  -- Use text mode with RTL direction when true
     }
 
-    -- Create button table
-    local button_table = ButtonTable:new{
-        width = self.width - 2 * Size.padding.default,
-        buttons = self.buttons_table or {{
-            { text = "Close", callback = function() UIManager:close(self) end }
-        }},
-        zero_sep = true,
-        show_parent = self,
-    }
+    function MarkdownViewer:init()
+        self.width = self.width or math.floor(Screen:getWidth() * 0.85)
+        self.height = self.height or math.floor(Screen:getHeight() * 0.85)
 
-    -- Calculate content height (minimal margins for more content space)
-    local content_height = self.height - titlebar:getHeight() - button_table:getSize().h - 2 * self.text_padding
+        -- Auto-detect RTL if not already set by language check
+        if not self.is_rtl and hasDominantRTL(self.markdown_text) then
+            self.is_rtl = true
+        end
 
-    -- Create scrollable widget - use text mode for RTL languages
-    local scroll_widget
-    if self.is_rtl then
-        -- RTL mode: use plain text with RTL paragraph direction and markdown stripping
-        scroll_widget = ScrollTextWidget:new{
-            text = stripMarkdown(self.markdown_text, true),
-            face = Font:getFace("cfont", 20),
-            width = self.width - 2 * self.text_padding,
-            height = content_height,
-            dialog = self,
-            para_direction_rtl = true,
-            auto_para_direction = false,
+        -- Auto-linkify plain URLs before markdown conversion
+        local preprocessed_text = autoLinkUrls(self.markdown_text)
+
+        -- Convert markdown to HTML
+        local html_body, err = MD(preprocessed_text, {})
+        if err then
+            logger.warn("MarkdownViewer: could not generate HTML", err)
+            html_body = "<pre>" .. (self.markdown_text or "No content.") .. "</pre>"
+        end
+
+        -- Create title bar
+        local titlebar = TitleBar:new{
+            title = self.title,
+            width = self.width,
+            with_bottom_line = true,
+            close_callback = function()
+                UIManager:close(self)
+            end,
         }
-    else
-        -- Normal mode: use HTML widget with GitHub-like font size
-        scroll_widget = ScrollHtmlWidget:new{
-            html_body = html_body,
-            css = RELEASE_NOTES_CSS,
-            default_font_size = Screen:scaleBySize(16),
-            width = self.width - 2 * self.text_padding,
-            height = content_height,
-            dialog = self,
-            html_link_tapped_callback = handleLinkTap,
+
+        -- Create button table
+        local button_table = ButtonTable:new{
+            width = self.width - 2 * Size.padding.default,
+            buttons = self.buttons_table or {{
+                { text = "Close", callback = function() UIManager:close(self) end }
+            }},
+            zero_sep = true,
+            show_parent = self,
         }
-    end
 
-    local text_container = FrameContainer:new{
-        padding = self.text_padding,
-        margin = 0,
-        bordersize = 0,
-        scroll_widget,
-    }
+        -- Calculate content height (minimal margins for more content space)
+        local content_height = self.height - titlebar:getHeight() - button_table:getSize().h - 2 * self.text_padding
 
-    -- Assemble the widget
-    local frame_content = VerticalGroup:new{
-        align = "left",
-        titlebar,
-        text_container,
-        CenterContainer:new{
-            dimen = Geom:new{ w = self.width, h = button_table:getSize().h },
-            button_table,
-        },
-    }
+        -- Create scrollable widget - use text mode for RTL languages
+        local scroll_widget
+        if self.is_rtl then
+            -- RTL mode: use plain text with RTL paragraph direction and markdown stripping
+            scroll_widget = ScrollTextWidget:new{
+                text = stripMarkdown(self.markdown_text, true),
+                face = Font:getFace("cfont", 20),
+                width = self.width - 2 * self.text_padding,
+                height = content_height,
+                dialog = self,
+                para_direction_rtl = true,
+                auto_para_direction = false,
+            }
+        else
+            -- Normal mode: use HTML widget with GitHub-like font size
+            scroll_widget = ScrollHtmlWidget:new{
+                html_body = html_body,
+                css = RELEASE_NOTES_CSS,
+                default_font_size = Screen:scaleBySize(16),
+                width = self.width - 2 * self.text_padding,
+                height = content_height,
+                dialog = self,
+                html_link_tapped_callback = handleLinkTap,
+            }
+        end
 
-    self.movable = MovableContainer:new{
-        FrameContainer:new{
-            background = Blitbuffer.COLOR_WHITE,
-            radius = Size.radius.window,
-            padding = 0,
+        local text_container = FrameContainer:new{
+            padding = self.text_padding,
             margin = 0,
-            frame_content,
+            bordersize = 0,
+            scroll_widget,
         }
-    }
 
-    self[1] = CenterContainer:new{
-        dimen = Screen:getSize(),
-        self.movable,
-    }
-
-    -- Enable tap outside to close
-    self.ges_events.TapClose = {
-        GestureRange:new{
-            ges = "tap",
-            range = Geom:new{
-                x = 0, y = 0,
-                w = Screen:getWidth(),
-                h = Screen:getHeight(),
+        -- Assemble the widget
+        local frame_content = VerticalGroup:new{
+            align = "left",
+            titlebar,
+            text_container,
+            CenterContainer:new{
+                dimen = Geom:new{ w = self.width, h = button_table:getSize().h },
+                button_table,
             },
-        },
-    }
-end
+        }
 
-function MarkdownViewer:onTapClose(arg, ges)
-    -- Only close if tap is outside the dialog
-    if ges.pos:notIntersectWith(self.movable.dimen) then
-        UIManager:close(self)
-        return true
+        self.movable = MovableContainer:new{
+            FrameContainer:new{
+                background = Blitbuffer.COLOR_WHITE,
+                radius = Size.radius.window,
+                padding = 0,
+                margin = 0,
+                frame_content,
+            }
+        }
+
+        self[1] = CenterContainer:new{
+            dimen = Screen:getSize(),
+            self.movable,
+        }
+
+        -- Enable tap outside to close
+        self.ges_events.TapClose = {
+            GestureRange:new{
+                ges = "tap",
+                range = Geom:new{
+                    x = 0, y = 0,
+                    w = Screen:getWidth(),
+                    h = Screen:getHeight(),
+                },
+            },
+        }
     end
-    return false
-end
 
-function MarkdownViewer:onCloseWidget()
-    UIManager:setDirty(nil, "partial")
+    function MarkdownViewer:onTapClose(arg, ges)
+        -- Only close if tap is outside the dialog
+        if ges.pos:notIntersectWith(self.movable.dimen) then
+            UIManager:close(self)
+            return true
+        end
+        return false
+    end
+
+    function MarkdownViewer:onCloseWidget()
+        UIManager:setDirty(nil, "partial")
+    end
 end
 
 local UpdateChecker = {}
@@ -564,6 +583,7 @@ end
 --- Get non-English interaction languages for the translate picker
 --- @return table: Array of language IDs (filtered, no English)
 local function getNonEnglishInteractionLanguages()
+    loadUI()
     local settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
     local settings = LuaSettings:open(settings_file)
     local features = settings:readSetting("features") or {}
@@ -601,6 +621,7 @@ local performUpdate
 --- @param title string: Title for the translated viewer
 --- @param update_info table: Original update info for "Original" button
 local function translateAndShowContent(markdown_content, target_language, title, update_info)
+    ensureMarkdownViewer()
     -- Load settings and configuration
     local settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
     local settings = LuaSettings:open(settings_file)
@@ -716,6 +737,7 @@ end
 --- Show the update available popup
 --- @param update_info table: Contains current_version, latest_version, release_notes, download_url, is_prerelease
 showUpdatePopup = function(update_info)
+    ensureMarkdownViewer()
     local update_viewer  -- Forward declaration for closures
 
     -- Format as markdown with version info header
@@ -848,17 +870,22 @@ local MANUAL_CHECK_TIMEOUT = 15 -- Longer timeout for user-initiated checks
 local WARMUP_TIMEOUT = 0.5      -- Quick TCP warmup before fork (macOS fix)
 local DOWNLOAD_TIMEOUT = 120    -- 2 minutes for ~1.4MB zip on slow WiFi
 
+-- Detect if running on macOS (for TCP warmup which is only needed on macOS)
+local IS_MACOS = ffi.os == "OSX"
+
 -- User-owned files and directories that must survive auto-updates
 -- Keep in sync with koassistant_backup_manager.lua's backup lists
 local USER_FILES = { "apikeys.lua", "configuration.lua", "custom_actions.lua" }
 local USER_DIRS = { "behaviors", "domains" }
 
--- Detect if running on macOS (for TCP warmup which is only needed on macOS)
-local IS_MACOS = ffi.os == "OSX"
-
--- Platform-specific binary paths (same pattern as KOReader's FileManager)
-local mv_bin = Device:isAndroid() and "/system/bin/mv" or "/bin/mv"
-local cp_bin = Device:isAndroid() and "/system/bin/cp" or "/bin/cp"
+-- Platform-specific binary paths (lazy — Device not yet loaded at file scope)
+local mv_bin, cp_bin
+local function getBinPaths()
+    if mv_bin then return end
+    loadUI()
+    mv_bin = Device:isAndroid() and "/system/bin/mv" or "/bin/mv"
+    cp_bin = Device:isAndroid() and "/system/bin/cp" or "/bin/cp"
+end
 
 --- Wrap a file descriptor for ltn12 sink
 local function wrap_fd(fd)
@@ -877,14 +904,15 @@ end
 --- @param url string URL to fetch
 --- @param timeout number Absolute timeout in seconds
 --- @param callback function Called with (success, data_or_error)
-local function fetchWithAbsoluteTimeout(url, timeout, callback)
+--- @param skip_warmup boolean Skip TCP warmup (for silent auto-checks to avoid blocking UI)
+local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
     local ltn12 = require("ltn12")
     local socket = require("socket")
 
-    -- Warmup: Make a quick TCP connection in parent before fork
-    -- This fixes macOS-specific issues where subprocess connections hang intermittently
-    -- Skip on e-readers to avoid wasting time on slow network connections
-    if IS_MACOS and url:sub(1, 8) == "https://" then
+    -- Warmup: Make a quick TCP connection in parent before fork.
+    -- Required on macOS where subprocess HTTPS connections fail without it.
+    -- Skipped for auto-checks at startup to avoid blocking the UI thread.
+    if not skip_warmup and IS_MACOS and url:sub(1, 8) == "https://" then
         local host = url:match("https://([^/:]+)")
         if host then
             pcall(function()
@@ -1396,6 +1424,8 @@ end
 --- Downloads, extracts, verifies, and installs the update with user file preservation.
 --- @param update_info table Contains zip_url, latest_version, and other update metadata
 performUpdate = function(update_info)
+    loadUI()
+    getBinPaths()
     -- Guard: don't update git-based dev installs (would destroy repo)
     if lfs.attributes(plugin_dir .. ".git", "mode") == "directory" then
         UIManager:show(InfoMessage:new{
@@ -1583,6 +1613,7 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
     -- Show loading message only for manual checks (auto checks are silent)
     local loading_msg = nil
     if not auto then
+        loadUI()
         loading_msg = InfoMessage:new{
             text = "Checking for updates...",
         }
@@ -1610,6 +1641,19 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
                     or "Failed to check for updates. Please check your internet connection."
                 UIManager:show(InfoMessage:new{
                     text = error_text,
+                    timeout = 3
+                })
+            end
+            return
+        end
+
+        -- Guard against empty response (connection failed silently)
+        if not response_data or response_data == "" then
+            logger.err("Update check: empty response from GitHub API")
+            if not auto then
+                loadUI()
+                UIManager:show(InfoMessage:new{
+                    text = "Failed to check for updates: Empty response from server",
                     timeout = 3
                 })
             end
@@ -1749,7 +1793,7 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
                 })
             end
         end
-    end)
+    end, auto)  -- skip_warmup for auto-checks (avoid blocking UI at startup)
 end
 
 function UpdateChecker.getCurrentVersion()
