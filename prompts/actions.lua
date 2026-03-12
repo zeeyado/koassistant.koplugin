@@ -46,6 +46,7 @@ local Actions = {}
 -- List of flags that indicate an action needs reading mode data
 Actions.OPEN_BOOK_FLAGS = {
     "use_book_text",
+    "use_page_text",
     "use_reading_progress",
     "use_highlights",
     "use_annotations",
@@ -96,6 +97,10 @@ Actions.PLACEHOLDER_TO_FLAG = {
     -- Surrounding context placeholder (for highlight actions)
     ["{surrounding_context}"] = "use_surrounding_context",
     ["{surrounding_context_section}"] = "use_surrounding_context",
+
+    -- Page text placeholder (current visible page, exempt from text extraction gating)
+    ["{page_text}"] = "use_page_text",
+    ["{page_text_section}"] = "use_page_text",
 }
 
 -- Flags that require use_book_text to be set (cascading requirement)

@@ -8922,92 +8922,10 @@ function AskGPT:translateCurrentPage()
     return
   end
 
-  local document = self.ui.document
-  local page_text = nil
-
-  -- Detect document type: CRE (EPUB) vs PDF/DjVu
-  local is_cre_document = document.getXPointer ~= nil
-
-  if is_cre_document then
-    -- EPUB/CRE documents: use screen positions approach
-    -- getTextBoxes is not implemented for CRE, so we use getTextFromPositions
-    -- with the full screen area
-    logger.info("KOAssistant: Translate page - CRE document detected")
-
-    local view_dimen = self.ui.view and self.ui.view.dimen
-    if view_dimen then
-      -- Get text from top-left to bottom-right of visible area
-      local pos0 = { x = 0, y = 0 }
-      local pos1 = { x = view_dimen.w, y = view_dimen.h }
-
-      local result = document:getTextFromPositions(pos0, pos1, true) -- true = don't draw selection
-      if result and result.text and result.text ~= "" then
-        page_text = result.text
-        logger.info("KOAssistant: Got CRE page text:", #page_text, "chars")
-      end
-    end
-
-    -- Fallback: try getTextFromXPointer for partial content
-    if (not page_text or page_text == "") and document.getTextFromXPointer then
-      local xp = document:getXPointer()
-      if xp then
-        local text = document:getTextFromXPointer(xp)
-        if text and text ~= "" then
-          page_text = text
-          logger.info("KOAssistant: Got CRE page text via XPointer:", #page_text, "chars")
-        end
-      end
-    end
-  else
-    -- PDF/DjVu documents: use getTextBoxes approach
-    logger.info("KOAssistant: Translate page - PDF/DjVu document detected")
-
-    local current_page = self.ui:getCurrentPage()
-    if not current_page then
-      UIManager:show(InfoMessage:new{
-        text = _("Cannot determine current page"),
-        timeout = 2,
-      })
-      return
-    end
-
-    local text_boxes = document:getTextBoxes(current_page)
-    if text_boxes and #text_boxes > 0 then
-      local lines = {}
-      for _line_idx, line in ipairs(text_boxes) do
-        local words = {}
-        for _word_idx, word_box in ipairs(line) do
-          if word_box.word then
-            table.insert(words, word_box.word)
-          end
-        end
-        if #words > 0 then
-          table.insert(lines, table.concat(words, " "))
-        end
-      end
-      page_text = table.concat(lines, "\n")
-      logger.info("KOAssistant: Got PDF page text:", #page_text, "chars from", #lines, "lines")
-    end
-
-    -- Fallback: try getTextFromPositions with text box bounds
-    if (not page_text or page_text == "") and text_boxes and #text_boxes > 0 then
-      local first_line = text_boxes[1]
-      local last_line = text_boxes[#text_boxes]
-      if first_line and #first_line > 0 and last_line and #last_line > 0 then
-        local first_word = first_line[1]
-        local last_word = last_line[#last_line]
-        if first_word and last_word then
-          local pos0 = { x = first_word.x0 or 0, y = first_word.y0 or 0, page = current_page }
-          local pos1 = { x = last_word.x1 or 0, y = last_word.y1 or 0, page = current_page }
-          local result = document:getTextFromPositions(pos0, pos1)
-          if result and result.text then
-            page_text = result.text
-            logger.info("KOAssistant: Got PDF page text via positions:", #page_text, "chars")
-          end
-        end
-      end
-    end
-  end
+  local ContextExtractor = require("koassistant_context_extractor")
+  local extractor = ContextExtractor:new(self.ui, configuration.features or {})
+  local page_result = extractor:getVisiblePageText()
+  local page_text = page_result.text
 
   if not page_text or page_text == "" then
     UIManager:show(InfoMessage:new{

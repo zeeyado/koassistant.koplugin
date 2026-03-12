@@ -274,6 +274,17 @@ function MessageBuilder.build(params)
         user_prompt = replace_placeholder(user_prompt, "{surrounding_context}", data.surrounding_context)
     end
 
+    -- {page_text_section} - current visible page text, with label
+    local page_text_section = ""
+    if data.page_text and data.page_text ~= "" then
+        page_text_section = "Current page text:\n" .. data.page_text
+    end
+    user_prompt = replace_placeholder(user_prompt, "{page_text_section}", page_text_section)
+    -- Raw placeholder
+    if data.page_text then
+        user_prompt = replace_placeholder(user_prompt, "{page_text}", data.page_text)
+    end
+
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights)

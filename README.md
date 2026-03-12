@@ -1079,6 +1079,8 @@ Insert these in your action prompt to reference dynamic values:
 | `{full_document_section}` | Book, Highlight (reading) | Same as above with "Full document:" label | Allow Text Extraction |
 | `{surrounding_context}` | Highlight (reading) | Text surrounding the highlighted passage | — |
 | `{surrounding_context_section}` | Highlight (reading) | Same as above with "Surrounding text:" label | — |
+| `{page_text}` | Book, Highlight (reading) | Text of the current visible page | — |
+| `{page_text_section}` | Book, Highlight (reading) | Same as above with "Current page text:" label | — |
 | `{xray_cache}` | Book (reading) | Cached X-Ray (if available) | Allow Text Extraction (+ Allow Highlights if cache used them) |
 | `{xray_cache_section}` | Book (reading) | Same as above with progress label | Allow Text Extraction (+ Allow Highlights if cache used them) |
 | `{analyze_cache}` | Book (reading) | Cached document analysis (if available) | Allow Text Extraction |
@@ -1102,11 +1104,12 @@ Insert these in your action prompt to reference dynamic values:
 - `{annotations_section}` → "My annotations:\n[content]" or "My highlights so far:\n[content]" if degraded (annotations off, highlights on), or "" if both off
 - `{notebook_section}` → "My notebook entries:\n[content]" or "" if empty
 - `{surrounding_context_section}` → "Surrounding text:\n[content]" or "" if empty
+- `{page_text_section}` → "Current page text:\n[content]" or "" if empty
 - `{xray_cache_section}` → "Previous X-Ray (as of X%):\n[content]" or "" if empty
 - `{analyze_cache_section}` → "Document analysis:\n[content]" or "" if empty
 - `{summary_cache_section}` → "Document summary:\n[content]" or "" if empty
 
-"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{page_text}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 

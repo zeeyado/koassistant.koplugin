@@ -779,6 +779,100 @@ function ContextExtractor:getPageRangeText(start_page, end_page, options)
     return result
 end
 
+--- Get text of the current visible page.
+-- Uses same extraction approach as translateCurrentPage():
+--   EPUB/CRE: screen coordinates (getTextFromPositions) for exact visible content
+--   PDF/DjVu: getTextBoxes with line structure, getTextFromPositions fallback
+-- Exempt from text extraction gating (single page is minimal data).
+-- @return table { text, char_count }
+function ContextExtractor:getVisiblePageText()
+    local result = {
+        text = "",
+        char_count = 0,
+    }
+
+    if not self:isAvailable() then
+        return result
+    end
+
+    local document = self.ui.document
+    local page_text = nil
+
+    -- Detect document type: CRE (EPUB) vs PDF/DjVu
+    local is_cre_document = document.getXPointer ~= nil
+
+    if is_cre_document then
+        -- EPUB/CRE: use screen positions for exact visible content
+        local view_dimen = self.ui.view and self.ui.view.dimen
+        if view_dimen then
+            local pos0 = { x = 0, y = 0 }
+            local pos1 = { x = view_dimen.w, y = view_dimen.h }
+            local success, pos_result = pcall(document.getTextFromPositions, document, pos0, pos1, true)
+            if success and pos_result and pos_result.text and pos_result.text ~= "" then
+                page_text = pos_result.text
+            end
+        end
+
+        -- Fallback: try getTextFromXPointer
+        if (not page_text or page_text == "") and document.getTextFromXPointer then
+            local xp = document:getXPointer()
+            if xp then
+                local success, text = pcall(document.getTextFromXPointer, document, xp)
+                if success and text and text ~= "" then
+                    page_text = text
+                end
+            end
+        end
+    else
+        -- PDF/DjVu: use getTextBoxes for structured line extraction
+        local current_page = self.ui.view and self.ui.view.state and self.ui.view.state.page or 1
+
+        local success, text_boxes = pcall(document.getTextBoxes, document, current_page)
+        if success and text_boxes and #text_boxes > 0 then
+            local lines = {}
+            for _line_idx, line in ipairs(text_boxes) do
+                local words = {}
+                for _word_idx, word_box in ipairs(line) do
+                    if word_box.word then
+                        table.insert(words, word_box.word)
+                    end
+                end
+                if #words > 0 then
+                    table.insert(lines, table.concat(words, " "))
+                end
+            end
+            if #lines > 0 then
+                page_text = table.concat(lines, "\n")
+            end
+
+            -- Fallback: try getTextFromPositions with text box bounds
+            if (not page_text or page_text == "") then
+                local first_line = text_boxes[1]
+                local last_line = text_boxes[#text_boxes]
+                if first_line and #first_line > 0 and last_line and #last_line > 0 then
+                    local first_word = first_line[1]
+                    local last_word = last_line[#last_line]
+                    if first_word and last_word then
+                        local pos0 = { x = first_word.x0 or 0, y = first_word.y0 or 0, page = current_page }
+                        local pos1 = { x = last_word.x1 or 0, y = last_word.y1 or 0, page = current_page }
+                        local ok, pos_result = pcall(document.getTextFromPositions, document, pos0, pos1)
+                        if ok and pos_result and pos_result.text then
+                            page_text = pos_result.text
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    page_text = page_text or ""
+    result.text = page_text
+    result.char_count = #page_text
+
+    logger.info("ContextExtractor:getVisiblePageText - extracted", result.char_count, "chars")
+    return result
+end
+
 --- Get highlights from the document (text only, no notes).
 -- @param options table { max_count = 100, include_chapter = true }
 -- @return table { formatted = "...", count = number, items = array }
@@ -1167,11 +1261,18 @@ function ContextExtractor:extractForAction(action)
         data.time_since_last_read = ""
     end
 
+    -- Page text extraction: exempt from text extraction gating (single page, minimal data)
+    -- Triggered by {page_text} / {page_text_section} placeholder in prompt
+    local prompt = action.prompt or ""
+    if prompt:find("{page_text", 1, true) then
+        local page_result = self:getVisiblePageText()
+        data.page_text = page_result.text
+    end
+
     -- Text extraction: flag is permission gate, placeholders trigger extraction
     -- Flag "use_book_text" renamed to "Allow text extraction" in UI
     -- Also gated by enable_book_text_extraction setting (checked in extraction methods)
     if action.use_book_text then
-        local prompt = action.prompt or ""
         local options = {}
         if action.max_book_text_chars then
             options.max_chars = action.max_book_text_chars
@@ -1301,7 +1402,6 @@ function ContextExtractor:extractForAction(action)
                (not data.full_document or data.full_document == "") then
             -- Permission granted but no text extracted (could be PDF without text layer, etc.)
             -- Only flag if action likely expected text (has placeholder in prompt)
-            local prompt = action.prompt or ""
             if prompt:find("{book_text", 1, true) or prompt:find("{full_document", 1, true) then
                 table.insert(unavailable, "book text (none extracted)")
             end
