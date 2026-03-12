@@ -211,6 +211,15 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         return
     end
 
+    -- Set pipe to non-blocking mode so read() can distinguish
+    -- "no data yet" (returns -1/EAGAIN) from "pipe closed" (returns 0/EOF).
+    -- F_GETFL=3, F_SETFL=4 are universal POSIX constants.
+    local bit = require("bit")
+    local flags = ffi.C.fcntl(parent_read_fd, 3)  -- F_GETFL
+    if flags >= 0 then
+        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(flags, ffi.C.O_NONBLOCK)))  -- F_SETFL
+    end
+
     -- Process accumulated response data
     local function processResponse()
         local full_response = table.concat(response_data)
@@ -267,59 +276,32 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         end
     end
 
-    -- Drain any remaining data from the pipe
-    local function drainPipe()
-        local remaining = ffiutil.getNonBlockingReadSize(parent_read_fd)
-        while remaining and remaining > 0 do
-            local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer_ptr, chunksize))
-            if bytes_read and bytes_read > 0 then
-                table.insert(response_data, ffi.string(buffer, bytes_read))
-            else
-                break
-            end
-            remaining = ffiutil.getNonBlockingReadSize(parent_read_fd)
-        end
-    end
-
-    -- Poll for completion
-    -- On some Android devices, waitpid(WNOHANG) takes minutes to report
-    -- subprocess exit even though the pipe is already closed.
-    -- Workaround: once we have data and the pipe is idle for several polls,
-    -- the subprocess has finished writing — process the response immediately.
-    local idle_polls = 0  -- consecutive polls with no new data after first data received
-    local IDLE_POLL_THRESHOLD = 5  -- 500ms at 100ms intervals = pipe definitely closed
+    -- Poll for completion using non-blocking read.
+    -- read() on non-blocking fd returns: >0 data, 0 EOF, -1 EAGAIN (no data yet).
+    -- This detects pipe close instantly without depending on waitpid,
+    -- which can take minutes on some Android devices.
     local function pollForData()
         if completed or user_cancelled then
             return
         end
 
-        local got_data = false
-        local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
-        if readsize > 0 then
+        -- Read all available data from the pipe
+        while true do
             local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer_ptr, chunksize))
             if bytes_read and bytes_read > 0 then
                 table.insert(response_data, ffi.string(buffer, bytes_read))
-                got_data = true
+            elseif bytes_read == 0 then
+                -- EOF: subprocess closed write end, process response immediately
+                processResponse()
+                return
+            else
+                -- EAGAIN/EWOULDBLOCK (-1): no data available right now
+                break
             end
         end
 
-        if got_data then
-            idle_polls = 0
-        elseif #response_data > 0 then
-            -- We have data but nothing new — pipe may be at EOF
-            idle_polls = idle_polls + 1
-        end
-
-        -- If we have data and pipe has been idle, subprocess is done writing
-        if #response_data > 0 and idle_polls >= IDLE_POLL_THRESHOLD then
-            drainPipe()
-            processResponse()
-            return
-        end
-
-        -- Also check waitpid (works on most devices, instant)
+        -- Fallback: check if subprocess exited (works on most devices)
         if ffiutil.isSubProcessDone(pid) then
-            drainPipe()
             processResponse()
             return
         end

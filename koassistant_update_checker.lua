@@ -1013,13 +1013,16 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
         return
     end
 
-    -- Poll for data
-    -- Uses idle pipe detection alongside waitpid to handle Android devices
-    -- where waitpid(WNOHANG) takes minutes to report subprocess exit.
+    -- Set pipe to non-blocking mode for instant EOF detection.
+    -- F_GETFL=3, F_SETFL=4 are universal POSIX constants.
+    local bit = require("bit")
+    local nb_flags = ffi.C.fcntl(parent_read_fd, 3)  -- F_GETFL
+    if nb_flags >= 0 then
+        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(nb_flags, ffi.C.O_NONBLOCK)))  -- F_SETFL
+    end
+
     local chunksize = 8192
     local buffer = ffi.new("char[?]", chunksize)
-    local idle_polls = 0
-    local IDLE_POLL_THRESHOLD = 5  -- 500ms at 100ms intervals
 
     local function processResult()
         closeFd()
@@ -1037,35 +1040,22 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
     local function pollForData()
         if completed then return end
 
-        local got_data = false
-        local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
-        if readsize and readsize > 0 then
+        -- Read all available data (non-blocking)
+        while true do
             local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
             if bytes_read and bytes_read > 0 then
                 accumulated_data = accumulated_data .. ffi.string(buffer, bytes_read)
-                got_data = true
+            elseif bytes_read == 0 then
+                -- EOF: subprocess closed pipe, process immediately
+                processResult()
+                return
+            else
+                break  -- EAGAIN: no data available yet
             end
         end
 
-        if got_data then
-            idle_polls = 0
-        elseif #accumulated_data > 0 then
-            idle_polls = idle_polls + 1
-        end
-
-        -- Idle pipe detection: data received but pipe quiet for 500ms
-        if #accumulated_data > 0 and idle_polls >= IDLE_POLL_THRESHOLD then
-            processResult()
-            return
-        end
-
-        -- Also check waitpid (works on most devices, instant)
+        -- Fallback: check waitpid (works on most devices)
         if ffiutil.isSubProcessDone(pid) then
-            -- Read any remaining data
-            local final_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
-            if final_read and final_read > 0 then
-                accumulated_data = accumulated_data .. ffi.string(buffer, final_read)
-            end
             processResult()
             return
         end
@@ -1210,12 +1200,16 @@ local function downloadFile(url, dest_path, callback)
         return
     end
 
+    -- Set pipe to non-blocking mode for instant EOF detection.
+    local bit = require("bit")
+    local nb_flags = ffi.C.fcntl(parent_read_fd, 3)  -- F_GETFL
+    if nb_flags >= 0 then
+        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(nb_flags, ffi.C.O_NONBLOCK)))  -- F_SETFL
+    end
+
     -- Poll for subprocess completion (small buffer - pipe only carries status)
-    -- Uses idle pipe detection alongside waitpid for Android compatibility.
     local chunksize = 256
     local buffer = ffi.new("char[?]", chunksize)
-    local idle_polls = 0
-    local IDLE_POLL_THRESHOLD = 5
 
     local function processResult()
         closeFd()
@@ -1240,34 +1234,22 @@ local function downloadFile(url, dest_path, callback)
     local function pollForData()
         if completed then return end
 
-        local got_data = false
-        local readsize = ffiutil.getNonBlockingReadSize(parent_read_fd)
-        if readsize and readsize > 0 then
+        -- Read all available data (non-blocking)
+        while true do
             local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
             if bytes_read and bytes_read > 0 then
                 status_data = status_data .. ffi.string(buffer, bytes_read)
-                got_data = true
+            elseif bytes_read == 0 then
+                -- EOF: subprocess closed pipe, process immediately
+                processResult()
+                return
+            else
+                break  -- EAGAIN: no data available yet
             end
         end
 
-        if got_data then
-            idle_polls = 0
-        elseif #status_data > 0 then
-            idle_polls = idle_polls + 1
-        end
-
-        -- Idle pipe detection
-        if #status_data > 0 and idle_polls >= IDLE_POLL_THRESHOLD then
-            processResult()
-            return
-        end
-
-        -- Also check waitpid (works on most devices, instant)
+        -- Fallback: check waitpid (works on most devices)
         if ffiutil.isSubProcessDone(pid) then
-            local final_read = tonumber(ffi.C.read(parent_read_fd, buffer, chunksize))
-            if final_read and final_read > 0 then
-                status_data = status_data .. ffi.string(buffer, final_read)
-            end
             processResult()
             return
         end
