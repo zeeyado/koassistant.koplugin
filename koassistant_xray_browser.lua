@@ -1178,6 +1178,41 @@ function XrayBrowser:showCategoryItems(category)
         local name = XrayParser.getItemName(item, category.key)
         local secondary = XrayParser.getItemSecondary(item, category.key)
 
+        -- Section X-Rays: strip scope label prefix from chapter references.
+        -- e.g., "Part 1, Chapter 3" → "Chapter 3" (scope label is already in the title)
+        -- AI text is free-form, so we try multiple strategies:
+        -- 1. Exact scope label prefix ("88. Al-Ghashiyah — سورة الغاشية" → match)
+        -- 2. Scope label without leading numbering ("Al-Ghashiyah — سورة الغاشية" → match)
+        -- 3. First significant name from scope label ("Al-Ghashiyah" → match)
+        if secondary ~= "" and self.scope and self.scope.label then
+            local lower_secondary = secondary:lower()
+            -- Build candidate prefixes from scope label, most specific first
+            local candidates = { self.scope.label }
+            -- Strip leading number + punctuation: "88. Al-Ghashiyah..." → "Al-Ghashiyah..."
+            local without_number = self.scope.label:gsub("^%d+[%.%)%s:%-–—]+%s*", "")
+            if without_number ~= self.scope.label and without_number ~= "" then
+                table.insert(candidates, without_number)
+            end
+            -- First segment before separator (—, -, :): "Al-Ghashiyah — سورة..." → "Al-Ghashiyah"
+            for _ci, candidate in ipairs({self.scope.label, without_number}) do
+                local first_seg = candidate:match("^(.-)%s*[—–:]+%s")
+                if first_seg and first_seg ~= "" and first_seg ~= candidate then
+                    table.insert(candidates, first_seg)
+                end
+            end
+            for _ci, candidate in ipairs(candidates) do
+                local lower_candidate = candidate:lower()
+                if lower_secondary:sub(1, #lower_candidate) == lower_candidate then
+                    local rest = secondary:sub(#lower_candidate + 1)
+                    rest = rest:gsub("^[%s,;:%-–—>]+%s*", "")
+                    if rest ~= "" then
+                        secondary = rest
+                        break
+                    end
+                end
+            end
+        end
+
         -- Truncate mandatory (chapter label) to fit alongside the name.
         -- The Menu widget truncates `text` (name) naturally — we only control mandatory length.
         -- Event categories get a higher minimum so chapter labels aren't squashed to 2-3 chars.
@@ -3693,19 +3728,37 @@ end
 function XrayBrowser:showFullView()
     local ChatGPTViewer = require("koassistant_chatgptviewer")
 
+    -- Section X-Rays: use scope label instead of book title in markdown header
+    local render_title = self.metadata.title or ""
+    local render_progress = self.metadata.progress or ""
+    if self.scope then
+        render_title = self.scope.label or render_title
+        if self.scope.page_summary and self.scope.page_summary ~= "" then
+            render_title = render_title .. " (" .. self.scope.page_summary .. ")"
+        end
+        render_progress = ""  -- no progress percentage for section X-Rays
+    end
     local markdown = XrayParser.renderToMarkdown(
         self.xray_data,
-        self.metadata.title or "",
-        self.metadata.progress or ""
+        render_title,
+        render_progress
     )
 
-    -- Build title: X-Ray (XX%) - Book Title
-    local title = "X-Ray"
-    if self.metadata.progress then
-        title = title .. " (" .. self.metadata.progress .. ")"
-    end
-    if self.metadata.title then
-        title = title .. " - " .. self.metadata.title
+    -- Build title bar: section X-Rays use scope, full X-Rays use book title
+    local title
+    if self.scope then
+        title = T(_("X-Ray § %1"), self.scope.label)
+        if self.metadata.title then
+            title = title .. " - " .. self.metadata.title
+        end
+    else
+        title = "X-Ray"
+        if self.metadata.progress then
+            title = title .. " (" .. self.metadata.progress .. ")"
+        end
+        if self.metadata.title then
+            title = title .. " - " .. self.metadata.title
+        end
     end
 
     -- Wrap on_delete to also close the browser since the cache is gone
