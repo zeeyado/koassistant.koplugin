@@ -6,6 +6,9 @@
 
 **Powerful, customizable AI assistant for KOReader.**
 
+> **New to KOAssistant?** The [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki) has short getting-started guides. [Help expand it.](https://github.com/zeeyado/koassistant.koplugin/wiki/Contributing-to-this-Wiki)
+
+
 <p align="center">
   <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>
   <a href="screenshots/Xraybrowser.png"><img src="screenshots/Xraybrowser.png" width="180" alt="X-Ray browser"></a>
@@ -884,7 +887,7 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Link Handling**: Tapping a link in the chat viewer opens KOReader's external link dialog — Copy, Show QR code, Open in browser, and any registered plugin actions (e.g., Add to Wallabag). When no book is open, a basic version of the dialog is shown.
-- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options. Consistent across all viewer types (chat, X-Ray browser, compact, dictionary, translate views). See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
+- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Long-pressing 1 word or selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options. Consistent across all viewer types (chat, X-Ray browser, compact, dictionary, translate views). Can also be extended to KOReader's own viewers (dictionary, Wikipedia, bookmarks, etc.) via **Settings → KOReader Integration → Enhance Text Selection**. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Save to Note
@@ -1260,6 +1263,8 @@ KOAssistant integrates with KOReader's dictionary system, providing AI-powered w
 > **Tip:** For best results, duplicate a built-in dictionary action and customize it for your language pair. Set a light model (e.g. Haiku) for speed, and make it your bypass action for one-tap lookups.
 
 > **Don't need dictionary integration?** Disable it entirely via **Settings → KOReader Integration → Show in Dictionary Popup**.
+
+> **Want Translate and Copy for text in dictionary results?** Enable **Settings → KOReader Integration → Enhance Text Selection** to add action popups (Copy, Dictionary, Translate) when selecting multiple words or long-pressing a single word in KOReader's dictionary, Wikipedia, and other viewers. See [Extend to KOReader Viewers](#extend-to-koreader-viewers).
 
 ### How It Works
 
@@ -3240,6 +3245,10 @@ Buttons are conditional — Dictionary requires an open book with dictionary sup
 **Highlight clearing**: Selected text highlight clears automatically after any action or when dismissing the popup.
 
 **Chaining lookups**: Look up a word, see an unfamiliar word in the AI response, select it to look that up too — the viewer stays open underneath throughout.
+
+#### Extend to KOReader Viewers
+
+Enable **Settings → KOReader Integration → Enhance Text Selection** to bring this same behavior to KOReader's own viewers — dictionary popups, Wikipedia results, bookmark viewer, and any other TextViewer in KOReader. Same rules: single word → dictionary, long-press single word or multi-word → action popup. Off by default; requires restart.
 
 ### Document Metadata
 
