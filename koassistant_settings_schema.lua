@@ -1239,6 +1239,14 @@ local SettingsSchema = {
                     path = "features.enable_stats_sharing",
                     default = true,
                     help_text = _("Send current chapter title, chapters read count, and time since last opened. Used by Recap."),
+                },
+                {
+                    id = "enable_library_scanning",
+                    type = "toggle",
+                    text = _("Allow Library Scanning"),
+                    path = "features.enable_library_scanning",
+                    default = false,
+                    help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
                     separator = true,
                 },
                 -- Text Extraction settings (moved from Advanced)

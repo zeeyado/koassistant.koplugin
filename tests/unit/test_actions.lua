@@ -163,6 +163,10 @@ function TestActions:runAll()
         self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_notebook")
     end)
 
+    self:test("DOUBLE_GATED_FLAGS includes use_library", function()
+        self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_library")
+    end)
+
     -- Test inferOpenBookFlags() function
     print("\n--- inferOpenBookFlags() ---")
 

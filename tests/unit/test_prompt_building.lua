@@ -272,6 +272,36 @@ local function runMessageBuilderTests()
         TestRunner:assertContains(result, "My reading notes.")
     end)
 
+    TestRunner:test("library_section disappears when empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Library: {library_section}" },
+            context = "general",
+            data = { library_content = "" },
+        })
+        TestRunner:assertNotContains(result, "My library:")
+        TestRunner:assertNotContains(result, "{library_section}")
+    end)
+
+    TestRunner:test("library_section includes label when present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{library_section}" },
+            context = "general",
+            data = { library_content = "3 books:\n- \"Dune\" by Frank Herbert" },
+        })
+        TestRunner:assertContains(result, "My library:")
+        TestRunner:assertContains(result, "Dune")
+    end)
+
+    TestRunner:test("raw {library} placeholder passes content without label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Books: {library}" },
+            context = "general",
+            data = { library_content = "3 books" },
+        })
+        TestRunner:assertContains(result, "Books: 3 books")
+        TestRunner:assertNotContains(result, "My library:")
+    end)
+
     print("\n--- MessageBuilder: Analysis Cache Placeholders ---")
 
     TestRunner:test("xray_cache_section includes progress in label", function()
@@ -667,6 +697,89 @@ local function runGatingTests()
         local data = extractor:extractForAction({ use_notebook = false })
         TestRunner:assertEquals(data.notebook_content, nil)
     end)
+
+    -- =========================================================================
+    -- Library Scanning Double-Gate
+    -- =========================================================================
+    print("\n--- ContextExtractor: Library Scanning Double-Gate ---")
+
+    -- Mock the library scanner module for these tests
+    local mock_library_scanner = {
+        scan = function() return { books = {}, by_status = {}, by_folder = {}, stats = { total = 3 } } end,
+        format = function() return '3 books:\n- "Dune" by Frank Herbert' end,
+    }
+    local saved_library_scanner = package.loaded["koassistant_library_scanner"]
+    package.loaded["koassistant_library_scanner"] = mock_library_scanner
+
+    TestRunner:test("library blocked when enable_library_scanning=false (default)", function()
+        local extractor = createMockExtractor({})  -- nil = default disabled (opt-in)
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertEquals(data.library_content, "")
+    end)
+
+    TestRunner:test("library blocked when use_library=false", function()
+        local extractor = createMockExtractor({ enable_library_scanning = true })
+        local data = extractor:extractForAction({ use_library = false })
+        TestRunner:assertEquals(data.library_content, nil)  -- Not extracted at all
+    end)
+
+    TestRunner:test("library allowed when both gates pass", function()
+        local extractor = createMockExtractor({ enable_library_scanning = true })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertContains(data.library_content, "Dune")
+    end)
+
+    TestRunner:test("library bypass with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = false,  -- Global OFF (default)
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertContains(data.library_content, "Dune")
+    end)
+
+    TestRunner:test("library still blocked when use_library=false even with trusted provider", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = false,
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+        })
+        -- Trusted provider only bypasses global gate, not action flag
+        local data = extractor:extractForAction({ use_library = false })
+        TestRunner:assertEquals(data.library_content, nil)
+    end)
+
+    TestRunner:test("_unavailable_data: 'library (scanning disabled)' when global off", function()
+        local extractor = createMockExtractor({})
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
+        local found = false
+        for _idx, msg in ipairs(data._unavailable_data) do
+            if msg:find("library (scanning disabled)", 1, true) then found = true end
+        end
+        TestRunner:assert(found, "should contain 'library (scanning disabled)'")
+    end)
+
+    TestRunner:test("_unavailable_data: 'library (no books found)' when allowed but empty", function()
+        local empty_scanner = {
+            scan = function() return { books = {}, by_status = {}, by_folder = {}, stats = { total = 0 } } end,
+            format = function() return "" end,
+        }
+        package.loaded["koassistant_library_scanner"] = empty_scanner
+        local extractor = createMockExtractor({ enable_library_scanning = true })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
+        local found = false
+        for _idx, msg in ipairs(data._unavailable_data) do
+            if msg:find("library (no books found)", 1, true) then found = true end
+        end
+        TestRunner:assert(found, "should contain 'library (no books found)'")
+        package.loaded["koassistant_library_scanner"] = mock_library_scanner  -- restore
+    end)
+
+    -- Restore original module state
+    package.loaded["koassistant_library_scanner"] = saved_library_scanner
 
     -- =========================================================================
     -- Annotations Degradation (annotations → highlights fallback)

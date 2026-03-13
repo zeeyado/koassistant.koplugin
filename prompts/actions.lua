@@ -82,6 +82,10 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{notebook}"] = "use_notebook",
     ["{notebook_section}"] = "use_notebook",
 
+    -- Library placeholders
+    ["{library}"] = "use_library",
+    ["{library_section}"] = "use_library",
+
     -- Full document placeholders (same gate as book_text)
     ["{full_document}"] = "use_book_text",
     ["{full_document_section}"] = "use_book_text",
@@ -125,6 +129,7 @@ Actions.DOUBLE_GATED_FLAGS = {
     "use_highlights",     -- gate: enable_highlights_sharing
     "use_annotations",    -- gate: enable_annotations_sharing (degrades to highlights)
     "use_notebook",       -- gate: enable_notebook_sharing
+    "use_library",        -- gate: enable_library_scanning
     -- Document cache flags inherit from use_book_text
     "use_xray_cache",
     "use_analyze_cache",

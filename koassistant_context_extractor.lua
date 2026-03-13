@@ -1387,6 +1387,19 @@ function ContextExtractor:extractForAction(action)
         data.notebook_content = ""
     end
 
+    -- Library data extraction: double-gated like notebook
+    -- Requires both use_library flag AND enable_library_scanning global setting
+    -- Trusted providers bypass the global setting
+    local library_allowed = provider_trusted or self.settings.enable_library_scanning == true
+    if action.use_library and library_allowed then
+        local LibraryScanner = require("koassistant_library_scanner")
+        local scan_result = LibraryScanner.scan(self.settings, self.document_path)
+        data.library_content = LibraryScanner.format(scan_result)
+    elseif action.use_library and not library_allowed then
+        -- Explicitly set empty when gated off (for section placeholder to disappear)
+        data.library_content = ""
+    end
+
     -- Track unavailable data: when action requested data but it wasn't provided
     -- This helps users understand when AI relied on training data vs actual book content
     -- Two cases: permission denied (setting disabled) OR data empty (no highlights, etc.)
@@ -1444,6 +1457,15 @@ function ContextExtractor:extractForAction(action)
         elseif not data.notebook_content or data.notebook_content == "" then
             -- Permission granted but notebook is empty
             table.insert(unavailable, "notebook (empty)")
+        end
+    end
+
+    -- Library: check if requested but not available
+    if action.use_library then
+        if not library_allowed then
+            table.insert(unavailable, "library (scanning disabled)")
+        elseif not data.library_content or data.library_content == "" then
+            table.insert(unavailable, "library (no books found)")
         end
     end
 

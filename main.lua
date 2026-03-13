@@ -4659,6 +4659,22 @@ function AskGPT:_checkRequirements(action)
         })
         return true
       end
+    elseif req == "library" then
+      -- Per-action gate: use_library explicitly overridden to false?
+      if action.use_library == false then
+        UIManager:show(InfoMessage:new{
+          text = _("Library scanning is disabled for this action. Re-enable it in the Action Manager.") .. hint,
+        })
+        return true
+      end
+      -- Global gate: library scanning enabled? (trusted providers bypass)
+      features = features or (self.settings and self.settings:readSetting("features") or {})
+      if features.enable_library_scanning ~= true and not isProviderTrusted() then
+        UIManager:show(InfoMessage:new{
+          text = _("Library scanning is required for this action.\n\nEnable it in Settings → Privacy & Data → Allow Library Scanning.") .. hint,
+        })
+        return true
+      end
     elseif req == "highlights" then
       -- Per-action gate: are both highlight flags explicitly disabled?
       if not action.use_highlights and not action.use_annotations then
@@ -10260,6 +10276,7 @@ function AskGPT:applyPrivacyPresetDefault(touchmenu_instance)
   f.enable_progress_sharing = true
   f.enable_stats_sharing = true
   f.enable_book_text_extraction = false
+  f.enable_library_scanning = false
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()
@@ -10282,6 +10299,7 @@ function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
   f.enable_progress_sharing = false
   f.enable_stats_sharing = false
   f.enable_book_text_extraction = false
+  f.enable_library_scanning = false
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()
@@ -10301,6 +10319,7 @@ function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
   f.enable_highlights_sharing = true
   f.enable_annotations_sharing = true
   f.enable_notebook_sharing = true
+  f.enable_library_scanning = true
   f.enable_progress_sharing = true
   f.enable_stats_sharing = true
   -- Note: enable_book_text_extraction not touched - user must enable manually
