@@ -698,11 +698,13 @@ local function findItemHighlights(item, ui)
 end
 
 --- Text selection handler matching ChatGPTViewer behavior:
---- 1 word → auto dictionary, 2+ words → selection popup
+--- 1 word + short hold → auto dictionary, 1 word + long hold or 2+ words → selection popup
 --- @param text string Selected text
+--- @param hold_duration userdata|nil Hold duration from TextBoxWidget
 --- @param opts table Options: ui, plugin, viewer (TextViewer for highlight clearing)
-local function handleTextSelection(text, opts)
+local function handleTextSelection(text, hold_duration, opts)
     local ui = opts.ui
+    local ChatGPTViewer = require("koassistant_chatgptviewer")
 
     -- Count words: 1 word → auto dictionary, 2+ → popup
     local word_count = 0
@@ -723,8 +725,8 @@ local function handleTextSelection(text, opts)
         end
     end
 
-    if word_count == 1 then
-        -- Single word: auto dictionary lookup (fast path)
+    if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
+        -- Single word + short hold: auto dictionary lookup (fast path)
         if ui and ui.dictionary then
             ui.dictionary._koassistant_non_reader_lookup = true
             ui.dictionary:onLookupWord(text)
@@ -733,8 +735,7 @@ local function handleTextSelection(text, opts)
         end
     end
 
-    -- 2+ words or no dictionary: show selection popup via shared builder
-    local ChatGPTViewer = require("koassistant_chatgptviewer")
+    -- 2+ words, or single word + long hold: show selection popup
     ChatGPTViewer.buildTextSelectionPopup(text, {
         ui = ui,
         plugin = opts.plugin,
@@ -1504,21 +1505,12 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         width = Screen:getWidth(),
         height = Screen:getHeight(),
         buttons_table = buttons_rows,
-        text_selection_callback = function(text)
-            handleTextSelection(text, { ui = captured_ui, plugin = self_ref.metadata.plugin, viewer = viewer })
+        text_selection_callback = function(text, hold_duration)
+            handleTextSelection(text, hold_duration, { ui = captured_ui, plugin = self_ref.metadata.plugin, viewer = viewer })
         end,
     }
-    -- Enable gray highlight on text selection (TextViewer doesn't expose this prop)
-    if viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
-        viewer.scroll_text_w.text_widget.highlight_text_selection = true
-    end
-    -- Fix live highlight during drag: TextViewer uses ges="hold" for HoldPanText
-    -- (fires once) instead of ges="hold_pan" (fires continuously during drag)
-    if viewer.ges_events and viewer.ges_events.HoldPanText
-            and viewer.ges_events.HoldPanText[1] then
-        viewer.ges_events.HoldPanText[1].ges = "hold_pan"
-        viewer.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
-    end
+    -- highlight_text_selection and HoldPanText gesture fix are handled globally
+    -- by patchTextSelectionHandlers() in main.lua
     -- Hook page-turn keys for prev/next navigation when at scroll boundaries.
     -- ScrollTextWidget.onScrollUp/Down return nil at top/bottom boundaries,
     -- letting the event propagate. We catch it to navigate items.

@@ -2241,9 +2241,10 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **Show in Highlight Menu**: Add the main "Chat/Action" button to the highlight popup (requires restart)
 - **Show Highlight Quick Actions**: Add Explain, Translate, and other action shortcuts to the highlight popup (requires restart)
 - **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup
+- **Enhance Text Selection**: Add dictionary lookup and action popup to text selection in KOReader's own viewers (Dictionary popup, TextViewer, etc.). Same behavior as KOAssistant viewers: single word → dictionary, long-press single word or multi-word → popup with Copy, Dictionary, Translate (default: OFF, requires restart)
 - **Show in Gesture Menu**: Register custom action gestures in KOReader's gesture dispatcher (requires restart). Only affects actions added via "Add to Gesture Menu" in Action Manager — built-in gestures (Chat History, Quick Settings, toggles, etc.) are always available.
 
-**Note:** File browser, highlight menu, and gesture menu changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
+**Note:** File browser, highlight menu, gesture menu, and Enhance Text Selection changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
 
 #### Recap Reminder
 - **Remind to Recap on Book Open**: When enabled, shows a reminder to run AI Recap when you open a book you haven't read in a while (default: OFF)
@@ -3218,12 +3219,12 @@ If the action uses Dictionary view directly (e.g., Deep Analysis), step 1 is ski
 
 Text selection works consistently across all KOAssistant viewers — chat viewer, X-Ray browser, compact, dictionary, and translate views:
 
-| Selection | Behavior |
-|-----------|----------|
-| **1 word** | Auto-dictionary lookup (matches KOReader reader behavior) |
-| **2+ words** | Action popup |
+| Selection | Short hold | Long hold |
+|-----------|-----------|-----------|
+| **1 word** | Auto-dictionary lookup | Action popup |
+| **2+ words** | Action popup | Action popup |
 
-**Single word** opens KOReader's built-in offline dictionary. The current viewer stays open underneath — the dictionary popup opens on top, and you return to your viewer when you close it.
+**Single word** opens KOReader's built-in offline dictionary. **Long-pressing** a single word shows the action popup instead, giving access to Copy, Translate, etc. The long-hold threshold follows your KOReader setting (Settings → Taps and Gestures → Long-press interval). The current viewer stays open underneath — the dictionary popup opens on top, and you return to your viewer when you close it.
 
 **Multi-word selection popup** (2-column grid layout):
 

@@ -3266,8 +3266,8 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
     end
   end
 
-  if word_count == 1 then
-    -- Single word: auto dictionary lookup (fast path)
+  if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
+    -- Single word + short hold: auto dictionary lookup (fast path)
     local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
     if ui and ui.dictionary then
       ui.dictionary._koassistant_non_reader_lookup = true
@@ -3277,7 +3277,7 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
     end
   end
 
-  -- 2+ words: show selection popup (all view modes)
+  -- 2+ words, or single word + long hold: show selection popup
   self:showTextSelectionPopup(text)
 end
 
@@ -3311,6 +3311,20 @@ function ChatGPTViewer:clearTextHighlight()
       inner:redrawHighlight()
     end
   end
+end
+
+--- Check if hold_duration qualifies as a "long hold" (for single-word popup instead of dictionary).
+--- Uses 2x the user's configured hold interval (ges_hold_interval_ms, default 500ms).
+--- Since hold_duration starts counting from when the hold gesture is first detected
+--- (already after 1x the interval), this means ~3x total touch time for a "long hold"
+--- (e.g., 1.5s with default 500ms setting).
+--- @param hold_duration userdata|nil Time value from TextBoxWidget
+--- @return boolean
+function ChatGPTViewer.isLongHold(hold_duration)
+  if not hold_duration then return false end
+  local time = require("ui/time")
+  local threshold_ms = G_reader_settings:readSetting("ges_hold_interval_ms") or 500
+  return hold_duration >= time.ms(threshold_ms * 2)
 end
 
 --- Shared text selection popup builder. Used by ChatGPTViewer and X-Ray browser.

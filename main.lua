@@ -304,6 +304,9 @@ function AskGPT:init()
     self:addFileDialogButtons()
   end)
   
+  -- Patch TextViewer and DictQuickLookup for dictionary + selection popup
+  self:patchTextSelectionHandlers()
+
   -- Patch FileManager for multi-select support
   self:patchFileManagerForMultiSelect()
 end
@@ -12019,6 +12022,150 @@ function AskGPT:applyGestureSetup(gestures_settings)
 
   -- Persist to gestures.lua
   gestures_settings:flush()
+end
+
+-- Patch TextViewer and DictQuickLookup for unified text selection behavior:
+-- Single word + short hold → dictionary lookup
+-- Single word + long hold → selection popup (Copy, Dictionary, Translate, Notebook)
+-- Multi-word → selection popup
+-- Long hold threshold matches user's ges_hold_interval_ms setting.
+function AskGPT:patchTextSelectionHandlers()
+  local features = self.settings:readSetting("features") or {}
+  if features.enhance_text_selection ~= true then return end
+
+  local TextViewer = require("ui/widget/textviewer")
+  local DictQuickLookup = require("ui/widget/dictquicklookup")
+  local ReaderUI = require("apps/reader/readerui")
+  local ChatGPTViewer = require("koassistant_chatgptviewer")
+
+  -- Only patch once
+  if TextViewer._koassistant_patched then return end
+  TextViewer._koassistant_patched = true
+
+  -- Helper: get plugin instance from ReaderUI
+  local function getPlugin()
+    local reader_ui = ReaderUI.instance
+    return reader_ui and reader_ui.koassistant
+  end
+
+  -- Helper: clear highlight from a TextViewer's scroll widget
+  local function clearViewerHighlight(viewer)
+    if viewer and viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
+      local tw = viewer.scroll_text_w.text_widget
+      if tw.clearHighlight and tw:clearHighlight() then
+        tw:redrawHighlight()
+      end
+    end
+  end
+
+  -- Patch TextViewer: add dictionary lookup + selection popup
+  local orig_tv_handleTextSelection = TextViewer.handleTextSelection
+  function TextViewer:handleTextSelection(text, hold_duration, start_idx, end_idx, to_source_index_func)
+    -- Respect existing text_selection_callback (used by X-Ray browser etc.)
+    if self.text_selection_callback then
+      self.text_selection_callback(text, hold_duration, start_idx, end_idx, to_source_index_func)
+      return
+    end
+
+    local reader_ui = ReaderUI.instance
+    if not reader_ui or not reader_ui.dictionary then
+      -- No reader context — fall back to original (copy to clipboard)
+      return orig_tv_handleTextSelection(self, text, hold_duration, start_idx, end_idx, to_source_index_func)
+    end
+
+    local word_count = 0
+    if text then
+      for _w in text:gmatch("%S+") do
+        word_count = word_count + 1
+        if word_count > 1 then break end
+      end
+    end
+
+    if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
+      -- Single word + short hold: dictionary lookup
+      reader_ui.dictionary._koassistant_non_reader_lookup = true
+      reader_ui.dictionary:onLookupWord(text)
+      clearViewerHighlight(self)
+      return
+    end
+
+    -- 2+ words, or single word + long hold: show selection popup
+    local plugin = getPlugin()
+    ChatGPTViewer.buildTextSelectionPopup(text, {
+      ui = reader_ui,
+      plugin = plugin,
+      configuration = plugin and plugin.configuration,
+      clear_highlight = function() clearViewerHighlight(self) end,
+    })
+  end
+
+  -- Patch DictQuickLookup: long hold on single word → our popup instead of Wikipedia
+  local orig_dql_init = DictQuickLookup.init
+  function DictQuickLookup:init()
+    orig_dql_init(self)
+
+    -- Replace HoldReleaseText callback: same behavior as our viewers
+    -- 1 word + short hold → dictionary lookup (original behavior)
+    -- 1 word + long hold → our popup
+    -- 2+ words → our popup (always)
+    if self.ges_events and self.ges_events.HoldReleaseText then
+      local orig_args = self.ges_events.HoldReleaseText.args
+      local dql_self = self
+      self.ges_events.HoldReleaseText.args = function(text, hold_duration)
+        local word_count = 0
+        if text then
+          for _w in text:gmatch("%S+") do
+            word_count = word_count + 1
+            if word_count > 1 then break end
+          end
+        end
+
+        -- Single word + short hold: original dictionary/Wikipedia behavior
+        if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
+          orig_args(text, hold_duration)
+          return
+        end
+
+        -- Multi-word, or single word + long hold: show our popup
+        local reader_ui = ReaderUI.instance
+        local plugin = getPlugin()
+        ChatGPTViewer.buildTextSelectionPopup(text, {
+          ui = reader_ui,
+          plugin = plugin,
+          configuration = plugin and plugin.configuration,
+          clear_highlight = function()
+            if dql_self.text_widget then
+              local inner = dql_self.text_widget.htmlbox_widget or dql_self.text_widget.text_widget
+              if inner and inner.clearHighlight and inner:clearHighlight() then
+                inner:redrawHighlight()
+              end
+            end
+          end,
+        })
+      end
+    end
+  end
+
+  -- Patch TextViewer to enable text selection highlighting by default
+  -- and fix HoldPanText gesture (uses "hold" instead of "hold_pan")
+  local orig_tv_init = TextViewer.init
+  function TextViewer:init(re_init)
+    orig_tv_init(self, re_init)
+
+    -- Enable highlight on text selection
+    if self.scroll_text_w and self.scroll_text_w.text_widget then
+      self.scroll_text_w.text_widget.highlight_text_selection = true
+    end
+
+    -- Fix live highlight during drag: TextViewer uses ges="hold" for HoldPanText
+    -- (fires once) instead of ges="hold_pan" (fires continuously during drag)
+    if self.ges_events and self.ges_events.HoldPanText
+        and self.ges_events.HoldPanText[1]
+        and self.ges_events.HoldPanText[1].ges == "hold" then
+      self.ges_events.HoldPanText[1].ges = "hold_pan"
+      self.ges_events.HoldPanText[1].rate = Screen.low_pan_rate and 5.0 or 30.0
+    end
+  end
 end
 
 -- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files

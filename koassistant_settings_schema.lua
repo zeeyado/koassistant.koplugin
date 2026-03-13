@@ -1401,6 +1401,21 @@ local SettingsSchema = {
                     help_text = _("Add AI buttons to KOReader's dictionary popup."),
                 },
                 {
+                    id = "enhance_text_selection",
+                    type = "toggle",
+                    text = _("Enhance Text Selection"),
+                    path = "features.enhance_text_selection",
+                    default = false,
+                    help_text = _("Add dictionary lookup and action popup to text selection in KOReader viewers (Dictionary, TextViewer, etc.). Single word → dictionary, long press single word or multi-word → popup with Copy, Dictionary, Translate. Requires restart."),
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for this change to take effect."),
+                        })
+                    end,
+                },
+                {
                     id = "show_in_gesture_menu",
                     type = "toggle",
                     text = _("Show in Gesture Menu"),
