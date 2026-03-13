@@ -206,6 +206,9 @@ function ActionService:loadActions()
                     if override.use_notebook ~= nil then
                         action_data.use_notebook = override.use_notebook
                     end
+                    if override.use_library ~= nil then
+                        action_data.use_library = override.use_library
+                    end
                     -- Web search override (tri-state: true/false/"global")
                     if override.enable_web_search ~= nil then
                         if override.enable_web_search == "global" then
@@ -1789,6 +1792,7 @@ function ActionService:createDuplicateAction(action)
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
         use_notebook = action.use_notebook,
+        use_library = action.use_library,
         -- NOT copying artifact flags: use_response_caching, cache_as_*, use_*_cache,
         -- update_prompt, storage_key, source_selection (tightly coupled system)
         -- Requirements & blocking
@@ -1914,6 +1918,7 @@ end
 --   📄 = document text (use_book_text, use_xray_cache, use_analyze_cache, use_summary_cache)
 --   📝 = annotations (use_annotations; degrades to highlights-only)
 --   📓 = notebook (use_notebook)
+--   📚 = library (use_library)
 --   🌐 = web search active (per-action force-on, or follows global when global is on)
 -- @param action: Action definition table (needs flag fields)
 -- @param features: Features settings table (needs enable_data_access_indicators, enable_web_search)
@@ -1941,6 +1946,10 @@ function ActionService.getActionDisplayText(action, features)
     -- Notebook
     if action.use_notebook then
         table.insert(indicators, "📓")
+    end
+    -- Library
+    if action.use_library then
+        table.insert(indicators, "📚")
     end
     -- Web search: show when effectively enabled (per-action override or global setting)
     if action.enable_web_search == true then

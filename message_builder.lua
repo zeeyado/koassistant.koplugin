@@ -217,6 +217,13 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{notebook_section}", notebook_section)
 
+    -- {library_section} - includes "My library:\n" label, disappears when empty
+    local library_section = ""
+    if data.library_content and data.library_content ~= "" then
+        library_section = "My library:\n" .. data.library_content
+    end
+    user_prompt = replace_placeholder(user_prompt, "{library_section}", library_section)
+
     -- {full_document_section} - includes "Full document:\n" label
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then
@@ -306,6 +313,9 @@ function MessageBuilder.build(params)
     end
     if data.notebook_content ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content)
+    end
+    if data.library_content ~= nil then
+        user_prompt = replace_placeholder(user_prompt, "{library}", data.library_content)
     end
     if data.full_document then
         user_prompt = replace_placeholder(user_prompt, "{full_document}", data.full_document)
@@ -595,6 +605,13 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     result = replace_placeholder(result, "{notebook_section}", notebook_section)
 
+    -- {library_section}
+    local library_section = ""
+    if data.library_content and data.library_content ~= "" then
+        library_section = "My library:\n" .. data.library_content
+    end
+    result = replace_placeholder(result, "{library_section}", library_section)
+
     -- {full_document_section}
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then
@@ -645,6 +662,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.notebook_content ~= nil then
         result = replace_placeholder(result, "{notebook}", data.notebook_content)
+    end
+    if data.library_content ~= nil then
+        result = replace_placeholder(result, "{library}", data.library_content)
     end
     if data.full_document then
         result = replace_placeholder(result, "{full_document}", data.full_document)
