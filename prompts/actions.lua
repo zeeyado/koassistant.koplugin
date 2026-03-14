@@ -1674,6 +1674,28 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         },
         builtin = true,
     },
+    -- Library-aware actions (require enable_library_scanning)
+    suggest_from_library = {
+        id = "suggest_from_library",
+        text = _("Suggest from Library"),
+        description = _("Suggests what to read next from your own library, based on the current book and your reading history."),
+        context = "book",
+        behavior_variant = "reader_assistant",
+        skip_domain = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        use_library = true,
+        use_reading_progress = true,
+        template = "suggest_from_library",
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 4096,
+        },
+        reasoning_config = { default = "off" },
+        builtin = true,
+        in_reading_features = 8,
+        in_quick_actions = 10,
+    },
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
         id = "book_reviews",
@@ -1772,8 +1794,9 @@ Actions.multi_book = {
     recommend_books = {
         id = "recommend_books",
         text = _("Recommend"),
-        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title."),
+        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title. When library scanning is enabled, also considers your full library to avoid recommending books you already own."),
         context = "multi_book",
+        use_library = true,  -- Optional: includes library data when scanning is enabled (NOT required)
         template = "recommend_books",
         api_params = {
             temperature = 0.8,  -- Higher creativity for discovery
