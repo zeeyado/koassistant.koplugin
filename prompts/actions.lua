@@ -234,7 +234,6 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
         text = _("Connect (With Notes)"),
         description = _("Connects the passage to your own highlights and notebook entries, revealing patterns and echoes in your reading. Requires annotations and notebook sharing to be enabled."),
         context = "highlight",
-        behavior_variant = "reader_assistant",
         include_book_context = true,
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         -- Context extraction flags
@@ -1001,7 +1000,6 @@ If web search is available, consider searching for the DOI or citation context t
         text = _("X-Ray"),
         description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can generate a complete whole-document X-Ray, or focus on a specific section from the table of contents."),
         context = "book",
-        behavior_variant = "reader_assistant",
         requires = {"book_text"},       -- Block if text extraction is off
         blocked_hint = _("Or use X-Ray (Simple) for an overview based on AI knowledge."),
         -- Context extraction flags
@@ -1099,7 +1097,6 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         text = _("X-Ray (Simple)"),
         description = _("A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."),
         context = "book",
-        behavior_variant = "reader_assistant",
         use_highlights = true,          -- Optional, gated by enable_highlights_sharing
         use_reading_progress = true,    -- For spoiler avoidance
         -- NO use_book_text — intentionally omitted
@@ -1192,7 +1189,6 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
         text = _("Recap"),
         description = _("A 'Previously on...' refresher to help you get back into reading after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Source selection: extracted text (with incremental updates) or AI knowledge. Use KOReader's hidden flows to limit scope to specific chapters."),
         context = "book",
-        behavior_variant = "reader_assistant",
         -- Context extraction flags
         use_book_text = true,
         use_highlights = true,
@@ -1282,7 +1278,6 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         text = _("Analyze Notes"),
         description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the work. Requires highlights or annotations sharing."),
         context = "book",
-        behavior_variant = "reader_assistant",
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         use_response_caching = true,    -- View/Update popup + per-action cache (pseudo-update)
         -- Context extraction flags
@@ -1630,7 +1625,6 @@ Adapt to the work — a novel's insights look different from a research paper's 
         text = _("Reading Guide"),
         description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Source selection: full document text, document summary, or AI knowledge. Can target a specific section."),
         context = "book",
-        behavior_variant = "reader_assistant",
         skip_domain = true,
         use_book_text = true,
         use_summary_cache = true,
@@ -1680,7 +1674,6 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         text = _("Suggest from Library"),
         description = _("Suggests what to read next from your own library, based on the current book and your reading history."),
         context = "book",
-        behavior_variant = "reader_assistant",
         skip_domain = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
