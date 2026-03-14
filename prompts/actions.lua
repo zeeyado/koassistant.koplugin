@@ -262,7 +262,6 @@ Based on this highlight, is there anything I might want to add to my notebook? A
 If I have no prior highlights or notebook entries, just reflect on this passage and suggest what might be worth noting.
 
 {conciseness_nudge}]],
-        skip_domain = true,
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -1043,7 +1042,6 @@ Guidelines:
 
 CRITICAL: This must cover only content up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Technical terms and concept names must match the paper's language. All other string values must follow your language instructions.]],
         skip_language_instruction = false,
-        skip_domain = true,  -- X-Ray has specific structure
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
@@ -1171,7 +1169,6 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
 
 {conciseness_nudge}
 {hallucination_nudge}]],
-        skip_domain = true,
         api_params = {
             temperature = 0.5,
             max_tokens = 8192,
@@ -1234,7 +1231,6 @@ Style guidance:
 
 If you don't recognize this work or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
         skip_language_instruction = false,
-        skip_domain = true,
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,  -- Factual recall, lower variance
@@ -1325,7 +1321,6 @@ This is about understanding ME as a reader through my highlights and notes, not 
 
 If you don't recognize this work or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
         skip_language_instruction = false,
-        skip_domain = true,
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
@@ -1625,7 +1620,6 @@ Adapt to the work — a novel's insights look different from a research paper's 
         text = _("Reading Guide"),
         description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Source selection: full document text, document summary, or AI knowledge. Can target a specific section."),
         context = "book",
-        skip_domain = true,
         use_book_text = true,
         use_summary_cache = true,
         use_reading_progress = true,
