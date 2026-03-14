@@ -1871,7 +1871,16 @@ function XrayBrowser:chatAboutItem(detail_text)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
     config.features.is_multi_book_context = nil
-    -- Keep book_metadata — the dialog uses it for book context (title/author) and chat saving
+    -- Ensure book_metadata has the correct file for this artifact's book
+    -- (may be stale if config was from a different book or file browser context)
+    if self.metadata.book_file then
+        config.features.book_metadata = config.features.book_metadata or {}
+        config.features.book_metadata.file = self.metadata.book_file
+        config.features.book_metadata.title = config.features.book_metadata.title or self.metadata.title
+        config.features.book_metadata.author = config.features.book_metadata.author or self.metadata.book_author or ""
+        config.features.book_metadata.author_clause = (config.features.book_metadata.author and config.features.book_metadata.author ~= "")
+            and (" by " .. config.features.book_metadata.author) or ""
+    end
     -- Clear stale selection data - the "highlight" is AI-generated, not a real book selection,
     -- so "Save to Note" must be disabled (prevents saving to a random prior highlight position)
     config.features.selection_data = nil
@@ -1929,6 +1938,16 @@ function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_conte
     config.features.is_general_context = nil
     config.features.is_book_context = nil
     config.features.is_multi_book_context = nil
+
+    -- Ensure book_metadata has the correct file for this artifact's book
+    if file then
+        config.features.book_metadata = config.features.book_metadata or {}
+        config.features.book_metadata.file = file
+        config.features.book_metadata.title = config.features.book_metadata.title or self.metadata.title
+        config.features.book_metadata.author = config.features.book_metadata.author or self.metadata.book_author or ""
+        config.features.book_metadata.author_clause = (config.features.book_metadata.author and config.features.book_metadata.author ~= "")
+            and (" by " .. config.features.book_metadata.author) or ""
+    end
 
     -- Set item description as disambiguation context (consumed by _forced_surrounding_context)
     config.features._forced_surrounding_context = XrayParser.formatItemDetail(item, category_key)
