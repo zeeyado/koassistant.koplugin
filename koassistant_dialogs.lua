@@ -183,6 +183,19 @@ local function persistDomainSelection(plugin, domain_id)
     plugin.settings:flush()
 end
 
+-- Helper to persist per-book domain selection to DocSettings
+local function persistBookDomain(doc_settings, domain_id)
+    if not doc_settings then return end
+    doc_settings:saveSetting("koassistant_book_domain", domain_id)
+    doc_settings:flush()
+end
+
+-- Helper to read per-book domain from DocSettings
+local function getBookDomain(doc_settings)
+    if not doc_settings then return nil end
+    return doc_settings:readSetting("koassistant_book_domain")
+end
+
 -- Extract surrounding context for dictionary lookups
 -- Uses KOReader's highlight API to get text before/after selection
 -- @param ui: KOReader UI instance with highlight module
@@ -2868,10 +2881,39 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Get domain context if a domain is set (skip if action opts out)
-    -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)
+    -- Priority: prompt.domain (locked) > book domain (DocSettings) > global selected_domain
+    -- Book domain "_none" = explicit override to no domain (blocks global fallthrough)
     local domain_context = nil
     local skip_domain = prompt and prompt.skip_domain
-    local domain_id = (not skip_domain) and (prompt.domain or (config.features and config.features.selected_domain))
+    local domain_id = nil
+    if not skip_domain then
+        if prompt and prompt.domain then
+            domain_id = prompt.domain
+        else
+            -- Book domain: use the relevant book's DocSettings (not necessarily the open book)
+            -- Prefer book_metadata.file (file browser/artifact target) over ui.document.file (open book)
+            local book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
+                or (ui and ui.document and ui.document.file)
+            local book_domain = nil
+            if book_file then
+                local relevant_ds
+                if ui and ui.doc_settings and ui.document and ui.document.file == book_file then
+                    relevant_ds = ui.doc_settings
+                else
+                    local DocSettings = require("docsettings")
+                    relevant_ds = DocSettings:open(book_file)
+                end
+                book_domain = getBookDomain(relevant_ds)
+            end
+            if book_domain == "_none" then
+                domain_id = nil  -- explicit none, skip global
+            elseif book_domain then
+                domain_id = book_domain
+            else
+                domain_id = config.features and config.features.selected_domain
+            end
+        end
+    end
     if domain_id then
         local DomainLoader = require("domain_loader")
         -- Get custom domains from config for lookup
@@ -3557,10 +3599,33 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Track selected domain for this dialog (initialize from config if set)
     local selected_domain = configuration and configuration.features and configuration.features.selected_domain or nil
 
+    -- Track per-book domain for any context that targets a specific book
+    -- General and multi-book contexts explicitly disassociate from any specific book
+    -- Use document_path (the relevant book) to load the right DocSettings,
+    -- not ui_instance.doc_settings (which is the currently open book — may differ)
+    local doc_settings = nil
+    if document_path then
+        if ui_instance and ui_instance.doc_settings
+                and ui_instance.document and ui_instance.document.file == document_path then
+            -- Currently open book — use in-memory settings
+            doc_settings = ui_instance.doc_settings
+        else
+            -- Different book (file browser, artifact) — load from disk
+            local DocSettings = require("docsettings")
+            doc_settings = DocSettings:open(document_path)
+        end
+    end
+    local book_domain_id = getBookDomain(doc_settings)
+
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
     local refreshInputDialog
 
+    -- Domain target: "book" or "global" — controls where selection is saved
+    -- Default to "book" if a book override exists, otherwise "global"
+    local domain_target = (doc_settings and book_domain_id) and "book" or "global"
+
     -- Function to show domain selector
+    -- Single list with target toggle at top when a book is open
     local function showDomainSelector()
         -- Close the on-screen keyboard first to prevent z-order issues
         input_dialog:onCloseKeyboard()
@@ -3574,40 +3639,118 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         local buttons = {}
 
-        -- "None" option
-        local none_prefix = (not selected_domain) and "● " or "○ "
-        table.insert(buttons, {
-            {
-                text = none_prefix .. _("None"),
-                callback = function()
-                    selected_domain = nil
-                    configuration.features = configuration.features or {}
-                    configuration.features.selected_domain = nil
-                    persistDomainSelection(plugin, nil)
-                    UIManager:close(_G.domain_selector_dialog)
-                    refreshInputDialog()
-                end,
-            },
-        })
+        -- Helper to close and refresh input dialog
+        local function closeAndRefresh()
+            UIManager:close(_G.domain_selector_dialog)
+            refreshInputDialog()
+        end
 
-        -- Domain options with source indicators
-        for _idx, domain in ipairs(sorted_domains) do
-            local prefix = (selected_domain == domain.id) and "● " or "○ "
-            -- Use display_name which includes source indicator for UI-created domains
-            local display_text = prefix .. domain.display_name
+        -- Helper to close and reopen this selector (for target toggle)
+        local function reopenSelector()
+            UIManager:close(_G.domain_selector_dialog)
+            showDomainSelector()
+        end
+
+        local is_book_target = doc_settings and domain_target == "book"
+
+        if doc_settings then
+            -- Target toggle row: [For this book] [Global default]
+            local book_label = is_book_target and ("● " .. _("For this book")) or ("○ " .. _("For this book"))
+            local global_label = (not is_book_target) and ("● " .. _("Global")) or ("○ " .. _("Global"))
             table.insert(buttons, {
                 {
-                    text = display_text,
+                    text = book_label,
                     callback = function()
-                        selected_domain = domain.id
-                        configuration.features = configuration.features or {}
-                        configuration.features.selected_domain = domain.id
-                        persistDomainSelection(plugin, domain.id)
-                        UIManager:close(_G.domain_selector_dialog)
-                        refreshInputDialog()
+                        if domain_target ~= "book" then
+                            domain_target = "book"
+                            reopenSelector()
+                        end
+                    end,
+                },
+                {
+                    text = global_label,
+                    callback = function()
+                        if domain_target ~= "global" then
+                            domain_target = "global"
+                            reopenSelector()
+                        end
                     end,
                 },
             })
+        end
+
+        if is_book_target then
+            -- Book target: show "Use global default" option first
+            local use_global_prefix = (not book_domain_id) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = use_global_prefix .. _("Use global"),
+                    callback = function()
+                        book_domain_id = nil
+                        persistBookDomain(doc_settings, nil)
+                        closeAndRefresh()
+                    end,
+                },
+            })
+
+            -- "None" (explicit override to no domain)
+            local none_prefix = (book_domain_id == "_none") and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = none_prefix .. _("None"),
+                    callback = function()
+                        book_domain_id = "_none"
+                        persistBookDomain(doc_settings, "_none")
+                        closeAndRefresh()
+                    end,
+                },
+            })
+
+            -- Domain options
+            for _idx, domain in ipairs(sorted_domains) do
+                local prefix = (book_domain_id == domain.id) and "● " or "○ "
+                table.insert(buttons, {
+                    {
+                        text = prefix .. domain.display_name,
+                        callback = function()
+                            book_domain_id = domain.id
+                            persistBookDomain(doc_settings, domain.id)
+                            closeAndRefresh()
+                        end,
+                    },
+                })
+            end
+        else
+            -- Global target (or no book open): standard list
+            local none_prefix = (not selected_domain) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = none_prefix .. _("None"),
+                    callback = function()
+                        selected_domain = nil
+                        configuration.features = configuration.features or {}
+                        configuration.features.selected_domain = nil
+                        persistDomainSelection(plugin, nil)
+                        closeAndRefresh()
+                    end,
+                },
+            })
+
+            for _idx, domain in ipairs(sorted_domains) do
+                local prefix = (selected_domain == domain.id) and "● " or "○ "
+                table.insert(buttons, {
+                    {
+                        text = prefix .. domain.display_name,
+                        callback = function()
+                            selected_domain = domain.id
+                            configuration.features = configuration.features or {}
+                            configuration.features.selected_domain = domain.id
+                            persistDomainSelection(plugin, domain.id)
+                            closeAndRefresh()
+                        end,
+                    },
+                })
+            end
         end
 
         -- Close button
@@ -3630,19 +3773,28 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Get domain display name for button
+    -- Shows effective domain: book domain takes priority over global
+    -- "_none" sentinel = explicit no-domain override for this book
     local function getDomainDisplayName()
-        if not selected_domain then
+        if book_domain_id == "_none" then
+            return _("None") .. _(" (book)")
+        end
+        local effective_id = book_domain_id or selected_domain
+        if not effective_id then
             return _("None")
         end
         local DomainLoader = require("domain_loader")
         -- Get custom domains from settings for lookup
         local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
         local custom_domains = features.custom_domains or {}
-        local domain = DomainLoader.getDomainById(selected_domain, custom_domains)
+        local domain = DomainLoader.getDomainById(effective_id, custom_domains)
         if domain then
+            if book_domain_id then
+                return domain.display_name .. _(" (book)")
+            end
             return domain.display_name
         end
-        return selected_domain
+        return effective_id
     end
 
     -- Emoji helper for this dialog (scoped to dialog lifecycle)
@@ -4049,7 +4201,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- System prompt and domain are built by buildUnifiedRequestConfig
 
                     -- Get domain context if a domain is selected (for passing to buildUnifiedRequestConfig)
-                    local domain_id = selected_domain
+                    -- Priority: book domain > global selected_domain
+                    -- book_domain_id "_none" = explicit override to no domain
+                    local domain_id
+                    if book_domain_id == "_none" then
+                        domain_id = nil
+                    else
+                        domain_id = book_domain_id or selected_domain
+                    end
                     local domain_context = nil
                     if domain_id then
                         local DomainLoader = require("domain_loader")

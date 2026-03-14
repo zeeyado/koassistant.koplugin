@@ -7694,7 +7694,15 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
 
   local buttons = {}
   for _idx, item in ipairs(menu_items) do
-    if item.text then
+    if item.separator then
+      -- Non-interactive section header
+      table.insert(buttons, {
+        {
+          text = item.text or "────────────────",
+          enabled = false,
+        },
+      })
+    elseif item.text then
       local is_checked = item.checked_func and item.checked_func()
       local text = item.text
       if is_checked then
@@ -7966,13 +7974,22 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local behavior_display = behavior_info and behavior_info.display_name or behavior_id
 
   -- Get domain display name (with source indicator)
-  local domain_id = features.selected_domain
+  -- Show effective domain: book domain takes priority over global
+  -- "_none" sentinel = explicit no-domain override for this book
+  local book_domain_id = self.ui and self.ui.document and self.ui.doc_settings
+      and self.ui.doc_settings:readSetting("koassistant_book_domain") or nil
   local domain_display = _("None")
-  if domain_id then
+  if book_domain_id == "_none" then
+    domain_display = _("None") .. _(" (book)")
+  elseif book_domain_id or features.selected_domain then
+    local effective_domain_id = book_domain_id or features.selected_domain
     local custom_domains = features.custom_domains or {}
-    local domain = DomainLoader.getDomainById(domain_id, custom_domains)
+    local domain = DomainLoader.getDomainById(effective_domain_id, custom_domains)
     if domain then
-      domain_display = domain.display_name or domain.name or domain_id
+      domain_display = domain.display_name or domain.name or effective_domain_id
+      if book_domain_id then
+        domain_display = domain_display .. _(" (book)")
+      end
     end
   end
 
@@ -8069,8 +8086,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
-      local menu_items = self_ref:buildDomainMenu()
-      self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
+      self_ref:showDomainPopup(reopenQuickSettings)
     end,
   }
 
@@ -8702,61 +8718,169 @@ end
 
 --- Change Domain gesture handler (quick selector popup)
 function AskGPT:onKOAssistantChangeDomain()
-  local menu_items = self:buildDomainMenu()
-  self:showQuickSettingsPopup(_("Knowledge Domain"), menu_items)
+  self:showDomainPopup()
   return true
 end
 
---- Build domain menu (for gesture action)
---- Shows available domains for quick selection
-function AskGPT:buildDomainMenu()
+--- Show domain popup with two-column layout when a book is open, flat list otherwise
+--- @param on_close_callback function|nil: Called after popup closes (e.g., reopen quick settings)
+function AskGPT:showDomainPopup(on_close_callback, target_override)
   local DomainLoader = require("domain_loader")
+  local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
 
   local features = self.settings:readSetting("features") or {}
   local custom_domains = features.custom_domains or {}
-  local all_domains = DomainLoader.getSortedDomains(custom_domains)  -- Returns sorted array
+  local all_domains = DomainLoader.getSortedDomains(custom_domains)
 
-  local items = {}
+  local doc_settings = self.ui and self.ui.document and self.ui.doc_settings or nil
+  local book_domain = doc_settings and doc_settings:readSetting("koassistant_book_domain") or nil
 
-  -- Add "None" option first
-  table.insert(items, {
-    text = _("None"),
-    checked_func = function()
-      local f = self_ref.settings:readSetting("features") or {}
-      return not f.selected_domain
-    end,
-    radio = true,
-    callback = function()
-      local f = self_ref.settings:readSetting("features") or {}
-      f.selected_domain = nil
-      self_ref.settings:saveSetting("features", f)
-      self_ref.settings:flush()
-      self_ref:updateConfigFromSettings()
-    end,
-  })
+  -- Domain target: "book" or "global" — controls where selection is saved
+  -- Default to "book" if a book override exists, otherwise "global"
+  local domain_target = target_override
+      or (doc_settings and book_domain and "book")
+      or "global"
+  local is_book_target = doc_settings and domain_target == "book"
 
-  -- Add all available domains
-  for _idx, domain in ipairs(all_domains) do
-    local domain_copy = domain
-    table.insert(items, {
-      text = domain_copy.display_name or domain_copy.name or domain_copy.id,
-      checked_func = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        return f.selected_domain == domain_copy.id
-      end,
-      radio = true,
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.selected_domain = domain_copy.id
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-      end,
-    })
+  -- Helper to close popup and notify caller
+  local function closePopup()
+    if self_ref._domain_popup then
+      UIManager:close(self_ref._domain_popup)
+      self_ref._domain_popup = nil
+    end
+    self_ref:updateConfigFromSettings()
+    if on_close_callback then on_close_callback() end
   end
 
-  return items
+  -- Helper to reopen with different target (toggle)
+  local function reopenWithTarget(new_target)
+    if self_ref._domain_popup then
+      UIManager:close(self_ref._domain_popup)
+      self_ref._domain_popup = nil
+    end
+    self_ref:showDomainPopup(on_close_callback, new_target)
+  end
+
+  local buttons = {}
+
+  if doc_settings then
+    -- Target toggle row: [For this book] [Global default]
+    local book_label = is_book_target and ("● " .. _("For this book")) or ("○ " .. _("For this book"))
+    local global_label = (not is_book_target) and ("● " .. _("Global")) or ("○ " .. _("Global"))
+    table.insert(buttons, {
+      {
+        text = book_label,
+        callback = function()
+          if domain_target ~= "book" then reopenWithTarget("book") end
+        end,
+      },
+      {
+        text = global_label,
+        callback = function()
+          if domain_target ~= "global" then reopenWithTarget("global") end
+        end,
+      },
+    })
+
+  end
+
+  if is_book_target then
+    -- Book target: "Use global default" option first
+    local use_global_prefix = (not book_domain) and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = use_global_prefix .. _("Use global"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_domain", nil)
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+    })
+
+    -- "None" (explicit override to no domain)
+    local none_prefix = (book_domain == "_none") and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = none_prefix .. _("None"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_domain", "_none")
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+    })
+
+    -- Domain options
+    for _idx, domain in ipairs(all_domains) do
+      local domain_copy = domain
+      local prefix = (book_domain == domain_copy.id) and "● " or "○ "
+      table.insert(buttons, {
+        {
+          text = prefix .. (domain_copy.display_name or domain_copy.name or domain_copy.id),
+          callback = function()
+            doc_settings:saveSetting("koassistant_book_domain", domain_copy.id)
+            doc_settings:flush()
+            closePopup()
+          end,
+        },
+      })
+    end
+  else
+    -- Global target (or no book open): standard list
+    local none_prefix = (not features.selected_domain) and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = none_prefix .. _("None"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.selected_domain = nil
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          closePopup()
+        end,
+      },
+    })
+
+    for _idx, domain in ipairs(all_domains) do
+      local domain_copy = domain
+      local prefix = (features.selected_domain == domain_copy.id) and "● " or "○ "
+      table.insert(buttons, {
+        {
+          text = prefix .. (domain_copy.display_name or domain_copy.name or domain_copy.id),
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.selected_domain = domain_copy.id
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            closePopup()
+          end,
+        },
+      })
+    end
+  end
+
+  -- Close button
+  table.insert(buttons, {
+    {
+      text = _("Close"),
+      id = "close",
+      callback = function()
+        if self_ref._domain_popup then
+          UIManager:close(self_ref._domain_popup)
+          self_ref._domain_popup = nil
+        end
+        if on_close_callback then on_close_callback() end
+      end,
+    },
+  })
+
+  self._domain_popup = ButtonDialog:new{
+    title = _("Knowledge Domain"),
+    buttons = buttons,
+  }
+  UIManager:show(self._domain_popup)
 end
 
 -- Dictionary Popup Manager gesture handler
