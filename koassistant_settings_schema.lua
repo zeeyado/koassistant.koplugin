@@ -1133,6 +1133,34 @@ local SettingsSchema = {
             },
         },
 
+        -- Library Settings submenu
+        {
+            id = "library_settings",
+            type = "submenu",
+            text = _("Library Settings"),
+            emoji = "📚",
+            items = {
+                {
+                    id = "enable_library_scanning_library",
+                    type = "toggle",
+                    text = _("Allow Library Scanning"),
+                    path = "features.enable_library_scanning",
+                    default = false,
+                    help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
+                },
+                {
+                    id = "library_scan_folders",
+                    type = "custom",
+                    text = _("Library Folders"),
+                    path = "features.library_scan_folders",
+                    depends_on = { id = "enable_library_scanning_library", value = true },
+                    help_text = _("Folders to scan for books. Only these folders will be scanned — no default or fallback. Add at least one folder to use library features."),
+                    -- Custom renderer: folder list with add/remove
+                    -- "Add folder" opens PathChooser
+                },
+            },
+        },
+
         -- Privacy & Data submenu
         {
             id = "privacy_data",

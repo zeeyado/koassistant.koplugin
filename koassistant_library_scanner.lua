@@ -158,36 +158,22 @@ local function scanFolder(folder_path, results, seen, exclude_path)
     end
 end
 
---- Get the default scan folder (KOReader home directory)
---- @return string
-local function getDefaultScanFolder()
-    -- G_reader_settings is a global in KOReader runtime
-    if G_reader_settings then
-        local home = G_reader_settings:readSetting("home_dir")
-        if home then return home end
-    end
-
-    local Device = require("device")
-    if Device.home_dir then return Device.home_dir end
-
-    -- Fallback
-    local ok, filemanagerutil = pcall(require, "apps/filemanager/filemanagerutil")
-    if ok and filemanagerutil and filemanagerutil.getDefaultDir then
-        return filemanagerutil.getDefaultDir()
-    end
-
-    return "/"
-end
-
 --- Scan all configured folders and return structured library data
+--- No fallback: if library_scan_folders is empty/nil, returns empty results.
+--- Folders must be explicitly configured by the user.
 --- @param settings table Features settings table (for library_scan_folders)
 --- @param current_book_path string|nil Path to exclude (current book)
 --- @return table Structured result: { books, by_status, by_folder, stats }
 function LibraryScanner.scan(settings, current_book_path)
-    -- Determine folders to scan
+    -- Require explicitly configured folders — no fallback
     local folders = settings and settings.library_scan_folders
     if not folders or #folders == 0 then
-        folders = { getDefaultScanFolder() }
+        return {
+            books = {},
+            by_status = { reading = {}, complete = {}, abandoned = {}, unread = {} },
+            by_folder = {},
+            stats = { total = 0, reading = 0, complete = 0, abandoned = 0, unread = 0 },
+        }
     end
 
     -- Collect all document file paths
