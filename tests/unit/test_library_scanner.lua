@@ -70,13 +70,15 @@ package.loaded["device"] = {
     screen = { getSize = function() return { w = 600, h = 800 } end },
 }
 
--- G_reader_settings global (used by getDefaultScanFolder)
+-- G_reader_settings global
 G_reader_settings = {
-    readSetting = function(_self, key)
-        if key == "home_dir" then return "/test/books" end
+    readSetting = function(_self, _key)
         return nil
     end,
 }
+
+-- Default settings with explicit scan folder (no fallback in scanner)
+local DEFAULT_SETTINGS = { library_scan_folders = { "/test/books" } }
 
 -- ============================================================
 -- Test helpers
@@ -243,7 +245,7 @@ TestRunner:test("complete status from sidecar", function()
         { status = "complete" },
         1.0
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.complete, 1, "Should be 1 complete")
     TestRunner:assertEqual(result.stats.total, 1, "Total should be 1")
     TestRunner:assertEqual(result.by_status.complete[1].title, "Dune")
@@ -259,7 +261,7 @@ TestRunner:test("abandoned status from sidecar", function()
         { status = "abandoned" },
         0.23
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.abandoned, 1, "Should be 1 abandoned")
     TestRunner:assertEqual(result.by_status.abandoned[1].progress, 0.23)
 end)
@@ -274,7 +276,7 @@ TestRunner:test("reading status from progress > 0", function()
         nil,  -- no summary
         0.45
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.reading, 1, "Should be 1 reading")
 end)
 
@@ -288,7 +290,7 @@ TestRunner:test("75%+ without explicit status treated as complete", function()
         nil,  -- no explicit status
         0.82
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.complete, 1, "75%+ should be complete")
     TestRunner:assertEqual(result.stats.reading, 0, "Should not be reading")
 end)
@@ -303,7 +305,7 @@ TestRunner:test("unread: sidecar exists but no progress", function()
         nil,
         nil  -- no progress
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.unread, 1, "No progress should be unread")
 end)
 
@@ -313,7 +315,7 @@ TestRunner:test("unread: no sidecar at all", function()
         ["/test/books"] = { "new_book.epub" },
     })
     -- No setSidecar call — no sidecar exists
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.unread, 1, "No sidecar should be unread")
     TestRunner:assertEqual(result.by_status.unread[1].title, "new_book")
 end)
@@ -329,7 +331,7 @@ TestRunner:test("extracts title from display_title", function()
         { display_title = "Display Title", title = "Raw Title" },
         nil, nil
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].title, "Display Title")
 end)
 
@@ -340,7 +342,7 @@ TestRunner:test("falls back to title when no display_title", function()
         { title = "Raw Title" },
         nil, nil
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].title, "Raw Title")
 end)
 
@@ -348,7 +350,7 @@ TestRunner:test("falls back to filename when no title", function()
     resetMocks()
     setFilesystem({ ["/test/books"] = { "my_book.epub" } })
     -- No sidecar
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].title, "my_book")
 end)
 
@@ -359,7 +361,7 @@ TestRunner:test("normalizes multi-author newlines to commas", function()
         { title = "Book", authors = "Author One\nAuthor Two\nAuthor Three" },
         nil, nil
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].author, "Author One, Author Two, Author Three")
 end)
 
@@ -370,7 +372,7 @@ TestRunner:test("extracts series and language", function()
         { title = "Dune Messiah", authors = "Frank Herbert", series = "Dune", language = "en" },
         { status = "complete" }, 1.0
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].series, "Dune")
     TestRunner:assertEqual(result.books[1].language, "en")
 end)
@@ -382,7 +384,7 @@ TestRunner:test("empty series/language treated as nil", function()
         { title = "Book", series = "", language = "" },
         nil, nil
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertNil(result.books[1].series, "Empty series should be nil")
     TestRunner:assertNil(result.books[1].language, "Empty language should be nil")
 end)
@@ -395,7 +397,7 @@ TestRunner:test("records source folder", function()
     resetMocks()
     setFilesystem({ ["/test/books"] = { "book.epub" } })
     setSidecar("/test/books/book.epub", { title = "Test" }, nil, nil)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].folder, "/test/books")
 end)
 
@@ -407,7 +409,7 @@ TestRunner:test("recursive scan finds nested books", function()
     })
     setSidecar("/test/books/top.epub", { title = "Top" }, nil, nil)
     setSidecar("/test/books/subfolder/nested.epub", { title = "Nested" }, nil, nil)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.total, 2, "Should find 2 books")
 end)
 
@@ -418,7 +420,7 @@ TestRunner:test("skips hidden files and folders", function()
         ["/test/books/.hidden_dir"] = { "secret.epub" },
     })
     setSidecar("/test/books/visible.epub", { title = "Visible" }, nil, nil)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.total, 1, "Should only find visible book")
     TestRunner:assertEqual(result.books[1].title, "Visible")
 end)
@@ -429,7 +431,7 @@ TestRunner:test("skips unsupported file types", function()
         ["/test/books"] = { "book.epub", "image.jpg", "notes.doc", "data.csv" },
     })
     setSidecar("/test/books/book.epub", { title = "Book" }, nil, nil)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     -- jpg and csv not in mock_supported_extensions, doc is not either
     TestRunner:assertEqual(result.stats.total, 1, "Should only find epub")
 end)
@@ -441,7 +443,7 @@ TestRunner:test("excludes current book", function()
     })
     setSidecar("/test/books/current.epub", { title = "Current" }, nil, 0.5)
     setSidecar("/test/books/other.epub", { title = "Other" }, nil, nil)
-    local result = LibraryScanner.scan({}, "/test/books/current.epub")
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, "/test/books/current.epub")
     TestRunner:assertEqual(result.stats.total, 1, "Should exclude current book")
     TestRunner:assertEqual(result.books[1].title, "Other")
 end)
@@ -459,12 +461,27 @@ TestRunner:test("deduplicates across overlapping folder configs", function()
     TestRunner:assertEqual(result.stats.total, 2, "Should deduplicate")
 end)
 
+TestRunner:test("no configured folders returns empty result (no fallback)", function()
+    resetMocks()
+    setFilesystem({
+        ["/test/books"] = { "book.epub" },
+    })
+    setSidecar("/test/books/book.epub", { title = "Should Not Appear" }, nil, nil)
+    -- Empty settings — scanner must NOT fall back to home dir or any default
+    local result = LibraryScanner.scan({}, nil)
+    TestRunner:assertEqual(result.stats.total, 0, "No folders = no scan")
+    TestRunner:assertEqual(#result.books, 0)
+    -- Also test nil folders explicitly
+    local result2 = LibraryScanner.scan({ library_scan_folders = {} }, nil)
+    TestRunner:assertEqual(result2.stats.total, 0, "Empty folders array = no scan")
+end)
+
 TestRunner:test("empty folder returns empty result", function()
     resetMocks()
     setFilesystem({
         ["/test/books"] = {},
     })
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.total, 0, "Empty folder should have 0 books")
     TestRunner:assertEqual(#result.books, 0)
 end)
@@ -478,7 +495,7 @@ TestRunner:test("enriches with last_read from ReadHistory", function()
     setFilesystem({ ["/test/books"] = { "book.epub" } })
     setSidecar("/test/books/book.epub", { title = "Book" }, { status = "complete" }, 1.0)
     addHistory("/test/books/book.epub", 1710000000)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.books[1].last_read, 1710000000, "Should have last_read")
 end)
 
@@ -486,7 +503,7 @@ TestRunner:test("nil last_read for books not in history", function()
     resetMocks()
     setFilesystem({ ["/test/books"] = { "book.epub" } })
     -- No history entry
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertNil(result.books[1].last_read, "Should be nil without history")
 end)
 
@@ -501,7 +518,7 @@ TestRunner:test("sorts reading group by recency", function()
     addHistory("/test/books/old.epub", 1000)
     addHistory("/test/books/new.epub", 3000)
     addHistory("/test/books/mid.epub", 2000)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.by_status.reading[1].title, "New", "Most recent first")
     TestRunner:assertEqual(result.by_status.reading[2].title, "Mid", "Second most recent")
     TestRunner:assertEqual(result.by_status.reading[3].title, "Old", "Least recent last")
@@ -521,7 +538,7 @@ TestRunner:test("indexes books by folder", function()
     setSidecar("/test/books/scifi/dune.epub", { title = "Dune" }, nil, nil)
     setSidecar("/test/books/fiction/gatsby.epub", { title = "Gatsby" }, nil, nil)
     setSidecar("/test/books/fiction/moby.epub", { title = "Moby Dick" }, nil, nil)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(#result.by_folder["/test/books/scifi"], 1, "SciFi folder should have 1")
     TestRunner:assertEqual(#result.by_folder["/test/books/fiction"], 2, "Fiction folder should have 2")
 end)
@@ -533,7 +550,7 @@ print("\nFormatter:")
 TestRunner:test("format returns empty string for empty library", function()
     resetMocks()
     setFilesystem({ ["/test/books"] = {} })
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result)
     TestRunner:assertEqual(text, "", "Empty library should produce empty string")
 end)
@@ -546,7 +563,7 @@ TestRunner:test("format includes status groups by default", function()
     setSidecar("/test/books/reading.epub", { title = "Reading Book", authors = "Author A" }, nil, 0.5)
     setSidecar("/test/books/done.epub", { title = "Done Book", authors = "Author B" }, { status = "complete" }, 1.0)
     -- new.epub has no sidecar → unread
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result)
     TestRunner:assertContains(text, "Currently reading (1):", "Should have reading header")
     TestRunner:assertContains(text, "Finished (1):", "Should have finished header")
@@ -562,7 +579,7 @@ TestRunner:test("format basic depth: title and author only", function()
         { title = "Test", authors = "Author", series = "MySeries" },
         nil, 0.5
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result, { depth = "basic" })
     TestRunner:assertContains(text, '"Test"', "Should have title")
     TestRunner:assertContains(text, "by Author", "Should have author")
@@ -577,7 +594,7 @@ TestRunner:test("format standard depth: includes series and progress", function(
         { title = "Test", authors = "Author", series = "MySeries" },
         nil, 0.5
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result, { depth = "standard" })
     TestRunner:assertContains(text, "MySeries", "Standard depth should include series")
     TestRunner:assertContains(text, "50%", "Standard depth should include progress")
@@ -590,7 +607,7 @@ TestRunner:test("format full depth: includes language", function()
         { title = "Test", authors = "Author", language = "ar" },
         nil, 0.5
     )
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result, { depth = "full" })
     TestRunner:assertContains(text, "[ar]", "Full depth should include language")
 end)
@@ -602,7 +619,7 @@ TestRunner:test("format status filter: only specified statuses", function()
     })
     setSidecar("/test/books/reading.epub", { title = "Reading" }, nil, 0.5)
     setSidecar("/test/books/done.epub", { title = "Done" }, { status = "complete" }, 1.0)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result, { statuses = { "reading" } })
     TestRunner:assertContains(text, '"Reading"', "Should include reading")
     TestRunner:assertNotContains(text, '"Done"', "Should exclude finished")
@@ -620,7 +637,7 @@ TestRunner:test("format budget truncates unread list", function()
     end
     fs["/test/books"] = files
     setFilesystem(fs)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     -- Use a very small budget
     local text = LibraryScanner.format(result, { budget = 500 })
     TestRunner:assertContains(text, "... and", "Should have truncation notice")
@@ -636,7 +653,7 @@ TestRunner:test("format group_by folder", function()
     })
     setSidecar("/test/books/scifi/dune.epub", { title = "Dune" }, nil, nil)
     setSidecar("/test/books/fiction/gatsby.epub", { title = "Gatsby" }, nil, nil)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result, { group_by = "folder" })
     TestRunner:assertContains(text, "fiction", "Should have fiction folder header")
     TestRunner:assertContains(text, "scifi", "Should have scifi folder header")
@@ -649,7 +666,7 @@ TestRunner:test("format progress only shown for reading/abandoned", function()
     })
     setSidecar("/test/books/reading.epub", { title = "Reading" }, nil, 0.45)
     setSidecar("/test/books/done.epub", { title = "Done" }, { status = "complete" }, 1.0)
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     local text = LibraryScanner.format(result)
     TestRunner:assertContains(text, "45%", "Reading should show progress")
     TestRunner:assertNotContains(text, "100%", "Complete should not show progress")
@@ -669,7 +686,7 @@ TestRunner:test("stats counts are accurate", function()
     setSidecar("/test/books/c1.epub", { title = "C1" }, { status = "complete" }, 1.0)
     setSidecar("/test/books/a1.epub", { title = "A1" }, { status = "abandoned" }, 0.1)
     -- u1, u2, u3 have no sidecars → unread
-    local result = LibraryScanner.scan({}, nil)
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
     TestRunner:assertEqual(result.stats.total, 7, "Total")
     TestRunner:assertEqual(result.stats.reading, 2, "Reading")
     TestRunner:assertEqual(result.stats.complete, 1, "Complete")

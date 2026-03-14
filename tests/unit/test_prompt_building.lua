@@ -723,17 +723,50 @@ local function runGatingTests()
         TestRunner:assertEquals(data.library_content, nil)  -- Not extracted at all
     end)
 
-    TestRunner:test("library allowed when both gates pass", function()
-        local extractor = createMockExtractor({ enable_library_scanning = true })
+    TestRunner:test("library allowed when all three gates pass", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = true,
+            library_scan_folders = { "/test/books" },
+        })
         local data = extractor:extractForAction({ use_library = true })
         TestRunner:assertContains(data.library_content, "Dune")
     end)
 
-    TestRunner:test("library bypass with trusted provider", function()
+    TestRunner:test("library blocked when folders not configured", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = true,
+            -- No library_scan_folders
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertEquals(data.library_content, "")
+    end)
+
+    TestRunner:test("library blocked when folders empty array", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = true,
+            library_scan_folders = {},
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertEquals(data.library_content, "")
+    end)
+
+    TestRunner:test("library bypass with trusted provider still requires folders", function()
         local extractor = createMockExtractor({
             enable_library_scanning = false,  -- Global OFF (default)
             provider = "local_ollama",
             trusted_providers = { "local_ollama" },
+            -- No library_scan_folders — trusted bypass only skips global gate, not folder gate
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertEquals(data.library_content, "")
+    end)
+
+    TestRunner:test("library bypass with trusted provider + folders configured", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = false,  -- Global OFF
+            provider = "local_ollama",
+            trusted_providers = { "local_ollama" },
+            library_scan_folders = { "/test/books" },
         })
         local data = extractor:extractForAction({ use_library = true })
         TestRunner:assertContains(data.library_content, "Dune")
@@ -744,6 +777,7 @@ local function runGatingTests()
             enable_library_scanning = false,
             provider = "local_ollama",
             trusted_providers = { "local_ollama" },
+            library_scan_folders = { "/test/books" },
         })
         -- Trusted provider only bypasses global gate, not action flag
         local data = extractor:extractForAction({ use_library = false })
@@ -751,7 +785,7 @@ local function runGatingTests()
     end)
 
     TestRunner:test("_unavailable_data: 'library (scanning disabled)' when global off", function()
-        local extractor = createMockExtractor({})
+        local extractor = createMockExtractor({ library_scan_folders = { "/test/books" } })
         local data = extractor:extractForAction({ use_library = true })
         TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
         local found = false
@@ -761,13 +795,27 @@ local function runGatingTests()
         TestRunner:assert(found, "should contain 'library (scanning disabled)'")
     end)
 
+    TestRunner:test("_unavailable_data: 'library (no folders configured)' when folders missing", function()
+        local extractor = createMockExtractor({ enable_library_scanning = true })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
+        local found = false
+        for _idx, msg in ipairs(data._unavailable_data) do
+            if msg:find("library (no folders configured)", 1, true) then found = true end
+        end
+        TestRunner:assert(found, "should contain 'library (no folders configured)'")
+    end)
+
     TestRunner:test("_unavailable_data: 'library (no books found)' when allowed but empty", function()
         local empty_scanner = {
             scan = function() return { books = {}, by_status = {}, by_folder = {}, stats = { total = 0 } } end,
             format = function() return "" end,
         }
         package.loaded["koassistant_library_scanner"] = empty_scanner
-        local extractor = createMockExtractor({ enable_library_scanning = true })
+        local extractor = createMockExtractor({
+            enable_library_scanning = true,
+            library_scan_folders = { "/test/books" },
+        })
         local data = extractor:extractForAction({ use_library = true })
         TestRunner:assert(data._unavailable_data, "should have _unavailable_data")
         local found = false

@@ -1387,10 +1387,14 @@ function ContextExtractor:extractForAction(action)
         data.notebook_content = ""
     end
 
-    -- Library data extraction: double-gated like notebook
-    -- Requires both use_library flag AND enable_library_scanning global setting
-    -- Trusted providers bypass the global setting
-    local library_allowed = provider_trusted or self.settings.enable_library_scanning == true
+    -- Library data extraction: triple-gated
+    -- Requires: (1) use_library action flag, (2) enable_library_scanning global setting,
+    --           (3) library_scan_folders configured (non-empty)
+    -- Trusted providers bypass gate 2 only (NOT gate 3 — folders must always be explicit)
+    local library_setting_allowed = provider_trusted or self.settings.enable_library_scanning == true
+    local library_folders = self.settings.library_scan_folders
+    local library_folders_configured = library_folders and #library_folders > 0
+    local library_allowed = library_setting_allowed and library_folders_configured
     if action.use_library and library_allowed then
         local LibraryScanner = require("koassistant_library_scanner")
         local scan_result = LibraryScanner.scan(self.settings, self.document_path)
@@ -1462,8 +1466,10 @@ function ContextExtractor:extractForAction(action)
 
     -- Library: check if requested but not available
     if action.use_library then
-        if not library_allowed then
+        if not library_setting_allowed then
             table.insert(unavailable, "library (scanning disabled)")
+        elseif not library_folders_configured then
+            table.insert(unavailable, "library (no folders configured)")
         elseif not data.library_content or data.library_content == "" then
             table.insert(unavailable, "library (no books found)")
         end

@@ -4675,6 +4675,14 @@ function AskGPT:_checkRequirements(action)
         })
         return true
       end
+      -- Folder gate: at least one folder must be configured (no fallback)
+      local lib_folders = features.library_scan_folders
+      if not lib_folders or #lib_folders == 0 then
+        UIManager:show(InfoMessage:new{
+          text = _("No library folders configured.\n\nAdd folders in Settings → Library Settings → Library Folders.") .. hint,
+        })
+        return true
+      end
     elseif req == "highlights" then
       -- Per-action gate: are both highlight flags explicitly disabled?
       if not action.use_highlights and not action.use_annotations then
