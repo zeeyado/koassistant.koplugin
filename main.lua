@@ -10456,6 +10456,107 @@ function AskGPT:showTrustedProvidersDialog()
   UIManager:show(self._trusted_providers_dialog)
 end
 
+-- Returns menu items for library folders submenu
+-- Each folder shown with hold-to-remove, plus "Add folder" opens PathChooser
+function AskGPT:getLibraryFoldersMenuItems()
+  local items = {}
+  local self_ref = self
+
+  local f = self.settings:readSetting("features") or {}
+  local folders = f.library_scan_folders or {}
+
+  -- Show each configured folder
+  for _idx, folder_path in ipairs(folders) do
+    local display = folder_path:match("([^/]+)$") or folder_path
+    table.insert(items, {
+      text = display,
+      keep_menu_open = true,
+      help_text = folder_path,
+      callback = function()
+        UIManager:show(InfoMessage:new{
+          text = folder_path,
+          timeout = 5,
+        })
+      end,
+      hold_callback = function(touchmenu_instance)
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+          text = T(_("Remove this folder from library scanning?\n\n%1"), folder_path),
+          ok_callback = function()
+            local feat = self_ref.settings:readSetting("features") or {}
+            local fldrs = feat.library_scan_folders or {}
+            for i = #fldrs, 1, -1 do
+              if fldrs[i] == folder_path then
+                table.remove(fldrs, i)
+                break
+              end
+            end
+            feat.library_scan_folders = fldrs
+            self_ref.settings:saveSetting("features", feat)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+            if touchmenu_instance then
+              touchmenu_instance:updateItems()
+            end
+          end,
+        })
+      end,
+    })
+  end
+
+  -- Separator before "Add folder" if there are existing folders
+  if #items > 0 then
+    items[#items].separator = true
+  end
+
+  -- "Add folder" item
+  table.insert(items, {
+    text = _("Add folder"),
+    keep_menu_open = true,
+    callback = function(touchmenu_instance)
+      local PathChooser = require("ui/widget/pathchooser")
+      local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+      local path_chooser = PathChooser:new{
+        title = _("Select Library Folder"),
+        path = start_path,
+        select_directory = true,
+        onConfirm = function(selected_path)
+          local feat = self_ref.settings:readSetting("features") or {}
+          local fldrs = feat.library_scan_folders or {}
+          for _fidx, existing in ipairs(fldrs) do
+            if existing == selected_path then
+              UIManager:show(InfoMessage:new{
+                text = T(_("Folder already added:\n%1"), selected_path),
+                timeout = 3,
+              })
+              return
+            end
+          end
+          table.insert(fldrs, selected_path)
+          table.sort(fldrs)
+          feat.library_scan_folders = fldrs
+          self_ref.settings:saveSetting("features", feat)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+          if touchmenu_instance then
+            touchmenu_instance:updateItems()
+          end
+        end,
+      }
+      UIManager:show(path_chooser)
+    end,
+  })
+
+  if #folders == 0 then
+    table.insert(items, 1, {
+      text = _("No folders configured"),
+      enabled_func = function() return false end,
+    })
+  end
+
+  return items
+end
+
 -- Show custom reset dialog with checklist
 function AskGPT:showCustomResetDialog()
   self:_showCustomResetOptionsDialog({

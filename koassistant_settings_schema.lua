@@ -1150,13 +1150,19 @@ local SettingsSchema = {
                 },
                 {
                     id = "library_scan_folders",
-                    type = "custom",
-                    text = _("Library Folders"),
-                    path = "features.library_scan_folders",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local folders = f.library_scan_folders or {}
+                        if #folders == 0 then
+                            return _("Library Folders: None")
+                        else
+                            return T(_("Library Folders: %1"), #folders)
+                        end
+                    end,
                     depends_on = { id = "enable_library_scanning_library", value = true },
                     help_text = _("Folders to scan for books. Only these folders will be scanned — no default or fallback. Add at least one folder to use library features."),
-                    -- Custom renderer: folder list with add/remove
-                    -- "Add folder" opens PathChooser
+                    callback = "getLibraryFoldersMenuItems",
                 },
             },
         },
