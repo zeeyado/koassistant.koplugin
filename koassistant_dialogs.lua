@@ -2828,6 +2828,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 enable_progress_sharing = config.features and config.features.enable_progress_sharing,
                 enable_stats_sharing = config.features and config.features.enable_stats_sharing,
                 enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
+                -- Library scanning
+                enable_library_scanning = config.features and config.features.enable_library_scanning,
+                library_scan_folders = config.features and config.features.library_scan_folders,
             })
             logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
                        config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
