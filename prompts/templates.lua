@@ -134,6 +134,25 @@ Adapt depth and focus to the type of work — a literary novel deserves attentio
 
 Be substantive but not exhaustive. {hallucination_nudge}]],
 
+    suggest_from_library = [[I'm currently reading "{title}"{author_clause} and I'm at {reading_progress}.
+
+Here is my library:
+
+{library}
+
+Based on this book and my library, suggest what I should read next **from books I already own**. Consider:
+- Thematic connections to what I'm currently reading
+- My reading patterns (what I've finished, what I started but stopped, what's unread)
+- Natural follow-ups — same author, same series, related topics
+- Variety — don't just suggest the most similar book; consider what would complement or contrast well
+
+For each suggestion (3-5 books):
+- Why this book specifically, given what I'm reading now
+- What it offers that connects to or extends my current read
+- If relevant, why now rather than later in my reading queue
+
+Only suggest books from my library. Do not recommend books I don't own. {hallucination_nudge}]],
+
     similar_books = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 similar works.
 
 For each recommendation, specify:
@@ -225,6 +244,8 @@ Explain your reasoning briefly. If order genuinely doesn't matter, say so. {hall
 
 {books_list}
 
+{library_section}
+
 First, briefly identify the pattern — what do these books suggest about this reader's taste? Then recommend 5-8 books, prioritizing:
 - Books that match the *intersection* of interests these books reveal, not just "similar to one of them"
 - A mix: some that lean into the reader's clear preferences, some that stretch in a direction they'd likely appreciate
@@ -234,7 +255,7 @@ For each recommendation:
 - Why this reader specifically would enjoy it (connect to the pattern you identified)
 - What it offers that none of the listed books do
 
-Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
+If the reader's library is included above, note which recommendations they already own and prioritize unread books from their library before suggesting new purchases. Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)
