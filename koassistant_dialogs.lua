@@ -3899,6 +3899,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         end
 
+        -- Pre-flight: block selection-required library actions when no books selected
+        if action.requires_selected_books then
+            local books = configuration and configuration.features and configuration.features.books_info
+            if not books or #books < 2 then
+                UIManager:show(InfoMessage:new{
+                    text = _("Select at least 2 books first using [+ Add Books]."),
+                    timeout = 3,
+                })
+                return
+            end
+        end
+
         -- Pre-flight: cache actions with source_selection use View/Sections/New popup
         if action.use_response_caching and action.source_selection and plugin then
             local ActionCache = require("koassistant_action_cache")
@@ -4147,6 +4159,129 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         runAction()
     end
 
+    -- Library context: show Add Books menu with presets
+    local add_books_dialog  -- forward declaration for closure
+    local function showAddBooksMenu()
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local books = configuration and configuration.features and configuration.features.books_info
+        local book_count = books and #books or 0
+        local menu_buttons = {}
+
+        -- Preset: Last 5 from History
+        table.insert(menu_buttons, {{
+            text = _("Last 5 from History"),
+            callback = function()
+                UIManager:close(add_books_dialog)
+                local ok, ReadHistory = pcall(require, "readhistory")
+                if not ok or not ReadHistory then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Reading history unavailable."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                ReadHistory:reload()
+                local hist = ReadHistory.hist or {}
+                if #hist == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = _("No reading history found."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                -- Take up to 5 most recent
+                local new_books = {}
+                local count = 0
+                for _idx, entry in ipairs(hist) do
+                    if entry.file and count < 5 then
+                        local title = entry.text or entry.file:match("([^/]+)%.[^%.]+$") or entry.file
+                        -- Try to get author from DocSettings
+                        local author = ""
+                        local doc_ok, DocSettings = pcall(require, "docsettings")
+                        if doc_ok and DocSettings then
+                            local ds = DocSettings:open(entry.file)
+                            local doc_props = ds:readSetting("doc_props")
+                            if doc_props and doc_props.authors then
+                                author = doc_props.authors
+                                if author:find("\n") then
+                                    author = author:gsub("\n", ", ")
+                                end
+                            end
+                        end
+                        table.insert(new_books, {
+                            title = title,
+                            authors = author,
+                            file = entry.file,
+                        })
+                        count = count + 1
+                    end
+                end
+                if #new_books == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = _("No books found in history."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                -- Build book_context string (same format as compareSelectedBooks)
+                local books_list = {}
+                for i, book in ipairs(new_books) do
+                    if book.authors ~= "" then
+                        table.insert(books_list, string.format('%d. "%s" by %s', i, book.title, book.authors))
+                    else
+                        table.insert(books_list, string.format('%d. "%s"', i, book.title))
+                    end
+                end
+                configuration.features = configuration.features or {}
+                configuration.features.books_info = new_books
+                configuration.features.book_context = string.format(
+                    "Selected %d books:\n\n%s", #new_books, table.concat(books_list, "\n"))
+                -- Store metadata for template substitution (first book)
+                if #new_books > 0 then
+                    configuration.features.book_metadata = {
+                        title = new_books[1].title,
+                        author = new_books[1].authors or "",
+                    }
+                end
+                refreshInputDialog()
+            end,
+        }})
+
+        -- Browse History (opens BookPicker)
+        table.insert(menu_buttons, {{
+            text = _("Browse History…"),
+            callback = function()
+                UIManager:close(add_books_dialog)
+                if plugin then
+                    plugin:showLibraryPicker()
+                end
+            end,
+        }})
+
+        -- Clear Selection (only if books are selected)
+        if book_count > 0 then
+            table.insert(menu_buttons, {{
+                text = _("Clear Selection"),
+                callback = function()
+                    UIManager:close(add_books_dialog)
+                    configuration.features = configuration.features or {}
+                    configuration.features.books_info = nil
+                    configuration.features.book_context = nil
+                    configuration.features.book_metadata = nil
+                    refreshInputDialog()
+                end,
+            }})
+        end
+
+        add_books_dialog = ButtonDialog:new{
+            title = book_count > 0
+                and T(_("%1 books selected"), book_count)
+                or _("Add Books"),
+            buttons = menu_buttons,
+        }
+        UIManager:show(add_books_dialog)
+    end
+
     -- Build all input dialog buttons (called on init and on refresh via reinit)
     local buildInputDialogButtons
     buildInputDialogButtons = function()
@@ -4238,7 +4373,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local parts = {}
 
                     -- Add appropriate context
-                    if configuration.features.is_book_context then
+                    if configuration.features.is_library_context then
+                        -- For library context, include selected books if any
+                        local lib_context = configuration.features.book_context
+                        if lib_context then
+                            table.insert(parts, "[Context]")
+                            table.insert(parts, lib_context)
+                            table.insert(parts, "")
+                        end
+                    elseif configuration.features.is_book_context then
                         -- For book context (file browser or gesture action), include book metadata
                         table.insert(parts, "[Context]")
                         if book_metadata then
@@ -4547,6 +4690,45 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         -- Organize into rows: top row (3 buttons), then action rows of 2
         local button_rows = { top_row }
+
+        -- Library context: add book selection row below top row
+        if input_context == "library" then
+            local books = configuration and configuration.features and configuration.features.books_info
+            local book_count = books and #books or 0
+            local add_text = book_count > 0
+                and T(_("%1 books selected"), book_count)
+                or _("+ Add Books")
+            table.insert(button_rows, {
+                {
+                    text = add_text,
+                    callback = function()
+                        showAddBooksMenu()
+                    end,
+                    hold_callback = function()
+                        if book_count > 0 then
+                            local lines = {}
+                            for _idx2, book in ipairs(books) do
+                                if book.authors and book.authors ~= "" then
+                                    table.insert(lines, string.format('"%s" by %s', book.title, book.authors))
+                                else
+                                    table.insert(lines, string.format('"%s"', book.title))
+                                end
+                            end
+                            UIManager:show(InfoMessage:new{
+                                text = table.concat(lines, "\n"),
+                                timeout = 6,
+                            })
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("Tap to add books via presets or manual selection."),
+                                timeout = 3,
+                            })
+                        end
+                    end,
+                },
+            })
+        end
+
         local current_row = {}
         for _idx, button in ipairs(action_buttons) do
             table.insert(current_row, button)
