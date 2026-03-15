@@ -940,8 +940,9 @@ Be substantive but not exhaustive. {hallucination_nudge}]],
         id = "similar_books",
         doi_web_override = true,
         text = _("Find Similar"),
-        description = _("Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which."),
+        description = _("Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which. When library scanning is enabled, notes which recommendations you already own."),
         context = "book",
+        use_library = true,  -- Optional: enriches with "you already own X"
         template = "similar_books",
         doi_prompt = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 related academic works.
 
@@ -1683,6 +1684,24 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         in_reading_features = 8,
         in_quick_actions = 10,
     },
+    -- End-of-book suggestion (variant of suggest_from_library with "just finished" framing)
+    next_read = {
+        id = "next_read",
+        text = _("Next Read"),
+        description = _("Suggests what to read next from your library after finishing the current book."),
+        context = "book",
+        skip_domain = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        use_library = true,
+        template = "next_read",
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 4096,
+        },
+        reasoning_config = { default = "off" },
+        builtin = true,
+    },
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
         id = "book_reviews",
@@ -1793,6 +1812,56 @@ Actions.library = {
         template = "recommend_books",
         api_params = {
             temperature = 0.8,  -- Higher creativity for discovery
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Scan-based actions (no book selection needed, use full library catalog)
+    next_from_library = {
+        id = "next_from_library",
+        text = _("Next Read"),
+        description = _("Suggests what to read next from your own library based on your reading patterns, what you've finished recently, and what's been sitting unread."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "next_from_library",
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 4096,
+        },
+        reasoning_config = { default = "off" },
+        builtin = true,
+    },
+    discover_books = {
+        id = "discover_books",
+        text = _("Discover New"),
+        description = _("Suggests new books to get based on your entire library — identifies your taste from what you own and recommends works you don't have yet."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "discover_books",
+        api_params = {
+            temperature = 0.8,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    reading_patterns = {
+        id = "reading_patterns",
+        text = _("Reading Patterns"),
+        description = _("Analyzes your library to reveal reading habits: what genres and authors you gravitate toward, completion patterns, and gaps in your collection."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "reading_patterns",
+        api_params = {
+            temperature = 0.6,
             max_tokens = 4096,
         },
         builtin = true,

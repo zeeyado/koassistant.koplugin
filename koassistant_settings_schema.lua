@@ -1145,6 +1145,21 @@ local SettingsSchema = {
                     path = "features.enable_library_scanning",
                     default = false,
                     help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
+                    on_change = function(new_value, plugin)
+                        if new_value then
+                            local InfoMessage = require("ui/widget/infomessage")
+                            local UIManager = require("ui/uimanager")
+                            local f = plugin.settings:readSetting("features") or {}
+                            local folders = f.library_scan_folders or {}
+                            local msg
+                            if #folders == 0 then
+                                msg = _("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nNext step: configure which folders to scan below in Library Folders.")
+                            else
+                                msg = T(_("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nCurrently scanning %1 folder(s)."), #folders)
+                            end
+                            UIManager:show(InfoMessage:new{ text = msg })
+                        end
+                    end,
                 },
                 {
                     id = "library_scan_folders",
@@ -1280,6 +1295,21 @@ local SettingsSchema = {
                     default = false,
                     help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
                     separator = true,
+                    on_change = function(new_value, plugin)
+                        if new_value then
+                            local InfoMessage = require("ui/widget/infomessage")
+                            local UIManager = require("ui/uimanager")
+                            local f = plugin.settings:readSetting("features") or {}
+                            local folders = f.library_scan_folders or {}
+                            local msg
+                            if #folders == 0 then
+                                msg = _("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nNext step: configure which folders to scan in Settings → Library Settings → Library Folders.")
+                            else
+                                msg = T(_("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nCurrently scanning %1 folder(s)."), #folders)
+                            end
+                            UIManager:show(InfoMessage:new{ text = msg })
+                        end
+                    end,
                 },
                 -- Text Extraction settings (moved from Advanced)
                 {

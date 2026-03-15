@@ -4159,6 +4159,47 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         runAction()
     end
 
+    -- Helper: merge new books into existing selection (dedup by file path)
+    local function mergeBooks(new_books)
+        configuration.features = configuration.features or {}
+        local existing = configuration.features.books_info or {}
+        local seen = {}
+        for _idx, b in ipairs(existing) do
+            if b.file then seen[b.file] = true end
+        end
+        local merged = {}
+        for _idx, b in ipairs(existing) do
+            table.insert(merged, b)
+        end
+        local added = 0
+        for _idx, b in ipairs(new_books) do
+            if not b.file or not seen[b.file] then
+                table.insert(merged, b)
+                if b.file then seen[b.file] = true end
+                added = added + 1
+            end
+        end
+        -- Rebuild book_context string
+        local books_list = {}
+        for i, book in ipairs(merged) do
+            if book.authors and book.authors ~= "" then
+                table.insert(books_list, string.format('%d. "%s" by %s', i, book.title, book.authors))
+            else
+                table.insert(books_list, string.format('%d. "%s"', i, book.title))
+            end
+        end
+        configuration.features.books_info = merged
+        configuration.features.book_context = string.format(
+            "Selected %d books:\n\n%s", #merged, table.concat(books_list, "\n"))
+        if #merged > 0 then
+            configuration.features.book_metadata = {
+                title = merged[1].title,
+                author = merged[1].authors or "",
+            }
+        end
+        return added, #merged
+    end
+
     -- Library context: show Add Books menu with presets
     local add_books_dialog  -- forward declaration for closure
     local function showAddBooksMenu()
@@ -4223,25 +4264,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     })
                     return
                 end
-                -- Build book_context string (same format as compareSelectedBooks)
-                local books_list = {}
-                for i, book in ipairs(new_books) do
-                    if book.authors ~= "" then
-                        table.insert(books_list, string.format('%d. "%s" by %s', i, book.title, book.authors))
-                    else
-                        table.insert(books_list, string.format('%d. "%s"', i, book.title))
-                    end
-                end
-                configuration.features = configuration.features or {}
-                configuration.features.books_info = new_books
-                configuration.features.book_context = string.format(
-                    "Selected %d books:\n\n%s", #new_books, table.concat(books_list, "\n"))
-                -- Store metadata for template substitution (first book)
-                if #new_books > 0 then
-                    configuration.features.book_metadata = {
-                        title = new_books[1].title,
-                        author = new_books[1].authors or "",
-                    }
+                local added, total = mergeBooks(new_books)
+                if added == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("All %1 books already selected."), #new_books),
+                        timeout = 2,
+                    })
+                    return
                 end
                 refreshInputDialog()
             end,
@@ -4280,6 +4309,64 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             buttons = menu_buttons,
         }
         UIManager:show(add_books_dialog)
+    end
+
+    -- Library context: view and remove selected books
+    local function showSelectedBooksEditor()
+        local books = configuration and configuration.features and configuration.features.books_info
+        if not books or #books == 0 then return end
+
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local editor_dialog
+        local menu_buttons = {}
+
+        for idx, book in ipairs(books) do
+            local label = book.authors and book.authors ~= ""
+                and string.format('"%s" by %s', book.title, book.authors)
+                or string.format('"%s"', book.title)
+            table.insert(menu_buttons, {{
+                text = label .. "  \xE2\x9C\x95",  -- ✕ remove indicator
+                callback = function()
+                    UIManager:close(editor_dialog)
+                    table.remove(books, idx)
+                    if #books == 0 then
+                        configuration.features.books_info = nil
+                        configuration.features.book_context = nil
+                        configuration.features.book_metadata = nil
+                    else
+                        -- Rebuild book_context string
+                        local parts = {}
+                        for _idx2, b in ipairs(books) do
+                            if b.authors and b.authors ~= "" then
+                                table.insert(parts, string.format('"%s" by %s', b.title, b.authors))
+                            else
+                                table.insert(parts, string.format('"%s"', b.title))
+                            end
+                        end
+                        configuration.features.book_context = table.concat(parts, "\n")
+                    end
+                    refreshInputDialog()
+                end,
+            }})
+        end
+
+        table.insert(menu_buttons, {{
+            text = _("Clear All"),
+            callback = function()
+                UIManager:close(editor_dialog)
+                configuration.features = configuration.features or {}
+                configuration.features.books_info = nil
+                configuration.features.book_context = nil
+                configuration.features.book_metadata = nil
+                refreshInputDialog()
+            end,
+        }})
+
+        editor_dialog = ButtonDialog:new{
+            title = T(_("%1 books selected"), #books),
+            buttons = menu_buttons,
+        }
+        UIManager:show(editor_dialog)
     end
 
     -- Build all input dialog buttons (called on init and on refresh via reinit)
@@ -4695,38 +4782,23 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if input_context == "library" then
             local books = configuration and configuration.features and configuration.features.books_info
             local book_count = books and #books or 0
-            local add_text = book_count > 0
-                and T(_("%1 books selected"), book_count)
-                or _("+ Add Books")
-            table.insert(button_rows, {
+            local selection_row = {
                 {
-                    text = add_text,
+                    text = _("+ Add Books"),
                     callback = function()
                         showAddBooksMenu()
                     end,
-                    hold_callback = function()
-                        if book_count > 0 then
-                            local lines = {}
-                            for _idx2, book in ipairs(books) do
-                                if book.authors and book.authors ~= "" then
-                                    table.insert(lines, string.format('"%s" by %s', book.title, book.authors))
-                                else
-                                    table.insert(lines, string.format('"%s"', book.title))
-                                end
-                            end
-                            UIManager:show(InfoMessage:new{
-                                text = table.concat(lines, "\n"),
-                                timeout = 6,
-                            })
-                        else
-                            UIManager:show(InfoMessage:new{
-                                text = _("Tap to add books via presets or manual selection."),
-                                timeout = 3,
-                            })
-                        end
-                    end,
                 },
-            })
+            }
+            if book_count > 0 then
+                table.insert(selection_row, {
+                    text = T(_("View/Edit (%1)"), book_count),
+                    callback = function()
+                        showSelectedBooksEditor()
+                    end,
+                })
+            end
+            table.insert(button_rows, selection_row)
         end
 
         local current_row = {}
@@ -4784,13 +4856,24 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Show the dialog with the button rows
     local is_multi = config and config.features and config.features.is_library_context
     local multi_count = is_multi and config.features.books_info and #config.features.books_info or 0
-    local dialog_title = is_multi and multi_count > 0
-        and T(_("Library: %1 books"), multi_count)
-        or _("KOAssistant Actions")
+    local dialog_title
+    local input_hint_text
+    if is_multi then
+        if multi_count > 0 then
+            dialog_title = T(_("Library Actions \xC2\xB7 %1 books"), multi_count)
+            input_hint_text = _("Add instructions or ask about these books...")
+        else
+            dialog_title = _("Library Actions")
+            input_hint_text = _("Ask about your library, or add books for multi-book actions...")
+        end
+    else
+        dialog_title = _("KOAssistant Actions")
+        input_hint_text = _("Type your question or additional instructions for any action...")
+    end
     input_dialog = InputDialog:new{
         title = dialog_title,
         input = initial_input or "",
-        input_hint = _("Type your question or additional instructions for any action..."),
+        input_hint = input_hint_text,
         input_type = "text",
         buttons = buildInputDialogButtons(),
         input_height = 6,

@@ -153,6 +153,23 @@ For each suggestion (3-5 books):
 
 Only suggest books from my library. Do not recommend books I don't own. {hallucination_nudge}]],
 
+    next_read = [[I just finished reading "{title}"{author_clause}.
+
+Here is my library:
+
+{library}
+
+What should I read next **from books I already own**? Consider:
+- What would be a good follow-up to what I just finished
+- My reading patterns (what I've completed, started, or left unread)
+- Natural next steps — same author, same series, related topics, or a deliberate change of pace
+
+Suggest 3-5 books from my library. For each:
+- Why this one next, given what I just finished
+- What it offers as a follow-up
+
+Only suggest books from my library. {hallucination_nudge}]],
+
     similar_books = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 similar works.
 
 For each recommendation, specify:
@@ -163,6 +180,8 @@ Adapt to content type:
 - Fiction: Similar narrative experience, themes, or style
 - Non-fiction: Similar arguments, perspectives, or intellectual tradition
 - Academic: Works that complement, extend, or debate this one
+
+{library_section}
 
 {hallucination_nudge}]],
 
@@ -256,6 +275,55 @@ For each recommendation:
 - What it offers that none of the listed books do
 
 If the reader's library is included above, note which recommendations they already own and prioritize unread books from their library before suggesting new purchases. Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
+
+    -- Scan-based actions (no book selection needed)
+    next_from_library = [[Here is my library:
+
+{library}
+
+What should I read next **from books I already own**? Consider:
+- What's unread or started but not finished
+- My reading patterns — what genres, authors, and topics I gravitate toward
+- What I've finished recently and what would complement or follow well
+- Books I started but set aside — are any worth returning to?
+
+Suggest 3-5 books. For each:
+- Why this one, given my reading patterns
+- What it offers that my recent reads don't
+
+Only suggest books from my library. {hallucination_nudge}]],
+
+    discover_books = [[Here is my library:
+
+{library}
+
+Based on what I own, recommend 5-8 new books I should get. First, briefly identify the pattern — what does this library say about the reader's taste?
+
+Then recommend books I don't already own, prioritizing:
+- Works that match the intersection of interests my library reveals
+- A mix: some that lean into clear preferences, some that stretch in a new direction
+- Lesser-known works alongside well-known ones
+
+For each:
+- Why this reader specifically would enjoy it
+- What it offers that nothing in the library already covers
+
+Skip obvious picks I've almost certainly encountered. {hallucination_nudge}]],
+
+    reading_patterns = [[Here is my library:
+
+{library}
+
+Analyze my reading patterns based on this collection. Consider:
+- Genres, topics, and themes I gravitate toward
+- Authors or styles that recur
+- Completion patterns — what I finish vs what I abandon or leave unread
+- Gaps — areas my collection doesn't cover that someone with these interests might expect
+- Any progression or evolution visible in my reading
+
+Be specific to what you see, not generic. Use the actual titles and authors to illustrate patterns.
+
+Note: this analysis is based on catalog metadata only (titles, authors, reading status, progress). Detailed reading time and session data is not included. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)

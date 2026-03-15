@@ -2022,8 +2022,9 @@ local INPUT_CONTEXTS = {
         dismissed_key = "_dismissed_input_library_actions",
         action_context = "library",
         has_open_book = false,
-        -- All library actions as defaults
-        default_ids = {"compare_books", "common_themes", "collection_summary",
+        -- All library actions as defaults: scan-based first, then selection-based
+        default_ids = {"next_from_library", "discover_books", "reading_patterns",
+            "compare_books", "common_themes", "collection_summary",
             "quick_summaries", "reading_order", "recommend_books"},
     },
 }
