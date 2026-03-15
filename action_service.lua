@@ -184,6 +184,13 @@ function ActionService:loadActions()
                     if override.skip_domain ~= nil then
                         action_data.skip_domain = override.skip_domain
                     end
+                    if override.domain ~= nil then
+                        if override.domain == "global" then
+                            action_data.domain = nil
+                        else
+                            action_data.domain = override.domain
+                        end
+                    end
                     if override.include_book_context ~= nil then
                         action_data.include_book_context = override.include_book_context
                     end
