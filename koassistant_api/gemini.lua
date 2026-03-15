@@ -90,8 +90,8 @@ function GeminiHandler:buildRequestBody(message_history, config)
     end
 
     -- Gemini 2.5: thinking tokens share the maxOutputTokens budget.
-    -- Scale up large requests only when thinking is active.
-    if has_budget_support and thinking_enabled and max_tokens > 16384 then
+    -- Double maxOutputTokens to compensate, capped at model ceiling (65536).
+    if has_budget_support and thinking_enabled then
         max_tokens = math.min(max_tokens * 2, 65536)
     end
 

@@ -276,14 +276,24 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             return
         end
 
-        -- Detect mid-stream API errors: if no real content was extracted from SSE/NDJSON
-        -- events but result_buffer has text, it's likely error text from unrecognized lines
-        -- (e.g., Gemini 500 arriving as raw multi-line JSON after streaming started)
+        -- Detect mid-stream API errors (e.g., Gemini 500 arriving as raw multi-line JSON)
+        -- Error text from unrecognized lines may be appended to result_buffer.
+        -- Case 1: No real content was streamed — report as failure
+        -- Case 2: Real content was streamed then error appended — strip error, mark truncated
+        local error_pattern = '"error"%s*:%s*{%s*"code"'
         if not has_streamed_content then
             local msg = result:match('"message"%s*:%s*"([^"]+)"')
             if msg then
                 if on_complete then on_complete(false, nil, msg) end
                 return
+            end
+        elseif result:find(error_pattern) then
+            -- Strip trailing API error from otherwise valid content
+            local error_pos = result:find('"error"%s*:')
+            if error_pos then
+                result = result:sub(1, error_pos - 1):match("^(.-)%s*$") or ""
+                was_truncated = true
+                logger.warn("Mid-stream API error detected after content, treating as truncated")
             end
         end
 
