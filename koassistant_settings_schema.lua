@@ -156,6 +156,7 @@ local SettingsSchema = {
                             id = "plain_text_options",
                             type = "submenu",
                             text = _("Plain Text Options"),
+                            separator = true,
                             items = {
                                 {
                                     id = "strip_markdown_in_text_mode",
@@ -166,9 +167,6 @@ local SettingsSchema = {
                                     help_text = _("Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."),
                                 },
                             },
-                        },
-                        {
-                            type = "separator",
                         },
                         {
                             id = "dictionary_text_mode",
@@ -1471,9 +1469,7 @@ local SettingsSchema = {
                             text = _("Please restart KOReader for this change to take effect."),
                         })
                     end,
-                },
-                {
-                    type = "separator",
+                    separator = true,
                 },
                 {
                     id = "recap_reminder_header",
