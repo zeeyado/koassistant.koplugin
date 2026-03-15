@@ -64,11 +64,11 @@ local SettingsSchema = {
             callback = "showArtifactBrowser",
         },
         {
-            id = "multi_book_actions",
+            id = "library_actions",
             type = "action",
-            text = _("Multi-Book Actions"),
+            text = _("Library"),
             emoji = "\u{1F4DA}",
-            callback = "showMultiBookPicker",
+            callback = "showLibraryPicker",
             separator = true,
         },
 

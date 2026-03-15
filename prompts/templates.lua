@@ -8,8 +8,8 @@
 --   {title}                - Book title (book, highlight contexts)
 --   {author}               - Book author (book, highlight contexts)
 --   {author_clause}        - " by Author" or "" if no author
---   {count}                - Number of selected books (multi_book context)
---   {books_list}           - Formatted list of books (multi_book context)
+--   {count}                - Number of selected books (library context)
+--   {books_list}           - Formatted list of books (library context)
 --   {translation_language} - Target translation language from settings (all contexts)
 --   {dictionary_language}  - Dictionary response language from settings (all contexts)
 --   {context}              - Surrounding text context for dictionary lookups (highlight context)
@@ -187,8 +187,8 @@ Adapt to the work's nature — a novel reflects its era differently than a manif
 {hallucination_nudge}]],
 }
 
--- Multi-book context templates
-Templates.multi_book = {
+-- Library context templates (multi-book)
+Templates.library = {
     compare_books = [[Compare these {count} books:
 
 {books_list}
@@ -268,7 +268,7 @@ Templates.special = {
 -- @return string or nil: Template text if found
 function Templates.get(template_id)
     -- Search all template tables
-    for _idx, context_table in pairs({Templates.highlight, Templates.book, Templates.multi_book, Templates.special}) do
+    for _idx, context_table in pairs({Templates.highlight, Templates.book, Templates.library, Templates.special}) do
         if context_table[template_id] then
             return context_table[template_id]
         end
@@ -298,7 +298,7 @@ function Templates.substitute(template, variables)
 end
 
 -- Build variables table from context
--- @param context_type: "highlight", "book", "multi_book"
+-- @param context_type: "highlight", "book", "library"
 -- @param data: Context data (highlighted_text, book_metadata, books_info, etc.)
 -- @return table: Variables for template substitution
 function Templates.buildVariables(context_type, data)
@@ -322,7 +322,7 @@ function Templates.buildVariables(context_type, data)
         vars.author_clause = data.author and data.author ~= "" and (" by " .. data.author) or ""
         vars.doi_clause = data.doi_clause or ""
 
-    elseif context_type == "multi_book" then
+    elseif context_type == "library" then
         vars.count = data.count or (data.books_info and #data.books_info) or 0
         vars.books_list = data.books_list or Templates.formatBooksList(data.books_info)
     end
@@ -363,7 +363,7 @@ end
 
 -- Render a complete user message from an action
 -- @param action: Action definition from actions.lua
--- @param context_type: "highlight", "book", "multi_book", "general"
+-- @param context_type: "highlight", "book", "library", "general"
 -- @param data: Context data for variable substitution
 -- @return string: Rendered user message
 function Templates.renderForAction(action, context_type, data)

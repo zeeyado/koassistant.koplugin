@@ -162,8 +162,8 @@ end
 -- Helper function to determine prompt context
 local function getPromptContext(config)
     if config and config.features then
-        if config.features.is_multi_book_context then
-            return "multi_book"
+        if config.features.is_library_context then
+            return "library"
         elseif config.features.is_book_context then
             return "book"
         elseif config.features.is_general_context then
@@ -1522,7 +1522,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     end
 
     -- Ensure document_path is in configuration for export functionality
-    -- This allows ChatGPTViewer to determine chat type (book/general/multi-book)
+    -- This allows ChatGPTViewer to determine chat type (book/general/library)
     if temp_config and document_path then
         temp_config.document_path = document_path
     end
@@ -1531,8 +1531,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
     -- Pin/Star helpers (closures shared by callbacks and state checkers)
     local pin_star_path = (function()
-        local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
-        if is_multi then return "__MULTI_BOOK_CHATS__"
+        local is_multi = temp_config and temp_config.features and temp_config.features.is_library_context
+        if is_multi then return "__LIBRARY_CHATS__"
         elseif not document_path then return "__GENERAL_CHATS__"
         else return document_path end
     end)()
@@ -1782,8 +1782,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         if highlightedText and highlightedText ~= "" then
                             metadata.original_highlighted_text = highlightedText
                         end
-                        -- Store books_info for multi-book context
-                        if cfg.features.is_multi_book_context and cfg.features.books_info then
+                        -- Store books_info for library context
+                        if cfg.features.is_library_context and cfg.features.books_info then
                             metadata.books_info = cfg.features.books_info
                         end
 
@@ -1791,7 +1791,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         local storage_key = cfg.features and cfg.features.storage_key
                         local save_path
                         local should_save = true
-                        local is_multi_book = cfg.features.is_multi_book_context or false
+                        local is_library = cfg.features.is_library_context or false
 
                         if storage_key == "__SKIP__" then
                             -- Don't save this chat
@@ -1801,10 +1801,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             -- Use custom storage location
                             save_path = storage_key
                         else
-                            -- Default: document path, general chats, or multi-book chats
+                            -- Default: document path, general chats, or library chats
                             save_path = document_path
                                 or (is_general_context and "__GENERAL_CHATS__")
-                                or (is_multi_book and "__MULTI_BOOK_CHATS__")
+                                or (is_library and "__LIBRARY_CHATS__")
                                 or nil
                         end
 
@@ -1864,8 +1864,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                                 if save_path == "__GENERAL_CHATS__" then
                                     save_result = chat_history_manager:saveGeneralChat(chat_data)
-                                elseif save_path == "__MULTI_BOOK_CHATS__" then
-                                    save_result = chat_history_manager:saveMultiBookChat(chat_data)
+                                elseif save_path == "__LIBRARY_CHATS__" then
+                                    save_result = chat_history_manager:saveLibraryChat(chat_data)
                                 else
                                     save_result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                                 end
@@ -2050,8 +2050,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- Helper to perform the copy
             local function doCopy(selected_content)
                 local Export = require("koassistant_export")
-                -- Extract books_info for multi-book context
-                local books_info = features.is_multi_book_context and features.books_info or nil
+                -- Extract books_info for library context
+                local books_info = features.is_library_context and features.books_info or nil
                 local data = Export.fromHistory(history, highlightedText, book_metadata, books_info)
                 local text = Export.format(data, selected_content, style)
 
@@ -2198,7 +2198,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     if #pin_name > 80 then pin_name = pin_name:sub(1, 80) end
                                     UIManager:close(pin_name_dialog)
 
-                                    local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
+                                    local is_multi = temp_config and temp_config.features and temp_config.features.is_library_context
                                     local pin_entry = {
                                         id = PinnedManager.generateId(),
                                         name = pin_name,
@@ -2208,7 +2208,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                         user_prompt = last_prompt,
                                         timestamp = os.time(),
                                         model = history:getModel() or "",
-                                        context_type = is_multi and "multi_book" or (document_path and "book" or "general"),
+                                        context_type = is_multi and "library" or (document_path and "book" or "general"),
                                         book_title = book_metadata and book_metadata.title,
                                         book_author = book_metadata and book_metadata.author,
                                         document_path = pin_star_path,
@@ -2305,8 +2305,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if highlightedText and highlightedText ~= "" then
                 metadata.original_highlighted_text = highlightedText
             end
-            -- Store books_info for multi-book context
-            if temp_config.features.is_multi_book_context and temp_config.features.books_info then
+            -- Store books_info for library context
+            if temp_config.features.is_library_context and temp_config.features.books_info then
                 metadata.books_info = temp_config.features.books_info
             end
 
@@ -2314,7 +2314,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             local storage_key = temp_config.features and temp_config.features.storage_key
             local save_path
             local should_save = true
-            local is_multi_book = temp_config.features.is_multi_book_context or false
+            local is_library = temp_config.features.is_library_context or false
 
             if storage_key == "__SKIP__" then
                 -- Don't save this chat
@@ -2324,10 +2324,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 -- Use custom storage location
                 save_path = storage_key
             else
-                -- Default: document path, general chats, or multi-book chats
+                -- Default: document path, general chats, or library chats
                 save_path = document_path
                     or (is_general_context and "__GENERAL_CHATS__")
-                    or (is_multi_book and "__MULTI_BOOK_CHATS__")
+                    or (is_library and "__LIBRARY_CHATS__")
                     or nil
             end
 
@@ -2384,8 +2384,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                     if save_path == "__GENERAL_CHATS__" then
                         result = chat_history_manager:saveGeneralChat(chat_data)
-                    elseif save_path == "__MULTI_BOOK_CHATS__" then
-                        result = chat_history_manager:saveMultiBookChat(chat_data)
+                    elseif save_path == "__LIBRARY_CHATS__" then
+                        result = chat_history_manager:saveLibraryChat(chat_data)
                     else
                         result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                     end
@@ -2420,7 +2420,7 @@ end
 -- Helper function to build consolidated messages
 -- Delegates to shared MessageBuilder module for consistency with test framework
 -- @param prompt: The prompt definition
--- @param context: The context type (highlight, book, multi_book, general)
+-- @param context: The context type (highlight, book, library, general)
 -- @param data: Context-specific data (highlighted_text, book_metadata, etc.)
 -- @param system_prompt: Optional system prompt override
 -- @param domain_context: Optional domain context text to prepend
@@ -3510,7 +3510,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     
     -- Check if this is a general context chat (no book association)
-    -- Use getPromptContext() which properly prioritizes: multi_book > book > general > highlight
+    -- Use getPromptContext() which properly prioritizes: library > book > general > highlight
     -- This prevents stale is_general_context flags from affecting book context dialogs
     local is_general_context = getPromptContext(configuration) == "general"
 
@@ -3584,8 +3584,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         input_context = "general"  -- Uses existing getGeneralMenuActionObjects()
     elseif is_xray_chat then
         input_context = "xray_chat"
-    elseif configuration and configuration.features and configuration.features.is_multi_book_context then
-        input_context = "multi_book"
+    elseif configuration and configuration.features and configuration.features.is_library_context then
+        input_context = "library"
     elseif configuration and configuration.features and configuration.features.is_book_context then
         if has_open_book then
             input_context = "book"
@@ -3600,7 +3600,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local selected_domain = configuration and configuration.features and configuration.features.selected_domain or nil
 
     -- Track per-book domain for any context that targets a specific book
-    -- General and multi-book contexts explicitly disassociate from any specific book
+    -- General and library contexts explicitly disassociate from any specific book
     -- Use document_path (the relevant book) to load the right DocSettings,
     -- not ui_instance.doc_settings (which is the currently open book — may differ)
     local doc_settings = nil
@@ -4600,10 +4600,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Show the dialog with the button rows
-    local is_multi = config and config.features and config.features.is_multi_book_context
+    local is_multi = config and config.features and config.features.is_library_context
     local multi_count = is_multi and config.features.books_info and #config.features.books_info or 0
     local dialog_title = is_multi and multi_count > 0
-        and T(_("Multi-Book: %1 books"), multi_count)
+        and T(_("Library: %1 books"), multi_count)
         or _("KOAssistant Actions")
     input_dialog = InputDialog:new{
         title = dialog_title,

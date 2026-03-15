@@ -1883,7 +1883,7 @@ function XrayBrowser:chatAboutItem(detail_text)
     -- Clear context flags for highlight context (matches main.lua highlight pattern)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
-    config.features.is_multi_book_context = nil
+    config.features.is_library_context = nil
     -- Ensure book_metadata has the correct file for this artifact's book
     -- (may be stale if config was from a different book or file browser context)
     if self.metadata.book_file then
@@ -1950,7 +1950,7 @@ function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_conte
     -- Clear context flags for highlight context (wiki uses item name as highlighted_text)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
-    config.features.is_multi_book_context = nil
+    config.features.is_library_context = nil
 
     -- Ensure book_metadata has the correct file for this artifact's book
     if file then

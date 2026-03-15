@@ -86,8 +86,8 @@ end
 --- that the contract has changed and tests need review.
 local function getPromptContext(config)
     if config and config.features then
-        if config.features.is_multi_book_context then
-            return "multi_book"
+        if config.features.is_library_context then
+            return "library"
         elseif config.features.is_book_context then
             return "book"
         elseif config.features.is_general_context then
@@ -103,7 +103,7 @@ end
 local function applyHighlightPattern(features)
     features.is_general_context = nil
     features.is_book_context = nil
-    features.is_multi_book_context = nil
+    features.is_library_context = nil
     features.book_metadata = nil
     features.books_info = nil
 end
@@ -111,7 +111,7 @@ end
 local function applyBookPattern(features, title, authors, file)
     features.is_general_context = nil
     features.is_book_context = true
-    features.is_multi_book_context = nil
+    features.is_library_context = nil
     features.book_metadata = {
         title = title or "Test Book",
         author = authors or "Test Author",
@@ -123,22 +123,22 @@ end
 local function applyGeneralPattern(features)
     features.is_general_context = true
     features.is_book_context = nil
-    features.is_multi_book_context = nil
+    features.is_library_context = nil
     features.book_metadata = nil
     features.books_info = nil
 end
 
-local function applyMultiBookPattern(features, books_info)
+local function applyLibraryPattern(features, books_info)
     features.is_general_context = nil
     features.is_book_context = nil
-    features.is_multi_book_context = true
+    features.is_library_context = true
     features.books_info = books_info or {}
 end
 
 local function applyDictionaryPattern(features)
     features.is_general_context = nil
     features.is_book_context = nil
-    features.is_multi_book_context = nil
+    features.is_library_context = nil
 end
 
 --- Reimplementation of updateConfigFromSettings() merge logic from main.lua:1429-1455.
@@ -148,7 +148,7 @@ local function mergeSettingsIntoConfig(config, saved_features)
     local runtime_only_keys = {
         is_general_context = true,
         is_book_context = true,
-        is_multi_book_context = true,
+        is_library_context = true,
         book_metadata = true,
         book_context = true,
         books_info = true,
@@ -275,9 +275,9 @@ local function runContextDetectionTests()
         TestRunner:assertEquals(getPromptContext(config), "general")
     end)
 
-    TestRunner:test("multi_book context flag returns 'multi_book'", function()
-        local config = { features = { is_multi_book_context = true } }
-        TestRunner:assertEquals(getPromptContext(config), "multi_book")
+    TestRunner:test("library context flag returns 'library'", function()
+        local config = { features = { is_library_context = true } }
+        TestRunner:assertEquals(getPromptContext(config), "library")
     end)
 
     TestRunner:test("no flags returns 'highlight' (default)", function()
@@ -299,14 +299,14 @@ local function runContextDetectionTests()
     end)
 
     -- Priority tests
-    TestRunner:test("multi_book wins over book (both true)", function()
-        local config = { features = { is_multi_book_context = true, is_book_context = true } }
-        TestRunner:assertEquals(getPromptContext(config), "multi_book")
+    TestRunner:test("library wins over book (both true)", function()
+        local config = { features = { is_library_context = true, is_book_context = true } }
+        TestRunner:assertEquals(getPromptContext(config), "library")
     end)
 
-    TestRunner:test("multi_book wins over general (both true)", function()
-        local config = { features = { is_multi_book_context = true, is_general_context = true } }
-        TestRunner:assertEquals(getPromptContext(config), "multi_book")
+    TestRunner:test("library wins over general (both true)", function()
+        local config = { features = { is_library_context = true, is_general_context = true } }
+        TestRunner:assertEquals(getPromptContext(config), "library")
     end)
 
     TestRunner:test("book wins over general (both true)", function()
@@ -314,13 +314,13 @@ local function runContextDetectionTests()
         TestRunner:assertEquals(getPromptContext(config), "book")
     end)
 
-    TestRunner:test("all three true: multi_book wins", function()
+    TestRunner:test("all three true: library wins", function()
         local config = { features = {
-            is_multi_book_context = true,
+            is_library_context = true,
             is_book_context = true,
             is_general_context = true,
         } }
-        TestRunner:assertEquals(getPromptContext(config), "multi_book")
+        TestRunner:assertEquals(getPromptContext(config), "library")
     end)
 
     -- Truthy values
@@ -338,7 +338,7 @@ local function runContextDetectionTests()
         local config = { features = {
             is_book_context = false,
             is_general_context = false,
-            is_multi_book_context = false,
+            is_library_context = false,
         } }
         TestRunner:assertEquals(getPromptContext(config), "highlight")
     end)
@@ -352,11 +352,11 @@ local function runContextFlagIsolationTests()
     print("\n--- Context Flag Isolation ---")
 
     TestRunner:test("highlight pattern: all context flags nil", function()
-        local features = { is_book_context = true, is_general_context = true, is_multi_book_context = true }
+        local features = { is_book_context = true, is_general_context = true, is_library_context = true }
         applyHighlightPattern(features)
         TestRunner:assertNil(features.is_book_context, "is_book_context")
         TestRunner:assertNil(features.is_general_context, "is_general_context")
-        TestRunner:assertNil(features.is_multi_book_context, "is_multi_book_context")
+        TestRunner:assertNil(features.is_library_context, "is_library_context")
     end)
 
     TestRunner:test("highlight pattern: clears book_metadata and books_info", function()
@@ -367,11 +367,11 @@ local function runContextFlagIsolationTests()
     end)
 
     TestRunner:test("book pattern: only is_book_context=true", function()
-        local features = { is_general_context = true, is_multi_book_context = true }
+        local features = { is_general_context = true, is_library_context = true }
         applyBookPattern(features)
         TestRunner:assertEquals(features.is_book_context, true, "is_book_context")
         TestRunner:assertNil(features.is_general_context, "is_general_context")
-        TestRunner:assertNil(features.is_multi_book_context, "is_multi_book_context")
+        TestRunner:assertNil(features.is_library_context, "is_library_context")
     end)
 
     TestRunner:test("book pattern: sets book_metadata with expected fields", function()
@@ -391,11 +391,11 @@ local function runContextFlagIsolationTests()
     end)
 
     TestRunner:test("general pattern: only is_general_context=true", function()
-        local features = { is_book_context = true, is_multi_book_context = true }
+        local features = { is_book_context = true, is_library_context = true }
         applyGeneralPattern(features)
         TestRunner:assertEquals(features.is_general_context, true, "is_general_context")
         TestRunner:assertNil(features.is_book_context, "is_book_context")
-        TestRunner:assertNil(features.is_multi_book_context, "is_multi_book_context")
+        TestRunner:assertNil(features.is_library_context, "is_library_context")
     end)
 
     TestRunner:test("general pattern: clears book_metadata and books_info", function()
@@ -405,20 +405,20 @@ local function runContextFlagIsolationTests()
         TestRunner:assertNil(features.books_info, "books_info")
     end)
 
-    TestRunner:test("multi_book pattern: only is_multi_book_context=true", function()
+    TestRunner:test("library pattern: only is_library_context=true", function()
         local features = { is_book_context = true, is_general_context = true }
-        applyMultiBookPattern(features, { { title = "Book1" }, { title = "Book2" } })
-        TestRunner:assertEquals(features.is_multi_book_context, true, "is_multi_book_context")
+        applyLibraryPattern(features, { { title = "Book1" }, { title = "Book2" } })
+        TestRunner:assertEquals(features.is_library_context, true, "is_library_context")
         TestRunner:assertNil(features.is_book_context, "is_book_context")
         TestRunner:assertNil(features.is_general_context, "is_general_context")
     end)
 
     TestRunner:test("dictionary pattern: all context flags nil", function()
-        local features = { is_book_context = true, is_general_context = true, is_multi_book_context = true }
+        local features = { is_book_context = true, is_general_context = true, is_library_context = true }
         applyDictionaryPattern(features)
         TestRunner:assertNil(features.is_book_context, "is_book_context")
         TestRunner:assertNil(features.is_general_context, "is_general_context")
-        TestRunner:assertNil(features.is_multi_book_context, "is_multi_book_context")
+        TestRunner:assertNil(features.is_library_context, "is_library_context")
     end)
 
     -- Sequence tests
@@ -482,10 +482,10 @@ local function runConfigMergeTests()
         TestRunner:assertEquals(config.features.is_general_context, true)
     end)
 
-    TestRunner:test("runtime key is_multi_book_context survives merge", function()
-        local config = { features = { is_multi_book_context = true } }
-        mergeSettingsIntoConfig(config, { is_multi_book_context = false })
-        TestRunner:assertEquals(config.features.is_multi_book_context, true)
+    TestRunner:test("runtime key is_library_context survives merge", function()
+        local config = { features = { is_library_context = true } }
+        mergeSettingsIntoConfig(config, { is_library_context = false })
+        TestRunner:assertEquals(config.features.is_library_context, true)
     end)
 
     TestRunner:test("runtime key book_metadata survives merge", function()

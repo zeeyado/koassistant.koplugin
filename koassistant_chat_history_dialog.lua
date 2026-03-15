@@ -392,8 +392,8 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
             end
         elseif document_path == "__GENERAL_CHATS__" then
             book_info = _("General Chat")
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            book_info = _("Multi-Book Chat")
+        elseif document_path == "__LIBRARY_CHATS__" then
+            book_info = _("Library Chat")
         end
 
         local right_text = date_str .. " • " .. msg_count .. " " .. (msg_count == 1 and _("msg") or _("msgs"))
@@ -409,7 +409,7 @@ function ChatHistoryDialog:showChatsForDomain(ui, domain_key, chats, all_domains
                     path = document_path,
                     title = chat.book_title
                         or (document_path == "__GENERAL_CHATS__" and _("General AI Chats"))
-                        or (document_path == "__MULTI_BOOK_CHATS__" and _("Multi-Book Chats"))
+                        or (document_path == "__LIBRARY_CHATS__" and _("Library Chats"))
                         or domain_name,
                     author = chat.book_author,
                 }
@@ -559,7 +559,7 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         local enable_emoji = config and config.features and config.features.enable_emoji_icons == true
         if doc.path == "__GENERAL_CHATS__" then
             display_text = Constants.getEmojiText("💬", display_text, enable_emoji)
-        elseif doc.path == "__MULTI_BOOK_CHATS__" then
+        elseif doc.path == "__LIBRARY_CHATS__" then
             display_text = Constants.getEmojiText("📚", display_text, enable_emoji)
         else
             display_text = Constants.getEmojiText("📖", display_text, enable_emoji)
@@ -574,7 +574,7 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
         local help_text
         if doc.path == "__GENERAL_CHATS__" then
             help_text = _("AI conversations without book context")
-        elseif doc.path == "__MULTI_BOOK_CHATS__" then
+        elseif doc.path == "__LIBRARY_CHATS__" then
             help_text = _("Comparisons and analyses across multiple books")
         else
             help_text = doc.path
@@ -780,7 +780,7 @@ function ChatHistoryDialog:showDocumentHoldOptions(ui, doc, chat_history_manager
     local buttons = {}
 
     -- "Open Book" only for real book documents
-    if doc.path ~= "__GENERAL_CHATS__" and doc.path ~= "__MULTI_BOOK_CHATS__" then
+    if doc.path ~= "__GENERAL_CHATS__" and doc.path ~= "__LIBRARY_CHATS__" then
         table.insert(buttons, {
             {
                 text = _("Open Book"),
@@ -1060,7 +1060,7 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
                                         user_prompt = last_prompt,
                                         timestamp = os.time(),
                                         model = chat.model or "",
-                                        context_type = document_path == "__MULTI_BOOK_CHATS__" and "multi_book"
+                                        context_type = document_path == "__LIBRARY_CHATS__" and "library"
                                                        or (document_path == "__GENERAL_CHATS__" and "general" or "book"),
                                         book_title = chat.book_title,
                                         book_author = chat.book_author,
@@ -1088,8 +1088,8 @@ function ChatHistoryDialog:showChatOptions(ui, document_path, chat, chat_history
         },
     })
 
-    -- Add "Open Book" row for book documents (not general/multi-book)
-    local is_book = document_path ~= "__GENERAL_CHATS__" and document_path ~= "__MULTI_BOOK_CHATS__"
+    -- Add "Open Book" row for book documents (not general/library)
+    local is_book = document_path ~= "__GENERAL_CHATS__" and document_path ~= "__LIBRARY_CHATS__"
     if is_book then
         table.insert(buttons, {
             {
@@ -2080,7 +2080,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                                         timestamp = os.time(),
                                         model = history:getModel() or "",
                                         context_type = document_path == "__GENERAL_CHATS__" and "general"
-                                            or (document_path == "__MULTI_BOOK_CHATS__" and "multi_book" or "book"),
+                                            or (document_path == "__LIBRARY_CHATS__" and "library" or "book"),
                                         book_title = chat.book_title,
                                         book_author = chat.book_author,
                                         document_path = document_path,
@@ -2171,8 +2171,8 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
     local chat_type = "book"
     if document_path == "__GENERAL_CHATS__" then
         chat_type = "general"
-    elseif document_path == "__MULTI_BOOK_CHATS__" then
-        chat_type = "multi_book"
+    elseif document_path == "__LIBRARY_CHATS__" then
+        chat_type = "library"
     end
 
     -- Helper to perform the copy
@@ -2466,8 +2466,8 @@ function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, na
         local context_label = ""
         if doc_path == "__GENERAL_CHATS__" then
             context_label = _("General")
-        elseif doc_path == "__MULTI_BOOK_CHATS__" then
-            context_label = _("Multi-Book")
+        elseif doc_path == "__LIBRARY_CHATS__" then
+            context_label = _("Library")
         else
             context_label = chat.book_title or doc_path:match("([^/]+)%.[^%.]+$") or ""
         end

@@ -22,7 +22,7 @@ local Constants = {}
 Constants.CONTEXTS = {
     HIGHLIGHT = "highlight",      -- Selected text context
     BOOK = "book",                -- Single book metadata
-    MULTI_BOOK = "multi_book",    -- Multiple books
+    LIBRARY = "library",          -- Multiple books
     GENERAL = "general",          -- Standalone questions
 }
 
@@ -37,12 +37,12 @@ Constants.COMPOUND_CONTEXTS = {
 
 --- Get ordered list of all standard contexts
 --- Returns contexts in display order (not alphabetical)
---- @return table: Array of context names ["highlight", "book", "multi_book", "general"]
+--- @return table: Array of context names ["highlight", "book", "library", "general"]
 function Constants.getAllContexts()
     return {
         Constants.CONTEXTS.HIGHLIGHT,
         Constants.CONTEXTS.BOOK,
-        Constants.CONTEXTS.MULTI_BOOK,
+        Constants.CONTEXTS.LIBRARY,
         Constants.CONTEXTS.GENERAL,
     }
 end
@@ -151,7 +151,7 @@ Constants.QS_ITEMS_DEFAULT_ORDER = {
     "text_extraction", "h_bypass", "d_bypass",
     "language", "translation_language", "dictionary_language",
     "chat_history", "browse_notebooks", "browse_artifacts",
-    "multi_book_actions",
+    "library_actions",
     "general_chat", "continue_last_chat",
     "new_book_chat", "manage_actions", "quick_actions",
     "more_settings",
@@ -182,7 +182,7 @@ function Constants.getQsItemText(id, _)
         chat_history = _("Chat History"),
         browse_notebooks = _("Browse Notebooks"),
         browse_artifacts = _("Browse Artifacts"),
-        multi_book_actions = _("Multi-Book Actions"),
+        library_actions = _("Library"),
         general_chat = _("General Chat/Action"),
         continue_last_chat = _("Continue Last Chat"),
         new_book_chat = _("Book Chat/Action"),

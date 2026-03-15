@@ -272,7 +272,7 @@ Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-co
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 - **Text Extraction** — Toggle book text extraction on/off (must be enabled once via Settings → Privacy & Data first)
 - **Chat History, Browse Notebooks & Browse Artifacts** — Quick access to saved chats, notebooks, and cached artifacts
-- **Multi-Book Actions** — Launch multi-book actions by selecting books from your reading history
+- **Library Actions** — Launch library actions by selecting books from your reading history
 - **General Chat/Action** — Start a context-free conversation or run a general action
 - **Manage Actions** — Edit and configure your actions
 
@@ -361,7 +361,7 @@ The test suite includes an interactive web inspector that lets you test and expe
 - **Experiment with settings** — Try different behaviors, domains, temperature, reasoning
 - **Preview request structure** — See exactly what's sent to each provider
 - **Actually call APIs** — Send real requests and see responses in real-time
-- **Simulate all contexts** — Highlight text, book metadata, multi-book selections
+- **Simulate all contexts** — Highlight text, book metadata, library selections
 - **Try custom actions** — Test your action prompts before using them on your device
 - **Load your actual domains** — The inspector reads from your `domains/` folder
 - **Send multi-turn conversations** — **Full chat interface** with conversation history
@@ -818,10 +818,10 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 ### Multi-Document Mode
 
 **Access** (two ways):
-1. **Multi-Book Actions launcher** — Quick Settings → Multi-Book Actions, or Settings menu → Multi-Book Actions, or via gesture. Opens a reading history picker where you tap books to select them (☐/☑), then confirm to choose an action. The picker supports filtering by status (All, Reading, On Hold, Finished, Finished 75%+) and search by title/author via the hamburger menu.
+1. **Library Actions launcher** — Quick Settings → Library Actions, or Settings menu → Library Actions, or via gesture. Opens a reading history picker where you tap books to select them (☐/☑), then confirm to choose an action. The picker supports filtering by status (All, Reading, On Hold, Finished, Finished 75%+) and search by title/author via the hamburger menu.
 2. **File browser multi-select** — Select multiple documents in File Browser → tap any → "Compare with KOAssistant". Quick shortcut when books are in the same folder.
 
-Both paths lead to the same multi-book action picker, which shows the number of selected books in the title bar.
+Both paths lead to the same library action picker, which shows the number of selected books in the title bar.
 
 **Built-in Actions**:
 | Action | Description |
@@ -917,7 +917,7 @@ When working with highlighted text, the **Save to Note** button lets you save th
 - Build a glossary of term definitions within your book
 - Annotate with AI-generated insights that become part of your reading notes
 
-**Note:** The Save to Note button only appears for highlight context chats (where you've selected text). It's not available for book, multi-book, or general chat contexts.
+**Note:** The Save to Note button only appears for highlight context chats (where you've selected text). It's not available for book, library, or general chat contexts.
 
 ---
 
@@ -1039,7 +1039,7 @@ Don't like how a built-in action behaves? Clone and customize it:
 
 The action wizard walks through 4 steps:
 
-1. **Name & Context**: Set button text and where it appears (highlight, book, multi-book, general, or both). Options:
+1. **Name & Context**: Set button text and where it appears (highlight, book, library, general, or both). Options:
    - *View Mode* — Choose how results display: Standard (full chat), Dictionary (full-size with dictionary buttons), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
    - *Include book info* — Send title/author with highlight actions
    - *Skip language instruction* — Don't send your language preferences (useful when prompt already specifies target language)
@@ -1132,7 +1132,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 17 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
-- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all multi-book actions.
+- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all library actions.
 - **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
@@ -1172,7 +1172,7 @@ return {
     },
     {
         text = "Series Order",
-        context = "multi_book",
+        context = "library",
         prompt = "What's the reading order for these books?\n\n{books_list}"
     },
 }
@@ -1535,7 +1535,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: Settings — Open main settings menu
 - KOAssistant: General Chat/Action — Start a new general conversation or run a general action
 - KOAssistant: Quick Settings — Two-column settings panel
-- KOAssistant: Multi-Book Actions — Pick books from reading history for multi-book actions
+- KOAssistant: Library Actions — Pick books from reading history for library actions
 - KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
 - KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
 
@@ -1730,7 +1730,7 @@ When a book is open (or targeted via file browser/artifacts), the domain picker 
 
 **Resolution order:** Action-level domain override > per-book domain > global domain.
 
-The Domain button shows a `(book)` suffix when a per-book domain is active. General and multi-book contexts use the global domain only.
+The Domain button shows a `(book)` suffix when a per-book domain is active. General and library contexts use the global domain only.
 
 **Note**: Keep the sticky behavior in mind — if you set a global domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. Per-book domains take priority over global when reading that book. You can change the domain through the input dialog, Quick Settings, or gesture actions.
 
@@ -1772,10 +1772,10 @@ By default, all chats are automatically saved. You can disable this in Settings 
 **Chat organization**: In the document view, chats are sorted as:
 1. **Starred** — Virtual folder with all starred chats across all documents (appears when any chats are starred)
 2. General AI Chats
-3. Multi-Book Chats (comparisons and analyses across multiple books)
+3. Library Chats (comparisons and analyses across multiple books)
 4. Individual books (alphabetically)
 
-With [Emoji Menu Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 multi-book, 📖 book chats. Starred chats show a ★ prefix.
+With [Emoji Menu Icons](#display-settings) enabled, each entry gets a type prefix: 💬 general, 📚 library, 📖 book chats. Starred chats show a ★ prefix.
 
 **Document list actions:**
 - **Tap** → Opens the chat list for that document
@@ -1819,10 +1819,10 @@ When you tap Export on a chat, you can choose:
 **Subfolder organization**: Files are automatically sorted into subfolders:
 - `book_chats/` — Chats from book context
 - `general_chats/` — Standalone AI chats
-- `multi_book_chats/` — Chats comparing multiple books
+- `library_chats/` — Chats comparing multiple books
 
 **Save book chats alongside books** (checkbox, default OFF):
-When enabled, book chats go to `[book_folder]/chats/` instead of the central folder. General and multi-book chats always use the central location.
+When enabled, book chats go to `[book_folder]/chats/` instead of the central folder. General and library chats always use the central location.
 
 **Filename format**: `[book_title]_[chat_title]_[YYYYMMDD_HHMMSS].md`
 - Book title truncated to 30 characters (omitted when saving alongside book)
@@ -1923,14 +1923,14 @@ The default viewer can be changed in Settings → Notebook Settings → Viewer M
 
 1. **Book chats** — Stored alongside your books in `.sdr/metadata.lua` (per-book via DocSettings)
 2. **General chats** — Stored in `koassistant_general_chats.lua` (global file)
-3. **Multi-book chats** — Stored in `koassistant_multi_book_chats.lua` (global file)
+3. **Library chats** — Stored in `koassistant_library_chats.lua` (global file)
 
 This means:
 - ✅ **Book chats travel with books** when you move or copy files
 - ✅ **No data loss** when reorganizing your library
 - ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
-- ✅ **Multi-book context preserved**: Chats comparing multiple books (Compare, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
-- ✅ **Pinned artifacts travel with books**: Pinned artifacts are stored in the book's sidecar folder (`koassistant_pinned.lua`) and automatically move with the book. General and multi-book pinned artifacts are stored globally.
+- ✅ **Library context preserved**: Chats comparing multiple books (Compare, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
+- ✅ **Pinned artifacts travel with books**: Pinned artifacts are stored in the book's sidecar folder (`koassistant_pinned.lua`) and automatically move with the book. General and library pinned artifacts are stored globally.
 
 **Storage Modes**: KOAssistant supports all three of KOReader's metadata storage modes:
 - **"Book folder"** (default) — `.sdr` folders alongside book files
@@ -1971,7 +1971,7 @@ Two complementary features for making important content easily available:
 - Captures the **last (most recent) AI response** in the conversation. After a multi-turn chat, the refined final answer is typically more valuable than the initial response. If you send another message and get a new response, the pin button will show "Pin Last Response as Artifact" again (the new response isn't pinned yet).
 - Shows a **naming dialog** before pinning — pre-filled with the action name (e.g., "Extract Key Insights") or the first ~50 characters of your prompt. You can edit the name before confirming.
 - Pinned artifacts display your chosen **name** as the primary label in all UIs (artifact browser, viewer title, cross-navigation). You can **rename** existing pins via the hold menu.
-- Pinned artifacts are stored per-book (in sidecar), per-general, or per-multi-book context and travel with books when moved.
+- Pinned artifacts are stored per-book (in sidecar), per-general, or per-library context and travel with books when moved.
 - Unsaved chats are automatically saved before starring or tagging.
 
 ---
@@ -1989,7 +1989,7 @@ Two complementary features for making important content easily available:
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
-- **Multi-Book Actions**: Pick books from your reading history and run multi-book actions (Compare, Recommend, Common Themes, etc.)
+- **Library Actions**: Pick books from your reading history and run library actions (Compare, Recommend, Common Themes, etc.)
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
@@ -2032,7 +2032,7 @@ Two complementary features for making important content easily available:
 #### Emoji (sub-menu)
 - **Emoji Menu Icons**: Show emoji icons in plugin UI menus and buttons. Off by default. When enabled:
   - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
-  - **Chat history**: Type prefixes on documents (💬 general, 📚 multi-book, 📖 book chats), 💬 on individual chats, 🏷️ on tag browser entries
+  - **Chat history**: Type prefixes on documents (💬 general, 📚 library, 📖 book chats), 💬 on individual chats, 🏷️ on tag browser entries
   - **Notebook browser**: 📓 prefix on entries
   - **Artifact browser**: 📖 prefix on entries
   - **X-Ray browser**: Category icons (👥 Characters, 🌍 Locations, 💭 Themes, 📖 Lexicon, 📅 Timeline, 📌 Reader Engagement, 📍 Current State/Current Position, 🏁 Conclusion). Highly recommended for the X-Ray browser — the visual icons make browsing categories much more intuitive.
@@ -2080,7 +2080,7 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 
 ### Save Location (within Chat & Export Settings)
 - **Save Location**: Where to save exported files
-  - **KOAssistant exports folder** (default): Central `koassistant_exports/` folder with subfolders for book/general/multi-book chats
+  - **KOAssistant exports folder** (default): Central `koassistant_exports/` folder with subfolders for book/general/library chats
   - **Custom folder**: User-specified fixed directory
   - **Ask every time**: PathChooser dialog on each save
 - **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
@@ -2197,7 +2197,7 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
   - H.Bypass, D.Bypass, Text Extraction
-  - Chat History, Browse Notebooks, Browse Artifacts, Multi-Book Actions
+  - Chat History, Browse Notebooks, Browse Artifacts, Library Actions
   - General Chat/Action, Continue Last Chat, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
   - All buttons are enabled by default. Disable any you don't use to streamline the panel.
 
@@ -2706,7 +2706,7 @@ Beyond these twelve generated artifacts, **AI Wiki** entries (generated from the
 - **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
-  - **Top sections**: General Pinned and Multi-Book Pinned appear at the top when pinned artifacts exist in those contexts
+  - **Top sections**: General Pinned and Library Pinned appear at the top when pinned artifacts exist in those contexts
   - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
   - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus section groups ("View Section X-Rays (N)", "View Section Summaries (N)", etc.), "AI Wiki Entries (N)", and "Pinned Artifacts (N)" when they exist, plus "Open Book". Group popups (sections, AI Wiki, Pinned) layer over the artifact selector — dismiss to return to the selector
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
@@ -3254,7 +3254,7 @@ Text selection works consistently across all KOAssistant viewers — chat viewer
 | **Translate** | Translate via KOAssistant's Translate action |
 | **Add to Notebook** | Append text with timestamp to the book's notebook (auto-creates if needed) |
 
-Buttons are conditional — Dictionary requires an open book with dictionary support, Translate requires the plugin, Add to Notebook requires book context (not available for general/multi-book chats). The popup is dismissable by tapping outside.
+Buttons are conditional — Dictionary requires an open book with dictionary support, Translate requires the plugin, Add to Notebook requires book context (not available for general/library chats). The popup is dismissable by tapping outside.
 
 **Highlight clearing**: Selected text highlight clears automatically after any action or when dismissing the popup.
 

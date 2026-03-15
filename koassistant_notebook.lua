@@ -243,7 +243,7 @@ end
 function Notebook.getPath(document_path)
     if not document_path
         or document_path == "__GENERAL_CHATS__"
-        or document_path == "__MULTI_BOOK_CHATS__" then
+        or document_path == "__LIBRARY_CHATS__" then
         return nil
     end
 
@@ -284,7 +284,7 @@ end
 function Notebook.getPathError(document_path)
     if not document_path
         or document_path == "__GENERAL_CHATS__"
-        or document_path == "__MULTI_BOOK_CHATS__" then
+        or document_path == "__LIBRARY_CHATS__" then
         return _("Notebooks are only available for single-book chats")
     end
     local features = getFeatures()

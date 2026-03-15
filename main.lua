@@ -223,7 +223,7 @@ function AskGPT:init()
               configuration.features = configuration.features or {}
               configuration.features.is_general_context = nil
               configuration.features.is_book_context = nil
-              configuration.features.is_multi_book_context = nil
+              configuration.features.is_library_context = nil
               configuration.features.book_metadata = nil
               configuration.features.books_info = nil
               -- Store selection data for "Save to Note" feature
@@ -821,7 +821,7 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   -- Clear other context flags first
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = true
-  configuration.features.is_multi_book_context = nil
+  configuration.features.is_library_context = nil
 
   -- Store book metadata for use in prompts
   if book_context and book_context ~= "" then
@@ -979,14 +979,14 @@ function AskGPT:compareSelectedBooks(selected_files)
   -- Clear other context flags first
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
-  configuration.features.is_multi_book_context = true
+  configuration.features.is_library_context = true
 
   -- Store the books list as context
   configuration.features.book_context = prompt_text
   configuration.features.books_info = books_info  -- Store the parsed book info for template substitution
 
   -- Store metadata for template substitution (using first book's info)
-  -- No DOI for multi-book context (no single document to identify)
+  -- No DOI for library context (no single document to identify)
   if #books_info > 0 then
     configuration.features.book_metadata = buildBookMetadata(
       books_info[1].title, books_info[1].authors)
@@ -1113,10 +1113,10 @@ function AskGPT:onDispatcherRegisterActions()
     separator = true
   })
 
-  Dispatcher:registerAction("koassistant_multi_book_actions", {
+  Dispatcher:registerAction("koassistant_library_actions", {
     category = "none",
-    event = "KOAssistantMultiBookActions",
-    title = _("KOAssistant: Multi-Book Actions"),
+    event = "KOAssistantLibraryActions",
+    title = _("KOAssistant: Library Actions"),
     general = true,
   })
 
@@ -1412,7 +1412,7 @@ function AskGPT:updateConfigFromSettings()
   local runtime_only_keys = {
     is_general_context = true,
     is_book_context = true,
-    is_multi_book_context = true,
+    is_library_context = true,
     book_metadata = true,
     book_context = true,
     books_info = true,
@@ -3846,7 +3846,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
             -- Clear context flags to ensure highlight context (like executeQuickAction does)
             dict_config.features.is_general_context = nil
             dict_config.features.is_book_context = nil
-            dict_config.features.is_multi_book_context = nil
+            dict_config.features.is_library_context = nil
 
             -- Set dictionary-specific values
             if non_reader_lookup then
@@ -4014,7 +4014,7 @@ function AskGPT:onKOAssistantGeneralChat()
     -- Clear other context flags and book metadata
     configuration.features.is_general_context = true
     configuration.features.is_book_context = nil
-    configuration.features.is_multi_book_context = nil
+    configuration.features.is_library_context = nil
     configuration.features.book_metadata = nil
     configuration.features.books_info = nil
 
@@ -4255,7 +4255,7 @@ function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, art
     for k, v in pairs(configuration.features or {}) do config_copy.features[k] = v end
     config_copy.features.is_general_context = nil
     config_copy.features.is_book_context = true
-    config_copy.features.is_multi_book_context = nil
+    config_copy.features.is_library_context = nil
 
     local book_metadata = {
       title = artifact_book_title or "Unknown",
@@ -6962,7 +6962,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
           configuration.features = configuration.features or {}
           configuration.features.is_general_context = nil
           configuration.features.is_book_context = true
-          configuration.features.is_multi_book_context = nil
+          configuration.features.is_library_context = nil
           configuration.features.book_metadata = buildBookMetadata(bt, ba, file, getRawDocProps(file))
           local book_ctx = string.format("Title: %s.", bt)
           if ba ~= "" then
@@ -7432,7 +7432,7 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = true
-  configuration.features.is_multi_book_context = nil
+  configuration.features.is_library_context = nil
   configuration.features.book_metadata = buildBookMetadata(title, authors, file, getRawDocProps(file) or book_props)
 
   -- Build book context string for display at top of chat viewer
@@ -8233,12 +8233,12 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end,
   }
 
-  button_defs["multi_book_actions"] = {
-    text = E("\u{1F4DA}", _("Multi-Book Actions")),
+  button_defs["library_actions"] = {
+    text = E("\u{1F4DA}", _("Library Actions")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
-      self_ref:showMultiBookPicker()
+      self_ref:showLibraryPicker()
     end,
   }
 
@@ -9011,14 +9011,14 @@ function AskGPT:showArtifactBrowser()
   ArtifactBrowser:showArtifactBrowser({ enable_emoji = features.enable_emoji_icons == true })
 end
 
---- Multi-book actions gesture handler
-function AskGPT:onKOAssistantMultiBookActions()
-  self:showMultiBookPicker()
+--- Library actions gesture handler
+function AskGPT:onKOAssistantLibraryActions()
+  self:showLibraryPicker()
   return true
 end
 
---- Multi-book actions launcher (settings menu + QS callback)
-function AskGPT:showMultiBookPicker()
+--- Library actions launcher (settings menu + QS callback)
+function AskGPT:showLibraryPicker()
   local BookPicker = require("koassistant_book_picker")
   local self_ref = self
   BookPicker:show({
@@ -9082,7 +9082,7 @@ function AskGPT:translateCurrentPage()
   -- Clear context flags to ensure highlight context
   config_copy.features.is_general_context = nil
   config_copy.features.is_book_context = nil
-  config_copy.features.is_multi_book_context = nil
+  config_copy.features.is_library_context = nil
   -- Explicitly ensure full view (not compact/dictionary)
   config_copy.features.compact_view = false
   config_copy.features.dictionary_view = false
@@ -9566,7 +9566,7 @@ function AskGPT:syncDictionaryBypass()
           -- Clear context flags to ensure highlight context
           dict_config.features.is_general_context = nil
           dict_config.features.is_book_context = nil
-          dict_config.features.is_multi_book_context = nil
+          dict_config.features.is_library_context = nil
 
           -- Set dictionary-specific values
           if non_reader_lookup then
@@ -9845,7 +9845,7 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
-  configuration.features.is_multi_book_context = nil
+  configuration.features.is_library_context = nil
   -- Pass surrounding context if provided (for dictionary actions)
   if context and context ~= "" then
     configuration.features.dictionary_context = context
@@ -9904,7 +9904,7 @@ function AskGPT:startGeneralChat()
     -- Clear other context flags and book metadata
     configuration.features.is_general_context = true
     configuration.features.is_book_context = nil
-    configuration.features.is_multi_book_context = nil
+    configuration.features.is_library_context = nil
     configuration.features.book_metadata = nil
     configuration.features.books_info = nil
 

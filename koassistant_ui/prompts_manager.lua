@@ -163,7 +163,7 @@ end
 
 -- Check if a context is gesture-compatible (can be registered as a gesture)
 -- Only book and general contexts are compatible - highlight requires text selection,
--- multi_book requires file browser multi-select
+-- library requires file browser multi-select
 function PromptsManager:isGestureCompatibleContext(context)
     return context == "book" or context == "general" or context == "book+general"
 end
@@ -214,7 +214,7 @@ function PromptsManager:loadPrompts()
     -- Load all prompts from all contexts
     local highlight_prompts = service:getAllPrompts("highlight", true)
     local book_prompts = service:getAllPrompts("book", true)
-    local multi_book_prompts = service:getAllPrompts("multi_book", true)
+    local library_prompts = service:getAllPrompts("library", true)
     local general_prompts = service:getAllPrompts("general", true)
 
     -- Load builtin action overrides
@@ -368,11 +368,11 @@ function PromptsManager:loadPrompts()
         end
     end
 
-    -- Add multi-book prompts
-    for _idx,prompt in ipairs(multi_book_prompts) do
+    -- Add library prompts
+    for _idx,prompt in ipairs(library_prompts) do
         local key = prompt.text .. "|" .. (prompt.source or "")
         if not seen[key] then
-            table.insert(self.prompts, addPromptEntry(prompt, "multi_book"))
+            table.insert(self.prompts, addPromptEntry(prompt, "library"))
             seen[key] = true
         end
     end
@@ -437,7 +437,7 @@ function PromptsManager:_buildActionManagerItems()
     local contexts = {
         { id = "highlight", text = _("Highlight Context") },
         { id = "book", text = _("Book Context") },
-        { id = "multi_book", text = _("Multi-Book Context") },
+        { id = "library", text = _("Library Context") },
         { id = "general", text = _("General Context") },
         { id = "both", text = _("Highlight & Book") },
         { id = "highlight+general", text = _("Highlight & General") },
@@ -1345,8 +1345,8 @@ function PromptsManager:getContextInfo(context_value, include_book_context)
             desc = _("File browser selection or 'New Book Chat/Action' gesture"),
             includes = _("Includes: book title, author (automatic)"),
         },
-        multi_book = {
-            text = _("Multi-Book"),
+        library = {
+            text = _("Library"),
             desc = _("When multiple books are selected"),
             includes = _("Includes: list of books with titles/authors, count"),
         },
@@ -1423,7 +1423,7 @@ function PromptsManager:canUseTextExtraction(action_or_context, is_new_action)
         return false
     end
 
-    -- "multi_book", "general": cannot reliably extract text
+    -- "library", "general": cannot reliably extract text
     return false
 end
 
@@ -1433,7 +1433,7 @@ function PromptsManager:getDefaultSystemPrompt(context)
     local defaults = {
         highlight = "You are a helpful reading assistant. The user has highlighted text from a book and wants help understanding or exploring it.",
         book = "You are an AI assistant helping with questions about books. The user has selected a book from their library and wants to know more about it.",
-        multi_book = "You are an AI assistant helping analyze and compare books. The user has selected multiple books from their library and wants insights about the collection.",
+        library = "You are an AI assistant helping analyze and compare books. The user has selected multiple books from their library and wants insights about the collection.",
         general = "You are a helpful AI assistant ready to engage in conversation, answer questions, and help with various tasks.",
         -- Compound contexts don't have a single default - it varies by how the prompt is triggered
         both = nil,
@@ -1447,7 +1447,7 @@ function PromptsManager:showContextSelectorWizard(state)
     local context_options = {
         { value = "highlight" },
         { value = "book" },
-        { value = "multi_book" },
+        { value = "library" },
         { value = "general" },
     }
 
@@ -1478,7 +1478,7 @@ function PromptsManager:showContextSelectorWizard(state)
                     text = _("Context determines when your action appears and what data is available:") .. "\n\n" ..
                            "• " .. _("Highlight") .. " — " .. _("When text is selected. Gets: selected text, optionally book info") .. "\n\n" ..
                            "• " .. _("Book") .. " — " .. _("File browser or 'New Book Chat/Action'. Gets: title, author") .. "\n\n" ..
-                           "• " .. _("Multi-Book") .. " — " .. _("Multiple books selected. Gets: book list with count") .. "\n\n" ..
+                           "• " .. _("Library") .. " — " .. _("Multiple books selected. Gets: book list with count") .. "\n\n" ..
                            "• " .. _("General") .. " — " .. _("Standalone chat. No automatic context"),
                 })
             end,
@@ -4611,9 +4611,9 @@ function PromptsManager:getPlaceholdersForContext(context)
         { value = "{title}", text = _("Book Title"), contexts = {"highlight", "book", "both"} },
         { value = "{author}", text = _("Author Name"), contexts = {"highlight", "book", "both"} },
         { value = "{author_clause}", text = _("Author Clause"), contexts = {"highlight", "book", "both"} },
-        { value = "{count}", text = _("Book Count"), contexts = {"multi_book"} },
-        { value = "{books_list}", text = _("Books List"), contexts = {"multi_book"} },
-        { value = "{translation_language}", text = _("Translation Language"), contexts = {"highlight", "book", "multi_book", "general", "both"} },
+        { value = "{count}", text = _("Book Count"), contexts = {"library"} },
+        { value = "{books_list}", text = _("Books List"), contexts = {"library"} },
+        { value = "{translation_language}", text = _("Translation Language"), contexts = {"highlight", "book", "library", "general", "both"} },
         -- Context extraction placeholders (require extraction flags + global settings)
         { value = "{reading_progress}", text = _("Reading Progress (%)"), contexts = {"highlight", "book", "both"} },
         { value = "{progress_decimal}", text = _("Progress (0.0-1.0)"), contexts = {"highlight", "book", "both"} },
@@ -4879,8 +4879,8 @@ function PromptsManager:getContextDisplayName(context)
         return _("Highlight")
     elseif context == "book" then
         return _("Book")
-    elseif context == "multi_book" then
-        return _("Multi-Book")
+    elseif context == "library" then
+        return _("Library")
     elseif context == "general" then
         return _("General")
     elseif context == "both" then

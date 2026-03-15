@@ -176,12 +176,12 @@ Located in `tests/unit/` (923 tests total across 17 files):
   - Text fallback nudge tests: conditional appearance, late title substitution, substituteVariables cleanup
   - Gating tests: annotations/book text/notebook double-gating, trusted provider bypass, opt-out patterns, X-Ray cache with/without annotations, flag-only extraction
   - Cache integration tests: analysis cache flow to MessageBuilder
-  - Context type tests: highlight, book, multi_book, general context building
+  - Context type tests: highlight, book, library, general context building
   - Language, dictionary, surrounding context, reading stats, cache/incremental, additional input tests
 - `test_reasoning.lua` - Reasoning capabilities, defaults, request injection, response parsing (65 tests)
 - `test_response_parser.lua` - Response parsing for all 17 providers (46 tests)
 - `test_state_management.lua` - Context detection, flag isolation, config merge, transient flags, cache permission gating (68 tests)
-  - Context detection contract: getPromptContext() priority rules (multi_book > book > general > highlight)
+  - Context detection contract: getPromptContext() priority rules (library > book > general > highlight)
   - Context flag isolation: entry point patterns correctly set/clear flags
   - Config merge: runtime-only keys survive updateConfigFromSettings(), transient flags cleared
   - Transient flag consumption: _hide_artifacts, _exclude_action_flags consumed and cleared

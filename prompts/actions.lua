@@ -15,7 +15,7 @@ local Constants = require("koassistant_constants")
 -- Action schema:
 --   id               - Unique identifier (required)
 --   text             - Button display text (required)
---   context          - Where it appears: "highlight", "book", "multi_book", "general", "both" (required)
+--   context          - Where it appears: "highlight", "book", "library", "general", "both" (required)
 --   template         - User prompt template ID from templates.lua (required for builtin)
 --   prompt           - Direct user prompt text (for custom actions without template)
 --   behavior_variant - Override global behavior: "minimal", "full", "none" (optional)
@@ -1715,13 +1715,13 @@ Attribute opinions to their sources where possible. Distinguish between critical
     },
 }
 
--- Built-in actions for multi-book context
-Actions.multi_book = {
+-- Built-in actions for library context (multi-book)
+Actions.library = {
     compare_books = {
         id = "compare_books",
         text = _("Compare"),
         description = _("Compares the selected works, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."),
-        context = "multi_book",
+        context = "library",
         template = "compare_books",
         api_params = {
             temperature = 0.6,
@@ -1733,7 +1733,7 @@ Actions.multi_book = {
         id = "common_themes",
         text = _("Find Common Themes"),
         description = _("Identifies shared themes, intellectual traditions, and deeper patterns across the selected works — beyond surface-level genre labels."),
-        context = "multi_book",
+        context = "library",
         template = "common_themes",
         api_params = {
             temperature = 0.7,
@@ -1745,7 +1745,7 @@ Actions.multi_book = {
         id = "collection_summary",
         text = _("Analyze Collection"),
         description = _("Analyzes what the collection reveals about the reader's interests, perspective, and what might be missing for a more complete picture."),
-        context = "multi_book",
+        context = "library",
         template = "collection_summary",
         api_params = {
             temperature = 0.7,
@@ -1758,7 +1758,7 @@ Actions.multi_book = {
         reasoning_config = "off",  -- Brief summaries don't benefit from reasoning
         text = _("Quick Summaries"),
         description = _("A brief 2-3 sentence summary of each selected work, focusing on premise and appeal."),
-        context = "multi_book",
+        context = "library",
         template = "quick_summaries",
         api_params = {
             temperature = 0.5,
@@ -1770,7 +1770,7 @@ Actions.multi_book = {
         id = "reading_order",
         text = _("Reading Order"),
         description = _("Suggests an optimal reading order based on conceptual dependencies, difficulty progression, and thematic arc."),
-        context = "multi_book",
+        context = "library",
         template = "reading_order",
         api_params = {
             temperature = 0.6,
@@ -1782,7 +1782,7 @@ Actions.multi_book = {
         id = "recommend_books",
         text = _("Recommend"),
         description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title. When library scanning is enabled, also considers your full library to avoid recommending books you already own."),
-        context = "multi_book",
+        context = "library",
         use_library = true,  -- Optional: includes library data when scanning is enabled (NOT required)
         template = "recommend_books",
         api_params = {
@@ -1946,7 +1946,7 @@ Format: bold labels, bullet points and labeled fields within sections — not pr
 }
 
 -- Get all actions for a specific context
--- @param context: "highlight", "book", "multi_book", "general"
+-- @param context: "highlight", "book", "library", "general"
 -- @return table: Array of action definitions
 function Actions.getForContext(context)
     local result = {}
@@ -1981,7 +1981,7 @@ function Actions.getById(action_id)
     local context_tables = {
         Actions[Constants.CONTEXTS.HIGHLIGHT],
         Actions[Constants.CONTEXTS.BOOK],
-        Actions[Constants.CONTEXTS.MULTI_BOOK],
+        Actions[Constants.CONTEXTS.LIBRARY],
         Actions[Constants.CONTEXTS.GENERAL],
         Actions.special
     }
@@ -1994,12 +1994,12 @@ function Actions.getById(action_id)
 end
 
 -- Get all built-in actions grouped by context
--- @return table: { highlight = {...}, book = {...}, multi_book = {...}, general = {...} }
+-- @return table: { highlight = {...}, book = {...}, library = {...}, general = {...} }
 function Actions.getAllBuiltin()
     return {
         highlight = Actions.highlight,
         book = Actions.book,
-        multi_book = Actions.multi_book,
+        library = Actions.library,
         general = Actions.general,
         special = Actions.special,
     }

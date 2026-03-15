@@ -2,11 +2,11 @@
 Unit Tests for Action Context Routing
 
 Tests that actions belong to correct contexts, input dialog defaults
-are valid, multi-book context is properly isolated, and open-book
+are valid, library context is properly isolated, and open-book
 filtering works correctly.
 
-These tests would have caught the multi-book context bug where
-highlight actions were loaded instead of multi-book ones.
+These tests would have caught the library context bug where
+highlight actions were loaded instead of library ones.
 
 Run: lua tests/run_tests.lua --unit
 ]]
@@ -148,10 +148,10 @@ TestRunner:test("expandContext('highlight') returns highlight only", function()
     TestRunner:assertEqual(result[1], "highlight", "Should be highlight")
 end)
 
-TestRunner:test("expandContext('multi_book') returns multi_book only", function()
-    local result = Constants.expandContext("multi_book")
+TestRunner:test("expandContext('library') returns library only", function()
+    local result = Constants.expandContext("library")
     TestRunner:assertEqual(#result, 1, "Should expand to 1 context")
-    TestRunner:assertEqual(result[1], "multi_book", "Should be multi_book")
+    TestRunner:assertEqual(result[1], "library", "Should be library")
 end)
 
 -- ============================================================
@@ -176,10 +176,10 @@ TestRunner:test("all book actions have compatible context", function()
     end
 end)
 
-TestRunner:test("all multi_book actions have context = 'multi_book'", function()
-    for id, action in pairs(Actions.multi_book) do
-        TestRunner:assertEqual(action.context, "multi_book",
-            "Multi-book action '" .. id .. "' has wrong context: " .. tostring(action.context))
+TestRunner:test("all library actions have context = 'library'", function()
+    for id, action in pairs(Actions.library) do
+        TestRunner:assertEqual(action.context, "library",
+            "Library action '" .. id .. "' has wrong context: " .. tostring(action.context))
     end
 end)
 
@@ -192,7 +192,7 @@ TestRunner:test("all general actions have compatible context", function()
 end)
 
 TestRunner:test("every action has a unique ID within its context table", function()
-    for _, context_name in ipairs({"highlight", "book", "multi_book", "general"}) do
+    for _, context_name in ipairs({"highlight", "book", "library", "general"}) do
         local seen = {}
         for id, action in pairs(Actions[context_name]) do
             -- The table key should match the action's id field
@@ -206,51 +206,51 @@ TestRunner:test("every action has a unique ID within its context table", functio
 end)
 
 -- ============================================================
--- Tests: Multi-Book Isolation
+-- Tests: Library Isolation
 -- ============================================================
 
-print("\n  -- Multi-Book Isolation --")
+print("\n  -- Library Isolation --")
 
-TestRunner:test("multi_book actions don't include highlight-only actions", function()
-    for id, action in pairs(Actions.multi_book) do
+TestRunner:test("library actions don't include highlight-only actions", function()
+    for id, action in pairs(Actions.library) do
         TestRunner:assertFalse(action.context == "highlight",
-            "Multi-book action '" .. id .. "' has highlight context")
+            "Library action '" .. id .. "' has highlight context")
         TestRunner:assertFalse(action.context == "both",
-            "Multi-book action '" .. id .. "' has 'both' context")
+            "Library action '" .. id .. "' has 'both' context")
     end
 end)
 
-TestRunner:test("multi_book actions don't have open-book-only flags", function()
-    for id, action in pairs(Actions.multi_book) do
+TestRunner:test("library actions don't have open-book-only flags", function()
+    for id, action in pairs(Actions.library) do
         TestRunner:assertFalse(action.use_surrounding_context,
-            "Multi-book action '" .. id .. "' has use_surrounding_context (requires open book)")
+            "Library action '" .. id .. "' has use_surrounding_context (requires open book)")
         TestRunner:assertFalse(action.use_reading_progress,
-            "Multi-book action '" .. id .. "' has use_reading_progress (requires open book)")
+            "Library action '" .. id .. "' has use_reading_progress (requires open book)")
         TestRunner:assertFalse(action.use_book_text,
-            "Multi-book action '" .. id .. "' has use_book_text (requires open book)")
+            "Library action '" .. id .. "' has use_book_text (requires open book)")
     end
 end)
 
-TestRunner:test("getAllActions('multi_book') returns only multi_book actions", function()
+TestRunner:test("getAllActions('library') returns only library actions", function()
     local service = createService()
     service:loadActions()
-    local actions = service:getAllActions("multi_book", true, false)
-    TestRunner:assertGreaterThan(#actions, 0, "Should have multi_book actions")
+    local actions = service:getAllActions("library", true, false)
+    TestRunner:assertGreaterThan(#actions, 0, "Should have library actions")
 
     for _, action in ipairs(actions) do
-        TestRunner:assertEqual(action.context, "multi_book",
-            "getAllActions('multi_book') returned action '" .. action.id .. "' with context: " .. tostring(action.context))
+        TestRunner:assertEqual(action.context, "library",
+            "getAllActions('library') returned action '" .. action.id .. "' with context: " .. tostring(action.context))
     end
 end)
 
-TestRunner:test("getAllActions('highlight') returns no multi_book actions", function()
+TestRunner:test("getAllActions('highlight') returns no library actions", function()
     local service = createService()
     service:loadActions()
     local actions = service:getAllActions("highlight", true, true)
 
     for _, action in ipairs(actions) do
-        TestRunner:assertFalse(action.context == "multi_book",
-            "getAllActions('highlight') returned multi_book action: " .. action.id)
+        TestRunner:assertFalse(action.context == "library",
+            "getAllActions('highlight') returned library action: " .. action.id)
     end
 end)
 
@@ -289,17 +289,17 @@ TestRunner:test("input defaults for 'highlight' are valid highlight-context acti
     end
 end)
 
-TestRunner:test("input defaults for 'multi_book' are valid multi_book-context action IDs", function()
+TestRunner:test("input defaults for 'library' are valid library-context action IDs", function()
     local service = createService()
     service:loadActions()
 
-    local defaults = service:getInputActions("multi_book")
-    TestRunner:assertGreaterThan(#defaults, 0, "Should have multi_book input defaults")
+    local defaults = service:getInputActions("library")
+    TestRunner:assertGreaterThan(#defaults, 0, "Should have library input defaults")
 
     for _, action_id in ipairs(defaults) do
-        local action = service:getAction("multi_book", action_id)
+        local action = service:getAction("library", action_id)
         TestRunner:assertNotNil(action,
-            "Multi-book input default '" .. action_id .. "' not found in multi_book context")
+            "Library input default '" .. action_id .. "' not found in library context")
     end
 end)
 
@@ -318,11 +318,11 @@ TestRunner:test("input defaults for 'xray_chat' are valid highlight-context acti
     end
 end)
 
-TestRunner:test("multi_book input actions don't include highlight-only action IDs", function()
+TestRunner:test("library input actions don't include highlight-only action IDs", function()
     local service = createService()
     service:loadActions()
 
-    local multi_book_actions = service:getInputActions("multi_book")
+    local library_actions = service:getInputActions("library")
     -- Collect all highlight-only action IDs (context = "highlight", not "both")
     local highlight_only = {}
     for id, action in pairs(Actions.highlight) do
@@ -331,9 +331,9 @@ TestRunner:test("multi_book input actions don't include highlight-only action ID
         end
     end
 
-    for _, action_id in ipairs(multi_book_actions) do
+    for _, action_id in ipairs(library_actions) do
         TestRunner:assertFalse(highlight_only[action_id],
-            "Multi-book input includes highlight-only action: " .. action_id)
+            "Library input includes highlight-only action: " .. action_id)
     end
 end)
 
@@ -413,7 +413,7 @@ end)
 print("\n  -- Cross-Context Integrity --")
 
 TestRunner:test("in_quick_actions actions are book-context", function()
-    for _, context_name in ipairs({"highlight", "book", "multi_book", "general"}) do
+    for _, context_name in ipairs({"highlight", "book", "library", "general"}) do
         for id, action in pairs(Actions[context_name]) do
             if action.in_quick_actions then
                 local is_book = expandedContextsContain(action.context, "book")
@@ -425,7 +425,7 @@ TestRunner:test("in_quick_actions actions are book-context", function()
 end)
 
 TestRunner:test("in_reading_features actions are book-context", function()
-    for _, context_name in ipairs({"highlight", "book", "multi_book", "general"}) do
+    for _, context_name in ipairs({"highlight", "book", "library", "general"}) do
         for id, action in pairs(Actions[context_name]) do
             if action.in_reading_features then
                 local is_book = expandedContextsContain(action.context, "book")
@@ -437,7 +437,7 @@ TestRunner:test("in_reading_features actions are book-context", function()
 end)
 
 TestRunner:test("in_file_browser actions don't require open book", function()
-    for _, context_name in ipairs({"highlight", "book", "multi_book", "general"}) do
+    for _, context_name in ipairs({"highlight", "book", "library", "general"}) do
         for id, action in pairs(Actions[context_name]) do
             if action.in_file_browser then
                 TestRunner:assertFalse(Actions.requiresOpenBook(action),
@@ -448,7 +448,7 @@ TestRunner:test("in_file_browser actions don't require open book", function()
 end)
 
 TestRunner:test("each context table has at least one action", function()
-    for _, context_name in ipairs({"highlight", "book", "multi_book", "general"}) do
+    for _, context_name in ipairs({"highlight", "book", "library", "general"}) do
         local count = 0
         for _ in pairs(Actions[context_name]) do
             count = count + 1
@@ -462,7 +462,7 @@ TestRunner:test("getInputActionObjects returns enabled actions with correct stru
     local service = createService()
     service:loadActions()
 
-    for _, ctx_name in ipairs({"book", "highlight", "multi_book"}) do
+    for _, ctx_name in ipairs({"book", "highlight", "library"}) do
         local objects = service:getInputActionObjects(ctx_name)
         for _, action in ipairs(objects) do
             TestRunner:assertNotNil(action.id,

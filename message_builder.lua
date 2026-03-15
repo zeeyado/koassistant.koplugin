@@ -62,7 +62,7 @@ end
 --- Build the complete user message from action prompt and context data.
 -- @param params table with fields:
 --   prompt: action object with prompt/template field
---   context: string ("highlight", "book", "general", "multi_book", etc.)
+--   context: string ("highlight", "book", "general", "library", etc.)
 --   data: table with context data (highlighted_text, book_title, book_author, etc.)
 --   system_prompt: string (only used when using_new_format is false)
 --   domain_context: string (only used when using_new_format is false)
@@ -398,8 +398,8 @@ function MessageBuilder.build(params)
     if logger then
         logger.info("MessageBuilder: Entering context switch, context=", context)
     end
-    if context == "multi_book" or context == "multi_file_browser" then
-        -- Multi-book context with {count} and {books_list} substitution
+    if context == "library" or context == "multi_file_browser" then
+        -- Library (multi-book) context with {count} and {books_list} substitution
         if data.books_info then
             local count = #data.books_info
             local books_list = {}

@@ -339,7 +339,7 @@ local function runDuplicateNameTests()
         service.actions_cache = {
             highlight = { { text = "Test", id = "test" } },
             book = {},
-            multi_book = {},
+            library = {},
             general = {},
         }
         local result = service:generateUniqueDuplicateName("Test")
@@ -356,7 +356,7 @@ local function runDuplicateNameTests()
                 { text = "Test Copy", id = "test_copy" },
             },
             book = {},
-            multi_book = {},
+            library = {},
             general = {},
         }
         local result = service:generateUniqueDuplicateName("Test")
@@ -374,7 +374,7 @@ local function runDuplicateNameTests()
                 { text = "Test Copy (2)", id = "test_copy2" },
             },
             book = {},
-            multi_book = {},
+            library = {},
             general = {},
         }
         local result = service:generateUniqueDuplicateName("Test")
@@ -391,7 +391,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("copies basic fields", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "explain",
             text = "Explain",
@@ -410,7 +410,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("resolves template to prompt", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "explain",
             text = "Explain",
@@ -425,7 +425,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("excludes id, source, enabled", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "test",
             text = "Test",
@@ -442,7 +442,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("copies context extraction flags", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "test",
             text = "Test",
@@ -462,7 +462,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("copies temperature from api_params", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "test",
             text = "Test",
@@ -477,7 +477,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("copies view mode flags", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "test",
             text = "Test",
@@ -493,7 +493,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("copies reasoning_config", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "test",
             text = "Test",
@@ -509,7 +509,7 @@ local function runCreateDuplicateTests()
 
     TestRunner:test("copies use_highlights as independent flag", function()
         local service = createService({ disabled_actions = {} })
-        service.actions_cache = { highlight = {}, book = {}, multi_book = {}, general = {} }
+        service.actions_cache = { highlight = {}, book = {}, library = {}, general = {} }
         local action = {
             id = "test",
             text = "Test",

@@ -80,7 +80,7 @@ function Export.format(data, content, style)
                 table.insert(result, book_line)
             elseif data.document_path and data.document_path ~= ""
                    and data.document_path ~= "__GENERAL_CHATS__"
-                   and data.document_path ~= "__MULTI_BOOK_CHATS__" then
+                   and data.document_path ~= "__LIBRARY_CHATS__" then
                 -- Fallback: show document path only if it's a real file
                 table.insert(result, "**Document:** " .. data.document_path)
             end
@@ -126,7 +126,7 @@ function Export.format(data, content, style)
                 table.insert(result, book_line)
             elseif data.document_path and data.document_path ~= ""
                    and data.document_path ~= "__GENERAL_CHATS__"
-                   and data.document_path ~= "__MULTI_BOOK_CHATS__" then
+                   and data.document_path ~= "__LIBRARY_CHATS__" then
                 table.insert(result, "Document: " .. data.document_path)
             end
 
@@ -312,7 +312,7 @@ end
 --- Get the export directory based on settings
 -- @param settings table Features settings table
 -- @param book_path string|nil Path to the current book (for "book_folder" option)
--- @param chat_type string|nil "book" | "general" | "multi_book" (default: "book")
+-- @param chat_type string|nil "book" | "general" | "library" (default: "book")
 -- @return string|nil Directory path, or nil if "ask" mode
 -- @return string|nil Error message if path is invalid
 -- @return boolean skip_book_title Whether to omit book title from filename (true when saving alongside book)
@@ -339,7 +339,7 @@ function Export.getDirectory(settings, book_path, chat_type)
 
     -- Helper to get book's folder
     local function getBookFolder()
-        if book_path and book_path ~= "" and book_path ~= "__GENERAL_CHATS__" and book_path ~= "__MULTI_BOOK_CHATS__" then
+        if book_path and book_path ~= "" and book_path ~= "__GENERAL_CHATS__" and book_path ~= "__LIBRARY_CHATS__" then
             local dir = book_path:match("(.*/)")
             if not dir then
                 dir = book_path:match("(.*\\)")  -- Windows path
@@ -390,7 +390,7 @@ function Export.getDirectory(settings, book_path, chat_type)
     local subfolder_map = {
         book = "book_chats",
         general = "general_chats",
-        multi_book = "multi_book_chats",
+        library = "library_chats",
     }
     target_dir = base_dir .. "/" .. (subfolder_map[chat_type] or "book_chats")
 

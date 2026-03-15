@@ -88,14 +88,14 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     -- Load pinned index for merging
     local pinned_index = PinnedManager.getPinnedIndex()
     local has_general_pinned = pinned_index[PinnedManager.GENERAL_KEY] and pinned_index[PinnedManager.GENERAL_KEY].count > 0
-    local has_multi_pinned = pinned_index[PinnedManager.MULTI_BOOK_KEY] and pinned_index[PinnedManager.MULTI_BOOK_KEY].count > 0
+    local has_multi_pinned = pinned_index[PinnedManager.LIBRARY_KEY] and pinned_index[PinnedManager.LIBRARY_KEY].count > 0
 
     -- Handle empty state (no artifacts AND no pinned)
     if #docs == 0 and not has_general_pinned and not has_multi_pinned then
         -- Check if any per-book pinned exist
         local has_any_pinned = false
         for doc_path, _stats in pairs(pinned_index) do
-            if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.MULTI_BOOK_KEY then
+            if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.LIBRARY_KEY then
                 has_any_pinned = true
                 break
             end
@@ -132,17 +132,17 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         })
     end
 
-    -- Insert Multi-Book Pinned section (if exists)
+    -- Insert Library Pinned section (if exists)
     if has_multi_pinned then
-        local mp = pinned_index[PinnedManager.MULTI_BOOK_KEY]
+        local mp = pinned_index[PinnedManager.LIBRARY_KEY]
         local date_str = mp.modified > 0 and Constants.formatRelativeTime(mp.modified) or ""
         table.insert(menu_items, {
-            text = Constants.getEmojiText("\u{1F4CC}", _("Multi-Book (Pinned)"), enable_emoji),
+            text = Constants.getEmojiText("\u{1F4CC}", _("Library (Pinned)"), enable_emoji),
             mandatory = tostring(mp.count) .. " \u{00B7} " .. date_str,
             mandatory_dim = true,
             callback = function()
-                local entries = PinnedManager.getMultiBookPinned()
-                self_ref:showPinnedList(entries, _("Multi-Book (Pinned)"), PinnedManager.MULTI_BOOK_KEY, opts)
+                local entries = PinnedManager.getLibraryPinned()
+                self_ref:showPinnedList(entries, _("Library (Pinned)"), PinnedManager.LIBRARY_KEY, opts)
             end,
         })
     end
@@ -153,7 +153,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         docs_by_path[doc.path] = doc
     end
     for doc_path, pstats in pairs(pinned_index) do
-        if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.MULTI_BOOK_KEY then
+        if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.LIBRARY_KEY then
             local existing = docs_by_path[doc_path]
             if existing then
                 existing.pinned_count = pstats.count
@@ -447,7 +447,7 @@ function ArtifactBrowser:migrateExistingArtifacts()
     -- Source 2: Chat index
     local chat_index = G_reader_settings:readSetting("koassistant_chat_index", {})
     for doc_path, _val in pairs(chat_index) do
-        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__MULTI_BOOK_CHATS__" then
+        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__LIBRARY_CHATS__" then
             doc_paths[doc_path] = true
         end
     end

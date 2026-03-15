@@ -78,7 +78,7 @@ local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "reca
 local function updateArtifactIndex(document_path, cache)
     if not document_path
         or document_path == "__GENERAL_CHATS__"
-        or document_path == "__MULTI_BOOK_CHATS__" then
+        or document_path == "__LIBRARY_CHATS__" then
         return
     end
 
@@ -165,7 +165,7 @@ end
 function ActionCache.getPath(document_path)
     if not document_path
         or document_path == "__GENERAL_CHATS__"
-        or document_path == "__MULTI_BOOK_CHATS__" then
+        or document_path == "__LIBRARY_CHATS__" then
         return nil
     end
     local sidecar_dir = DocSettings:getSidecarDir(document_path)
@@ -759,7 +759,7 @@ end
 function ActionCache.getUserAliasesPath(document_path)
     if not document_path
         or document_path == "__GENERAL_CHATS__"
-        or document_path == "__MULTI_BOOK_CHATS__" then
+        or document_path == "__LIBRARY_CHATS__" then
         return nil
     end
     local sidecar_dir = DocSettings:getSidecarDir(document_path)

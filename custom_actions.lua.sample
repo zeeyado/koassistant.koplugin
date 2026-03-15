@@ -10,7 +10,7 @@
 --   context         - Where it appears [REQUIRED]:
 --                     "highlight" - Text selection in book
 --                     "book" - Single book from file browser
---                     "multi_book" - Multiple books selected
+--                     "library" - Multiple books selected
 --                     "general" - Standalone chat, no context
 --                     "both" - Highlight and book contexts
 --                     "all" - All contexts
@@ -84,11 +84,11 @@ return {
     },
 
     -----------------------------------------------------------------------
-    -- EXAMPLE 6: Multi-book context action
+    -- EXAMPLE 6: Library context action
     -----------------------------------------------------------------------
     {
         text = "Reading Order",
-        context = "multi_book",
+        context = "library",
         behavior_variant = "minimal",  -- Brief response
         prompt = "Suggest an optimal reading order for these {count} books:\n{books_list}\n\nConsider chronology, difficulty, and thematic connections.",
     },

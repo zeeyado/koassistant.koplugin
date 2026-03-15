@@ -395,7 +395,7 @@ function MessageHistory:createResultText(highlightedText, config)
     if not should_hide and highlightedText and highlightedText ~= "" then
         -- Check context type and use appropriate label
         local is_book = config and config.features and config.features.is_book_context
-        local is_multi = config and config.features and config.features.is_multi_book_context
+        local is_multi = config and config.features and config.features.is_library_context
         -- Detect book context from content when flag isn't set (e.g., continued from history)
         if not is_book and not is_multi and (highlightedText:match("^Title:") or highlightedText:match("^Book:")) then
             is_book = true

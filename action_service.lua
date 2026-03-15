@@ -62,7 +62,7 @@ function ActionService:init()
 end
 
 -- Get all actions for a specific context
--- @param context: "highlight", "book", "multi_book", "general"
+-- @param context: "highlight", "book", "library", "general"
 -- @param include_disabled: Include disabled actions
 -- @param has_open_book: Whether a book is currently open (for filtering requires_open_book actions)
 -- @return table: Array of action definitions
@@ -130,7 +130,7 @@ function ActionService:loadActions()
     self.actions_cache = {
         highlight = {},
         book = {},
-        multi_book = {},
+        library = {},
         general = {},
     }
 
@@ -319,10 +319,10 @@ function ActionService:logLoadSummary()
         counts[context] = #actions
     end
     logger.info(string.format(
-        "ActionService: Loaded %d highlight, %d book, %d multi_book, %d general actions",
+        "ActionService: Loaded %d highlight, %d book, %d library, %d general actions",
         counts.highlight or 0,
         counts.book or 0,
-        counts.multi_book or 0,
+        counts.library or 0,
         counts.general or 0
     ))
 end
@@ -450,7 +450,7 @@ end
 
 -- Build user message for an action
 -- @param action: Action definition
--- @param context_type: "highlight", "book", "multi_book", "general"
+-- @param context_type: "highlight", "book", "library", "general"
 -- @param data: Context data for variable substitution
 -- @return string: Rendered user message
 function ActionService:buildUserMessage(action, context_type, data)
@@ -2017,12 +2017,12 @@ local INPUT_CONTEXTS = {
         -- since X-Ray chat may operate without an open book
         default_ids = {"explain", "elaborate", "eli5", "fact_check", "connect"},
     },
-    multi_book = {
-        settings_key = "input_multi_book_actions",
-        dismissed_key = "_dismissed_input_multi_book_actions",
-        action_context = "multi_book",
+    library = {
+        settings_key = "input_library_actions",
+        dismissed_key = "_dismissed_input_library_actions",
+        action_context = "library",
         has_open_book = false,
-        -- All multi-book actions as defaults
+        -- All library actions as defaults
         default_ids = {"compare_books", "common_themes", "collection_summary",
             "quick_summaries", "reading_order", "recommend_books"},
     },
@@ -2265,8 +2265,8 @@ function ActionService.getInputContextForAction(action)
         return "book"
     elseif context == "highlight" or context == "both" then
         return "highlight"
-    elseif context == "multi_book" then
-        return "multi_book"
+    elseif context == "library" then
+        return "library"
     end
     -- general context actions use the existing general menu system, not input contexts
     return nil

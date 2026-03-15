@@ -239,8 +239,8 @@ local function runBuildVariablesTests()
         TestRunner:assertEqual(vars.hallucination_nudge, Templates.HALLUCINATION_NUDGE)
     end)
 
-    TestRunner:test("multi_book context includes nudges", function()
-        local vars = Templates.buildVariables("multi_book", {})
+    TestRunner:test("library context includes nudges", function()
+        local vars = Templates.buildVariables("library", {})
         TestRunner:assertEqual(vars.conciseness_nudge, Templates.CONCISENESS_NUDGE)
         TestRunner:assertEqual(vars.hallucination_nudge, Templates.HALLUCINATION_NUDGE)
     end)
@@ -266,12 +266,12 @@ local function runBuildVariablesTests()
         TestRunner:assertEqual(vars.author, "Herbert")
     end)
 
-    TestRunner:test("multi_book context includes count and books_list", function()
+    TestRunner:test("library context includes count and books_list", function()
         local books = {
             { title = "Book A", author = "Author 1" },
             { title = "Book B", author = "Author 2" },
         }
-        local vars = Templates.buildVariables("multi_book", { books_info = books })
+        local vars = Templates.buildVariables("library", { books_info = books })
         TestRunner:assertEqual(vars.count, 2)
         TestRunner:assertContains(vars.books_list, "Book A")
     end)
@@ -426,7 +426,7 @@ local function runActionRegressionTests()
     local contexts = {
         { name = "highlight", table = Actions.highlight },
         { name = "book", table = Actions.book },
-        { name = "multi_book", table = Actions.multi_book },
+        { name = "library", table = Actions.library },
         { name = "general", table = Actions.general },
         { name = "special", table = Actions.special },
     }

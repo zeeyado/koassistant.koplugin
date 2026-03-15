@@ -1739,10 +1739,10 @@ local function runContextTypeTests()
         TestRunner:assertContains(result, "Review Unknown Author Book")
     end)
 
-    TestRunner:test("multi_book context substitutes {count} and {books_list}", function()
+    TestRunner:test("library context substitutes {count} and {books_list}", function()
         local result = MessageBuilder.build({
             prompt = { prompt = "Compare these {count} books:\n{books_list}" },
-            context = "multi_book",
+            context = "library",
             data = {
                 books_info = {
                     { title = "Book One", authors = "Author A" },

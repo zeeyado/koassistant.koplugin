@@ -637,55 +637,55 @@ TestRunner:test("book chat: addTag then full replacement save preserves tags (re
 end)
 
 -- ============================================================
--- Tests: Multi-Book Chat Path
+-- Tests: Library Chat Path
 -- ============================================================
 
-print("\n  -- Multi-Book Chat Path --")
+print("\n  -- Library Chat Path --")
 
-TestRunner:test("save and load multi-book chat", function()
+TestRunner:test("save and load library chat", function()
     local mgr = ChatHistoryManager:new()
     local chat = makeChatData({
         id = "multi_chat_1",
-        title = "Multi-Book Chat",
-        document_path = "__MULTI_BOOK_CHATS__",
+        title = "Library Chat",
+        document_path = "__LIBRARY_CHATS__",
         tags = {"comparison"},
     })
 
-    local result = mgr:saveMultiBookChat(chat)
-    TestRunner:assertNotNil(result, "saveMultiBookChat should return chat ID")
+    local result = mgr:saveLibraryChat(chat)
+    TestRunner:assertNotNil(result, "saveLibraryChat should return chat ID")
 
-    local loaded = mgr:getMultiBookChatById("multi_chat_1")
-    TestRunner:assertNotNil(loaded, "Should load saved multi-book chat")
-    TestRunner:assertEqual(loaded.title, "Multi-Book Chat", "Title should match")
+    local loaded = mgr:getLibraryChatById("multi_chat_1")
+    TestRunner:assertNotNil(loaded, "Should load saved library chat")
+    TestRunner:assertEqual(loaded.title, "Library Chat", "Title should match")
     TestRunner:assertTableLength(loaded.tags, 1, "Tags should have 1 entry")
     TestRunner:assertEqual(loaded.tags[1], "comparison", "Tag should match")
 end)
 
-TestRunner:test("multi-book chat: tags preserved through update cycle", function()
+TestRunner:test("library chat: tags preserved through update cycle", function()
     local mgr = ChatHistoryManager:new()
     local chat = makeChatData({
         id = "multi_chat_2",
         title = "Auto",
-        document_path = "__MULTI_BOOK_CHATS__",
+        document_path = "__LIBRARY_CHATS__",
         tags = {},
     })
-    mgr:saveMultiBookChat(chat)
+    mgr:saveLibraryChat(chat)
 
     -- Add tag, rename
-    mgr:addTagToChat("__MULTI_BOOK_CHATS__", "multi_chat_2", "favorites")
-    mgr:renameChat("__MULTI_BOOK_CHATS__", "multi_chat_2", "Custom Name")
+    mgr:addTagToChat("__LIBRARY_CHATS__", "multi_chat_2", "favorites")
+    mgr:renameChat("__LIBRARY_CHATS__", "multi_chat_2", "Custom Name")
 
     -- Reload, merge, save
-    local existing = mgr:getChatById("__MULTI_BOOK_CHATS__", "multi_chat_2")
+    local existing = mgr:getChatById("__LIBRARY_CHATS__", "multi_chat_2")
     local updated = makeChatData({
         id = "multi_chat_2",
         title = existing.title,
-        document_path = "__MULTI_BOOK_CHATS__",
+        document_path = "__LIBRARY_CHATS__",
         tags = existing.tags,
     })
-    mgr:saveMultiBookChat(updated)
+    mgr:saveLibraryChat(updated)
 
-    local final = mgr:getMultiBookChatById("multi_chat_2")
+    local final = mgr:getLibraryChatById("multi_chat_2")
     TestRunner:assertEqual(final.title, "Custom Name", "Title preserved")
     TestRunner:assertTableLength(final.tags, 1, "Tags preserved")
 end)

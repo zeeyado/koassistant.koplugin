@@ -545,7 +545,7 @@
                         <option value="general">General (no context)</option>
                         <option value="highlight">Highlight (selected text)</option>
                         <option value="book">Book (single book)</option>
-                        <option value="multi_book">Multi-Book (collection)</option>
+                        <option value="library">Library (collection)</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -870,7 +870,7 @@
             providers: {},
             domains: [],
             behaviors: [],  // Loaded from /api/behaviors
-            actions: { highlight: [], book: [], multi_book: [], general: [] },
+            actions: { highlight: [], book: [], library: [], general: [] },
             lastBuild: null,
             lastResponse: null,
             compareResults: null,
@@ -1200,7 +1200,7 @@
             // Include "all" context actions in every dropdown
             // Include "both" context actions in highlight and book
             // These may already be in the list from server, but we dedupe below
-            const allContexts = ['highlight', 'book', 'multi_book', 'general'];
+            const allContexts = ['highlight', 'book', 'library', 'general'];
             for (const ctx of allContexts) {
                 if (ctx !== contextType && state.actions[ctx]) {
                     for (const action of state.actions[ctx]) {
@@ -1253,7 +1253,7 @@
             document.getElementById('book-fields').style.display =
                 (contextType === 'book' || contextType === 'highlight') ? 'block' : 'none';
             document.getElementById('multi-book-fields').style.display =
-                contextType === 'multi_book' ? 'block' : 'none';
+                contextType === 'library' ? 'block' : 'none';
 
             // Update action dropdown to show context-appropriate actions
             updateActionDropdown();
@@ -1261,7 +1261,7 @@
 
         // Find action by ID across all contexts
         function findAction(actionId) {
-            for (const ctx of ['highlight', 'book', 'multi_book', 'general']) {
+            for (const ctx of ['highlight', 'book', 'library', 'general']) {
                 const actions = state.actions[ctx] || [];
                 const found = actions.find(a => a.id === actionId);
                 if (found) return found;
@@ -1392,8 +1392,8 @@
                 book_author: document.getElementById('book-author').value,
             };
 
-            // Parse books_info for multi_book context
-            if (contextType === 'multi_book') {
+            // Parse books_info for library context
+            if (contextType === 'library') {
                 const booksList = document.getElementById('books-list').value;
                 const books = booksList.split('\n').filter(l => l.trim()).map(line => {
                     // Parse "Title" by Author format
