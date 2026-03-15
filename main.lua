@@ -8238,7 +8238,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
-      self_ref:showLibraryPicker()
+      self_ref:openLibraryDialog()
     end,
   }
 
@@ -9013,11 +9013,30 @@ end
 
 --- Library actions gesture handler
 function AskGPT:onKOAssistantLibraryActions()
-  self:showLibraryPicker()
+  self:openLibraryDialog()
   return true
 end
 
---- Library actions launcher (settings menu + QS callback)
+--- Open library dialog directly to input/actions (no BookPicker gate)
+function AskGPT:openLibraryDialog()
+  configuration.features = configuration.features or {}
+  -- Set library context, clear others
+  configuration.features.is_library_context = true
+  configuration.features.is_book_context = nil
+  configuration.features.is_general_context = nil
+  -- Start with no books selected — user adds via presets/picker
+  configuration.features.books_info = nil
+  configuration.features.book_context = nil
+
+  NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
+    self:updateConfigFromSettings()
+    local ui_context = self.ui or FileManager.instance
+    showChatGPTDialog(ui_context, nil, configuration, nil, self)
+  end)
+end
+
+--- Legacy: open BookPicker for manual book selection (called from Add Books menu)
 function AskGPT:showLibraryPicker()
   local BookPicker = require("koassistant_book_picker")
   local self_ref = self
