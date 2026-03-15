@@ -584,7 +584,15 @@ Actions with source selection: Explain in Context, Analyze in Context, Thematic 
 **When to use each source:**
 - **Full text**: Short to medium documents, one-off queries, when you need the AI to work from the actual text
 - **Summary**: Longer documents, repeated queries, extended conversations, when token cost matters
-- **AI knowledge**: Well-known works where the AI has good training data, quick queries
+- **AI knowledge**: Well-known works where the AI has good training data, quick queries, where nuance and bias may not matter as much
+
+**How sources affect AI behavior:**
+
+These aren't just quality tiers — they change *how the AI thinks*. When you provide actual text, the AI shifts from recall mode to analytical mode. Instead of (only) reconstructing a work from memory (filtered through whatever patterns, emphasis, and blind spots its training absorbed), it's doing direct analysis on the material in front of it — parsing structure, tracing arguments, finding patterns in what's actually written. Training-era biases and editorial slant matter less (but still matter) when the AI is working from your text rather than its pre-trained impressions of it.
+
+With AI knowledge only, the AI is essentially giving you its "remembered take" on a work — shaped by which reviews, summaries, and discussions dominated its training data. For canonical works, this is often good enough. But for anything where framing matters — political texts, contested histories, philosophical arguments, novel research — the difference between "analyze this passage" and "tell me about this work" can be substantial.
+
+**In short:** Text extraction gives the AI a job to do on specific material. AI knowledge asks it what it thinks it knows.
 
 **Accessing summaries:**
 - **Reading Features** → Document Summary (shows View/Redo popup if summary exists, generates if not)
