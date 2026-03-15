@@ -13,6 +13,8 @@ Usage:
     end
 ]]
 
+local _ = require("koassistant_gettext")
+
 local Constants = {}
 
 -- Context types (used in actions, message building, dialogs)
@@ -202,6 +204,43 @@ function Constants.getEmojiText(emoji, text, enable_emoji)
         return emoji .. " " .. text
     end
     return text
+end
+
+--- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
+--- @param timestamp number Unix timestamp
+--- @return string Relative time string, or empty if invalid
+function Constants.formatRelativeTime(timestamp)
+    if not timestamp then return "" end
+    local now = os.time()
+    if now - timestamp < 0 then return "" end
+    local today_t = os.date("*t", now)
+    today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+    local cached_t = os.date("*t", timestamp)
+    cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+    local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
+    if days == 0 then
+        return _("today")
+    elseif days < 30 then
+        return string.format(_("%dd ago"), days)
+    else
+        local months = math.floor(days / 30)
+        local years = math.floor(days / 365)
+        if years == 0 then
+            local rd = days - (months * 30)
+            if rd > 0 then
+                return string.format(_("%dm%dd ago"), months, rd)
+            else
+                return string.format(_("%dm ago"), months)
+            end
+        else
+            local rm = months - (years * 12)
+            if rm > 0 then
+                return string.format(_("%dy%dm ago"), years, rm)
+            else
+                return string.format(_("%dy ago"), years)
+            end
+        end
+    end
 end
 
 return Constants
