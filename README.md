@@ -962,7 +962,7 @@ All three can contain instructions to the AI, and deciding what to put where can
 | Component | Scope | Best for |
 |-----------|-------|----------|
 | **Behavior** | Global (one selection for all chats) | Communication style, formatting rules, verbosity level |
-| **Domain** | Sticky (persists until you change it) | Subject expertise, terminology, analytical frameworks |
+| **Domain** | Sticky (global or per-book) | Subject expertise, terminology, analytical frameworks |
 | **Action prompt** | Per-action (specific task) | Task-specific instructions, output format, what to analyze |
 
 > **Tip:** For most custom actions, using a standard behavior (like "Standard" or "Full") and putting detailed instructions in the action prompt works best. Reserve custom behaviors for broad style preferences you want across all interactions. Reserve domains for deep subject expertise you want across multiple actions.
@@ -1203,7 +1203,7 @@ return {
 - `cache_as_summary`: Save this action's result to the document summary cache
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
-- `domain`: Force a specific domain by ID (overrides the user's current domain selection; file-only, no UI for this yet)
+- `domain`: Force a specific domain by ID (overrides per-book and global domain selection; file-only, no UI for this yet)
 - `enable_web_search`: Override global web search setting (true=force on, false=force off, nil=follow global)
 
 **Per-provider reasoning config** (new in v0.6):
@@ -1719,7 +1719,20 @@ See [domains.sample/](domains.sample/) for examples including classical language
 
 Select a domain via the **Domain** button in the chat input dialog, or through Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
 
-**Note**: Keep this sticky behavior in mind — if you set a domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. You can change the domain through the input dialog, Quick Settings, or gesture actions.
+#### Per-Book Domains
+
+When a book is open (or targeted via file browser/artifacts), the domain picker shows a **target toggle**: **[For this book | Global]**. This lets you set a domain that sticks to a specific book:
+
+- **For this book** — Domain is saved in the book's sidecar (DocSettings). Every time you open this book, its domain is used automatically.
+- **Global** — Domain applies to all books that don't have their own domain set.
+- **"Use global"** — Resets a book back to following the global domain.
+- **"None" (book target)** — Explicitly overrides the global domain to *no domain* for this book. Useful when you have a global domain set but don't want it applied to a specific book.
+
+**Resolution order:** Action-level domain override > per-book domain > global domain.
+
+The Domain button shows a `(book)` suffix when a per-book domain is active. General and multi-book contexts use the global domain only.
+
+**Note**: Keep the sticky behavior in mind — if you set a global domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. Per-book domains take priority over global when reading that book. You can change the domain through the input dialog, Quick Settings, or gesture actions.
 
 ### Browsing by Domain
 
@@ -1732,6 +1745,7 @@ Chat History → hamburger menu → **View by Domain**
 - **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can toggle "Skip domain" for any custom action in the action wizard (see [Actions](#actions)).
 - **Domain vs Behavior overlap**: Both are sent in the system message. Behavior = communication style, Domain = knowledge context. Sometimes content could fit in either. Rule of thumb: if it's about *how to respond*, put it in behavior. If it's about *what to know*, put it in a domain.
 - **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, use "Skip domain" in that action's settings.
+- **Per-book domains persist**: A domain set "For this book" is saved in the book's metadata and restored every time you open it — even from file browser or artifact views. Set "None" on the book target to explicitly opt a book out of your global domain.
 - **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Most major providers (Anthropic, OpenAI, Gemini, DeepSeek) cache system prompts automatically (50-90% cost reduction on repeated domain context).
 - **Preview domain effects**: Use the [web inspector](#testing-your-setup) to see how domains affect request structure and AI responses before using them on your e-reader.
 

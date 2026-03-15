@@ -15,6 +15,7 @@ local ModelConstraints = require("model_constraints")
 local SystemPrompts = require("prompts/system_prompts")
 local Actions = require("prompts/actions")
 local ActionService = require("action_service")
+local DomainLoader = require("domain_loader")
 local Constants = require("koassistant_constants")
 
 local PromptsManager = {}
@@ -45,6 +46,22 @@ local function isBuiltinBehavior(variant)
     if not variant then return false end
     local behavior = SystemPrompts.getBehaviorById(variant, nil)
     return behavior and behavior.source == "builtin"
+end
+
+-- Helper: Get domain display text from state
+-- Returns "Global", "None", or the domain's display name
+local function getDomainDisplayText(state, custom_domains)
+    if state.skip_domain then
+        return _("None")
+    elseif state.domain then
+        local domain = DomainLoader.getDomainById(state.domain, custom_domains or {})
+        if domain then
+            return domain.display_name or domain.name
+        end
+        return state.domain  -- Fallback to ID
+    else
+        return _("Global")
+    end
 end
 
 function PromptsManager:new(plugin)
@@ -744,7 +761,7 @@ function PromptsManager:showPromptDetails(prompt)
             behavior_text = prompt.behavior_variant  -- Fallback to ID
         end
     else
-        behavior_text = _("(Use global setting)")
+        behavior_text = _("Global")
     end
 
     -- Temperature display
@@ -788,9 +805,16 @@ function PromptsManager:showPromptDetails(prompt)
 
         -- Skip language/domain
         local skip_lang_text = prompt.skip_language_instruction and _("Yes") or _("No")
-        local skip_domain_text = prompt.skip_domain and _("Yes") or _("No")
+        local domain_text
+        if prompt.skip_domain then
+            domain_text = _("None")
+        elseif prompt.domain then
+            domain_text = prompt.domain
+        else
+            domain_text = _("Global")
+        end
         info_text = info_text .. "\n" .. _("Skip Language") .. ": " .. skip_lang_text
-        info_text = info_text .. "  |  " .. _("Skip Domain") .. ": " .. skip_domain_text
+        info_text = info_text .. "  |  " .. _("Domain") .. ": " .. domain_text
 
         -- Include book info (for highlight contexts)
         if self:contextIncludesHighlight(prompt.context) then
@@ -1252,52 +1276,12 @@ function PromptsManager:showStep1_NameAndContext(state)
                 end
                 state.name = name
                 UIManager:close(self.step1_dialog)
-                self:showStep2_Behavior(state)
+                self:showStep2_ActionPrompt(state)
             end,
         },
     })
 
-    -- Row 2: Book Info toggle (only for contexts that include highlight)
-    if state.context and self:contextIncludesHighlight(state.context) then
-        local checkbox = state.include_book_context and "☑ " or "☐ "
-        table.insert(button_rows, {
-            {
-                text = checkbox .. _("Include book info"),
-                callback = function()
-                    state.name = self.step1_dialog:getInputText()
-                    state.include_book_context = not state.include_book_context
-                    UIManager:close(self.step1_dialog)
-                    self:showStep1_NameAndContext(state)
-                end,
-            },
-        })
-    end
-
-    -- Row 3: Skip language | Skip domain (two columns)
-    local lang_checkbox = state.skip_language_instruction and "☑ " or "☐ "
-    local domain_checkbox = state.skip_domain and "☑ " or "☐ "
-    table.insert(button_rows, {
-        {
-            text = lang_checkbox .. _("Skip language"),
-            callback = function()
-                state.name = self.step1_dialog:getInputText()
-                state.skip_language_instruction = not state.skip_language_instruction
-                UIManager:close(self.step1_dialog)
-                self:showStep1_NameAndContext(state)
-            end,
-        },
-        {
-            text = domain_checkbox .. _("Skip domain"),
-            callback = function()
-                state.name = self.step1_dialog:getInputText()
-                state.skip_domain = not state.skip_domain
-                UIManager:close(self.step1_dialog)
-                self:showStep1_NameAndContext(state)
-            end,
-        },
-    })
-
-    -- Row 4: Add to Highlight Menu | Add to Dictionary Popup (two columns, highlight contexts only)
+    -- Row 2: Add to Highlight Menu | Add to Dictionary Popup (highlight contexts only)
     if state.context and self:contextIncludesHighlight(state.context) then
         local highlight_checkbox = state.add_to_highlight_menu and "☑ " or "☐ "
         local dict_checkbox = state.add_to_dictionary_popup and "☑ " or "☐ "
@@ -1318,142 +1302,6 @@ function PromptsManager:showStep1_NameAndContext(state)
                     state.add_to_dictionary_popup = not state.add_to_dictionary_popup
                     UIManager:close(self.step1_dialog)
                     self:showStep1_NameAndContext(state)
-                end,
-            },
-        })
-    end
-
-    -- Book text extraction toggle (for contexts that can run in reading mode)
-    -- Note: Lightweight data (progress, highlights, annotations, stats) is auto-extracted
-    if state.context and self:canUseTextExtraction(state, true) then  -- is_new_action=true
-        local book_text_checkbox = state.use_book_text and "☑ " or "☐ "
-        table.insert(button_rows, {
-            {
-                text = book_text_checkbox .. _("Allow text extraction"),
-                callback = function()
-                    state.name = self.step1_dialog:getInputText()
-                    state.use_book_text = not state.use_book_text
-                    -- Show explanation when turning on
-                    if state.use_book_text then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if not features.enable_book_text_extraction then
-                            UIManager:show(Notification:new{
-                                text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Text extraction enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
-                    end
-                    UIManager:close(self.step1_dialog)
-                    self:showStep1_NameAndContext(state)
-                end,
-            },
-        })
-    end
-
-    -- Highlight and annotation use toggles (for per-book contexts)
-    if state.context and self:canUsePerBookData(state.context) then
-        local highlights_locked = state.use_annotations == true
-        local highlights_checkbox = highlights_locked and "☑ " or (state.use_highlights and "☑ " or "☐ ")
-        local highlights_suffix = highlights_locked and " ←" or ""
-        table.insert(button_rows, {
-            {
-                text = highlights_checkbox .. _("Allow highlight use") .. highlights_suffix,
-                callback = function()
-                    if highlights_locked then
-                        UIManager:show(Notification:new{
-                            text = _("Highlights are always on when annotations are enabled."),
-                            timeout = 3,
-                        })
-                        return
-                    end
-                    state.name = self.step1_dialog:getInputText()
-                    state.use_highlights = not state.use_highlights
-                    if state.use_highlights then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Highlight use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        end
-                    end
-                    UIManager:close(self.step1_dialog)
-                    self:showStep1_NameAndContext(state)
-                end,
-            },
-        })
-        local annotation_checkbox = state.use_annotations and "☑ " or "☐ "
-        table.insert(button_rows, {
-            {
-                text = annotation_checkbox .. _("Allow annotation use (notes)"),
-                callback = function()
-                    state.name = self.step1_dialog:getInputText()
-                    state.use_annotations = not state.use_annotations
-                    if state.use_annotations then
-                        -- Annotations imply highlights
-                        state.use_highlights = true
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_annotations_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        end
-                    end
-                    UIManager:close(self.step1_dialog)
-                    self:showStep1_NameAndContext(state)
-                end,
-            },
-        })
-    end
-
-    -- Notebook use toggle (for per-book contexts)
-    if state.context and self:canUsePerBookData(state.context) then
-        local notebook_checkbox = state.use_notebook and "☑ " or "☐ "
-        table.insert(button_rows, {
-            {
-                text = notebook_checkbox .. _("Allow notebook use"),
-                callback = function()
-                    state.name = self.step1_dialog:getInputText()
-                    state.use_notebook = not state.use_notebook
-                    if state.use_notebook then
-                        local features = self.plugin.settings:readSetting("features") or {}
-                        if features.enable_notebook_sharing ~= true then
-                            UIManager:show(Notification:new{
-                                text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
-                                timeout = 4,
-                            })
-                        else
-                            UIManager:show(Notification:new{
-                                text = _("Notebook use enabled for this action."),
-                                timeout = 2,
-                            })
-                        end
-                    end
-                    UIManager:close(self.step1_dialog)
-                    self:showStep1_NameAndContext(state)
-                end,
-            },
-        })
-    end
-
-    -- View mode selector (for highlight contexts - affects result display)
-    if state.context and self:contextIncludesHighlight(state.context) then
-        table.insert(button_rows, {
-            {
-                text = _("View: ") .. self:getViewModeDisplayText(state),
-                callback = function()
-                    state.name = self.step1_dialog:getInputText()
-                    self.step1_dialog:onCloseKeyboard()
-                    self:showViewModeSelector(state, function()
-                        UIManager:close(self.step1_dialog)
-                        self:showStep1_NameAndContext(state)
-                    end)
                 end,
             },
         })
@@ -1656,13 +1504,10 @@ function PromptsManager:showContextSelectorWizard(state)
     UIManager:show(self.context_dialog)
 end
 
--- Step 2: AI Behavior (optional)
--- NEW ARCHITECTURE (v0.5): Select behavior variant or enter custom override
-function PromptsManager:showStep2_Behavior(state)
-    local is_edit = state.existing_prompt ~= nil
-
+-- Behavior selector for wizard Step 3 (returns to Step 3 Settings)
+function PromptsManager:showWizardBehaviorSelector(state)
     -- Determine current selection for radio button display
-    local current_selection = "global"  -- Default
+    local current_selection = "global"
     if state.behavior_override and state.behavior_override ~= "" then
         current_selection = "custom"
     elseif state.behavior_variant == "none" then
@@ -1673,33 +1518,28 @@ function PromptsManager:showStep2_Behavior(state)
 
     -- Build behavior options dynamically from built-in behaviors
     local behavior_options = {
-        { id = "global", text = _("Use global setting"), desc = _("Inherits from Actions & Prompts → Manage Behaviors") },
+        { id = "global", text = _("Global (use setting)") },
     }
 
-    -- Add all built-in behaviors
     local builtin_options = getBuiltinBehaviorOptions()
     for _idx,opt in ipairs(builtin_options) do
-        table.insert(behavior_options, opt)
+        table.insert(behavior_options, { id = opt.id, text = opt.text .. " (" .. opt.desc .. ")" })
     end
 
-    -- Add none and custom options
-    table.insert(behavior_options, { id = "none", text = _("None"), desc = _("No behavior instructions - just your action prompt") })
-    table.insert(behavior_options, { id = "custom", text = _("Custom..."), desc = _("Define your own AI personality/role") })
+    table.insert(behavior_options, { id = "none", text = _("None (no behavior)") })
+    table.insert(behavior_options, { id = "custom", text = _("Custom...") })
 
     local buttons = {}
-
     for _idx,option in ipairs(behavior_options) do
         local prefix = (current_selection == option.id) and "● " or "○ "
         table.insert(buttons, {
             {
-                text = prefix .. option.text .. "\n    " .. option.desc,
+                text = prefix .. option.text,
                 callback = function()
-                    UIManager:close(self.behavior_dialog)
+                    UIManager:close(self.wizard_behavior_dialog)
                     if option.id == "custom" then
-                        -- Show custom behavior input
-                        self:showCustomBehaviorInput(state)
+                        self:showWizardCustomBehaviorInput(state)
                     else
-                        -- Set the variant
                         if option.id == "global" then
                             state.behavior_variant = nil
                             state.behavior_override = ""
@@ -1710,80 +1550,59 @@ function PromptsManager:showStep2_Behavior(state)
                             state.behavior_variant = option.id
                             state.behavior_override = ""
                         end
-                        self:showStep3_ActionPrompt(state)
+                        self:showStep3_Settings(state)
                     end
                 end,
             },
         })
     end
 
-    -- Navigation buttons
     table.insert(buttons, {
         {
-            text = _("← Back"),
+            text = _("Cancel"),
             callback = function()
-                UIManager:close(self.behavior_dialog)
-                self:showStep1_NameAndContext(state)
-            end,
-        },
-        {
-            text = _("Next →"),
-            callback = function()
-                -- Preserve current state (don't reset to global)
-                UIManager:close(self.behavior_dialog)
-                self:showStep3_ActionPrompt(state)
+                UIManager:close(self.wizard_behavior_dialog)
+                self:showStep3_Settings(state)
             end,
         },
     })
 
-    self.behavior_dialog = ButtonDialog:new{
-        title = is_edit and _("Edit Action - AI Behavior") or _("Step 2/3: AI Behavior"),
+    self.wizard_behavior_dialog = ButtonDialog:new{
+        title = _("AI Behavior"),
         buttons = buttons,
     }
 
-    UIManager:show(self.behavior_dialog)
+    UIManager:show(self.wizard_behavior_dialog)
 end
 
--- Custom behavior input dialog
-function PromptsManager:showCustomBehaviorInput(state)
-    local is_edit = state.existing_prompt ~= nil
-
+-- Custom behavior input for wizard (returns to Step 3 Settings)
+function PromptsManager:showWizardCustomBehaviorInput(state)
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Action - Custom Behavior") or _("Step 2/3: Custom Behavior"),
+        title = _("Custom Behavior"),
         input = state.behavior_override or "",
-        input_hint = _("Describe how the AI should behave or what role it should play"),
-        description = _("Examples:\n" ..
-            "• 'You are a grammar expert. Be precise and analytical.'\n" ..
-            "• 'You are a literary critic specializing in 19th century fiction.'\n" ..
-            "• 'Respond concisely. Use bullet points when helpful.'\n\n" ..
-            "This replaces the global AI behavior setting for this action."),
+        input_hint = _("Describe how the AI should behave"),
         fullscreen = true,
         allow_newline = true,
         buttons = {
             {
                 {
-                    text = _("← Back"),
+                    text = _("Cancel"),
                     callback = function()
-                        state.behavior_override = dialog:getInputText()
                         UIManager:close(dialog)
-                        self:showStep2_Behavior(state)
+                        self:showWizardBehaviorSelector(state)
                     end,
                 },
                 {
-                    text = _("Next →"),
+                    text = _("OK"),
                     callback = function()
-                        local custom_behavior = dialog:getInputText()
-                        if custom_behavior == "" then
-                            UIManager:show(InfoMessage:new{
-                                text = _("Please enter custom behavior text, or go back and choose a different option"),
-                            })
-                            return
+                        local text = dialog:getInputText()
+                        if text and text ~= "" then
+                            state.behavior_override = text
+                            state.behavior_variant = nil
                         end
-                        state.behavior_override = custom_behavior
-                        state.behavior_variant = nil  -- Override takes precedence
                         UIManager:close(dialog)
-                        self:showStep3_ActionPrompt(state)
+                        self:showStep3_Settings(state)
                     end,
                 },
             },
@@ -1794,13 +1613,13 @@ function PromptsManager:showCustomBehaviorInput(state)
     dialog:onShowKeyboard()
 end
 
--- Step 3: Action Prompt (required, fullscreen with Insert button)
-function PromptsManager:showStep3_ActionPrompt(state)
+-- Step 2: Action Prompt (required, fullscreen with Insert button)
+function PromptsManager:showStep2_ActionPrompt(state)
     local is_edit = state.existing_prompt ~= nil
 
     local dialog
     dialog = InputDialog:new{
-        title = is_edit and _("Edit Action - Action Prompt") or _("Step 3/4: Action Prompt"),
+        title = is_edit and _("Edit Action - Action Prompt") or _("Step 2/3: Action Prompt"),
         input = state.prompt or "",
         input_hint = _("What should the AI do?"),
         description = _("Write the AI instruction. Tap 'Help' for tips, 'Insert...' for placeholders."),
@@ -1813,7 +1632,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
                     callback = function()
                         state.prompt = dialog:getInputText()
                         UIManager:close(dialog)
-                        self:showStep2_Behavior(state)
+                        self:showStep1_NameAndContext(state)
                     end,
                 },
                 {
@@ -1854,7 +1673,7 @@ function PromptsManager:showStep3_ActionPrompt(state)
                         end
                         state.prompt = prompt_text
                         UIManager:close(dialog)
-                        self:showStep4_Advanced(state)
+                        self:showStep3_Settings(state)
                     end,
                 },
             },
@@ -1865,126 +1684,277 @@ function PromptsManager:showStep3_ActionPrompt(state)
     dialog:onShowKeyboard()
 end
 
--- Step 4: Advanced Settings (temperature, extended thinking, provider/model)
-function PromptsManager:showStep4_Advanced(state)
+-- Step 3: Unified Settings (replaces old Step 2 Behavior + Step 4 Advanced + Step 1 checkboxes)
+function PromptsManager:showStep3_Settings(state)
     local is_edit = state.existing_prompt ~= nil
 
-    -- Get current temperature display
+    -- Behavior display
+    local behavior_display
+    if state.behavior_override and state.behavior_override ~= "" then
+        behavior_display = _("Custom")
+    elseif state.behavior_variant == "none" then
+        behavior_display = _("None")
+    elseif state.behavior_variant then
+        local behavior = SystemPrompts.getBehaviorById(state.behavior_variant, nil)
+        if behavior then
+            behavior_display = behavior.name
+        else
+            behavior_display = state.behavior_variant
+        end
+    else
+        behavior_display = _("Global")
+    end
+
+    -- Domain display
+    local custom_domains = (self.plugin.settings:readSetting("features") or {}).custom_domains or {}
+    local domain_display = getDomainDisplayText(state, custom_domains)
+
+    -- Temperature display
     local temp_display = state.temperature and string.format("%.1f", state.temperature) or _("Global")
 
-    -- Get current reasoning display (handles both legacy and new format)
+    -- Reasoning display
     local thinking_display = self:getStateReasoningDisplayText(state)
 
-    -- Get current provider/model display
+    -- Provider/model display
     local provider_display = state.provider or _("Global")
     local model_display = state.model or _("Global")
 
-    local buttons = {
-        -- Row 1: Temperature
-        {
-            {
-                text = _("Temperature: ") .. temp_display,
-                callback = function()
-                    self:showTemperatureSelector(state)
-                end,
-            },
-        },
-        -- Row 2: Reasoning/Thinking
-        {
-            {
-                text = _("Reasoning: ") .. thinking_display,
-                callback = function()
-                    self:showThinkingSelector(state)
-                end,
-            },
-        },
-        -- Row 3: Provider/Model
-        {
-            {
-                text = _("Provider: ") .. provider_display,
-                callback = function()
-                    self:showProviderSelector(state)
-                end,
-            },
-            {
-                text = _("Model: ") .. model_display,
-                callback = function()
-                    if not state.provider then
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please select a provider first"),
+    -- Collect items, lay out 2 per row (same order as edit dialogs)
+    local items = {}
+
+    -- Row 1: Provider | Model
+    table.insert(items, {
+        text = _("Provider: ") .. provider_display,
+        callback = function()
+            self:showProviderSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Model: ") .. model_display,
+        callback = function()
+            if not state.provider then
+                UIManager:show(InfoMessage:new{
+                    text = _("Please select a provider first"),
+                })
+                return
+            end
+            self:showModelSelector(state)
+        end,
+    })
+
+    -- Row 2: Behavior | Domain
+    table.insert(items, {
+        text = _("Behavior: ") .. behavior_display,
+        callback = function()
+            UIManager:close(self.step3_dialog)
+            self:showWizardBehaviorSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Domain: ") .. domain_display,
+        callback = function()
+            UIManager:close(self.step3_dialog)
+            self:showDomainSelector(state, function()
+                self:showStep3_Settings(state)
+            end)
+        end,
+    })
+
+    -- Row 3: Temperature | Reasoning
+    table.insert(items, {
+        text = _("Temp: ") .. temp_display,
+        callback = function()
+            self:showTemperatureSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Reasoning: ") .. thinking_display,
+        callback = function()
+            self:showThinkingSelector(state)
+        end,
+    })
+
+    -- Row 4: Web | View (View only for highlight contexts)
+    local web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end)
+        end,
+    })
+
+    if state.context and self:contextIncludesHighlight(state.context) then
+        table.insert(items, {
+            text = _("View: ") .. self:getViewModeDisplayText(state),
+            callback = function()
+                self:showViewModeSelector(state, function()
+                    UIManager:close(self.step3_dialog)
+                    self:showStep3_Settings(state)
+                end)
+            end,
+        })
+    end
+
+    -- Checkboxes
+    table.insert(items, {
+        text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
+        callback = function()
+            state.skip_language_instruction = not state.skip_language_instruction
+            UIManager:close(self.step3_dialog)
+            self:showStep3_Settings(state)
+        end,
+    })
+
+    if state.context and self:contextIncludesHighlight(state.context) then
+        table.insert(items, {
+            text = (state.include_book_context and "☑ " or "☐ ") .. _("Include book info"),
+            callback = function()
+                state.include_book_context = not state.include_book_context
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+    end
+
+    if state.context and self:canUseTextExtraction(state, true) then
+        table.insert(items, {
+            text = (state.use_book_text and "☑ " or "☐ ") .. _("Allow text extraction"),
+            callback = function()
+                state.use_book_text = not state.use_book_text
+                if state.use_book_text then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if not features.enable_book_text_extraction then
+                        UIManager:show(Notification:new{
+                            text = _("Text extraction enabled. Note: Enable in Settings → Advanced first."),
+                            timeout = 4,
                         })
-                        return
                     end
-                    self:showModelSelector(state)
-                end,
-            },
-        },
-        -- Row 4: Web Search
+                end
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+    end
+
+    if state.context and self:canUsePerBookData(state.context) then
+        local hl_locked = state.use_annotations == true
+        local hl_checkbox = hl_locked and "☑ " or (state.use_highlights and "☑ " or "☐ ")
+        local hl_suffix = hl_locked and " ←" or ""
+        table.insert(items, {
+            text = hl_checkbox .. _("Allow highlight use") .. hl_suffix,
+            callback = function()
+                if hl_locked then
+                    UIManager:show(Notification:new{
+                        text = _("Highlights are always on when annotations are enabled."),
+                        timeout = 3,
+                    })
+                    return
+                end
+                state.use_highlights = not state.use_highlights
+                if state.use_highlights then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Highlight use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+        table.insert(items, {
+            text = (state.use_annotations and "☑ " or "☐ ") .. _("Allow annotation use (notes)"),
+            callback = function()
+                state.use_annotations = not state.use_annotations
+                if state.use_annotations then
+                    state.use_highlights = true
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_annotations_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Annotation use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+        table.insert(items, {
+            text = (state.use_notebook and "☑ " or "☐ ") .. _("Allow notebook use"),
+            callback = function()
+                state.use_notebook = not state.use_notebook
+                if state.use_notebook then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_notebook_sharing ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+    end
+
+    -- Lay out items 2 per row
+    local buttons = {}
+    for i = 1, #items, 2 do
+        if items[i + 1] then
+            table.insert(buttons, { items[i], items[i + 1] })
+        else
+            table.insert(buttons, { items[i] })
+        end
+    end
+
+    -- Back / Save row
+    table.insert(buttons, {
         {
-            {
-                text = _("Web Search:") .. " " .. (state.enable_web_search == true and _("Always")
-                    or state.enable_web_search == false and _("Never")
-                    or _("Global")),
-                callback = function()
-                    self:showWebSearchSelector(state, function()
-                        UIManager:close(self.advanced_dialog)
-                        self:showStep4_Advanced(state)
-                    end)
-                end,
-            },
+            text = _("← Back"),
+            callback = function()
+                UIManager:close(self.step3_dialog)
+                self:showStep2_ActionPrompt(state)
+            end,
         },
-        -- Row 5: Back / Save
         {
-            {
-                text = _("← Back"),
-                callback = function()
-                    UIManager:close(self.advanced_dialog)
-                    self:showStep3_ActionPrompt(state)
-                end,
-            },
-            {
-                text = is_edit and _("Save") or _("Create"),
-                callback = function()
-                    UIManager:close(self.advanced_dialog)
+            text = is_edit and _("Save") or _("Create"),
+            callback = function()
+                UIManager:close(self.step3_dialog)
 
-                    -- Save the action
-                    if is_edit then
-                        self:updatePrompt(state.existing_prompt, state)
-                    else
-                        self:addPrompt(state)
-                    end
+                -- Save the action
+                if is_edit then
+                    self:updatePrompt(state.existing_prompt, state)
+                else
+                    self:addPrompt(state)
+                end
 
-                    -- Refresh prompts menu
-                    if self.prompts_menu then
-                        UIManager:close(self.prompts_menu)
-                    end
-                    self:show()
-                end,
-            },
+                -- Refresh prompts menu
+                if self.prompts_menu then
+                    UIManager:close(self.prompts_menu)
+                end
+                self:show()
+            end,
         },
-    }
+    })
 
-    local info = _([[Advanced settings for this action.
-
-Temperature: ]] .. temp_display .. [[
-
-  Range 0.0-2.0 (Anthropic max 1.0)
-
-Reasoning: ]] .. thinking_display .. [[
-
-  Anthropic/OpenAI/Gemini. May force temp to 1.0.
-
-Provider/Model: ]] .. provider_display .. " / " .. model_display .. [[
-
-  Override global provider/model for this action.]])
-
-    self.advanced_dialog = ButtonDialog:new{
-        title = is_edit and _("Edit Action - Advanced") or _("Step 4/4: Advanced Settings"),
-        info_text = info,
+    self.step3_dialog = ButtonDialog:new{
+        title = is_edit and _("Edit Action - Settings") or _("Step 3/3: Settings"),
         buttons = buttons,
     }
 
-    UIManager:show(self.advanced_dialog)
+    UIManager:show(self.step3_dialog)
 end
 
 -- Temperature selector dialog
@@ -2011,16 +1981,16 @@ function PromptsManager:showTemperatureSelector(state)
         value_table = value_table,
         value_index = value_index,
         default_value = 8,  -- Index for 0.7
-        extra_text = _("Use global"),
+        extra_text = _("Global"),
         extra_callback = function()
             state.temperature = nil
             UIManager:close(self.advanced_dialog)
-            self:showStep4_Advanced(state)
+            self:showStep3_Settings(state)
         end,
         callback = function(spin)
             state.temperature = spin.value
             UIManager:close(self.advanced_dialog)
-            self:showStep4_Advanced(state)
+            self:showStep3_Settings(state)
         end,
     }
 
@@ -2138,7 +2108,7 @@ end
 -- @param refresh_callback: Callback to refresh the parent dialog
 function PromptsManager:showWebSearchSelector(state, refresh_callback)
     local options = {
-        { value = "global", text = _("Follow global setting"), desc = _("Uses your web search setting from AI Response Settings") },
+        { value = "global", text = _("Global (use setting)"), desc = _("Uses your web search setting from AI Response Settings") },
         { value = true, text = _("Always use web search"), desc = _("Force web search on, even if global setting is off") },
         { value = false, text = _("Never use web search"), desc = _("Force web search off, even if global setting is on") },
     }
@@ -2212,14 +2182,14 @@ function PromptsManager:showThinkingSelector(state, refresh_callback)
         else
             -- Custom action wizard: refresh step 4
             UIManager:close(self.advanced_dialog)
-            self:showStep4_Advanced(state)
+            self:showStep3_Settings(state)
         end
     end
 
     local buttons = {
         {
             {
-                text = _("Use global setting"),
+                text = _("Global (use setting)"),
                 callback = function()
                     state.reasoning_config = nil  -- Use per-provider global settings
                     UIManager:close(self.thinking_dialog)
@@ -2342,7 +2312,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         else
             -- Custom action wizard: refresh step 4
             UIManager:close(self.advanced_dialog)
-            self:showStep4_Advanced(state)
+            self:showStep3_Settings(state)
         end
     end
 
@@ -2356,7 +2326,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         self.binary_dialog = ButtonDialog:new{
             title = title,
             buttons = {
-                { { text = _("Use global setting"), callback = function() setAndClose(nil) end } },
+                { { text = _("Global (use setting)"), callback = function() setAndClose(nil) end } },
                 { { text = _("OFF"), callback = function() setAndClose(false) end } },
                 { { text = _("ON"), callback = function() setAndClose(true) end } },
                 { { text = _("Cancel"), callback = function()
@@ -2377,7 +2347,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             self:showPerProviderReasoningMenu(state)
         end
         local btns = {
-            { { text = _("Use global setting"), callback = function() setAndClose(nil) end } },
+            { { text = _("Global (use setting)"), callback = function() setAndClose(nil) end } },
             { { text = _("OFF"), callback = function() setAndClose(false) end } },
         }
         for _idx, effort in ipairs(effort_options) do
@@ -2405,7 +2375,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             self:showPerProviderReasoningMenu(state)
         end
         local btns = {
-            { { text = _("Use global setting"), callback = function() setAndClose(nil) end } },
+            { { text = _("Global (use setting)"), callback = function() setAndClose(nil) end } },
         }
         for _idx, effort in ipairs(effort_options) do
             local label = effort:sub(1,1):upper() .. effort:sub(2) .. _(" effort")
@@ -2553,7 +2523,7 @@ function PromptsManager:showAnthropicReasoningConfig(state)
     local buttons = {
         {
             {
-                text = _("Use global setting"),
+                text = _("Global (use setting)"),
                 callback = function()
                     state.reasoning_config.anthropic = nil
                     UIManager:close(self.anthropic_dialog)
@@ -2652,7 +2622,7 @@ function PromptsManager:showAnthropicEffortSelector(state)
     local buttons = {
         {
             {
-                text = _("Use global setting"),
+                text = _("Global (use setting)"),
                 callback = function()
                     -- Remove effort from config, preserve budget if set
                     local existing = state.reasoning_config.anthropic
@@ -2724,7 +2694,7 @@ function PromptsManager:showOpenAIReasoningConfig(state)
     local buttons = {
         {
             {
-                text = _("Use global setting"),
+                text = _("Global (use setting)"),
                 callback = function()
                     state.reasoning_config.openai = nil
                     UIManager:close(self.openai_dialog)
@@ -2812,7 +2782,7 @@ function PromptsManager:showGeminiReasoningConfig(state)
 
     local buttons = {
         {
-            { text = _("Use global setting"), callback = function() setAndClose(nil) end },
+            { text = _("Global (use setting)"), callback = function() setAndClose(nil) end },
         },
         {
             { text = _("OFF (disable thinking)"), callback = function() setAndClose(false) end },
@@ -2877,7 +2847,7 @@ function PromptsManager:showThinkingBudgetSelector(state)
                 anthropic = { budget = spin.value },
             }
             UIManager:close(self.advanced_dialog)
-            self:showStep4_Advanced(state)
+            self:showStep3_Settings(state)
         end,
     }
 
@@ -2894,13 +2864,13 @@ function PromptsManager:showProviderSelector(state)
         -- Use global option
         {
             {
-                text = _("Use global setting"),
+                text = _("Global (use setting)"),
                 callback = function()
                     state.provider = nil
                     state.model = nil  -- Clear model when clearing provider
                     UIManager:close(self.provider_dialog)
                     UIManager:close(self.advanced_dialog)
-                    self:showStep4_Advanced(state)
+                    self:showStep3_Settings(state)
                 end,
             },
         },
@@ -2923,7 +2893,7 @@ function PromptsManager:showProviderSelector(state)
                     end
                     UIManager:close(self.provider_dialog)
                     UIManager:close(self.advanced_dialog)
-                    self:showStep4_Advanced(state)
+                    self:showStep3_Settings(state)
                 end,
             },
         })
@@ -2965,7 +2935,7 @@ function PromptsManager:showModelSelector(state)
                     state.model = model
                     UIManager:close(self.model_dialog)
                     UIManager:close(self.advanced_dialog)
-                    self:showStep4_Advanced(state)
+                    self:showStep3_Settings(state)
                 end,
             },
         })
@@ -3015,7 +2985,7 @@ function PromptsManager:showCustomModelInput(state)
                     callback = function()
                         UIManager:close(dialog)
                         UIManager:close(self.advanced_dialog)
-                        self:showStep4_Advanced(state)
+                        self:showStep3_Settings(state)
                     end,
                 },
                 {
@@ -3027,7 +2997,7 @@ function PromptsManager:showCustomModelInput(state)
                         end
                         UIManager:close(dialog)
                         UIManager:close(self.advanced_dialog)
-                        self:showStep4_Advanced(state)
+                        self:showStep3_Settings(state)
                     end,
                 },
             },
@@ -3046,6 +3016,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_action = Actions.getById(prompt.id)
     local base_skip_lang = base_action and base_action.skip_language_instruction or false
     local base_skip_domain = base_action and base_action.skip_domain or false
+    local base_domain = base_action and base_action.domain or nil
     local base_include_book_context = base_action and base_action.include_book_context or false
 
     -- Get base action extraction flags for comparison
@@ -3075,6 +3046,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         skip_language_instruction_base = base_skip_lang,  -- Track base for comparison on save
         skip_domain = prompt.skip_domain or false,
         skip_domain_base = base_skip_domain,  -- Track base for comparison on save
+        domain = prompt.domain,  -- nil = global
+        domain_base = base_domain,  -- Track base for comparison on save
         include_book_context = prompt.include_book_context or false,
         include_book_context_base = base_include_book_context,
         -- New format: reasoning_config
@@ -3149,46 +3122,14 @@ function PromptsManager:showBuiltinSettingsDialog(state)
     local buttons = {}
 
     -- Collect all items, then lay out 2 per row
-    -- Options first, then checkboxes
+    -- Selectors first, then checkboxes
     local items = {}
 
-    -- Options
-    table.insert(items, {
-        text = _("AI Behavior: ") .. behavior_display,
-        callback = function()
-            UIManager:close(self.builtin_settings_dialog)
-            self:showBuiltinBehaviorSelector(state)
-        end,
-    })
+    -- Domain display
+    local custom_domains = (self.plugin.settings:readSetting("features") or {}).custom_domains or {}
+    local domain_display = getDomainDisplayText(state, custom_domains)
 
-    table.insert(items, {
-        text = _("Temp: ") .. temp_display,
-        callback = function()
-            self:showBuiltinTemperatureSelector(state)
-        end,
-    })
-
-    table.insert(items, {
-        text = _("Reasoning: ") .. thinking_display,
-        callback = function()
-            self:showThinkingSelector(state)  -- Use shared dialog
-        end,
-    })
-
-    -- Web search setting (tri-state)
-    local web_display = state.enable_web_search == true and _("Always")
-        or state.enable_web_search == false and _("Never")
-        or _("Global")
-    table.insert(items, {
-        text = _("Web:") .. " " .. web_display,
-        callback = function()
-            self:showWebSearchSelector(state, function()
-                UIManager:close(self.builtin_settings_dialog)
-                self:showBuiltinSettingsDialog(state)
-            end)
-        end,
-    })
-
+    -- Row 1: Provider | Model
     table.insert(items, {
         text = _("Provider: ") .. provider_display,
         callback = function()
@@ -3209,6 +3150,54 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         end,
     })
 
+    -- Row 2: Behavior | Domain
+    table.insert(items, {
+        text = _("Behavior: ") .. behavior_display,
+        callback = function()
+            UIManager:close(self.builtin_settings_dialog)
+            self:showBuiltinBehaviorSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Domain: ") .. domain_display,
+        callback = function()
+            UIManager:close(self.builtin_settings_dialog)
+            self:showDomainSelector(state, function()
+                self:showBuiltinSettingsDialog(state)
+            end)
+        end,
+    })
+
+    -- Row 3: Temperature | Reasoning
+    table.insert(items, {
+        text = _("Temp: ") .. temp_display,
+        callback = function()
+            self:showBuiltinTemperatureSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Reasoning: ") .. thinking_display,
+        callback = function()
+            self:showThinkingSelector(state)  -- Use shared dialog
+        end,
+    })
+
+    -- Row 4: Web | View (View only for highlight contexts)
+    local web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end)
+        end,
+    })
+
     if self:contextIncludesHighlight(prompt.context) then
         table.insert(items, {
             text = _("View: ") .. self:getViewModeDisplayText(state),
@@ -3226,15 +3215,6 @@ function PromptsManager:showBuiltinSettingsDialog(state)
         text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
         callback = function()
             state.skip_language_instruction = not state.skip_language_instruction
-            UIManager:close(self.builtin_settings_dialog)
-            self:showBuiltinSettingsDialog(state)
-        end,
-    })
-
-    table.insert(items, {
-        text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
-        callback = function()
-            state.skip_domain = not state.skip_domain
             UIManager:close(self.builtin_settings_dialog)
             self:showBuiltinSettingsDialog(state)
         end,
@@ -3408,7 +3388,7 @@ function PromptsManager:showBuiltinBehaviorSelector(state)
 
     -- Build behavior options dynamically from built-in behaviors
     local behavior_options = {
-        { id = "global", text = _("Use global setting") },
+        { id = "global", text = _("Global (use setting)") },
     }
 
     -- Add all built-in behaviors
@@ -3505,6 +3485,80 @@ function PromptsManager:showBuiltinCustomBehaviorInput(state)
     dialog:onShowKeyboard()
 end
 
+-- Shared domain selector (used by builtin settings, custom quick settings, and wizard)
+function PromptsManager:showDomainSelector(state, return_callback)
+    local custom_domains = {}
+    local features = self.plugin.settings:readSetting("features") or {}
+    custom_domains = features.custom_domains or {}
+
+    -- Determine current selection
+    local current_selection = "global"
+    if state.skip_domain then
+        current_selection = "none"
+    elseif state.domain then
+        current_selection = state.domain
+    end
+
+    -- Build domain options
+    local domain_options = {
+        { id = "global", text = _("Global (use setting)") },
+    }
+
+    -- Add all available domains
+    local sorted = DomainLoader.getSortedDomains(custom_domains)
+    for _idx, domain in ipairs(sorted) do
+        local tokens = domain.context and math.floor(#domain.context / 4) or 0
+        table.insert(domain_options, {
+            id = domain.id,
+            text = (domain.display_name or domain.name) .. " (" .. T(_("~%1 tokens"), tokens) .. ")",
+        })
+    end
+
+    -- Add none option
+    table.insert(domain_options, { id = "none", text = _("None (no domain)") })
+
+    local buttons = {}
+    for _idx, option in ipairs(domain_options) do
+        local prefix = (current_selection == option.id) and "● " or "○ "
+        table.insert(buttons, {
+            {
+                text = prefix .. option.text,
+                callback = function()
+                    UIManager:close(self.domain_selector_dialog)
+                    if option.id == "global" then
+                        state.domain = nil
+                        state.skip_domain = nil
+                    elseif option.id == "none" then
+                        state.domain = nil
+                        state.skip_domain = true
+                    else
+                        state.domain = option.id
+                        state.skip_domain = nil
+                    end
+                    if return_callback then return_callback() end
+                end,
+            },
+        })
+    end
+
+    table.insert(buttons, {
+        {
+            text = _("Cancel"),
+            callback = function()
+                UIManager:close(self.domain_selector_dialog)
+                if return_callback then return_callback() end
+            end,
+        },
+    })
+
+    self.domain_selector_dialog = ButtonDialog:new{
+        title = _("Domain"),
+        buttons = buttons,
+    }
+
+    UIManager:show(self.domain_selector_dialog)
+end
+
 -- Temperature selector for builtin actions
 function PromptsManager:showBuiltinTemperatureSelector(state)
     local SpinWidget = require("ui/widget/spinwidget")
@@ -3526,7 +3580,7 @@ function PromptsManager:showBuiltinTemperatureSelector(state)
         value_table = value_table,
         value_index = value_index,
         default_value = 8,
-        extra_text = _("Use global"),
+        extra_text = _("Global"),
         extra_callback = function()
             state.temperature = nil
             UIManager:close(self.builtin_settings_dialog)
@@ -3551,7 +3605,7 @@ function PromptsManager:showBuiltinProviderSelector(state)
     local buttons = {
         {
             {
-                text = _("Use global setting"),
+                text = _("Global (use setting)"),
                 callback = function()
                     state.provider = nil
                     state.model = nil
@@ -3744,6 +3798,16 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.skip_domain = state.skip_domain
         has_any = true
     end
+    -- Save domain if it differs from the base action's default
+    local base_domain = state.domain_base  -- nil for most builtins
+    if state.domain ~= base_domain then
+        if state.domain == nil then
+            override.domain = "global"  -- Sentinel: reset to global (no per-action domain)
+        else
+            override.domain = state.domain
+        end
+        has_any = true
+    end
     -- Save include_book_context if it differs from the base action's default
     local base_include_book_context = state.include_book_context_base or false
     if state.include_book_context ~= base_include_book_context then
@@ -3910,49 +3974,14 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
     }
 
     -- Collect all items after Name, then lay out 2 per row
-    -- Options first, then checkboxes
+    -- Selectors first, then checkboxes
     local items = {}
 
-    -- Options
-    table.insert(items, {
-        text = _("AI Behavior: ") .. behavior_display,
-        callback = function()
-            UIManager:close(self.custom_quick_dialog)
-            self:showCustomBehaviorQuickSelector(state)
-        end,
-    })
+    -- Domain display
+    local custom_domains = (self.plugin.settings:readSetting("features") or {}).custom_domains or {}
+    local domain_display = getDomainDisplayText(state, custom_domains)
 
-    table.insert(items, {
-        text = _("Temp: ") .. temp_display,
-        callback = function()
-            self:showCustomTemperatureSelector(state)
-        end,
-    })
-
-    table.insert(items, {
-        text = _("Reasoning: ") .. thinking_display,
-        callback = function()
-            self:showThinkingSelector(state, function()
-                UIManager:close(self.custom_quick_dialog)
-                self:showCustomQuickSettingsDialog(state)
-            end)
-        end,
-    })
-
-    -- Web search setting (tri-state)
-    local custom_web_display = state.enable_web_search == true and _("Always")
-        or state.enable_web_search == false and _("Never")
-        or _("Global")
-    table.insert(items, {
-        text = _("Web:") .. " " .. custom_web_display,
-        callback = function()
-            self:showWebSearchSelector(state, function()
-                UIManager:close(self.custom_quick_dialog)
-                self:showCustomQuickSettingsDialog(state)
-            end)
-        end,
-    })
-
+    -- Row 1: Provider | Model
     table.insert(items, {
         text = _("Provider: ") .. provider_display,
         callback = function()
@@ -3973,6 +4002,57 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
         end,
     })
 
+    -- Row 2: Behavior | Domain
+    table.insert(items, {
+        text = _("Behavior: ") .. behavior_display,
+        callback = function()
+            UIManager:close(self.custom_quick_dialog)
+            self:showCustomBehaviorQuickSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Domain: ") .. domain_display,
+        callback = function()
+            UIManager:close(self.custom_quick_dialog)
+            self:showDomainSelector(state, function()
+                self:showCustomQuickSettingsDialog(state)
+            end)
+        end,
+    })
+
+    -- Row 3: Temperature | Reasoning
+    table.insert(items, {
+        text = _("Temp: ") .. temp_display,
+        callback = function()
+            self:showCustomTemperatureSelector(state)
+        end,
+    })
+
+    table.insert(items, {
+        text = _("Reasoning: ") .. thinking_display,
+        callback = function()
+            self:showThinkingSelector(state, function()
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end)
+        end,
+    })
+
+    -- Row 4: Web | View (View only for highlight contexts)
+    local custom_web_display = state.enable_web_search == true and _("Always")
+        or state.enable_web_search == false and _("Never")
+        or _("Global")
+    table.insert(items, {
+        text = _("Web: ") .. custom_web_display,
+        callback = function()
+            self:showWebSearchSelector(state, function()
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end)
+        end,
+    })
+
     if self:contextIncludesHighlight(state.context) then
         table.insert(items, {
             text = _("View: ") .. self:getViewModeDisplayText(state),
@@ -3990,15 +4070,6 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
         text = (state.skip_language_instruction and "☑ " or "☐ ") .. _("Skip language"),
         callback = function()
             state.skip_language_instruction = not state.skip_language_instruction
-            UIManager:close(self.custom_quick_dialog)
-            self:showCustomQuickSettingsDialog(state)
-        end,
-    })
-
-    table.insert(items, {
-        text = (state.skip_domain and "☑ " or "☐ ") .. _("Skip domain"),
-        callback = function()
-            state.skip_domain = not state.skip_domain
             UIManager:close(self.custom_quick_dialog)
             self:showCustomQuickSettingsDialog(state)
         end,
@@ -4603,7 +4674,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
                         UIManager:close(self.placeholder_dialog)
                         -- Append placeholder to action prompt
                         state.prompt = (state.prompt or "") .. placeholder.value
-                        self:showStep3_ActionPrompt(state)
+                        self:showStep2_ActionPrompt(state)
                     end,
                 },
             })
@@ -4615,7 +4686,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
             text = _("Cancel"),
             callback = function()
                 UIManager:close(self.placeholder_dialog)
-                self:showStep3_ActionPrompt(state)
+                self:showStep2_ActionPrompt(state)
             end,
         },
     })
@@ -4624,7 +4695,7 @@ function PromptsManager:showPlaceholderSelectorWizard(state)
         title = _("Insert Placeholder"),
         buttons = buttons,
         tap_close_callback = function()
-            self:showStep3_ActionPrompt(state)
+            self:showStep2_ActionPrompt(state)
         end,
     }
 
