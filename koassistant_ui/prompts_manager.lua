@@ -1248,6 +1248,7 @@ function PromptsManager:showStep1_NameAndContext(state)
             id = "close",
             callback = function()
                 UIManager:close(self.step1_dialog)
+                self:show()
             end,
         },
         {
@@ -1478,8 +1479,7 @@ function PromptsManager:showContextSelectorWizard(state)
                            "• " .. _("Highlight") .. " — " .. _("When text is selected. Gets: selected text, optionally book info") .. "\n\n" ..
                            "• " .. _("Book") .. " — " .. _("File browser or 'New Book Chat/Action'. Gets: title, author") .. "\n\n" ..
                            "• " .. _("Multi-Book") .. " — " .. _("Multiple books selected. Gets: book list with count") .. "\n\n" ..
-                           "• " .. _("General") .. " — " .. _("Standalone chat. No automatic context") .. "\n\n" ..
-                           "• " .. _("Highlight & Book") .. " — " .. _("Both highlight and single-book menus"),
+                           "• " .. _("General") .. " — " .. _("Standalone chat. No automatic context"),
                 })
             end,
         },
@@ -1951,6 +1951,9 @@ function PromptsManager:showStep3_Settings(state)
     self.step3_dialog = ButtonDialog:new{
         title = is_edit and _("Edit Action - Settings") or _("Step 3/3: Settings"),
         buttons = buttons,
+        tap_close_callback = function()
+            self:show()
+        end,
     }
 
     UIManager:show(self.step3_dialog)
