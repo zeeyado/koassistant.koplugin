@@ -978,11 +978,24 @@ end
 --- @return string title
 function XrayBrowser:buildMainTitle()
     if self.scope then
-        return T(_("X-Ray § %1"), self.scope.label)
+        local scope_title = T(_("X-Ray § %1"), self.scope.label)
+        if self.metadata.timestamp then
+            local rel = Constants.formatRelativeTime(self.metadata.timestamp)
+            if rel ~= "" then
+                scope_title = scope_title .. " · " .. rel
+            end
+        end
+        return scope_title
     end
     local title = "X-Ray"
     if self.metadata.progress then
         title = title .. " (" .. self.metadata.progress .. ")"
+    end
+    if self.metadata.timestamp then
+        local rel = Constants.formatRelativeTime(self.metadata.timestamp)
+        if rel ~= "" then
+            title = title .. " · " .. rel
+        end
     end
     return title
 end
@@ -1991,8 +2004,15 @@ function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, n
     local self_ref = self
 
     local wiki_key = ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name
+    local wiki_title = T(_("AI Wiki: %1"), item_name)
+    if cached.timestamp then
+        local rel = Constants.formatRelativeTime(cached.timestamp)
+        if rel ~= "" then
+            wiki_title = wiki_title .. " · " .. rel
+        end
+    end
     local wiki_viewer = ChatGPTViewer:new{
-        title = T(_("AI Wiki: %1"), item_name),
+        title = wiki_title,
         text = cached.result,
         simple_view = true,
         cache_type_name = _("AI Wiki"),

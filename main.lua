@@ -4045,43 +4045,7 @@ function AskGPT:onKOAssistantBookChat()
 end
 
 --- Show available cached content for current document
---- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
---- @param timestamp number Unix timestamp
---- @return string Relative time string, or empty if invalid
-local function formatRelativeTime(timestamp)
-  if not timestamp then return "" end
-  local now = os.time()
-  if now - timestamp < 0 then return "" end
-  -- Compare calendar dates (midnight-aligned) to get accurate day counts
-  local today_t = os.date("*t", now)
-  today_t.hour, today_t.min, today_t.sec = 0, 0, 0
-  local cached_t = os.date("*t", timestamp)
-  cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
-  local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
-  if days == 0 then
-    return _("today")
-  elseif days < 30 then
-    return string.format(_("%dd ago"), days)
-  else
-    local months = math.floor(days / 30)
-    local years = math.floor(days / 365)
-    if years == 0 then
-      local rd = days - (months * 30)
-      if rd > 0 then
-        return string.format(_("%dm%dd ago"), months, rd)
-      else
-        return string.format(_("%dm ago"), months)
-      end
-    else
-      local rm = months - (years * 12)
-      if rm > 0 then
-        return string.format(_("%dy%dm ago"), years, rm)
-      else
-        return string.format(_("%dy ago"), years)
-      end
-    end
-  end
-end
+local formatRelativeTime = Constants.formatRelativeTime
 
 --- Format the source label for cache viewers (AI training data vs extracted text)
 --- @param used_book_text boolean|nil Whether book text was used to build the cache
@@ -4330,6 +4294,12 @@ function AskGPT:showCacheViewer(cache_info)
   local title = cache_info.name
   if progress_str then
     title = title .. " (" .. progress_str .. ")"
+  end
+  if cache_info.data.timestamp then
+    local rel = formatRelativeTime(cache_info.data.timestamp)
+    if rel ~= "" then
+      title = title .. " · " .. rel
+    end
   end
   if book_title then
     title = title .. " - " .. book_title
