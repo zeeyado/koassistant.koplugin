@@ -1448,7 +1448,6 @@ function PromptsManager:showContextSelectorWizard(state)
         { value = "book" },
         { value = "multi_book" },
         { value = "general" },
-        { value = "both" },
     }
 
     local buttons = {}
