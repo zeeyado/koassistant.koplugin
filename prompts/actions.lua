@@ -1684,24 +1684,6 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         in_reading_features = 8,
         in_quick_actions = 10,
     },
-    -- End-of-book suggestion (variant of suggest_from_library with "just finished" framing)
-    next_read = {
-        id = "next_read",
-        text = _("Next Read"),
-        description = _("Suggests what to read next from your library after finishing the current book."),
-        context = "book",
-        skip_domain = true,
-        requires = {"library"},
-        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
-        use_library = true,
-        template = "next_read",
-        api_params = {
-            temperature = 0.7,
-            max_tokens = 4096,
-        },
-        reasoning_config = { default = "off" },
-        builtin = true,
-    },
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
         id = "book_reviews",

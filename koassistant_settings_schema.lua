@@ -1527,6 +1527,19 @@ local SettingsSchema = {
                     help_text = _("Number of days since last reading before the reminder appears."),
                     depends_on = { id = "enable_recap_reminder", value = true },
                 },
+                {
+                    id = "end_of_book_header",
+                    type = "header",
+                    text = _("End of Book"),
+                },
+                {
+                    id = "enable_end_of_book_suggestion",
+                    type = "toggle",
+                    text = _("Suggest Next Read on Finish"),
+                    path = "features.enable_end_of_book_suggestion",
+                    default = true,
+                    help_text = _("When you reach the end of a book, offer to suggest what to read next from your library. Requires library scanning to be enabled with at least one folder configured."),
+                },
             },
         },
 

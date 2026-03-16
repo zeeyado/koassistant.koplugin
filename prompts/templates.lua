@@ -134,17 +134,17 @@ Adapt depth and focus to the type of work — a literary novel deserves attentio
 
 Be substantive but not exhaustive. {hallucination_nudge}]],
 
-    suggest_from_library = [[I'm currently reading "{title}"{author_clause} and I'm at {reading_progress}.
+    suggest_from_library = [[I'm reading "{title}"{author_clause} ({reading_progress}).
 
 Here is my library:
 
 {library}
 
-Based on this book and my library, suggest what I should read next **from books I already own**. Consider:
+Suggest what I should read next **from books I already own**. Consider:
 - Thematic connections to what I'm currently reading
-- My reading patterns (what I've finished, what I started but stopped, what's unread)
+- My reading patterns (what I've finished, started but stopped, or left unread)
 - Natural follow-ups — same author, same series, related topics
-- Variety — don't just suggest the most similar book; consider what would complement or contrast well
+- Variety — consider what would complement or contrast well, not just the most similar book
 
 For each suggestion (3-5 books):
 - Why this book specifically, given what I'm reading now
@@ -152,23 +152,6 @@ For each suggestion (3-5 books):
 - If relevant, why now rather than later in my reading queue
 
 Only suggest books from my library. Do not recommend books I don't own. {hallucination_nudge}]],
-
-    next_read = [[I just finished reading "{title}"{author_clause}.
-
-Here is my library:
-
-{library}
-
-What should I read next **from books I already own**? Consider:
-- What would be a good follow-up to what I just finished
-- My reading patterns (what I've completed, started, or left unread)
-- Natural next steps — same author, same series, related topics, or a deliberate change of pace
-
-Suggest 3-5 books from my library. For each:
-- Why this one next, given what I just finished
-- What it offers as a follow-up
-
-Only suggest books from my library. {hallucination_nudge}]],
 
     similar_books = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 similar works.
 
