@@ -255,6 +255,47 @@ TestRunner:test("no reasoning for grok-4 (not in capability list)", function()
     TestRunner:assertNil(result.reasoning_effort, "should not add reasoning_effort")
 end)
 
+TestRunner:suite("Z.AI thinking injection")
+
+local ZaiHandler = require("zai")
+
+TestRunner:test("adds thinking when config present", function()
+    local body = { model = "glm-5-turbo", messages = {}, temperature = 0.7 }
+    local config = { api_params = { zai_thinking = { type = "enabled" } } }
+    local result = ZaiHandler:customizeRequestBody(body, config)
+    TestRunner:assertNotNil(result.thinking, "thinking should be set")
+    TestRunner:assertEqual(result.thinking.type, "enabled", "thinking type")
+end)
+
+TestRunner:test("forces temperature=1.0 when thinking enabled", function()
+    local body = { model = "glm-5", messages = {}, temperature = 0.7 }
+    local config = { api_params = { zai_thinking = { type = "enabled" } } }
+    local result = ZaiHandler:customizeRequestBody(body, config)
+    TestRunner:assertEqual(result.temperature, 1.0, "temperature should be forced to 1.0")
+end)
+
+TestRunner:test("preserves temperature when thinking disabled", function()
+    local body = { model = "glm-4.7-flash", messages = {}, temperature = 0.5 }
+    local config = { api_params = { zai_thinking = { type = "disabled" } } }
+    local result = ZaiHandler:customizeRequestBody(body, config)
+    TestRunner:assertEqual(result.temperature, 0.5, "temperature should be preserved")
+end)
+
+TestRunner:test("no thinking when config absent", function()
+    local body = { model = "glm-5-turbo", messages = {}, temperature = 0.7 }
+    local config = { api_params = {} }
+    local result = ZaiHandler:customizeRequestBody(body, config)
+    TestRunner:assertNil(result.thinking, "thinking should not be set")
+    TestRunner:assertEqual(result.temperature, 0.7, "temperature unchanged")
+end)
+
+TestRunner:test("forces temp=1.0 even from high temperature", function()
+    local body = { model = "glm-4.7", messages = {}, temperature = 1.8 }
+    local config = { api_params = { zai_thinking = { type = "enabled" } } }
+    local result = ZaiHandler:customizeRequestBody(body, config)
+    TestRunner:assertEqual(result.temperature, 1.0, "should override any temperature to 1.0")
+end)
+
 TestRunner:suite("Perplexity reasoning injection")
 
 local PerplexityHandler = require("perplexity")
@@ -522,6 +563,16 @@ local capability_checks = {
     { "mistral", "magistral-medium", "thinking", true },
     { "mistral", "magistral-small", "thinking", true },
     { "mistral", "mistral-large-latest", "thinking", false },
+    -- Z.AI thinking capabilities
+    { "zai", "glm-5-turbo", "thinking", true },
+    { "zai", "glm-5", "thinking", true },
+    { "zai", "glm-4.7", "thinking", true },
+    { "zai", "glm-4.7-flash", "thinking", true },
+    { "zai", "glm-4.7-flashx", "thinking", true },
+    { "zai", "glm-4.6", "thinking", true },
+    { "zai", "glm-4.5", "thinking", true },
+    { "zai", "glm-4.5-flash", "thinking", true },
+    { "zai", "glm-4-plus", "thinking", false },
 }
 
 for _idx, check in ipairs(capability_checks) do

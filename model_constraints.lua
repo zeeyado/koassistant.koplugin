@@ -91,8 +91,11 @@ ModelConstraints.capabilities = {
     zai = {
         -- GLM-4.5+ models support toggleable thinking (type: enabled/disabled)
         -- Returns reasoning_content field in responses (like DeepSeek)
+        -- IMPORTANT: Z.AI requires temperature=1.0 when thinking is enabled
+        -- (enforced in zai.lua handler, not here — thinking is togglable)
         thinking = {
-            "glm-5", "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash",
+            "glm-5-turbo", "glm-5",
+            "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash",
             "glm-4.6", "glm-4.5", "glm-4.5-flash",
         },
     },

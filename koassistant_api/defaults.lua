@@ -12,24 +12,23 @@ local function getDefaultModel(provider)
     -- This is intentional duplication for reliability (don't remove!)
     -- Primary source of truth remains: koassistant_model_lists.lua
     local fallbacks = {
-        anthropic = "claude-sonnet-4-5-20250929",
-        openai = "gpt-4.1",
+        anthropic = "claude-sonnet-4-6",
+        openai = "gpt-5.4",
         deepseek = "deepseek-chat",
-        gemini = "gemini-2.5-pro",
-        ollama = "llama3",
-        -- New providers
+        gemini = "gemini-2.5-flash",
+        ollama = "llama3.3",
         groq = "llama-3.3-70b-versatile",
         mistral = "mistral-large-latest",
-        xai = "grok-3",  -- Grok 4.x doesn't exist yet (Jan 2025)
-        openrouter = "anthropic/claude-sonnet-4-5",
-        qwen = "qwen-max",
-        kimi = "moonshot-v1-auto",
-        together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-        fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
-        sambanova = "Meta-Llama-3.3-70B-Instruct",
-        cohere = "command-r-plus-08-2024",
-        doubao = "doubao-1.5-pro-32k",
-        zai = "glm-4.7-flash",
+        xai = "grok-4-1-fast-non-reasoning",
+        openrouter = "anthropic/claude-sonnet-4.6",
+        qwen = "qwen3-max",
+        kimi = "kimi-k2-0905-preview",
+        together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
+        fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
+        sambanova = "Meta-Llama-4-Maverick-17B-128E-Instruct",
+        cohere = "command-a-03-2025",
+        doubao = "doubao-1.8-pro-32k",
+        zai = "glm-5-turbo",
         perplexity = "sonar-pro",
     }
     return fallbacks[provider] or "unknown"

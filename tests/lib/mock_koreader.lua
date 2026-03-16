@@ -56,6 +56,26 @@ package.loaded["ffi/util"] = {
     end,
 }
 
+-- Mock network libraries if not available (unit tests don't need real network)
+-- Only mock if the real modules can't be loaded (preserves integration test functionality)
+if not pcall(require, "socket") then
+    package.loaded["socket"] = {
+        tcp = function() return { connect = function() end, settimeout = function() end } end,
+        gettime = function() return os.clock() end,
+    }
+    package.loaded["socket.http"] = {
+        request = function() return nil, "mocked - no network in unit tests" end,
+    }
+    package.loaded["ssl.https"] = {
+        request = function() return nil, "mocked - no network in unit tests" end,
+    }
+    package.loaded["ltn12"] = {
+        sink = { table = function() return function() end, {} end },
+        source = { string = function() return function() end end },
+        pump = { all = function() return true end },
+    }
+end
+
 -- Use dkjson instead of KOReader's json
 -- dkjson is a pure Lua JSON library available via luarocks
 local json_ok, dkjson = pcall(require, "dkjson")

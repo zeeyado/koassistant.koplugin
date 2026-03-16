@@ -58,6 +58,13 @@ function ZaiHandler:customizeRequestBody(body, config)
     -- (GLM-4.5+ thinks by default)
     if config.api_params and config.api_params.zai_thinking then
         body.thinking = config.api_params.zai_thinking
+
+        -- Z.AI requires temperature=1.0 when thinking is enabled.
+        -- Without this, the API returns an error if temp != 1.0.
+        -- Only force when explicitly enabling; disabling doesn't constrain temp.
+        if config.api_params.zai_thinking.type == "enabled" then
+            body.temperature = 1.0
+        end
     end
 
     -- Note: Z.AI web search only works via a separate endpoint (/api/paas/v4/tools)

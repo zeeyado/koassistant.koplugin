@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-03-10
+-- Last updated: 2026-03-16
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -360,13 +360,14 @@ local ModelLists = {
     },
 
     zai = {
-        -- GLM-5 (flagship, 200K context)
+        -- GLM-5 (200K context)
+        "glm-5-turbo",                  -- agent flagship (default)
         "glm-5",                        -- flagship
-        -- GLM-4.7 (128K context)
+        -- GLM-4.7 (200K context)
         "glm-4.7",                      -- reasoning
         "glm-4.7-flashx",              -- fast (paid)
-        "glm-4.7-flash",              -- free tier (default)
-        -- GLM-4.6 (128K context)
+        "glm-4.7-flash",              -- free tier
+        -- GLM-4.6 (200K context)
         "glm-4.6",                      -- standard
         -- GLM-4.5 (96K context)
         "glm-4.5",
@@ -420,7 +421,7 @@ local ModelLists = {
             qwen = "qwen3-max",
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.8-pro-32k",
-            zai = "glm-5",
+            zai = "glm-5-turbo",
             perplexity = "sonar-pro",
         },
 
@@ -442,7 +443,7 @@ local ModelLists = {
             qwen = "qwen-plus",
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.5-pro-32k",
-            zai = "glm-4.6",
+            zai = "glm-5",
             perplexity = "sonar",
         },
 

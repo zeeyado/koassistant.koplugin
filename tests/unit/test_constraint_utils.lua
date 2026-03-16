@@ -133,6 +133,24 @@ function TestConstraintUtils:runAll()
         self:assert(supports, "o3-mini should support reasoning")
     end)
 
+    self:test("supportsCapability detects Z.AI thinking (glm-5-turbo)", function()
+        local supports = ConstraintUtils.supportsCapability(
+            "zai", "glm-5-turbo", "thinking")
+        self:assert(supports, "glm-5-turbo should support thinking")
+    end)
+
+    self:test("supportsCapability detects Z.AI thinking (glm-4.7-flash)", function()
+        local supports = ConstraintUtils.supportsCapability(
+            "zai", "glm-4.7-flash", "thinking")
+        self:assert(supports, "glm-4.7-flash should support thinking")
+    end)
+
+    self:test("supportsCapability rejects non-thinking Z.AI models", function()
+        local supports = ConstraintUtils.supportsCapability(
+            "zai", "glm-4-plus", "thinking")
+        self:assert(not supports, "glm-4-plus should NOT support thinking")
+    end)
+
     -- Test parseConstraintError
     self:test("parseConstraintError detects temperature constraint", function()
         local constraint = ConstraintUtils.parseConstraintError(
