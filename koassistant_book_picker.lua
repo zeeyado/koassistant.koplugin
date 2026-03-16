@@ -219,9 +219,9 @@ function BookPicker:show(opts)
 
     -- Confirm and close
     local function confirmSelection()
-        if countSelected(selected) < 2 then
+        if countSelected(selected) < 1 then
             UIManager:show(InfoMessage:new{
-                text = _("Please select at least 2 books."),
+                text = _("Please select at least 1 book."),
             })
             return
         end
@@ -321,7 +321,7 @@ function BookPicker:_showPickerOptions(menu, entries, selected, confirm_callback
     dialog = ButtonDialog:new{
         buttons = {
             {{ text = T(_("Confirm Selection (%1)"), cur_count),
-               enabled = cur_count >= 2,
+               enabled = cur_count >= 1,
                align = "left",
                callback = function()
                 UIManager:close(dialog)

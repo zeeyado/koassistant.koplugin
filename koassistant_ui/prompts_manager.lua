@@ -272,6 +272,7 @@ function PromptsManager:loadPrompts()
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
             use_notebook = prompt.use_notebook,
+            use_library = prompt.use_library,
             -- Document cache reference flags
             use_xray_cache = prompt.use_xray_cache,
             use_analyze_cache = prompt.use_analyze_cache,
@@ -321,6 +322,7 @@ function PromptsManager:loadPrompts()
                 if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
                 if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
                 if override.use_notebook ~= nil then entry.use_notebook = override.use_notebook end
+                if override.use_library ~= nil then entry.use_library = override.use_library end
                 -- View mode flag overrides
                 if override.translate_view ~= nil then entry.translate_view = override.translate_view end
                 if override.compact_view ~= nil then entry.compact_view = override.compact_view end
@@ -1154,6 +1156,7 @@ function PromptsManager:duplicateAction(action)
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
         use_notebook = duplicate.use_notebook,
+        use_library = duplicate.use_library,
         -- NOT copying artifact flags (tightly coupled system)
         -- Requirements & blocking
         requires = duplicate.requires,
@@ -1221,6 +1224,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
         use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
         use_notebook = existing_prompt and existing_prompt.use_notebook or false,
+        use_library = existing_prompt and existing_prompt.use_library or false,
         -- View mode flags
         translate_view = existing_prompt and existing_prompt.translate_view or false,
         compact_view = existing_prompt and existing_prompt.compact_view or false,
@@ -1898,6 +1902,23 @@ function PromptsManager:showStep3_Settings(state)
                     if features.enable_notebook_sharing ~= true then
                         UIManager:show(Notification:new{
                             text = _("Notebook use enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+        table.insert(items, {
+            text = (state.use_library and "☑ " or "☐ ") .. _("Allow library use"),
+            callback = function()
+                state.use_library = not state.use_library
+                if state.use_library then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_library_scanning ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Library use enabled. Note: Enable in Settings → Library Settings first."),
                             timeout = 4,
                         })
                     end
@@ -4745,6 +4766,7 @@ function PromptsManager:addPrompt(state)
             use_reading_progress = state.use_reading_progress or nil,
             use_reading_stats = state.use_reading_stats or nil,
             use_notebook = state.use_notebook or nil,
+            use_library = state.use_library or nil,
             -- View mode flags
             translate_view = state.translate_view or nil,
             compact_view = state.compact_view or nil,
@@ -4820,6 +4842,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 use_reading_progress = state.use_reading_progress or nil,
                 use_reading_stats = state.use_reading_stats or nil,
                 use_notebook = state.use_notebook or nil,
+                use_library = state.use_library or nil,
                 -- View mode flags
                 translate_view = state.translate_view or nil,
                 compact_view = state.compact_view or nil,
