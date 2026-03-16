@@ -113,7 +113,6 @@ local ModelLists = {
         "openai/gpt-oss-120b",                          -- OpenAI open-weight
         "openai/gpt-oss-20b",                           -- OpenAI open-weight (fast)
         -- Preview models
-        "meta-llama/llama-4-maverick-17b-128e-instruct",
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "qwen/qwen3-32b",
         "moonshotai/kimi-k2-instruct-0905",             -- 256K context
@@ -144,20 +143,20 @@ local ModelLists = {
     },
 
     xai = {
-        -- Grok 4.1 (latest, 2M context)
-        "grok-4-1-fast-non-reasoning",  -- flagship (default) - best quality, no forced reasoning
-        "grok-4-1-fast-reasoning",      -- reasoning tier - explicit CoT + tool calling
+        -- Grok 4.20 (latest, multi-agent)
+        "grok-4.20-beta-0309-non-reasoning",  -- latest non-reasoning
+        "grok-4.20-beta-0309-reasoning",      -- latest reasoning
+        -- Grok 4.1 (2M context)
+        "grok-4-1-fast-non-reasoning",  -- flagship (default)
+        "grok-4-1-fast-reasoning",      -- reasoning tier
         -- Grok 4.x
         "grok-4",
         "grok-4-fast",
         -- Grok 3 (stable)
         "grok-3",                       -- standard
-        "grok-3-fast",                  -- fast
-        "grok-3-mini",
-        "grok-3-mini-fast",             -- ultrafast
+        "grok-3-mini",                  -- reasoning effort support
         -- Specialized
         "grok-code-fast-1",             -- coding (256K context)
-        "grok-2-vision-1212",           -- vision
     },
 
     openrouter = {
@@ -281,17 +280,20 @@ local ModelLists = {
     together = {
         -- Llama 4
         "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",  -- flagship
-        "meta-llama/Llama-4-Scout-17B-16E-Instruct",
         -- Llama 3.3
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",           -- standard
-        -- Qwen 3
-        "Qwen/Qwen3-235B-A22B-fp8",
-        "Qwen/Qwen3-32B",
+        -- Qwen 3.5/3
+        "Qwen/Qwen3.5-397B-A17B",                            -- reasoning (MoE flagship)
+        "Qwen/Qwen3-235B-A22B-Instruct-2507-tput",
+        "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
         -- DeepSeek
+        "deepseek-ai/DeepSeek-V3.1",
         "deepseek-ai/DeepSeek-R1",                           -- reasoning
-        "deepseek-ai/DeepSeek-R1-Distill-Llama-70B",
-        -- Mistral
-        "mistralai/Mistral-Large-2411",
+        -- Other
+        "moonshotai/Kimi-K2.5",                              -- 262K context
+        "zai-org/GLM-5",
+        "MiniMaxAI/MiniMax-M2.5",
+        "mistralai/Mistral-Small-24B-Instruct-2501",         -- fast
     },
 
     fireworks = {
@@ -310,23 +312,27 @@ local ModelLists = {
 
     sambanova = {
         -- Llama 4
-        "Meta-Llama-4-Maverick-17B-128E-Instruct",           -- flagship
-        "Meta-Llama-4-Scout-17B-16E-Instruct",
+        "Llama-4-Maverick-17B-128E-Instruct",                -- flagship (preview)
         -- Llama 3.x
         "Meta-Llama-3.3-70B-Instruct",                       -- standard
-        "Meta-Llama-3.1-405B-Instruct",
-        "Meta-Llama-3.1-70B-Instruct",
         "Meta-Llama-3.1-8B-Instruct",                        -- ultrafast
         -- DeepSeek
-        "DeepSeek-R1",                                       -- reasoning
+        "DeepSeek-V3.1",
+        "DeepSeek-R1-0528",                                  -- reasoning
+        "DeepSeek-V3-0324",
         "DeepSeek-R1-Distill-Llama-70B",
         -- Qwen
+        "Qwen3-235B-A22B-Instruct-2507",
         "Qwen3-32B",
+        -- Other
+        "MiniMax-M2.5",
+        "gpt-oss-120b",
     },
 
     cohere = {
         -- Command A (latest, strongest)
         "command-a-03-2025",            -- flagship (default)
+        "command-a-reasoning-08-2025",  -- reasoning
         -- Command R+
         "command-r-plus-08-2024",       -- standard
         -- Command R
@@ -390,12 +396,12 @@ local ModelLists = {
             groq = "openai/gpt-oss-120b",            -- OpenAI open-weight
             mistral = "magistral-medium-latest",
             xai = "grok-4-1-fast-reasoning",
-            cohere = nil,  -- No reasoning model
+            cohere = "command-a-reasoning-08-2025",
             ollama = "deepseek-r1",
             openrouter = "deepseek/deepseek-r1",
-            together = "deepseek-ai/DeepSeek-R1",
+            together = "Qwen/Qwen3.5-397B-A17B",
             fireworks = "accounts/fireworks/models/deepseek-r1",
-            sambanova = "DeepSeek-R1",
+            sambanova = "DeepSeek-R1-0528",
             qwen = "qwen3-max",
             kimi = "kimi-k2-thinking",
             doubao = "doubao-1.8-pro-256k",
@@ -417,7 +423,7 @@ local ModelLists = {
             openrouter = "anthropic/claude-sonnet-4.6",
             together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
             fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
-            sambanova = "Meta-Llama-4-Maverick-17B-128E-Instruct",
+            sambanova = "Llama-4-Maverick-17B-128E-Instruct",
             qwen = "qwen3-max",
             kimi = "kimi-k2-0905-preview",
             doubao = "doubao-1.8-pro-32k",
@@ -455,11 +461,11 @@ local ModelLists = {
             gemini = "gemini-2.5-flash",
             groq = "llama-3.1-8b-instant",
             mistral = "mistral-small-latest",
-            xai = "grok-3-fast",
+            xai = "grok-4-fast",
             cohere = "command-r-08-2024",
             ollama = "llama3.2:3b",
             openrouter = "google/gemini-2.5-flash",
-            together = "Qwen/Qwen3-32B",
+            together = "mistralai/Mistral-Small-24B-Instruct-2501",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.1-8B-Instruct",
             qwen = "qwen-turbo",
@@ -477,11 +483,11 @@ local ModelLists = {
             gemini = "gemini-2.5-flash-lite",
             groq = "llama-3.1-8b-instant",
             mistral = "ministral-3b-latest",
-            xai = "grok-3-mini-fast",
+            xai = "grok-3-mini",
             cohere = "command-r7b-12-2024",
             ollama = "qwen2.5:0.5b",
             openrouter = "google/gemini-3-flash-preview",   -- FREE tier
-            together = "Qwen/Qwen3-32B",
+            together = "mistralai/Mistral-Small-24B-Instruct-2501",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.1-8B-Instruct",
             qwen = "qwen-turbo",

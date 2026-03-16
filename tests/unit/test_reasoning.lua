@@ -215,7 +215,7 @@ TestRunner:suite("SambaNova thinking injection")
 local SambaNovaHandler = require("sambanova")
 
 TestRunner:test("enables thinking when config present", function()
-    local body = { model = "DeepSeek-R1", messages = {} }
+    local body = { model = "DeepSeek-R1-0528", messages = {} }
     local config = { api_params = { sambanova_thinking = true } }
     local result = SambaNovaHandler:customizeRequestBody(body, config)
     TestRunner:assertNotNil(result.chat_template_kwargs, "should set chat_template_kwargs")
@@ -223,7 +223,7 @@ TestRunner:test("enables thinking when config present", function()
 end)
 
 TestRunner:test("disables thinking when config absent", function()
-    local body = { model = "DeepSeek-R1", messages = {} }
+    local body = { model = "DeepSeek-R1-0528", messages = {} }
     local config = { api_params = {} }
     local result = SambaNovaHandler:customizeRequestBody(body, config)
     TestRunner:assertNotNil(result.chat_template_kwargs, "should set chat_template_kwargs")
@@ -548,10 +548,11 @@ local capability_checks = {
     { "groq", "llama-3.3-70b", "reasoning", false },
     { "together", "deepseek-ai/DeepSeek-R1", "reasoning", true },
     { "together", "Qwen/Qwen3-235B-A22B", "reasoning", true },
-    { "together", "meta-llama/Llama-4-Scout", "reasoning", false },
+    { "together", "Qwen/Qwen3.5-397B-A17B", "reasoning", true },
+    { "together", "meta-llama/Llama-4-Maverick", "reasoning", false },
     { "fireworks", "accounts/fireworks/models/deepseek-r1", "reasoning", true },
     { "fireworks", "accounts/fireworks/models/llama-v3p3-70b", "reasoning", false },
-    { "sambanova", "DeepSeek-R1", "thinking", true },
+    { "sambanova", "DeepSeek-R1-0528", "thinking", true },
     { "sambanova", "Qwen3-32B", "thinking", true },
     { "sambanova", "Llama-4-Maverick", "thinking", false },
     { "xai", "grok-3-mini", "reasoning", true },
