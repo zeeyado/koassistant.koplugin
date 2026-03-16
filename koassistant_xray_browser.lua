@@ -978,11 +978,24 @@ end
 --- @return string title
 function XrayBrowser:buildMainTitle()
     if self.scope then
-        return T(_("X-Ray § %1"), self.scope.label)
+        local scope_title = T(_("X-Ray § %1"), self.scope.label)
+        if self.metadata.timestamp then
+            local rel = Constants.formatRelativeTime(self.metadata.timestamp)
+            if rel ~= "" then
+                scope_title = scope_title .. " · " .. rel
+            end
+        end
+        return scope_title
     end
     local title = "X-Ray"
     if self.metadata.progress then
         title = title .. " (" .. self.metadata.progress .. ")"
+    end
+    if self.metadata.timestamp then
+        local rel = Constants.formatRelativeTime(self.metadata.timestamp)
+        if rel ~= "" then
+            title = title .. " · " .. rel
+        end
     end
     return title
 end
@@ -1870,8 +1883,17 @@ function XrayBrowser:chatAboutItem(detail_text)
     -- Clear context flags for highlight context (matches main.lua highlight pattern)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
-    config.features.is_multi_book_context = nil
-    -- Keep book_metadata — the dialog uses it for book context (title/author) and chat saving
+    config.features.is_library_context = nil
+    -- Ensure book_metadata has the correct file for this artifact's book
+    -- (may be stale if config was from a different book or file browser context)
+    if self.metadata.book_file then
+        config.features.book_metadata = config.features.book_metadata or {}
+        config.features.book_metadata.file = self.metadata.book_file
+        config.features.book_metadata.title = config.features.book_metadata.title or self.metadata.title
+        config.features.book_metadata.author = config.features.book_metadata.author or self.metadata.book_author or ""
+        config.features.book_metadata.author_clause = (config.features.book_metadata.author and config.features.book_metadata.author ~= "")
+            and (" by " .. config.features.book_metadata.author) or ""
+    end
     -- Clear stale selection data - the "highlight" is AI-generated, not a real book selection,
     -- so "Save to Note" must be disabled (prevents saving to a random prior highlight position)
     config.features.selection_data = nil
@@ -1928,7 +1950,17 @@ function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_conte
     -- Clear context flags for highlight context (wiki uses item name as highlighted_text)
     config.features.is_general_context = nil
     config.features.is_book_context = nil
-    config.features.is_multi_book_context = nil
+    config.features.is_library_context = nil
+
+    -- Ensure book_metadata has the correct file for this artifact's book
+    if file then
+        config.features.book_metadata = config.features.book_metadata or {}
+        config.features.book_metadata.file = file
+        config.features.book_metadata.title = config.features.book_metadata.title or self.metadata.title
+        config.features.book_metadata.author = config.features.book_metadata.author or self.metadata.book_author or ""
+        config.features.book_metadata.author_clause = (config.features.book_metadata.author and config.features.book_metadata.author ~= "")
+            and (" by " .. config.features.book_metadata.author) or ""
+    end
 
     -- Set item description as disambiguation context (consumed by _forced_surrounding_context)
     config.features._forced_surrounding_context = XrayParser.formatItemDetail(item, category_key)
@@ -1972,8 +2004,15 @@ function XrayBrowser:showWikiViewer(item, category_key, cached, title, source, n
     local self_ref = self
 
     local wiki_key = ActionCache.WIKI_PREFIX .. category_key .. ":" .. item_name
+    local wiki_title = T(_("AI Wiki: %1"), item_name)
+    if cached.timestamp then
+        local rel = Constants.formatRelativeTime(cached.timestamp)
+        if rel ~= "" then
+            wiki_title = wiki_title .. " · " .. rel
+        end
+    end
     local wiki_viewer = ChatGPTViewer:new{
-        title = T(_("AI Wiki: %1"), item_name),
+        title = wiki_title,
         text = cached.result,
         simple_view = true,
         cache_type_name = _("AI Wiki"),

@@ -163,6 +163,10 @@ function TestActions:runAll()
         self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_notebook")
     end)
 
+    self:test("DOUBLE_GATED_FLAGS includes use_library", function()
+        self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_library")
+    end)
+
     -- Test inferOpenBookFlags() function
     print("\n--- inferOpenBookFlags() ---")
 
@@ -420,7 +424,7 @@ function TestActions:runAll()
     self:test("actions with requires={'highlights'} have use_highlights or use_annotations", function()
         -- Every action requiring highlights must have at least one highlight-type flag
         local all_actions = {}
-        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+        for _, ctx in ipairs({"highlight", "book", "library", "general"}) do
             for _, action in ipairs(Actions.getForContext(ctx)) do
                 all_actions[action.id] = action
             end
@@ -439,7 +443,7 @@ function TestActions:runAll()
 
     self:test("actions with requires={'book_text'} have use_book_text", function()
         local all_actions = {}
-        for _, ctx in ipairs({"highlight", "book", "multi_book", "general"}) do
+        for _, ctx in ipairs({"highlight", "book", "library", "general"}) do
             for _, action in ipairs(Actions.getForContext(ctx)) do
                 all_actions[action.id] = action
             end
@@ -479,8 +483,8 @@ function TestActions:runAll()
         self:assert(found, "xray should be in book context")
     end)
 
-    self:test("getForContext('multi_book') returns actions", function()
-        local result = Actions.getForContext("multi_book")
+    self:test("getForContext('library') returns actions", function()
+        local result = Actions.getForContext("library")
         self:assert(#result > 0, "has actions")
     end)
 
@@ -527,7 +531,7 @@ function TestActions:runAll()
 
     self:test("getForContext does not match removed 'all' context", function()
         -- No action with context="all" should appear in any result
-        local contexts = {"highlight", "book", "multi_book", "general"}
+        local contexts = {"highlight", "book", "library", "general"}
         for _, ctx in ipairs(contexts) do
             local result = Actions.getForContext(ctx)
             for _, action in ipairs(result) do
@@ -554,7 +558,7 @@ function TestActions:runAll()
         self:assertEquals(action.id, "xray")
     end)
 
-    self:test("getById finds multi_book action", function()
+    self:test("getById finds library action", function()
         local action = Actions.getById("compare_books")
         self:assert(action ~= nil, "found compare_books")
         self:assertEquals(action.id, "compare_books")

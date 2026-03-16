@@ -13,6 +13,8 @@ Usage:
     end
 ]]
 
+local _ = require("koassistant_gettext")
+
 local Constants = {}
 
 -- Context types (used in actions, message building, dialogs)
@@ -20,7 +22,7 @@ local Constants = {}
 Constants.CONTEXTS = {
     HIGHLIGHT = "highlight",      -- Selected text context
     BOOK = "book",                -- Single book metadata
-    MULTI_BOOK = "multi_book",    -- Multiple books
+    LIBRARY = "library",          -- Multiple books
     GENERAL = "general",          -- Standalone questions
 }
 
@@ -35,12 +37,12 @@ Constants.COMPOUND_CONTEXTS = {
 
 --- Get ordered list of all standard contexts
 --- Returns contexts in display order (not alphabetical)
---- @return table: Array of context names ["highlight", "book", "multi_book", "general"]
+--- @return table: Array of context names ["highlight", "book", "library", "general"]
 function Constants.getAllContexts()
     return {
         Constants.CONTEXTS.HIGHLIGHT,
         Constants.CONTEXTS.BOOK,
-        Constants.CONTEXTS.MULTI_BOOK,
+        Constants.CONTEXTS.LIBRARY,
         Constants.CONTEXTS.GENERAL,
     }
 end
@@ -149,7 +151,7 @@ Constants.QS_ITEMS_DEFAULT_ORDER = {
     "text_extraction", "h_bypass", "d_bypass",
     "language", "translation_language", "dictionary_language",
     "chat_history", "browse_notebooks", "browse_artifacts",
-    "multi_book_actions",
+    "library_actions",
     "general_chat", "continue_last_chat",
     "new_book_chat", "manage_actions", "quick_actions",
     "more_settings",
@@ -180,7 +182,7 @@ function Constants.getQsItemText(id, _)
         chat_history = _("Chat History"),
         browse_notebooks = _("Browse Notebooks"),
         browse_artifacts = _("Browse Artifacts"),
-        multi_book_actions = _("Multi-Book Actions"),
+        library_actions = _("Library Actions"),
         general_chat = _("General Chat/Action"),
         continue_last_chat = _("Continue Last Chat"),
         new_book_chat = _("Book Chat/Action"),
@@ -202,6 +204,43 @@ function Constants.getEmojiText(emoji, text, enable_emoji)
         return emoji .. " " .. text
     end
     return text
+end
+
+--- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
+--- @param timestamp number Unix timestamp
+--- @return string Relative time string, or empty if invalid
+function Constants.formatRelativeTime(timestamp)
+    if not timestamp then return "" end
+    local now = os.time()
+    if now - timestamp < 0 then return "" end
+    local today_t = os.date("*t", now)
+    today_t.hour, today_t.min, today_t.sec = 0, 0, 0
+    local cached_t = os.date("*t", timestamp)
+    cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
+    local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
+    if days == 0 then
+        return _("today")
+    elseif days < 30 then
+        return string.format(_("%dd ago"), days)
+    else
+        local months = math.floor(days / 30)
+        local years = math.floor(days / 365)
+        if years == 0 then
+            local rd = days - (months * 30)
+            if rd > 0 then
+                return string.format(_("%dm%dd ago"), months, rd)
+            else
+                return string.format(_("%dm ago"), months)
+            end
+        else
+            local rm = months - (years * 12)
+            if rm > 0 then
+                return string.format(_("%dy%dm ago"), years, rm)
+            else
+                return string.format(_("%dy ago"), years)
+            end
+        end
+    end
 end
 
 return Constants

@@ -1131,7 +1131,7 @@ function ChatGPTViewer:init()
           local Export = require("koassistant_export")
           -- Extract book metadata and books_info from configuration
           local book_metadata = features.book_metadata
-          local books_info = features.is_multi_book_context and features.books_info or nil
+          local books_info = features.is_library_context and features.books_info or nil
           local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
           local text = Export.format(data, selected_content, style)
 
@@ -1169,7 +1169,7 @@ function ChatGPTViewer:init()
       id = "save_to_notebook",
       enabled = self.configuration and self.configuration.document_path
                 and self.configuration.document_path ~= "__GENERAL_CHATS__"
-                and self.configuration.document_path ~= "__MULTI_BOOK_CHATS__",
+                and self.configuration.document_path ~= "__LIBRARY_CHATS__",
       callback = function()
         self:showNotebookPopup()
       end,
@@ -1522,7 +1522,7 @@ function ChatGPTViewer:init()
       local function doCopy(selected_content)
         local Export = require("koassistant_export")
         local book_metadata = features.book_metadata
-        local books_info = features.is_multi_book_context and features.books_info or nil
+        local books_info = features.is_library_context and features.books_info or nil
         local data = Export.fromHistory(chat_history, self.original_highlighted_text, book_metadata, books_info)
         local text = Export.format(data, selected_content, style)
 
@@ -1950,7 +1950,7 @@ function ChatGPTViewer:init()
       local function doCopy(selected_content)
         local Export = require("koassistant_export")
         local book_metadata = features.book_metadata
-        local books_info = features.is_multi_book_context and features.books_info or nil
+        local books_info = features.is_library_context and features.books_info or nil
         local data = Export.fromHistory(chat_history, self.original_highlighted_text, book_metadata, books_info)
         local text = Export.format(data, selected_content, style)
 
@@ -3391,7 +3391,7 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
   -- Add to Notebook (book chats only, when notebook path is valid)
   if opts.append_to_notebook and document_path
       and document_path ~= "__GENERAL_CHATS__"
-      and document_path ~= "__MULTI_BOOK_CHATS__" then
+      and document_path ~= "__LIBRARY_CHATS__" then
     local Notebook = require("koassistant_notebook")
     if Notebook.getPath(document_path) then
       table.insert(flat_buttons, {
@@ -3748,7 +3748,7 @@ function ChatGPTViewer:saveToNote()
   local function doSave(selected_content)
     local Export = require("koassistant_export")
     local book_metadata = features.book_metadata
-    local books_info = features.is_multi_book_context and features.books_info or nil
+    local books_info = features.is_library_context and features.books_info or nil
     local data = Export.fromHistory(history, self.original_highlighted_text, book_metadata, books_info)
     local note_text = Export.format(data, selected_content, style)
 
@@ -3851,7 +3851,7 @@ function ChatGPTViewer:saveToNotebook()
   local Notebook = require("koassistant_notebook")
   local document_path = self.configuration and self.configuration.document_path
 
-  -- Centralized path check (handles general/multi-book, custom-without-path, etc.)
+  -- Centralized path check (handles general/library, custom-without-path, etc.)
   if not Notebook.getPath(document_path) then
     UIManager:show(InfoMessage:new{
       text = Notebook.getPathError(document_path),
@@ -3915,7 +3915,7 @@ function ChatGPTViewer:showRegenerateFreshDialog()
   end
 
   local document_path = self.configuration and self.configuration.document_path
-  if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__MULTI_BOOK_CHATS__" then
+  if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__LIBRARY_CHATS__" then
     UIManager:show(Notification:new{
       text = _("Cache only applies to book actions"),
       timeout = 2,
@@ -4011,13 +4011,13 @@ function ChatGPTViewer:showExportDialog()
   local Export = require("koassistant_export")
   local viewer_self = self
   local export_book_metadata = features.book_metadata
-  local export_books_info = features.is_multi_book_context and features.books_info or nil
+  local export_books_info = features.is_library_context and features.books_info or nil
 
   -- Determine chat type for subfolder routing
   local document_path = self.configuration and self.configuration.document_path
   local chat_type = "book"
-  if features.is_multi_book_context then
-    chat_type = "multi_book"
+  if features.is_library_context then
+    chat_type = "library"
   elseif not document_path or document_path == "" or document_path == "__GENERAL_CHATS__" then
     chat_type = "general"
   end
@@ -4275,7 +4275,7 @@ function ChatGPTViewer:toggleDebugMode()
         long_highlight_threshold = self.configuration.features and self.configuration.features.long_highlight_threshold,
         is_file_browser_context = self.configuration.features and self.configuration.features.is_file_browser_context,
         is_book_context = self.configuration.features and self.configuration.features.is_book_context,
-        is_multi_book_context = self.configuration.features and self.configuration.features.is_multi_book_context,
+        is_library_context = self.configuration.features and self.configuration.features.is_library_context,
         selected_behavior = self.configuration.features and self.configuration.features.selected_behavior,
         selected_domain = self.configuration.features and self.configuration.features.selected_domain,
         show_reasoning_indicator = self.configuration.features and self.configuration.features.show_reasoning_indicator,
@@ -4381,7 +4381,7 @@ function ChatGPTViewer:toggleHighlightVisibility()
         long_highlight_threshold = self.configuration.features and self.configuration.features.long_highlight_threshold,
         is_file_browser_context = self.configuration.features and self.configuration.features.is_file_browser_context,
         is_book_context = self.configuration.features and self.configuration.features.is_book_context,
-        is_multi_book_context = self.configuration.features and self.configuration.features.is_multi_book_context,
+        is_library_context = self.configuration.features and self.configuration.features.is_library_context,
         selected_behavior = self.configuration.features and self.configuration.features.selected_behavior,
         selected_domain = self.configuration.features and self.configuration.features.selected_domain,
         show_reasoning_indicator = self.configuration.features and self.configuration.features.show_reasoning_indicator,

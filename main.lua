@@ -223,7 +223,7 @@ function AskGPT:init()
               configuration.features = configuration.features or {}
               configuration.features.is_general_context = nil
               configuration.features.is_book_context = nil
-              configuration.features.is_multi_book_context = nil
+              configuration.features.is_library_context = nil
               configuration.features.book_metadata = nil
               configuration.features.books_info = nil
               -- Store selection data for "Save to Note" feature
@@ -821,7 +821,7 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   -- Clear other context flags first
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = true
-  configuration.features.is_multi_book_context = nil
+  configuration.features.is_library_context = nil
 
   -- Store book metadata for use in prompts
   if book_context and book_context ~= "" then
@@ -979,14 +979,14 @@ function AskGPT:compareSelectedBooks(selected_files)
   -- Clear other context flags first
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
-  configuration.features.is_multi_book_context = true
+  configuration.features.is_library_context = true
 
   -- Store the books list as context
   configuration.features.book_context = prompt_text
   configuration.features.books_info = books_info  -- Store the parsed book info for template substitution
 
   -- Store metadata for template substitution (using first book's info)
-  -- No DOI for multi-book context (no single document to identify)
+  -- No DOI for library context (no single document to identify)
   if #books_info > 0 then
     configuration.features.book_metadata = buildBookMetadata(
       books_info[1].title, books_info[1].authors)
@@ -1113,10 +1113,10 @@ function AskGPT:onDispatcherRegisterActions()
     separator = true
   })
 
-  Dispatcher:registerAction("koassistant_multi_book_actions", {
+  Dispatcher:registerAction("koassistant_library_actions", {
     category = "none",
-    event = "KOAssistantMultiBookActions",
-    title = _("KOAssistant: Multi-Book Actions"),
+    event = "KOAssistantLibraryActions",
+    title = _("KOAssistant: Library Actions"),
     general = true,
   })
 
@@ -1412,7 +1412,7 @@ function AskGPT:updateConfigFromSettings()
   local runtime_only_keys = {
     is_general_context = true,
     is_book_context = true,
-    is_multi_book_context = true,
+    is_library_context = true,
     book_metadata = true,
     book_context = true,
     books_info = true,
@@ -3846,7 +3846,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
             -- Clear context flags to ensure highlight context (like executeQuickAction does)
             dict_config.features.is_general_context = nil
             dict_config.features.is_book_context = nil
-            dict_config.features.is_multi_book_context = nil
+            dict_config.features.is_library_context = nil
 
             -- Set dictionary-specific values
             if non_reader_lookup then
@@ -4014,7 +4014,7 @@ function AskGPT:onKOAssistantGeneralChat()
     -- Clear other context flags and book metadata
     configuration.features.is_general_context = true
     configuration.features.is_book_context = nil
-    configuration.features.is_multi_book_context = nil
+    configuration.features.is_library_context = nil
     configuration.features.book_metadata = nil
     configuration.features.books_info = nil
 
@@ -4045,43 +4045,7 @@ function AskGPT:onKOAssistantBookChat()
 end
 
 --- Show available cached content for current document
---- Format a timestamp as relative time string (e.g., "3d ago", "1m2d ago")
---- @param timestamp number Unix timestamp
---- @return string Relative time string, or empty if invalid
-local function formatRelativeTime(timestamp)
-  if not timestamp then return "" end
-  local now = os.time()
-  if now - timestamp < 0 then return "" end
-  -- Compare calendar dates (midnight-aligned) to get accurate day counts
-  local today_t = os.date("*t", now)
-  today_t.hour, today_t.min, today_t.sec = 0, 0, 0
-  local cached_t = os.date("*t", timestamp)
-  cached_t.hour, cached_t.min, cached_t.sec = 0, 0, 0
-  local days = math.floor((os.time(today_t) - os.time(cached_t)) / 86400)
-  if days == 0 then
-    return _("today")
-  elseif days < 30 then
-    return string.format(_("%dd ago"), days)
-  else
-    local months = math.floor(days / 30)
-    local years = math.floor(days / 365)
-    if years == 0 then
-      local rd = days - (months * 30)
-      if rd > 0 then
-        return string.format(_("%dm%dd ago"), months, rd)
-      else
-        return string.format(_("%dm ago"), months)
-      end
-    else
-      local rm = months - (years * 12)
-      if rm > 0 then
-        return string.format(_("%dy%dm ago"), years, rm)
-      else
-        return string.format(_("%dy ago"), years)
-      end
-    end
-  end
-end
+local formatRelativeTime = Constants.formatRelativeTime
 
 --- Format the source label for cache viewers (AI training data vs extracted text)
 --- @param used_book_text boolean|nil Whether book text was used to build the cache
@@ -4291,7 +4255,7 @@ function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, art
     for k, v in pairs(configuration.features or {}) do config_copy.features[k] = v end
     config_copy.features.is_general_context = nil
     config_copy.features.is_book_context = true
-    config_copy.features.is_multi_book_context = nil
+    config_copy.features.is_library_context = nil
 
     local book_metadata = {
       title = artifact_book_title or "Unknown",
@@ -4330,6 +4294,12 @@ function AskGPT:showCacheViewer(cache_info)
   local title = cache_info.name
   if progress_str then
     title = title .. " (" .. progress_str .. ")"
+  end
+  if cache_info.data.timestamp then
+    local rel = formatRelativeTime(cache_info.data.timestamp)
+    if rel ~= "" then
+      title = title .. " · " .. rel
+    end
   end
   if book_title then
     title = title .. " - " .. book_title
@@ -4656,6 +4626,30 @@ function AskGPT:_checkRequirements(action)
       if features.enable_book_text_extraction ~= true and not isProviderTrusted() then
         UIManager:show(InfoMessage:new{
           text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction.") .. hint,
+        })
+        return true
+      end
+    elseif req == "library" then
+      -- Per-action gate: use_library explicitly overridden to false?
+      if action.use_library == false then
+        UIManager:show(InfoMessage:new{
+          text = _("Library scanning is disabled for this action. Re-enable it in the Action Manager.") .. hint,
+        })
+        return true
+      end
+      -- Global gate: library scanning enabled? (trusted providers bypass)
+      features = features or (self.settings and self.settings:readSetting("features") or {})
+      if features.enable_library_scanning ~= true and not isProviderTrusted() then
+        UIManager:show(InfoMessage:new{
+          text = _("Library scanning is required for this action.\n\nEnable it in Settings → Privacy & Data → Allow Library Scanning.") .. hint,
+        })
+        return true
+      end
+      -- Folder gate: at least one folder must be configured (no fallback)
+      local lib_folders = features.library_scan_folders
+      if not lib_folders or #lib_folders == 0 then
+        UIManager:show(InfoMessage:new{
+          text = _("No library folders configured.\n\nAdd folders in Settings → Library Settings → Library Folders.") .. hint,
         })
         return true
       end
@@ -6968,7 +6962,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
           configuration.features = configuration.features or {}
           configuration.features.is_general_context = nil
           configuration.features.is_book_context = true
-          configuration.features.is_multi_book_context = nil
+          configuration.features.is_library_context = nil
           configuration.features.book_metadata = buildBookMetadata(bt, ba, file, getRawDocProps(file))
           local book_ctx = string.format("Title: %s.", bt)
           if ba ~= "" then
@@ -7066,6 +7060,31 @@ function AskGPT:checkRecapReminder()
       self_ref:executeBookLevelAction("recap")
     end,
   })
+end
+
+--- Called when user reaches the end of a book.
+--- Shows a suggestion prompt if library scanning is available and setting is enabled.
+function AskGPT:onEndOfBook()
+  local features = self.settings:readSetting("features") or {}
+  -- Setting defaults to true (opt-out), requires library scanning to be useful
+  if features.enable_end_of_book_suggestion == false then return end
+  if features.enable_library_scanning ~= true then return end
+  if not features.library_scan_folders or #features.library_scan_folders == 0 then return end
+  if not self.ui or not self.ui.document then return end
+
+  -- Delay slightly to let KOReader's own end-of-book popup show first
+  local self_ref = self
+  UIManager:scheduleIn(0.3, function()
+    local ConfirmBox = require("ui/widget/confirmbox")
+    UIManager:show(ConfirmBox:new{
+      text = _("KOAssistant: Would you like an AI suggestion for what to read next from your library?"),
+      ok_text = _("Suggest"),
+      ok_callback = function()
+        self_ref:ensureInitialized()
+        self_ref:executeBookLevelAction("suggest_from_library")
+      end,
+    })
+  end)
 end
 
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)
@@ -7438,7 +7457,7 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = true
-  configuration.features.is_multi_book_context = nil
+  configuration.features.is_library_context = nil
   configuration.features.book_metadata = buildBookMetadata(title, authors, file, getRawDocProps(file) or book_props)
 
   -- Build book context string for display at top of chat viewer
@@ -7670,7 +7689,15 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
 
   local buttons = {}
   for _idx, item in ipairs(menu_items) do
-    if item.text then
+    if item.separator then
+      -- Non-interactive section header
+      table.insert(buttons, {
+        {
+          text = item.text or "────────────────",
+          enabled = false,
+        },
+      })
+    elseif item.text then
       local is_checked = item.checked_func and item.checked_func()
       local text = item.text
       if is_checked then
@@ -7942,13 +7969,22 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local behavior_display = behavior_info and behavior_info.display_name or behavior_id
 
   -- Get domain display name (with source indicator)
-  local domain_id = features.selected_domain
+  -- Show effective domain: book domain takes priority over global
+  -- "_none" sentinel = explicit no-domain override for this book
+  local book_domain_id = self.ui and self.ui.document and self.ui.doc_settings
+      and self.ui.doc_settings:readSetting("koassistant_book_domain") or nil
   local domain_display = _("None")
-  if domain_id then
+  if book_domain_id == "_none" then
+    domain_display = _("None") .. _(" (book)")
+  elseif book_domain_id or features.selected_domain then
+    local effective_domain_id = book_domain_id or features.selected_domain
     local custom_domains = features.custom_domains or {}
-    local domain = DomainLoader.getDomainById(domain_id, custom_domains)
+    local domain = DomainLoader.getDomainById(effective_domain_id, custom_domains)
     if domain then
-      domain_display = domain.display_name or domain.name or domain_id
+      domain_display = domain.display_name or domain.name or effective_domain_id
+      if book_domain_id then
+        domain_display = domain_display .. _(" (book)")
+      end
     end
   end
 
@@ -8045,8 +8081,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
-      local menu_items = self_ref:buildDomainMenu()
-      self_ref:showQuickSettingsPopup(_("Knowledge Domain"), menu_items, true, reopenQuickSettings)
+      self_ref:showDomainPopup(reopenQuickSettings)
     end,
   }
 
@@ -8223,12 +8258,12 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end,
   }
 
-  button_defs["multi_book_actions"] = {
-    text = E("\u{1F4DA}", _("Multi-Book Actions")),
+  button_defs["library_actions"] = {
+    text = E("\u{1F4DA}", _("Library Actions")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)
-      self_ref:showMultiBookPicker()
+      self_ref:openLibraryDialog()
     end,
   }
 
@@ -8678,61 +8713,169 @@ end
 
 --- Change Domain gesture handler (quick selector popup)
 function AskGPT:onKOAssistantChangeDomain()
-  local menu_items = self:buildDomainMenu()
-  self:showQuickSettingsPopup(_("Knowledge Domain"), menu_items)
+  self:showDomainPopup()
   return true
 end
 
---- Build domain menu (for gesture action)
---- Shows available domains for quick selection
-function AskGPT:buildDomainMenu()
+--- Show domain popup with two-column layout when a book is open, flat list otherwise
+--- @param on_close_callback function|nil: Called after popup closes (e.g., reopen quick settings)
+function AskGPT:showDomainPopup(on_close_callback, target_override)
   local DomainLoader = require("domain_loader")
+  local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
 
   local features = self.settings:readSetting("features") or {}
   local custom_domains = features.custom_domains or {}
-  local all_domains = DomainLoader.getSortedDomains(custom_domains)  -- Returns sorted array
+  local all_domains = DomainLoader.getSortedDomains(custom_domains)
 
-  local items = {}
+  local doc_settings = self.ui and self.ui.document and self.ui.doc_settings or nil
+  local book_domain = doc_settings and doc_settings:readSetting("koassistant_book_domain") or nil
 
-  -- Add "None" option first
-  table.insert(items, {
-    text = _("None"),
-    checked_func = function()
-      local f = self_ref.settings:readSetting("features") or {}
-      return not f.selected_domain
-    end,
-    radio = true,
-    callback = function()
-      local f = self_ref.settings:readSetting("features") or {}
-      f.selected_domain = nil
-      self_ref.settings:saveSetting("features", f)
-      self_ref.settings:flush()
-      self_ref:updateConfigFromSettings()
-    end,
-  })
+  -- Domain target: "book" or "global" — controls where selection is saved
+  -- Default to "book" if a book override exists, otherwise "global"
+  local domain_target = target_override
+      or (doc_settings and book_domain and "book")
+      or "global"
+  local is_book_target = doc_settings and domain_target == "book"
 
-  -- Add all available domains
-  for _idx, domain in ipairs(all_domains) do
-    local domain_copy = domain
-    table.insert(items, {
-      text = domain_copy.display_name or domain_copy.name or domain_copy.id,
-      checked_func = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        return f.selected_domain == domain_copy.id
-      end,
-      radio = true,
-      callback = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        f.selected_domain = domain_copy.id
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-      end,
-    })
+  -- Helper to close popup and notify caller
+  local function closePopup()
+    if self_ref._domain_popup then
+      UIManager:close(self_ref._domain_popup)
+      self_ref._domain_popup = nil
+    end
+    self_ref:updateConfigFromSettings()
+    if on_close_callback then on_close_callback() end
   end
 
-  return items
+  -- Helper to reopen with different target (toggle)
+  local function reopenWithTarget(new_target)
+    if self_ref._domain_popup then
+      UIManager:close(self_ref._domain_popup)
+      self_ref._domain_popup = nil
+    end
+    self_ref:showDomainPopup(on_close_callback, new_target)
+  end
+
+  local buttons = {}
+
+  if doc_settings then
+    -- Target toggle row: [For this book] [Global default]
+    local book_label = is_book_target and ("● " .. _("For this book")) or ("○ " .. _("For this book"))
+    local global_label = (not is_book_target) and ("● " .. _("Global")) or ("○ " .. _("Global"))
+    table.insert(buttons, {
+      {
+        text = book_label,
+        callback = function()
+          if domain_target ~= "book" then reopenWithTarget("book") end
+        end,
+      },
+      {
+        text = global_label,
+        callback = function()
+          if domain_target ~= "global" then reopenWithTarget("global") end
+        end,
+      },
+    })
+
+  end
+
+  if is_book_target then
+    -- Book target: "Use global default" option first
+    local use_global_prefix = (not book_domain) and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = use_global_prefix .. _("Use global"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_domain", nil)
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+    })
+
+    -- "None" (explicit override to no domain)
+    local none_prefix = (book_domain == "_none") and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = none_prefix .. _("None"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_domain", "_none")
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+    })
+
+    -- Domain options
+    for _idx, domain in ipairs(all_domains) do
+      local domain_copy = domain
+      local prefix = (book_domain == domain_copy.id) and "● " or "○ "
+      table.insert(buttons, {
+        {
+          text = prefix .. (domain_copy.display_name or domain_copy.name or domain_copy.id),
+          callback = function()
+            doc_settings:saveSetting("koassistant_book_domain", domain_copy.id)
+            doc_settings:flush()
+            closePopup()
+          end,
+        },
+      })
+    end
+  else
+    -- Global target (or no book open): standard list
+    local none_prefix = (not features.selected_domain) and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = none_prefix .. _("None"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.selected_domain = nil
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          closePopup()
+        end,
+      },
+    })
+
+    for _idx, domain in ipairs(all_domains) do
+      local domain_copy = domain
+      local prefix = (features.selected_domain == domain_copy.id) and "● " or "○ "
+      table.insert(buttons, {
+        {
+          text = prefix .. (domain_copy.display_name or domain_copy.name or domain_copy.id),
+          callback = function()
+            local f = self_ref.settings:readSetting("features") or {}
+            f.selected_domain = domain_copy.id
+            self_ref.settings:saveSetting("features", f)
+            self_ref.settings:flush()
+            closePopup()
+          end,
+        },
+      })
+    end
+  end
+
+  -- Close button
+  table.insert(buttons, {
+    {
+      text = _("Close"),
+      id = "close",
+      callback = function()
+        if self_ref._domain_popup then
+          UIManager:close(self_ref._domain_popup)
+          self_ref._domain_popup = nil
+        end
+        if on_close_callback then on_close_callback() end
+      end,
+    },
+  })
+
+  self._domain_popup = ButtonDialog:new{
+    title = _("Knowledge Domain"),
+    buttons = buttons,
+  }
+  UIManager:show(self._domain_popup)
 end
 
 -- Dictionary Popup Manager gesture handler
@@ -8893,14 +9036,33 @@ function AskGPT:showArtifactBrowser()
   ArtifactBrowser:showArtifactBrowser({ enable_emoji = features.enable_emoji_icons == true })
 end
 
---- Multi-book actions gesture handler
-function AskGPT:onKOAssistantMultiBookActions()
-  self:showMultiBookPicker()
+--- Library actions gesture handler
+function AskGPT:onKOAssistantLibraryActions()
+  self:openLibraryDialog()
   return true
 end
 
---- Multi-book actions launcher (settings menu + QS callback)
-function AskGPT:showMultiBookPicker()
+--- Open library dialog directly to input/actions (no BookPicker gate)
+function AskGPT:openLibraryDialog()
+  configuration.features = configuration.features or {}
+  -- Set library context, clear others
+  configuration.features.is_library_context = true
+  configuration.features.is_book_context = nil
+  configuration.features.is_general_context = nil
+  -- Start with no books selected — user adds via presets/picker
+  configuration.features.books_info = nil
+  configuration.features.book_context = nil
+
+  NetworkMgr:runWhenOnline(function()
+    self:ensureInitialized()
+    self:updateConfigFromSettings()
+    local ui_context = self.ui or FileManager.instance
+    showChatGPTDialog(ui_context, nil, configuration, nil, self)
+  end)
+end
+
+--- Legacy: open BookPicker for manual book selection (called from Add Books menu)
+function AskGPT:showLibraryPicker()
   local BookPicker = require("koassistant_book_picker")
   local self_ref = self
   BookPicker:show({
@@ -8964,7 +9126,7 @@ function AskGPT:translateCurrentPage()
   -- Clear context flags to ensure highlight context
   config_copy.features.is_general_context = nil
   config_copy.features.is_book_context = nil
-  config_copy.features.is_multi_book_context = nil
+  config_copy.features.is_library_context = nil
   -- Explicitly ensure full view (not compact/dictionary)
   config_copy.features.compact_view = false
   config_copy.features.dictionary_view = false
@@ -9448,7 +9610,7 @@ function AskGPT:syncDictionaryBypass()
           -- Clear context flags to ensure highlight context
           dict_config.features.is_general_context = nil
           dict_config.features.is_book_context = nil
-          dict_config.features.is_multi_book_context = nil
+          dict_config.features.is_library_context = nil
 
           -- Set dictionary-specific values
           if non_reader_lookup then
@@ -9727,7 +9889,7 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
-  configuration.features.is_multi_book_context = nil
+  configuration.features.is_library_context = nil
   -- Pass surrounding context if provided (for dictionary actions)
   if context and context ~= "" then
     configuration.features.dictionary_context = context
@@ -9786,7 +9948,7 @@ function AskGPT:startGeneralChat()
     -- Clear other context flags and book metadata
     configuration.features.is_general_context = true
     configuration.features.is_book_context = nil
-    configuration.features.is_multi_book_context = nil
+    configuration.features.is_library_context = nil
     configuration.features.book_metadata = nil
     configuration.features.books_info = nil
 
@@ -10260,6 +10422,7 @@ function AskGPT:applyPrivacyPresetDefault(touchmenu_instance)
   f.enable_progress_sharing = true
   f.enable_stats_sharing = true
   f.enable_book_text_extraction = false
+  f.enable_library_scanning = false
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()
@@ -10282,6 +10445,7 @@ function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
   f.enable_progress_sharing = false
   f.enable_stats_sharing = false
   f.enable_book_text_extraction = false
+  f.enable_library_scanning = false
   self.settings:saveSetting("features", f)
   self.settings:flush()
   self:updateConfigFromSettings()
@@ -10301,6 +10465,7 @@ function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
   f.enable_highlights_sharing = true
   f.enable_annotations_sharing = true
   f.enable_notebook_sharing = true
+  f.enable_library_scanning = true
   f.enable_progress_sharing = true
   f.enable_stats_sharing = true
   -- Note: enable_book_text_extraction not touched - user must enable manually
@@ -10427,6 +10592,107 @@ function AskGPT:showTrustedProvidersDialog()
     buttons = buttons,
   }
   UIManager:show(self._trusted_providers_dialog)
+end
+
+-- Returns menu items for library folders submenu
+-- Each folder shown with hold-to-remove, plus "Add folder" opens PathChooser
+function AskGPT:getLibraryFoldersMenuItems()
+  local items = {}
+  local self_ref = self
+
+  local f = self.settings:readSetting("features") or {}
+  local folders = f.library_scan_folders or {}
+
+  -- Show each configured folder
+  for _idx, folder_path in ipairs(folders) do
+    local display = folder_path:match("([^/]+)$") or folder_path
+    table.insert(items, {
+      text = display,
+      keep_menu_open = true,
+      help_text = folder_path,
+      callback = function()
+        UIManager:show(InfoMessage:new{
+          text = folder_path,
+          timeout = 5,
+        })
+      end,
+      hold_callback = function(touchmenu_instance)
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+          text = T(_("Remove this folder from library scanning?\n\n%1"), folder_path),
+          ok_callback = function()
+            local feat = self_ref.settings:readSetting("features") or {}
+            local fldrs = feat.library_scan_folders or {}
+            for i = #fldrs, 1, -1 do
+              if fldrs[i] == folder_path then
+                table.remove(fldrs, i)
+                break
+              end
+            end
+            feat.library_scan_folders = fldrs
+            self_ref.settings:saveSetting("features", feat)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+            if touchmenu_instance then
+              touchmenu_instance:updateItems()
+            end
+          end,
+        })
+      end,
+    })
+  end
+
+  -- Separator before "Add folder" if there are existing folders
+  if #items > 0 then
+    items[#items].separator = true
+  end
+
+  -- "Add folder" item
+  table.insert(items, {
+    text = _("Add folder"),
+    keep_menu_open = true,
+    callback = function(touchmenu_instance)
+      local PathChooser = require("ui/widget/pathchooser")
+      local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+      local path_chooser = PathChooser:new{
+        title = _("Select Library Folder"),
+        path = start_path,
+        select_directory = true,
+        onConfirm = function(selected_path)
+          local feat = self_ref.settings:readSetting("features") or {}
+          local fldrs = feat.library_scan_folders or {}
+          for _fidx, existing in ipairs(fldrs) do
+            if existing == selected_path then
+              UIManager:show(InfoMessage:new{
+                text = T(_("Folder already added:\n%1"), selected_path),
+                timeout = 3,
+              })
+              return
+            end
+          end
+          table.insert(fldrs, selected_path)
+          table.sort(fldrs)
+          feat.library_scan_folders = fldrs
+          self_ref.settings:saveSetting("features", feat)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+          if touchmenu_instance then
+            touchmenu_instance:updateItems()
+          end
+        end,
+      }
+      UIManager:show(path_chooser)
+    end,
+  })
+
+  if #folders == 0 then
+    table.insert(items, 1, {
+      text = _("No folders configured"),
+      enabled_func = function() return false end,
+    })
+  end
+
+  return items
 end
 
 -- Show custom reset dialog with checklist

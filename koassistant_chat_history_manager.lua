@@ -15,7 +15,17 @@ local index_operation_pending = false
 -- Constants
 ChatHistoryManager.CHAT_DIR = DataStorage:getDataDir() .. "/koassistant_chats"
 ChatHistoryManager.GENERAL_CHAT_FILE = DataStorage:getSettingsDir() .. "/koassistant_general_chats.lua"
-ChatHistoryManager.MULTI_BOOK_CHAT_FILE = DataStorage:getSettingsDir() .. "/koassistant_multi_book_chats.lua"
+ChatHistoryManager.LIBRARY_CHAT_FILE = DataStorage:getSettingsDir() .. "/koassistant_library_chats.lua"
+
+-- Migration: rename old multi_book chat file to new library chat file
+do
+    local old_file = DataStorage:getSettingsDir() .. "/koassistant_multi_book_chats.lua"
+    local new_file = ChatHistoryManager.LIBRARY_CHAT_FILE
+    if lfs.attributes(old_file, "mode") == "file" and not lfs.attributes(new_file, "mode") then
+        os.rename(old_file, new_file)
+        logger.info("KOAssistant: Migrated multi_book chats file to library chats file")
+    end
+end
 
 --[[
     Helper function for safe metadata writes with validation
@@ -104,7 +114,7 @@ local function safeWriteToMetadata(document_path, chats, ui_instance)
 end
 
 -- Safely write chats to LuaSettings file with validation and verification
--- Used for general and multi-book chats (stored in dedicated settings files)
+-- Used for general and library chats (stored in dedicated settings files)
 -- @param file_path: Path to the LuaSettings file
 -- @param chats: Table of chats keyed by chat_id
 -- @return true on success, false + error message on failure
@@ -245,8 +255,8 @@ function ChatHistoryManager:getAllDocuments()
                             local document_title, book_author
                             if document_path == "__GENERAL_CHATS__" then
                                 document_title = _("General AI Chats")
-                            elseif document_path == "__MULTI_BOOK_CHATS__" then
-                                document_title = _("Multi-Book Chats")
+                            elseif document_path == "__LIBRARY_CHATS__" then
+                                document_title = _("Library Chats")
                             else
                                 -- Try to get book metadata from one of the chats
                                 local book_title_found = nil
@@ -292,7 +302,7 @@ function ChatHistoryManager:getAllDocuments()
         end
     end
     
-    -- Sort: General AI Chats first, Multi-Book Chats second, then books alphabetically
+    -- Sort: General AI Chats first, Library Chats second, then books alphabetically
     table.sort(documents, function(a, b)
         -- General chats always come first
         if a.path == "__GENERAL_CHATS__" then
@@ -300,10 +310,10 @@ function ChatHistoryManager:getAllDocuments()
         elseif b.path == "__GENERAL_CHATS__" then
             return false
         end
-        -- Multi-book chats come second
-        if a.path == "__MULTI_BOOK_CHATS__" then
+        -- Library chats come second
+        if a.path == "__LIBRARY_CHATS__" then
             return true
-        elseif b.path == "__MULTI_BOOK_CHATS__" then
+        elseif b.path == "__LIBRARY_CHATS__" then
             return false
         end
 
@@ -485,11 +495,11 @@ function ChatHistoryManager:getChatById(document_path, chat_id)
 
     -- Route to v2 or v1 storage
     if self:useDocSettingsStorage() then
-        -- v2: metadata.lua, general chats, or multi-book chats storage
+        -- v2: metadata.lua, general chats, or library chats storage
         if document_path == "__GENERAL_CHATS__" then
             return self:getGeneralChatById(chat_id)
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:getMultiBookChatById(chat_id)
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:getLibraryChatById(chat_id)
         else
             -- Read chat from metadata.lua
             if lfs.attributes(document_path, "mode") then
@@ -521,8 +531,8 @@ function ChatHistoryManager:deleteChat(document_path, chat_id)
         -- v2: DocSettings-based storage
         if document_path == "__GENERAL_CHATS__" then
             return self:deleteGeneralChat(chat_id)
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:deleteMultiBookChat(chat_id)
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:deleteLibraryChat(chat_id)
         else
             return self:deleteChatFromDocSettings(nil, chat_id, document_path)
         end
@@ -558,15 +568,15 @@ function ChatHistoryManager:deleteAllChatsForDocument(document_path)
             end
             logger.info("Deleted " .. count .. " general chats")
             return count
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            local chats = self:getMultiBookChats()
+        elseif document_path == "__LIBRARY_CHATS__" then
+            local chats = self:getLibraryChats()
             local count = #chats
             if count > 0 then
-                local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+                local settings = LuaSettings:open(self.LIBRARY_CHAT_FILE)
                 settings:saveSetting("chats", {})
                 settings:flush()
             end
-            logger.info("Deleted " .. count .. " multi-book chats")
+            logger.info("Deleted " .. count .. " library chats")
             return count
         else
             -- Book chats: clear from metadata.lua
@@ -631,10 +641,10 @@ function ChatHistoryManager:deleteAllChats()
             docs_deleted = docs_deleted + 1
         end
 
-        -- Delete multi-book chats
-        local multi_count = self:deleteAllChatsForDocument("__MULTI_BOOK_CHATS__")
-        if multi_count > 0 then
-            total_deleted = total_deleted + multi_count
+        -- Delete library chats (formerly multi-book)
+        local library_count = self:deleteAllChatsForDocument("__LIBRARY_CHATS__")
+        if library_count > 0 then
+            total_deleted = total_deleted + library_count
             docs_deleted = docs_deleted + 1
         end
 
@@ -694,8 +704,8 @@ function ChatHistoryManager:renameChat(document_path, chat_id, new_title)
         -- v2: DocSettings-based storage
         if document_path == "__GENERAL_CHATS__" then
             return self:updateGeneralChat(chat_id, { title = new_title })
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:updateMultiBookChat(chat_id, { title = new_title })
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:updateLibraryChat(chat_id, { title = new_title })
         else
             return self:updateChatInDocSettings(nil, chat_id, { title = new_title }, document_path)
         end
@@ -857,15 +867,15 @@ function ChatHistoryManager:getMostRecentChat()
             end
         end
 
-        -- Check multi-book chats
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        -- Check library chats
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.timestamp and chat.timestamp > 0 and
                chat.messages and #chat.messages > 0 and
                chat.timestamp > most_recent_timestamp then
                 most_recent_chat = chat
                 most_recent_timestamp = chat.timestamp
-                most_recent_doc_path = "__MULTI_BOOK_CHATS__"
+                most_recent_doc_path = "__LIBRARY_CHATS__"
             end
         end
 
@@ -967,11 +977,11 @@ function ChatHistoryManager:getLastOpenedChat()
     -- Try to load the chat from disk
     local chat
     if self:useDocSettingsStorage() then
-        -- v2: metadata.lua, general, or multi-book storage
+        -- v2: metadata.lua, general, or library storage
         if last_opened.document_path == "__GENERAL_CHATS__" then
             chat = self:getGeneralChatById(last_opened.chat_id)
-        elseif last_opened.document_path == "__MULTI_BOOK_CHATS__" then
-            chat = self:getMultiBookChatById(last_opened.chat_id)
+        elseif last_opened.document_path == "__LIBRARY_CHATS__" then
+            chat = self:getLibraryChatById(last_opened.chat_id)
         else
             -- Read chat from metadata.lua for that document
             if lfs.attributes(last_opened.document_path, "mode") then
@@ -1002,7 +1012,7 @@ function ChatHistoryManager:getChatsByDomain()
     domains["untagged"] = {}
 
     if self:useDocSettingsStorage() then
-        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        -- v2: Scan metadata.lua files, general chats, and library chats
         local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
@@ -1020,9 +1030,9 @@ function ChatHistoryManager:getChatsByDomain()
             end
         end
 
-        -- 2. Scan multi-book chats
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        -- 2. Scan library chats
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.messages and #chat.messages > 0 then
                 local domain_key = chat.domain or "untagged"
                 if not domains[domain_key] then
@@ -1030,7 +1040,7 @@ function ChatHistoryManager:getChatsByDomain()
                 end
                 table.insert(domains[domain_key], {
                     chat = chat,
-                    document_path = "__MULTI_BOOK_CHATS__"
+                    document_path = "__LIBRARY_CHATS__"
                 })
             end
         end
@@ -1124,12 +1134,12 @@ function ChatHistoryManager:addTagToChat(document_path, chat_id, tag)
 
     -- Route to v2 or v1 storage
     if self:useDocSettingsStorage() then
-        -- v2: Load chat from metadata.lua, general, or multi-book storage, add tag, update
+        -- v2: Load chat from metadata.lua, general, or library storage, add tag, update
         local chat
         if document_path == "__GENERAL_CHATS__" then
             chat = self:getGeneralChatById(chat_id)
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            chat = self:getMultiBookChatById(chat_id)
+        elseif document_path == "__LIBRARY_CHATS__" then
+            chat = self:getLibraryChatById(chat_id)
         else
             if lfs.attributes(document_path, "mode") then
                 local DocSettings = require("docsettings")
@@ -1162,8 +1172,8 @@ function ChatHistoryManager:addTagToChat(document_path, chat_id, tag)
         -- Save back
         if document_path == "__GENERAL_CHATS__" then
             return self:updateGeneralChat(chat_id, { tags = chat.tags })
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:updateMultiBookChat(chat_id, { tags = chat.tags })
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:updateLibraryChat(chat_id, { tags = chat.tags })
         else
             return self:updateChatInDocSettings(nil, chat_id, { tags = chat.tags }, document_path)
         end
@@ -1206,12 +1216,12 @@ function ChatHistoryManager:removeTagFromChat(document_path, chat_id, tag)
 
     -- Route to v2 or v1 storage
     if self:useDocSettingsStorage() then
-        -- v2: Load chat from metadata.lua, general, or multi-book storage, remove tag, update
+        -- v2: Load chat from metadata.lua, general, or library storage, remove tag, update
         local chat
         if document_path == "__GENERAL_CHATS__" then
             chat = self:getGeneralChatById(chat_id)
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            chat = self:getMultiBookChatById(chat_id)
+        elseif document_path == "__LIBRARY_CHATS__" then
+            chat = self:getLibraryChatById(chat_id)
         else
             if lfs.attributes(document_path, "mode") then
                 local DocSettings = require("docsettings")
@@ -1243,8 +1253,8 @@ function ChatHistoryManager:removeTagFromChat(document_path, chat_id, tag)
         -- Save back
         if document_path == "__GENERAL_CHATS__" then
             return self:updateGeneralChat(chat_id, { tags = new_tags })
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:updateMultiBookChat(chat_id, { tags = new_tags })
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:updateLibraryChat(chat_id, { tags = new_tags })
         else
             return self:updateChatInDocSettings(nil, chat_id, { tags = new_tags }, document_path)
         end
@@ -1322,7 +1332,7 @@ function ChatHistoryManager:getAllTags()
     local tags_set = {}
 
     if self:useDocSettingsStorage() then
-        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        -- v2: Scan metadata.lua files, general chats, and library chats
         local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
@@ -1335,9 +1345,9 @@ function ChatHistoryManager:getAllTags()
             end
         end
 
-        -- 2. Scan multi-book chats
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        -- 2. Scan library chats
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.tags then
                 for _tidx, tag in ipairs(chat.tags) do
                     tags_set[tag] = true
@@ -1406,7 +1416,7 @@ function ChatHistoryManager:getChatsByTag(tag)
     if not tag then return chats end
 
     if self:useDocSettingsStorage() then
-        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        -- v2: Scan metadata.lua files, general chats, and library chats
         local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
@@ -1425,15 +1435,15 @@ function ChatHistoryManager:getChatsByTag(tag)
             end
         end
 
-        -- 2. Scan multi-book chats
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        -- 2. Scan library chats
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.tags and chat.messages and #chat.messages > 0 then
                 for _tidx, chat_tag in ipairs(chat.tags) do
                     if chat_tag == tag then
                         table.insert(chats, {
                             chat = chat,
-                            document_path = "__MULTI_BOOK_CHATS__"
+                            document_path = "__LIBRARY_CHATS__"
                         })
                         break
                     end
@@ -1510,7 +1520,7 @@ function ChatHistoryManager:getTagChatCounts()
     local counts = {}
 
     if self:useDocSettingsStorage() then
-        -- v2: Scan metadata.lua files, general chats, and multi-book chats
+        -- v2: Scan metadata.lua files, general chats, and library chats
         local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
@@ -1523,9 +1533,9 @@ function ChatHistoryManager:getTagChatCounts()
             end
         end
 
-        -- 2. Scan multi-book chats
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        -- 2. Scan library chats
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.tags and chat.messages and #chat.messages > 0 then
                 for _tidx, tag in ipairs(chat.tags) do
                     counts[tag] = (counts[tag] or 0) + 1
@@ -1597,8 +1607,8 @@ function ChatHistoryManager:starChat(document_path, chat_id)
     if self:useDocSettingsStorage() then
         if document_path == "__GENERAL_CHATS__" then
             return self:updateGeneralChat(chat_id, { starred = true })
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:updateMultiBookChat(chat_id, { starred = true })
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:updateLibraryChat(chat_id, { starred = true })
         else
             return self:updateChatInDocSettings(nil, chat_id, { starred = true }, document_path)
         end
@@ -1623,8 +1633,8 @@ function ChatHistoryManager:unstarChat(document_path, chat_id)
     if self:useDocSettingsStorage() then
         if document_path == "__GENERAL_CHATS__" then
             return self:updateGeneralChat(chat_id, { starred = false })
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:updateMultiBookChat(chat_id, { starred = false })
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:updateLibraryChat(chat_id, { starred = false })
         else
             return self:updateChatInDocSettings(nil, chat_id, { starred = false }, document_path)
         end
@@ -1655,13 +1665,13 @@ function ChatHistoryManager:getStarredChats()
             end
         end
 
-        -- 2. Scan multi-book chats
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        -- 2. Scan library chats
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.starred and chat.messages and #chat.messages > 0 then
                 table.insert(starred, {
                     chat = chat,
-                    document_path = "__MULTI_BOOK_CHATS__"
+                    document_path = "__LIBRARY_CHATS__"
                 })
             end
         end
@@ -1730,8 +1740,8 @@ function ChatHistoryManager:getStarredChatCount()
             end
         end
 
-        local multi_book_chats = self:getMultiBookChats()
-        for _idx, chat in ipairs(multi_book_chats) do
+        local library_chats = self:getLibraryChats()
+        for _idx, chat in ipairs(library_chats) do
             if chat and chat.starred and chat.messages and #chat.messages > 0 then
                 count = count + 1
             end
@@ -1827,8 +1837,8 @@ function ChatHistoryManager:saveChatToDocSettings(ui, chat_data)
         return false
     end
 
-    if not chat_data.document_path or chat_data.document_path == "__GENERAL_CHATS__" or chat_data.document_path == "__MULTI_BOOK_CHATS__" then
-        logger.warn("saveChatToDocSettings: Invalid document_path, use saveGeneralChat or saveMultiBookChat instead")
+    if not chat_data.document_path or chat_data.document_path == "__GENERAL_CHATS__" or chat_data.document_path == "__LIBRARY_CHATS__" then
+        logger.warn("saveChatToDocSettings: Invalid document_path, use saveGeneralChat or saveLibraryChat instead")
         return false
     end
 
@@ -2222,45 +2232,45 @@ function ChatHistoryManager:updateGeneralChat(chat_id, updates)
 end
 
 --[[
-    Multi-book chat storage (dedicated file for multi-book comparisons)
-    Similar to general chats but for multi-book context
+    Library chat storage (dedicated file for library/multi-book comparisons)
+    Similar to general chats but for library context
 --]]
 
--- Save multi-book chat to dedicated settings file
+-- Save library chat to dedicated settings file
 -- @param chat_data: Chat object with id, title, messages, etc.
 -- @return chat_id on success, false on failure
-function ChatHistoryManager:saveMultiBookChat(chat_data)
+function ChatHistoryManager:saveLibraryChat(chat_data)
     if not chat_data or not chat_data.id then
-        logger.warn("saveMultiBookChat: Missing chat_data or chat_data.id")
+        logger.warn("saveLibraryChat: Missing chat_data or chat_data.id")
         return false
     end
 
     -- Read existing chats
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+    local settings = LuaSettings:open(self.LIBRARY_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Add or update this chat (keyed by ID)
     chats[chat_data.id] = chat_data
 
     -- Safe write with validation and verification
-    local ok, err = safeWriteToLuaSettings(self.MULTI_BOOK_CHAT_FILE, chats)
+    local ok, err = safeWriteToLuaSettings(self.LIBRARY_CHAT_FILE, chats)
     if not ok then
-        logger.warn("saveMultiBookChat: " .. (err or "Write failed"))
+        logger.warn("saveLibraryChat: " .. (err or "Write failed"))
         return false
     end
 
     -- Track as last opened chat
-    self:setLastOpenedChat("__MULTI_BOOK_CHATS__", chat_data.id)
+    self:setLastOpenedChat("__LIBRARY_CHATS__", chat_data.id)
 
-    logger.info("Saved multi-book chat: " .. chat_data.id)
+    logger.info("Saved library chat: " .. chat_data.id)
     return chat_data.id
 end
 
--- Load all multi-book chats from dedicated settings file
+-- Load all library chats from dedicated settings file
 -- @return array of chat objects sorted by timestamp (newest first)
-function ChatHistoryManager:getMultiBookChats()
-    -- Open multi-book chats file
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+function ChatHistoryManager:getLibraryChats()
+    -- Open library chats file
+    local settings = LuaSettings:open(self.LIBRARY_CHAT_FILE)
 
     -- Read chats table
     local chats_table = settings:readSetting("chats", {})
@@ -2276,21 +2286,21 @@ function ChatHistoryManager:getMultiBookChats()
         return (a.timestamp or 0) > (b.timestamp or 0)
     end)
 
-    logger.info("Loaded " .. #chats .. " multi-book chats")
+    logger.info("Loaded " .. #chats .. " library chats")
     return chats
 end
 
--- Get specific multi-book chat by ID
+-- Get specific library chat by ID
 -- @param chat_id: Chat ID to load
 -- @return chat data or nil if not found
-function ChatHistoryManager:getMultiBookChatById(chat_id)
+function ChatHistoryManager:getLibraryChatById(chat_id)
     if not chat_id then
-        logger.warn("getMultiBookChatById: Missing chat_id")
+        logger.warn("getLibraryChatById: Missing chat_id")
         return nil
     end
 
-    -- Open multi-book chats file
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+    -- Open library chats file
+    local settings = LuaSettings:open(self.LIBRARY_CHAT_FILE)
 
     -- Read chats table
     local chats = settings:readSetting("chats", {})
@@ -2298,22 +2308,22 @@ function ChatHistoryManager:getMultiBookChatById(chat_id)
     return chats[chat_id]
 end
 
--- Delete multi-book chat by ID
+-- Delete library chat by ID
 -- @param chat_id: Chat ID to delete
 -- @return true on success, false on failure
-function ChatHistoryManager:deleteMultiBookChat(chat_id)
+function ChatHistoryManager:deleteLibraryChat(chat_id)
     if not chat_id then
-        logger.warn("deleteMultiBookChat: Missing chat_id")
+        logger.warn("deleteLibraryChat: Missing chat_id")
         return false
     end
 
     -- Read existing chats
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+    local settings = LuaSettings:open(self.LIBRARY_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Check if chat exists
     if not chats[chat_id] then
-        logger.warn("deleteMultiBookChat: Chat not found: " .. chat_id)
+        logger.warn("deleteLibraryChat: Chat not found: " .. chat_id)
         return false
     end
 
@@ -2321,33 +2331,33 @@ function ChatHistoryManager:deleteMultiBookChat(chat_id)
     chats[chat_id] = nil
 
     -- Safe write with validation and verification
-    local ok, err = safeWriteToLuaSettings(self.MULTI_BOOK_CHAT_FILE, chats)
+    local ok, err = safeWriteToLuaSettings(self.LIBRARY_CHAT_FILE, chats)
     if not ok then
-        logger.warn("deleteMultiBookChat: " .. (err or "Write failed"))
+        logger.warn("deleteLibraryChat: " .. (err or "Write failed"))
         return false
     end
 
-    logger.info("Deleted multi-book chat: " .. chat_id)
+    logger.info("Deleted library chat: " .. chat_id)
     return true
 end
 
--- Update multi-book chat (for rename, tags, etc.)
+-- Update library chat (for rename, tags, etc.)
 -- @param chat_id: Chat ID to update
 -- @param updates: Table of fields to update
 -- @return true on success, false on failure
-function ChatHistoryManager:updateMultiBookChat(chat_id, updates)
+function ChatHistoryManager:updateLibraryChat(chat_id, updates)
     if not chat_id or not updates then
-        logger.warn("updateMultiBookChat: Missing chat_id or updates")
+        logger.warn("updateLibraryChat: Missing chat_id or updates")
         return false
     end
 
     -- Read existing chats
-    local settings = LuaSettings:open(self.MULTI_BOOK_CHAT_FILE)
+    local settings = LuaSettings:open(self.LIBRARY_CHAT_FILE)
     local chats = settings:readSetting("chats", {})
 
     -- Check if chat exists
     if not chats[chat_id] then
-        logger.warn("updateMultiBookChat: Chat not found: " .. chat_id)
+        logger.warn("updateLibraryChat: Chat not found: " .. chat_id)
         return false
     end
 
@@ -2357,13 +2367,13 @@ function ChatHistoryManager:updateMultiBookChat(chat_id, updates)
     end
 
     -- Safe write with validation and verification
-    local ok, err = safeWriteToLuaSettings(self.MULTI_BOOK_CHAT_FILE, chats)
+    local ok, err = safeWriteToLuaSettings(self.LIBRARY_CHAT_FILE, chats)
     if not ok then
-        logger.warn("updateMultiBookChat: " .. (err or "Write failed"))
+        logger.warn("updateLibraryChat: " .. (err or "Write failed"))
         return false
     end
 
-    logger.info("Updated multi-book chat: " .. chat_id)
+    logger.info("Updated library chat: " .. chat_id)
     return true
 end
 
@@ -2386,7 +2396,7 @@ end
 -- @param chat_id: Chat ID being saved/deleted
 -- @param chats_table: Current chats table (for counting)
 function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, chats_table)
-    if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__MULTI_BOOK_CHATS__" then
+    if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__LIBRARY_CHATS__" then
         return
     end
 
@@ -2569,7 +2579,7 @@ function ChatHistoryManager:rebuildChatIndex()
         indexDocument(doc_path)
     end
     for doc_path in pairs(G_reader_settings:readSetting("koassistant_pinned_index", {})) do
-        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__MULTI_BOOK_CHATS__" then
+        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__LIBRARY_CHATS__" then
             indexDocument(doc_path)
         end
     end
@@ -2711,14 +2721,14 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
             })
         end
 
-        -- Add multi-book chats as a pseudo-document
-        local multi_book_chats = self:getMultiBookChats()
-        if #multi_book_chats > 0 then
+        -- Add library chats as a pseudo-document
+        local library_chats = self:getLibraryChats()
+        if #library_chats > 0 then
             table.insert(documents, {
-                path = "__MULTI_BOOK_CHATS__",
-                title = _("Multi-Book Chats"),
+                path = "__LIBRARY_CHATS__",
+                title = _("Library Chats"),
                 author = nil,
-                last_modified = getMaxTimestamp(multi_book_chats),
+                last_modified = getMaxTimestamp(library_chats),
             })
         end
 
@@ -2749,14 +2759,14 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
             end
         end
 
-        -- Sort: General/Multi-Book chats first, then by last_modified descending
+        -- Sort: General/Library chats first, then by last_modified descending
         table.sort(documents, function(a, b)
             -- Special paths always come first
-            local a_special = a.path == "__GENERAL_CHATS__" or a.path == "__MULTI_BOOK_CHATS__"
-            local b_special = b.path == "__GENERAL_CHATS__" or b.path == "__MULTI_BOOK_CHATS__"
+            local a_special = a.path == "__GENERAL_CHATS__" or a.path == "__LIBRARY_CHATS__"
+            local b_special = b.path == "__GENERAL_CHATS__" or b.path == "__LIBRARY_CHATS__"
             if a_special and not b_special then return true end
             if b_special and not a_special then return false end
-            -- If both special, General before Multi-Book
+            -- If both special, General before Library
             if a_special and b_special then
                 return a.path == "__GENERAL_CHATS__"
             end
@@ -2777,11 +2787,11 @@ end
 -- @return array of chat objects sorted by timestamp (newest first)
 function ChatHistoryManager:getChatsUnified(ui, document_path)
     if self:useDocSettingsStorage() then
-        -- v2: Load from metadata.lua, general chats, or multi-book chats file
+        -- v2: Load from metadata.lua, general chats, or library chats file
         if document_path == "__GENERAL_CHATS__" then
             return self:getGeneralChats()
-        elseif document_path == "__MULTI_BOOK_CHATS__" then
-            return self:getMultiBookChats()
+        elseif document_path == "__LIBRARY_CHATS__" then
+            return self:getLibraryChats()
         else
             -- Need to read chats from metadata.lua for the document
             local DocSettings = require("docsettings")

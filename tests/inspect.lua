@@ -941,7 +941,7 @@ local function startWebServer(options)
         local actions_data = {
             highlight = {},
             book = {},
-            multi_book = {},
+            library = {},
             general = {},
         }
 
@@ -1143,7 +1143,7 @@ local function startWebServer(options)
                     author_clause = (context.book_author and context.book_author ~= "") and (" by " .. context.book_author) or ""
                 }
             end
-        elseif context_type == "multi_book" then
+        elseif context_type == "library" then
             context_data.books_info = context.books_info or {}
         end
 
@@ -1371,7 +1371,7 @@ local function startWebServer(options)
                     author_clause = (context.book_author and context.book_author ~= "") and (" by " .. context.book_author) or ""
                 }
             end
-        elseif context_type == "multi_book" then
+        elseif context_type == "library" then
             context_data.books_info = context.books_info or {}
         end
 
@@ -1651,7 +1651,7 @@ local function startWebServer(options)
                     author_clause = (context.book_author and context.book_author ~= "") and (" by " .. context.book_author) or ""
                 }
             end
-        elseif context_type == "multi_book" then
+        elseif context_type == "library" then
             context_data.books_info = context.books_info or {}
         end
 

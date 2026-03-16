@@ -1,9 +1,9 @@
 --[[--
 Book Picker for KOAssistant
 
-Multi-select book picker for multi-book actions.
+Multi-select book picker for library actions.
 Shows reading history as a selectable list; selected books are passed
-to compareSelectedBooks() for the standard multi-book action flow.
+to compareSelectedBooks() for the standard library action flow.
 
 Supports filtering by book status (All, Reading, On Hold, Finished,
 Finished 75%+) and search by title/author.
@@ -179,7 +179,7 @@ local function buildMenuItems(entries, selected, toggle_callback)
     return items
 end
 
---- Show reading history book picker for multi-book selection
+--- Show reading history book picker for library selection
 --- @param opts table Options: on_confirm = function(selected_files_hash)
 function BookPicker:show(opts)
     local ReadHistory = require("readhistory")

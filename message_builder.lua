@@ -62,7 +62,7 @@ end
 --- Build the complete user message from action prompt and context data.
 -- @param params table with fields:
 --   prompt: action object with prompt/template field
---   context: string ("highlight", "book", "general", "multi_book", etc.)
+--   context: string ("highlight", "book", "general", "library", etc.)
 --   data: table with context data (highlighted_text, book_title, book_author, etc.)
 --   system_prompt: string (only used when using_new_format is false)
 --   domain_context: string (only used when using_new_format is false)
@@ -217,6 +217,13 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{notebook_section}", notebook_section)
 
+    -- {library_section} - includes "My library:\n" label, disappears when empty
+    local library_section = ""
+    if data.library_content and data.library_content ~= "" then
+        library_section = "My library:\n" .. data.library_content
+    end
+    user_prompt = replace_placeholder(user_prompt, "{library_section}", library_section)
+
     -- {full_document_section} - includes "Full document:\n" label
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then
@@ -307,6 +314,9 @@ function MessageBuilder.build(params)
     if data.notebook_content ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content)
     end
+    if data.library_content ~= nil then
+        user_prompt = replace_placeholder(user_prompt, "{library}", data.library_content)
+    end
     if data.full_document then
         user_prompt = replace_placeholder(user_prompt, "{full_document}", data.full_document)
     end
@@ -388,8 +398,8 @@ function MessageBuilder.build(params)
     if logger then
         logger.info("MessageBuilder: Entering context switch, context=", context)
     end
-    if context == "multi_book" or context == "multi_file_browser" then
-        -- Multi-book context with {count} and {books_list} substitution
+    if context == "library" or context == "multi_file_browser" then
+        -- Library (multi-book) context with {count} and {books_list} substitution
         if data.books_info then
             local count = #data.books_info
             local books_list = {}
@@ -595,6 +605,13 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     result = replace_placeholder(result, "{notebook_section}", notebook_section)
 
+    -- {library_section}
+    local library_section = ""
+    if data.library_content and data.library_content ~= "" then
+        library_section = "My library:\n" .. data.library_content
+    end
+    result = replace_placeholder(result, "{library_section}", library_section)
+
     -- {full_document_section}
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then
@@ -645,6 +662,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.notebook_content ~= nil then
         result = replace_placeholder(result, "{notebook}", data.notebook_content)
+    end
+    if data.library_content ~= nil then
+        result = replace_placeholder(result, "{library}", data.library_content)
     end
     if data.full_document then
         result = replace_placeholder(result, "{full_document}", data.full_document)

@@ -684,9 +684,9 @@ function BackupManager:_countItems(options)
             local general_chats = chat_manager:getGeneralChats()
             total_chats = total_chats + #general_chats
 
-            -- Add multi-book chats
-            local multi_book_chats = chat_manager:getMultiBookChats()
-            total_chats = total_chats + #multi_book_chats
+            -- Add library chats
+            local library_chats = chat_manager:getLibraryChats()
+            total_chats = total_chats + #library_chats
 
             logger.dbg("BackupManager: Counted", total_chats, "chats (v2 storage)")
         else
@@ -805,23 +805,23 @@ function BackupManager:exportAllChatsToTable()
         logger.dbg("BackupManager: Exported", #general_chats, "general chats")
     end
 
-    -- Export multi-book chats (chats comparing multiple books)
-    local multi_book_chats = chat_manager:getMultiBookChats()
-    if #multi_book_chats > 0 then
+    -- Export library chats (chats comparing multiple books)
+    local library_chats = chat_manager:getLibraryChats()
+    if #library_chats > 0 then
         -- Convert array to table keyed by ID (matching DocSettings format)
-        local multi_book_chats_table = {}
-        for _idx, chat in ipairs(multi_book_chats) do
-            multi_book_chats_table[chat.id] = chat
+        local library_chats_table = {}
+        for _idx, chat in ipairs(library_chats) do
+            library_chats_table[chat.id] = chat
         end
 
-        all_chats["__MULTI_BOOK_CHATS__"] = {
-            chats = multi_book_chats_table,
+        all_chats["__LIBRARY_CHATS__"] = {
+            chats = library_chats_table,
             book_title = "",
             book_author = "",
-            chat_count = #multi_book_chats,
+            chat_count = #library_chats,
         }
 
-        logger.dbg("BackupManager: Exported", #multi_book_chats, "multi-book chats")
+        logger.dbg("BackupManager: Exported", #library_chats, "library chats")
     end
 
     return all_chats
@@ -903,14 +903,14 @@ function BackupManager:createBackup(options)
             end
         end
 
-        -- Copy pinned artifact files (general + multi-book)
+        -- Copy pinned artifact files (general + library)
         local pinned_general = self.SETTINGS_DIR .. "/koassistant_pinned_general.lua"
         if lfs.attributes(pinned_general, "mode") == "file" then
             self:_copyFile(pinned_general, settings_dir .. "/koassistant_pinned_general.lua")
         end
-        local pinned_multi = self.SETTINGS_DIR .. "/koassistant_pinned_multi_book.lua"
-        if lfs.attributes(pinned_multi, "mode") == "file" then
-            self:_copyFile(pinned_multi, settings_dir .. "/koassistant_pinned_multi_book.lua")
+        local pinned_library = self.SETTINGS_DIR .. "/koassistant_pinned_library.lua"
+        if lfs.attributes(pinned_library, "mode") == "file" then
+            self:_copyFile(pinned_library, settings_dir .. "/koassistant_pinned_library.lua")
         end
     end
 
@@ -1186,7 +1186,7 @@ function BackupManager:_validateActionOverrides(overrides)
         local context_tables = {
             Actions.highlight,
             Actions.book,
-            Actions.multi_book,
+            Actions.library,
             Actions.general,
             Actions.special,
         }
@@ -1343,9 +1343,9 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
             settings:flush()
 
             logger.info("BackupManager: Restored", data.chat_count, "general chats")
-        elseif doc_path == "__MULTI_BOOK_CHATS__" then
-            -- Restore multi-book chats
-            local settings = LuaSettings:open(chat_manager.MULTI_BOOK_CHAT_FILE)
+        elseif doc_path == "__LIBRARY_CHATS__" or doc_path == "__MULTI_BOOK_CHATS__" then
+            -- Restore library chats (backward compat: also handles __MULTI_BOOK_CHATS__ key from old backups)
+            local settings = LuaSettings:open(chat_manager.LIBRARY_CHAT_FILE)
             local existing_chats = merge_mode and settings:readSetting("chats", {}) or {}
 
             -- Merge or replace
@@ -1357,7 +1357,7 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
             settings:saveSetting("chats", existing_chats)
             settings:flush()
 
-            logger.info("BackupManager: Restored", data.chat_count, "multi-book chats")
+            logger.info("BackupManager: Restored", data.chat_count, "library chats")
         else
             -- Restore document-specific chats
             -- Check if document exists
@@ -1570,14 +1570,18 @@ function BackupManager:restoreBackup(backup_path, options)
             end
         end
 
-        -- Restore pinned artifact files (general + multi-book)
+        -- Restore pinned artifact files (general + library)
         local backup_pinned_general = temp_dir .. "/settings/koassistant_pinned_general.lua"
         if lfs.attributes(backup_pinned_general, "mode") == "file" then
             self:_copyFile(backup_pinned_general, self.SETTINGS_DIR .. "/koassistant_pinned_general.lua")
         end
-        local backup_pinned_multi = temp_dir .. "/settings/koassistant_pinned_multi_book.lua"
-        if lfs.attributes(backup_pinned_multi, "mode") == "file" then
-            self:_copyFile(backup_pinned_multi, self.SETTINGS_DIR .. "/koassistant_pinned_multi_book.lua")
+        -- Try new name first, fall back to old name (backward compat with old backups)
+        local backup_pinned_library = temp_dir .. "/settings/koassistant_pinned_library.lua"
+        local backup_pinned_multi_old = temp_dir .. "/settings/koassistant_pinned_multi_book.lua"
+        if lfs.attributes(backup_pinned_library, "mode") == "file" then
+            self:_copyFile(backup_pinned_library, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
+        elseif lfs.attributes(backup_pinned_multi_old, "mode") == "file" then
+            self:_copyFile(backup_pinned_multi_old, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
         end
     end
 

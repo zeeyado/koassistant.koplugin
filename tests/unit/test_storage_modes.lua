@@ -354,7 +354,7 @@ TestRunner:test("Phase A: discovers books from pinned index (skips special keys)
     g_reader_store["koassistant_pinned_index"] = {
         ["/books/pinned.epub"] = { count = 1 },
         ["__GENERAL_CHATS__"] = { count = 2 },
-        ["__MULTI_BOOK_CHATS__"] = { count = 1 },
+        ["__LIBRARY_CHATS__"] = { count = 1 },
     }
 
     local count = ChatHistoryManager:rebuildChatIndex()
@@ -517,7 +517,7 @@ end)
 
 TestRunner:test("ActionCache.getPath: returns nil for special paths", function()
     TestRunner:assertNil(ActionCache.getPath("__GENERAL_CHATS__"), "general")
-    TestRunner:assertNil(ActionCache.getPath("__MULTI_BOOK_CHATS__"), "multi_book")
+    TestRunner:assertNil(ActionCache.getPath("__LIBRARY_CHATS__"), "library")
     TestRunner:assertNil(ActionCache.getPath(nil), "nil")
 end)
 

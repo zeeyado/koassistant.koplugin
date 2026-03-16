@@ -88,14 +88,14 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     -- Load pinned index for merging
     local pinned_index = PinnedManager.getPinnedIndex()
     local has_general_pinned = pinned_index[PinnedManager.GENERAL_KEY] and pinned_index[PinnedManager.GENERAL_KEY].count > 0
-    local has_multi_pinned = pinned_index[PinnedManager.MULTI_BOOK_KEY] and pinned_index[PinnedManager.MULTI_BOOK_KEY].count > 0
+    local has_multi_pinned = pinned_index[PinnedManager.LIBRARY_KEY] and pinned_index[PinnedManager.LIBRARY_KEY].count > 0
 
     -- Handle empty state (no artifacts AND no pinned)
     if #docs == 0 and not has_general_pinned and not has_multi_pinned then
         -- Check if any per-book pinned exist
         local has_any_pinned = false
         for doc_path, _stats in pairs(pinned_index) do
-            if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.MULTI_BOOK_KEY then
+            if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.LIBRARY_KEY then
                 has_any_pinned = true
                 break
             end
@@ -120,7 +120,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     -- Insert General Pinned section at top (if exists)
     if has_general_pinned then
         local gp = pinned_index[PinnedManager.GENERAL_KEY]
-        local date_str = gp.modified > 0 and os.date("%Y-%m-%d", gp.modified) or ""
+        local date_str = gp.modified > 0 and Constants.formatRelativeTime(gp.modified) or ""
         table.insert(menu_items, {
             text = Constants.getEmojiText("\u{1F4CC}", _("General (Pinned)"), enable_emoji),
             mandatory = tostring(gp.count) .. " \u{00B7} " .. date_str,
@@ -132,17 +132,17 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         })
     end
 
-    -- Insert Multi-Book Pinned section (if exists)
+    -- Insert Library Pinned section (if exists)
     if has_multi_pinned then
-        local mp = pinned_index[PinnedManager.MULTI_BOOK_KEY]
-        local date_str = mp.modified > 0 and os.date("%Y-%m-%d", mp.modified) or ""
+        local mp = pinned_index[PinnedManager.LIBRARY_KEY]
+        local date_str = mp.modified > 0 and Constants.formatRelativeTime(mp.modified) or ""
         table.insert(menu_items, {
-            text = Constants.getEmojiText("\u{1F4CC}", _("Multi-Book (Pinned)"), enable_emoji),
+            text = Constants.getEmojiText("\u{1F4CC}", _("Library (Pinned)"), enable_emoji),
             mandatory = tostring(mp.count) .. " \u{00B7} " .. date_str,
             mandatory_dim = true,
             callback = function()
-                local entries = PinnedManager.getMultiBookPinned()
-                self_ref:showPinnedList(entries, _("Multi-Book (Pinned)"), PinnedManager.MULTI_BOOK_KEY, opts)
+                local entries = PinnedManager.getLibraryPinned()
+                self_ref:showPinnedList(entries, _("Library (Pinned)"), PinnedManager.LIBRARY_KEY, opts)
             end,
         })
     end
@@ -153,7 +153,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
         docs_by_path[doc.path] = doc
     end
     for doc_path, pstats in pairs(pinned_index) do
-        if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.MULTI_BOOK_KEY then
+        if doc_path ~= PinnedManager.GENERAL_KEY and doc_path ~= PinnedManager.LIBRARY_KEY then
             local existing = docs_by_path[doc_path]
             if existing then
                 existing.pinned_count = pstats.count
@@ -182,7 +182,7 @@ function ArtifactBrowser:showArtifactBrowser(opts)
 
     for _idx, doc in ipairs(docs) do
         local captured_doc = doc
-        local date_str = doc.modified > 0 and os.date("%Y-%m-%d", doc.modified) or _("Unknown")
+        local date_str = doc.modified > 0 and Constants.formatRelativeTime(doc.modified) or _("Unknown")
         local total_count = (doc.count or 0) + (doc.pinned_count or 0)
         local count_str = tostring(total_count)
         local right_text = count_str .. " \u{00B7} " .. date_str
@@ -296,8 +296,14 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
     local buttons = {}
     for _idx, artifact in ipairs(all_artifacts) do
         local captured = artifact
-        local display_name
-        display_name = captured.name
+        local display_name = captured.name
+        local ts = captured.data and captured.data.timestamp
+        if ts then
+            local rel = Constants.formatRelativeTime(ts)
+            if rel ~= "" then
+                display_name = display_name .. " · " .. rel
+            end
+        end
         table.insert(buttons, {{
             text = display_name,
             callback = function()
@@ -441,7 +447,7 @@ function ArtifactBrowser:migrateExistingArtifacts()
     -- Source 2: Chat index
     local chat_index = G_reader_settings:readSetting("koassistant_chat_index", {})
     for doc_path, _val in pairs(chat_index) do
-        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__MULTI_BOOK_CHATS__" then
+        if doc_path ~= "__GENERAL_CHATS__" and doc_path ~= "__LIBRARY_CHATS__" then
             doc_paths[doc_path] = true
         end
     end
@@ -529,7 +535,7 @@ function ArtifactBrowser:showPinnedList(entries, title, context_path, opts)
 
     for _idx, entry in ipairs(entries) do
         local captured = entry
-        local date_str = entry.timestamp > 0 and os.date("%Y-%m-%d", entry.timestamp) or ""
+        local date_str = entry.timestamp > 0 and Constants.formatRelativeTime(entry.timestamp) or ""
         local display_name = captured.name or captured.action_text or _("Chat")
         local display_text = Constants.getEmojiText("\u{1F4CC}", display_name, enable_emoji)
         if captured.book_title then
@@ -825,8 +831,14 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
             local captured = sec
             local label = captured.label or captured.key
             local doc = AskGPT and AskGPT.ui and AskGPT.ui.document
+            local detail_parts = {}
             local page_info = captured.data and ActionCache.reconvertPageSummary(captured.data, doc) or ""
-            local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
+            if page_info ~= "" then table.insert(detail_parts, page_info) end
+            if captured.data and captured.data.timestamp then
+                local rel = Constants.formatRelativeTime(captured.data.timestamp)
+                if rel ~= "" then table.insert(detail_parts, rel) end
+            end
+            local display = #detail_parts > 0 and (label .. " (" .. table.concat(detail_parts, ", ") .. ")") or label
             table.insert(buttons, {{
                 text = display,
                 callback = function()
@@ -874,8 +886,14 @@ function ArtifactBrowser:_showSectionGroupPopup(sections, doc_path, doc_title, A
             local captured = sec
             local label = captured.label or captured.key
             local doc = AskGPT and AskGPT.ui and AskGPT.ui.document
+            local detail_parts = {}
             local page_info = captured.data and ActionCache.reconvertPageSummary(captured.data, doc) or ""
-            local display = page_info ~= "" and (label .. " (" .. page_info .. ")") or label
+            if page_info ~= "" then table.insert(detail_parts, page_info) end
+            if captured.data and captured.data.timestamp then
+                local rel = Constants.formatRelativeTime(captured.data.timestamp)
+                if rel ~= "" then table.insert(detail_parts, rel) end
+            end
+            local display = #detail_parts > 0 and (label .. " (" .. table.concat(detail_parts, ", ") .. ")") or label
             table.insert(buttons, {{
                 text = display,
                 callback = function()
@@ -922,15 +940,24 @@ function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc
     local buttons = {}
     for _idx, wiki in ipairs(wiki_entries) do
         local captured = wiki
+        local btn_label = captured.label
+        local wiki_title = T(_("AI Wiki: %1"), captured.label)
+        if captured.data and captured.data.timestamp then
+            local rel = Constants.formatRelativeTime(captured.data.timestamp)
+            if rel ~= "" then
+                btn_label = btn_label .. " · " .. rel
+                wiki_title = wiki_title .. " · " .. rel
+            end
+        end
         table.insert(buttons, {{
-            text = captured.label,
+            text = btn_label,
             callback = function()
                 if self_ref._wiki_group_dialog then
                     UIManager:close(self_ref._wiki_group_dialog)
                 end
                 if on_select then on_select() end
                 local viewer = ChatGPTViewer:new{
-                    title = T(_("AI Wiki: %1"), captured.label),
+                    title = wiki_title,
                     text = captured.data.result,
                     simple_view = true,
                     cache_type_name = _("AI Wiki"),
@@ -983,6 +1010,12 @@ function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_tit
     for _idx, pin in ipairs(pinned_entries) do
         local captured = pin
         local label = captured.name or captured.action_text or _("Pinned")
+        if captured.timestamp and captured.timestamp > 0 then
+            local rel = Constants.formatRelativeTime(captured.timestamp)
+            if rel ~= "" then
+                label = label .. " · " .. rel
+            end
+        end
         table.insert(buttons, {{
             text = label,
             callback = function()

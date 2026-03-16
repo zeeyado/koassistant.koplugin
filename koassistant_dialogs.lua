@@ -162,8 +162,8 @@ end
 -- Helper function to determine prompt context
 local function getPromptContext(config)
     if config and config.features then
-        if config.features.is_multi_book_context then
-            return "multi_book"
+        if config.features.is_library_context then
+            return "library"
         elseif config.features.is_book_context then
             return "book"
         elseif config.features.is_general_context then
@@ -181,6 +181,19 @@ local function persistDomainSelection(plugin, domain_id)
     features.selected_domain = domain_id
     plugin.settings:saveSetting("features", features)
     plugin.settings:flush()
+end
+
+-- Helper to persist per-book domain selection to DocSettings
+local function persistBookDomain(doc_settings, domain_id)
+    if not doc_settings then return end
+    doc_settings:saveSetting("koassistant_book_domain", domain_id)
+    doc_settings:flush()
+end
+
+-- Helper to read per-book domain from DocSettings
+local function getBookDomain(doc_settings)
+    if not doc_settings then return nil end
+    return doc_settings:readSetting("koassistant_book_domain")
 end
 
 -- Extract surrounding context for dictionary lookups
@@ -1509,7 +1522,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     end
 
     -- Ensure document_path is in configuration for export functionality
-    -- This allows ChatGPTViewer to determine chat type (book/general/multi-book)
+    -- This allows ChatGPTViewer to determine chat type (book/general/library)
     if temp_config and document_path then
         temp_config.document_path = document_path
     end
@@ -1518,8 +1531,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
     -- Pin/Star helpers (closures shared by callbacks and state checkers)
     local pin_star_path = (function()
-        local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
-        if is_multi then return "__MULTI_BOOK_CHATS__"
+        local is_multi = temp_config and temp_config.features and temp_config.features.is_library_context
+        if is_multi then return "__LIBRARY_CHATS__"
         elseif not document_path then return "__GENERAL_CHATS__"
         else return document_path end
     end)()
@@ -1769,8 +1782,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         if highlightedText and highlightedText ~= "" then
                             metadata.original_highlighted_text = highlightedText
                         end
-                        -- Store books_info for multi-book context
-                        if cfg.features.is_multi_book_context and cfg.features.books_info then
+                        -- Store books_info for library context
+                        if cfg.features.is_library_context and cfg.features.books_info then
                             metadata.books_info = cfg.features.books_info
                         end
 
@@ -1778,7 +1791,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         local storage_key = cfg.features and cfg.features.storage_key
                         local save_path
                         local should_save = true
-                        local is_multi_book = cfg.features.is_multi_book_context or false
+                        local is_library = cfg.features.is_library_context or false
 
                         if storage_key == "__SKIP__" then
                             -- Don't save this chat
@@ -1788,10 +1801,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             -- Use custom storage location
                             save_path = storage_key
                         else
-                            -- Default: document path, general chats, or multi-book chats
+                            -- Default: document path, general chats, or library chats
                             save_path = document_path
                                 or (is_general_context and "__GENERAL_CHATS__")
-                                or (is_multi_book and "__MULTI_BOOK_CHATS__")
+                                or (is_library and "__LIBRARY_CHATS__")
                                 or nil
                         end
 
@@ -1851,8 +1864,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                                 if save_path == "__GENERAL_CHATS__" then
                                     save_result = chat_history_manager:saveGeneralChat(chat_data)
-                                elseif save_path == "__MULTI_BOOK_CHATS__" then
-                                    save_result = chat_history_manager:saveMultiBookChat(chat_data)
+                                elseif save_path == "__LIBRARY_CHATS__" then
+                                    save_result = chat_history_manager:saveLibraryChat(chat_data)
                                 else
                                     save_result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                                 end
@@ -2037,8 +2050,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- Helper to perform the copy
             local function doCopy(selected_content)
                 local Export = require("koassistant_export")
-                -- Extract books_info for multi-book context
-                local books_info = features.is_multi_book_context and features.books_info or nil
+                -- Extract books_info for library context
+                local books_info = features.is_library_context and features.books_info or nil
                 local data = Export.fromHistory(history, highlightedText, book_metadata, books_info)
                 local text = Export.format(data, selected_content, style)
 
@@ -2185,7 +2198,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     if #pin_name > 80 then pin_name = pin_name:sub(1, 80) end
                                     UIManager:close(pin_name_dialog)
 
-                                    local is_multi = temp_config and temp_config.features and temp_config.features.is_multi_book_context
+                                    local is_multi = temp_config and temp_config.features and temp_config.features.is_library_context
                                     local pin_entry = {
                                         id = PinnedManager.generateId(),
                                         name = pin_name,
@@ -2195,7 +2208,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                         user_prompt = last_prompt,
                                         timestamp = os.time(),
                                         model = history:getModel() or "",
-                                        context_type = is_multi and "multi_book" or (document_path and "book" or "general"),
+                                        context_type = is_multi and "library" or (document_path and "book" or "general"),
                                         book_title = book_metadata and book_metadata.title,
                                         book_author = book_metadata and book_metadata.author,
                                         document_path = pin_star_path,
@@ -2292,8 +2305,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if highlightedText and highlightedText ~= "" then
                 metadata.original_highlighted_text = highlightedText
             end
-            -- Store books_info for multi-book context
-            if temp_config.features.is_multi_book_context and temp_config.features.books_info then
+            -- Store books_info for library context
+            if temp_config.features.is_library_context and temp_config.features.books_info then
                 metadata.books_info = temp_config.features.books_info
             end
 
@@ -2301,7 +2314,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             local storage_key = temp_config.features and temp_config.features.storage_key
             local save_path
             local should_save = true
-            local is_multi_book = temp_config.features.is_multi_book_context or false
+            local is_library = temp_config.features.is_library_context or false
 
             if storage_key == "__SKIP__" then
                 -- Don't save this chat
@@ -2311,10 +2324,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 -- Use custom storage location
                 save_path = storage_key
             else
-                -- Default: document path, general chats, or multi-book chats
+                -- Default: document path, general chats, or library chats
                 save_path = document_path
                     or (is_general_context and "__GENERAL_CHATS__")
-                    or (is_multi_book and "__MULTI_BOOK_CHATS__")
+                    or (is_library and "__LIBRARY_CHATS__")
                     or nil
             end
 
@@ -2371,8 +2384,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                     if save_path == "__GENERAL_CHATS__" then
                         result = chat_history_manager:saveGeneralChat(chat_data)
-                    elseif save_path == "__MULTI_BOOK_CHATS__" then
-                        result = chat_history_manager:saveMultiBookChat(chat_data)
+                    elseif save_path == "__LIBRARY_CHATS__" then
+                        result = chat_history_manager:saveLibraryChat(chat_data)
                     else
                         result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                     end
@@ -2407,7 +2420,7 @@ end
 -- Helper function to build consolidated messages
 -- Delegates to shared MessageBuilder module for consistency with test framework
 -- @param prompt: The prompt definition
--- @param context: The context type (highlight, book, multi_book, general)
+-- @param context: The context type (highlight, book, library, general)
 -- @param data: Context-specific data (highlighted_text, book_metadata, etc.)
 -- @param system_prompt: Optional system prompt override
 -- @param domain_context: Optional domain context text to prepend
@@ -2828,6 +2841,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 enable_progress_sharing = config.features and config.features.enable_progress_sharing,
                 enable_stats_sharing = config.features and config.features.enable_stats_sharing,
                 enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
+                -- Library scanning
+                enable_library_scanning = config.features and config.features.enable_library_scanning,
+                library_scan_folders = config.features and config.features.library_scan_folders,
             })
             logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
                        config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
@@ -2852,6 +2868,25 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         else
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
         end
+    elseif prompt and prompt.use_library then
+        -- No open document but action needs library data — extract library only
+        -- Read settings fresh from plugin (like Send button does) to avoid stale config
+        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local lib_scanning = lib_features.enable_library_scanning == true
+        local lib_folders = lib_features.library_scan_folders
+        if lib_scanning and lib_folders and #lib_folders > 0 then
+            local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
+            if scan_ok and LibraryScanner then
+                local scan_result = LibraryScanner.scan(lib_features)
+                if scan_result and scan_result.books and #scan_result.books > 0 then
+                    message_data.library_content = LibraryScanner.format(scan_result)
+                else
+                    message_data.library_content = ""
+                end
+            end
+        else
+            message_data.library_content = ""
+        end
     end
     -- Note: Notebook extraction is now handled by ContextExtractor:extractForAction()
 
@@ -2865,10 +2900,39 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Get domain context if a domain is set (skip if action opts out)
-    -- Priority: prompt.domain (locked) > config.features.selected_domain (user choice)
+    -- Priority: prompt.domain (locked) > book domain (DocSettings) > global selected_domain
+    -- Book domain "_none" = explicit override to no domain (blocks global fallthrough)
     local domain_context = nil
     local skip_domain = prompt and prompt.skip_domain
-    local domain_id = (not skip_domain) and (prompt.domain or (config.features and config.features.selected_domain))
+    local domain_id = nil
+    if not skip_domain then
+        if prompt and prompt.domain then
+            domain_id = prompt.domain
+        else
+            -- Book domain: use the relevant book's DocSettings (not necessarily the open book)
+            -- Prefer book_metadata.file (file browser/artifact target) over ui.document.file (open book)
+            local book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
+                or (ui and ui.document and ui.document.file)
+            local book_domain = nil
+            if book_file then
+                local relevant_ds
+                if ui and ui.doc_settings and ui.document and ui.document.file == book_file then
+                    relevant_ds = ui.doc_settings
+                else
+                    local DocSettings = require("docsettings")
+                    relevant_ds = DocSettings:open(book_file)
+                end
+                book_domain = getBookDomain(relevant_ds)
+            end
+            if book_domain == "_none" then
+                domain_id = nil  -- explicit none, skip global
+            elseif book_domain then
+                domain_id = book_domain
+            else
+                domain_id = config.features and config.features.selected_domain
+            end
+        end
+    end
     if domain_id then
         local DomainLoader = require("domain_loader")
         -- Get custom domains from config for lookup
@@ -3465,7 +3529,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     
     -- Check if this is a general context chat (no book association)
-    -- Use getPromptContext() which properly prioritizes: multi_book > book > general > highlight
+    -- Use getPromptContext() which properly prioritizes: library > book > general > highlight
     -- This prevents stale is_general_context flags from affecting book context dialogs
     local is_general_context = getPromptContext(configuration) == "general"
 
@@ -3539,8 +3603,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         input_context = "general"  -- Uses existing getGeneralMenuActionObjects()
     elseif is_xray_chat then
         input_context = "xray_chat"
-    elseif configuration and configuration.features and configuration.features.is_multi_book_context then
-        input_context = "multi_book"
+    elseif configuration and configuration.features and configuration.features.is_library_context then
+        input_context = "library"
     elseif configuration and configuration.features and configuration.features.is_book_context then
         if has_open_book then
             input_context = "book"
@@ -3554,10 +3618,33 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Track selected domain for this dialog (initialize from config if set)
     local selected_domain = configuration and configuration.features and configuration.features.selected_domain or nil
 
+    -- Track per-book domain for any context that targets a specific book
+    -- General and library contexts explicitly disassociate from any specific book
+    -- Use document_path (the relevant book) to load the right DocSettings,
+    -- not ui_instance.doc_settings (which is the currently open book — may differ)
+    local doc_settings = nil
+    if document_path then
+        if ui_instance and ui_instance.doc_settings
+                and ui_instance.document and ui_instance.document.file == document_path then
+            -- Currently open book — use in-memory settings
+            doc_settings = ui_instance.doc_settings
+        else
+            -- Different book (file browser, artifact) — load from disk
+            local DocSettings = require("docsettings")
+            doc_settings = DocSettings:open(document_path)
+        end
+    end
+    local book_domain_id = getBookDomain(doc_settings)
+
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
     local refreshInputDialog
 
+    -- Domain target: "book" or "global" — controls where selection is saved
+    -- Default to "book" if a book override exists, otherwise "global"
+    local domain_target = (doc_settings and book_domain_id) and "book" or "global"
+
     -- Function to show domain selector
+    -- Single list with target toggle at top when a book is open
     local function showDomainSelector()
         -- Close the on-screen keyboard first to prevent z-order issues
         input_dialog:onCloseKeyboard()
@@ -3571,40 +3658,118 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         local buttons = {}
 
-        -- "None" option
-        local none_prefix = (not selected_domain) and "● " or "○ "
-        table.insert(buttons, {
-            {
-                text = none_prefix .. _("None"),
-                callback = function()
-                    selected_domain = nil
-                    configuration.features = configuration.features or {}
-                    configuration.features.selected_domain = nil
-                    persistDomainSelection(plugin, nil)
-                    UIManager:close(_G.domain_selector_dialog)
-                    refreshInputDialog()
-                end,
-            },
-        })
+        -- Helper to close and refresh input dialog
+        local function closeAndRefresh()
+            UIManager:close(_G.domain_selector_dialog)
+            refreshInputDialog()
+        end
 
-        -- Domain options with source indicators
-        for _idx, domain in ipairs(sorted_domains) do
-            local prefix = (selected_domain == domain.id) and "● " or "○ "
-            -- Use display_name which includes source indicator for UI-created domains
-            local display_text = prefix .. domain.display_name
+        -- Helper to close and reopen this selector (for target toggle)
+        local function reopenSelector()
+            UIManager:close(_G.domain_selector_dialog)
+            showDomainSelector()
+        end
+
+        local is_book_target = doc_settings and domain_target == "book"
+
+        if doc_settings then
+            -- Target toggle row: [For this book] [Global default]
+            local book_label = is_book_target and ("● " .. _("For this book")) or ("○ " .. _("For this book"))
+            local global_label = (not is_book_target) and ("● " .. _("Global")) or ("○ " .. _("Global"))
             table.insert(buttons, {
                 {
-                    text = display_text,
+                    text = book_label,
                     callback = function()
-                        selected_domain = domain.id
-                        configuration.features = configuration.features or {}
-                        configuration.features.selected_domain = domain.id
-                        persistDomainSelection(plugin, domain.id)
-                        UIManager:close(_G.domain_selector_dialog)
-                        refreshInputDialog()
+                        if domain_target ~= "book" then
+                            domain_target = "book"
+                            reopenSelector()
+                        end
+                    end,
+                },
+                {
+                    text = global_label,
+                    callback = function()
+                        if domain_target ~= "global" then
+                            domain_target = "global"
+                            reopenSelector()
+                        end
                     end,
                 },
             })
+        end
+
+        if is_book_target then
+            -- Book target: show "Use global default" option first
+            local use_global_prefix = (not book_domain_id) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = use_global_prefix .. _("Use global"),
+                    callback = function()
+                        book_domain_id = nil
+                        persistBookDomain(doc_settings, nil)
+                        closeAndRefresh()
+                    end,
+                },
+            })
+
+            -- "None" (explicit override to no domain)
+            local none_prefix = (book_domain_id == "_none") and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = none_prefix .. _("None"),
+                    callback = function()
+                        book_domain_id = "_none"
+                        persistBookDomain(doc_settings, "_none")
+                        closeAndRefresh()
+                    end,
+                },
+            })
+
+            -- Domain options
+            for _idx, domain in ipairs(sorted_domains) do
+                local prefix = (book_domain_id == domain.id) and "● " or "○ "
+                table.insert(buttons, {
+                    {
+                        text = prefix .. domain.display_name,
+                        callback = function()
+                            book_domain_id = domain.id
+                            persistBookDomain(doc_settings, domain.id)
+                            closeAndRefresh()
+                        end,
+                    },
+                })
+            end
+        else
+            -- Global target (or no book open): standard list
+            local none_prefix = (not selected_domain) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = none_prefix .. _("None"),
+                    callback = function()
+                        selected_domain = nil
+                        configuration.features = configuration.features or {}
+                        configuration.features.selected_domain = nil
+                        persistDomainSelection(plugin, nil)
+                        closeAndRefresh()
+                    end,
+                },
+            })
+
+            for _idx, domain in ipairs(sorted_domains) do
+                local prefix = (selected_domain == domain.id) and "● " or "○ "
+                table.insert(buttons, {
+                    {
+                        text = prefix .. domain.display_name,
+                        callback = function()
+                            selected_domain = domain.id
+                            configuration.features = configuration.features or {}
+                            configuration.features.selected_domain = domain.id
+                            persistDomainSelection(plugin, domain.id)
+                            closeAndRefresh()
+                        end,
+                    },
+                })
+            end
         end
 
         -- Close button
@@ -3627,19 +3792,28 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Get domain display name for button
+    -- Shows effective domain: book domain takes priority over global
+    -- "_none" sentinel = explicit no-domain override for this book
     local function getDomainDisplayName()
-        if not selected_domain then
+        if book_domain_id == "_none" then
+            return _("None") .. _(" (book)")
+        end
+        local effective_id = book_domain_id or selected_domain
+        if not effective_id then
             return _("None")
         end
         local DomainLoader = require("domain_loader")
         -- Get custom domains from settings for lookup
         local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
         local custom_domains = features.custom_domains or {}
-        local domain = DomainLoader.getDomainById(selected_domain, custom_domains)
+        local domain = DomainLoader.getDomainById(effective_id, custom_domains)
         if domain then
+            if book_domain_id then
+                return domain.display_name .. _(" (book)")
+            end
             return domain.display_name
         end
-        return selected_domain
+        return effective_id
     end
 
     -- Emoji helper for this dialog (scoped to dialog lifecycle)
@@ -3657,6 +3831,27 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Handles: getInputText, close dialog, _checkRequirements, showCacheActionPopup,
     -- cache viewer redirect, and handlePredefinedPrompt with full onPromptComplete.
     local function executeInputAction(action, action_id)
+        -- Pre-flight checks run BEFORE closing dialog so it stays open on failure
+
+        -- Pre-flight: block when declared requirements are unmet
+        if plugin and plugin._checkRequirements then
+            if plugin:_checkRequirements(action) then
+                return
+            end
+        end
+
+        -- Pre-flight: block selection-required library actions when no books selected
+        if action.requires_selected_books then
+            local books = configuration and configuration.features and configuration.features.books_info
+            if not books or #books < 2 then
+                UIManager:show(InfoMessage:new{
+                    text = _("Select at least 2 items first using [+ Add Items]."),
+                    timeout = 3,
+                })
+                return
+            end
+        end
+
         local additional_input = input_dialog:getInputText()
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
@@ -3735,13 +3930,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
-        end
-
-        -- Pre-flight: block when declared requirements are unmet
-        if plugin and plugin._checkRequirements then
-            if plugin:_checkRequirements(action) then
-                return
-            end
         end
 
         -- Pre-flight: cache actions with source_selection use View/Sections/New popup
@@ -3992,6 +4180,323 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         runAction()
     end
 
+    -- Helper: merge new books into existing selection (dedup by file path)
+    local function mergeBooks(new_books)
+        configuration.features = configuration.features or {}
+        local existing = configuration.features.books_info or {}
+        local seen = {}
+        for _idx, b in ipairs(existing) do
+            if b.file then seen[b.file] = true end
+        end
+        local merged = {}
+        for _idx, b in ipairs(existing) do
+            table.insert(merged, b)
+        end
+        local added = 0
+        for _idx, b in ipairs(new_books) do
+            if not b.file or not seen[b.file] then
+                table.insert(merged, b)
+                if b.file then seen[b.file] = true end
+                added = added + 1
+            end
+        end
+        -- Rebuild book_context string
+        local books_list = {}
+        for i, book in ipairs(merged) do
+            if book.authors and book.authors ~= "" then
+                table.insert(books_list, string.format('%d. "%s" by %s', i, book.title, book.authors))
+            else
+                table.insert(books_list, string.format('%d. "%s"', i, book.title))
+            end
+        end
+        configuration.features.books_info = merged
+        configuration.features.book_context = string.format(
+            "Selected %d books:\n\n%s", #merged, table.concat(books_list, "\n"))
+        if #merged > 0 then
+            configuration.features.book_metadata = {
+                title = merged[1].title,
+                author = merged[1].authors or "",
+            }
+        end
+        return added, #merged
+    end
+
+    -- Library context: show Add Books menu with presets
+    local add_books_dialog  -- forward declaration for closure
+    local function showAddBooksMenu()
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local books = configuration and configuration.features and configuration.features.books_info
+        local book_count = books and #books or 0
+        local menu_buttons = {}
+
+        -- Preset: Last 5 from History
+        table.insert(menu_buttons, {{
+            text = _("Last 5 from History"),
+            callback = function()
+                UIManager:close(add_books_dialog)
+                local ok, ReadHistory = pcall(require, "readhistory")
+                if not ok or not ReadHistory then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Reading history unavailable."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                ReadHistory:reload()
+                local hist = ReadHistory.hist or {}
+                if #hist == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = _("No reading history found."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                -- Take up to 5 most recent
+                local new_books = {}
+                local count = 0
+                for _idx, entry in ipairs(hist) do
+                    if entry.file and count < 5 then
+                        -- Get title and author from DocSettings (most reliable)
+                        local title = nil
+                        local author = ""
+                        local doc_ok, DocSettings = pcall(require, "docsettings")
+                        if doc_ok and DocSettings then
+                            local ds = DocSettings:open(entry.file)
+                            local doc_props = ds:readSetting("doc_props")
+                            if doc_props then
+                                local dt = doc_props.display_title or doc_props.title
+                                if dt and dt ~= "" then title = dt end
+                                if doc_props.authors and doc_props.authors ~= "" then
+                                    author = doc_props.authors:gsub("\n", ", ")
+                                end
+                            end
+                        end
+                        -- Fallback to ReadHistory text or filename
+                        if not title then
+                            title = entry.text or entry.file:match("([^/]+)%.[^%.]+$") or entry.file
+                        end
+                        table.insert(new_books, {
+                            title = title,
+                            authors = author,
+                            file = entry.file,
+                        })
+                        count = count + 1
+                    end
+                end
+                if #new_books == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = _("No books found in history."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                local added, total = mergeBooks(new_books)
+                if added == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("All %1 already selected."), #new_books),
+                        timeout = 2,
+                    })
+                    return
+                end
+                refreshInputDialog()
+            end,
+        }})
+
+        -- Scanner-based presets (require library scanning enabled + folders configured)
+        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local scanning_available = features.enable_library_scanning == true
+            and features.library_scan_folders and #features.library_scan_folders > 0
+        local function addScannerPreset(label, status_filter)
+            table.insert(menu_buttons, {{
+                text = scanning_available and label or (label .. " " .. _("(scanning off)")),
+                callback = function()
+                    UIManager:close(add_books_dialog)
+                    if not scanning_available then
+                        UIManager:show(InfoMessage:new{
+                            text = _("Enable library scanning and configure folders in Settings → Library Settings."),
+                            timeout = 3,
+                        })
+                        return
+                    end
+                    local LibraryScanner = require("koassistant_library_scanner")
+                    local scan_result = LibraryScanner.scan(features)
+                    local status_books = scan_result.by_status and scan_result.by_status[status_filter] or {}
+                    if #status_books == 0 then
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("No books with status '%1' found in library."), status_filter),
+                            timeout = 2,
+                        })
+                        return
+                    end
+                    -- Convert scanner metadata to books_info format
+                    local new_books = {}
+                    for _idx, b in ipairs(status_books) do
+                        table.insert(new_books, {
+                            title = b.title,
+                            authors = b.author or "",
+                            file = b.file,
+                        })
+                    end
+                    local added = mergeBooks(new_books)
+                    if added == 0 then
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("All %1 already selected."), #new_books),
+                            timeout = 2,
+                        })
+                        return
+                    end
+                    refreshInputDialog()
+                end,
+            }})
+        end
+        addScannerPreset(_("Currently Reading"), "reading")
+        addScannerPreset(_("Recently Finished"), "complete")
+
+        -- Browse History (opens BookPicker)
+        table.insert(menu_buttons, {{
+            text = _("Browse History…"),
+            callback = function()
+                UIManager:close(add_books_dialog)
+                local BookPicker = require("koassistant_book_picker")
+                BookPicker:show({
+                    on_confirm = function(selected_files)
+                        -- Convert file hash to books_info with proper metadata
+                        local DocSettings = require("docsettings")
+                        local new_books = {}
+                        for file, _v in pairs(selected_files) do
+                            local title = nil
+                            local author = ""
+                            local ds = DocSettings:open(file)
+                            local doc_props = ds:readSetting("doc_props")
+                            if doc_props then
+                                local dt = doc_props.display_title or doc_props.title
+                                if dt and dt ~= "" then title = dt end
+                                if doc_props.authors and doc_props.authors ~= "" then
+                                    author = doc_props.authors:gsub("\n", ", ")
+                                end
+                            end
+                            if not title then
+                                title = file:match("([^/]+)%.[^%.]+$") or file
+                            end
+                            table.insert(new_books, {
+                                title = title,
+                                authors = author,
+                                file = file,
+                            })
+                        end
+                        mergeBooks(new_books)
+                        refreshInputDialog()
+                    end,
+                })
+            end,
+        }})
+
+        -- Clear Selection (only if books are selected)
+        if book_count > 0 then
+            table.insert(menu_buttons, {{
+                text = _("Clear Selection"),
+                callback = function()
+                    UIManager:close(add_books_dialog)
+                    configuration.features = configuration.features or {}
+                    configuration.features.books_info = nil
+                    configuration.features.book_context = nil
+                    configuration.features.book_metadata = nil
+                    refreshInputDialog()
+                end,
+            }})
+        end
+
+        add_books_dialog = ButtonDialog:new{
+            title = book_count > 0
+                and T(book_count == 1 and _("%1 item selected") or _("%1 items selected"), book_count)
+                or _("Add Items"),
+            buttons = menu_buttons,
+        }
+        UIManager:show(add_books_dialog)
+    end
+
+    -- Library context: view and remove selected books
+    -- Rebuilds book_context after removal; reopens itself unless list is emptied
+    local function showSelectedBooksEditor()
+        local books = configuration and configuration.features and configuration.features.books_info
+        if not books or #books == 0 then return end
+
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local editor_dialog
+        local menu_buttons = {}
+
+        -- Helper: rebuild book_context from current books_info
+        local function rebuildBookContext()
+            local current = configuration.features.books_info
+            if not current or #current == 0 then
+                configuration.features.books_info = nil
+                configuration.features.book_context = nil
+                configuration.features.book_metadata = nil
+                return
+            end
+            local parts = {}
+            for i, b in ipairs(current) do
+                if b.authors and b.authors ~= "" then
+                    table.insert(parts, string.format('%d. "%s" by %s', i, b.title, b.authors))
+                else
+                    table.insert(parts, string.format('%d. "%s"', i, b.title))
+                end
+            end
+            configuration.features.book_context = string.format(
+                "Selected %d books:\n\n%s", #current, table.concat(parts, "\n"))
+            configuration.features.book_metadata = {
+                title = current[1].title,
+                author = current[1].authors or "",
+            }
+        end
+
+        for idx, book in ipairs(books) do
+            local label = book.authors and book.authors ~= ""
+                and string.format('"%s" by %s', book.title, book.authors)
+                or string.format('"%s"', book.title)
+            table.insert(menu_buttons, {{
+                text = label,
+                callback = function()
+                    UIManager:close(editor_dialog)
+                    table.remove(books, idx)
+                    rebuildBookContext()
+                    if books and #books > 0 then
+                        -- Reopen editor with updated list
+                        showSelectedBooksEditor()
+                    else
+                        refreshInputDialog()
+                    end
+                end,
+            }})
+        end
+
+        table.insert(menu_buttons, {{
+            text = _("Clear All"),
+            callback = function()
+                UIManager:close(editor_dialog)
+                configuration.features = configuration.features or {}
+                configuration.features.books_info = nil
+                configuration.features.book_context = nil
+                configuration.features.book_metadata = nil
+                refreshInputDialog()
+            end,
+        }})
+
+        table.insert(menu_buttons, {{
+            text = _("Done"),
+            callback = function()
+                UIManager:close(editor_dialog)
+                refreshInputDialog()
+            end,
+        }})
+
+        editor_dialog = ButtonDialog:new{
+            title = T(#books == 1 and _("%1 item selected — tap to remove") or _("%1 items selected — tap to remove"), #books),
+            buttons = menu_buttons,
+        }
+        UIManager:show(editor_dialog)
+    end
+
     -- Build all input dialog buttons (called on init and on refresh via reinit)
     local buildInputDialogButtons
     buildInputDialogButtons = function()
@@ -4046,7 +4551,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- System prompt and domain are built by buildUnifiedRequestConfig
 
                     -- Get domain context if a domain is selected (for passing to buildUnifiedRequestConfig)
-                    local domain_id = selected_domain
+                    -- Priority: book domain > global selected_domain
+                    -- book_domain_id "_none" = explicit override to no domain
+                    local domain_id
+                    if book_domain_id == "_none" then
+                        domain_id = nil
+                    else
+                        domain_id = book_domain_id or selected_domain
+                    end
                     local domain_context = nil
                     if domain_id then
                         local DomainLoader = require("domain_loader")
@@ -4076,7 +4588,32 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local parts = {}
 
                     -- Add appropriate context
-                    if configuration.features.is_book_context then
+                    if configuration.features.is_library_context then
+                        -- For library context, include selected books and/or library scan
+                        local lib_context = configuration.features.book_context
+                        if lib_context then
+                            table.insert(parts, "[Context]")
+                            table.insert(parts, lib_context)
+                            table.insert(parts, "")
+                        end
+                        -- Auto-attach library scan data when scanning is available
+                        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+                        if lib_features.enable_library_scanning == true
+                                and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                            local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
+                            if scan_ok and LibraryScanner then
+                                local scan_result = LibraryScanner.scan(lib_features)
+                                if scan_result and scan_result.books and #scan_result.books > 0 then
+                                    local formatted = LibraryScanner.format(scan_result)
+                                    if formatted and formatted ~= "" then
+                                        table.insert(parts, "My library:")
+                                        table.insert(parts, formatted)
+                                        table.insert(parts, "")
+                                    end
+                                end
+                            end
+                        end
+                    elseif configuration.features.is_book_context then
                         -- For book context (file browser or gesture action), include book metadata
                         table.insert(parts, "[Context]")
                         if book_metadata then
@@ -4206,6 +4743,33 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             prompts, prompt_keys = getAllPrompts(configuration, plugin)
             logger.info("buildInputDialogButtons: Got " .. #prompt_keys .. " prompts from getAllPrompts")
         end
+    -- Pre-compute availability state for library context button graying
+    local selected_book_count = 0
+    local library_scan_available = false
+    if input_context == "library" then
+        local books = configuration and configuration.features and configuration.features.books_info
+        selected_book_count = books and #books or 0
+        local features = configuration and configuration.features or {}
+        library_scan_available = features.enable_library_scanning == true
+            and features.library_scan_folders and #features.library_scan_folders > 0
+    end
+
+    -- Check if an action's prerequisites are met (for enabled/disabled state)
+    local function isActionAvailable(action)
+        if not action then return true end
+        if action.requires_selected_books and selected_book_count < 2 then
+            return false
+        end
+        if action.requires then
+            for _idx2, req in ipairs(action.requires) do
+                if req == "library" and not library_scan_available then
+                    return false
+                end
+            end
+        end
+        return true
+    end
+
     for _idx, custom_prompt_type in ipairs(prompt_keys) do
         local prompt = prompts[custom_prompt_type]
         if prompt and prompt.text then
@@ -4221,9 +4785,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 logger.info("Skipping excluded prompt: " .. custom_prompt_type)
             else
                 logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
+                local available = isActionAvailable(prompt)
                 table.insert(action_buttons, {
                     text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features),
                     prompt_type = custom_prompt_type,
+                    enabled = available,
                     callback = function()
                         executeInputAction(prompt, custom_prompt_type)
                     end
@@ -4271,9 +4837,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if show_all_actions then
             -- Expanded: append all remaining actions after favorites
             for _idx2, action in ipairs(more_actions) do
+                local available = isActionAvailable(action)
                 table.insert(action_buttons, {
                     text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
                     prompt_type = action.id,
+                    enabled = available,
                     callback = function()
                         executeInputAction(action, action.id)
                     end
@@ -4385,6 +4953,30 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         -- Organize into rows: top row (3 buttons), then action rows of 2
         local button_rows = { top_row }
+
+        -- Library context: add book selection row below top row
+        if input_context == "library" then
+            local books = configuration and configuration.features and configuration.features.books_info
+            local book_count = books and #books or 0
+            local selection_row = {
+                {
+                    text = _("+ Add Items"),
+                    callback = function()
+                        showAddBooksMenu()
+                    end,
+                },
+            }
+            if book_count > 0 then
+                table.insert(selection_row, {
+                    text = T(_("View/Edit (%1)"), book_count),
+                    callback = function()
+                        showSelectedBooksEditor()
+                    end,
+                })
+            end
+            table.insert(button_rows, selection_row)
+        end
+
         local current_row = {}
         for _idx, button in ipairs(action_buttons) do
             table.insert(current_row, button)
@@ -4438,15 +5030,26 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Show the dialog with the button rows
-    local is_multi = config and config.features and config.features.is_multi_book_context
+    local is_multi = config and config.features and config.features.is_library_context
     local multi_count = is_multi and config.features.books_info and #config.features.books_info or 0
-    local dialog_title = is_multi and multi_count > 0
-        and T(_("Multi-Book: %1 books"), multi_count)
-        or _("KOAssistant Actions")
+    local dialog_title
+    local input_hint_text
+    if is_multi then
+        if multi_count > 0 then
+            dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
+            input_hint_text = _("Add instructions or ask about selected items...")
+        else
+            dialog_title = _("Library Actions")
+            input_hint_text = _("Chat about your library, or add items for multi-book actions...")
+        end
+    else
+        dialog_title = _("KOAssistant Actions")
+        input_hint_text = _("Type your question or additional instructions for any action...")
+    end
     input_dialog = InputDialog:new{
         title = dialog_title,
         input = initial_input or "",
-        input_hint = _("Type your question or additional instructions for any action..."),
+        input_hint = input_hint_text,
         input_type = "text",
         buttons = buildInputDialogButtons(),
         input_height = 6,

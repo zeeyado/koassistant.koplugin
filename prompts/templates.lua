@@ -8,8 +8,8 @@
 --   {title}                - Book title (book, highlight contexts)
 --   {author}               - Book author (book, highlight contexts)
 --   {author_clause}        - " by Author" or "" if no author
---   {count}                - Number of selected books (multi_book context)
---   {books_list}           - Formatted list of books (multi_book context)
+--   {count}                - Number of selected books (library context)
+--   {books_list}           - Formatted list of books (library context)
 --   {translation_language} - Target translation language from settings (all contexts)
 --   {dictionary_language}  - Dictionary response language from settings (all contexts)
 --   {context}              - Surrounding text context for dictionary lookups (highlight context)
@@ -134,6 +134,25 @@ Adapt depth and focus to the type of work — a literary novel deserves attentio
 
 Be substantive but not exhaustive. {hallucination_nudge}]],
 
+    suggest_from_library = [[I'm reading "{title}"{author_clause} ({reading_progress}).
+
+Here is my library:
+
+{library}
+
+Suggest what I should read next **from books I already own**. Consider:
+- Thematic connections to what I'm currently reading
+- My reading patterns (what I've finished, started but stopped, or left unread)
+- Natural follow-ups — same author, same series, related topics
+- Variety — consider what would complement or contrast well, not just the most similar book
+
+For each suggestion (3-5 books):
+- Why this book specifically, given what I'm reading now
+- What it offers that connects to or extends my current read
+- If relevant, why now rather than later in my reading queue
+
+Only suggest books from my library. Do not recommend books I don't own. {hallucination_nudge}]],
+
     similar_books = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 similar works.
 
 For each recommendation, specify:
@@ -144,6 +163,8 @@ Adapt to content type:
 - Fiction: Similar narrative experience, themes, or style
 - Non-fiction: Similar arguments, perspectives, or intellectual tradition
 - Academic: Works that complement, extend, or debate this one
+
+{library_section}
 
 {hallucination_nudge}]],
 
@@ -168,8 +189,8 @@ Adapt to the work's nature — a novel reflects its era differently than a manif
 {hallucination_nudge}]],
 }
 
--- Multi-book context templates
-Templates.multi_book = {
+-- Library context templates (multi-book)
+Templates.library = {
     compare_books = [[Compare these {count} books:
 
 {books_list}
@@ -225,6 +246,8 @@ Explain your reasoning briefly. If order genuinely doesn't matter, say so. {hall
 
 {books_list}
 
+{library_section}
+
 First, briefly identify the pattern — what do these books suggest about this reader's taste? Then recommend 5-8 books, prioritizing:
 - Books that match the *intersection* of interests these books reveal, not just "similar to one of them"
 - A mix: some that lean into the reader's clear preferences, some that stretch in a direction they'd likely appreciate
@@ -234,7 +257,56 @@ For each recommendation:
 - Why this reader specifically would enjoy it (connect to the pattern you identified)
 - What it offers that none of the listed books do
 
-Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
+If the reader's library is included above, note which recommendations they already own and prioritize unread books from their library before suggesting new purchases. Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
+
+    -- Scan-based actions (no book selection needed)
+    next_from_library = [[Here is my library:
+
+{library}
+
+What should I read next **from books I already own**? Consider:
+- What's unread or started but not finished
+- My reading patterns — what genres, authors, and topics I gravitate toward
+- What I've finished recently and what would complement or follow well
+- Books I started but set aside — are any worth returning to?
+
+Suggest 3-5 books. For each:
+- Why this one, given my reading patterns
+- What it offers that my recent reads don't
+
+Only suggest books from my library. {hallucination_nudge}]],
+
+    discover_books = [[Here is my library:
+
+{library}
+
+Based on what I own, recommend 5-8 new books I should get. First, briefly identify the pattern — what does this library say about the reader's taste?
+
+Then recommend books I don't already own, prioritizing:
+- Works that match the intersection of interests my library reveals
+- A mix: some that lean into clear preferences, some that stretch in a new direction
+- Lesser-known works alongside well-known ones
+
+For each:
+- Why this reader specifically would enjoy it
+- What it offers that nothing in the library already covers
+
+Skip obvious picks I've almost certainly encountered. {hallucination_nudge}]],
+
+    reading_patterns = [[Here is my library:
+
+{library}
+
+Analyze my reading patterns based on this collection. Consider:
+- Genres, topics, and themes I gravitate toward
+- Authors or styles that recur
+- Completion patterns — what I finish vs what I abandon or leave unread
+- Gaps — areas my collection doesn't cover that someone with these interests might expect
+- Any progression or evolution visible in my reading
+
+Be specific to what you see, not generic. Use the actual titles and authors to illustrate patterns.
+
+Note: this analysis is based on catalog metadata only (titles, authors, reading status, progress). Detailed reading time and session data is not included. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)
@@ -247,7 +319,7 @@ Templates.special = {
 -- @return string or nil: Template text if found
 function Templates.get(template_id)
     -- Search all template tables
-    for _idx, context_table in pairs({Templates.highlight, Templates.book, Templates.multi_book, Templates.special}) do
+    for _idx, context_table in pairs({Templates.highlight, Templates.book, Templates.library, Templates.special}) do
         if context_table[template_id] then
             return context_table[template_id]
         end
@@ -277,7 +349,7 @@ function Templates.substitute(template, variables)
 end
 
 -- Build variables table from context
--- @param context_type: "highlight", "book", "multi_book"
+-- @param context_type: "highlight", "book", "library"
 -- @param data: Context data (highlighted_text, book_metadata, books_info, etc.)
 -- @return table: Variables for template substitution
 function Templates.buildVariables(context_type, data)
@@ -301,7 +373,7 @@ function Templates.buildVariables(context_type, data)
         vars.author_clause = data.author and data.author ~= "" and (" by " .. data.author) or ""
         vars.doi_clause = data.doi_clause or ""
 
-    elseif context_type == "multi_book" then
+    elseif context_type == "library" then
         vars.count = data.count or (data.books_info and #data.books_info) or 0
         vars.books_list = data.books_list or Templates.formatBooksList(data.books_info)
     end
@@ -342,7 +414,7 @@ end
 
 -- Render a complete user message from an action
 -- @param action: Action definition from actions.lua
--- @param context_type: "highlight", "book", "multi_book", "general"
+-- @param context_type: "highlight", "book", "library", "general"
 -- @param data: Context data for variable substitution
 -- @return string: Rendered user message
 function Templates.renderForAction(action, context_type, data)

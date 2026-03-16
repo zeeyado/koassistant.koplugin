@@ -2,14 +2,14 @@
 Pinned Artifacts module for KOAssistant
 
 Manages user-pinned chat response snapshots. Pinned artifacts are read-only
-snapshots stored alongside a book (sidecar) or in settings dir (general/multi-book).
+snapshots stored alongside a book (sidecar) or in settings dir (general/library).
 They appear in the artifact browser with a pin indicator, distinct from
 AI-generated cached artifacts.
 
 Storage locations:
 - Book context: sidecar_dir/koassistant_pinned.lua
 - General context: settings_dir/koassistant_pinned_general.lua
-- Multi-book context: settings_dir/koassistant_pinned_multi_book.lua
+- Library context: settings_dir/koassistant_pinned_library.lua
 
 @module koassistant_pinned_manager
 ]]
@@ -26,11 +26,21 @@ local PINNED_VERSION = 1
 
 -- File paths for non-book contexts
 PinnedManager.GENERAL_PINNED_FILE = DataStorage:getSettingsDir() .. "/koassistant_pinned_general.lua"
-PinnedManager.MULTI_BOOK_PINNED_FILE = DataStorage:getSettingsDir() .. "/koassistant_pinned_multi_book.lua"
+PinnedManager.LIBRARY_PINNED_FILE = DataStorage:getSettingsDir() .. "/koassistant_pinned_library.lua"
+
+-- Migration: rename old multi-book pinned file to new library pinned file
+do
+    local old_file = DataStorage:getSettingsDir() .. "/koassistant_pinned_multi_book.lua"
+    local new_file = PinnedManager.LIBRARY_PINNED_FILE
+    if lfs.attributes(old_file, "mode") == "file" and not lfs.attributes(new_file, "mode") then
+        os.rename(old_file, new_file)
+        logger.info("KOAssistant: Migrated multi-book pinned file to library pinned file")
+    end
+end
 
 -- Special path constants (match chat history convention)
 PinnedManager.GENERAL_KEY = "__GENERAL_CHATS__"
-PinnedManager.MULTI_BOOK_KEY = "__MULTI_BOOK_CHATS__"
+PinnedManager.LIBRARY_KEY = "__LIBRARY_CHATS__"
 
 --- Find a safe long string delimiter that won't appear in the text.
 --- @param content string The content to wrap
@@ -67,8 +77,8 @@ function PinnedManager.getPath(document_path)
     if not document_path then return nil end
     if document_path == PinnedManager.GENERAL_KEY then
         return PinnedManager.GENERAL_PINNED_FILE
-    elseif document_path == PinnedManager.MULTI_BOOK_KEY then
-        return PinnedManager.MULTI_BOOK_PINNED_FILE
+    elseif document_path == PinnedManager.LIBRARY_KEY then
+        return PinnedManager.LIBRARY_PINNED_FILE
     else
         local sidecar_dir = DocSettings:getSidecarDir(document_path)
         return sidecar_dir .. "/koassistant_pinned.lua"
@@ -76,7 +86,7 @@ function PinnedManager.getPath(document_path)
 end
 
 --- Check alternate storage mode locations for a sidecar file (lazy migration on mode switch)
---- Only applies to book-context paths (not general/multi-book which use settings dir)
+--- Only applies to book-context paths (not general/library which use settings dir)
 --- @param document_path string The document file path
 --- @param current_path string The expected path in current storage mode
 --- @param filename string The sidecar filename
@@ -84,7 +94,7 @@ end
 local function migrateSidecarIfNeeded(document_path, current_path, filename)
     -- Skip for non-book contexts (stored in settings dir, not sidecar)
     if document_path == PinnedManager.GENERAL_KEY
-        or document_path == PinnedManager.MULTI_BOOK_KEY then
+        or document_path == PinnedManager.LIBRARY_KEY then
         return false
     end
     local current = G_reader_settings:readSetting("document_metadata_folder", "doc")
@@ -337,10 +347,10 @@ function PinnedManager.getGeneralPinned()
     return PinnedManager.getPinnedForDocument(PinnedManager.GENERAL_KEY)
 end
 
---- Get multi-book pinned artifacts.
+--- Get library pinned artifacts.
 --- @return table Array of pinned entries
-function PinnedManager.getMultiBookPinned()
-    return PinnedManager.getPinnedForDocument(PinnedManager.MULTI_BOOK_KEY)
+function PinnedManager.getLibraryPinned()
+    return PinnedManager.getPinnedForDocument(PinnedManager.LIBRARY_KEY)
 end
 
 --- Get pinned count for a document (from index, no file I/O).

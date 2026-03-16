@@ -62,7 +62,7 @@ function ActionService:init()
 end
 
 -- Get all actions for a specific context
--- @param context: "highlight", "book", "multi_book", "general"
+-- @param context: "highlight", "book", "library", "general"
 -- @param include_disabled: Include disabled actions
 -- @param has_open_book: Whether a book is currently open (for filtering requires_open_book actions)
 -- @return table: Array of action definitions
@@ -130,7 +130,7 @@ function ActionService:loadActions()
     self.actions_cache = {
         highlight = {},
         book = {},
-        multi_book = {},
+        library = {},
         general = {},
     }
 
@@ -184,6 +184,13 @@ function ActionService:loadActions()
                     if override.skip_domain ~= nil then
                         action_data.skip_domain = override.skip_domain
                     end
+                    if override.domain ~= nil then
+                        if override.domain == "global" then
+                            action_data.domain = nil
+                        else
+                            action_data.domain = override.domain
+                        end
+                    end
                     if override.include_book_context ~= nil then
                         action_data.include_book_context = override.include_book_context
                     end
@@ -205,6 +212,9 @@ function ActionService:loadActions()
                     end
                     if override.use_notebook ~= nil then
                         action_data.use_notebook = override.use_notebook
+                    end
+                    if override.use_library ~= nil then
+                        action_data.use_library = override.use_library
                     end
                     -- Web search override (tri-state: true/false/"global")
                     if override.enable_web_search ~= nil then
@@ -309,10 +319,10 @@ function ActionService:logLoadSummary()
         counts[context] = #actions
     end
     logger.info(string.format(
-        "ActionService: Loaded %d highlight, %d book, %d multi_book, %d general actions",
+        "ActionService: Loaded %d highlight, %d book, %d library, %d general actions",
         counts.highlight or 0,
         counts.book or 0,
-        counts.multi_book or 0,
+        counts.library or 0,
         counts.general or 0
     ))
 end
@@ -440,7 +450,7 @@ end
 
 -- Build user message for an action
 -- @param action: Action definition
--- @param context_type: "highlight", "book", "multi_book", "general"
+-- @param context_type: "highlight", "book", "library", "general"
 -- @param data: Context data for variable substitution
 -- @return string: Rendered user message
 function ActionService:buildUserMessage(action, context_type, data)
@@ -1789,6 +1799,7 @@ function ActionService:createDuplicateAction(action)
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
         use_notebook = action.use_notebook,
+        use_library = action.use_library,
         -- NOT copying artifact flags: use_response_caching, cache_as_*, use_*_cache,
         -- update_prompt, storage_key, source_selection (tightly coupled system)
         -- Requirements & blocking
@@ -1914,6 +1925,7 @@ end
 --   📄 = document text (use_book_text, use_xray_cache, use_analyze_cache, use_summary_cache)
 --   📝 = annotations (use_annotations; degrades to highlights-only)
 --   📓 = notebook (use_notebook)
+--   📚 = library (use_library)
 --   🌐 = web search active (per-action force-on, or follows global when global is on)
 -- @param action: Action definition table (needs flag fields)
 -- @param features: Features settings table (needs enable_data_access_indicators, enable_web_search)
@@ -1941,6 +1953,10 @@ function ActionService.getActionDisplayText(action, features)
     -- Notebook
     if action.use_notebook then
         table.insert(indicators, "📓")
+    end
+    -- Library
+    if action.use_library then
+        table.insert(indicators, "📚")
     end
     -- Web search: show when effectively enabled (per-action override or global setting)
     if action.enable_web_search == true then
@@ -2001,13 +2017,14 @@ local INPUT_CONTEXTS = {
         -- since X-Ray chat may operate without an open book
         default_ids = {"explain", "elaborate", "eli5", "fact_check", "connect"},
     },
-    multi_book = {
-        settings_key = "input_multi_book_actions",
-        dismissed_key = "_dismissed_input_multi_book_actions",
-        action_context = "multi_book",
+    library = {
+        settings_key = "input_library_actions",
+        dismissed_key = "_dismissed_input_library_actions",
+        action_context = "library",
         has_open_book = false,
-        -- All multi-book actions as defaults
-        default_ids = {"compare_books", "common_themes", "collection_summary",
+        -- All library actions as defaults: scan-based first, then selection-based
+        default_ids = {"next_from_library", "discover_books", "reading_patterns",
+            "compare_books", "common_themes", "collection_summary",
             "quick_summaries", "reading_order", "recommend_books"},
     },
 }
@@ -2249,8 +2266,8 @@ function ActionService.getInputContextForAction(action)
         return "book"
     elseif context == "highlight" or context == "both" then
         return "highlight"
-    elseif context == "multi_book" then
-        return "multi_book"
+    elseif context == "library" then
+        return "library"
     end
     -- general context actions use the existing general menu system, not input contexts
     return nil

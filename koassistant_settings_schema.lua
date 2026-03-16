@@ -64,11 +64,11 @@ local SettingsSchema = {
             callback = "showArtifactBrowser",
         },
         {
-            id = "multi_book_actions",
+            id = "library_actions",
             type = "action",
-            text = _("Multi-Book Actions"),
+            text = _("Library Actions"),
             emoji = "\u{1F4DA}",
-            callback = "showMultiBookPicker",
+            callback = "openLibraryDialog",
             separator = true,
         },
 
@@ -156,6 +156,7 @@ local SettingsSchema = {
                             id = "plain_text_options",
                             type = "submenu",
                             text = _("Plain Text Options"),
+                            separator = true,
                             items = {
                                 {
                                     id = "strip_markdown_in_text_mode",
@@ -166,9 +167,6 @@ local SettingsSchema = {
                                     help_text = _("Convert markdown syntax to readable plain text (headers, lists, etc). Disable to show raw markdown."),
                                 },
                             },
-                        },
-                        {
-                            type = "separator",
                         },
                         {
                             id = "dictionary_text_mode",
@@ -1133,6 +1131,55 @@ local SettingsSchema = {
             },
         },
 
+        -- Library Settings submenu
+        {
+            id = "library_settings",
+            type = "submenu",
+            text = _("Library Settings"),
+            emoji = "📚",
+            items = {
+                {
+                    id = "enable_library_scanning_library",
+                    type = "toggle",
+                    text = _("Allow Library Scanning"),
+                    path = "features.enable_library_scanning",
+                    default = false,
+                    help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
+                    on_change = function(new_value, plugin)
+                        if new_value then
+                            local InfoMessage = require("ui/widget/infomessage")
+                            local UIManager = require("ui/uimanager")
+                            local f = plugin.settings:readSetting("features") or {}
+                            local folders = f.library_scan_folders or {}
+                            local msg
+                            if #folders == 0 then
+                                msg = _("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nNext step: configure which folders to scan below in Library Folders.")
+                            else
+                                msg = T(_("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nCurrently scanning %1 folder(s)."), #folders)
+                            end
+                            UIManager:show(InfoMessage:new{ text = msg })
+                        end
+                    end,
+                },
+                {
+                    id = "library_scan_folders",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local folders = f.library_scan_folders or {}
+                        if #folders == 0 then
+                            return _("Library Folders: None")
+                        else
+                            return T(_("Library Folders: %1"), #folders)
+                        end
+                    end,
+                    depends_on = { id = "enable_library_scanning_library", value = true },
+                    help_text = _("Folders to scan for books. Only these folders will be scanned — no default or fallback. Add at least one folder to use library features."),
+                    callback = "getLibraryFoldersMenuItems",
+                },
+            },
+        },
+
         -- Privacy & Data submenu
         {
             id = "privacy_data",
@@ -1239,7 +1286,30 @@ local SettingsSchema = {
                     path = "features.enable_stats_sharing",
                     default = true,
                     help_text = _("Send current chapter title, chapters read count, and time since last opened. Used by Recap."),
+                },
+                {
+                    id = "enable_library_scanning",
+                    type = "toggle",
+                    text = _("Allow Library Scanning"),
+                    path = "features.enable_library_scanning",
+                    default = false,
+                    help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
                     separator = true,
+                    on_change = function(new_value, plugin)
+                        if new_value then
+                            local InfoMessage = require("ui/widget/infomessage")
+                            local UIManager = require("ui/uimanager")
+                            local f = plugin.settings:readSetting("features") or {}
+                            local folders = f.library_scan_folders or {}
+                            local msg
+                            if #folders == 0 then
+                                msg = _("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nNext step: configure which folders to scan in Settings → Library Settings → Library Folders.")
+                            else
+                                msg = T(_("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nCurrently scanning %1 folder(s)."), #folders)
+                            end
+                            UIManager:show(InfoMessage:new{ text = msg })
+                        end
+                    end,
                 },
                 -- Text Extraction settings (moved from Advanced)
                 {
@@ -1429,9 +1499,7 @@ local SettingsSchema = {
                             text = _("Please restart KOReader for this change to take effect."),
                         })
                     end,
-                },
-                {
-                    type = "separator",
+                    separator = true,
                 },
                 {
                     id = "recap_reminder_header",
@@ -1458,6 +1526,19 @@ local SettingsSchema = {
                     precision = "%d",
                     help_text = _("Number of days since last reading before the reminder appears."),
                     depends_on = { id = "enable_recap_reminder", value = true },
+                },
+                {
+                    id = "end_of_book_header",
+                    type = "header",
+                    text = _("End of Book"),
+                },
+                {
+                    id = "enable_end_of_book_suggestion",
+                    type = "toggle",
+                    text = _("Suggest Next Read on Finish"),
+                    path = "features.enable_end_of_book_suggestion",
+                    default = true,
+                    help_text = _("When you reach the end of a book, offer to suggest what to read next from your library. Requires library scanning to be enabled with at least one folder configured."),
                 },
             },
         },

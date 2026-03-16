@@ -15,7 +15,7 @@ local Constants = require("koassistant_constants")
 -- Action schema:
 --   id               - Unique identifier (required)
 --   text             - Button display text (required)
---   context          - Where it appears: "highlight", "book", "multi_book", "general", "both" (required)
+--   context          - Where it appears: "highlight", "book", "library", "general", "both" (required)
 --   template         - User prompt template ID from templates.lua (required for builtin)
 --   prompt           - Direct user prompt text (for custom actions without template)
 --   behavior_variant - Override global behavior: "minimal", "full", "none" (optional)
@@ -82,6 +82,10 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{notebook}"] = "use_notebook",
     ["{notebook_section}"] = "use_notebook",
 
+    -- Library placeholders
+    ["{library}"] = "use_library",
+    ["{library_section}"] = "use_library",
+
     -- Full document placeholders (same gate as book_text)
     ["{full_document}"] = "use_book_text",
     ["{full_document_section}"] = "use_book_text",
@@ -125,6 +129,7 @@ Actions.DOUBLE_GATED_FLAGS = {
     "use_highlights",     -- gate: enable_highlights_sharing
     "use_annotations",    -- gate: enable_annotations_sharing (degrades to highlights)
     "use_notebook",       -- gate: enable_notebook_sharing
+    "use_library",        -- gate: enable_library_scanning
     -- Document cache flags inherit from use_book_text
     "use_xray_cache",
     "use_analyze_cache",
@@ -229,7 +234,6 @@ Surface connections that enrich understanding, not tangential trivia. {concisene
         text = _("Connect (With Notes)"),
         description = _("Connects the passage to your own highlights and notebook entries, revealing patterns and echoes in your reading. Requires annotations and notebook sharing to be enabled."),
         context = "highlight",
-        behavior_variant = "reader_assistant",
         include_book_context = true,
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         -- Context extraction flags
@@ -258,7 +262,6 @@ Based on this highlight, is there anything I might want to add to my notebook? A
 If I have no prior highlights or notebook entries, just reflect on this passage and suggest what might be worth noting.
 
 {conciseness_nudge}]],
-        skip_domain = true,
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,
@@ -937,8 +940,9 @@ Be substantive but not exhaustive. {hallucination_nudge}]],
         id = "similar_books",
         doi_web_override = true,
         text = _("Find Similar"),
-        description = _("Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which."),
+        description = _("Recommends 5-7 similar works, explaining what makes each one similar and who would prefer which. When library scanning is enabled, notes which recommendations you already own."),
         context = "book",
+        use_library = true,  -- Optional: enriches with "you already own X"
         template = "similar_books",
         doi_prompt = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 related academic works.
 
@@ -996,7 +1000,6 @@ If web search is available, consider searching for the DOI or citation context t
         text = _("X-Ray"),
         description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can generate a complete whole-document X-Ray, or focus on a specific section from the table of contents."),
         context = "book",
-        behavior_variant = "reader_assistant",
         requires = {"book_text"},       -- Block if text extraction is off
         blocked_hint = _("Or use X-Ray (Simple) for an overview based on AI knowledge."),
         -- Context extraction flags
@@ -1040,7 +1043,6 @@ Guidelines:
 
 CRITICAL: This must cover only content up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Technical terms and concept names must match the paper's language. All other string values must follow your language instructions.]],
         skip_language_instruction = false,
-        skip_domain = true,  -- X-Ray has specific structure
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
@@ -1094,7 +1096,6 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         text = _("X-Ray (Simple)"),
         description = _("A prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."),
         context = "book",
-        behavior_variant = "reader_assistant",
         use_highlights = true,          -- Optional, gated by enable_highlights_sharing
         use_reading_progress = true,    -- For spoiler avoidance
         -- NO use_book_text — intentionally omitted
@@ -1169,7 +1170,6 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
 
 {conciseness_nudge}
 {hallucination_nudge}]],
-        skip_domain = true,
         api_params = {
             temperature = 0.5,
             max_tokens = 8192,
@@ -1187,7 +1187,6 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
         text = _("Recap"),
         description = _("A 'Previously on...' refresher to help you get back into reading after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Source selection: extracted text (with incremental updates) or AI knowledge. Use KOReader's hidden flows to limit scope to specific chapters."),
         context = "book",
-        behavior_variant = "reader_assistant",
         -- Context extraction flags
         use_book_text = true,
         use_highlights = true,
@@ -1233,7 +1232,6 @@ Style guidance:
 
 If you don't recognize this work or the title/content seems unclear, tell me honestly rather than guessing. I can provide more context if needed.]],
         skip_language_instruction = false,
-        skip_domain = true,
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,  -- Factual recall, lower variance
@@ -1277,7 +1275,6 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         text = _("Analyze Notes"),
         description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the work. Requires highlights or annotations sharing."),
         context = "book",
-        behavior_variant = "reader_assistant",
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         use_response_caching = true,    -- View/Update popup + per-action cache (pseudo-update)
         -- Context extraction flags
@@ -1325,7 +1322,6 @@ This is about understanding ME as a reader through my highlights and notes, not 
 
 If you don't recognize this work or the highlights seem insufficient for meaningful analysis, let me know honestly rather than guessing.]],
         skip_language_instruction = false,
-        skip_domain = true,
         -- Inherits global reasoning setting (user choice)
         api_params = {
             temperature = 0.5,
@@ -1625,8 +1621,6 @@ Adapt to the work — a novel's insights look different from a research paper's 
         text = _("Reading Guide"),
         description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Source selection: full document text, document summary, or AI knowledge. Can target a specific section."),
         context = "book",
-        behavior_variant = "reader_assistant",
-        skip_domain = true,
         use_book_text = true,
         use_summary_cache = true,
         use_reading_progress = true,
@@ -1669,6 +1663,27 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         },
         builtin = true,
     },
+    -- Library-aware actions (require enable_library_scanning)
+    suggest_from_library = {
+        id = "suggest_from_library",
+        text = _("Suggest from Library"),
+        description = _("Suggests what to read next from your own library, based on the current book and your reading history."),
+        context = "book",
+        skip_domain = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        use_library = true,
+        use_reading_progress = true,
+        template = "suggest_from_library",
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 4096,
+        },
+        reasoning_config = { default = "off" },
+        builtin = true,
+        in_reading_features = 8,
+        in_quick_actions = 10,
+    },
     -- Web-enhanced book actions (force web search on)
     book_reviews = {
         id = "book_reviews",
@@ -1701,13 +1716,14 @@ Attribute opinions to their sources where possible. Distinguish between critical
     },
 }
 
--- Built-in actions for multi-book context
-Actions.multi_book = {
+-- Built-in actions for library context (multi-book)
+Actions.library = {
     compare_books = {
         id = "compare_books",
         text = _("Compare"),
         description = _("Compares the selected works, focusing on meaningful contrasts: different approaches, unique strengths, and which readers would prefer which."),
-        context = "multi_book",
+        context = "library",
+        requires_selected_books = true,
         template = "compare_books",
         api_params = {
             temperature = 0.6,
@@ -1719,7 +1735,8 @@ Actions.multi_book = {
         id = "common_themes",
         text = _("Find Common Themes"),
         description = _("Identifies shared themes, intellectual traditions, and deeper patterns across the selected works — beyond surface-level genre labels."),
-        context = "multi_book",
+        context = "library",
+        requires_selected_books = true,
         template = "common_themes",
         api_params = {
             temperature = 0.7,
@@ -1731,7 +1748,8 @@ Actions.multi_book = {
         id = "collection_summary",
         text = _("Analyze Collection"),
         description = _("Analyzes what the collection reveals about the reader's interests, perspective, and what might be missing for a more complete picture."),
-        context = "multi_book",
+        context = "library",
+        requires_selected_books = true,
         template = "collection_summary",
         api_params = {
             temperature = 0.7,
@@ -1744,7 +1762,8 @@ Actions.multi_book = {
         reasoning_config = "off",  -- Brief summaries don't benefit from reasoning
         text = _("Quick Summaries"),
         description = _("A brief 2-3 sentence summary of each selected work, focusing on premise and appeal."),
-        context = "multi_book",
+        context = "library",
+        requires_selected_books = true,
         template = "quick_summaries",
         api_params = {
             temperature = 0.5,
@@ -1756,7 +1775,8 @@ Actions.multi_book = {
         id = "reading_order",
         text = _("Reading Order"),
         description = _("Suggests an optimal reading order based on conceptual dependencies, difficulty progression, and thematic arc."),
-        context = "multi_book",
+        context = "library",
+        requires_selected_books = true,
         template = "reading_order",
         api_params = {
             temperature = 0.6,
@@ -1767,11 +1787,63 @@ Actions.multi_book = {
     recommend_books = {
         id = "recommend_books",
         text = _("Recommend"),
-        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title."),
-        context = "multi_book",
+        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title. When library scanning is enabled, also considers your full library to avoid recommending books you already own."),
+        context = "library",
+        requires_selected_books = true,
+        use_library = true,  -- Optional: includes library data when scanning is enabled (NOT required)
         template = "recommend_books",
         api_params = {
             temperature = 0.8,  -- Higher creativity for discovery
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Scan-based actions (no book selection needed, use full library catalog)
+    next_from_library = {
+        id = "next_from_library",
+        text = _("Next Read"),
+        description = _("Suggests what to read next from your own library based on your reading patterns, what you've finished recently, and what's been sitting unread."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "next_from_library",
+        api_params = {
+            temperature = 0.7,
+            max_tokens = 4096,
+        },
+        reasoning_config = { default = "off" },
+        builtin = true,
+    },
+    discover_books = {
+        id = "discover_books",
+        text = _("Discover New"),
+        description = _("Suggests new books to get based on your entire library — identifies your taste from what you own and recommends works you don't have yet."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "discover_books",
+        api_params = {
+            temperature = 0.8,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    reading_patterns = {
+        id = "reading_patterns",
+        text = _("Reading Patterns"),
+        description = _("Analyzes your library to reveal reading habits: what genres and authors you gravitate toward, completion patterns, and gaps in your collection."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "reading_patterns",
+        api_params = {
+            temperature = 0.6,
             max_tokens = 4096,
         },
         builtin = true,
@@ -1931,7 +2003,7 @@ Format: bold labels, bullet points and labeled fields within sections — not pr
 }
 
 -- Get all actions for a specific context
--- @param context: "highlight", "book", "multi_book", "general"
+-- @param context: "highlight", "book", "library", "general"
 -- @return table: Array of action definitions
 function Actions.getForContext(context)
     local result = {}
@@ -1966,7 +2038,7 @@ function Actions.getById(action_id)
     local context_tables = {
         Actions[Constants.CONTEXTS.HIGHLIGHT],
         Actions[Constants.CONTEXTS.BOOK],
-        Actions[Constants.CONTEXTS.MULTI_BOOK],
+        Actions[Constants.CONTEXTS.LIBRARY],
         Actions[Constants.CONTEXTS.GENERAL],
         Actions.special
     }
@@ -1979,12 +2051,12 @@ function Actions.getById(action_id)
 end
 
 -- Get all built-in actions grouped by context
--- @return table: { highlight = {...}, book = {...}, multi_book = {...}, general = {...} }
+-- @return table: { highlight = {...}, book = {...}, library = {...}, general = {...} }
 function Actions.getAllBuiltin()
     return {
         highlight = Actions.highlight,
         book = Actions.book,
-        multi_book = Actions.multi_book,
+        library = Actions.library,
         general = Actions.general,
         special = Actions.special,
     }

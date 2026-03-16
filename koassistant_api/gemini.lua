@@ -74,9 +74,11 @@ function GeminiHandler:buildRequestBody(message_history, config)
                              ModelConstraints.supportsCapability("gemini", model, "thinking")
 
     -- Gemini 2.5: thinkingBudget from settings (-1=dynamic, 0=disabled, 128-24576=specific)
+    -- Gemini 2.5 thinks by default even when reasoning toggle is off (budget nil → dynamic).
+    -- Budget compensation must always apply unless thinking is explicitly disabled (budget = 0).
     local has_budget_support = ModelConstraints.supportsCapability("gemini", model, "thinking_budget")
     local thinking_budget = api_params.thinking_budget  -- may be nil, 0, -1, or 128-24576
-    if has_budget_support and thinking_budget and thinking_budget ~= 0 then
+    if has_budget_support and thinking_budget ~= 0 then
         thinking_enabled = true
     end
 
@@ -88,8 +90,8 @@ function GeminiHandler:buildRequestBody(message_history, config)
     end
 
     -- Gemini 2.5: thinking tokens share the maxOutputTokens budget.
-    -- Scale up large requests only when thinking is active.
-    if has_budget_support and thinking_enabled and max_tokens > 16384 then
+    -- Double maxOutputTokens to compensate, capped at model ceiling (65536).
+    if has_budget_support and thinking_enabled then
         max_tokens = math.min(max_tokens * 2, 65536)
     end
 

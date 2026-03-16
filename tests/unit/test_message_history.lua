@@ -570,10 +570,10 @@ local function runCreateResultTextTests()
         TestRunner:assertContains(result, "Book: 1984")
     end)
 
-    TestRunner:test("multi_book context label", function()
+    TestRunner:test("library context label", function()
         local h = MessageHistory:new()
         h:addAssistantMessage("text")
-        local config = { features = { is_multi_book_context = true } }
+        local config = { features = { is_library_context = true } }
         local result = h:createResultText("Book A\nBook B", config)
         TestRunner:assertContains(result, "Selected books:")
     end)
