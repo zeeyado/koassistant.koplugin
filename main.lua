@@ -7062,6 +7062,31 @@ function AskGPT:checkRecapReminder()
   })
 end
 
+--- Called when user reaches the end of a book.
+--- Shows a suggestion prompt if library scanning is available and setting is enabled.
+function AskGPT:onEndOfBook()
+  local features = self.settings:readSetting("features") or {}
+  -- Setting defaults to true (opt-out), requires library scanning to be useful
+  if features.enable_end_of_book_suggestion == false then return end
+  if features.enable_library_scanning ~= true then return end
+  if not features.library_scan_folders or #features.library_scan_folders == 0 then return end
+  if not self.ui or not self.ui.document then return end
+
+  -- Delay slightly to let KOReader's own end-of-book popup show first
+  local self_ref = self
+  UIManager:scheduleIn(0.3, function()
+    local ConfirmBox = require("ui/widget/confirmbox")
+    UIManager:show(ConfirmBox:new{
+      text = _("KOAssistant: Would you like an AI suggestion for what to read next from your library?"),
+      ok_text = _("Suggest"),
+      ok_callback = function()
+        self_ref:ensureInitialized()
+        self_ref:executeBookLevelAction("suggest_from_library")
+      end,
+    })
+  end)
+end
+
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)
 --- @param action_id string: The action ID from Actions.book
 function AskGPT:executeBookLevelAction(action_id)

@@ -2868,6 +2868,25 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         else
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
         end
+    elseif prompt and prompt.use_library then
+        -- No open document but action needs library data — extract library only
+        -- Read settings fresh from plugin (like Send button does) to avoid stale config
+        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local lib_scanning = lib_features.enable_library_scanning == true
+        local lib_folders = lib_features.library_scan_folders
+        if lib_scanning and lib_folders and #lib_folders > 0 then
+            local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
+            if scan_ok and LibraryScanner then
+                local scan_result = LibraryScanner.scan(lib_features)
+                if scan_result and scan_result.books and #scan_result.books > 0 then
+                    message_data.library_content = LibraryScanner.format(scan_result)
+                else
+                    message_data.library_content = ""
+                end
+            end
+        else
+            message_data.library_content = ""
+        end
     end
     -- Note: Notebook extraction is now handled by ContextExtractor:extractForAction()
 
@@ -3826,7 +3845,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local books = configuration and configuration.features and configuration.features.books_info
             if not books or #books < 2 then
                 UIManager:show(InfoMessage:new{
-                    text = _("Select at least 2 books first using [+ Add Books]."),
+                    text = _("Select at least 2 items first using [+ Add Items]."),
                     timeout = 3,
                 })
                 return
@@ -4274,7 +4293,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 local added, total = mergeBooks(new_books)
                 if added == 0 then
                     UIManager:show(InfoMessage:new{
-                        text = T(_("All %1 books already selected."), #new_books),
+                        text = T(_("All %1 already selected."), #new_books),
                         timeout = 2,
                     })
                     return
@@ -4321,7 +4340,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local added = mergeBooks(new_books)
                     if added == 0 then
                         UIManager:show(InfoMessage:new{
-                            text = T(_("All %1 books already selected."), #new_books),
+                            text = T(_("All %1 already selected."), #new_books),
                             timeout = 2,
                         })
                         return
@@ -4389,8 +4408,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         add_books_dialog = ButtonDialog:new{
             title = book_count > 0
-                and T(_("%1 books selected"), book_count)
-                or _("Add Books"),
+                and T(book_count == 1 and _("%1 item selected") or _("%1 items selected"), book_count)
+                or _("Add Items"),
             buttons = menu_buttons,
         }
         UIManager:show(add_books_dialog)
@@ -4472,7 +4491,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         }})
 
         editor_dialog = ButtonDialog:new{
-            title = T(_("%1 books selected — tap to remove"), #books),
+            title = T(#books == 1 and _("%1 item selected — tap to remove") or _("%1 items selected — tap to remove"), #books),
             buttons = menu_buttons,
         }
         UIManager:show(editor_dialog)
@@ -4724,6 +4743,33 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             prompts, prompt_keys = getAllPrompts(configuration, plugin)
             logger.info("buildInputDialogButtons: Got " .. #prompt_keys .. " prompts from getAllPrompts")
         end
+    -- Pre-compute availability state for library context button graying
+    local selected_book_count = 0
+    local library_scan_available = false
+    if input_context == "library" then
+        local books = configuration and configuration.features and configuration.features.books_info
+        selected_book_count = books and #books or 0
+        local features = configuration and configuration.features or {}
+        library_scan_available = features.enable_library_scanning == true
+            and features.library_scan_folders and #features.library_scan_folders > 0
+    end
+
+    -- Check if an action's prerequisites are met (for enabled/disabled state)
+    local function isActionAvailable(action)
+        if not action then return true end
+        if action.requires_selected_books and selected_book_count < 2 then
+            return false
+        end
+        if action.requires then
+            for _idx2, req in ipairs(action.requires) do
+                if req == "library" and not library_scan_available then
+                    return false
+                end
+            end
+        end
+        return true
+    end
+
     for _idx, custom_prompt_type in ipairs(prompt_keys) do
         local prompt = prompts[custom_prompt_type]
         if prompt and prompt.text then
@@ -4739,9 +4785,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 logger.info("Skipping excluded prompt: " .. custom_prompt_type)
             else
                 logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
+                local available = isActionAvailable(prompt)
                 table.insert(action_buttons, {
                     text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features),
                     prompt_type = custom_prompt_type,
+                    enabled = available,
                     callback = function()
                         executeInputAction(prompt, custom_prompt_type)
                     end
@@ -4789,9 +4837,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if show_all_actions then
             -- Expanded: append all remaining actions after favorites
             for _idx2, action in ipairs(more_actions) do
+                local available = isActionAvailable(action)
                 table.insert(action_buttons, {
                     text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
                     prompt_type = action.id,
+                    enabled = available,
                     callback = function()
                         executeInputAction(action, action.id)
                     end
@@ -4910,7 +4960,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local book_count = books and #books or 0
             local selection_row = {
                 {
-                    text = _("+ Add Books"),
+                    text = _("+ Add Items"),
                     callback = function()
                         showAddBooksMenu()
                     end,
@@ -4986,11 +5036,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local input_hint_text
     if is_multi then
         if multi_count > 0 then
-            dialog_title = T(_("Library Actions \xC2\xB7 %1 books"), multi_count)
-            input_hint_text = _("Add instructions or ask about these books...")
+            dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
+            input_hint_text = _("Add instructions or ask about selected items...")
         else
             dialog_title = _("Library Actions")
-            input_hint_text = _("Ask about your library, or add books for multi-book actions...")
+            input_hint_text = _("Chat about your library, or add items for multi-book actions...")
         end
     else
         dialog_title = _("KOAssistant Actions")
