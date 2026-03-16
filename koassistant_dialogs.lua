@@ -4225,119 +4225,91 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Library context: show Add Books menu with presets
     local add_books_dialog  -- forward declaration for closure
+
+    -- Helper: get books from ReadHistory filtered by status via DocSettings
+    -- status_filter: "reading", "complete", "abandoned", or nil (no filter)
+    -- limit: max books to return (nil = no limit)
+    local function getBooksFromHistory(status_filter, limit)
+        local ok, ReadHistory = pcall(require, "readhistory")
+        if not ok or not ReadHistory then return nil end
+        ReadHistory:reload()
+        local hist = ReadHistory.hist or {}
+        if #hist == 0 then return {} end
+
+        local DocSettings = require("docsettings")
+        local new_books = {}
+        for _idx, entry in ipairs(hist) do
+            if not entry.file or entry.dim then goto continue end
+            if limit and #new_books >= limit then break end
+
+            -- Get metadata + status from DocSettings
+            local title = nil
+            local author = ""
+            local ds = DocSettings:open(entry.file)
+            local doc_props = ds:readSetting("doc_props")
+            if doc_props then
+                local dt = doc_props.display_title or doc_props.title
+                if dt and dt ~= "" then title = dt end
+                if doc_props.authors and doc_props.authors ~= "" then
+                    author = doc_props.authors:gsub("\n", ", ")
+                end
+            end
+
+            -- Status filtering via DocSettings sidecar (no scanner needed)
+            if status_filter then
+                local summary = ds:readSetting("summary")
+                local status = summary and summary.status or nil
+                if status_filter == "reading" then
+                    -- Explicit reading status, or in-progress without explicit status
+                    local progress = ds:readSetting("percent_finished")
+                    local is_reading = status == "reading"
+                        or (not status and progress and progress > 0 and progress < 0.95)
+                    if not is_reading then goto continue end
+                elseif status ~= status_filter then
+                    goto continue
+                end
+            end
+
+            -- Fallback title from history text or filename
+            if not title then
+                title = entry.text or entry.file:match("([^/]+)%.[^%.]+$") or entry.file
+            end
+            table.insert(new_books, {
+                title = title,
+                authors = author,
+                file = entry.file,
+            })
+            ::continue::
+        end
+        return new_books
+    end
+
     local function showAddBooksMenu()
         local ButtonDialog = require("ui/widget/buttondialog")
         local books = configuration and configuration.features and configuration.features.books_info
         local book_count = books and #books or 0
         local menu_buttons = {}
 
-        -- Preset: Last 5 from History
-        table.insert(menu_buttons, {{
-            text = _("Last 5 from History"),
-            callback = function()
-                UIManager:close(add_books_dialog)
-                local ok, ReadHistory = pcall(require, "readhistory")
-                if not ok or not ReadHistory then
-                    UIManager:show(InfoMessage:new{
-                        text = _("Reading history unavailable."),
-                        timeout = 2,
-                    })
-                    return
-                end
-                ReadHistory:reload()
-                local hist = ReadHistory.hist or {}
-                if #hist == 0 then
-                    UIManager:show(InfoMessage:new{
-                        text = _("No reading history found."),
-                        timeout = 2,
-                    })
-                    return
-                end
-                -- Take up to 5 most recent
-                local new_books = {}
-                local count = 0
-                for _idx, entry in ipairs(hist) do
-                    if entry.file and count < 5 then
-                        -- Get title and author from DocSettings (most reliable)
-                        local title = nil
-                        local author = ""
-                        local doc_ok, DocSettings = pcall(require, "docsettings")
-                        if doc_ok and DocSettings then
-                            local ds = DocSettings:open(entry.file)
-                            local doc_props = ds:readSetting("doc_props")
-                            if doc_props then
-                                local dt = doc_props.display_title or doc_props.title
-                                if dt and dt ~= "" then title = dt end
-                                if doc_props.authors and doc_props.authors ~= "" then
-                                    author = doc_props.authors:gsub("\n", ", ")
-                                end
-                            end
-                        end
-                        -- Fallback to ReadHistory text or filename
-                        if not title then
-                            title = entry.text or entry.file:match("([^/]+)%.[^%.]+$") or entry.file
-                        end
-                        table.insert(new_books, {
-                            title = title,
-                            authors = author,
-                            file = entry.file,
-                        })
-                        count = count + 1
-                    end
-                end
-                if #new_books == 0 then
-                    UIManager:show(InfoMessage:new{
-                        text = _("No books found in history."),
-                        timeout = 2,
-                    })
-                    return
-                end
-                local added, total = mergeBooks(new_books)
-                if added == 0 then
-                    UIManager:show(InfoMessage:new{
-                        text = T(_("All %1 already selected."), #new_books),
-                        timeout = 2,
-                    })
-                    return
-                end
-                refreshInputDialog()
-            end,
-        }})
-
-        -- Scanner-based presets (require library scanning enabled + folders configured)
-        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-        local scanning_available = features.enable_library_scanning == true
-            and features.library_scan_folders and #features.library_scan_folders > 0
-        local function addScannerPreset(label, status_filter)
+        -- Status presets: history + DocSettings, always available (no scanner needed)
+        local function addStatusPreset(label, status_filter)
             table.insert(menu_buttons, {{
-                text = scanning_available and label or (label .. " " .. _("(scanning off)")),
+                text = label,
                 callback = function()
                     UIManager:close(add_books_dialog)
-                    if not scanning_available then
+                    local new_books = getBooksFromHistory(status_filter)
+                    if not new_books then
                         UIManager:show(InfoMessage:new{
-                            text = _("Enable library scanning and configure folders in Settings → Library Settings."),
-                            timeout = 3,
-                        })
-                        return
-                    end
-                    local LibraryScanner = require("koassistant_library_scanner")
-                    local scan_result = LibraryScanner.scan(features)
-                    local status_books = scan_result.by_status and scan_result.by_status[status_filter] or {}
-                    if #status_books == 0 then
-                        UIManager:show(InfoMessage:new{
-                            text = T(_("No books with status '%1' found in library."), status_filter),
+                            text = _("Reading history unavailable."),
                             timeout = 2,
                         })
                         return
                     end
-                    -- Convert scanner metadata to books_info format
-                    local new_books = {}
-                    for _idx, b in ipairs(status_books) do
-                        table.insert(new_books, {
-                            title = b.title,
-                            authors = b.author or "",
-                            file = b.file,
+                    if #new_books == 0 then
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("No %1 books found in history."), label:lower()),
+                            timeout = 2,
                         })
+                        return
                     end
                     local added = mergeBooks(new_books)
                     if added == 0 then
@@ -4351,10 +4323,43 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end,
             }})
         end
-        addScannerPreset(_("Currently Reading"), "reading")
-        addScannerPreset(_("Recently Finished"), "complete")
+        addStatusPreset(_("Currently Reading"), "reading")
+        addStatusPreset(_("Recently Finished"), "complete")
+        addStatusPreset(_("On Hold"), "abandoned")
 
-        -- Browse History (opens BookPicker)
+        -- Last 5 from History (no status filter, just recency)
+        table.insert(menu_buttons, {{
+            text = _("Last 5 from History"),
+            callback = function()
+                UIManager:close(add_books_dialog)
+                local new_books = getBooksFromHistory(nil, 5)
+                if not new_books then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Reading history unavailable."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                if #new_books == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = _("No books found in history."),
+                        timeout = 2,
+                    })
+                    return
+                end
+                local added = mergeBooks(new_books)
+                if added == 0 then
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("All %1 already selected."), #new_books),
+                        timeout = 2,
+                    })
+                    return
+                end
+                refreshInputDialog()
+            end,
+        }})
+
+        -- Browse History (opens BookPicker with full filter/search UI)
         table.insert(menu_buttons, {{
             text = _("Browse History…"),
             callback = function()
@@ -4362,7 +4367,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 local BookPicker = require("koassistant_book_picker")
                 BookPicker:show({
                     on_confirm = function(selected_files)
-                        -- Convert file hash to books_info with proper metadata
                         local DocSettings = require("docsettings")
                         local new_books = {}
                         for file, _v in pairs(selected_files) do
