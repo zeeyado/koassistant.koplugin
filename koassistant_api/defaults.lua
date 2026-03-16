@@ -25,7 +25,7 @@ local function getDefaultModel(provider)
         kimi = "kimi-k2-0905-preview",
         together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
-        sambanova = "Meta-Llama-4-Maverick-17B-128E-Instruct",
+        sambanova = "Llama-4-Maverick-17B-128E-Instruct",
         cohere = "command-a-03-2025",
         doubao = "doubao-1.8-pro-32k",
         zai = "glm-5-turbo",

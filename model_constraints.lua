@@ -115,7 +115,8 @@ ModelConstraints.capabilities = {
         -- Models with reasoning_effort support
         reasoning = {
             "deepseek-ai/DeepSeek-R1",
-            "Qwen/Qwen3-235B-A22B", "Qwen/Qwen3-32B",
+            "Qwen/Qwen3.5-397B-A17B",
+            "Qwen/Qwen3-235B-A22B",
         },
     },
     fireworks = {
@@ -127,7 +128,7 @@ ModelConstraints.capabilities = {
     },
     sambanova = {
         -- Models with thinking toggle (chat_template_kwargs.enable_thinking)
-        thinking = { "DeepSeek-R1", "Qwen3-32B" },
+        thinking = { "DeepSeek-R1-0528", "Qwen3-32B" },
     },
     xai = {
         -- Only grok-3-mini supports reasoning_effort (low/high)
@@ -164,7 +165,6 @@ ModelConstraints._max_output_tokens = {
     groq = {
         ["groq/compound"] = 8192,
         ["groq/compound-mini"] = 8192,
-        ["meta-llama/llama-4-maverick"] = 8192,
         ["meta-llama/llama-4-scout"] = 8192,
     },
     perplexity = {
