@@ -237,7 +237,7 @@ local SettingsSchema = {
                             text = _("Emoji Data Access Indicators"),
                             path = "features.enable_data_access_indicators",
                             default = false,
-                            help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 🌐 web search. Requires emoji font support."),
+                            help_text = _("Show emoji indicators on action names showing what data they access: 📄 document text, 🔖 highlights, 📝 annotations, 📓 notebook, 📚 library, 🌐 web search. Requires emoji font support."),
                         },
                     },
                 },

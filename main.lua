@@ -8077,7 +8077,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["domain"] = {
-    text = E("\u{1F4DA}", T(_("Domain: %1"), domain_display)),
+    text = E("\u{1F3DB}\u{FE0F}", T(_("Domain: %1"), domain_display)),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)

@@ -3543,24 +3543,26 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     local doc_file = ui_instance and ui_instance.document and ui_instance.document.file or nil
 
-    -- For general context, don't use document_path - these chats are context-free
+    -- For general/library context, don't use document_path - these chats aren't tied to a single document
     -- But capture launch_context so we know where the chat was started from
     local document_path = nil
     local launch_context = nil
     -- Reset book_metadata to allow conditional assignment below
     book_metadata = nil
 
-    if is_general_context then
-        -- General chat: don't associate with a document, but track launch context
+    local is_library_context = configuration and configuration.features and configuration.features.is_library_context
+    if is_general_context or is_library_context then
+        -- General/library chat: don't associate with a document, but track launch context
+        local ctx_label = is_library_context and "Library" or "General"
         if doc_title and doc_file then
             launch_context = {
                 title = doc_title,
                 author = doc_author,
                 file = doc_file
             }
-            logger.info("KOAssistant: General chat launched from book - " .. doc_title)
+            logger.info("KOAssistant: " .. ctx_label .. " chat launched from book - " .. doc_title)
         else
-            logger.info("KOAssistant: General chat with no launch context")
+            logger.info("KOAssistant: " .. ctx_label .. " chat with no launch context")
         end
     elseif doc_file then
         -- Document is open, use its metadata and path
@@ -4498,6 +4500,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Build all input dialog buttons (called on init and on refresh via reinit)
+    local has_more_actions = false  -- Set by buildInputDialogButtons, read by gear menu
     local buildInputDialogButtons
     buildInputDialogButtons = function()
         -- Top row: [Web toggle] [Domain] [Send]
@@ -4743,15 +4746,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             prompts, prompt_keys = getAllPrompts(configuration, plugin)
             logger.info("buildInputDialogButtons: Got " .. #prompt_keys .. " prompts from getAllPrompts")
         end
-    -- Pre-compute availability state for library context button graying
+    -- Pre-compute availability state for button graying
     local selected_book_count = 0
-    local library_scan_available = false
+    local avail_features = configuration and configuration.features or {}
+    -- Library scan check applies to all contexts (suggest_from_library is a book action)
+    local library_scan_available = avail_features.enable_library_scanning == true
+        and avail_features.library_scan_folders and #avail_features.library_scan_folders > 0
     if input_context == "library" then
-        local books = configuration and configuration.features and configuration.features.books_info
+        local books = avail_features.books_info
         selected_book_count = books and #books or 0
-        local features = configuration and configuration.features or {}
-        library_scan_available = features.enable_library_scanning == true
-            and features.library_scan_folders and #features.library_scan_folders > 0
     end
 
     -- Check if an action's prerequisites are met (for enabled/disabled state)
@@ -4833,6 +4836,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end
             end
         end
+
+        has_more_actions = #more_actions > 0
 
         if show_all_actions then
             -- Expanded: append all remaining actions after favorites
@@ -5083,7 +5088,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end)
                         end)
                     end }},
-                    {{ text = show_all_actions and _("Show Fewer Actions") or _("Show More Actions…"), callback = function()
+                    {{ text = show_all_actions and _("Show Fewer Actions") or _("Show More Actions…"),
+                        enabled = show_all_actions or has_more_actions,
+                        callback = function()
                         UIManager:close(gear_menu)
                         show_all_actions = not show_all_actions
                         refreshInputDialog()

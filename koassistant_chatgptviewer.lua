@@ -2379,6 +2379,22 @@ function ChatGPTViewer:init()
     })
   end
 
+  -- Open Doc button on Row 1 when it would coexist with Regenerate on Row 2
+  -- (avoids Row 2 overflow: → Chat, MD/TXT, Info, Regenerate, Open Doc, Delete, Close = 7 buttons)
+  local open_doc_on_row1 = not self._book_open and self._artifact_file and self.on_regenerate
+  if open_doc_on_row1 then
+    table.insert(simple_view_row1, {
+      text = _("Open Doc"),
+      id = "open_book",
+      callback = function()
+        self:onClose()
+        local ReaderUI = require("apps/reader/readerui")
+        ReaderUI:showReader(self._artifact_file)
+      end,
+      hold_callback = self.default_hold_callback,
+    })
+  end
+
   -- Navigation buttons
   table.insert(simple_view_row1, {
     text = "⇱",
@@ -2544,8 +2560,8 @@ function ChatGPTViewer:init()
         hold_callback = self.default_hold_callback,
       })
     end
-    if not self._book_open and self._artifact_file then
-      -- Book not open: show Open Doc button (alongside Regenerate if eligible)
+    if not self._book_open and self._artifact_file and not open_doc_on_row1 then
+      -- Book not open, no Regenerate: show Open Doc on Row 2
       table.insert(simple_view_row2, {
         text = _("Open Doc"),
         id = "open_book",
