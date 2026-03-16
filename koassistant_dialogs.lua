@@ -3812,6 +3812,27 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Handles: getInputText, close dialog, _checkRequirements, showCacheActionPopup,
     -- cache viewer redirect, and handlePredefinedPrompt with full onPromptComplete.
     local function executeInputAction(action, action_id)
+        -- Pre-flight checks run BEFORE closing dialog so it stays open on failure
+
+        -- Pre-flight: block when declared requirements are unmet
+        if plugin and plugin._checkRequirements then
+            if plugin:_checkRequirements(action) then
+                return
+            end
+        end
+
+        -- Pre-flight: block selection-required library actions when no books selected
+        if action.requires_selected_books then
+            local books = configuration and configuration.features and configuration.features.books_info
+            if not books or #books < 2 then
+                UIManager:show(InfoMessage:new{
+                    text = _("Select at least 2 books first using [+ Add Books]."),
+                    timeout = 3,
+                })
+                return
+            end
+        end
+
         local additional_input = input_dialog:getInputText()
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
@@ -3890,25 +3911,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
-        end
-
-        -- Pre-flight: block when declared requirements are unmet
-        if plugin and plugin._checkRequirements then
-            if plugin:_checkRequirements(action) then
-                return
-            end
-        end
-
-        -- Pre-flight: block selection-required library actions when no books selected
-        if action.requires_selected_books then
-            local books = configuration and configuration.features and configuration.features.books_info
-            if not books or #books < 2 then
-                UIManager:show(InfoMessage:new{
-                    text = _("Select at least 2 books first using [+ Add Books]."),
-                    timeout = 3,
-                })
-                return
-            end
         end
 
         -- Pre-flight: cache actions with source_selection use View/Sections/New popup
@@ -4235,19 +4237,24 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 local count = 0
                 for _idx, entry in ipairs(hist) do
                     if entry.file and count < 5 then
-                        local title = entry.text or entry.file:match("([^/]+)%.[^%.]+$") or entry.file
-                        -- Try to get author from DocSettings
+                        -- Get title and author from DocSettings (most reliable)
+                        local title = nil
                         local author = ""
                         local doc_ok, DocSettings = pcall(require, "docsettings")
                         if doc_ok and DocSettings then
                             local ds = DocSettings:open(entry.file)
                             local doc_props = ds:readSetting("doc_props")
-                            if doc_props and doc_props.authors then
-                                author = doc_props.authors
-                                if author:find("\n") then
-                                    author = author:gsub("\n", ", ")
+                            if doc_props then
+                                local dt = doc_props.display_title or doc_props.title
+                                if dt and dt ~= "" then title = dt end
+                                if doc_props.authors and doc_props.authors ~= "" then
+                                    author = doc_props.authors:gsub("\n", ", ")
                                 end
                             end
+                        end
+                        -- Fallback to ReadHistory text or filename
+                        if not title then
+                            title = entry.text or entry.file:match("([^/]+)%.[^%.]+$") or entry.file
                         end
                         table.insert(new_books, {
                             title = title,
@@ -4276,14 +4283,92 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end,
         }})
 
+        -- Scanner-based presets (require library scanning enabled + folders configured)
+        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local scanning_available = features.enable_library_scanning == true
+            and features.library_scan_folders and #features.library_scan_folders > 0
+        local function addScannerPreset(label, status_filter)
+            table.insert(menu_buttons, {{
+                text = scanning_available and label or (label .. " " .. _("(scanning off)")),
+                callback = function()
+                    UIManager:close(add_books_dialog)
+                    if not scanning_available then
+                        UIManager:show(InfoMessage:new{
+                            text = _("Enable library scanning and configure folders in Settings → Library Settings."),
+                            timeout = 3,
+                        })
+                        return
+                    end
+                    local LibraryScanner = require("koassistant_library_scanner")
+                    local scan_result = LibraryScanner.scan(features)
+                    local status_books = scan_result.by_status and scan_result.by_status[status_filter] or {}
+                    if #status_books == 0 then
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("No books with status '%1' found in library."), status_filter),
+                            timeout = 2,
+                        })
+                        return
+                    end
+                    -- Convert scanner metadata to books_info format
+                    local new_books = {}
+                    for _idx, b in ipairs(status_books) do
+                        table.insert(new_books, {
+                            title = b.title,
+                            authors = b.author or "",
+                            file = b.file,
+                        })
+                    end
+                    local added = mergeBooks(new_books)
+                    if added == 0 then
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("All %1 books already selected."), #new_books),
+                            timeout = 2,
+                        })
+                        return
+                    end
+                    refreshInputDialog()
+                end,
+            }})
+        end
+        addScannerPreset(_("Currently Reading"), "reading")
+        addScannerPreset(_("Recently Finished"), "complete")
+
         -- Browse History (opens BookPicker)
         table.insert(menu_buttons, {{
             text = _("Browse History…"),
             callback = function()
                 UIManager:close(add_books_dialog)
-                if plugin then
-                    plugin:showLibraryPicker()
-                end
+                local BookPicker = require("koassistant_book_picker")
+                BookPicker:show({
+                    on_confirm = function(selected_files)
+                        -- Convert file hash to books_info with proper metadata
+                        local DocSettings = require("docsettings")
+                        local new_books = {}
+                        for file, _v in pairs(selected_files) do
+                            local title = nil
+                            local author = ""
+                            local ds = DocSettings:open(file)
+                            local doc_props = ds:readSetting("doc_props")
+                            if doc_props then
+                                local dt = doc_props.display_title or doc_props.title
+                                if dt and dt ~= "" then title = dt end
+                                if doc_props.authors and doc_props.authors ~= "" then
+                                    author = doc_props.authors:gsub("\n", ", ")
+                                end
+                            end
+                            if not title then
+                                title = file:match("([^/]+)%.[^%.]+$") or file
+                            end
+                            table.insert(new_books, {
+                                title = title,
+                                authors = author,
+                                file = file,
+                            })
+                        end
+                        mergeBooks(new_books)
+                        refreshInputDialog()
+                    end,
+                })
             end,
         }})
 
@@ -4312,6 +4397,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Library context: view and remove selected books
+    -- Rebuilds book_context after removal; reopens itself unless list is emptied
     local function showSelectedBooksEditor()
         local books = configuration and configuration.features and configuration.features.books_info
         if not books or #books == 0 then return end
@@ -4320,32 +4406,47 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local editor_dialog
         local menu_buttons = {}
 
+        -- Helper: rebuild book_context from current books_info
+        local function rebuildBookContext()
+            local current = configuration.features.books_info
+            if not current or #current == 0 then
+                configuration.features.books_info = nil
+                configuration.features.book_context = nil
+                configuration.features.book_metadata = nil
+                return
+            end
+            local parts = {}
+            for i, b in ipairs(current) do
+                if b.authors and b.authors ~= "" then
+                    table.insert(parts, string.format('%d. "%s" by %s', i, b.title, b.authors))
+                else
+                    table.insert(parts, string.format('%d. "%s"', i, b.title))
+                end
+            end
+            configuration.features.book_context = string.format(
+                "Selected %d books:\n\n%s", #current, table.concat(parts, "\n"))
+            configuration.features.book_metadata = {
+                title = current[1].title,
+                author = current[1].authors or "",
+            }
+        end
+
         for idx, book in ipairs(books) do
             local label = book.authors and book.authors ~= ""
                 and string.format('"%s" by %s', book.title, book.authors)
                 or string.format('"%s"', book.title)
             table.insert(menu_buttons, {{
-                text = label .. "  \xE2\x9C\x95",  -- ✕ remove indicator
+                text = label,
                 callback = function()
                     UIManager:close(editor_dialog)
                     table.remove(books, idx)
-                    if #books == 0 then
-                        configuration.features.books_info = nil
-                        configuration.features.book_context = nil
-                        configuration.features.book_metadata = nil
+                    rebuildBookContext()
+                    if books and #books > 0 then
+                        -- Reopen editor with updated list
+                        showSelectedBooksEditor()
                     else
-                        -- Rebuild book_context string
-                        local parts = {}
-                        for _idx2, b in ipairs(books) do
-                            if b.authors and b.authors ~= "" then
-                                table.insert(parts, string.format('"%s" by %s', b.title, b.authors))
-                            else
-                                table.insert(parts, string.format('"%s"', b.title))
-                            end
-                        end
-                        configuration.features.book_context = table.concat(parts, "\n")
+                        refreshInputDialog()
                     end
-                    refreshInputDialog()
                 end,
             }})
         end
@@ -4362,8 +4463,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end,
         }})
 
+        table.insert(menu_buttons, {{
+            text = _("Done"),
+            callback = function()
+                UIManager:close(editor_dialog)
+                refreshInputDialog()
+            end,
+        }})
+
         editor_dialog = ButtonDialog:new{
-            title = T(_("%1 books selected"), #books),
+            title = T(_("%1 books selected — tap to remove"), #books),
             buttons = menu_buttons,
         }
         UIManager:show(editor_dialog)
@@ -4461,12 +4570,29 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                     -- Add appropriate context
                     if configuration.features.is_library_context then
-                        -- For library context, include selected books if any
+                        -- For library context, include selected books and/or library scan
                         local lib_context = configuration.features.book_context
                         if lib_context then
                             table.insert(parts, "[Context]")
                             table.insert(parts, lib_context)
                             table.insert(parts, "")
+                        end
+                        -- Auto-attach library scan data when scanning is available
+                        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+                        if lib_features.enable_library_scanning == true
+                                and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                            local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
+                            if scan_ok and LibraryScanner then
+                                local scan_result = LibraryScanner.scan(lib_features)
+                                if scan_result and scan_result.books and #scan_result.books > 0 then
+                                    local formatted = LibraryScanner.format(scan_result)
+                                    if formatted and formatted ~= "" then
+                                        table.insert(parts, "My library:")
+                                        table.insert(parts, formatted)
+                                        table.insert(parts, "")
+                                    end
+                                end
+                            end
                         end
                     elseif configuration.features.is_book_context then
                         -- For book context (file browser or gesture action), include book metadata
