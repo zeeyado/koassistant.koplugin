@@ -943,6 +943,779 @@ local function runFileBrowserEligibilityTests()
 end
 
 -- =============================================================================
+-- PARITY: Open-book vs Sidecar extraction must produce identical gating
+-- =============================================================================
+
+local function runParityTests()
+    print("\n=== Testing Open-Book vs Sidecar Gating PARITY ===")
+
+    -- Both modes read from the same sidecar data source in tests
+    -- (open-book mock reads from mock_sidecar_data.annotations too)
+    setupSidecarData({
+        annotations = {
+            { text = "A highlighted passage", note = "My personal note" },
+            { text = "Another highlight without note" },
+        },
+        percent_finished = 0.42,
+    })
+    mock_notebook_content = "Reader's notebook entry about themes."
+
+    --- Helper: run extractForAction on both modes, return both results
+    local function extractBoth(settings, action)
+        local sidecar = createSidecarExtractor(settings)
+        local open_book = createOpenBookExtractor(settings)
+        local sidecar_data = sidecar:extractForAction(action)
+        local open_book_data = open_book:extractForAction(action)
+        return sidecar_data, open_book_data
+    end
+
+    -- =========================================================================
+    -- Highlights parity
+    -- =========================================================================
+    print("\n--- Parity: Highlights ---")
+
+    TestRunner:test("PARITY: highlights blocked in both when sharing OFF", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = false, enable_annotations_sharing = false },
+            { use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertEquals(s.highlights, "", "sidecar highlights should be empty")
+        TestRunner:assertEquals(o.highlights, "", "open-book highlights should be empty")
+    end)
+
+    TestRunner:test("PARITY: highlights allowed in both when sharing ON", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = true },
+            { use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(s.highlights, "highlighted passage", "sidecar should have highlights")
+        TestRunner:assertContains(o.highlights, "highlighted passage", "open-book should have highlights")
+    end)
+
+    TestRunner:test("PARITY: highlights allowed via annotations_sharing in both", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = false, enable_annotations_sharing = true },
+            { use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(s.highlights, "highlighted passage", "sidecar should have highlights via annotations")
+        TestRunner:assertContains(o.highlights, "highlighted passage", "open-book should have highlights via annotations")
+    end)
+
+    TestRunner:test("PARITY: per-action flag blocks in both", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = true },
+            { use_highlights = false, prompt = "{highlights}" })
+        TestRunner:assertEquals(s.highlights, "", "sidecar highlights should be empty (flag off)")
+        TestRunner:assertEquals(o.highlights, "", "open-book highlights should be empty (flag off)")
+    end)
+
+    -- =========================================================================
+    -- Annotations parity (including degradation)
+    -- =========================================================================
+    print("\n--- Parity: Annotations + Degradation ---")
+
+    TestRunner:test("PARITY: annotations full in both when annotations_sharing ON", function()
+        local s, o = extractBoth(
+            { enable_annotations_sharing = true },
+            { use_annotations = true, prompt = "{annotations}" })
+        TestRunner:assertContains(s.annotations, "My personal note", "sidecar should have full annotations")
+        TestRunner:assertContains(o.annotations, "My personal note", "open-book should have full annotations")
+        TestRunner:assertEquals(s._annotations_degraded, false)
+        TestRunner:assertEquals(o._annotations_degraded, false)
+    end)
+
+    TestRunner:test("PARITY: annotations degrade to highlights in both when annotations OFF but highlights ON", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = true, enable_annotations_sharing = false },
+            { use_annotations = true, prompt = "{annotations}" })
+        -- Both should degrade: have highlight text but NOT the note
+        TestRunner:assertContains(s.annotations, "highlighted passage", "sidecar should have degraded highlights")
+        TestRunner:assertNotContains(s.annotations, "My personal note", "sidecar should NOT have notes")
+        TestRunner:assertContains(o.annotations, "highlighted passage", "open-book should have degraded highlights")
+        TestRunner:assertNotContains(o.annotations, "My personal note", "open-book should NOT have notes")
+        TestRunner:assertEquals(s._annotations_degraded, true)
+        TestRunner:assertEquals(o._annotations_degraded, true)
+    end)
+
+    TestRunner:test("PARITY: annotations blocked in both when both sharing OFF", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = false, enable_annotations_sharing = false },
+            { use_annotations = true, prompt = "{annotations}" })
+        TestRunner:assertEquals(s.annotations, "", "sidecar annotations should be empty")
+        TestRunner:assertEquals(o.annotations, "", "open-book annotations should be empty")
+    end)
+
+    TestRunner:test("PARITY: annotations blocked when use_annotations=false, even trusted", function()
+        local s, o = extractBoth(
+            { enable_annotations_sharing = false, provider = "local_ollama", trusted_providers = { "local_ollama" } },
+            { use_annotations = false, prompt = "{annotations}" })
+        TestRunner:assertEquals(s.annotations, "", "sidecar per-action gate should block")
+        TestRunner:assertEquals(o.annotations, "", "open-book per-action gate should block")
+    end)
+
+    -- =========================================================================
+    -- Notebook parity
+    -- =========================================================================
+    print("\n--- Parity: Notebook ---")
+
+    TestRunner:test("PARITY: notebook blocked in both when sharing OFF (opt-in default)", function()
+        local s, o = extractBoth(
+            {},  -- enable_notebook_sharing defaults to nil/false
+            { use_notebook = true })
+        TestRunner:assertEquals(s.notebook_content, "", "sidecar notebook should be empty")
+        TestRunner:assertEquals(o.notebook_content, "", "open-book notebook should be empty")
+    end)
+
+    TestRunner:test("PARITY: notebook allowed in both when sharing ON + flag ON", function()
+        local s, o = extractBoth(
+            { enable_notebook_sharing = true },
+            { use_notebook = true })
+        TestRunner:assertContains(s.notebook_content, "themes", "sidecar notebook should have content")
+        TestRunner:assertContains(o.notebook_content, "themes", "open-book notebook should have content")
+    end)
+
+    TestRunner:test("PARITY: notebook blocked when use_notebook=false, even with sharing ON", function()
+        local s, o = extractBoth(
+            { enable_notebook_sharing = true },
+            { use_notebook = false })
+        TestRunner:assertEquals(s.notebook_content, nil, "sidecar: flag off → nil (not requested)")
+        TestRunner:assertEquals(o.notebook_content, nil, "open-book: flag off → nil (not requested)")
+    end)
+
+    -- =========================================================================
+    -- Trusted provider parity
+    -- =========================================================================
+    print("\n--- Parity: Trusted Provider Bypass ---")
+
+    TestRunner:test("PARITY: trusted provider bypasses ALL privacy gates in both modes", function()
+        local settings = {
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = false,
+            enable_notebook_sharing = false,
+            enable_progress_sharing = false,
+            provider = "trusted_one",
+            trusted_providers = { "trusted_one" },
+        }
+        local s, o = extractBoth(settings, {
+            use_highlights = true, use_annotations = true, use_notebook = true,
+            prompt = "{highlights}{annotations}",
+        })
+        -- All data should be available in both modes
+        TestRunner:assertContains(s.highlights, "highlighted passage", "sidecar: trusted bypasses highlights gate")
+        TestRunner:assertContains(o.highlights, "highlighted passage", "open-book: trusted bypasses highlights gate")
+        TestRunner:assertContains(s.annotations, "My personal note", "sidecar: trusted bypasses annotations gate")
+        TestRunner:assertContains(o.annotations, "My personal note", "open-book: trusted bypasses annotations gate")
+        TestRunner:assertContains(s.notebook_content, "themes", "sidecar: trusted bypasses notebook gate")
+        TestRunner:assertContains(o.notebook_content, "themes", "open-book: trusted bypasses notebook gate")
+        -- Progress: sidecar reads from DocSettings, open-book computes from live document
+        -- Both should be non-empty (gate passed), but values differ by data source
+        TestRunner:assertEquals(s.reading_progress, "42%", "sidecar: trusted bypasses progress gate")
+        TestRunner:assert(o.reading_progress ~= nil and o.reading_progress ~= "",
+            "open-book: trusted bypasses progress gate (value from live doc)")
+    end)
+
+    TestRunner:test("PARITY: trusted bypass does NOT override per-action flags", function()
+        local settings = {
+            enable_highlights_sharing = false,
+            provider = "trusted_one",
+            trusted_providers = { "trusted_one" },
+        }
+        local s, o = extractBoth(settings, {
+            use_highlights = false, use_annotations = false,
+            prompt = "{highlights}{annotations}",
+        })
+        TestRunner:assertEquals(s.highlights, "", "sidecar: per-action flag still blocks")
+        TestRunner:assertEquals(o.highlights, "", "open-book: per-action flag still blocks")
+    end)
+
+    -- =========================================================================
+    -- _unavailable_data parity
+    -- =========================================================================
+    print("\n--- Parity: _unavailable_data messages ---")
+
+    TestRunner:test("PARITY: same _unavailable_data for highlights disabled", function()
+        local s, o = extractBoth(
+            { enable_highlights_sharing = false, enable_annotations_sharing = false },
+            { use_highlights = true, prompt = "{highlights_section}" })
+        TestRunner:assert(s._unavailable_data, "sidecar should have _unavailable_data")
+        TestRunner:assert(o._unavailable_data, "open-book should have _unavailable_data")
+        -- Check same message appears in both
+        local s_msg, o_msg = table.concat(s._unavailable_data, "; "), table.concat(o._unavailable_data, "; ")
+        TestRunner:assertContains(s_msg, "highlights (sharing disabled)")
+        TestRunner:assertContains(o_msg, "highlights (sharing disabled)")
+    end)
+
+    TestRunner:test("PARITY: same _unavailable_data for degraded annotations", function()
+        setupSidecarData({
+            annotations = { { text = "A highlight" } },
+            percent_finished = 0.42,
+        })
+        local s, o = extractBoth(
+            { enable_highlights_sharing = true, enable_annotations_sharing = false },
+            { use_annotations = true, prompt = "{annotations_section}" })
+        TestRunner:assert(s._unavailable_data, "sidecar should have _unavailable_data")
+        TestRunner:assert(o._unavailable_data, "open-book should have _unavailable_data")
+        local s_msg, o_msg = table.concat(s._unavailable_data, "; "), table.concat(o._unavailable_data, "; ")
+        TestRunner:assertContains(s_msg, "annotations (using highlights only)")
+        TestRunner:assertContains(o_msg, "annotations (using highlights only)")
+    end)
+
+    TestRunner:test("PARITY: same _unavailable_data for notebook disabled", function()
+        local s, o = extractBoth(
+            {},  -- notebook defaults off
+            { use_notebook = true })
+        TestRunner:assert(s._unavailable_data, "sidecar should have _unavailable_data")
+        TestRunner:assert(o._unavailable_data, "open-book should have _unavailable_data")
+        local s_msg, o_msg = table.concat(s._unavailable_data, "; "), table.concat(o._unavailable_data, "; ")
+        TestRunner:assertContains(s_msg, "notebook (sharing disabled)")
+        TestRunner:assertContains(o_msg, "notebook (sharing disabled)")
+    end)
+
+    TestRunner:test("PARITY: no _unavailable_data when all permissions granted", function()
+        setupSidecarData({
+            annotations = { { text = "A highlight", note = "A note" } },
+            percent_finished = 0.5,
+        })
+        mock_notebook_content = "Notebook content here"
+        local s, o = extractBoth(
+            { enable_highlights_sharing = true, enable_annotations_sharing = true, enable_notebook_sharing = true },
+            { use_highlights = true, use_annotations = true, use_notebook = true, prompt = "{highlights}{annotations}" })
+        -- Neither should have any unavailable data
+        TestRunner:assertEquals(s._unavailable_data, nil, "sidecar: no unavailable data when all enabled")
+        TestRunner:assertEquals(o._unavailable_data, nil, "open-book: no unavailable data when all enabled")
+    end)
+
+    resetMocks()
+end
+
+-- =============================================================================
+-- Real action definitions: test actual built-in actions
+-- =============================================================================
+
+local function runRealActionTests()
+    print("\n=== Testing Real Action Definitions with Sidecar ===")
+
+    setupSidecarData({
+        annotations = {
+            { text = "The desert is vast and patient", note = "Recurring motif" },
+            { text = "Power attracts the corruptible" },
+        },
+        percent_finished = 0.72,
+    })
+    mock_notebook_content = "Themes: ecology, power dynamics, religion"
+
+    local real_actions = {
+        { id = "analyze_highlights", desc = "Analyze Notes" },
+        { id = "xray_simple", desc = "X-Ray Simple" },
+    }
+
+    for _idx, test_def in ipairs(real_actions) do
+        local action = Actions.getById(test_def.id)
+        if not action then
+            TestRunner:test(test_def.desc .. " - SKIP (action not found)", function() end)
+        else
+            print("\n--- Real action: " .. test_def.desc .. " (" .. test_def.id .. ") ---")
+
+            -- Verify it doesn't require open book (eligible for file browser)
+            TestRunner:test(test_def.desc .. ": eligible for file browser", function()
+                TestRunner:assertEquals(Actions.requiresOpenBook(action), false,
+                    test_def.id .. " should not require open book")
+            end)
+
+            -- Test with highlights enabled: should extract highlights
+            if action.use_highlights then
+                TestRunner:test(test_def.desc .. ": sidecar extracts highlights when sharing ON", function()
+                    local extractor = createSidecarExtractor({
+                        enable_highlights_sharing = true,
+                    })
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertContains(data.highlights, "desert",
+                        test_def.id .. " should get highlights from sidecar")
+                end)
+
+                TestRunner:test(test_def.desc .. ": sidecar highlights empty when sharing OFF", function()
+                    local extractor = createSidecarExtractor({
+                        enable_highlights_sharing = false,
+                        enable_annotations_sharing = false,
+                    })
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertEquals(data.highlights, "",
+                        test_def.id .. " highlights should be empty when sharing off")
+                end)
+
+                -- KEY TEST: annotations_sharing implies highlights access
+                TestRunner:test(test_def.desc .. ": annotations_sharing=true grants highlight access (implied)", function()
+                    local extractor = createSidecarExtractor({
+                        enable_highlights_sharing = false,
+                        enable_annotations_sharing = true,
+                    })
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertContains(data.highlights, "desert",
+                        test_def.id .. " should get highlights via annotations_sharing implication")
+                end)
+            end
+
+            -- Test annotations if action uses them
+            if action.use_annotations then
+                TestRunner:test(test_def.desc .. ": sidecar extracts full annotations when sharing ON", function()
+                    local extractor = createSidecarExtractor({
+                        enable_annotations_sharing = true,
+                    })
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertContains(data.annotations, "Recurring motif",
+                        test_def.id .. " should get full annotations")
+                    TestRunner:assertEquals(data._annotations_degraded, false)
+                end)
+
+                TestRunner:test(test_def.desc .. ": sidecar degrades annotations when only highlights ON", function()
+                    local extractor = createSidecarExtractor({
+                        enable_highlights_sharing = true,
+                        enable_annotations_sharing = false,
+                    })
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertContains(data.annotations, "desert",
+                        test_def.id .. " should get degraded highlights-only")
+                    TestRunner:assertNotContains(data.annotations, "Recurring motif",
+                        test_def.id .. " should NOT have note in degraded mode")
+                    TestRunner:assertEquals(data._annotations_degraded, true)
+                end)
+            end
+
+            -- Test notebook if action uses it
+            if action.use_notebook then
+                TestRunner:test(test_def.desc .. ": sidecar extracts notebook when sharing ON", function()
+                    local extractor = createSidecarExtractor({
+                        enable_notebook_sharing = true,
+                    })
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertContains(data.notebook_content, "ecology",
+                        test_def.id .. " should get notebook from sidecar")
+                end)
+            end
+
+            -- Test progress if action uses it
+            if action.use_reading_progress then
+                TestRunner:test(test_def.desc .. ": sidecar extracts progress", function()
+                    local extractor = createSidecarExtractor({})
+                    local data = extractor:extractForAction(action)
+                    TestRunner:assertEquals(data.reading_progress, "72%",
+                        test_def.id .. " should get progress from sidecar")
+                end)
+            end
+
+            -- PARITY: compare open-book vs sidecar with full permissions
+            TestRunner:test(test_def.desc .. ": PARITY open-book vs sidecar (all enabled)", function()
+                local settings = {
+                    enable_highlights_sharing = true,
+                    enable_annotations_sharing = true,
+                    enable_notebook_sharing = true,
+                }
+                local sidecar_ext = createSidecarExtractor(settings)
+                local open_book_ext = createOpenBookExtractor(settings)
+                local s = sidecar_ext:extractForAction(action)
+                local o = open_book_ext:extractForAction(action)
+                -- Compare gating outcomes (both should have data or both empty)
+                if action.use_highlights then
+                    TestRunner:assert(
+                        (s.highlights ~= "") == (o.highlights ~= ""),
+                        test_def.id .. ": highlights gating mismatch (sidecar=" ..
+                            (#(s.highlights or "")) .. " vs open=" .. (#(o.highlights or "")) .. ")")
+                end
+                if action.use_annotations then
+                    TestRunner:assert(
+                        (s.annotations ~= "") == (o.annotations ~= ""),
+                        test_def.id .. ": annotations gating mismatch")
+                    TestRunner:assertEquals(s._annotations_degraded, o._annotations_degraded,
+                        test_def.id .. ": degradation state mismatch")
+                end
+                if action.use_notebook then
+                    TestRunner:assert(
+                        (s.notebook_content ~= "") == (o.notebook_content ~= ""),
+                        test_def.id .. ": notebook gating mismatch")
+                end
+            end)
+
+            -- PARITY: compare open-book vs sidecar with minimal permissions
+            TestRunner:test(test_def.desc .. ": PARITY open-book vs sidecar (all disabled)", function()
+                local settings = {
+                    enable_highlights_sharing = false,
+                    enable_annotations_sharing = false,
+                    enable_notebook_sharing = false,
+                    enable_progress_sharing = false,
+                }
+                local sidecar_ext = createSidecarExtractor(settings)
+                local open_book_ext = createOpenBookExtractor(settings)
+                local s = sidecar_ext:extractForAction(action)
+                local o = open_book_ext:extractForAction(action)
+                if action.use_highlights then
+                    TestRunner:assertEquals(s.highlights, o.highlights,
+                        test_def.id .. ": highlights should match when both disabled")
+                end
+                if action.use_annotations then
+                    TestRunner:assertEquals(s.annotations, o.annotations,
+                        test_def.id .. ": annotations should match when both disabled")
+                end
+                if action.use_notebook then
+                    TestRunner:assertEquals(s.notebook_content, o.notebook_content,
+                        test_def.id .. ": notebook should match when both disabled")
+                end
+                TestRunner:assertEquals(s.reading_progress, o.reading_progress,
+                    test_def.id .. ": progress should match when both disabled")
+            end)
+        end
+    end
+
+    -- =========================================================================
+    -- Test annotations-implies-highlights for all highlight-requiring actions
+    -- =========================================================================
+    print("\n--- Annotations-implies-highlights for requires={\"highlights\"} actions ---")
+
+    local highlight_requiring = {}
+    for _idx2, id in ipairs({"analyze_highlights", "connect_with_notes"}) do
+        local a = Actions.getById(id)
+        if a and a.requires then
+            for _idx3, req in ipairs(a.requires) do
+                if req == "highlights" then
+                    table.insert(highlight_requiring, { id = id, action = a })
+                end
+            end
+        end
+    end
+
+    for _idx, entry in ipairs(highlight_requiring) do
+        -- Scenario: only annotations_sharing is ON, highlights_sharing is OFF
+        -- The annotation-implies-highlights rule should still allow data extraction
+        TestRunner:test(entry.id .. ": annotations_sharing=true is sufficient for requires={highlights}", function()
+            local extractor = createSidecarExtractor({
+                enable_highlights_sharing = false,
+                enable_annotations_sharing = true,
+            })
+            local data = extractor:extractForAction(entry.action)
+            -- Should have data through the implication chain
+            local has_data = (data.highlights and data.highlights ~= "")
+                or (data.annotations and data.annotations ~= "")
+            TestRunner:assert(has_data,
+                entry.id .. " should have highlight/annotation data when annotations_sharing=true")
+        end)
+
+        -- Scenario: only highlights_sharing ON — should work since requires={"highlights"}
+        -- checks enable_highlights_sharing OR enable_annotations_sharing
+        TestRunner:test(entry.id .. ": highlights_sharing=true is sufficient for requires={highlights}", function()
+            local extractor = createSidecarExtractor({
+                enable_highlights_sharing = true,
+                enable_annotations_sharing = false,
+            })
+            local data = extractor:extractForAction(entry.action)
+            local has_data = (data.highlights and data.highlights ~= "")
+                or (data.annotations and data.annotations ~= "")
+            TestRunner:assert(has_data,
+                entry.id .. " should have data when highlights_sharing=true")
+        end)
+    end
+
+    resetMocks()
+end
+
+-- =============================================================================
+-- Edge cases: nil vs false vs true settings
+-- =============================================================================
+
+local function runEdgeCaseTests()
+    print("\n=== Testing Edge Cases (nil/false/true setting values) ===")
+
+    setupSidecarData({
+        annotations = { { text = "A highlight" } },
+        percent_finished = 0.5,
+    })
+    mock_notebook_content = "Notebook content"
+
+    -- =========================================================================
+    -- nil setting behavior
+    -- =========================================================================
+    print("\n--- nil setting behavior ---")
+
+    TestRunner:test("enable_highlights_sharing=nil → blocked (opt-in, default false)", function()
+        local extractor = createSidecarExtractor({})  -- nil, not explicitly false
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertEquals(data.highlights, "", "nil should behave like false for opt-in setting")
+    end)
+
+    TestRunner:test("enable_annotations_sharing=nil → blocked (opt-in, default false)", function()
+        local extractor = createSidecarExtractor({})
+        local data = extractor:extractForAction({ use_annotations = true, prompt = "{annotations}" })
+        TestRunner:assertEquals(data.annotations, "", "nil should behave like false for opt-in setting")
+    end)
+
+    TestRunner:test("enable_notebook_sharing=nil → blocked (opt-in, default false)", function()
+        local extractor = createSidecarExtractor({})
+        local data = extractor:extractForAction({ use_notebook = true })
+        TestRunner:assertEquals(data.notebook_content, "", "nil should behave like false for opt-in setting")
+    end)
+
+    TestRunner:test("enable_progress_sharing=nil → allowed (opt-out, default true)", function()
+        local extractor = createSidecarExtractor({})  -- nil, not explicitly true
+        local data = extractor:extractForAction({})
+        TestRunner:assertEquals(data.reading_progress, "50%", "nil should behave like true for opt-out setting")
+    end)
+
+    TestRunner:test("enable_stats_sharing=nil → allowed (opt-out, default true)", function()
+        local extractor = createSidecarExtractor({})
+        local data = extractor:extractForAction({})
+        -- Stats are only available with open book, but the gate should pass
+        TestRunner:assert(data.chapter_title ~= nil, "stats gate should pass when nil (opt-out)")
+    end)
+
+    -- =========================================================================
+    -- PARITY: nil settings produce same result in both modes
+    -- =========================================================================
+    print("\n--- PARITY: nil settings ---")
+
+    TestRunner:test("PARITY: nil settings → same gating in both modes", function()
+        local settings = {}  -- All nil (defaults)
+        local sidecar_ext = createSidecarExtractor(settings)
+        local open_book_ext = createOpenBookExtractor(settings)
+        local s = sidecar_ext:extractForAction({ use_highlights = true, use_annotations = true, use_notebook = true, prompt = "{highlights}{annotations}" })
+        local o = open_book_ext:extractForAction({ use_highlights = true, use_annotations = true, use_notebook = true, prompt = "{highlights}{annotations}" })
+        -- All opt-in should be blocked identically
+        TestRunner:assertEquals(s.highlights, o.highlights, "highlights should match with nil settings")
+        TestRunner:assertEquals(s.annotations, o.annotations, "annotations should match with nil settings")
+        TestRunner:assertEquals(s.notebook_content, o.notebook_content, "notebook should match with nil settings")
+        -- Opt-out: progress gate passes in both, but values differ (sidecar=DocSettings, open=live doc)
+        TestRunner:assert(s.reading_progress ~= nil and s.reading_progress ~= "",
+            "sidecar progress should be non-empty (opt-out default allows)")
+        TestRunner:assert(o.reading_progress ~= nil and o.reading_progress ~= "",
+            "open-book progress should be non-empty (opt-out default allows)")
+    end)
+
+    -- =========================================================================
+    -- Combination: only one of highlights/annotations enabled
+    -- =========================================================================
+    print("\n--- Combination: mixed highlights/annotations settings ---")
+
+    TestRunner:test("highlights ON + annotations OFF: highlights extracted, annotations degrade", function()
+        local extractor = createSidecarExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = false,
+        })
+        local data = extractor:extractForAction({
+            use_highlights = true, use_annotations = true,
+            prompt = "{highlights}{annotations}",
+        })
+        TestRunner:assertContains(data.highlights, "A highlight", "highlights should be extracted")
+        -- Annotations should degrade to highlights (text only, no notes)
+        TestRunner:assertContains(data.annotations, "A highlight", "annotations should degrade to highlight text")
+        TestRunner:assertEquals(data._annotations_degraded, true, "should be marked as degraded")
+    end)
+
+    TestRunner:test("highlights OFF + annotations ON: highlights extracted (annotation implies), annotations full", function()
+        local extractor = createSidecarExtractor({
+            enable_highlights_sharing = false,
+            enable_annotations_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_highlights = true, use_annotations = true,
+            prompt = "{highlights}{annotations}",
+        })
+        -- annotations_sharing implies highlights access
+        TestRunner:assertContains(data.highlights, "A highlight",
+            "highlights should be extracted (annotations_sharing implies)")
+        TestRunner:assertContains(data.annotations, "A highlight", "full annotations should be available")
+        TestRunner:assertEquals(data._annotations_degraded, false, "should NOT be degraded")
+    end)
+
+    -- =========================================================================
+    -- use_highlights action flag vs use_annotations flag interaction
+    -- =========================================================================
+    print("\n--- Action flag interaction ---")
+
+    TestRunner:test("use_highlights=true, use_annotations=false: highlights extracted, annotations degrade", function()
+        local extractor = createSidecarExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_highlights = true, use_annotations = false,
+            prompt = "{highlights}",
+        })
+        TestRunner:assertContains(data.highlights, "A highlight")
+        -- Degradation path fires: use_annotations=false but use_highlights=true
+        -- so elseif highlights_allowed and (use_highlights or use_annotations) → true
+        -- This means annotations data is set (degraded to highlights-only)
+        TestRunner:assertEquals(data._annotations_degraded, true,
+            "annotations should degrade when use_annotations=false but use_highlights=true")
+    end)
+
+    TestRunner:test("use_highlights=false, use_annotations=true: annotations extracted, highlights blocked", function()
+        local extractor = createSidecarExtractor({
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = true,
+        })
+        local data = extractor:extractForAction({
+            use_highlights = false, use_annotations = true,
+            prompt = "{annotations}",
+        })
+        TestRunner:assertEquals(data.highlights, "", "highlights should be empty when flag is false")
+        TestRunner:assertContains(data.annotations, "A highlight", "annotations should be available")
+    end)
+
+    resetMocks()
+end
+
+-- =============================================================================
+-- Settings propagation: simulate toggle → extract cycle
+-- =============================================================================
+
+local function runSettingsPropagationTests()
+    print("\n=== Testing Settings Propagation (toggle → extract) ===")
+
+    setupSidecarData({
+        annotations = {
+            { text = "Should be visible when sharing on" },
+        },
+        percent_finished = 0.5,
+    })
+    mock_notebook_content = "Notebook content"
+
+    -- Simulate the real config flow:
+    -- 1. Global configuration table (like the real `configuration` global)
+    -- 2. Settings toggle changes the value
+    -- 3. updateConfigFromSettings merges settings → configuration.features
+    -- 4. Sidecar extractor reads from configuration.features
+
+    print("\n--- Simulate: enable → disable → re-extract ---")
+
+    TestRunner:test("settings propagation: highlights ON → extract → highlights found", function()
+        -- Step 1: initial config with highlights ON
+        local config_features = { enable_highlights_sharing = true }
+        local extractor = createSidecarExtractor(config_features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(data.highlights, "Should be visible")
+    end)
+
+    TestRunner:test("settings propagation: highlights ON → toggle OFF → re-extract → empty", function()
+        -- Step 1: config starts with highlights ON (simulating live configuration.features)
+        local config_features = { enable_highlights_sharing = true }
+
+        -- Step 2: user toggles OFF — simulating setSettingValue + updateConfigFromSettings
+        config_features.enable_highlights_sharing = false
+
+        -- Step 3: new extractor with updated settings (what sidecar extraction does)
+        local extractor = createSidecarExtractor(config_features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertEquals(data.highlights, "", "highlights should be empty after toggle OFF")
+    end)
+
+    TestRunner:test("settings propagation: highlights OFF → toggle ON → re-extract → found", function()
+        local config_features = { enable_highlights_sharing = false }
+
+        -- Toggle ON
+        config_features.enable_highlights_sharing = true
+
+        local extractor = createSidecarExtractor(config_features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(data.highlights, "Should be visible",
+            "highlights should appear after toggle ON")
+    end)
+
+    -- Simulate the REAL config copy pattern from executeFileBrowserAction
+    print("\n--- Simulate: config_copy pattern (executeFileBrowserAction) ---")
+
+    TestRunner:test("config_copy: settings change BEFORE copy → copy has new value", function()
+        -- Simulate: global configuration.features gets updated, THEN config_copy is made
+        local global_features = { enable_highlights_sharing = true }
+
+        -- User toggles OFF, updateConfigFromSettings runs
+        global_features.enable_highlights_sharing = false
+
+        -- Config copy happens (like lines 7529-7532 in executeFileBrowserAction)
+        local config_copy_features = {}
+        for k, v in pairs(global_features) do
+            config_copy_features[k] = v
+        end
+
+        -- Sidecar extractor reads from config_copy
+        local extractor = createSidecarExtractor(config_copy_features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertEquals(data.highlights, "",
+            "config_copy should reflect settings change before copy")
+    end)
+
+    TestRunner:test("config_copy: settings change AFTER copy → copy has OLD value (stale!)", function()
+        -- Simulate: config_copy is made from global, THEN settings change
+        local global_features = { enable_highlights_sharing = true }
+
+        -- Config copy happens first (snapshot)
+        local config_copy_features = {}
+        for k, v in pairs(global_features) do
+            config_copy_features[k] = v
+        end
+
+        -- THEN user toggles OFF — but config_copy already has the old value
+        global_features.enable_highlights_sharing = false
+
+        -- Sidecar extractor reads from the stale config_copy
+        local extractor = createSidecarExtractor(config_copy_features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        -- This DOCUMENTS the staleness behavior — config_copy is a snapshot
+        TestRunner:assertContains(data.highlights, "Should be visible",
+            "config_copy is a SNAPSHOT — changes after copy are not reflected")
+    end)
+
+    -- The INPUT DIALOG path uses the global configuration directly (no copy)
+    -- So it should always see the latest settings
+    print("\n--- Simulate: input dialog path (live configuration reference) ---")
+
+    TestRunner:test("input dialog: settings change visible through live reference", function()
+        -- Simulate: showChatGPTDialog captures global configuration reference
+        local global_config = { features = { enable_highlights_sharing = true } }
+        local dialog_config_ref = global_config  -- Same reference
+
+        -- User changes settings via gear menu (modifies global)
+        global_config.features.enable_highlights_sharing = false
+
+        -- handlePredefinedPrompt reads from dialog_config_ref (same object)
+        local extractor = createSidecarExtractor(dialog_config_ref.features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertEquals(data.highlights, "",
+            "live reference should see settings change immediately")
+    end)
+
+    -- Test the annotations-implies-highlights auto-enable scenario
+    print("\n--- Annotations toggle auto-enables highlights ---")
+
+    TestRunner:test("annotations ON → highlights auto-enabled → annotations OFF → highlights survives", function()
+        local features = { enable_highlights_sharing = false, enable_annotations_sharing = false }
+
+        -- User turns annotations ON → on_change auto-enables highlights
+        features.enable_annotations_sharing = true
+        features.enable_highlights_sharing = true  -- Auto-enabled by on_change
+
+        -- User turns annotations OFF → highlights NOT auto-disabled
+        features.enable_annotations_sharing = false
+        -- enable_highlights_sharing stays true!
+
+        local extractor = createSidecarExtractor(features)
+        local data = extractor:extractForAction({ use_highlights = true, prompt = "{highlights}" })
+        TestRunner:assertContains(data.highlights, "Should be visible",
+            "highlights should remain after annotations is turned off")
+    end)
+
+    TestRunner:test("annotations OFF + highlights ON: highlights extracted, annotations degrade", function()
+        local features = {
+            enable_highlights_sharing = true,
+            enable_annotations_sharing = false,
+        }
+        local extractor = createSidecarExtractor(features)
+        local data = extractor:extractForAction({
+            use_highlights = true, use_annotations = true,
+            prompt = "{highlights}{annotations}",
+        })
+        TestRunner:assertContains(data.highlights, "Should be visible")
+        TestRunner:assertEquals(data._annotations_degraded, true,
+            "annotations should degrade to highlights-only")
+    end)
+
+    resetMocks()
+end
+
+-- =============================================================================
 -- Run all tests
 -- =============================================================================
 
@@ -956,6 +1729,10 @@ local function runAll()
     runFlagClassificationTests()
     runSidecarLiveFlagTests()
     runFileBrowserEligibilityTests()
+    runParityTests()
+    runRealActionTests()
+    runEdgeCaseTests()
+    runSettingsPropagationTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
 

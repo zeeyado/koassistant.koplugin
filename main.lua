@@ -1414,6 +1414,41 @@ function AskGPT:initSettings()
 end
 
 function AskGPT:updateConfigFromSettings()
+  -- Re-read settings from disk to ensure freshness across plugin instances.
+  -- KOReader creates separate plugin instances for FileManager and ReaderUI;
+  -- settings changed in one instance are flushed to disk but the other instance's
+  -- in-memory LuaSettings remains stale. Re-reading ensures we always have the
+  -- latest values regardless of which instance modified them.
+  if self.settings_file then
+    local fresh = LuaSettings:open(self.settings_file)
+    local fresh_features = fresh:readSetting("features")
+    if fresh_features then
+      local mem_features = self.settings:readSetting("features")
+      if mem_features then
+        -- Merge disk values into existing in-memory table (preserves reference)
+        for k, v in pairs(fresh_features) do
+          mem_features[k] = v
+        end
+        -- Handle values deleted on disk (set to nil): check keys in memory
+        -- that no longer exist on disk. Only for known privacy-relevant keys
+        -- where false↔nil distinction matters.
+        local privacy_keys = {
+          "enable_highlights_sharing", "enable_annotations_sharing",
+          "enable_notebook_sharing", "enable_progress_sharing",
+          "enable_stats_sharing", "enable_book_text_extraction",
+          "enable_library_scanning",
+        }
+        for _idx, pk in ipairs(privacy_keys) do
+          if fresh_features[pk] == nil and mem_features[pk] ~= nil then
+            mem_features[pk] = nil
+          end
+        end
+      else
+        self.settings:saveSetting("features", fresh_features)
+      end
+    end
+  end
+
   -- Update configuration with values from settings
   -- Provider and model are stored inside features table
   local features = self.settings:readSetting("features") or {}
@@ -4612,12 +4647,14 @@ function AskGPT:_checkRequirements(action)
   if not action.requires then
     return false
   end
-  local features
+  -- Read from configuration.features (updated by updateConfigFromSettings) for consistency
+  -- with the sidecar extractor, which also reads from config.features.
+  -- This ensures _checkRequirements and extraction always agree on gating decisions.
+  local features = configuration and configuration.features or {}
   local hint = action.blocked_hint and ("\n\n" .. action.blocked_hint) or ""
 
   -- Check if current provider is trusted (bypasses global privacy gates)
   local function isProviderTrusted()
-    features = features or (self.settings and self.settings:readSetting("features") or {})
     local provider = features.provider
     if not provider then return false end
     for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
@@ -4636,7 +4673,6 @@ function AskGPT:_checkRequirements(action)
         return true
       end
       -- Global gate: text extraction enabled? (trusted providers bypass)
-      features = features or (self.settings and self.settings:readSetting("features") or {})
       if features.enable_book_text_extraction ~= true and not isProviderTrusted() then
         UIManager:show(InfoMessage:new{
           text = _("Text extraction is required to generate this artifact.\n\nEnable it in Settings → Privacy & Data → Text Extraction.") .. hint,
@@ -4653,7 +4689,6 @@ function AskGPT:_checkRequirements(action)
       end
       -- Global gate: library scanning enabled? (trusted providers bypass)
       -- This is an absolute gate — session folders do NOT bypass it
-      features = features or (self.settings and self.settings:readSetting("features") or {})
       if features.enable_library_scanning ~= true and not isProviderTrusted() then
         UIManager:show(InfoMessage:new{
           text = _("Library scanning is required for this action.\n\nEnable it in Settings → Privacy & Data → Allow Library Scanning.") .. hint,
@@ -4680,7 +4715,6 @@ function AskGPT:_checkRequirements(action)
         return true
       end
       -- Global gate: is any highlight-type sharing enabled? (trusted providers bypass)
-      features = features or (self.settings and self.settings:readSetting("features") or {})
       if features.enable_highlights_sharing ~= true and features.enable_annotations_sharing ~= true and not isProviderTrusted() then
         UIManager:show(InfoMessage:new{
           text = _("This action requires access to your highlights or annotations.\n\nEnable sharing in Settings → Privacy & Data.") .. hint,
