@@ -1160,20 +1160,14 @@ local SettingsSchema = {
                     text = _("Allow Library Scanning"),
                     path = "features.enable_library_scanning",
                     default = false,
-                    help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
-                    on_change = function(new_value, plugin)
+                    help_text = _("Enables library actions that analyze your book collection. Add permanent scan folders below, or pick folders on the fly in the input dialog."),
+                    on_change = function(new_value)
                         if new_value then
                             local InfoMessage = require("ui/widget/infomessage")
                             local UIManager = require("ui/uimanager")
-                            local f = plugin.settings:readSetting("features") or {}
-                            local folders = f.library_scan_folders or {}
-                            local msg
-                            if #folders == 0 then
-                                msg = _("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nNext step: configure which folders to scan below in Library Folders.")
-                            else
-                                msg = T(_("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nCurrently scanning %1 folder(s)."), #folders)
-                            end
-                            UIManager:show(InfoMessage:new{ text = msg })
+                            UIManager:show(InfoMessage:new{
+                                text = _("Enables library actions that analyze your book collection.\n\nAdd permanent scan folders below, or pick folders on the fly in the input dialog."),
+                            })
                         end
                     end,
                 },
@@ -1184,13 +1178,13 @@ local SettingsSchema = {
                         local f = plugin.settings:readSetting("features") or {}
                         local folders = f.library_scan_folders or {}
                         if #folders == 0 then
-                            return _("Library Folders: None")
+                            return _("Permanent Scan Folders: None")
                         else
-                            return T(_("Library Folders: %1"), #folders)
+                            return T(_("Permanent Scan Folders: %1"), #folders)
                         end
                     end,
                     depends_on = { id = "enable_library_scanning_library", value = true },
-                    help_text = _("Folders to scan for books. Only these folders will be scanned — no default or fallback. Add at least one folder to use library features."),
+                    help_text = _("Folders always scanned for library actions. You can also pick folders on the fly in the input dialog."),
                     callback = "getLibraryFoldersMenuItems",
                 },
             },
@@ -1309,21 +1303,15 @@ local SettingsSchema = {
                     text = _("Allow Library Scanning"),
                     path = "features.enable_library_scanning",
                     default = false,
-                    help_text = _("Scan your book folders and share your library list (titles, authors, reading status) with AI. Used by Suggest from Library and actions with {library} placeholders."),
+                    help_text = _("Enables library actions that analyze your book collection. Configure permanent scan folders in Library Settings, or pick folders on the fly in the input dialog."),
                     separator = true,
-                    on_change = function(new_value, plugin)
+                    on_change = function(new_value)
                         if new_value then
                             local InfoMessage = require("ui/widget/infomessage")
                             local UIManager = require("ui/uimanager")
-                            local f = plugin.settings:readSetting("features") or {}
-                            local folders = f.library_scan_folders or {}
-                            local msg
-                            if #folders == 0 then
-                                msg = _("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nNext step: configure which folders to scan in Settings → Library Settings → Library Folders.")
-                            else
-                                msg = T(_("Library scanning shares your book catalog (titles, authors, reading status) with the AI.\n\nCurrently scanning %1 folder(s)."), #folders)
-                            end
-                            UIManager:show(InfoMessage:new{ text = msg })
+                            UIManager:show(InfoMessage:new{
+                                text = _("Enables library actions that analyze your book collection.\n\nConfigure permanent scan folders in Library Settings, or pick folders on the fly in the input dialog."),
+                            })
                         end
                     end,
                 },

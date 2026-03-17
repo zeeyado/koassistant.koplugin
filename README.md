@@ -437,7 +437,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 **Library Settings** (under Privacy & Data):
 - **Enable Library Scanning** — Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library) and the Suggest from Library book action
-- **Manage Library Folders** — Configure which folders to scan. Default: KOReader home directory. Add custom folders via PathChooser
+- **Permanent Scan Folders** — Folders always scanned for library actions. You can also pick folders on the fly in the input dialog
 - Library scanning is triple-gated: global toggle + configured folders + per-action `use_library` flag. All three must be satisfied
 
 **Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction AND the library scanning toggle. When the active provider is trusted, all data types — highlights, annotations, notebook, reading progress, book text, and library catalog — are available without toggling individual settings. Trusted providers still require configured folders for library scanning.

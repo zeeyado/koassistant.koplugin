@@ -4433,7 +4433,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         local effective = getEffectiveScanFolders()
         library_folder_dialog = ButtonDialog:new{
-            title = T(_("Library Folders (%1 active)"), #effective),
+            title = T(_("Scan Folders (%1 active)"), #effective),
             buttons = menu_buttons,
         }
         UIManager:show(library_folder_dialog)
@@ -4721,6 +4721,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Build all input dialog buttons (called on init and on refresh via reinit)
+    -- Library scan state: computed here (outer scope) so both buildInputDialogButtons and hint text can use it
+    -- Settings come from plugin.settings (KOReader settings system), not configuration.features
+    local settings_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local is_trusted = false
+    if settings_features.trusted_providers and configuration and configuration.provider then
+        for _idx, tp in ipairs(settings_features.trusted_providers) do
+            if tp == configuration.provider then is_trusted = true; break end
+        end
+    end
+    local library_toggle_on = settings_features.enable_library_scanning == true or is_trusted
+    local has_session_scan = plugin and plugin._session_scan_folders and #plugin._session_scan_folders > 0
+    local has_permanent_folders = settings_features.library_scan_folders and #settings_features.library_scan_folders > 0
+    local library_scan_available = library_toggle_on and (has_session_scan or has_permanent_folders)
+
     local has_more_actions = false  -- Set by buildInputDialogButtons, read by gear menu
     local buildInputDialogButtons
     buildInputDialogButtons = function()
@@ -4986,15 +5000,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             prompts, prompt_keys = getAllPrompts(configuration, plugin)
             logger.info("buildInputDialogButtons: Got " .. #prompt_keys .. " prompts from getAllPrompts")
         end
-    -- Pre-compute availability state for button graying
+    -- Pre-compute availability state for button graying (uses outer-scope library_scan_available)
     local selected_book_count = 0
     local avail_features = configuration and configuration.features or {}
-    -- Library scan check applies to all contexts (suggest_from_library is a book action)
-    -- Session scan folders (from library dialog) bypass permanent config requirement
-    local has_session_scan = plugin and plugin._session_scan_folders and #plugin._session_scan_folders > 0
-    local library_scan_available = has_session_scan
-        or (avail_features.enable_library_scanning == true
-            and avail_features.library_scan_folders and #avail_features.library_scan_folders > 0)
     if input_context == "library" then
         local books = avail_features.books_info
         selected_book_count = books and #books or 0
@@ -5239,35 +5247,37 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end
             end
 
-            -- Library folder management row
-            local session_state = configuration.features._session_library or {}
-            local perm_folders = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-            local perm_folder_list = perm_folders.library_scan_folders or {}
-            local adhoc_folders = session_state.adhoc_folders or {}
-            local disabled_set = session_state.disabled_folders or {}
-            local active_count = 0
-            for _idx2, pf in ipairs(perm_folder_list) do
-                if not disabled_set[pf] then active_count = active_count + 1 end
-            end
-            active_count = active_count + #adhoc_folders
-            local total_count = #perm_folder_list + #adhoc_folders
-            local library_label
-            if total_count == 0 then
-                library_label = _("Library: No folders")
-            elseif active_count == total_count then
-                library_label = T(_("Library (%1) \u{25BE}"), total_count)
-            else
-                library_label = T(_("Library (%1/%2) \u{25BE}"), active_count, total_count)
-            end
-            table.insert(button_rows, {{
-                text = library_label,
-                callback = function()
-                    showLibraryFolderPopup()
-                end,
-            }})
+            -- Library folder management row (only when scanning is enabled)
+            if library_toggle_on then
+                local session_state = configuration.features._session_library or {}
+                local perm_folders = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+                local perm_folder_list = perm_folders.library_scan_folders or {}
+                local adhoc_folders = session_state.adhoc_folders or {}
+                local disabled_set = session_state.disabled_folders or {}
+                local active_count = 0
+                for _idx2, pf in ipairs(perm_folder_list) do
+                    if not disabled_set[pf] then active_count = active_count + 1 end
+                end
+                active_count = active_count + #adhoc_folders
+                local total_count = #perm_folder_list + #adhoc_folders
+                local library_label
+                if total_count == 0 then
+                    library_label = _("Library Scan \u{25BE}")
+                elseif active_count == total_count then
+                    library_label = T(_("Library Scan (%1) \u{25BE}"), total_count)
+                else
+                    library_label = T(_("Library Scan (%1/%2) \u{25BE}"), active_count, total_count)
+                end
+                table.insert(button_rows, {{
+                    text = library_label,
+                    callback = function()
+                        showLibraryFolderPopup()
+                    end,
+                }})
 
-            -- Scan-based action rows
-            addButtonRows(button_rows, scan_buttons)
+                -- Scan-based action rows
+                addButtonRows(button_rows, scan_buttons)
+            end
 
             -- Item selection row (single button, opens popup with view/edit + add presets)
             local books = configuration and configuration.features and configuration.features.books_info
@@ -5339,15 +5349,27 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Show the dialog with the button rows
     local is_multi = config and config.features and config.features.is_library_context
     local multi_count = is_multi and config.features.books_info and #config.features.books_info or 0
+    local has_scan = library_toggle_on and (has_session_scan or has_permanent_folders)
     local dialog_title
     local input_hint_text
     if is_multi then
-        if multi_count > 0 then
+        if has_scan and multi_count > 0 then
             dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
-            input_hint_text = _("Add instructions or ask about selected items...")
-        else
+            input_hint_text = _("Add instructions for any action, or chat about your library and selected items...")
+        elseif has_scan then
             dialog_title = _("Library Actions")
-            input_hint_text = _("Chat about your library, or add items for multi-book actions...")
+            input_hint_text = _("Add instructions for any action, or chat about your library...")
+        elseif multi_count > 0 then
+            dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
+            input_hint_text = _("Add instructions for any action, or chat about your selected items...")
+        elseif library_toggle_on then
+            -- Toggle on but no folders configured yet
+            dialog_title = _("Library Actions")
+            input_hint_text = _("Add library scan folders or items to run any action...")
+        else
+            -- Toggle off
+            dialog_title = _("Library Actions")
+            input_hint_text = _("Add items to chat about them or run any action...")
         end
     else
         dialog_title = _("KOAssistant Actions")
