@@ -3854,7 +3854,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local books = configuration and configuration.features and configuration.features.books_info
             if not books or #books < 2 then
                 UIManager:show(InfoMessage:new{
-                    text = _("Select at least 2 items first using [+ Add Items]."),
+                    text = _("Select at least 2 items first using [Items]."),
                     timeout = 3,
                 })
                 return
@@ -4232,6 +4232,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Library context: show Add Books menu with presets
     local add_books_dialog  -- forward declaration for closure
+    local showSelectedBooksEditor  -- forward declaration for showAddBooksMenu
 
     -- Helper: get books from ReadHistory filtered by status via DocSettings
     -- status_filter: "reading", "complete", "abandoned", or nil (no filter)
@@ -4433,6 +4434,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local book_count = books and #books or 0
         local menu_buttons = {}
 
+        -- View/Edit existing items (when items are selected)
+        if book_count > 0 then
+            table.insert(menu_buttons, {{
+                text = T(_("View/Edit Items (%1)"), book_count),
+                callback = function()
+                    UIManager:close(add_books_dialog)
+                    showSelectedBooksEditor()
+                end,
+            }})
+        end
+
         -- Status presets: history + DocSettings, always available (no scanner needed)
         local function addStatusPreset(label, status_filter)
             table.insert(menu_buttons, {{
@@ -4617,7 +4629,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     -- Library context: view and remove selected books
     -- Rebuilds book_context after removal; reopens itself unless list is emptied
-    local function showSelectedBooksEditor()
+    showSelectedBooksEditor = function()
         local books = configuration and configuration.features and configuration.features.books_info
         if not books or #books == 0 then return end
 
@@ -5235,26 +5247,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             -- Scan-based action rows
             addButtonRows(button_rows, scan_buttons)
 
-            -- Item selection row
+            -- Item selection row (single button, opens popup with view/edit + add presets)
             local books = configuration and configuration.features and configuration.features.books_info
             local book_count = books and #books or 0
-            local selection_row = {
-                {
-                    text = _("+ Add Items"),
-                    callback = function()
-                        showAddBooksMenu()
-                    end,
-                },
-            }
-            if book_count > 0 then
-                table.insert(selection_row, {
-                    text = T(_("View/Edit (%1)"), book_count),
-                    callback = function()
-                        showSelectedBooksEditor()
-                    end,
-                })
+            local items_label
+            if book_count == 0 then
+                items_label = _("Items \u{25BE}")
+            else
+                items_label = T(_("Items (%1) \u{25BE}"), book_count)
             end
-            table.insert(button_rows, selection_row)
+            table.insert(button_rows, {{
+                text = items_label,
+                callback = function()
+                    showAddBooksMenu()
+                end,
+            }})
 
             -- Selection-based action rows
             addButtonRows(button_rows, selection_buttons)
