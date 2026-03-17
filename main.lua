@@ -10884,6 +10884,63 @@ function AskGPT:_validateActionOverrides(overrides)
   return valid_overrides, warnings
 end
 
+-- Validate all data indexes: prune stale entries for moved/deleted books
+function AskGPT:validateAllIndexes()
+  local InfoMessage = require("ui/widget/infomessage")
+  -- Note: lfs is already required at file scope
+
+  local SPECIAL_KEYS = {
+    ["__GENERAL_CHATS__"] = true,
+    ["__LIBRARY_CHATS__"] = true,
+  }
+
+  local total_pruned = 0
+
+  -- Helper: prune stale doc_path entries from an index
+  local function pruneIndex(setting_key)
+    local index = G_reader_settings:readSetting(setting_key, {})
+    local pruned = 0
+    for doc_path in pairs(index) do
+      if not SPECIAL_KEYS[doc_path] and not lfs.attributes(doc_path, "mode") then
+        logger.info("KOAssistant: Pruning stale entry from " .. setting_key .. ": " .. doc_path)
+        index[doc_path] = nil
+        pruned = pruned + 1
+      end
+    end
+    if pruned > 0 then
+      G_reader_settings:saveSetting(setting_key, index)
+    end
+    return pruned
+  end
+
+  -- Validate chat index (also checks count mismatches via existing function)
+  local ChatHistoryManager = require("koassistant_chat_history_manager")
+  local chat_manager = ChatHistoryManager:new{}
+  chat_manager:validateChatIndex()
+
+  -- Prune stale entries from all other indexes
+  total_pruned = total_pruned + pruneIndex("koassistant_artifact_index")
+  total_pruned = total_pruned + pruneIndex("koassistant_notebook_index")
+  total_pruned = total_pruned + pruneIndex("koassistant_pinned_index")
+
+  -- Count chat index stale entries (validateChatIndex already pruned them, count for reporting)
+  -- Re-read to see if validateChatIndex made changes
+  local chat_pruned = pruneIndex("koassistant_chat_index")
+  total_pruned = total_pruned + chat_pruned
+
+  if total_pruned > 0 then
+    G_reader_settings:flush()
+    UIManager:show(InfoMessage:new{
+      text = T(_("Validation complete. Removed %1 stale entries."), total_pruned),
+    })
+  else
+    UIManager:show(InfoMessage:new{
+      text = _("All indexes are valid. No issues found."),
+      timeout = 3,
+    })
+  end
+end
+
 -- Show create backup dialog
 function AskGPT:showCreateBackupDialog()
   local BackupManager = require("koassistant_backup_manager")

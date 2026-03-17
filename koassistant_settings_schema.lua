@@ -1594,6 +1594,15 @@ local SettingsSchema = {
                     text = _("Backups are stored in: koassistant_backups/"),
                     separator = true,
                 },
+                -- Maintenance
+                {
+                    id = "validate_indexes",
+                    type = "action",
+                    text = _("Validate Data Indexes"),
+                    help_text = _("Checks chat history, artifact, notebook, and pinned indexes for stale entries (books that were moved or deleted outside KOReader) and fixes count mismatches.\n\nThis runs automatically for individual entries when browsing, but you can run a full validation here if needed."),
+                    callback = "validateAllIndexes",
+                    separator = true,
+                },
                 -- Reset Settings submenu
                 {
                     id = "reset_settings",
