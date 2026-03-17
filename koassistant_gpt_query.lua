@@ -327,7 +327,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- Merge config with defaults
     local config = ConfigHelper:mergeWithDefaults(temp_config or CONFIGURATION)
 
-    -- Validate configuration
+    -- Validate configuration (no network needed)
     local valid, error = ConfigHelper:validate(config)
     if not valid then
         if on_complete then
@@ -348,7 +348,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         if settings then
             local features = settings:readSetting("features") or {}
             local custom_providers = features.custom_providers or {}
-            for _, cp in ipairs(custom_providers) do
+            for _idx, cp in ipairs(custom_providers) do
                 if cp.id == provider then
                     handler = handlers["custom_openai"]
                     is_custom_provider = true
@@ -390,6 +390,13 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         end
         return "Error: " .. err
     end
+
+    -- Ensure WiFi is connected before making the network request.
+    -- When already connected, runWhenConnected calls the callback synchronously (no behavior change).
+    -- When WiFi is off, shows the WiFi turn-on dialog and runs the callback after connection.
+    local NetworkMgr = require("ui/network/manager")
+    local query_return = STREAMING_IN_PROGRESS
+    NetworkMgr:runWhenConnected(function()
 
     local success, result = pcall(function()
         return handler:query(message_history, config)
@@ -519,7 +526,11 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         -- Pass reasoning as 4th argument, web_search_used as 5th when available
         on_complete(true, content, nil, reasoning, web_search_used)
     end
-    return result
+    query_return = result
+
+    end) -- runWhenConnected
+
+    return query_return
 end
 
 return {
