@@ -438,9 +438,9 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 **Library Settings** (under Privacy & Data):
 - **Enable Library Scanning** — Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library) and the Suggest from Library book action
 - **Permanent Scan Folders** — Folders always scanned for library actions. You can also pick folders on the fly in the input dialog
-- Library scanning is triple-gated: global toggle + configured folders + per-action `use_library` flag. All three must be satisfied
+- The global toggle is an absolute gate — all library scanning (including on-the-fly folders picked in the input dialog) requires it to be enabled. Per-action `use_library` flag provides the second gate
 
-**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction AND the library scanning toggle. When the active provider is trusted, all data types — highlights, annotations, notebook, reading progress, book text, and library catalog — are available without toggling individual settings. Trusted providers still require configured folders for library scanning.
+**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction AND the library scanning toggle. When the active provider is trusted, all data types — highlights, annotations, notebook, reading progress, book text, and library catalog — are available without toggling individual settings. Trusted providers still require at least one folder (permanent or on-the-fly) for library scanning.
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction, most actions fall back to AI training knowledge — see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details.
 
@@ -843,16 +843,16 @@ Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{fu
 
 **Access**: Quick Settings → Library Actions, or Settings menu → Library Actions, or via gesture. Opens directly to an input dialog with all library actions available. File browser multi-select also works: select multiple documents → tap any → "Compare with KOAssistant".
 
-The library dialog has two tiers of actions:
+The library dialog splits actions into two zones with their own management buttons:
 
-**Scan-based actions** (available immediately when library scanning is enabled):
+**Library Scan zone** — scan-based actions with a **Library Scan ▾** button for folder management (enable/disable permanent folders, add on-the-fly folders for this session). Hidden when library scanning toggle is off:
 | Action | Description |
 |--------|-------------|
 | **Next Read** | What to read next from your library — based on reading patterns, what you've finished, and what's been sitting unread |
 | **Discover New** | Suggests new books to get based on your entire library — identifies your taste and recommends works you don't have |
 | **Analyze Library** | Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection |
 
-**Selection-based actions** (require 2+ books selected via presets):
+**Items zone** — selection-based actions with an **Items ▾** button for book management (presets, browse history, add folder, clear). Require 2+ books selected:
 | Action | Description |
 |--------|-------------|
 | **Compare** | What makes each work distinct — contrasts, not just similarities |
@@ -862,9 +862,9 @@ The library dialog has two tiers of actions:
 | **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
 | **Recommend** | Suggests 5-8 new works based on patterns across your selected works. When library scanning is enabled, also considers your full library to avoid recommending books you already own |
 
-Selection-based action buttons are grayed out (disabled) until books are added. Tap **"+ Add Items"** to select books via presets (Last 5 from History, Browse History) or browse your reading history. The title bar shows the count of selected items. Hold the selection button to see which books are currently selected.
+Selection-based action buttons are grayed out (disabled) until 2+ books are added. Tap **Items ▾** to select books via presets (Currently Reading, Recently Finished, On Hold, Last 5 from History, Browse History) or add a folder. The title bar shows the count of selected items.
 
-**Freeform chat** also works — type a question and tap Send. When library scanning is enabled, the library catalog is included as context for freeform questions.
+**Freeform chat** also works — type a question and tap Send. When library scanning is enabled with folders configured, the library catalog is included as context. When items are selected, those are included too. The input hint text adapts to show what data is active.
 
 **What the AI sees**: For scan-based actions: library catalog metadata (title, author, series, status, progress, last read date). For selection-based actions: list of selected titles, authors, and identifiers. See [Privacy & Data](#privacy--data) for details on library scanning.
 

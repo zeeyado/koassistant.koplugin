@@ -4781,6 +4781,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             -- 3. Send (freeform chat with context)
             {
                 text = enable_emoji and (_("Send") .. " ➤") or _("Send"),
+                -- In library context, disable Send when there's nothing to chat about
+                enabled = not (configuration.features.is_library_context
+                    and not (library_toggle_on and (has_session_scan or has_permanent_folders))
+                    and not (configuration.features.books_info and #configuration.features.books_info > 0)),
             callback = function()
                 -- Block empty sends for contexts without highlighted text (nothing useful to send)
                 local typed_text = input_dialog:getInputText()
@@ -5477,6 +5481,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             plugin.current_input_dialog = nil
             plugin._session_scan_folders = nil
         end
+        if configuration and configuration.features then
+            configuration.features._session_library = nil
+        end
     end
     input_dialog.title_bar.title_face = Font:getFace("smallinfofont")
     input_dialog.title_bar:init()
@@ -5489,7 +5496,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- which we removed; override to close directly)
     input_dialog.onCloseDialog = function()
         UIManager:close(input_dialog)
-        if plugin then plugin.current_input_dialog = nil end
+        if plugin then
+            plugin.current_input_dialog = nil
+            plugin._session_scan_folders = nil
+        end
+        if configuration and configuration.features then
+            configuration.features._session_library = nil
+        end
         return true
     end
 
