@@ -2736,7 +2736,10 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
         local index = self:getChatIndex()
         for doc_path, info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" then
-                -- Check if document still exists at this path
+                -- Filter out documents that no longer exist at this path
+                -- (moved or deleted outside KOReader). Index entry is preserved
+                -- so it reappears if the book is moved back. Use "Validate Data
+                -- Indexes" in settings for intentional cleanup.
                 if lfs.attributes(doc_path, "mode") then
                     -- Try to get book metadata
                     local doc_settings = DocSettings:open(doc_path)
@@ -2751,10 +2754,6 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                         author = author,
                         last_modified = info.last_modified or 0,
                     })
-                else
-                    -- Path is stale (file moved or deleted)
-                    -- Skip for now - will be fixed when user opens the document
-                    logger.info("Skipping stale chat index path: " .. doc_path)
                 end
             end
         end
