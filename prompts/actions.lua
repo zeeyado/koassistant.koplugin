@@ -959,7 +959,7 @@ Include a mix of:
 
 If web search is available, consider searching for the DOI or citation context to find the most relevant related work.
 
-{hallucination_nudge}]],
+Do not use emojis. {hallucination_nudge}]],
         api_params = {
             temperature = 0.8,  -- More creative for recommendations
             max_tokens = 4096,
@@ -1866,7 +1866,7 @@ For each story provide:
 - Why it matters
 - Link to the story on aljazeera.com
 
-Focus on the top 3-5 most significant global news stories. Keep it concise and factual.]],
+Focus on the top 3-5 most significant global news stories. Keep it concise and factual. Do not use emojis.]],
         enable_web_search = true,  -- Force web search even if global setting is off
         skip_domain = true,  -- News doesn't need domain context
         api_params = {
