@@ -832,12 +832,14 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 Book actions work in two contexts: **reading mode** (book is open) and **file browser** (long-press a book in your library).
 
-- **File browser** has access to book **metadata** only: title, author, identifiers
-- **Reading mode** additionally has access to **document state**: reading progress, highlights, annotations, notebook, extracted text
+- **File browser** has access to book **metadata** (title, author, identifiers) plus **sidecar data** (highlights, annotations, notebook, reading progress) read from the book's metadata on disk
+- **Reading mode** additionally has access to **live document state**: extracted text, page text, chapter/TOC information, reading statistics
 
-**Reading-only actions** (hidden in file browser): X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights. These require document state that isn't available until you open the book.
+**Reading-only actions** (hidden in file browser): X-Ray, Recap, Document Analysis, Document Summary — these require live document text extraction or source selection that isn't available until you open the book.
 
-Custom actions using placeholders like `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, or `{notebook}` are filtered the same way. The Action Manager shows a `[reading]` indicator for such actions.
+**Sidecar-eligible actions** (available in file browser): X-Ray (Simple), Analyze Notes, Connect with Notes, and other actions that only need highlights, annotations, notebook, or reading progress. These read data from the book's sidecar files on disk without requiring an open document.
+
+Custom actions using placeholders like `{book_text}`, `{full_document}`, or `{page_text}` require reading mode. Placeholders like `{reading_progress}`, `{highlights}`, `{annotations}`, and `{notebook}` work in both contexts via sidecar fallback. The Action Manager shows a `[reading]` indicator for reading-only actions.
 
 ### Library Mode
 
@@ -889,7 +891,7 @@ All input dialogs (highlight, book, library, general) show a configurable set of
 |---------|----------------|
 | **Highlight** | Translate, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, Explain in Context |
 | **Book** | About, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Reviews |
-| **Book (file browser)** | About, Find Similar, Related Thinkers, About Author, Historical Context, Reviews |
+| **Book (file browser)** | About, X-Ray (Simple), Find Similar, Analyze Notes, Related Thinkers, About Author, Historical Context, Reviews |
 | **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Explain in Context, Thematic Connection, Connect |
 | **General** | *(none — use Send button for freeform chat)* |
 
@@ -2833,7 +2835,8 @@ All artifact results are cached per book. X-Ray and Recap additionally support *
 - Either option forces fresh generation on next run (useful if analysis got off track, or to switch between incremental and complete tracks)
 
 **Requirements:**
-- You must be reading (not in file browser) to generate or update
+- Actions requiring text extraction (X-Ray, Document Summary, Document Analysis, Recap) must be run from reading mode (not file browser)
+- Sidecar-eligible actions (X-Ray Simple, Analyze Notes, etc.) can be run from file browser — they read highlights, annotations, notebook, and progress from disk
 - Progress must advance by at least 1% to trigger an incremental update (incremental track only)
 - X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), About, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
 

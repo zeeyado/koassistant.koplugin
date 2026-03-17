@@ -4718,7 +4718,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
 
   -- Analyze Notes: route to scope popup for "to %" / "complete" options
   if action_id == "analyze_highlights" then
-    self:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached)
+    self:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached, opts)
     return
   end
 
@@ -4980,17 +4980,27 @@ end
 --- @param action_id string: The action ID
 --- @param on_update function: Callback to execute normal (to reading position) action
 --- @param cached_entry table|nil: Existing cached entry, or nil if no cache
-function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached_entry)
+function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached_entry, opts)
   local action_name = action.text or action_id
   local ButtonDialog = require("ui/widget/buttondialog")
   local self_ref = self
 
+  -- File browser context: target file differs from open book (or no book open)
+  local target_file = opts and opts.file
+  local is_file_browser = target_file and (not self.ui or not self.ui.document or self.ui.document.file ~= target_file)
+
   -- Get current reading progress
   local current_progress
-  if self.ui and self.ui.document then
+  if not is_file_browser and self.ui and self.ui.document then
     local ContextExtractor = require("koassistant_context_extractor")
     local extractor = ContextExtractor:new(self.ui)
     current_progress = extractor:getReadingProgress()
+  elseif is_file_browser then
+    local ContextExtractor = require("koassistant_context_extractor")
+    local sidecar = ContextExtractor.readSidecarProgress(target_file)
+    if sidecar and sidecar.decimal > 0 then
+      current_progress = { decimal = sidecar.decimal, formatted = sidecar.formatted }
+    end
   end
 
   local dialog
@@ -5014,7 +5024,11 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
       text = T(_("Generate %1 (complete)"), action_name),
       callback = function()
         UIManager:close(dialog)
-        self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+        if is_file_browser then
+          on_update({ complete_analysis = true })
+        else
+          self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+        end
       end,
     }})
     table.insert(buttons, {{
@@ -5077,7 +5091,11 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
       callback = function()
         UIManager:close(dialog)
         if self_ref:_checkRequirements(action) then return end
-        self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+        if is_file_browser then
+          on_update({ complete_analysis = true })
+        else
+          self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+        end
       end,
     }})
 
@@ -7520,7 +7538,10 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
 
     if action.use_response_caching and not action.source_selection then
       local self_ref = self
-      self:showCacheActionPopup(action, action_id, function()
+      self:showCacheActionPopup(action, action_id, function(update_opts)
+        if update_opts and update_opts.complete_analysis then
+          config_copy.features._complete_analysis = true
+        end
         Dialogs.executeDirectAction(self_ref.ui, action, book_context, config_copy, self_ref)
       end, { file = file, book_title = title, book_author = authors })
     elseif action.use_response_caching and action.source_selection then

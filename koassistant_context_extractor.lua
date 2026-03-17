@@ -1175,7 +1175,7 @@ end
 --   used_annotations: Whether annotations were included when building this cache.
 --   Use this to determine if annotation permission is required to read the cache.
 function ContextExtractor:getXrayCache()
-    local result = { text = "", progress = nil, progress_formatted = nil, used_annotations = nil, used_book_text = nil }
+    local result = { text = "", progress = nil, progress_formatted = nil, used_highlights = nil, used_annotations = nil, used_book_text = nil }
 
     local doc_path = self:getDocumentPath()
     if not doc_path then return result end
@@ -1186,6 +1186,7 @@ function ContextExtractor:getXrayCache()
     if entry then
         result.text = entry.result or ""
         result.progress = entry.progress_decimal
+        result.used_highlights = entry.used_highlights
         result.used_annotations = entry.used_annotations
         result.used_book_text = entry.used_book_text
         if entry.progress_decimal then

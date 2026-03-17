@@ -2829,9 +2829,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Open book: full extraction (text, highlights, annotations, stats, etc.)
     -- File browser (sidecar): highlights, annotations, notebook, progress, caches from disk
     local cfg_metadata = config.features and config.features.book_metadata
-    local fb_document_path = not (ui and ui.document) and cfg_metadata and cfg_metadata.file or nil
+    local open_doc_file = ui and ui.document and ui.document.file
+    local fb_document_path = cfg_metadata and cfg_metadata.file or nil
+    -- File browser target: book_metadata.file is set and it's NOT the currently open document
+    -- When the target IS the open book, prefer live extraction (more data available)
+    local is_file_browser_target = fb_document_path and fb_document_path ~= open_doc_file
 
-    if ui and ui.document then
+    if ui and ui.document and not is_file_browser_target then
         local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
         if extraction_success and ContextExtractor then
             local extractor = ContextExtractor:new(ui, {
@@ -2882,6 +2886,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if extraction_success and ContextExtractor then
             local extractor = ContextExtractor:new(nil, {
                 document_path = fb_document_path,
+                -- Text extraction (needed for cache permission checks)
+                enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
                 -- Privacy settings
                 provider = config.features and config.features.provider,
                 trusted_providers = config.features and config.features.trusted_providers,
