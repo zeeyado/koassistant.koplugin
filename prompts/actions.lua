@@ -1832,16 +1832,16 @@ Actions.library = {
         },
         builtin = true,
     },
-    reading_patterns = {
-        id = "reading_patterns",
-        text = _("Reading Patterns"),
-        description = _("Analyzes your library to reveal reading habits: what genres and authors you gravitate toward, completion patterns, and gaps in your collection."),
+    analyze_library = {
+        id = "analyze_library",
+        text = _("Analyze Library"),
+        description = _("Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection."),
         context = "library",
         skip_domain = true,
         use_library = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
-        template = "reading_patterns",
+        template = "analyze_library",
         api_params = {
             temperature = 0.6,
             max_tokens = 4096,

@@ -293,7 +293,7 @@ For each:
 
 Skip obvious picks I've almost certainly encountered. {hallucination_nudge}]],
 
-    reading_patterns = [[Here is my library:
+    analyze_library = [[Here is my library:
 
 {library}
 

@@ -2841,9 +2841,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 enable_progress_sharing = config.features and config.features.enable_progress_sharing,
                 enable_stats_sharing = config.features and config.features.enable_stats_sharing,
                 enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
-                -- Library scanning
+                -- Library scanning (session folders from library dialog override permanent config)
                 enable_library_scanning = config.features and config.features.enable_library_scanning,
                 library_scan_folders = config.features and config.features.library_scan_folders,
+                _session_scan_folders = plugin and plugin._session_scan_folders,
             })
             logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
                        config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
@@ -2870,14 +2871,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     elseif prompt and prompt.use_library then
         -- No open document but action needs library data — extract library only
-        -- Read settings fresh from plugin (like Send button does) to avoid stale config
-        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-        local lib_scanning = lib_features.enable_library_scanning == true
-        local lib_folders = lib_features.library_scan_folders
-        if lib_scanning and lib_folders and #lib_folders > 0 then
+        -- Session folders (from library dialog) take precedence over permanent config
+        local scan_folders_to_use = plugin and plugin._session_scan_folders
+        if not scan_folders_to_use then
+            local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+            if lib_features.enable_library_scanning == true
+                    and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                scan_folders_to_use = lib_features.library_scan_folders
+            end
+        end
+        if scan_folders_to_use and #scan_folders_to_use > 0 then
             local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
             if scan_ok and LibraryScanner then
-                local scan_result = LibraryScanner.scan(lib_features)
+                local scan_settings = { library_scan_folders = scan_folders_to_use }
+                local scan_result = LibraryScanner.scan(scan_settings)
                 if scan_result and scan_result.books and #scan_result.books > 0 then
                     message_data.library_content = LibraryScanner.format(scan_result)
                 else
@@ -4284,6 +4291,142 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         return new_books
     end
 
+    -- Helper: get effective scan folders for this session
+    -- Returns array of folder paths (permanent enabled + ad-hoc)
+    local function getEffectiveScanFolders()
+        local session_state = configuration.features._session_library or {}
+        local disabled_set = session_state.disabled_folders or {}
+        local adhoc_folders = session_state.adhoc_folders or {}
+        local perm_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local perm_folders = perm_features.library_scan_folders or {}
+        local result = {}
+        for _idx, pf in ipairs(perm_folders) do
+            if not disabled_set[pf] then
+                table.insert(result, pf)
+            end
+        end
+        for _idx, af in ipairs(adhoc_folders) do
+            table.insert(result, af)
+        end
+        return result
+    end
+
+    -- Sync effective scan folders to plugin instance for _checkRequirements()
+    local function syncLibraryState()
+        if plugin then
+            local folders = getEffectiveScanFolders()
+            plugin._session_scan_folders = #folders > 0 and folders or nil
+        end
+    end
+
+    -- Library folder management popup: enable/disable permanent folders, add/remove ad-hoc
+    local library_folder_dialog  -- forward declaration
+    local function showLibraryFolderPopup()
+        local ButtonDialog = require("ui/widget/buttondialog")
+        configuration.features._session_library = configuration.features._session_library or {}
+        local session_state = configuration.features._session_library
+        session_state.disabled_folders = session_state.disabled_folders or {}
+        session_state.adhoc_folders = session_state.adhoc_folders or {}
+
+        local perm_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local perm_folders = perm_features.library_scan_folders or {}
+        local menu_buttons = {}
+
+        -- Permanent folders with checkmarks
+        for _idx, folder_path in ipairs(perm_folders) do
+            local display = folder_path:match("([^/]+)$") or folder_path
+            local is_enabled = not session_state.disabled_folders[folder_path]
+            table.insert(menu_buttons, {{
+                text = (is_enabled and "\u{2611} " or "\u{2610} ") .. display,
+                callback = function()
+                    UIManager:close(library_folder_dialog)
+                    if is_enabled then
+                        session_state.disabled_folders[folder_path] = true
+                    else
+                        session_state.disabled_folders[folder_path] = nil
+                    end
+                    syncLibraryState()
+                    refreshInputDialog()
+                end,
+                hold_callback = function()
+                    UIManager:show(InfoMessage:new{
+                        text = folder_path,
+                        timeout = 5,
+                    })
+                end,
+            }})
+        end
+
+        -- Ad-hoc folders with checkmarks (unchecking removes)
+        for idx, folder_path in ipairs(session_state.adhoc_folders) do
+            local display = folder_path:match("([^/]+)$") or folder_path
+            table.insert(menu_buttons, {{
+                text = "\u{2611} " .. display .. " \u{00B7}",
+                callback = function()
+                    UIManager:close(library_folder_dialog)
+                    table.remove(session_state.adhoc_folders, idx)
+                    syncLibraryState()
+                    refreshInputDialog()
+                end,
+                hold_callback = function()
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("%1\n\n(Session folder — uncheck to remove)"), folder_path),
+                        timeout = 5,
+                    })
+                end,
+            }})
+        end
+
+        -- Add Folder button
+        table.insert(menu_buttons, {{
+            text = _("+ Add Folder…"),
+            callback = function()
+                UIManager:close(library_folder_dialog)
+                local PathChooser = require("ui/widget/pathchooser")
+                local Device = require("device")
+                local DataStorage = require("datastorage")
+                local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+                local path_chooser = PathChooser:new{
+                    title = _("Add Library Folder"),
+                    path = start_path,
+                    select_directory = true,
+                    onConfirm = function(selected_path)
+                        -- Check if already in permanent or ad-hoc
+                        for _idx2, pf in ipairs(perm_folders) do
+                            if pf == selected_path then
+                                -- Re-enable if disabled
+                                session_state.disabled_folders[selected_path] = nil
+                                syncLibraryState()
+                                refreshInputDialog()
+                                return
+                            end
+                        end
+                        for _idx2, af in ipairs(session_state.adhoc_folders) do
+                            if af == selected_path then
+                                UIManager:show(InfoMessage:new{
+                                    text = T(_("Folder already added:\n%1"), selected_path),
+                                    timeout = 3,
+                                })
+                                return
+                            end
+                        end
+                        table.insert(session_state.adhoc_folders, selected_path)
+                        syncLibraryState()
+                        refreshInputDialog()
+                    end,
+                }
+                UIManager:show(path_chooser)
+            end,
+        }})
+
+        local effective = getEffectiveScanFolders()
+        library_folder_dialog = ButtonDialog:new{
+            title = T(_("Library Folders (%1 active)"), #effective),
+            buttons = menu_buttons,
+        }
+        UIManager:show(library_folder_dialog)
+    end
+
     local function showAddBooksMenu()
         local ButtonDialog = require("ui/widget/buttondialog")
         local books = configuration and configuration.features and configuration.features.books_info
@@ -4655,12 +4798,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(parts, "")
                         end
                         -- Auto-attach library scan data when scanning is available
-                        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-                        if lib_features.enable_library_scanning == true
-                                and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                        -- Session folders (from library dialog) take precedence over permanent config
+                        local scan_folders_to_use = plugin and plugin._session_scan_folders
+                        if not scan_folders_to_use then
+                            local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+                            if lib_features.enable_library_scanning == true
+                                    and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                                scan_folders_to_use = lib_features.library_scan_folders
+                            end
+                        end
+                        if scan_folders_to_use and #scan_folders_to_use > 0 then
                             local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
                             if scan_ok and LibraryScanner then
-                                local scan_result = LibraryScanner.scan(lib_features)
+                                local scan_settings = { library_scan_folders = scan_folders_to_use }
+                                local scan_result = LibraryScanner.scan(scan_settings)
                                 if scan_result and scan_result.books and #scan_result.books > 0 then
                                     local formatted = LibraryScanner.format(scan_result)
                                     if formatted and formatted ~= "" then
@@ -4805,8 +4956,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local selected_book_count = 0
     local avail_features = configuration and configuration.features or {}
     -- Library scan check applies to all contexts (suggest_from_library is a book action)
-    local library_scan_available = avail_features.enable_library_scanning == true
-        and avail_features.library_scan_folders and #avail_features.library_scan_folders > 0
+    -- Session scan folders (from library dialog) bypass permanent config requirement
+    local has_session_scan = plugin and plugin._session_scan_folders and #plugin._session_scan_folders > 0
+    local library_scan_available = has_session_scan
+        or (avail_features.enable_library_scanning == true
+            and avail_features.library_scan_folders and #avail_features.library_scan_folders > 0)
     if input_context == "library" then
         local books = avail_features.books_info
         selected_book_count = books and #books or 0
@@ -5011,11 +5165,77 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
+        -- Helper: lay out buttons in rows of 2
+        local function addButtonRows(button_rows, buttons)
+            local current_row = {}
+            for _idx, button in ipairs(buttons) do
+                table.insert(current_row, button)
+                if #current_row == 2 then
+                    table.insert(button_rows, current_row)
+                    current_row = {}
+                end
+            end
+            if #current_row > 0 then
+                table.insert(button_rows, current_row)
+            end
+        end
+
         -- Organize into rows: top row (3 buttons), then action rows of 2
         local button_rows = { top_row }
 
-        -- Library context: add book selection row below top row
+        -- Library context: split actions into scan-based and selection-based zones
         if input_context == "library" then
+            -- Classify actions
+            local scan_buttons = {}
+            local selection_buttons = {}
+            for _idx, button in ipairs(action_buttons) do
+                local action = button.prompt_type and prompts[button.prompt_type]
+                local is_scan = action and action.requires
+                    and type(action.requires) == "table"
+                local scan_req = false
+                if is_scan then
+                    for _idx2, req in ipairs(action.requires) do
+                        if req == "library" then scan_req = true; break end
+                    end
+                end
+                if scan_req then
+                    table.insert(scan_buttons, button)
+                else
+                    table.insert(selection_buttons, button)
+                end
+            end
+
+            -- Library folder management row
+            local session_state = configuration.features._session_library or {}
+            local perm_folders = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+            local perm_folder_list = perm_folders.library_scan_folders or {}
+            local adhoc_folders = session_state.adhoc_folders or {}
+            local disabled_set = session_state.disabled_folders or {}
+            local active_count = 0
+            for _idx2, pf in ipairs(perm_folder_list) do
+                if not disabled_set[pf] then active_count = active_count + 1 end
+            end
+            active_count = active_count + #adhoc_folders
+            local total_count = #perm_folder_list + #adhoc_folders
+            local library_label
+            if total_count == 0 then
+                library_label = _("Library: No folders")
+            elseif active_count == total_count then
+                library_label = T(_("Library (%1) \u{25BE}"), total_count)
+            else
+                library_label = T(_("Library (%1/%2) \u{25BE}"), active_count, total_count)
+            end
+            table.insert(button_rows, {{
+                text = library_label,
+                callback = function()
+                    showLibraryFolderPopup()
+                end,
+            }})
+
+            -- Scan-based action rows
+            addButtonRows(button_rows, scan_buttons)
+
+            -- Item selection row
             local books = configuration and configuration.features and configuration.features.books_info
             local book_count = books and #books or 0
             local selection_row = {
@@ -5035,31 +5255,28 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 })
             end
             table.insert(button_rows, selection_row)
-        end
 
-        local current_row = {}
-        for _idx, button in ipairs(action_buttons) do
-            table.insert(current_row, button)
-            if #current_row == 2 then
-                table.insert(button_rows, current_row)
-                current_row = {}
-            end
-        end
-        -- Artifact pairing: pair with last action if odd count, else solo row
-        if artifact_button then
-            if #current_row == 1 then
-                -- Odd action count: pair last action with artifact
-                table.insert(current_row, artifact_button)
-                table.insert(button_rows, current_row)
-            else
-                -- Even action count (or zero): flush remaining, then artifact solo
-                if #current_row > 0 then
-                    table.insert(button_rows, current_row)
-                end
+            -- Selection-based action rows
+            addButtonRows(button_rows, selection_buttons)
+
+            -- Artifact button
+            if artifact_button then
                 table.insert(button_rows, { artifact_button })
             end
-        elseif #current_row > 0 then
-            table.insert(button_rows, current_row)
+        else
+            -- Non-library contexts: flat layout
+            addButtonRows(button_rows, action_buttons)
+
+            -- Artifact pairing: pair with last action if odd count, else solo row
+            if artifact_button then
+                local last_row = button_rows[#button_rows]
+                if last_row and #last_row == 1 and last_row ~= top_row then
+                    -- Odd action count: pair last action with artifact
+                    table.insert(last_row, artifact_button)
+                else
+                    table.insert(button_rows, { artifact_button })
+                end
+            end
         end
 
         -- Non-bold buttons for lighter visual feel
@@ -5165,7 +5382,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local Font = require("ui/font")
     input_dialog.title_bar.close_callback = function()
         UIManager:close(input_dialog)
-        if plugin then plugin.current_input_dialog = nil end
+        if plugin then
+            plugin.current_input_dialog = nil
+            plugin._session_scan_folders = nil
+        end
     end
     input_dialog.title_bar.title_face = Font:getFace("smallinfofont")
     input_dialog.title_bar:init()

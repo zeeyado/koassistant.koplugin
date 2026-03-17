@@ -435,7 +435,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - **Allow Chapter Info** — Chapter title, chapters read, time since last opened (default: ON)
 
 **Library Settings** (under Privacy & Data):
-- **Enable Library Scanning** — Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Reading Patterns) and the Suggest from Library book action
+- **Enable Library Scanning** — Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library) and the Suggest from Library book action
 - **Manage Library Folders** — Configure which folders to scan. Default: KOReader home directory. Add custom folders via PathChooser
 - Library scanning is triple-gated: global toggle + configured folders + per-action `use_library` flag. All three must be satisfied
 
@@ -532,7 +532,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions (
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray†† |
 | **Book** | About, Find Similar, Suggest from Library†, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
-| **Library** | Next Read‡, Discover New‡, Reading Patterns‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§ |
+| **Library** | Next Read‡, Discover New‡, Analyze Library‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§ |
 | **General** | News Update* |
 
 *Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
@@ -849,7 +849,7 @@ The library dialog has two tiers of actions:
 |--------|-------------|
 | **Next Read** | What to read next from your library — based on reading patterns, what you've finished, and what's been sitting unread |
 | **Discover New** | Suggests new books to get based on your entire library — identifies your taste and recommends works you don't have |
-| **Reading Patterns** | Analyzes your library to reveal reading habits: genres, authors, completion patterns, collection gaps |
+| **Analyze Library** | Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection |
 
 **Selection-based actions** (require 2+ books selected via presets):
 | Action | Description |
@@ -1166,7 +1166,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 17 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
-- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all library actions (Next Read, Discover New, Reading Patterns, Suggest from Library, Recommend).
+- **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all library actions (Next Read, Discover New, Analyze Library, Suggest from Library, Recommend).
 - **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
@@ -2023,7 +2023,7 @@ Two complementary features for making important content easily available:
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
-- **Library Actions**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Reading Patterns) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
+- **Library Actions**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Analyze Library) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
 
 ### Reading Features (visible when document is open)
 - **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled

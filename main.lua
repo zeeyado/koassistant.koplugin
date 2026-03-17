@@ -4637,21 +4637,25 @@ function AskGPT:_checkRequirements(action)
         })
         return true
       end
-      -- Global gate: library scanning enabled? (trusted providers bypass)
-      features = features or (self.settings and self.settings:readSetting("features") or {})
-      if features.enable_library_scanning ~= true and not isProviderTrusted() then
-        UIManager:show(InfoMessage:new{
-          text = _("Library scanning is required for this action.\n\nEnable it in Settings → Privacy & Data → Allow Library Scanning.") .. hint,
-        })
-        return true
-      end
-      -- Folder gate: at least one folder must be configured (no fallback)
-      local lib_folders = features.library_scan_folders
-      if not lib_folders or #lib_folders == 0 then
-        UIManager:show(InfoMessage:new{
-          text = _("No library folders configured.\n\nAdd folders in Settings → Library Settings → Library Folders.") .. hint,
-        })
-        return true
+      -- Session scan folders (from library dialog) bypass global + folder gates
+      local has_session = self._session_scan_folders and #self._session_scan_folders > 0
+      if not has_session then
+        -- Global gate: library scanning enabled? (trusted providers bypass)
+        features = features or (self.settings and self.settings:readSetting("features") or {})
+        if features.enable_library_scanning ~= true and not isProviderTrusted() then
+          UIManager:show(InfoMessage:new{
+            text = _("Library scanning is required for this action.\n\nEnable it in Settings → Privacy & Data → Allow Library Scanning.") .. hint,
+          })
+          return true
+        end
+        -- Folder gate: at least one folder must be configured (no fallback)
+        local lib_folders = features.library_scan_folders
+        if not lib_folders or #lib_folders == 0 then
+          UIManager:show(InfoMessage:new{
+            text = _("No library folders configured.\n\nAdd folders in Settings → Library Settings → Library Folders.") .. hint,
+          })
+          return true
+        end
       end
     elseif req == "highlights" then
       -- Per-action gate: are both highlight flags explicitly disabled?
