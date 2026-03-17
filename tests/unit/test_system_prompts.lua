@@ -814,6 +814,97 @@ TestRunner:test("skip_domain + skip_language_instruction combined excludes both"
     TestRunner:assertEqual(result.components.domain, "Physics", "domain still present")
 end)
 
+-- Test spoiler-free nudge in buildUnifiedSystem()
+TestRunner:suite("buildUnifiedSystem() spoiler-free")
+
+TestRunner:test("spoiler nudge not present when spoiler_free=false", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        spoiler_free = false,
+        reading_progress = "42%",
+    })
+    TestRunner:assertNil(result.components.spoiler, "no spoiler component")
+end)
+
+TestRunner:test("spoiler nudge not present when spoiler_free=nil", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        reading_progress = "42%",
+    })
+    TestRunner:assertNil(result.components.spoiler, "no spoiler component")
+end)
+
+TestRunner:test("spoiler nudge with reading progress includes percentage", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        spoiler_free = true,
+        reading_progress = "42%",
+    })
+    TestRunner:assertNotNil(result.components.spoiler, "has spoiler component")
+    TestRunner:assertContains(result.components.spoiler, "42%", "contains reading progress")
+    TestRunner:assertContains(result.text, "42%", "progress in text")
+    -- Should NOT contain the raw placeholder
+    if result.components.spoiler:find("{reading_progress}", 1, true) then
+        error("spoiler nudge still contains raw {reading_progress} placeholder")
+    end
+end)
+
+TestRunner:test("spoiler nudge without progress uses no-progress variant", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        spoiler_free = true,
+        -- no reading_progress
+    })
+    TestRunner:assertNotNil(result.components.spoiler, "has spoiler component")
+    TestRunner:assertContains(result.components.spoiler, "has not finished", "no-progress variant")
+end)
+
+TestRunner:test("spoiler nudge with 0% uses no-progress variant", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        spoiler_free = true,
+        reading_progress = "0%",
+    })
+    TestRunner:assertNotNil(result.components.spoiler, "has spoiler component")
+    TestRunner:assertContains(result.components.spoiler, "has not finished", "0% triggers no-progress")
+end)
+
+TestRunner:test("spoiler nudge with empty string uses no-progress variant", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        spoiler_free = true,
+        reading_progress = "",
+    })
+    TestRunner:assertNotNil(result.components.spoiler, "has spoiler component")
+    TestRunner:assertContains(result.components.spoiler, "has not finished", "empty triggers no-progress")
+end)
+
+TestRunner:test("spoiler nudge appended to text with behavior", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        spoiler_free = true,
+        reading_progress = "75%",
+    })
+    -- Text should contain both behavior and spoiler nudge
+    TestRunner:assertContains(result.text, "75%", "spoiler in combined text")
+    TestRunner:assertNotNil(result.components.behavior, "behavior still present")
+end)
+
+TestRunner:test("spoiler nudge coexists with domain and research", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        behavior_variant = "minimal",
+        domain_context = "Science fiction",
+        book_metadata = { doi = "10.1234/test" },
+        spoiler_free = true,
+        reading_progress = "60%",
+    })
+    TestRunner:assertNotNil(result.components.spoiler, "has spoiler")
+    TestRunner:assertNotNil(result.components.domain, "has domain")
+    TestRunner:assertNotNil(result.components.research, "has research")
+    TestRunner:assertContains(result.text, "Science fiction", "domain in text")
+    TestRunner:assertContains(result.text, "60%", "spoiler in text")
+end)
+
 -- Summary
 local success = TestRunner:summary()
 return success

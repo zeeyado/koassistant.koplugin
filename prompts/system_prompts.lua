@@ -384,7 +384,7 @@ function SystemPrompts.buildUnifiedSystem(config)
         if progress and progress ~= "" and progress ~= "0%" then
             spoiler_nudge = Templates.SPOILER_FREE_NUDGE
             -- Substitute {reading_progress} inside the nudge
-            spoiler_nudge = spoiler_nudge:gsub("{reading_progress}", progress)
+            spoiler_nudge = spoiler_nudge:gsub("{reading_progress}", function() return progress end)
         else
             spoiler_nudge = Templates.SPOILER_FREE_NUDGE_NO_PROGRESS
         end

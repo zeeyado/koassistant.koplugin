@@ -463,6 +463,154 @@ local function runActionRegressionTests()
 end
 
 -- =============================================================================
+-- Spoiler-Free Nudge Constants Tests
+-- =============================================================================
+
+local function runSpoilerFreeConstantTests()
+    print("\n--- Spoiler-Free Nudge Constants ---")
+
+    TestRunner:test("SPOILER_FREE_NUDGE is a non-empty string", function()
+        TestRunner:assertType(Templates.SPOILER_FREE_NUDGE, "string")
+        if Templates.SPOILER_FREE_NUDGE == "" then
+            error("SPOILER_FREE_NUDGE is empty")
+        end
+    end)
+
+    TestRunner:test("SPOILER_FREE_NUDGE_NO_PROGRESS is a non-empty string", function()
+        TestRunner:assertType(Templates.SPOILER_FREE_NUDGE_NO_PROGRESS, "string")
+        if Templates.SPOILER_FREE_NUDGE_NO_PROGRESS == "" then
+            error("SPOILER_FREE_NUDGE_NO_PROGRESS is empty")
+        end
+    end)
+
+    TestRunner:test("SPOILER_FREE_NUDGE contains {reading_progress} placeholder", function()
+        TestRunner:assertContains(Templates.SPOILER_FREE_NUDGE, "{reading_progress}",
+            "Should contain {reading_progress} for late substitution")
+    end)
+
+    TestRunner:test("SPOILER_FREE_NUDGE_NO_PROGRESS has no placeholders", function()
+        TestRunner:assertNotContains(Templates.SPOILER_FREE_NUDGE_NO_PROGRESS, "{",
+            "No-progress variant should have no placeholders")
+    end)
+end
+
+-- =============================================================================
+-- Spoiler-Free Nudge via MessageBuilder.build() Tests
+-- =============================================================================
+
+local function runSpoilerFreeBuildTests()
+    print("\n--- Spoiler-free nudge via MessageBuilder.build() ---")
+
+    TestRunner:test("{spoiler_free_nudge} empty when spoiler_free=false", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Tell me about this. {spoiler_free_nudge}" },
+            context = "book",
+            data = { spoiler_free = false, reading_progress = "42%" },
+        })
+        TestRunner:assertNotContains(result, "{spoiler_free_nudge}", "placeholder removed")
+        TestRunner:assertNotContains(result, "42%", "no progress when disabled")
+    end)
+
+    TestRunner:test("{spoiler_free_nudge} empty when spoiler_free=nil", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Tell me about this. {spoiler_free_nudge}" },
+            context = "book",
+            data = { reading_progress = "42%" },
+        })
+        TestRunner:assertNotContains(result, "{spoiler_free_nudge}", "placeholder removed")
+        TestRunner:assertNotContains(result, "42%", "no progress when nil")
+    end)
+
+    TestRunner:test("{spoiler_free_nudge} resolves with reading progress", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Tell me about this. {spoiler_free_nudge}" },
+            context = "book",
+            data = { spoiler_free = true, reading_progress = "42%" },
+        })
+        TestRunner:assertNotContains(result, "{spoiler_free_nudge}", "placeholder removed")
+        TestRunner:assertContains(result, "42%", "progress substituted")
+        -- Should not have raw {reading_progress} left
+        TestRunner:assertNotContains(result, "{reading_progress}", "inner placeholder resolved")
+    end)
+
+    TestRunner:test("{spoiler_free_nudge} uses no-progress variant when progress missing", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Tell me about this. {spoiler_free_nudge}" },
+            context = "book",
+            data = { spoiler_free = true },
+        })
+        TestRunner:assertNotContains(result, "{spoiler_free_nudge}", "placeholder removed")
+        TestRunner:assertContains(result, "has not finished", "no-progress variant used")
+    end)
+
+    TestRunner:test("{spoiler_free_nudge} uses no-progress variant for 0%", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Tell me about this. {spoiler_free_nudge}" },
+            context = "book",
+            data = { spoiler_free = true, reading_progress = "0%" },
+        })
+        TestRunner:assertContains(result, "has not finished", "0% triggers no-progress")
+    end)
+
+    TestRunner:test("{spoiler_free_nudge} uses no-progress variant for empty string", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Tell me about this. {spoiler_free_nudge}" },
+            context = "book",
+            data = { spoiler_free = true, reading_progress = "" },
+        })
+        TestRunner:assertContains(result, "has not finished", "empty triggers no-progress")
+    end)
+end
+
+-- =============================================================================
+-- Spoiler-Free Nudge via MessageBuilder.substituteVariables() Tests
+-- =============================================================================
+
+local function runSpoilerFreeSubstituteTests()
+    print("\n--- Spoiler-free nudge via substituteVariables() ---")
+
+    TestRunner:test("{spoiler_free_nudge} resolves to empty in preview mode", function()
+        local result = MessageBuilder.substituteVariables("Test {spoiler_free_nudge} end", {})
+        TestRunner:assertNotContains(result, "{spoiler_free_nudge}", "placeholder removed in preview")
+        -- substituteVariables is preview mode — always empty
+        TestRunner:assertEqual(result, "Test  end", "empty substitution in preview")
+    end)
+end
+
+-- =============================================================================
+-- Spoiler-Free Nudge Action Regression Tests
+-- =============================================================================
+
+local function runSpoilerFreeActionRegressionTests()
+    print("\n--- Built-in action regression: no literal {spoiler_free_nudge} after substitution ---")
+
+    local contexts = {
+        { name = "highlight", table = Actions.highlight },
+        { name = "book", table = Actions.book },
+        { name = "library", table = Actions.library },
+        { name = "general", table = Actions.general },
+        { name = "special", table = Actions.special },
+    }
+
+    for _, ctx in ipairs(contexts) do
+        for action_id, action in pairs(ctx.table) do
+            local prompt_text = action.prompt
+            if not prompt_text and action.template then
+                prompt_text = Templates.get(action.template)
+            end
+
+            if prompt_text and prompt_text:find("{spoiler_free_nudge}", 1, true) then
+                TestRunner:test(ctx.name .. "." .. action_id .. ": {spoiler_free_nudge} resolved after substituteVariables()", function()
+                    local result = MessageBuilder.substituteVariables(prompt_text, {})
+                    TestRunner:assertNotContains(result, "{spoiler_free_nudge}",
+                        action_id .. " still has literal {spoiler_free_nudge}")
+                end)
+            end
+        end
+    end
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -479,6 +627,10 @@ local function runAll()
     runSubstituteVariablesNudgeTests()
     runTemplatesGetterTests()
     runActionRegressionTests()
+    runSpoilerFreeConstantTests()
+    runSpoilerFreeBuildTests()
+    runSpoilerFreeSubstituteTests()
+    runSpoilerFreeActionRegressionTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
