@@ -4666,7 +4666,7 @@ function AskGPT:_checkRequirements(action)
         local lib_folders = features.library_scan_folders
         if not lib_folders or #lib_folders == 0 then
           UIManager:show(InfoMessage:new{
-            text = _("No scan folders configured.\n\nAdd folders in Settings → Library Settings → Permanent Scan Folders, or pick folders on the fly in the input dialog.") .. hint,
+            text = _("No scan folders configured.\n\nAdd folders in Settings → Library Settings → Permanent Scan Folders.") .. hint,
           })
           return true
         end
