@@ -4646,8 +4646,11 @@ function AskGPT:_checkRequirements(action)
         return true
       end
       -- Folder gate: at least one folder must be configured (no fallback)
+      -- Session scan folders (from library dialog "Scan Folder") bypass this gate
       local lib_folders = features.library_scan_folders
-      if not lib_folders or #lib_folders == 0 then
+      local has_permanent = lib_folders and #lib_folders > 0
+      local has_session = self._session_scan_folders and #self._session_scan_folders > 0
+      if not has_permanent and not has_session then
         UIManager:show(InfoMessage:new{
           text = _("No library folders configured.\n\nAdd folders in Settings → Library Settings → Library Folders.") .. hint,
         })
