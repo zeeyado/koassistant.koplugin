@@ -5407,11 +5407,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end,
     }
 
-    -- Add spoiler-free checkbox for book/highlight contexts
-    -- Session toggle: initial state follows global setting, user can flip per-session
+    -- Add spoiler-free checkbox for book/highlight contexts (when show_spoiler_toggle enabled)
+    -- Session toggle: initial state follows global spoiler_free_chat, user can flip per-session
     local spoiler_checkbox
     local is_book_or_highlight = not is_general_context and not is_library_context
-    if is_book_or_highlight then
+    local show_spoiler_toggle = configuration and configuration.features
+        and configuration.features.show_spoiler_toggle == true
+    if is_book_or_highlight and show_spoiler_toggle then
         local CheckButton = require("ui/widget/checkbutton")
         local Size = require("ui/size")
         local HorizontalGroup = require("ui/widget/horizontalgroup")
