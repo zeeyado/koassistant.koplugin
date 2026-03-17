@@ -682,4 +682,4 @@ TestRunner:test("Mistral magistral has thinking but is always-on (no toggle)", f
 end)
 
 -- Summary
-TestRunner:summary()
+return TestRunner:summary()

@@ -698,4 +698,4 @@ end)
 
 print()
 local success = TestRunner:summary()
-os.exit(success and 0 or 1)
+return success

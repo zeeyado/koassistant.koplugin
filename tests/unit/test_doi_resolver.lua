@@ -731,6 +731,4 @@ print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))
 
-if TestRunner.failed > 0 then
-    os.exit(1)
-end
+return TestRunner.failed == 0
