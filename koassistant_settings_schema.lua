@@ -443,7 +443,7 @@ local SettingsSchema = {
                 {
                     id = "spoiler_free_chat",
                     type = "toggle",
-                    text = _("Spoiler-free Mode"),
+                    text = _("Spoiler-free Chat"),
                     path = "features.spoiler_free_chat",
                     default = false,
                     help_text = _("When enabled, instructs the AI not to reveal events beyond your current reading position in book and highlight chats. Custom actions can use the {spoiler_free_nudge} placeholder."),
@@ -451,10 +451,10 @@ local SettingsSchema = {
                 {
                     id = "show_spoiler_toggle",
                     type = "toggle",
-                    text = _("Show Spoiler-free Checkbox"),
+                    text = _("Show Spoiler-free Chat Checkbox"),
                     path = "features.show_spoiler_toggle",
                     default = false,
-                    help_text = _("Show a session checkbox in the book/highlight input dialog to toggle spoiler-free mode on the fly. When the global setting above is on, the checkbox starts checked but can be unchecked per session."),
+                    help_text = _("Show a session checkbox in the book/highlight input dialog to toggle spoiler-free chat on the fly. When the global setting above is on, the checkbox starts checked but can be unchecked per session."),
                     separator = true,
                 },
                 -- Content Format submenu

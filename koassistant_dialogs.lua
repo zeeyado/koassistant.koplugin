@@ -5421,7 +5421,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local cb_Font = require("ui/font")
         spoiler_checkbox = CheckButton:new{
             face = cb_Font:getFace("xx_smallinfofont"),
-            text = _("Spoiler-free mode"),
+            text = _("Spoiler-free chat"),
             checked = session_spoiler_free,
             parent = input_dialog,
             callback = function()
