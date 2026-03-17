@@ -800,7 +800,7 @@ showUpdatePopup = function(update_info)
                 text = _("Translate"),
                 callback = function()
                     UIManager:close(update_viewer)
-                    NetworkMgr:runWhenOnline(function()
+                    NetworkMgr:runWhenConnected(function()
                         local title = update_info.is_prerelease and "KOAssistant Pre-release Update" or "KOAssistant Update Available"
                         if #translate_languages == 1 then
                             -- Single language: translate directly
