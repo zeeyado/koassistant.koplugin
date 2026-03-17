@@ -529,8 +529,10 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
     local self_ref = self
     for _idx, fb_action in ipairs(fb_actions) do
       local full_action = self.action_service and self.action_service:getAction("book", fb_action.id)
+      local action_for_hold = full_action or fb_action
       table.insert(buttons, {
-        text = ActionService.getActionDisplayText(full_action or fb_action, features) .. " (KOA)",
+        text = ActionService.getActionDisplayText(action_for_hold, features) .. " (KOA)",
+        allow_hold_when_disabled = true,
         callback = function()
           local UIManager = require("ui/uimanager")
           local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -538,6 +540,15 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
             UIManager:close(current_dialog)
           end
           self_ref:executeFileBrowserAction(file, title, authors, book_props, fb_action.id)
+        end,
+        hold_callback = function()
+          if action_for_hold and action_for_hold.description then
+            local InfoMessage = require("ui/widget/infomessage")
+            UIManager:show(InfoMessage:new{
+              text = action_for_hold.description,
+              timeout = 6,
+            })
+          end
         end,
       })
     end
@@ -8510,9 +8521,18 @@ function AskGPT:onKOAssistantQuickActions()
     if action and action.enabled ~= false then
       addButton({
         text = ActionService.getActionDisplayText(action, features),
+        allow_hold_when_disabled = true,
         callback = function()
           UIManager:close(dialog)
           self_ref:executeBookLevelAction(action_id)
+        end,
+        hold_callback = function()
+          if action.description then
+            UIManager:show(InfoMessage:new{
+              text = action.description,
+              timeout = 6,
+            })
+          end
         end,
       })
     end
@@ -9477,6 +9497,15 @@ function AskGPT:registerHighlightMenuActions()
       return {
         text = ActionService.getActionDisplayText(fresh_action, cur_features) .. " (KOA)",
         enabled = Device:hasClipboard(),
+        allow_hold_when_disabled = true,
+        hold_callback = function()
+          if fresh_action.description then
+            UIManager:show(InfoMessage:new{
+              text = fresh_action.description,
+              timeout = 6,
+            })
+          end
+        end,
         callback = function()
           -- Capture text and extract context BEFORE closing highlight overlay
           local selected_text = reader_highlight_instance.selected_text.text

@@ -5093,9 +5093,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features),
                     prompt_type = custom_prompt_type,
                     enabled = available,
+                    allow_hold_when_disabled = true,
                     callback = function()
                         executeInputAction(prompt, custom_prompt_type)
-                    end
+                    end,
+                    hold_callback = function()
+                        if prompt.description then
+                            UIManager:show(InfoMessage:new{
+                                text = prompt.description,
+                                timeout = 6,
+                            })
+                        end
+                    end,
                 })
             end
         else
@@ -5147,9 +5156,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
                     prompt_type = action.id,
                     enabled = available,
+                    allow_hold_when_disabled = true,
                     callback = function()
                         executeInputAction(action, action.id)
-                    end
+                    end,
+                    hold_callback = function()
+                        if action.description then
+                            UIManager:show(InfoMessage:new{
+                                text = action.description,
+                                timeout = 6,
+                            })
+                        end
+                    end,
                 })
             end
         elseif #more_actions > 0 and input_context ~= "general" then
