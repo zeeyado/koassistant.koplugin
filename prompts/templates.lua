@@ -160,7 +160,7 @@ For each suggestion (3-5 books):
 - What it offers that connects to or extends my current read
 - If relevant, why now rather than later in my reading queue
 
-Only suggest books from my library. Do not recommend books I don't own. {hallucination_nudge}]],
+Only suggest books from my library. Do not recommend books I don't own. Do not use emojis. {hallucination_nudge}]],
 
     similar_books = [[Based on "{title}"{author_clause},{doi_clause} recommend 5-7 similar works.
 
@@ -175,7 +175,7 @@ Adapt to content type:
 
 {library_section}
 
-{hallucination_nudge}]],
+Do not use emojis. {hallucination_nudge}]],
 
     explain_author = [[Tell me about the author of "{title}"{author_clause}.{doi_clause} Include:
 
@@ -266,7 +266,7 @@ For each recommendation:
 - Why this reader specifically would enjoy it (connect to the pattern you identified)
 - What it offers that none of the listed books do
 
-If the reader's library is included above, note which recommendations they already own and prioritize unread books from their library before suggesting new purchases. Skip obvious picks the reader has almost certainly encountered. {hallucination_nudge}]],
+If the reader's library is included above, note which recommendations they already own and prioritize unread books from their library before suggesting new purchases. Skip obvious picks the reader has almost certainly encountered. Do not use emojis. {hallucination_nudge}]],
 
     -- Scan-based actions (no book selection needed)
     next_from_library = [[Here is my library:
@@ -283,7 +283,7 @@ Suggest 3-5 books. For each:
 - Why this one, given my reading patterns
 - What it offers that my recent reads don't
 
-Only suggest books from my library. {hallucination_nudge}]],
+Only suggest books from my library. Do not use emojis. {hallucination_nudge}]],
 
     discover_books = [[Here is my library:
 
@@ -300,7 +300,7 @@ For each:
 - Why this reader specifically would enjoy it
 - What it offers that nothing in the library already covers
 
-Skip obvious picks I've almost certainly encountered. {hallucination_nudge}]],
+Skip obvious picks I've almost certainly encountered. Do not use emojis. {hallucination_nudge}]],
 
     analyze_library = [[Here is my library:
 
@@ -315,7 +315,7 @@ Analyze my reading patterns based on this collection. Consider:
 
 Be specific to what you see, not generic. Use the actual titles and authors to illustrate patterns.
 
-Note: this analysis is based on catalog metadata only (titles, authors, reading status, progress). Detailed reading time and session data is not included. {hallucination_nudge}]],
+Note: this analysis is based on catalog metadata only (titles, authors, reading status, progress). Detailed reading time and session data is not included. Do not use emojis. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)
