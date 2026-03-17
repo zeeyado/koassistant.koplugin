@@ -40,10 +40,27 @@ local Actions = {}
 -- ============================================================
 -- Open Book Flags - Centralized Definition
 -- ============================================================
--- Actions that use these flags require an open book (reading mode)
--- and won't appear in file browser context
+-- Two categories: LIVE flags need an open book, SIDECAR flags can be read from disk.
+-- Actions with only SIDECAR flags can work from file browser (no open book needed).
+-- Actions with source_selection are forced open-book-only regardless of flags.
 
--- List of flags that indicate an action needs reading mode data
+-- Flags that require a live open book (real-time document access)
+Actions.LIVE_BOOK_FLAGS = {
+    "use_book_text",
+    "use_page_text",
+    "use_reading_stats",
+}
+
+-- Flags that can be satisfied from sidecar data on disk (DocSettings)
+Actions.SIDECAR_FLAGS = {
+    "use_highlights",
+    "use_annotations",
+    "use_notebook",
+}
+
+-- Combined list (all flags that indicate per-book data needs)
+-- Note: use_reading_progress is NOT here — it has sidecar fallback and doesn't
+-- block file browser eligibility on its own
 Actions.OPEN_BOOK_FLAGS = {
     "use_book_text",
     "use_page_text",
@@ -2075,12 +2092,21 @@ function Actions.requiresOpenBook(action)
         return true
     end
 
-    -- Check all centralized flags
-    for _idx, flag in ipairs(Actions.OPEN_BOOK_FLAGS) do
+    -- source_selection forces open-book (scope picker needs live document)
+    if action.source_selection then
+        return true
+    end
+
+    -- Check LIVE flags (always require open book)
+    for _idx, flag in ipairs(Actions.LIVE_BOOK_FLAGS) do
         if action[flag] then
             return true
         end
     end
+
+    -- SIDECAR flags (use_highlights, use_annotations, use_notebook) do NOT
+    -- require an open book — they can be read from DocSettings on disk.
+    -- use_reading_progress also has sidecar fallback.
 
     return false
 end

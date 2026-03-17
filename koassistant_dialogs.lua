@@ -2825,9 +2825,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         prompt._section_scope = highlight_section
     end
 
-    -- Context extraction: auto-extract lightweight data when a document is open
-    -- Lightweight data (progress, highlights, annotations, stats) is always available
-    -- Book text extraction requires use_book_text flag (slow/expensive)
+    -- Context extraction: auto-extract data when a document is open or path is available
+    -- Open book: full extraction (text, highlights, annotations, stats, etc.)
+    -- File browser (sidecar): highlights, annotations, notebook, progress, caches from disk
+    local cfg_metadata = config.features and config.features.book_metadata
+    local fb_document_path = not (ui and ui.document) and cfg_metadata and cfg_metadata.file or nil
+
     if ui and ui.document then
         local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
         if extraction_success and ContextExtractor then
@@ -2871,6 +2874,29 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
         else
             logger.warn("KOAssistant: Failed to load context extractor:", ContextExtractor)
+        end
+    elseif fb_document_path then
+        -- File browser context: extract sidecar data (highlights, annotations, notebook, progress, caches)
+        -- No live document — LIVE_BOOK_FLAGS (book_text, page_text, reading_stats) will return empty
+        local extraction_success, ContextExtractor = pcall(require, "koassistant_context_extractor")
+        if extraction_success and ContextExtractor then
+            local extractor = ContextExtractor:new(nil, {
+                document_path = fb_document_path,
+                -- Privacy settings
+                provider = config.features and config.features.provider,
+                trusted_providers = config.features and config.features.trusted_providers,
+                enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
+                enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
+                enable_progress_sharing = config.features and config.features.enable_progress_sharing,
+                enable_stats_sharing = config.features and config.features.enable_stats_sharing,
+                enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
+            })
+            logger.info("KOAssistant: Sidecar extraction for file browser:", fb_document_path)
+            local extracted = extractor:extractForAction(prompt or {})
+            for key, value in pairs(extracted) do
+                message_data[key] = value
+                logger.info("KOAssistant: Sidecar extracted key=", key, "value_len=", type(value) == "string" and #value or "non-string")
+            end
         end
     elseif prompt and prompt.use_library then
         -- No open document but action needs library data — extract library only

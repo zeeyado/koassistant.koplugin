@@ -392,18 +392,19 @@ TestRunner:test("actions with use_book_text require open book", function()
     TestRunner:assertTrue(found, "Should find at least one action with use_book_text")
 end)
 
-TestRunner:test("actions with use_reading_progress require open book", function()
+TestRunner:test("actions with use_reading_progress have sidecar fallback (no open book required)", function()
     local found = false
     for _, context_name in ipairs({"highlight", "book"}) do
         for id, action in pairs(Actions[context_name]) do
-            if action.use_reading_progress then
-                TestRunner:assertTrue(Actions.requiresOpenBook(action),
-                    "Action '" .. id .. "' has use_reading_progress but requiresOpenBook is false")
+            if action.use_reading_progress and not action.use_book_text and not action.use_page_text and not action.use_reading_stats and not action.source_selection then
+                -- Sidecar-only actions should NOT require open book
+                TestRunner:assertFalse(Actions.requiresOpenBook(action),
+                    "Action '" .. id .. "' has only sidecar flags but requiresOpenBook is true")
                 found = true
             end
         end
     end
-    TestRunner:assertTrue(found, "Should find at least one action with use_reading_progress")
+    TestRunner:assertTrue(found, "Should find at least one action with use_reading_progress and only sidecar flags")
 end)
 
 -- ============================================================

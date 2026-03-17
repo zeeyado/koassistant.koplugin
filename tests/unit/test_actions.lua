@@ -337,24 +337,28 @@ function TestActions:runAll()
         self:assertEquals(Actions.requiresOpenBook({ use_book_text = true }), true)
     end)
 
-    self:test("requiresOpenBook returns true for use_reading_progress", function()
-        self:assertEquals(Actions.requiresOpenBook({ use_reading_progress = true }), true)
+    self:test("requiresOpenBook returns false for use_reading_progress (sidecar fallback)", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_reading_progress = true }), false)
     end)
 
-    self:test("requiresOpenBook returns true for use_highlights", function()
-        self:assertEquals(Actions.requiresOpenBook({ use_highlights = true }), true)
+    self:test("requiresOpenBook returns false for use_highlights (sidecar flag)", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_highlights = true }), false)
     end)
 
-    self:test("requiresOpenBook returns true for use_annotations", function()
-        self:assertEquals(Actions.requiresOpenBook({ use_annotations = true }), true)
+    self:test("requiresOpenBook returns false for use_annotations (sidecar flag)", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_annotations = true }), false)
     end)
 
     self:test("requiresOpenBook returns true for use_reading_stats", function()
         self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true }), true)
     end)
 
-    self:test("requiresOpenBook returns true for use_notebook", function()
-        self:assertEquals(Actions.requiresOpenBook({ use_notebook = true }), true)
+    self:test("requiresOpenBook returns false for use_notebook (sidecar flag)", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_notebook = true }), false)
+    end)
+
+    self:test("requiresOpenBook returns true for source_selection", function()
+        self:assertEquals(Actions.requiresOpenBook({ source_selection = true }), true)
     end)
 
     -- ================================================================

@@ -92,6 +92,8 @@ function ContextExtractor:new(ui, settings)
     local instance = setmetatable({}, self)
     instance.ui = ui
     instance.settings = settings or {}
+    -- document_path: explicit path for sidecar access when ui.document is nil (file browser)
+    instance.document_path = settings and settings.document_path or nil
     return instance
 end
 
@@ -99,6 +101,62 @@ end
 -- @return boolean
 function ContextExtractor:isAvailable()
     return self.ui and self.ui.document ~= nil
+end
+
+--- Check if sidecar data is available (document_path set, for file browser context).
+-- @return boolean
+function ContextExtractor:hasSidecarAccess()
+    return self.document_path ~= nil
+end
+
+--- Get the effective document path (open book or explicit path).
+-- @return string|nil
+function ContextExtractor:getDocumentPath()
+    if self.ui and self.ui.document and self.ui.document.file then
+        return self.ui.document.file
+    end
+    return self.document_path
+end
+
+-- =============================================================================
+-- Sidecar Readers (static) — read per-book data from DocSettings on disk
+-- =============================================================================
+
+--- Read annotations array from a book's sidecar file on disk.
+-- Works for any book, open or not. Returns the raw annotations array.
+-- @param document_path string Full path to the document file
+-- @return table Array of annotation tables (may be empty)
+function ContextExtractor.readSidecarAnnotations(document_path)
+    if not document_path then return {} end
+    local DocSettings = require("docsettings")
+    local ok, doc_settings = pcall(DocSettings.open, DocSettings, document_path)
+    if not ok or not doc_settings then return {} end
+    return doc_settings:readSetting("annotations") or {}
+end
+
+--- Read notebook content from a book's sidecar file on disk.
+-- @param document_path string Full path to the document file
+-- @return string Notebook markdown content (may be empty)
+function ContextExtractor.readSidecarNotebook(document_path)
+    if not document_path then return "" end
+    local Notebook = require("koassistant_notebook")
+    return Notebook.read(document_path) or ""
+end
+
+--- Read reading progress from a book's sidecar file on disk.
+-- @param document_path string Full path to the document file
+-- @return table { decimal = number, formatted = string }
+function ContextExtractor.readSidecarProgress(document_path)
+    if not document_path then return { decimal = 0, formatted = "" } end
+    local DocSettings = require("docsettings")
+    local ok, doc_settings = pcall(DocSettings.open, DocSettings, document_path)
+    if not ok or not doc_settings then return { decimal = 0, formatted = "" } end
+    local percent = doc_settings:readSetting("percent_finished") or 0
+    local pct = math.floor(percent * 100 + 0.5)
+    return {
+        decimal = percent,
+        formatted = pct .. "%",
+    }
 end
 
 --- Check if current provider is trusted (bypasses privacy settings).
@@ -130,6 +188,14 @@ function ContextExtractor:getReadingProgress()
     }
 
     if not self:isAvailable() then
+        -- Sidecar fallback: read stored progress from disk
+        local doc_path = self:getDocumentPath()
+        if doc_path then
+            local sidecar = ContextExtractor.readSidecarProgress(doc_path)
+            result.decimal = sidecar.decimal
+            result.percent = math.floor(sidecar.decimal * 100 + 0.5)
+            result.formatted = sidecar.formatted
+        end
         return result
     end
 
@@ -873,53 +939,28 @@ function ContextExtractor:getVisiblePageText()
     return result
 end
 
---- Get highlights from the document (text only, no notes).
+--- Format a raw annotations array into highlights (text only, no notes).
+-- @param annotations table Array of annotation tables from ui.annotation or sidecar
 -- @param options table { max_count = 100, include_chapter = true }
 -- @return table { formatted = "...", count = number, items = array }
-function ContextExtractor:getHighlights(options)
+function ContextExtractor.formatHighlights(annotations, options)
     options = options or {}
     local max_count = options.max_count or 100
     local include_chapter = options.include_chapter ~= false
 
-    logger.info("ContextExtractor:getHighlights called")
-
-    local result = {
-        formatted = "",
-        count = 0,
-        items = {},
-    }
-
-    if not self:isAvailable() then
-        logger.info("ContextExtractor:getHighlights - not available (no document)")
-        return result
-    end
-
-    -- Access annotations from the annotation module
-    if not self.ui.annotation or not self.ui.annotation.annotations then
-        logger.info("ContextExtractor:getHighlights - no annotation module or no annotations")
-        return result
-    end
-    logger.info("ContextExtractor:getHighlights - found", #self.ui.annotation.annotations, "annotations")
-
+    local result = { formatted = "", count = 0, items = {} }
     local lines = {}
     local count = 0
 
-    for _, annotation in ipairs(self.ui.annotation.annotations) do
-        if count >= max_count then
-            break
-        end
-
+    for _, annotation in ipairs(annotations) do
+        if count >= max_count then break end
         if annotation.text and annotation.text ~= "" then
             count = count + 1
-
-            local item = {
+            table.insert(result.items, {
                 text = annotation.text,
                 chapter = annotation.chapter,
                 pageno = annotation.pageno,
-            }
-            table.insert(result.items, item)
-
-            -- Format the highlight
+            })
             local line = '- "' .. annotation.text .. '"'
             if include_chapter and annotation.chapter then
                 line = line .. " (Chapter: " .. annotation.chapter .. ")"
@@ -932,52 +973,57 @@ function ContextExtractor:getHighlights(options)
 
     result.formatted = table.concat(lines, "\n")
     result.count = count
-
     return result
 end
 
---- Get annotations (highlights with user notes attached).
+--- Get highlights from the document (text only, no notes).
+-- Falls back to sidecar when no open book but document_path is set.
 -- @param options table { max_count = 100, include_chapter = true }
 -- @return table { formatted = "...", count = number, items = array }
-function ContextExtractor:getAnnotations(options)
+function ContextExtractor:getHighlights(options)
+    logger.info("ContextExtractor:getHighlights called")
+
+    -- Open book: read from annotation module
+    if self:isAvailable() and self.ui.annotation and self.ui.annotation.annotations then
+        logger.info("ContextExtractor:getHighlights - found", #self.ui.annotation.annotations, "annotations")
+        return ContextExtractor.formatHighlights(self.ui.annotation.annotations, options)
+    end
+
+    -- Sidecar fallback: read from DocSettings on disk
+    local doc_path = self:getDocumentPath()
+    if doc_path then
+        logger.info("ContextExtractor:getHighlights - sidecar fallback for", doc_path)
+        local annotations = ContextExtractor.readSidecarAnnotations(doc_path)
+        return ContextExtractor.formatHighlights(annotations, options)
+    end
+
+    logger.info("ContextExtractor:getHighlights - not available (no document or path)")
+    return { formatted = "", count = 0, items = {} }
+end
+
+--- Format a raw annotations array into annotations (highlights with user notes).
+-- @param annotations table Array of annotation tables from ui.annotation or sidecar
+-- @param options table { max_count = 100, include_chapter = true }
+-- @return table { formatted = "...", count = number, items = array }
+function ContextExtractor.formatAnnotations(annotations, options)
     options = options or {}
     local max_count = options.max_count or 100
     local include_chapter = options.include_chapter ~= false
 
-    local result = {
-        formatted = "",
-        count = 0,
-        items = {},
-    }
-
-    if not self:isAvailable() then
-        return result
-    end
-
-    if not self.ui.annotation or not self.ui.annotation.annotations then
-        return result
-    end
-
+    local result = { formatted = "", count = 0, items = {} }
     local lines = {}
     local count = 0
 
-    for _, annotation in ipairs(self.ui.annotation.annotations) do
-        if count >= max_count then
-            break
-        end
-
+    for _, annotation in ipairs(annotations) do
+        if count >= max_count then break end
         if annotation.text and annotation.text ~= "" then
             count = count + 1
-
-            local item = {
+            table.insert(result.items, {
                 text = annotation.text,
                 note = annotation.note,
                 chapter = annotation.chapter,
                 pageno = annotation.pageno,
-            }
-            table.insert(result.items, item)
-
-            -- Format with note if available
+            })
             local line = '- "' .. annotation.text .. '"'
             if annotation.note and annotation.note ~= "" then
                 line = line .. "\n  [Note: " .. annotation.note .. "]"
@@ -993,8 +1039,27 @@ function ContextExtractor:getAnnotations(options)
 
     result.formatted = table.concat(lines, "\n")
     result.count = count
-
     return result
+end
+
+--- Get annotations (highlights with user notes attached).
+-- Falls back to sidecar when no open book but document_path is set.
+-- @param options table { max_count = 100, include_chapter = true }
+-- @return table { formatted = "...", count = number, items = array }
+function ContextExtractor:getAnnotations(options)
+    -- Open book: read from annotation module
+    if self:isAvailable() and self.ui.annotation and self.ui.annotation.annotations then
+        return ContextExtractor.formatAnnotations(self.ui.annotation.annotations, options)
+    end
+
+    -- Sidecar fallback: read from DocSettings on disk
+    local doc_path = self:getDocumentPath()
+    if doc_path then
+        local annotations = ContextExtractor.readSidecarAnnotations(doc_path)
+        return ContextExtractor.formatAnnotations(annotations, options)
+    end
+
+    return { formatted = "", count = 0, items = {} }
 end
 
 --- Get reading statistics.
@@ -1112,12 +1177,11 @@ end
 function ContextExtractor:getXrayCache()
     local result = { text = "", progress = nil, progress_formatted = nil, used_annotations = nil, used_book_text = nil }
 
-    if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
-        return result
-    end
+    local doc_path = self:getDocumentPath()
+    if not doc_path then return result end
 
     local ActionCache = require("koassistant_action_cache")
-    local entry = ActionCache.getXrayCache(self.ui.document.file)
+    local entry = ActionCache.getXrayCache(doc_path)
 
     if entry then
         result.text = entry.result or ""
@@ -1137,12 +1201,11 @@ end
 function ContextExtractor:getAnalyzeCache()
     local result = { text = "", used_book_text = nil }
 
-    if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
-        return result
-    end
+    local doc_path = self:getDocumentPath()
+    if not doc_path then return result end
 
     local ActionCache = require("koassistant_action_cache")
-    local entry = ActionCache.getAnalyzeCache(self.ui.document.file)
+    local entry = ActionCache.getAnalyzeCache(doc_path)
 
     if entry then
         result.text = entry.result or ""
@@ -1157,12 +1220,11 @@ end
 function ContextExtractor:getSummaryCache()
     local result = { text = "", used_book_text = nil }
 
-    if not self:isAvailable() or not self.ui.document or not self.ui.document.file then
-        return result
-    end
+    local doc_path = self:getDocumentPath()
+    if not doc_path then return result end
 
     local ActionCache = require("koassistant_action_cache")
-    local entry = ActionCache.getSummaryCache(self.ui.document.file)
+    local entry = ActionCache.getSummaryCache(doc_path)
 
     if entry then
         result.text = entry.result or ""
@@ -1173,16 +1235,16 @@ function ContextExtractor:getSummaryCache()
 end
 
 --- Get notebook content for the current document.
+-- Falls back to sidecar when no open book but document_path is set.
 -- @return table with notebook content { content = string }
 function ContextExtractor:getNotebookContent()
     local result = { content = "" }
 
-    if not self.ui or not self.ui.document or not self.ui.document.file then
-        return result
-    end
+    local doc_path = self:getDocumentPath()
+    if not doc_path then return result end
 
     local Notebook = require("koassistant_notebook")
-    local content = Notebook.read(self.ui.document.file)
+    local content = Notebook.read(doc_path)
     if content and content ~= "" then
         result.content = content
     end
