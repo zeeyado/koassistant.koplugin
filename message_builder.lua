@@ -261,6 +261,19 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{highlight_analysis_nudge}", highlight_analysis_nudge)
 
+    -- {spoiler_free_nudge} - conditional: resolves when spoiler-free mode is active
+    -- Available for custom action prompts; freeform chat injects via system prompt instead
+    local spoiler_free_nudge = ""
+    if data.spoiler_free and Templates then
+        if data.reading_progress and data.reading_progress ~= "" and data.reading_progress ~= "0%" then
+            spoiler_free_nudge = Templates.SPOILER_FREE_NUDGE or ""
+            spoiler_free_nudge = replace_placeholder(spoiler_free_nudge, "{reading_progress}", data.reading_progress)
+        else
+            spoiler_free_nudge = Templates.SPOILER_FREE_NUDGE_NO_PROGRESS or ""
+        end
+    end
+    user_prompt = replace_placeholder(user_prompt, "{spoiler_free_nudge}", spoiler_free_nudge)
+
     -- {context_section} - includes label (for dictionary actions)
     -- Resolves to labeled context when present, empty string when not
     -- Each action's prompt structure determines how context is used
@@ -536,6 +549,8 @@ function MessageBuilder.substituteVariables(prompt_text, data)
         result = replace_placeholder(result, "{text_fallback_nudge}", "")
         -- Highlight analysis nudge (always empty in preview since we don't have extraction data)
         result = replace_placeholder(result, "{highlight_analysis_nudge}", "")
+        -- Spoiler-free nudge (always empty in preview)
+        result = replace_placeholder(result, "{spoiler_free_nudge}", "")
         -- Document context (always empty in preview since we don't have extraction/source data)
         result = replace_placeholder(result, "{document_context_section}", "")
     end

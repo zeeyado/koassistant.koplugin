@@ -834,6 +834,28 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   configuration.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props,
       self.ui and self.ui.document, self.ui and self.ui.doc_settings)
 
+  -- Add reading progress to book_metadata for spoiler-free mode
+  -- Use live data from open book if it matches, otherwise load from DocSettings
+  local bm = configuration.features.book_metadata
+  if self.ui and self.ui.document and self.ui.document.file == file then
+    -- Open book: live progress from context extractor
+    if self.ui.koassistant and self.ui.koassistant.context_extractor then
+      local progress = self.ui.koassistant.context_extractor:getReadingProgress()
+      bm.reading_progress = progress.formatted
+      bm.progress_decimal = progress.decimal
+    end
+  end
+  if not bm.reading_progress and file then
+    -- File browser or different book: load from DocSettings
+    local DocSettings = require("docsettings")
+    local ds = DocSettings:open(file)
+    local pf = ds:readSetting("percent_finished")
+    if pf and pf > 0 then
+      bm.reading_progress = tostring(math.floor(pf * 100 + 0.5)) .. "%"
+      bm.progress_decimal = pf
+    end
+  end
+
   NetworkMgr:runWhenOnline(function()
     self:ensureInitialized()
     -- Make sure we're using the latest configuration

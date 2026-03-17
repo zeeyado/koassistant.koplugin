@@ -377,6 +377,26 @@ function SystemPrompts.buildUnifiedSystem(config)
         end
     end
 
+    -- Append spoiler-free nudge when enabled (for freeform chat in book context)
+    local spoiler_nudge = nil
+    if config.spoiler_free and Templates then
+        local progress = config.reading_progress
+        if progress and progress ~= "" and progress ~= "0%" then
+            spoiler_nudge = Templates.SPOILER_FREE_NUDGE
+            -- Substitute {reading_progress} inside the nudge
+            spoiler_nudge = spoiler_nudge:gsub("{reading_progress}", progress)
+        else
+            spoiler_nudge = Templates.SPOILER_FREE_NUDGE_NO_PROGRESS
+        end
+        if spoiler_nudge then
+            if content then
+                content = content .. "\n\n" .. spoiler_nudge
+            else
+                content = spoiler_nudge
+            end
+        end
+    end
+
     return {
         text = content or "",
         enable_caching = config.enable_caching ~= false,
@@ -385,6 +405,7 @@ function SystemPrompts.buildUnifiedSystem(config)
             domain = config.domain_context,
             language = language_instruction,
             research = research_nudge,
+            spoiler = spoiler_nudge,
         },
     }
 end

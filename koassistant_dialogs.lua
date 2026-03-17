@@ -394,6 +394,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         skip_language_instruction = action and action.skip_language_instruction,
         -- Research mode: DOI triggers academic nudge in system prompt
         book_metadata = features.book_metadata,
+        -- Spoiler-free mode: inject nudge into system prompt for freeform chat
+        spoiler_free = features._spoiler_free_active,
+        reading_progress = features.book_metadata and features.book_metadata.reading_progress,
     })
 
     config.system = system_config
@@ -3506,12 +3509,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local is_xray_chat = ((configuration or {}).features or {})._xray_chat_context
     local xray_context_prefix = ((configuration or {}).features or {})._xray_context_prefix
     local show_all_actions = ((configuration or {}).features or {})._show_all_actions or false
+    local session_spoiler_free = ((configuration or {}).features or {})._session_spoiler_free
     if configuration and configuration.features then
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
         configuration.features._xray_chat_context = nil
         configuration.features._xray_context_prefix = nil
         configuration.features._show_all_actions = nil
+        configuration.features._session_spoiler_free = nil
+    end
+
+    -- Initialize session spoiler-free state from global setting if not restored from refresh
+    if session_spoiler_free == nil then
+        session_spoiler_free = configuration and configuration.features
+            and configuration.features.spoiler_free_chat == true
     end
 
     -- Log which provider we're using
@@ -4887,6 +4898,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local consolidated_message = table.concat(parts, "\n")
                     history:addUserMessage(consolidated_message, true)
 
+                    -- Set spoiler-free flag for system prompt injection (freeform chat only)
+                    -- This is read by buildUnifiedRequestConfig → buildUnifiedSystem
+                    if session_spoiler_free and not is_general_context and not is_library_context then
+                        configuration.features = configuration.features or {}
+                        configuration.features._spoiler_free_active = true
+                    else
+                        if configuration.features then
+                            configuration.features._spoiler_free_active = nil
+                        end
+                    end
+
                     -- Build unified request config for ALL providers
                     -- No action specified, uses global behavior setting
                     buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
@@ -5309,6 +5331,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if exclude_action_flags then configuration.features._exclude_action_flags = exclude_action_flags end
             if xray_context_prefix then configuration.features._xray_context_prefix = xray_context_prefix end
             if show_all_actions then configuration.features._show_all_actions = true end
+            if session_spoiler_free then configuration.features._session_spoiler_free = true end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
@@ -5383,6 +5406,32 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             UIManager:show(gear_menu)
         end,
     }
+
+    -- Add spoiler-free checkbox for book/highlight contexts
+    -- Session toggle: initial state follows global setting, user can flip per-session
+    local spoiler_checkbox
+    local is_book_or_highlight = not is_general_context and not is_library_context
+    if is_book_or_highlight then
+        local CheckButton = require("ui/widget/checkbutton")
+        local Size = require("ui/size")
+        local HorizontalGroup = require("ui/widget/horizontalgroup")
+        local HorizontalSpan = require("ui/widget/horizontalspan")
+        local cb_Font = require("ui/font")
+        spoiler_checkbox = CheckButton:new{
+            face = cb_Font:getFace("xx_smallinfofont"),
+            text = _("Spoiler-free mode"),
+            checked = session_spoiler_free,
+            parent = input_dialog,
+            callback = function()
+                session_spoiler_free = spoiler_checkbox.checked
+            end,
+        }
+        local vgroup = input_dialog.dialog_frame[1]
+        table.insert(vgroup, 2, HorizontalGroup:new{
+            HorizontalSpan:new{ width = Size.padding.large },
+            spoiler_checkbox,
+        })
+    end
 
     -- Add close X to title bar (InputDialog doesn't natively pass close_callback to TitleBar)
     -- Also use regular weight font for title (default x_smalltfont is NotoSans-Bold)

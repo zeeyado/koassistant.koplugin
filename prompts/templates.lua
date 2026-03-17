@@ -70,6 +70,15 @@ Templates.TEXT_FALLBACK_NUDGE = 'Note: No document text was provided. Use your k
 -- Injected by system_prompts.lua buildUnifiedSystem(), not a user prompt placeholder
 Templates.RESEARCH_NUDGE = [[This is an academic/research paper. Ground your analysis primarily in the provided text. If web search is available, use it to verify technical claims, understand the paper's position within its field, look up referenced works or foundational concepts, and search for the DOI directly for citation context and related work. Use relevant academic sources as you see fit — adapt to the discipline and field.]]
 
+-- Spoiler-free nudge - used when spoiler-free mode is active
+-- Available as {spoiler_free_nudge} placeholder in custom action prompts
+-- Injected into system prompt for freeform chat when global or session toggle is on
+-- The {reading_progress} inside gets substituted later by MessageBuilder
+Templates.SPOILER_FREE_NUDGE = "The reader is currently at {reading_progress} of this book. IMPORTANT: Do not reveal, hint at, or discuss ANY events, plot developments, character fates, or information from beyond this point. Keep all discussion strictly within what has occurred up to this reading position."
+
+-- Variant without reading progress (file browser with unknown progress, etc.)
+Templates.SPOILER_FREE_NUDGE_NO_PROGRESS = "The reader has not finished this book. Do not reveal plot twists, endings, character deaths, or major surprises. Keep discussion focused on what has been established so far."
+
 -- Highlight analysis nudge - appears only when highlights are provided
 -- Available as {highlight_analysis_nudge} conditional placeholder in X-Ray prompts
 Templates.HIGHLIGHT_ANALYSIS_NUDGE = [[If highlights are provided, add a "reader_engagement" section to the JSON:

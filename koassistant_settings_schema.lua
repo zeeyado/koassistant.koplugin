@@ -439,6 +439,14 @@ local SettingsSchema = {
                     path = "features.scroll_to_last_message",
                     default = false,
                     help_text = _("When resuming or replying to a chat, try to scroll so your last question is visible. When off, shows top for new chats and bottom for replies."),
+                },
+                {
+                    id = "spoiler_free_chat",
+                    type = "toggle",
+                    text = _("Spoiler-free Mode"),
+                    path = "features.spoiler_free_chat",
+                    default = false,
+                    help_text = _("When enabled, instructs the AI not to reveal events beyond your current reading position in book chats. A session toggle also appears in the input dialog for book and highlight contexts. Custom actions can use the {spoiler_free_nudge} placeholder."),
                     separator = true,
                 },
                 -- Content Format submenu
