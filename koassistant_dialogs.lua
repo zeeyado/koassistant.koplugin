@@ -5056,8 +5056,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
 
     -- Check if an action's prerequisites are met (for enabled/disabled state)
+    -- Only gray out in library context; other contexts rely on _checkRequirements() error messages
     local function isActionAvailable(action)
         if not action then return true end
+        if input_context ~= "library" then return true end
         if action.requires_selected_books and selected_book_count < 2 then
             return false
         end

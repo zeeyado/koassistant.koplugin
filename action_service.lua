@@ -1997,7 +1997,7 @@ local INPUT_CONTEXTS = {
         has_open_book = false,  -- filters out requiresOpenBook actions
         -- Curated defaults: non-open-book actions suitable for file browser context
         -- Includes sidecar-powered actions (analyze_highlights, xray_simple) that read from DocSettings
-        default_ids = {"book_info", "xray_simple", "similar_books", "analyze_highlights", "related_thinkers", "explain_author", "historical_context", "book_reviews"},
+        default_ids = {"book_info", "xray_simple", "similar_books", "analyze_highlights", "related_thinkers", "explain_author", "historical_context", "book_reviews", "suggest_from_library"},
     },
     highlight = {
         settings_key = "input_highlight_actions",
