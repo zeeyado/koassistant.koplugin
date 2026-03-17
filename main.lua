@@ -215,21 +215,19 @@ function AskGPT:init()
             end
 
             reader_highlight_instance:onClose()
-            NetworkMgr:runWhenOnline(function()
-              self:ensureInitialized()
-              -- Make sure we're using the latest configuration
-              self:updateConfigFromSettings()
-              -- Clear context flags for highlight context (default context)
-              configuration.features = configuration.features or {}
-              configuration.features.is_general_context = nil
-              configuration.features.is_book_context = nil
-              configuration.features.is_library_context = nil
-              configuration.features.book_metadata = nil
-              configuration.features.books_info = nil
-              -- Store selection data for "Save to Note" feature
-              configuration.features.selection_data = selection_data
-              showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
-            end)
+            self:ensureInitialized()
+            -- Make sure we're using the latest configuration
+            self:updateConfigFromSettings()
+            -- Clear context flags for highlight context (default context)
+            configuration.features = configuration.features or {}
+            configuration.features.is_general_context = nil
+            configuration.features.is_book_context = nil
+            configuration.features.is_library_context = nil
+            configuration.features.book_metadata = nil
+            configuration.features.books_info = nil
+            -- Store selection data for "Save to Note" feature
+            configuration.features.selection_data = selection_data
+            showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
           end,
         }
       end)
@@ -856,15 +854,13 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
     end
   end
 
-  NetworkMgr:runWhenOnline(function()
-    self:ensureInitialized()
-    -- Make sure we're using the latest configuration
-    self:updateConfigFromSettings()
-    -- Show dialog with book context instead of highlighted text
-    -- Pass book_metadata so action input popup can access file path for artifact viewers
-    local book_metadata = configuration.features.book_metadata
-    showChatGPTDialog(self.ui, book_context, configuration, nil, self, book_metadata)
-  end)
+  self:ensureInitialized()
+  -- Make sure we're using the latest configuration
+  self:updateConfigFromSettings()
+  -- Show dialog with book context instead of highlighted text
+  -- Pass book_metadata so action input popup can access file path for artifact viewers
+  local book_metadata = configuration.features.book_metadata
+  showChatGPTDialog(self.ui, book_context, configuration, nil, self, book_metadata)
 end
 
 function AskGPT:isDocumentFile(file)
@@ -1014,15 +1010,13 @@ function AskGPT:compareSelectedBooks(selected_files)
       books_info[1].title, books_info[1].authors)
   end
 
-  NetworkMgr:runWhenOnline(function()
-    self:ensureInitialized()
-    -- Make sure we're using the latest configuration
-    self:updateConfigFromSettings()
-    -- Pass the prompt as book context with configuration
-    -- Use FileManager.instance as the UI context
-    local ui_context = self.ui or FileManager.instance
-    showChatGPTDialog(ui_context, prompt_text, configuration, nil, self)
-  end)
+  self:ensureInitialized()
+  -- Make sure we're using the latest configuration
+  self:updateConfigFromSettings()
+  -- Pass the prompt as book context with configuration
+  -- Use FileManager.instance as the UI context
+  local ui_context = self.ui or FileManager.instance
+  showChatGPTDialog(ui_context, prompt_text, configuration, nil, self)
 end
 
 -- Generate button for multi-select plus dialog
@@ -3837,8 +3831,8 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
           configuration.features._source_widget = dict_popup
           Dialogs.executeDirectAction(self_ref.ui, action, word, configuration, self_ref)
         else
-          -- Ensure network is available
-          NetworkMgr:runWhenOnline(function()
+          -- Ensure network is available (use runWhenConnected to avoid blocking DNS check)
+          NetworkMgr:runWhenConnected(function()
             -- Make sure we're using the latest configuration
             self_ref:updateConfigFromSettings()
             -- Get effective dictionary language
@@ -4025,24 +4019,22 @@ function AskGPT:onKOAssistantGeneralChat()
     self.current_input_dialog = nil
   end
 
-  NetworkMgr:runWhenOnline(function()
-    self:ensureInitialized()
-    -- Make sure we're using the latest configuration
-    self:updateConfigFromSettings()
+  self:ensureInitialized()
+  -- Make sure we're using the latest configuration
+  self:updateConfigFromSettings()
 
-    -- Set context flag on the original configuration (no copy needed)
-    -- This ensures settings changes are immediately visible
-    configuration.features = configuration.features or {}
-    -- Clear other context flags and book metadata
-    configuration.features.is_general_context = true
-    configuration.features.is_book_context = nil
-    configuration.features.is_library_context = nil
-    configuration.features.book_metadata = nil
-    configuration.features.books_info = nil
+  -- Set context flag on the original configuration (no copy needed)
+  -- This ensures settings changes are immediately visible
+  configuration.features = configuration.features or {}
+  -- Clear other context flags and book metadata
+  configuration.features.is_general_context = true
+  configuration.features.is_book_context = nil
+  configuration.features.is_library_context = nil
+  configuration.features.book_metadata = nil
+  configuration.features.books_info = nil
 
-    -- Show dialog with general context
-    showChatGPTDialog(self.ui, nil, configuration, nil, self)
-  end)
+  -- Show dialog with general context
+  showChatGPTDialog(self.ui, nil, configuration, nil, self)
   return true
 end
 
@@ -5630,7 +5622,7 @@ function AskGPT:_generateSummaryAndContinue(on_done, section_scope)
   config_copy.features.book_metadata = buildBookMetadata(title, authors, doc_file, raw_doc_props,
       self.ui and self.ui.document, self.ui and self.ui.doc_settings)
 
-  NetworkMgr:runWhenOnline(function()
+  NetworkMgr:runWhenConnected(function()
     Dialogs.generateSummaryCache(self.ui, config_copy, self, config_copy.features.book_metadata, function(success)
       if success and on_done then
         on_done()
@@ -6995,7 +6987,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
             book_ctx = book_ctx .. string.format(" Author: %s.", ba)
           end
           configuration.features.book_context = book_ctx
-          NetworkMgr:runWhenOnline(function()
+          NetworkMgr:runWhenConnected(function()
             self_ref2:ensureInitialized()
             self_ref2:updateConfigFromSettings()
             local config_copy = {}
@@ -7456,7 +7448,7 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   config_copy.features._is_book_level_action = true
 
   -- Execute the action with book context as highlighted text
-  NetworkMgr:runWhenOnline(function()
+  NetworkMgr:runWhenConnected(function()
     Dialogs.executeDirectAction(
       self.ui,
       action,
@@ -7498,7 +7490,7 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
   end
   configuration.features.book_context = book_context
 
-  NetworkMgr:runWhenOnline(function()
+  NetworkMgr:runWhenConnected(function()
     self:ensureInitialized()
     self:updateConfigFromSettings()
 
@@ -7655,7 +7647,7 @@ function AskGPT:executeGeneralAction(action_id)
   config_copy.features.books_info = nil
 
   -- Execute the action
-  NetworkMgr:runWhenOnline(function()
+  NetworkMgr:runWhenConnected(function()
     Dialogs.executeDirectAction(
       self.ui,
       action,
@@ -9079,12 +9071,10 @@ function AskGPT:openLibraryDialog()
   configuration.features.books_info = nil
   configuration.features.book_context = nil
 
-  NetworkMgr:runWhenOnline(function()
-    self:ensureInitialized()
-    self:updateConfigFromSettings()
-    local ui_context = self.ui or FileManager.instance
-    showChatGPTDialog(ui_context, nil, configuration, nil, self)
-  end)
+  self:ensureInitialized()
+  self:updateConfigFromSettings()
+  local ui_context = self.ui or FileManager.instance
+  showChatGPTDialog(ui_context, nil, configuration, nil, self)
 end
 
 --- Legacy: open BookPicker for manual book selection (called from Add Books menu)
@@ -9476,7 +9466,7 @@ function AskGPT:registerHighlightMenuActions()
             self:updateConfigFromSettings()
             self:executeQuickAction(fresh_action, selected_text, context, selection_data)
           else
-            NetworkMgr:runWhenOnline(function()
+            NetworkMgr:runWhenConnected(function()
               self:updateConfigFromSettings()
               -- Pass extracted context and selection data to executeQuickAction
               self:executeQuickAction(fresh_action, selected_text, context, selection_data)
@@ -9606,7 +9596,7 @@ function AskGPT:syncDictionaryBypass()
         self_ref:updateConfigFromSettings()
         Dialogs.executeDirectAction(self_ref.ui, bypass_action, word, configuration, self_ref)
       else
-        NetworkMgr:runWhenOnline(function()
+        NetworkMgr:runWhenConnected(function()
           -- Make sure we're using the latest configuration
           self_ref:updateConfigFromSettings()
           -- Get effective dictionary language
@@ -9963,24 +9953,22 @@ function AskGPT:startGeneralChat()
     self.current_input_dialog = nil
   end
 
-  NetworkMgr:runWhenOnline(function()
-    self:ensureInitialized()
-    -- Make sure we're using the latest configuration
-    self:updateConfigFromSettings()
+  self:ensureInitialized()
+  -- Make sure we're using the latest configuration
+  self:updateConfigFromSettings()
 
-    -- Set context flag on the original configuration (no copy needed)
-    -- This ensures settings changes are immediately visible
-    configuration.features = configuration.features or {}
-    -- Clear other context flags and book metadata
-    configuration.features.is_general_context = true
-    configuration.features.is_book_context = nil
-    configuration.features.is_library_context = nil
-    configuration.features.book_metadata = nil
-    configuration.features.books_info = nil
+  -- Set context flag on the original configuration (no copy needed)
+  -- This ensures settings changes are immediately visible
+  configuration.features = configuration.features or {}
+  -- Clear other context flags and book metadata
+  configuration.features.is_general_context = true
+  configuration.features.is_book_context = nil
+  configuration.features.is_library_context = nil
+  configuration.features.book_metadata = nil
+  configuration.features.books_info = nil
 
-    -- Show dialog with general context
-    showChatGPTDialog(self.ui, nil, configuration, nil, self)
-  end)
+  -- Show dialog with general context
+  showChatGPTDialog(self.ui, nil, configuration, nil, self)
 end
 
 function AskGPT:showChatHistory()
@@ -10005,7 +9993,7 @@ function AskGPT:showChatHistory()
 end
 
 function AskGPT:checkForUpdates()
-  NetworkMgr:runWhenOnline(function()
+  NetworkMgr:runWhenConnected(function()
     local UpdateChecker = require("koassistant_update_checker")
     UpdateChecker.checkForUpdates(false) -- auto = false (manual check with UI feedback)
   end)
