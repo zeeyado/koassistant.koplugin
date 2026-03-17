@@ -629,7 +629,7 @@ With AI knowledge only, the AI is essentially giving you its "remembered take" o
 
 **Access**: Long-press a book in File Browser → "Chat/Action (KOA)" or while reading, use gesture or menu
 
-Some actions work from the file browser (using only document metadata like title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector. All file browser buttons (utilities + pinned actions + Chat/Action) are distributed across rows of up to 4 buttons each.
+Some actions work from the file browser (using only document metadata like title/author), while others require reading mode (using document state like progress, highlights, or extracted text). Reading-only actions are automatically hidden in file browser. You can pin frequently-used file browser actions directly to the long-press menu via **Action Manager → hold action → "Add to File Browser"**, so they appear as one-tap buttons without opening the action selector. All file browser buttons (utilities + pinned actions + Chat/Action) are distributed across rows of up to 4 buttons each. Long-press any pinned action button to see its description.
 
 **Built-in Actions**:
 | Action | Description |
@@ -864,7 +864,7 @@ The library dialog splits actions into two zones with their own management butto
 | **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
 | **Recommend** | Suggests 5-8 new works based on patterns across your selected works. When library scanning is enabled, also considers your full library to avoid recommending books you already own |
 
-Selection-based action buttons are grayed out (disabled) until 2+ books are added. Tap **Items ▾** to select books via presets (Currently Reading, Recently Finished, On Hold, Last 5 from History, Browse History) or add a folder. The title bar shows the count of selected items.
+Selection-based action buttons are grayed out (disabled) until 2+ books are added. Long-press any grayed-out button to see what it does. Tap **Items ▾** to select books via presets (Currently Reading, Recently Finished, On Hold, Last 5 from History, Browse History) or add a folder. The title bar shows the count of selected items.
 
 **Freeform chat** also works — type a question and tap Send. When library scanning is enabled with folders configured, the library catalog is included as context. When items are selected, those are included too. The input hint text adapts to show what data is active.
 
@@ -883,7 +883,7 @@ A free-form conversation without specific document context. If started while a b
 
 #### Managing the Input Dialog
 
-All input dialogs (highlight, book, library, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2. The title bar has a close X on the right and a gear icon on the left.
+All input dialogs (highlight, book, library, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2. The title bar has a close X on the right and a gear icon on the left. Long-press any action button to see its description.
 
 **Default actions per context:**
 
@@ -915,6 +915,7 @@ Actions like News Update that require [web search](#web-search) are available in
 
 ### Quick UI Features
 
+- **Action Descriptions**: Long-press any action button to see what it does. Works everywhere: input dialog, Quick Actions panel, highlight menu, and file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books).
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), and **More Actions** (access enabled actions not shown in the grid). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Web Search Toggle (Input)**: The input dialog has a **Web ON/OFF** button (top row) to toggle web search before running an action. This is a persistent toggle — the setting sticks across sessions. Action button labels update to reflect web search status.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with Font Size, Alignment, Reset to Defaults, Show Reasoning (when available), and Show/Hide Debug
@@ -1309,7 +1310,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 3. Tap **"Add to Highlight Menu"**
 4. A notification reminds you to restart KOReader
 
-Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup.
+Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup. Long-press any action to see its description.
 
 **Managing actions**:
 - Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled actions
