@@ -530,12 +530,17 @@ end
 local function runFileBrowserTests()
     print("\n--- File Browser Actions ---")
 
-    TestRunner:test("getFileBrowserActions returns empty when no saved and no defaults", function()
+    TestRunner:test("getFileBrowserActions returns defaults when no saved actions", function()
         local service = createService({})
         service.Actions = Actions
         local result = service:getFileBrowserActions()
         TestRunner:assertEqual(type(result), "table")
-        TestRunner:assertEqual(#result, 0)
+        -- Count how many book actions have in_file_browser set
+        local expected_defaults = 0
+        for _id, action in pairs(Actions.book) do
+            if action.in_file_browser then expected_defaults = expected_defaults + 1 end
+        end
+        TestRunner:assertEqual(#result, expected_defaults)
     end)
 
     TestRunner:test("isInFileBrowser returns false for empty list", function()
@@ -548,24 +553,31 @@ local function runFileBrowserTests()
     TestRunner:test("addToFileBrowser adds action and resolves text", function()
         local data = { disabled_actions = {} }
         local service = createService(data)
-        -- Find a real book action to test with
+        -- Find a real book action that is NOT a default file browser action
         local test_action = nil
         for _id, action in pairs(Actions.book) do
-            if action.id and action.text then
+            if action.id and action.text and not action.in_file_browser then
                 test_action = action
                 break
             end
         end
-        if not test_action then error("No book action found for testing") end
+        if not test_action then error("No non-default book action found for testing") end
 
         service:addToFileBrowser(test_action.id)
         TestRunner:assertEqual(service:isInFileBrowser(test_action.id), true)
-        -- Check stored format is {id, text}
+        -- Check stored format includes the added action
         local saved = data.file_browser_actions
         TestRunner:assertNotNil(saved)
-        TestRunner:assertEqual(#saved, 1)
-        TestRunner:assertEqual(saved[1].id, test_action.id)
-        TestRunner:assertEqual(saved[1].text, test_action.text)
+        -- Find the added action in saved list
+        local found = false
+        for _i, item in ipairs(saved) do
+            if item.id == test_action.id then
+                TestRunner:assertEqual(item.text, test_action.text)
+                found = true
+                break
+            end
+        end
+        TestRunner:assertEqual(found, true, "added action should be in saved list")
     end)
 
     TestRunner:test("removeFromFileBrowser removes action and adds to dismissed", function()
@@ -595,15 +607,15 @@ local function runFileBrowserTests()
     TestRunner:test("toggleFileBrowserAction adds then removes", function()
         local data = { disabled_actions = {} }
         local service = createService(data)
-        -- Find a real book action
+        -- Find a real book action that is NOT a default
         local test_action = nil
         for _id, action in pairs(Actions.book) do
-            if action.id and action.text then
+            if action.id and action.text and not action.in_file_browser then
                 test_action = action
                 break
             end
         end
-        if not test_action then error("No book action found for testing") end
+        if not test_action then error("No non-default book action found for testing") end
 
         -- Toggle on
         local result = service:toggleFileBrowserAction(test_action.id)
@@ -621,17 +633,18 @@ local function runFileBrowserTests()
         local service = createService(data)
         local test_action = nil
         for _id, action in pairs(Actions.book) do
-            if action.id and action.text then
+            if action.id and action.text and not action.in_file_browser then
                 test_action = action
                 break
             end
         end
-        if not test_action then error("No book action found for testing") end
+        if not test_action then error("No non-default book action found for testing") end
 
+        local before_count = #service:getFileBrowserActions()
         service:addToFileBrowser(test_action.id)
         service:addToFileBrowser(test_action.id)
         local saved = data.file_browser_actions
-        TestRunner:assertEqual(#saved, 1, "should not duplicate")
+        TestRunner:assertEqual(#saved, before_count + 1, "should not duplicate")
     end)
 
     TestRunner:test("getFileBrowserActions prunes stale IDs", function()
@@ -643,7 +656,12 @@ local function runFileBrowserTests()
         }
         local service = createService(data)
         local result = service:getFileBrowserActions()
-        TestRunner:assertEqual(#result, 0, "stale action should be pruned")
+        -- The stale action should be pruned; only valid actions remain
+        for _i, item in ipairs(result) do
+            if item.id == "nonexistent_action_xyz" then
+                error("stale action should have been pruned")
+            end
+        end
     end)
 end
 

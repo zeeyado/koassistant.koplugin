@@ -82,6 +82,11 @@ _G.G_reader_settings = {
 -- Must happen BEFORE installing any mocks or loading any plugin modules
 -- ============================================================
 package.loaded["koassistant_chat_history_manager"] = nil
+-- Save modules we'll override, for restoration after tests
+local _saved_lfs = package.loaded["libs/libkoreader-lfs"]
+local _saved_datastorage = package.loaded["datastorage"]
+local _saved_util = package.loaded["util"]
+
 package.loaded["koassistant_action_cache"] = nil
 package.loaded["koassistant_notebook"] = nil
 package.loaded["koassistant_pinned_manager"] = nil
@@ -556,6 +561,13 @@ TestRunner:test("lazy migration: no migration when file exists at current locati
     -- No rename should occur
     TestRunner:assertEqual(#mock_renames, 0, "Should not attempt migration when file exists")
 end)
+
+-- ============================================================
+-- Cleanup: restore overridden modules so subsequent tests work
+-- ============================================================
+package.loaded["libs/libkoreader-lfs"] = _saved_lfs
+package.loaded["datastorage"] = _saved_datastorage
+package.loaded["util"] = _saved_util
 
 -- ============================================================
 -- Results

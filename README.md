@@ -930,8 +930,8 @@ Prevents the AI from revealing events beyond your current reading position when 
 **How it works:** When enabled, a spoiler prevention instruction is injected into the system prompt for freeform chat (the Send button) in book and highlight contexts. The instruction tells the AI your exact reading progress (e.g., "The reader is currently at 42% of this book") and forbids discussing anything beyond that point. When reading progress is unavailable, a generic variant is used ("The reader has not finished this book").
 
 **Two independent settings** (both off by default):
-- **Spoiler-free Mode** (`Settings → Chat & Export Settings`): Global toggle — when on, all book/highlight freeform chats get spoiler awareness
-- **Show Spoiler-free Checkbox** (`Settings → Chat & Export Settings`): Shows a session checkbox in the input dialog — lets you flip spoiler mode per-session without changing the global setting
+- **Spoiler-free Chat** (`Settings → Chat & Export Settings`): Global toggle — when on, all book/highlight freeform chats get spoiler awareness
+- **Show Spoiler-free Chat Checkbox** (`Settings → Chat & Export Settings`): Shows a session checkbox in the input dialog — lets you flip spoiler-free chat per-session without changing the global setting
 
 You can enable either or both. The checkbox starts checked when the global toggle is on, but can be unchecked per-session.
 
@@ -2126,8 +2126,8 @@ Two complementary features for making important content easily available:
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat & Export Settings
-- **Spoiler-free Mode**: Instructs the AI not to reveal events beyond your current reading position in book and highlight chats (default: OFF). See [Spoiler-Free Mode](#spoiler-free-mode).
-- **Show Spoiler-free Checkbox**: Show a session checkbox in the book/highlight input dialog to toggle spoiler-free mode on the fly (default: OFF). When the global setting above is on, the checkbox starts checked but can be unchecked per session.
+- **Spoiler-free Chat**: Instructs the AI not to reveal events beyond your current reading position in book and highlight chats (default: OFF). See [Spoiler-Free Mode](#spoiler-free-mode).
+- **Show Spoiler-free Chat Checkbox**: Show a session checkbox in the book/highlight input dialog to toggle spoiler-free chat on the fly (default: OFF). When the global setting above is on, the checkbox starts checked but can be unchecked per session.
 - **Auto-save All Chats**: Automatically save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history
 - **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)

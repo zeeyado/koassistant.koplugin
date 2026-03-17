@@ -179,6 +179,9 @@ local function setFilesystem(tree)
     mock_filesystem = tree
 end
 
+-- Save original lfs for restoration after tests
+local _saved_lfs = package.loaded["libs/libkoreader-lfs"]
+
 -- Override lfs with our mock for directory scanning
 local mock_lfs = {
     dir = function(path)
@@ -693,6 +696,9 @@ TestRunner:test("stats counts are accurate", function()
     TestRunner:assertEqual(result.stats.abandoned, 1, "Abandoned")
     TestRunner:assertEqual(result.stats.unread, 3, "Unread")
 end)
+
+-- ----- Cleanup: restore original lfs -----
+package.loaded["libs/libkoreader-lfs"] = _saved_lfs
 
 -- ----- Summary -----
 

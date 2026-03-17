@@ -123,7 +123,8 @@ local function runResponseModeTests()
     end)
 
     TestRunner:test("response mode returns empty when no last_response", function()
-        local data = buildTestData({ last_response = nil })
+        local data = buildTestData()
+        data.last_response = nil  -- Direct assignment (pairs() skips nil in overrides table)
         local result = Export.format(data, "response", "text")
         TestRunner:assertEqual(result, "")
     end)
@@ -423,7 +424,7 @@ local function runFormatCacheContentTests()
             model = "claude-3",
             timestamp = os.time(),
         }, "markdown")
-        TestRunner:assertContains(result, "# X-Ray: Test Book")
+        TestRunner:assertContains(result, "# X-Ray — Test Book")
         TestRunner:assertContains(result, "**Author:** Author")
         TestRunner:assertContains(result, "**Coverage:** 50%")
         TestRunner:assertContains(result, "**Model:** claude-3")
@@ -435,7 +436,7 @@ local function runFormatCacheContentTests()
             cache_type = "summary",
             book_title = "Test Book",
         }, "text")
-        TestRunner:assertContains(result, "SUMMARY: Test Book")
+        TestRunner:assertContains(result, "SUMMARY — Test Book")
         TestRunner:assertContains(result, "Summary here")
     end)
 
