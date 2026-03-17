@@ -2874,13 +2874,22 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     elseif prompt and prompt.use_library then
         -- No open document but action needs library data — extract library only
-        -- Session folders (from library dialog) take precedence over permanent config
-        local scan_folders_to_use = plugin and plugin._session_scan_folders
-        if not scan_folders_to_use then
-            local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-            if lib_features.enable_library_scanning == true
-                    and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
-                scan_folders_to_use = lib_features.library_scan_folders
+        -- Global toggle is absolute gate; session folders bypass folder config only
+        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local lib_toggle = lib_features.enable_library_scanning == true
+        -- Check trusted provider
+        if not lib_toggle and lib_features.trusted_providers and config and config.provider then
+            for _idx, tp in ipairs(lib_features.trusted_providers) do
+                if tp == config.provider then lib_toggle = true; break end
+            end
+        end
+        local scan_folders_to_use
+        if lib_toggle then
+            scan_folders_to_use = plugin and plugin._session_scan_folders
+            if not scan_folders_to_use then
+                if lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                    scan_folders_to_use = lib_features.library_scan_folders
+                end
             end
         end
         if scan_folders_to_use and #scan_folders_to_use > 0 then
@@ -4834,14 +4843,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(parts, lib_context)
                             table.insert(parts, "")
                         end
-                        -- Auto-attach library scan data when scanning is available
-                        -- Session folders (from library dialog) take precedence over permanent config
-                        local scan_folders_to_use = plugin and plugin._session_scan_folders
-                        if not scan_folders_to_use then
-                            local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-                            if lib_features.enable_library_scanning == true
-                                    and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
-                                scan_folders_to_use = lib_features.library_scan_folders
+                        -- Auto-attach library scan data when scanning is enabled
+                        -- Global toggle is absolute gate; session folders bypass folder config only
+                        local scan_folders_to_use
+                        if library_toggle_on then
+                            scan_folders_to_use = plugin and plugin._session_scan_folders
+                            if not scan_folders_to_use then
+                                local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+                                if lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
+                                    scan_folders_to_use = lib_features.library_scan_folders
+                                end
                             end
                         end
                         if scan_folders_to_use and #scan_folders_to_use > 0 then

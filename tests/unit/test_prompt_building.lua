@@ -826,6 +826,49 @@ local function runGatingTests()
         package.loaded["koassistant_library_scanner"] = mock_library_scanner  -- restore
     end)
 
+    -- =========================================================================
+    -- Session Scan Folders — global toggle is absolute gate
+    -- =========================================================================
+    print("\n--- ContextExtractor: Session Scan Folders Gating ---")
+
+    TestRunner:test("session scan folders allowed when toggle on (bypasses folder config)", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = true,
+            -- No library_scan_folders configured
+            _session_scan_folders = { "/tmp/session_folder" },
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertContains(data.library_content, "Dune")
+    end)
+
+    TestRunner:test("session scan folders BLOCKED when toggle off (absolute gate)", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = false,
+            _session_scan_folders = { "/tmp/session_folder" },
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertEquals(data.library_content, "")
+    end)
+
+    TestRunner:test("session scan folders BLOCKED when toggle nil/default (absolute gate)", function()
+        local extractor = createMockExtractor({
+            _session_scan_folders = { "/tmp/session_folder" },
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertEquals(data.library_content, "")
+    end)
+
+    TestRunner:test("session scan folders allowed with trusted provider even when toggle off", function()
+        local extractor = createMockExtractor({
+            enable_library_scanning = false,
+            trusted_providers = { "ollama" },
+            provider = "ollama",
+            _session_scan_folders = { "/tmp/session_folder" },
+        })
+        local data = extractor:extractForAction({ use_library = true })
+        TestRunner:assertContains(data.library_content, "Dune")
+    end)
+
     -- Restore original module state
     package.loaded["koassistant_library_scanner"] = saved_library_scanner
 

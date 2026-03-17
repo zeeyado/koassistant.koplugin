@@ -1397,7 +1397,8 @@ function ContextExtractor:extractForAction(action)
     local library_setting_allowed = provider_trusted or self.settings.enable_library_scanning == true
     local library_folders = self.settings.library_scan_folders
     local library_folders_configured = library_folders and #library_folders > 0
-    local library_allowed = (library_setting_allowed and library_folders_configured) or has_session_scan
+    -- Global toggle is absolute gate; session folders only bypass folder configuration requirement
+    local library_allowed = library_setting_allowed and (library_folders_configured or has_session_scan)
     if action.use_library and library_allowed then
         local LibraryScanner = require("koassistant_library_scanner")
         -- Use session scan folders if available (already computed as effective set)
