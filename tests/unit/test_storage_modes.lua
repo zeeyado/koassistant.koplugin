@@ -561,6 +561,4 @@ end)
 -- Results
 -- ============================================================
 print(string.format("\n  Storage Modes: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
-if TestRunner.failed > 0 then
-    os.exit(1)
-end
+return TestRunner.failed == 0

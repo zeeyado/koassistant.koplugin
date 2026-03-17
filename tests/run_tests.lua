@@ -178,6 +178,15 @@ local function runUnitTests()
                 all_passed = false
             elseif result == false then
                 all_passed = false
+            elseif type(result) == "table" and type(result.runAll) == "function" then
+                -- Module-pattern test: returned a table with runAll() method
+                local run_ok, run_result = pcall(result.runAll, result)
+                if not run_ok then
+                    print(string.format("    ✗ Error in runAll: %s", tostring(run_result)))
+                    all_passed = false
+                elseif run_result == false then
+                    all_passed = false
+                end
             end
         end
     end
