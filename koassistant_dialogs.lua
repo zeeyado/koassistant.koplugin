@@ -2844,7 +2844,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 -- Library scanning
                 enable_library_scanning = config.features and config.features.enable_library_scanning,
                 library_scan_folders = config.features and config.features.library_scan_folders,
-                _session_scan_folders = config.features and config.features._session_scan_folders,
             })
             logger.info("KOAssistant: Extractor settings - enable_book_text_extraction=",
                        config.features and config.features.enable_book_text_extraction and "true" or "false/nil")
@@ -2872,34 +2871,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     elseif prompt and prompt.use_library then
         -- No open document but action needs library data — extract library only
         -- Read settings fresh from plugin (like Send button does) to avoid stale config
-        -- Merge permanent folders (if scanning enabled) + session folders
         local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
         local lib_scanning = lib_features.enable_library_scanning == true
         local lib_folders = lib_features.library_scan_folders
-        local lib_session = config.features and config.features._session_scan_folders or {}
-        local has_perm = lib_scanning and lib_folders and #lib_folders > 0
-        local has_sess = #lib_session > 0
-        if has_perm or has_sess then
+        if lib_scanning and lib_folders and #lib_folders > 0 then
             local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
             if scan_ok and LibraryScanner then
-                local scan_folders = {}
-                local seen_sf = {}
-                if has_perm then
-                    for _idx, f in ipairs(lib_folders) do
-                        if not seen_sf[f] then
-                            table.insert(scan_folders, f)
-                            seen_sf[f] = true
-                        end
-                    end
-                end
-                for _idx, f in ipairs(lib_session) do
-                    if not seen_sf[f] then
-                        table.insert(scan_folders, f)
-                        seen_sf[f] = true
-                    end
-                end
-                local scan_settings = { library_scan_folders = scan_folders }
-                local scan_result = LibraryScanner.scan(scan_settings)
+                local scan_result = LibraryScanner.scan(lib_features)
                 if scan_result and scan_result.books and #scan_result.books > 0 then
                     message_data.library_content = LibraryScanner.format(scan_result)
                 else
@@ -4204,13 +4182,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         runAction()
     end
 
-    -- Helper: sync session scan folders to plugin instance for _checkRequirements()
-    local function syncSessionFolders()
-        if plugin then
-            plugin._session_scan_folders = configuration.features and configuration.features._session_scan_folders or nil
-        end
-    end
-
     -- Helper: merge new books into existing selection (dedup by file path)
     local function mergeBooks(new_books)
         configuration.features = configuration.features or {}
@@ -4426,9 +4397,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end,
         }})
 
-        -- Scan Folder: session-scoped folder scan (dual-purpose: items + scan path)
+        -- Add Folder: scan a folder and add all books to item selection
         table.insert(menu_buttons, {{
-            text = _("Scan Folder…"),
+            text = _("Add Folder…"),
             callback = function()
                 UIManager:close(add_books_dialog)
                 local PathChooser = require("ui/widget/pathchooser")
@@ -4436,11 +4407,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 local DataStorage = require("datastorage")
                 local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
                 local path_chooser = PathChooser:new{
-                    title = _("Select Folder to Scan"),
+                    title = _("Select Folder"),
                     path = start_path,
                     select_directory = true,
                     onConfirm = function(selected_path)
-                        -- Scan the folder for books
                         local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
                         if not scan_ok or not LibraryScanner then
                             UIManager:show(InfoMessage:new{
@@ -4449,7 +4419,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             })
                             return
                         end
-                        -- Scan with session folder
                         local scan_settings = { library_scan_folders = { selected_path } }
                         local scan_result = LibraryScanner.scan(scan_settings)
                         if not scan_result or not scan_result.books or #scan_result.books == 0 then
@@ -4459,7 +4428,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             })
                             return
                         end
-                        -- Convert scan results to books_info format
                         local new_books = {}
                         for _idx2, book in ipairs(scan_result.books) do
                             table.insert(new_books, {
@@ -4468,23 +4436,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 file = book.path,
                             })
                         end
-                        -- Add to books_info (item selection)
                         local added = mergeBooks(new_books)
-                        -- Add to session scan folders (for scan-based actions)
-                        configuration.features = configuration.features or {}
-                        local session_folders = configuration.features._session_scan_folders or {}
-                        local already_added = false
-                        for _idx2, existing in ipairs(session_folders) do
-                            if existing == selected_path then
-                                already_added = true
-                                break
-                            end
-                        end
-                        if not already_added then
-                            table.insert(session_folders, selected_path)
-                            configuration.features._session_scan_folders = session_folders
-                        end
-                        syncSessionFolders()
                         UIManager:show(InfoMessage:new{
                             text = T(_("Found %1 books in folder.\n%2 new items added."), #new_books, added),
                             timeout = 3,
@@ -4506,8 +4458,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     configuration.features.books_info = nil
                     configuration.features.book_context = nil
                     configuration.features.book_metadata = nil
-                    configuration.features._session_scan_folders = nil
-                    syncSessionFolders()
                     refreshInputDialog()
                 end,
             }})
@@ -4705,33 +4655,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(parts, "")
                         end
                         -- Auto-attach library scan data when scanning is available
-                        -- Merge permanent folders (if scanning enabled) + session folders
                         local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-                        local send_session_folders = configuration.features._session_scan_folders or {}
-                        local send_perm_folders = lib_features.library_scan_folders or {}
-                        local send_perm_allowed = lib_features.enable_library_scanning == true and #send_perm_folders > 0
-                        if send_perm_allowed or #send_session_folders > 0 then
+                        if lib_features.enable_library_scanning == true
+                                and lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
                             local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
                             if scan_ok and LibraryScanner then
-                                -- Build merged folder list for scanning
-                                local scan_folders = {}
-                                local seen_sf = {}
-                                if send_perm_allowed then
-                                    for _idx2, f in ipairs(send_perm_folders) do
-                                        if not seen_sf[f] then
-                                            table.insert(scan_folders, f)
-                                            seen_sf[f] = true
-                                        end
-                                    end
-                                end
-                                for _idx2, f in ipairs(send_session_folders) do
-                                    if not seen_sf[f] then
-                                        table.insert(scan_folders, f)
-                                        seen_sf[f] = true
-                                    end
-                                end
-                                local scan_settings = { library_scan_folders = scan_folders }
-                                local scan_result = LibraryScanner.scan(scan_settings)
+                                local scan_result = LibraryScanner.scan(lib_features)
                                 if scan_result and scan_result.books and #scan_result.books > 0 then
                                     local formatted = LibraryScanner.format(scan_result)
                                     if formatted and formatted ~= "" then
@@ -4876,11 +4805,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local selected_book_count = 0
     local avail_features = configuration and configuration.features or {}
     -- Library scan check applies to all contexts (suggest_from_library is a book action)
-    -- Session scan folders bypass the permanent config requirement
-    local has_session_folders = avail_features._session_scan_folders and #avail_features._session_scan_folders > 0
-    local library_scan_available = has_session_folders
-        or (avail_features.enable_library_scanning == true
-            and avail_features.library_scan_folders and #avail_features.library_scan_folders > 0)
+    local library_scan_available = avail_features.enable_library_scanning == true
+        and avail_features.library_scan_folders and #avail_features.library_scan_folders > 0
     if input_context == "library" then
         local books = avail_features.books_info
         selected_book_count = books and #books or 0

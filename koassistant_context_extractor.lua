@@ -1391,36 +1391,13 @@ function ContextExtractor:extractForAction(action)
     -- Requires: (1) use_library action flag, (2) enable_library_scanning global setting,
     --           (3) library_scan_folders configured (non-empty)
     -- Trusted providers bypass gate 2 only (NOT gate 3 — folders must always be explicit)
-    -- Session folders (_session_scan_folders) bypass gates 2+3 — user actively chose them
-    local session_folders = self.settings._session_scan_folders
-    local has_session_folders = session_folders and #session_folders > 0
     local library_setting_allowed = provider_trusted or self.settings.enable_library_scanning == true
     local library_folders = self.settings.library_scan_folders
     local library_folders_configured = library_folders and #library_folders > 0
-    local library_allowed = (library_setting_allowed and library_folders_configured) or has_session_folders
+    local library_allowed = library_setting_allowed and library_folders_configured
     if action.use_library and library_allowed then
         local LibraryScanner = require("koassistant_library_scanner")
-        -- Merge permanent + session folders for scanning
-        local scan_settings = {}
-        for k, v in pairs(self.settings) do scan_settings[k] = v end
-        if has_session_folders then
-            local merged_folders = {}
-            local seen_folders = {}
-            for _idx, f in ipairs(library_folders or {}) do
-                if library_setting_allowed and not seen_folders[f] then
-                    table.insert(merged_folders, f)
-                    seen_folders[f] = true
-                end
-            end
-            for _idx, f in ipairs(session_folders) do
-                if not seen_folders[f] then
-                    table.insert(merged_folders, f)
-                    seen_folders[f] = true
-                end
-            end
-            scan_settings.library_scan_folders = merged_folders
-        end
-        local scan_result = LibraryScanner.scan(scan_settings, self.document_path)
+        local scan_result = LibraryScanner.scan(self.settings, self.document_path)
         data.library_content = LibraryScanner.format(scan_result)
     elseif action.use_library and not library_allowed then
         -- Explicitly set empty when gated off (for section placeholder to disappear)
