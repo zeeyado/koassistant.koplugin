@@ -51,6 +51,7 @@
   - [Library Mode](#library-mode)
   - [General Chat](#general-chat)
   - [Input Dialog Actions](#managing-the-input-dialog) — Per-context action sorting, gear menu, web toggle
+  - [Spoiler-Free Mode](#spoiler-free-mode) — Prevent AI from revealing events beyond your reading position
   - [Save to Note](#save-to-note)
 - [How the AI Prompt Works](#how-the-ai-prompt-works) — Behavior + Domain + Language system
 - [Actions](#actions)
@@ -922,6 +923,36 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Long-pressing 1 word or selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options. Consistent across all viewer types (chat, X-Ray browser, compact, dictionary, translate views). Can also be extended to KOReader's own viewers (dictionary, Wikipedia, bookmarks, etc.) via **Settings → KOReader Integration → Enhance Text Selection**. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
+### Spoiler-Free Mode
+
+Prevents the AI from revealing events beyond your current reading position when chatting about books.
+
+**How it works:** When enabled, a spoiler prevention instruction is injected into the system prompt for freeform chat (the Send button) in book and highlight contexts. The instruction tells the AI your exact reading progress (e.g., "The reader is currently at 42% of this book") and forbids discussing anything beyond that point. When reading progress is unavailable, a generic variant is used ("The reader has not finished this book").
+
+**Two independent settings** (both off by default):
+- **Spoiler-free Mode** (`Settings → Chat & Export Settings`): Global toggle — when on, all book/highlight freeform chats get spoiler awareness
+- **Show Spoiler-free Checkbox** (`Settings → Chat & Export Settings`): Shows a session checkbox in the input dialog — lets you flip spoiler mode per-session without changing the global setting
+
+You can enable either or both. The checkbox starts checked when the global toggle is on, but can be unchecked per-session.
+
+**Reading progress source:**
+- **Open book**: Live progress from the reader
+- **File browser**: Saved progress from book settings
+- **No progress available** (0% or unknown): Falls back to generic "has not finished" variant
+
+**What's covered:**
+- Freeform chat (Send button) in book and highlight contexts
+- Replies in the same chat session inherit the spoiler setting
+
+**What's intentionally excluded:**
+- Predefined actions (have their own spoiler handling where relevant, e.g., X-Ray, Recap)
+- Artifact chat (discussing already-generated content)
+- Chat history resume (previous messages already generated)
+- X-Ray "Chat about this" (section coverage % may conflict with book reading %)
+- Library and general contexts (no specific book to spoil)
+
+**For custom actions:** Use the `{spoiler_free_nudge}` placeholder in your action prompts to add spoiler awareness. The placeholder resolves to the spoiler instruction when active, or to nothing when inactive. See [Utility Placeholders](#utility-placeholders).
+
 ### Save to Note
 
 **Save AI responses directly to your KOReader highlights.**
@@ -1163,11 +1194,13 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 | `{conciseness_nudge}` | "Be direct and concise. Don't restate or over-elaborate." | Always present |
 | `{hallucination_nudge}` | "If you don't recognize this or the content seems unclear, say so rather than guessing." (web-aware variant adds "search the web to verify" when web search is active) | Always present |
 | `{text_fallback_nudge}` | "Note: No document text was provided. Use your knowledge of \"{title}\" to provide the best response you can. If you don't recognize this work, say so honestly rather than fabricating details." | **Conditional** — only appears when document text is empty; invisible when text is present |
+| `{spoiler_free_nudge}` | "The reader is currently at {reading_progress} of this book. IMPORTANT: Do not reveal..." (with progress) or "The reader has not finished this book. Do not reveal plot twists, endings..." (without progress) | **Conditional** — only appears when spoiler-free mode is active; invisible otherwise |
 
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 17 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
 - **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all library actions (Next Read, Discover New, Analyze Library, Suggest from Library, Recommend).
 - **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
+- **`{spoiler_free_nudge}`**: Adds a spoiler prevention instruction when spoiler-free mode is active (see [Spoiler-Free Mode](#spoiler-free-mode)). When reading progress is available, the nudge tells the AI the reader's exact position and forbids revealing anything beyond it. When progress is unavailable (e.g., file browser with no saved progress), a generic "has not finished" variant is used. When spoiler-free mode is inactive, the placeholder expands to nothing. Not used by any built-in actions (freeform chat injects this via the system prompt instead), but available for custom actions that want spoiler awareness.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
 
@@ -2093,6 +2126,8 @@ Two complementary features for making important content easily available:
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat & Export Settings
+- **Spoiler-free Mode**: Instructs the AI not to reveal events beyond your current reading position in book and highlight chats (default: OFF). See [Spoiler-Free Mode](#spoiler-free-mode).
+- **Show Spoiler-free Checkbox**: Show a session checkbox in the book/highlight input dialog to toggle spoiler-free mode on the fly (default: OFF). When the global setting above is on, the checkbox starts checked but can be unchecked per session.
 - **Auto-save All Chats**: Automatically save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history
 - **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
