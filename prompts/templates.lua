@@ -268,6 +268,20 @@ For each recommendation:
 
 If the reader's library is included above, note which recommendations they already own and prioritize unread books from their library before suggesting new purchases. Skip obvious picks the reader has almost certainly encountered. Do not use emojis. {hallucination_nudge}]],
 
+    cross_book_notes = [[Here are {count} books with my highlights, annotations, and notes:
+
+{books_list}
+
+First, for each book that has data, briefly note what stands out about what I highlighted or wrote — what catches my attention, what I push back on, what I return to.
+
+Then look across the books for the deeper patterns:
+- Recurring themes or questions I'm drawn to across different works
+- How my thinking evolves — do later annotations build on or contradict earlier ones?
+- Intellectual threads that connect books the authors themselves might not have connected
+- What my highlighting and annotation patterns reveal about how I read (do I mark arguments? evidence? style? disagreements?)
+
+Ground every observation in specific highlights or notes. Do not use emojis. {hallucination_nudge}]],
+
     -- Scan-based actions (no book selection needed)
     next_from_library = [[Here is my library:
 

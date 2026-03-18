@@ -2026,7 +2026,8 @@ local INPUT_CONTEXTS = {
         -- All library actions as defaults: scan-based first, then selection-based
         default_ids = {"next_from_library", "discover_books", "analyze_library",
             "compare_books", "common_themes", "collection_summary",
-            "quick_summaries", "reading_order", "recommend_books"},
+            "quick_summaries", "reading_order", "recommend_books",
+            "cross_book_notes"},
     },
 }
 

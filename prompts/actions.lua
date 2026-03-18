@@ -1815,6 +1815,24 @@ Actions.library = {
         },
         builtin = true,
     },
+    cross_book_notes = {
+        id = "cross_book_notes",
+        text = _("Analyze Notes"),
+        description = _("Analyzes your highlights, annotations, and notes across the selected books — what patterns emerge in what you mark, what you write, and how your thinking connects across works."),
+        context = "library",
+        requires_selected_books = true,
+        requires = {"highlights"},
+        blocked_hint = _("Enable highlights or annotations sharing in Settings → Privacy & Data to use this action."),
+        use_highlights = true,
+        use_annotations = true,
+        use_notebook = true,
+        template = "cross_book_notes",
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
     -- Scan-based actions (no book selection needed, use full library catalog)
     next_from_library = {
         id = "next_from_library",
