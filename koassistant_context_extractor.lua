@@ -1270,8 +1270,8 @@ function ContextExtractor:extractForAction(action)
     -- Check if current provider is trusted (bypasses all privacy settings)
     local provider_trusted = self:isProviderTrusted()
 
-    -- Reading progress - check privacy setting (default: enabled)
-    if provider_trusted or self.settings.enable_progress_sharing ~= false then
+    -- Reading progress - check basic stats privacy setting (default: enabled)
+    if provider_trusted or self.settings.enable_basic_stats ~= false then
         local progress = self:getReadingProgress()
         data.reading_progress = progress.formatted
         data.progress_decimal = tostring(progress.decimal)
@@ -1312,8 +1312,8 @@ function ContextExtractor:extractForAction(action)
         data.annotations = ""
     end
 
-    -- Reading stats - check privacy setting (default: enabled)
-    if provider_trusted or self.settings.enable_stats_sharing ~= false then
+    -- Reading stats (chapter info) - check basic stats privacy setting (default: enabled)
+    if provider_trusted or self.settings.enable_basic_stats ~= false then
         local stats = self:getReadingStats()
         data.chapter_title = stats.chapter_title
         data.chapters_read = stats.chapters_read
@@ -1473,9 +1473,9 @@ function ContextExtractor:extractForAction(action)
             scan_result = LibraryScanner.scan(self.settings, self.document_path)
         end
         -- Stats enrichment: engagement labels + group placeholders
-        -- Gated: enable_stats_sharing (opt-out) + use_reading_stats per-action
+        -- Gated: enable_advanced_stats (opt-in) + use_reading_stats per-action
         local stats_gated = action.use_reading_stats
-            and self.settings.enable_stats_sharing ~= false
+            and (provider_trusted or self.settings.enable_advanced_stats == true)
         local format_options = {}
         if stats_gated and scan_result and scan_result.books and #scan_result.books > 0 then
             local stats_ok, StatsReader = pcall(require, "koassistant_stats_reader")

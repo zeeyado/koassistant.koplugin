@@ -1282,20 +1282,12 @@ local SettingsSchema = {
                     help_text = _("Send notebook entries to AI. Used by Connect with Notes and actions with {notebook} placeholder."),
                 },
                 {
-                    id = "enable_progress_sharing",
+                    id = "enable_basic_stats",
                     type = "toggle",
-                    text = _("Allow Reading Progress"),
-                    path = "features.enable_progress_sharing",
+                    text = _("Allow Basic Stats"),
+                    path = "features.enable_basic_stats",
                     default = true,
-                    help_text = _("Send current reading position (percentage). Used by X-Ray, Recap."),
-                },
-                {
-                    id = "enable_stats_sharing",
-                    type = "toggle",
-                    text = _("Allow Chapter Info"),
-                    path = "features.enable_stats_sharing",
-                    default = true,
-                    help_text = _("Send current chapter title, chapters read count, and time since last opened. Used by Recap."),
+                    help_text = _("Send reading progress (percentage), current chapter title, chapters read count, and time since last opened. Used by X-Ray, Recap."),
                 },
                 {
                     id = "enable_library_scanning",
@@ -1304,7 +1296,6 @@ local SettingsSchema = {
                     path = "features.enable_library_scanning",
                     default = false,
                     help_text = _("Enables library actions that analyze your book collection. Configure permanent scan folders in Library Settings, or pick folders on the fly in the input dialog."),
-                    separator = true,
                     on_change = function(new_value)
                         if new_value then
                             local InfoMessage = require("ui/widget/infomessage")
@@ -1314,6 +1305,15 @@ local SettingsSchema = {
                             })
                         end
                     end,
+                },
+                {
+                    id = "enable_advanced_stats",
+                    type = "toggle",
+                    text = _("Allow Advanced Stats"),
+                    path = "features.enable_advanced_stats",
+                    default = false,
+                    help_text = _("Share reading engagement data with AI. Includes curated groups based on reading time and completion patterns (e.g. books read extensively, stalled reads, briefly started)."),
+                    separator = true,
                 },
                 -- Text Extraction settings (moved from Advanced)
                 {
