@@ -5457,8 +5457,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end
             end
 
-            -- Library folder management row (only when scanning is enabled)
-            if library_toggle_on then
+            -- Library scan zone: folder button + scan actions
+            -- Previously gated by library_toggle_on; now always visible, hideable via gear menu
+            local hide_scan = settings_features.hide_library_scan_actions == true
+            if not hide_scan then
                 local session_state = configuration.features._session_library or {}
                 local perm_folders = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
                 local perm_folder_list = perm_folders.library_scan_folders or {}
@@ -5481,11 +5483,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 table.insert(button_rows, {{
                     text = library_label,
                     callback = function()
-                        showLibraryFolderPopup()
+                        if library_toggle_on then
+                            showLibraryFolderPopup()
+                        else
+                            UIManager:show(InfoMessage:new{
+                                text = _("To use library scan actions, enable Allow Library Scanning in Settings → Privacy & Data → Library Settings.\n\nIf you don't need these actions, you can hide this section from the gear menu."),
+                            })
+                        end
                     end,
                 }})
 
-                -- Scan-based action rows
+                -- Scan-based action rows (grayed out via isActionAvailable when prerequisites not met)
                 addButtonRows(button_rows, scan_buttons)
             end
 
@@ -5600,36 +5608,53 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         title_bar_left_icon_tap_callback = function()
             input_dialog:onCloseKeyboard()
             local gear_menu
-            gear_menu = ButtonDialog:new{
-                buttons = {
-                    {{ text = _("Quick Settings"), callback = function()
-                        UIManager:close(gear_menu)
-                        if plugin then
-                            plugin:onKOAssistantAISettings(function()
-                                plugin:updateConfigFromSettings()
-                                refreshInputDialog()
-                            end)
-                        end
-                    end }},
-                    {{ text = _("Choose and Sort Actions…"), callback = function()
-                        UIManager:close(gear_menu)
-                        if not plugin then return end
-                        local PromptsManager = require("koassistant_ui/prompts_manager")
-                        PromptsManager:new(plugin):showInputActionsManager(input_context, function()
-                            -- Defer refresh to next tick so sorting manager is fully removed first
-                            UIManager:nextTick(function()
-                                refreshInputDialog()
-                            end)
+            local gear_buttons = {
+                {{ text = _("Quick Settings"), callback = function()
+                    UIManager:close(gear_menu)
+                    if plugin then
+                        plugin:onKOAssistantAISettings(function()
+                            plugin:updateConfigFromSettings()
+                            refreshInputDialog()
                         end)
-                    end }},
-                    {{ text = show_all_actions and _("Show Fewer Actions") or _("Show More Actions…"),
-                        enabled = show_all_actions or has_more_actions,
-                        callback = function()
-                        UIManager:close(gear_menu)
-                        show_all_actions = not show_all_actions
+                    end
+                end }},
+                {{ text = _("Choose and Sort Actions…"), callback = function()
+                    UIManager:close(gear_menu)
+                    if not plugin then return end
+                    local PromptsManager = require("koassistant_ui/prompts_manager")
+                    PromptsManager:new(plugin):showInputActionsManager(input_context, function()
+                        -- Defer refresh to next tick so sorting manager is fully removed first
+                        UIManager:nextTick(function()
+                            refreshInputDialog()
+                        end)
+                    end)
+                end }},
+                {{ text = show_all_actions and _("Show Fewer Actions") or _("Show More Actions…"),
+                    enabled = show_all_actions or has_more_actions,
+                    callback = function()
+                    UIManager:close(gear_menu)
+                    show_all_actions = not show_all_actions
+                    refreshInputDialog()
+                end }},
+            }
+            -- Library context: toggle to hide/show library scan actions
+            if input_context == "library" then
+                local cur_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+                local is_hidden = cur_features.hide_library_scan_actions == true
+                table.insert(gear_buttons, {{ text = is_hidden and _("Show Library Scan Actions") or _("Hide Library Scan Actions"),
+                    callback = function()
+                    UIManager:close(gear_menu)
+                    if plugin and plugin.settings then
+                        local f = plugin.settings:readSetting("features") or {}
+                        f.hide_library_scan_actions = not (f.hide_library_scan_actions == true)
+                        plugin.settings:saveSetting("features", f)
+                        plugin.settings:flush()
                         refreshInputDialog()
-                    end }},
-                },
+                    end
+                end }})
+            end
+            gear_menu = ButtonDialog:new{
+                buttons = gear_buttons,
                 shrink_unneeded_width = true,
                 anchor = function()
                     return input_dialog.title_bar.left_button.image.dimen, true

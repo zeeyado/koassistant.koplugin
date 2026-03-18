@@ -478,6 +478,7 @@ The table below documents which flags are required for each data type (relevant 
 | Annotations | Allow Annotation Notes (degrades to highlights when off but Allow Highlights is on) | "Allow annotation use (notes)" checked |
 | Notebook | Allow Notebook | "Allow notebook use" checked |
 | Library catalog | Enable Library Scanning + folders configured | "Allow library use" checked |
+| Advanced stats | Allow Advanced Stats | "Allow advanced stats" checked |
 | Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
 
 \* Surrounding context is a text selection type for highlight context (same as highlighting text), included here for clarity because it extracts more than you highlighted.
@@ -856,7 +857,7 @@ Custom actions using placeholders like `{book_text}`, `{full_document}`, or `{pa
 
 The library dialog splits actions into two zones with their own management buttons:
 
-**Library Scan zone** — scan-based actions with a **Library Scan ▾** button for folder management (enable/disable permanent folders, add on-the-fly folders for this session). Hidden when library scanning toggle is off:
+**Library Scan zone** — scan-based actions with a **Library Scan ▾** button for folder management (enable/disable permanent folders, add on-the-fly folders for this session). Always visible by default so users can discover scan actions — actions are grayed out until library scanning is enabled with folders configured. Tapping the **Library Scan ▾** button when scanning is not enabled shows a setup prompt. To hide this zone entirely, use the gear menu → **Hide Library Scan Actions**:
 | Action | Description |
 |--------|-------------|
 | **Next Read** | What to read next from your library — based on reading patterns, what you've finished, and what's been sitting unread. With Advanced Stats enabled, includes engagement context (stalled reads, briefly started books) |
@@ -1286,7 +1287,8 @@ return {
 - `use_highlights`: Include document highlights (text only, no notes). Requires Allow Highlights or Allow Annotation Notes.
 - `use_annotations`: Include document annotations (highlights with user notes). Requires Allow Annotation Notes.
 - `use_reading_progress`: Include reading position and chapter info (requires Allow Basic Stats)
-- `use_reading_stats`: Include reading engagement data — engagement groups (`{deep_reads}`, `{stalled}`, etc.) and per-book engagement labels in library output. Requires Allow Advanced Stats for engagement groups; also gates chapter info placeholders (`{chapter_title}`, `{chapters_read}`, `{time_since_last_read}`) which require Allow Basic Stats
+- `use_reading_stats`: Include chapter info placeholders (`{chapter_title}`, `{chapters_read}`). Requires Allow Basic Stats. Auto-inferred from placeholders.
+- `use_advanced_stats`: Include reading engagement groups (`{deep_reads}`, `{stalled}`, `{recently_finished}`, `{briefly_started}` and their section variants) and per-book engagement labels in library output. Double-gated: requires both Allow Advanced Stats (global) and this per-action flag. Used by library scan actions (Next Read, Discover New, Analyze Library).
 - `use_notebook`: Include content from the book's KOAssistant notebook
 - `use_surrounding_context`: Include surrounding text for highlight actions (auto-inferred from `{surrounding_context}` placeholder)
 - `include_book_context`: Add book info to highlight actions
