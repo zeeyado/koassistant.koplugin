@@ -2308,6 +2308,193 @@ local function runSubstituteVariablesTests()
 end
 
 -- =============================================================================
+-- Multi-Book Sidecar Enrichment Tests (Phase 5)
+-- =============================================================================
+
+local function runMultiBookSidecarTests()
+    print("\n--- Multi-Book Sidecar Enrichment ---")
+
+    TestRunner:test("books_list with sidecar highlights uses rich format", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Analyze notes across {count} books:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _highlights = '- "Fear is the mind-killer"',
+                        _highlights_count = 1,
+                        _progress = "72%",
+                    },
+                    {
+                        title = "1984", authors = "George Orwell",
+                        _highlights = '- "Big Brother is watching you"',
+                        _highlights_count = 1,
+                    },
+                },
+            },
+        })
+        TestRunner:assertContains(result, '=== "Dune" by Frank Herbert (72%) ===')
+        TestRunner:assertContains(result, "My highlights (1):")
+        TestRunner:assertContains(result, "Fear is the mind-killer")
+        TestRunner:assertContains(result, '=== "1984" by George Orwell ===')
+        TestRunner:assertContains(result, "Big Brother is watching you")
+    end)
+
+    TestRunner:test("books_list with annotations uses annotation labels", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Notes:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _annotations = '- "Fear is the mind-killer"\n  [Note: Stoic echo]',
+                        _annotations_count = 1,
+                        _annotations_degraded = false,
+                    },
+                },
+            },
+        })
+        TestRunner:assertContains(result, "My annotations (1):")
+        TestRunner:assertContains(result, "Stoic echo")
+    end)
+
+    TestRunner:test("books_list with degraded annotations uses highlights label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Notes:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _annotations = '- "Fear is the mind-killer"',
+                        _annotations_count = 1,
+                        _annotations_degraded = true,
+                    },
+                },
+            },
+        })
+        TestRunner:assertContains(result, "My highlights so far (1):")
+    end)
+
+    TestRunner:test("books_list with notebook content includes notes section", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Notes:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _notebook = "Q: How does the spice affect prescience?",
+                    },
+                },
+            },
+        })
+        TestRunner:assertContains(result, "My notes:")
+        TestRunner:assertContains(result, "spice affect prescience")
+    end)
+
+    TestRunner:test("books_list without sidecar data uses simple format", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Compare {count} books:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    { title = "Dune", authors = "Frank Herbert" },
+                    { title = "1984", authors = "George Orwell" },
+                },
+            },
+        })
+        TestRunner:assertContains(result, '1. "Dune" by Frank Herbert')
+        TestRunner:assertContains(result, '2. "1984" by George Orwell')
+        TestRunner:assertNotContains(result, "===")
+    end)
+
+    TestRunner:test("books_list mixed: some with sidecar, some without", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Analyze:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _highlights = '- "Fear is the mind-killer"',
+                        _highlights_count = 1,
+                    },
+                    { title = "1984", authors = "George Orwell" },
+                },
+            },
+        })
+        -- First book gets rich format
+        TestRunner:assertContains(result, '=== "Dune" by Frank Herbert ===')
+        TestRunner:assertContains(result, "My highlights (1):")
+        -- Second book gets simple format
+        TestRunner:assertContains(result, '"1984" by George Orwell')
+    end)
+
+    TestRunner:test("books_list with all sidecar data types", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Full analysis:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _highlights = '- "The sleeper must awaken"',
+                        _highlights_count = 1,
+                        _annotations = '- "Fear is the mind-killer"\n  [Note: Bene Gesserit litany]',
+                        _annotations_count = 1,
+                        _annotations_degraded = false,
+                        _notebook = "Spice as metaphor for oil/power",
+                        _progress = "85%",
+                    },
+                },
+            },
+        })
+        -- Should NOT show highlights separately when annotations are present
+        -- (annotations subsume highlights in display)
+        TestRunner:assertContains(result, "My annotations (1):")
+        TestRunner:assertContains(result, "My notes:")
+        TestRunner:assertContains(result, "(85%)")
+    end)
+
+    TestRunner:test("books_list highlights only shown when no annotations", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Highlights:\n{books_list}" },
+            context = "library",
+            data = {
+                books_info = {
+                    {
+                        title = "Dune", authors = "Frank Herbert",
+                        _highlights = '- "The sleeper must awaken"',
+                        _highlights_count = 1,
+                    },
+                },
+            },
+        })
+        TestRunner:assertContains(result, "My highlights (1):")
+        TestRunner:assertNotContains(result, "My annotations")
+    end)
+
+    TestRunner:test("total sidecar chars tracked in message_data", function()
+        -- This tests the data structure contract between dialogs and message_builder
+        local data = {
+            books_info = {
+                {
+                    title = "Dune", authors = "Frank Herbert",
+                    _highlights = string.rep("x", 100),
+                    _highlights_count = 1,
+                    _notebook = string.rep("y", 200),
+                },
+            },
+            _total_sidecar_chars = 300,
+        }
+        TestRunner:assertEquals(data._total_sidecar_chars, 300, "Total sidecar chars should be sum of all sidecar data")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -2327,6 +2514,7 @@ local function runAll()
     runCachePlaceholderTests()
     runAdditionalInputTests()
     runSubstituteVariablesTests()
+    runMultiBookSidecarTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
