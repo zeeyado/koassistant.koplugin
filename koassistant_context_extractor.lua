@@ -1473,8 +1473,8 @@ function ContextExtractor:extractForAction(action)
             scan_result = LibraryScanner.scan(self.settings, self.document_path)
         end
         -- Stats enrichment: engagement labels + group placeholders
-        -- Gated: enable_advanced_stats (opt-in) + use_reading_stats per-action
-        local stats_gated = action.use_reading_stats
+        -- Gated: enable_advanced_stats (opt-in) + use_advanced_stats per-action (double-gated)
+        local stats_gated = action.use_advanced_stats
             and (provider_trusted or self.settings.enable_advanced_stats == true)
         local format_options = {}
         if stats_gated and scan_result and scan_result.books and #scan_result.books > 0 then

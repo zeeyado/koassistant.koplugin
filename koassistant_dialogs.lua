@@ -2930,7 +2930,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 local scan_result = LibraryScanner.scan(scan_settings)
                 if scan_result and scan_result.books and #scan_result.books > 0 then
                     -- Stats enrichment: engagement labels + group placeholders
-                    -- Gated: enable_advanced_stats (opt-in) + use_reading_stats per-action
+                    -- Gated: enable_advanced_stats (opt-in) + use_advanced_stats per-action (double-gated)
                     local provider_trusted = lib_features.trusted_providers and config and config.provider
                     if provider_trusted then
                         provider_trusted = false
@@ -2938,7 +2938,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                             if tp == config.provider then provider_trusted = true; break end
                         end
                     end
-                    local stats_gated = prompt.use_reading_stats
+                    local stats_gated = prompt.use_advanced_stats
                         and (provider_trusted or lib_features.enable_advanced_stats == true)
                     if stats_gated then
                         local stats_ok, StatsReader = pcall(require, "koassistant_stats_reader")

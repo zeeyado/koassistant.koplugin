@@ -307,6 +307,22 @@ local function runMigrationTests()
         TestRunner:assertEqual(data.custom_actions[1].use_reading_stats, true)
     end)
 
+    TestRunner:test("does NOT infer use_advanced_stats from engagement placeholders (double-gated)", function()
+        local data = {
+            custom_actions = {
+                {
+                    prompt = "My deep reads: {deep_reads_section}\nStalled: {stalled_section}",
+                    context = "library",
+                    text = "Stats action",
+                },
+            },
+        }
+        local service = createService(data)
+        service:migrateCustomActionsOpenBookFlags()
+        -- use_advanced_stats is double-gated, so migration must NOT auto-set it
+        TestRunner:assertEqual(data.custom_actions[1].use_advanced_stats, nil)
+    end)
+
     TestRunner:test("saves migrated actions to settings", function()
         local data = {
             custom_actions = {

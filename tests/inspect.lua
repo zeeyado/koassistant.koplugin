@@ -977,6 +977,7 @@ local function startWebServer(options)
                     use_annotations = action.use_annotations,
                     use_reading_progress = action.use_reading_progress,
                     use_reading_stats = action.use_reading_stats,
+                    use_advanced_stats = action.use_advanced_stats,
                 })
             end
         end

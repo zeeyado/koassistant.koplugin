@@ -167,6 +167,10 @@ function TestActions:runAll()
         self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_library")
     end)
 
+    self:test("DOUBLE_GATED_FLAGS includes use_advanced_stats", function()
+        self:assertContains(Actions.DOUBLE_GATED_FLAGS, "use_advanced_stats")
+    end)
+
     -- Test inferOpenBookFlags() function
     print("\n--- inferOpenBookFlags() ---")
 
@@ -356,6 +360,11 @@ function TestActions:runAll()
 
     self:test("requiresOpenBook returns false for use_reading_stats in library context", function()
         self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true, context = "library" }), false)
+    end)
+
+    self:test("requiresOpenBook returns false for use_advanced_stats (library-level flag)", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_advanced_stats = true }), false)
+        self:assertEquals(Actions.requiresOpenBook({ use_advanced_stats = true, context = "library" }), false)
     end)
 
     self:test("requiresOpenBook returns false for use_notebook (sidecar flag)", function()

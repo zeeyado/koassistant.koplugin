@@ -210,6 +210,9 @@ function ActionService:loadActions()
                     if override.use_reading_stats ~= nil then
                         action_data.use_reading_stats = override.use_reading_stats
                     end
+                    if override.use_advanced_stats ~= nil then
+                        action_data.use_advanced_stats = override.use_advanced_stats
+                    end
                     if override.use_notebook ~= nil then
                         action_data.use_notebook = override.use_notebook
                     end
@@ -1798,6 +1801,7 @@ function ActionService:createDuplicateAction(action)
         use_annotations = action.use_annotations,
         use_reading_progress = action.use_reading_progress,
         use_reading_stats = action.use_reading_stats,
+        use_advanced_stats = action.use_advanced_stats,
         use_notebook = action.use_notebook,
         use_library = action.use_library,
         -- NOT copying artifact flags: use_response_caching, cache_as_*, use_*_cache,
@@ -1926,6 +1930,7 @@ end
 --   📝 = annotations (use_annotations; degrades to highlights-only)
 --   📓 = notebook (use_notebook)
 --   📚 = library (use_library)
+--   📊 = advanced stats / engagement groups (use_advanced_stats)
 --   🌐 = web search active (per-action force-on, or follows global when global is on)
 -- @param action: Action definition table (needs flag fields)
 -- @param features: Features settings table (needs enable_data_access_indicators, enable_web_search)
@@ -1957,6 +1962,10 @@ function ActionService.getActionDisplayText(action, features)
     -- Library
     if action.use_library then
         table.insert(indicators, "📚")
+    end
+    -- Advanced stats (engagement groups)
+    if action.use_advanced_stats then
+        table.insert(indicators, "📊")
     end
     -- Web search: show when effectively enabled (per-action override or global setting)
     if action.enable_web_search == true then

@@ -95,15 +95,15 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{chapter_title}"] = "use_reading_stats",
     ["{chapters_read}"] = "use_reading_stats",
 
-    -- Stats engagement group placeholders (from stats DB, for library scan actions)
-    ["{deep_reads}"] = "use_reading_stats",
-    ["{deep_reads_section}"] = "use_reading_stats",
-    ["{recently_finished}"] = "use_reading_stats",
-    ["{recently_finished_section}"] = "use_reading_stats",
-    ["{stalled}"] = "use_reading_stats",
-    ["{stalled_section}"] = "use_reading_stats",
-    ["{briefly_started}"] = "use_reading_stats",
-    ["{briefly_started_section}"] = "use_reading_stats",
+    -- Stats engagement group placeholders (from stats DB, double-gated: enable_advanced_stats + use_advanced_stats)
+    ["{deep_reads}"] = "use_advanced_stats",
+    ["{deep_reads_section}"] = "use_advanced_stats",
+    ["{recently_finished}"] = "use_advanced_stats",
+    ["{recently_finished_section}"] = "use_advanced_stats",
+    ["{stalled}"] = "use_advanced_stats",
+    ["{stalled_section}"] = "use_advanced_stats",
+    ["{briefly_started}"] = "use_advanced_stats",
+    ["{briefly_started_section}"] = "use_advanced_stats",
 
     -- Notebook placeholders
     ["{notebook}"] = "use_notebook",
@@ -157,6 +157,7 @@ Actions.DOUBLE_GATED_FLAGS = {
     "use_annotations",    -- gate: enable_annotations_sharing (degrades to highlights)
     "use_notebook",       -- gate: enable_notebook_sharing
     "use_library",        -- gate: enable_library_scanning
+    "use_advanced_stats", -- gate: enable_advanced_stats
     -- Document cache flags inherit from use_book_text
     "use_xray_cache",
     "use_analyze_cache",
@@ -1852,6 +1853,7 @@ Actions.library = {
         skip_domain = true,
         use_library = true,
         use_reading_stats = true,
+        use_advanced_stats = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
         template = "next_from_library",
@@ -1870,6 +1872,7 @@ Actions.library = {
         skip_domain = true,
         use_library = true,
         use_reading_stats = true,
+        use_advanced_stats = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
         template = "discover_books",
@@ -1887,6 +1890,7 @@ Actions.library = {
         skip_domain = true,
         use_library = true,
         use_reading_stats = true,
+        use_advanced_stats = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
         template = "analyze_library",

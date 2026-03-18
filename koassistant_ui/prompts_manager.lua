@@ -271,6 +271,7 @@ function PromptsManager:loadPrompts()
             use_annotations = prompt.use_annotations,
             use_reading_progress = prompt.use_reading_progress,
             use_reading_stats = prompt.use_reading_stats,
+            use_advanced_stats = prompt.use_advanced_stats,
             use_notebook = prompt.use_notebook,
             use_library = prompt.use_library,
             -- Document cache reference flags
@@ -321,6 +322,7 @@ function PromptsManager:loadPrompts()
                 if override.use_annotations ~= nil then entry.use_annotations = override.use_annotations end
                 if override.use_reading_progress ~= nil then entry.use_reading_progress = override.use_reading_progress end
                 if override.use_reading_stats ~= nil then entry.use_reading_stats = override.use_reading_stats end
+                if override.use_advanced_stats ~= nil then entry.use_advanced_stats = override.use_advanced_stats end
                 if override.use_notebook ~= nil then entry.use_notebook = override.use_notebook end
                 if override.use_library ~= nil then entry.use_library = override.use_library end
                 -- View mode flag overrides
@@ -1155,6 +1157,7 @@ function PromptsManager:duplicateAction(action)
         use_annotations = duplicate.use_annotations,
         use_reading_progress = duplicate.use_reading_progress,
         use_reading_stats = duplicate.use_reading_stats,
+        use_advanced_stats = duplicate.use_advanced_stats,
         use_notebook = duplicate.use_notebook,
         use_library = duplicate.use_library,
         -- NOT copying artifact flags (tightly coupled system)
@@ -1223,6 +1226,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         use_annotations = existing_prompt and existing_prompt.use_annotations or false,
         use_reading_progress = existing_prompt and existing_prompt.use_reading_progress or false,
         use_reading_stats = existing_prompt and existing_prompt.use_reading_stats or false,
+        use_advanced_stats = existing_prompt and existing_prompt.use_advanced_stats or false,
         use_notebook = existing_prompt and existing_prompt.use_notebook or false,
         use_library = existing_prompt and existing_prompt.use_library or false,
         -- View mode flags
@@ -1919,6 +1923,27 @@ function PromptsManager:showStep3_Settings(state)
                     if features.enable_library_scanning ~= true then
                         UIManager:show(Notification:new{
                             text = _("Library use enabled. Note: Enable in Settings → Library Settings first."),
+                            timeout = 4,
+                        })
+                    end
+                end
+                UIManager:close(self.step3_dialog)
+                self:showStep3_Settings(state)
+            end,
+        })
+    end
+
+    -- Advanced stats checkbox (library-level, not per-book — shown for any context)
+    if state.context then
+        table.insert(items, {
+            text = (state.use_advanced_stats and "☑ " or "☐ ") .. _("Allow advanced stats"),
+            callback = function()
+                state.use_advanced_stats = not state.use_advanced_stats
+                if state.use_advanced_stats then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_advanced_stats ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Advanced stats enabled. Note: Enable in Settings → Privacy & Data first."),
                             timeout = 4,
                         })
                     end
@@ -3048,6 +3073,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
     local base_use_annotations = base_action and base_action.use_annotations or false
     local base_use_reading_progress = base_action and base_action.use_reading_progress or false
     local base_use_reading_stats = base_action and base_action.use_reading_stats or false
+    local base_use_advanced_stats = base_action and base_action.use_advanced_stats or false
     local base_use_notebook = base_action and base_action.use_notebook or false
 
     -- Get base view mode flags for comparison
@@ -3091,6 +3117,8 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         use_reading_progress_base = base_use_reading_progress,
         use_reading_stats = prompt.use_reading_stats or false,
         use_reading_stats_base = base_use_reading_stats,
+        use_advanced_stats = prompt.use_advanced_stats or false,
+        use_advanced_stats_base = base_use_advanced_stats,
         use_notebook = prompt.use_notebook or false,
         use_notebook_base = base_use_notebook,
         -- View mode flags
@@ -3341,6 +3369,27 @@ function PromptsManager:showBuiltinSettingsDialog(state)
                         UIManager:show(Notification:new{
                             text = _("Notebook use enabled for this action."),
                             timeout = 2,
+                        })
+                    end
+                end
+                UIManager:close(self.builtin_settings_dialog)
+                self:showBuiltinSettingsDialog(state)
+            end,
+        })
+    end
+
+    -- Advanced stats checkbox (library-level, not per-book — shown for any context)
+    if prompt.context then
+        table.insert(items, {
+            text = (state.use_advanced_stats and "☑ " or "☐ ") .. _("Allow advanced stats"),
+            callback = function()
+                state.use_advanced_stats = not state.use_advanced_stats
+                if state.use_advanced_stats then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_advanced_stats ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Advanced stats enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
                         })
                     end
                 end
@@ -3859,6 +3908,10 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.use_reading_stats = state.use_reading_stats
         has_any = true
     end
+    if state.use_advanced_stats ~= (state.use_advanced_stats_base or false) then
+        override.use_advanced_stats = state.use_advanced_stats
+        has_any = true
+    end
     if state.use_notebook ~= (state.use_notebook_base or false) then
         override.use_notebook = state.use_notebook
         has_any = true
@@ -3938,6 +3991,7 @@ function PromptsManager:showCustomQuickSettings(prompt)
         use_annotations = prompt.use_annotations or false,
         use_reading_progress = prompt.use_reading_progress or false,
         use_reading_stats = prompt.use_reading_stats or false,
+        use_advanced_stats = prompt.use_advanced_stats or false,
         use_notebook = prompt.use_notebook or false,
         -- View mode flags
         translate_view = prompt.translate_view or false,
@@ -4196,6 +4250,27 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
                         UIManager:show(Notification:new{
                             text = _("Notebook use enabled for this action."),
                             timeout = 2,
+                        })
+                    end
+                end
+                UIManager:close(self.custom_quick_dialog)
+                self:showCustomQuickSettingsDialog(state)
+            end,
+        })
+    end
+
+    -- Advanced stats checkbox (library-level, not per-book — shown for any context)
+    if state.context then
+        table.insert(items, {
+            text = (state.use_advanced_stats and "☑ " or "☐ ") .. _("Allow advanced stats"),
+            callback = function()
+                state.use_advanced_stats = not state.use_advanced_stats
+                if state.use_advanced_stats then
+                    local features = self.plugin.settings:readSetting("features") or {}
+                    if features.enable_advanced_stats ~= true then
+                        UIManager:show(Notification:new{
+                            text = _("Advanced stats enabled. Note: Enable in Settings → Privacy & Data first."),
+                            timeout = 4,
                         })
                     end
                 end
@@ -4765,6 +4840,7 @@ function PromptsManager:addPrompt(state)
             use_annotations = state.use_annotations or nil,
             use_reading_progress = state.use_reading_progress or nil,
             use_reading_stats = state.use_reading_stats or nil,
+            use_advanced_stats = state.use_advanced_stats or nil,
             use_notebook = state.use_notebook or nil,
             use_library = state.use_library or nil,
             -- View mode flags
@@ -4841,6 +4917,7 @@ function PromptsManager:updatePrompt(existing_prompt, state)
                 use_annotations = state.use_annotations or nil,
                 use_reading_progress = state.use_reading_progress or nil,
                 use_reading_stats = state.use_reading_stats or nil,
+                use_advanced_stats = state.use_advanced_stats or nil,
                 use_notebook = state.use_notebook or nil,
                 use_library = state.use_library or nil,
                 -- View mode flags
