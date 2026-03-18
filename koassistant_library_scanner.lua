@@ -88,6 +88,9 @@ local function extractBookMetadata(doc_path)
         status = "unread"
     end
 
+    -- Partial MD5 checksum (for stats DB matching)
+    local md5 = doc_settings:readSetting("partial_md5_checksum")
+
     -- Extract folder from path
     local folder = doc_path:match("^(.+)/[^/]+$") or ""
 
@@ -100,6 +103,7 @@ local function extractBookMetadata(doc_path)
         series = series,
         language = language,
         folder = folder,
+        md5 = md5,
         last_read = nil, -- enriched later from ReadHistory
     }
 end
@@ -264,8 +268,9 @@ end
 --- Format a single book entry as a text line
 --- @param book table Book metadata
 --- @param depth string Depth level (basic/standard/full)
+--- @param include_engagement boolean|nil Include engagement label from stats
 --- @return string
-local function formatBookLine(book, depth)
+local function formatBookLine(book, depth, include_engagement)
     local parts = {}
 
     -- Title (always present)
@@ -288,6 +293,11 @@ local function formatBookLine(book, depth)
         end
     end
 
+    -- Engagement label (when stats enrichment is active and gated)
+    if include_engagement and book.engagement_label then
+        table.insert(parts, "(" .. book.engagement_label .. ")")
+    end
+
     -- Language (full depth only)
     if depth == LibraryScanner.DEPTH_FULL and book.language then
         table.insert(parts, "[" .. book.language .. "]")
@@ -301,11 +311,12 @@ end
 --- @param header string Section header text
 --- @param depth string Depth level
 --- @param budget_remaining number Characters remaining in budget
+--- @param include_engagement boolean|nil Include engagement labels
 --- @return string formatted Formatted text
 --- @return number chars_used Characters used
 --- @return number books_shown Number of books included
 --- @return number books_total Total books in group
-local function formatGroup(books, header, depth, budget_remaining)
+local function formatGroup(books, header, depth, budget_remaining, include_engagement)
     if #books == 0 then
         return "", 0, 0, 0
     end
@@ -318,7 +329,7 @@ local function formatGroup(books, header, depth, budget_remaining)
     local books_shown = 0
 
     for _idx, book in ipairs(books) do
-        local line = formatBookLine(book, depth)
+        local line = formatBookLine(book, depth, include_engagement)
         local line_cost = #line + 1 -- +1 for newline
 
         if chars_used + line_cost > budget_remaining then
@@ -350,6 +361,7 @@ function LibraryScanner.format(scan_result, options)
     local group_by = options.group_by or "status"
     local filter_statuses = options.statuses -- nil = all
     local filter_folders = options.folders   -- nil = all
+    local include_engagement = options.include_engagement -- nil = no engagement labels
 
     -- Apply folder filter if specified
     local by_status = scan_result.by_status
@@ -418,7 +430,7 @@ function LibraryScanner.format(scan_result, options)
             local group = by_status[status] or {}
             if #group > 0 then
                 local header = status_headers[status] or status
-                local formatted, chars_used = formatGroup(group, header, depth, budget_remaining)
+                local formatted, chars_used = formatGroup(group, header, depth, budget_remaining, include_engagement)
                 if formatted ~= "" then
                     table.insert(sections, formatted)
                     budget_remaining = budget_remaining - chars_used
@@ -451,7 +463,7 @@ function LibraryScanner.format(scan_result, options)
             if books and #books > 0 then
                 -- Use folder basename as header
                 local folder_name = folder:match("([^/]+)$") or folder
-                local formatted, chars_used = formatGroup(books, folder_name, depth, budget_remaining)
+                local formatted, chars_used = formatGroup(books, folder_name, depth, budget_remaining, include_engagement)
                 if formatted ~= "" then
                     table.insert(sections, formatted)
                     budget_remaining = budget_remaining - chars_used
@@ -472,7 +484,7 @@ function LibraryScanner.format(scan_result, options)
                 table.insert(all_books, book)
             end
         end
-        local formatted, _ = formatGroup(all_books, "", depth, budget_remaining)
+        local formatted, _ = formatGroup(all_books, "", depth, budget_remaining, include_engagement)
         if formatted ~= "" then
             table.insert(sections, formatted)
         end

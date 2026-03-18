@@ -287,6 +287,12 @@ Ground every observation in specific highlights or notes. Do not use emojis. {ha
 
 {library}
 
+{recently_finished_section}
+
+{stalled_section}
+
+{briefly_started_section}
+
 What should I read next **from books I already own**? Consider:
 - What's unread or started but not finished
 - My reading patterns — what genres, authors, and topics I gravitate toward
@@ -302,6 +308,10 @@ Only suggest books from my library. Do not use emojis. {hallucination_nudge}]],
     discover_books = [[Here is my library:
 
 {library}
+
+{deep_reads_section}
+
+{recently_finished_section}
 
 Based on what I own, recommend 5-8 new books I should get. First, briefly identify the pattern — what does this library say about the reader's taste?
 
@@ -320,16 +330,23 @@ Skip obvious picks I've almost certainly encountered. Do not use emojis. {halluc
 
 {library}
 
+{deep_reads_section}
+
+{stalled_section}
+
+{briefly_started_section}
+
+{recently_finished_section}
+
 Analyze my reading patterns based on this collection. Consider:
 - Genres, topics, and themes I gravitate toward
 - Authors or styles that recur
 - Completion patterns — what I finish vs what I abandon or leave unread
+- Engagement patterns — what I spent time with vs what I abandoned quickly
 - Gaps — areas my collection doesn't cover that someone with these interests might expect
 - Any progression or evolution visible in my reading
 
-Be specific to what you see, not generic. Use the actual titles and authors to illustrate patterns.
-
-Note: this analysis is based on catalog metadata only (titles, authors, reading status, progress). Detailed reading time and session data is not included. Do not use emojis. {hallucination_nudge}]],
+Be specific to what you see, not generic. Use the actual titles and authors to illustrate patterns. Do not use emojis. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)

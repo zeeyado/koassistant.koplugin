@@ -2930,7 +2930,29 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 local scan_settings = { library_scan_folders = scan_folders_to_use }
                 local scan_result = LibraryScanner.scan(scan_settings)
                 if scan_result and scan_result.books and #scan_result.books > 0 then
-                    message_data.library_content = LibraryScanner.format(scan_result)
+                    -- Stats enrichment: engagement labels + group placeholders
+                    -- Gated: enable_stats_sharing (opt-out) + use_reading_stats per-action
+                    local stats_gated = prompt.use_reading_stats
+                        and lib_features.enable_stats_sharing ~= false
+                    if stats_gated then
+                        local stats_ok, StatsReader = pcall(require, "koassistant_stats_reader")
+                        if stats_ok and StatsReader then
+                            local enriched = StatsReader.enrichBooks(scan_result.books)
+                            if enriched then
+                                -- Attach engagement labels for formatter display
+                                for _idx, book in ipairs(scan_result.books) do
+                                    book.engagement_label = StatsReader.getEngagementLabel(book)
+                                end
+                                -- Build group placeholders
+                                message_data.stats_groups = StatsReader.buildAllGroups(scan_result.books)
+                            end
+                        end
+                    end
+                    local format_options = {}
+                    if stats_gated and message_data.stats_groups then
+                        format_options.include_engagement = true
+                    end
+                    message_data.library_content = LibraryScanner.format(scan_result, format_options)
                 else
                     message_data.library_content = ""
                 end

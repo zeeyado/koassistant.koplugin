@@ -1465,14 +1465,32 @@ function ContextExtractor:extractForAction(action)
     if action.use_library and library_allowed then
         local LibraryScanner = require("koassistant_library_scanner")
         -- Use session scan folders if available (already computed as effective set)
+        local scan_result
         if has_session_scan then
             local scan_settings = { library_scan_folders = session_scan }
-            local scan_result = LibraryScanner.scan(scan_settings, self.document_path)
-            data.library_content = LibraryScanner.format(scan_result)
+            scan_result = LibraryScanner.scan(scan_settings, self.document_path)
         else
-            local scan_result = LibraryScanner.scan(self.settings, self.document_path)
-            data.library_content = LibraryScanner.format(scan_result)
+            scan_result = LibraryScanner.scan(self.settings, self.document_path)
         end
+        -- Stats enrichment: engagement labels + group placeholders
+        -- Gated: enable_stats_sharing (opt-out) + use_reading_stats per-action
+        local stats_gated = action.use_reading_stats
+            and self.settings.enable_stats_sharing ~= false
+        local format_options = {}
+        if stats_gated and scan_result and scan_result.books and #scan_result.books > 0 then
+            local stats_ok, StatsReader = pcall(require, "koassistant_stats_reader")
+            if stats_ok and StatsReader then
+                local enriched = StatsReader.enrichBooks(scan_result.books)
+                if enriched then
+                    for _idx, book in ipairs(scan_result.books) do
+                        book.engagement_label = StatsReader.getEngagementLabel(book)
+                    end
+                    data.stats_groups = StatsReader.buildAllGroups(scan_result.books)
+                    format_options.include_engagement = true
+                end
+            end
+        end
+        data.library_content = LibraryScanner.format(scan_result, format_options)
     elseif action.use_library and not library_allowed then
         -- Explicitly set empty when gated off (for section placeholder to disappear)
         data.library_content = ""

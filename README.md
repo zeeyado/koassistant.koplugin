@@ -527,13 +527,13 @@ Cloud providers have their own data handling practices. Check their policies on 
 
 ## How to Use KOAssistant
 
-KOAssistant works in **4 contexts**, each with its own set of built-in actions (10 library actions shown as 3 scan-based + 6 selection-based + 1 book-context action that uses library data):
+KOAssistant works in **4 contexts**, each with its own set of built-in actions (11 library actions shown as 3 scan-based + 7 selection-based + 1 book-context action that uses library data):
 
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray†† |
 | **Book** | About, Find Similar, Suggest from Library†, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
-| **Library** | Next Read‡, Discover New‡, Analyze Library‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§ |
+| **Library** | Next Read‡, Discover New‡, Analyze Library‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§, Analyze Notes§ⁿ |
 | **General** | News Update* |
 
 *Requires web search (Anthropic, Gemini, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
@@ -543,6 +543,8 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions (
 ‡Scan-based library action — requires library scanning enabled with folders configured. Available immediately in the library dialog without selecting books.
 
 §Selection-based library action — requires 2+ books selected via presets or history browser.
+
+ⁿRequires Allow Highlights or Allow Annotation Notes — reads per-book sidecar data (highlights, annotations, notes) across selected books.
 
 ††Local action — searches cached X-Ray data instantly, no AI call or network required. Only appears when the book has an X-Ray cache.
 
@@ -837,7 +839,7 @@ Book actions work in two contexts: **reading mode** (book is open) and **file br
 
 **Reading-only actions** (hidden in file browser): X-Ray, Recap, Document Analysis, Document Summary — these require live document text extraction or source selection that isn't available until you open the book.
 
-**Sidecar-eligible actions** (available in file browser): X-Ray (Simple), Analyze Notes, Connect with Notes, and other actions that only need highlights, annotations, notebook, or reading progress. These read data from the book's sidecar files on disk without requiring an open document.
+**Sidecar-eligible actions** (available in file browser): X-Ray (Simple), Analyze Notes, Connect with Notes, Suggest from Library, and other actions that only need highlights, annotations, notebook, or reading progress. These read data from the book's sidecar files on disk without requiring an open document.
 
 Custom actions using placeholders like `{book_text}`, `{full_document}`, or `{page_text}` require reading mode. Placeholders like `{reading_progress}`, `{highlights}`, `{annotations}`, and `{notebook}` work in both contexts via sidecar fallback. The Action Manager shows a `[reading]` indicator for reading-only actions.
 
@@ -863,12 +865,13 @@ The library dialog splits actions into two zones with their own management butto
 | **Quick Summaries** | Brief summary of each work |
 | **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
 | **Recommend** | Suggests 5-8 new works based on patterns across your selected works. When library scanning is enabled, also considers your full library to avoid recommending books you already own |
+| **Analyze Notes** | Analyzes highlights, annotations, and notes across selected books — patterns in what you mark, what you write, and how your thinking connects across works ⚠️ *Requires: Allow Highlights or Allow Annotation Notes* |
 
 Selection-based action buttons are grayed out (disabled) until 2+ books are added. Long-press any grayed-out button to see what it does. Tap **Items ▾** to select books via presets (Currently Reading, Recently Finished, On Hold, Last 5 from History, Browse History) or add a folder. The title bar shows the count of selected items.
 
 **Freeform chat** also works — type a question and tap Send. When library scanning is enabled with folders configured, the library catalog is included as context. When items are selected, those are included too. The input hint text adapts to show what data is active.
 
-**What the AI sees**: For scan-based actions: library catalog metadata (title, author, series, status, progress, last read date). For selection-based actions: list of selected titles, authors, and identifiers. See [Privacy & Data](#privacy--data) for details on library scanning.
+**What the AI sees**: For scan-based actions: library catalog metadata (title, author, series, status, progress, last read date). For selection-based actions: list of selected titles, authors, and identifiers. Actions with sidecar flags (e.g., Analyze Notes) also read per-book highlights, annotations, and notebook entries from sidecar files — same privacy double-gating as single-book actions, with annotation degradation. A warning appears when total sidecar data is large. See [Privacy & Data](#privacy--data) for details on library scanning.
 
 ### General Chat
 
@@ -1125,7 +1128,7 @@ Insert these in your action prompt to reference dynamic values:
 | `{author}` | Book, Highlight | Book author | — |
 | `{author_clause}` | Book, Highlight | " by Author" or empty | — |
 | `{count}` | Library | Number of selected books | — |
-| `{books_list}` | Library | Formatted list of selected books | — |
+| `{books_list}` | Library | Formatted list of selected books (enriched with per-book highlights/annotations/notebook when action declares sidecar flags) | Allow Highlights/Annotation Notes/Notebook (when sidecar flags set) |
 | `{library}` | Library, Book | Library catalog content (raw, no label) | Enable Library Scanning + folders |
 | `{library_section}` | Library, Book | Library catalog with "My library:" label, or empty | Enable Library Scanning + folders |
 | `{translation_language}` | Any | Target language from settings | — |
@@ -1258,7 +1261,7 @@ return {
 - `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
 - `enabled`: Set to `false` to hide
-- `requires`: Array of requirement types that block execution if unmet: `{"book_text"}`, `{"highlights"}`. Shows user-facing error identifying which gate (per-action or global) is the problem, with optional `blocked_hint` suggestion.
+- `requires`: Array of requirement types that block execution if unmet: `{"book_text"}`, `{"highlights"}`, `{"library"}`. Shows user-facing error identifying which gate (per-action or global) is the problem, with optional `blocked_hint` suggestion.
 - `blocked_hint`: Suggestion text shown when action is blocked (e.g., `_("Or use X-Ray (Simple) for an overview based on AI knowledge.")`)
 - `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
 - `use_highlights`: Include document highlights (text only, no notes). Requires Allow Highlights or Allow Annotation Notes.

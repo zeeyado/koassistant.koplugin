@@ -302,6 +302,92 @@ local function runMessageBuilderTests()
         TestRunner:assertNotContains(result, "My library:")
     end)
 
+    print("\n--- MessageBuilder: Stats Engagement Group Placeholders ---")
+
+    TestRunner:test("deep_reads_section includes label when present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Library:\n{deep_reads_section}" },
+            context = "library",
+            data = { stats_groups = { deep_reads = '"Dune" by Frank Herbert (12 hours)' } },
+        })
+        TestRunner:assertContains(result, "Books I read extensively:")
+        TestRunner:assertContains(result, "Dune")
+        TestRunner:assertContains(result, "12 hours")
+    end)
+
+    TestRunner:test("deep_reads_section disappears when empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Library:\n{deep_reads_section}\nEnd" },
+            context = "library",
+            data = { stats_groups = {} },
+        })
+        TestRunner:assertNotContains(result, "Books I read extensively:")
+        TestRunner:assertNotContains(result, "{deep_reads_section}")
+    end)
+
+    TestRunner:test("raw {deep_reads} placeholder passes content without label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Reads: {deep_reads}" },
+            context = "library",
+            data = { stats_groups = { deep_reads = '"Book A"\n"Book B"' } },
+        })
+        TestRunner:assertContains(result, 'Reads: "Book A"')
+        TestRunner:assertNotContains(result, "Books I read extensively:")
+    end)
+
+    TestRunner:test("stalled_section shows correct label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{stalled_section}" },
+            context = "library",
+            data = { stats_groups = { stalled = '"War and Peace" by Tolstoy (35%, 3 months ago)' } },
+        })
+        TestRunner:assertContains(result, "Books I started but haven't returned to:")
+        TestRunner:assertContains(result, "War and Peace")
+    end)
+
+    TestRunner:test("recently_finished_section shows correct label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{recently_finished_section}" },
+            context = "library",
+            data = { stats_groups = { recently_finished = '"1984" by Orwell' } },
+        })
+        TestRunner:assertContains(result, "Books I recently finished:")
+    end)
+
+    TestRunner:test("briefly_started_section shows correct label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{briefly_started_section}" },
+            context = "library",
+            data = { stats_groups = { briefly_started = '"Ulysses" by Joyce (7 minutes)' } },
+        })
+        TestRunner:assertContains(result, "Books I opened briefly:")
+    end)
+
+    TestRunner:test("multiple stats groups resolve independently", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{deep_reads_section}\n\n{stalled_section}\n\n{briefly_started_section}" },
+            context = "library",
+            data = { stats_groups = {
+                deep_reads = '"Dune" (12h)',
+                stalled = '"War and Peace" (35%)',
+                -- briefly_started absent → disappears
+            } },
+        })
+        TestRunner:assertContains(result, "Books I read extensively:")
+        TestRunner:assertContains(result, "Books I started but haven't returned to:")
+        TestRunner:assertNotContains(result, "Books I opened briefly:")
+    end)
+
+    TestRunner:test("stats groups resolve to empty when stats_groups is nil", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Test {deep_reads_section} end" },
+            context = "library",
+            data = {},
+        })
+        TestRunner:assertNotContains(result, "{deep_reads_section}")
+        TestRunner:assertContains(result, "Test  end")
+    end)
+
     print("\n--- MessageBuilder: Analysis Cache Placeholders ---")
 
     TestRunner:test("xray_cache_section includes progress in label", function()

@@ -91,9 +91,19 @@ Actions.PLACEHOLDER_TO_FLAG = {
     ["{book_text}"] = "use_book_text",
     ["{book_text_section}"] = "use_book_text",
 
-    -- Reading stats placeholders
+    -- Reading stats placeholders (chapter info from open book)
     ["{chapter_title}"] = "use_reading_stats",
     ["{chapters_read}"] = "use_reading_stats",
+
+    -- Stats engagement group placeholders (from stats DB, for library scan actions)
+    ["{deep_reads}"] = "use_reading_stats",
+    ["{deep_reads_section}"] = "use_reading_stats",
+    ["{recently_finished}"] = "use_reading_stats",
+    ["{recently_finished_section}"] = "use_reading_stats",
+    ["{stalled}"] = "use_reading_stats",
+    ["{stalled_section}"] = "use_reading_stats",
+    ["{briefly_started}"] = "use_reading_stats",
+    ["{briefly_started_section}"] = "use_reading_stats",
 
     -- Notebook placeholders
     ["{notebook}"] = "use_notebook",
@@ -1837,10 +1847,11 @@ Actions.library = {
     next_from_library = {
         id = "next_from_library",
         text = _("Next Read"),
-        description = _("Suggests what to read next from your own library based on your reading patterns, what you've finished recently, and what's been sitting unread."),
+        description = _("Suggests what to read next from your library based on what you've finished recently, what's been sitting unread, and your reading patterns. When reading stats are available, includes engagement context like books you've stalled on or read extensively."),
         context = "library",
         skip_domain = true,
         use_library = true,
+        use_reading_stats = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
         template = "next_from_library",
@@ -1854,10 +1865,11 @@ Actions.library = {
     discover_books = {
         id = "discover_books",
         text = _("Discover New"),
-        description = _("Suggests new books to get based on your entire library — identifies your taste from what you own and recommends works you don't have yet."),
+        description = _("Suggests new books based on your library — identifies your taste from what you own and recommends works you don't have yet. When reading stats are available, uses engagement data to better understand your preferences."),
         context = "library",
         skip_domain = true,
         use_library = true,
+        use_reading_stats = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
         template = "discover_books",
@@ -1870,10 +1882,11 @@ Actions.library = {
     analyze_library = {
         id = "analyze_library",
         text = _("Analyze Library"),
-        description = _("Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection."),
+        description = _("Analyzes your library to reveal genres and authors you gravitate toward, completion patterns, and gaps in your collection. When reading stats are available, includes engagement insights like which books you spent the most time on."),
         context = "library",
         skip_domain = true,
         use_library = true,
+        use_reading_stats = true,
         requires = {"library"},
         blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
         template = "analyze_library",
