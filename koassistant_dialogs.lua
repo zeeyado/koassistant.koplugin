@@ -2939,7 +2939,90 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             message_data.library_content = ""
         end
     end
-    -- Note: Notebook extraction is now handled by ContextExtractor:extractForAction()
+
+    -- Multi-book sidecar enrichment for library items actions
+    -- When a library action declares sidecar flags (use_highlights, use_annotations, use_notebook),
+    -- read per-book data from sidecars and attach to books_info entries for message_builder.
+    if (context == "library" or context == "multi_file_browser")
+            and message_data.books_info and prompt
+            and (prompt.use_highlights or prompt.use_annotations or prompt.use_notebook) then
+        local extraction_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
+        if extraction_ok and ContextExtractor then
+            -- Privacy checks (same gates as single-book sidecar extraction)
+            local provider_trusted = false
+            local trusted_list = config.features and config.features.trusted_providers
+            if trusted_list and config.provider then
+                for _idx, tp in ipairs(trusted_list) do
+                    if tp == config.provider then provider_trusted = true; break end
+                end
+            end
+            local features = config.features or {}
+            local highlights_allowed = provider_trusted
+                or features.enable_highlights_sharing == true
+                or features.enable_annotations_sharing == true
+            local annotations_allowed = provider_trusted
+                or features.enable_annotations_sharing == true
+            local notebook_allowed = provider_trusted
+                or features.enable_notebook_sharing == true
+
+            local total_sidecar_chars = 0
+            for _idx, book in ipairs(message_data.books_info) do
+                if book.file then
+                    -- Highlights
+                    if prompt.use_highlights and highlights_allowed then
+                        local annotations = ContextExtractor.readSidecarAnnotations(book.file)
+                        local result = ContextExtractor.formatHighlights(annotations)
+                        if result.formatted ~= "" then
+                            book._highlights = result.formatted
+                            book._highlights_count = result.count
+                            total_sidecar_chars = total_sidecar_chars + #result.formatted
+                        end
+                    end
+
+                    -- Annotations (with degradation)
+                    if prompt.use_annotations and annotations_allowed then
+                        local annotations = ContextExtractor.readSidecarAnnotations(book.file)
+                        local result = ContextExtractor.formatAnnotations(annotations)
+                        if result.formatted ~= "" then
+                            book._annotations = result.formatted
+                            book._annotations_count = result.count
+                            book._annotations_degraded = false
+                            total_sidecar_chars = total_sidecar_chars + #result.formatted
+                        end
+                    elseif prompt.use_annotations and highlights_allowed then
+                        -- Degrade to highlights-only when annotations blocked
+                        local annotations = ContextExtractor.readSidecarAnnotations(book.file)
+                        local result = ContextExtractor.formatHighlights(annotations)
+                        if result.formatted ~= "" then
+                            book._annotations = result.formatted
+                            book._annotations_count = result.count
+                            book._annotations_degraded = true
+                            total_sidecar_chars = total_sidecar_chars + #result.formatted
+                        end
+                    end
+
+                    -- Notebook
+                    if prompt.use_notebook and notebook_allowed then
+                        local notebook_content = ContextExtractor.readSidecarNotebook(book.file)
+                        if notebook_content ~= "" then
+                            book._notebook = notebook_content
+                            total_sidecar_chars = total_sidecar_chars + #notebook_content
+                        end
+                    end
+
+                    -- Progress (for display in per-book headers)
+                    local progress_allowed = provider_trusted or features.enable_progress_sharing ~= false
+                    if progress_allowed then
+                        local progress = ContextExtractor.readSidecarProgress(book.file)
+                        if progress.formatted ~= "" then
+                            book._progress = progress.formatted
+                        end
+                    end
+                end
+            end
+            message_data._total_sidecar_chars = total_sidecar_chars
+        end
+    end
 
     -- Full-document or update-to-100%: override progress to 100% so cache is stored at 1.0
     -- and extraction covers the entire document
@@ -3382,6 +3465,40 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     if message_data.book_text then extracted_chars = extracted_chars + #message_data.book_text end
     if message_data.full_document then extracted_chars = extracted_chars + #message_data.full_document end
 
+    -- Step 3: Large sidecar data warning for multi-book actions (always warn, no suppress)
+    local sidecar_chars = message_data._total_sidecar_chars or 0
+    local function checkSidecarDataAndSend()
+        if sidecar_chars > Constants.LARGE_EXTRACTION_THRESHOLD then
+            local chars_k = math.floor(sidecar_chars / 1000)
+            local tokens_low = math.floor(sidecar_chars / 4000)
+            local tokens_high = math.floor(sidecar_chars / 2000)
+            local book_count = message_data.books_info and #message_data.books_info or 0
+            local warning_dialog
+            warning_dialog = ButtonDialog:new{
+                title = T(_("Large sidecar data: ~%1K characters (~%2K-%3K tokens) across %4 books. Make sure your model's context window can accommodate this.\n\nConsider selecting fewer books or using actions that don't require highlights/annotations."), chars_k, tokens_low, tokens_high, book_count),
+                buttons = {
+                    {{
+                        text = _("Cancel"),
+                        callback = function()
+                            UIManager:close(warning_dialog)
+                        end,
+                    }},
+                    {{
+                        text = _("Continue"),
+                        callback = function()
+                            UIManager:close(warning_dialog)
+                            sendQuery()
+                        end,
+                    }},
+                },
+            }
+            UIManager:show(warning_dialog)
+            return nil
+        end
+
+        return sendQuery()
+    end
+
     -- Step 2: Large extraction warning (existing check, now wrapped in function for chaining)
     local function checkLargeExtractionAndSend()
         if extracted_chars > Constants.LARGE_EXTRACTION_THRESHOLD
@@ -3403,7 +3520,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         text = _("Continue"),
                         callback = function()
                             UIManager:close(warning_dialog)
-                            sendQuery()
+                            checkSidecarDataAndSend()
                         end,
                     }},
                     {{
@@ -3421,7 +3538,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                             if config.features then
                                 config.features.suppress_large_extraction_warning = true
                             end
-                            sendQuery()
+                            checkSidecarDataAndSend()
                         end,
                     }},
                 },
@@ -3430,7 +3547,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             return nil  -- Early return; continuation via callback
         end
 
-        return sendQuery()
+        return checkSidecarDataAndSend()
     end
 
     -- Step 1: Truncation warning (fires before large extraction check)

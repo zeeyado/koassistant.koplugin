@@ -417,14 +417,57 @@ function MessageBuilder.build(params)
             local count = #data.books_info
             local books_list = {}
             for i, book in ipairs(data.books_info) do
-                local book_str = string.format('%d. "%s"', i, book.title or "Unknown Title")
-                if book.authors and book.authors ~= "" then
-                    book_str = book_str .. " by " .. book.authors
+                local has_sidecar = book._highlights or book._annotations or book._notebook
+                if has_sidecar then
+                    -- Rich per-book section with sidecar data
+                    local section = {}
+                    local header = string.format('=== "%s"', book.title or "Unknown Title")
+                    if book.authors and book.authors ~= "" then
+                        header = header .. " by " .. book.authors
+                    end
+                    if book._progress then
+                        header = header .. " (" .. book._progress .. ")"
+                    end
+                    header = header .. " ==="
+                    table.insert(section, header)
+
+                    if book._highlights and not book._annotations then
+                        local label = string.format("My highlights (%d):", book._highlights_count or 0)
+                        table.insert(section, "")
+                        table.insert(section, label)
+                        table.insert(section, book._highlights)
+                    end
+
+                    if book._annotations then
+                        local label
+                        if book._annotations_degraded then
+                            label = string.format("My highlights so far (%d):", book._annotations_count or 0)
+                        else
+                            label = string.format("My annotations (%d):", book._annotations_count or 0)
+                        end
+                        table.insert(section, "")
+                        table.insert(section, label)
+                        table.insert(section, book._annotations)
+                    end
+
+                    if book._notebook then
+                        table.insert(section, "")
+                        table.insert(section, "My notes:")
+                        table.insert(section, book._notebook)
+                    end
+
+                    table.insert(books_list, table.concat(section, "\n"))
+                else
+                    -- Simple title+author line (no sidecar data)
+                    local book_str = string.format('%d. "%s"', i, book.title or "Unknown Title")
+                    if book.authors and book.authors ~= "" then
+                        book_str = book_str .. " by " .. book.authors
+                    end
+                    table.insert(books_list, book_str)
                 end
-                table.insert(books_list, book_str)
             end
             user_prompt = replace_placeholder(user_prompt, "{count}", tostring(count))
-            user_prompt = replace_placeholder(user_prompt, "{books_list}", table.concat(books_list, "\n"))
+            user_prompt = replace_placeholder(user_prompt, "{books_list}", table.concat(books_list, "\n\n"))
         elseif data.book_context then
             -- Fallback: use pre-formatted book context if books_info not available
             table.insert(parts, "[Context]")
