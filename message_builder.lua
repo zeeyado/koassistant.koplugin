@@ -59,6 +59,37 @@ local function replace_placeholder(text, placeholder, replacement)
     return text
 end
 
+-- Stats engagement group definitions for placeholder resolution
+-- Each group has: data key in message_data.stats_groups, section label
+local STATS_GROUP_PLACEHOLDERS = {
+    { id = "deep_reads", label = "Books I read extensively:" },
+    { id = "recently_finished", label = "Books I recently finished:" },
+    { id = "stalled", label = "Books I started but haven't returned to:" },
+    { id = "briefly_started", label = "Books I opened briefly:" },
+}
+
+--- Resolve all stats engagement group placeholders (raw + section variants)
+--- @param text string Text containing placeholders
+--- @param data table Message data with optional stats_groups table
+--- @return string Text with placeholders resolved
+local function resolveStatsGroupPlaceholders(text, data)
+    local groups = data.stats_groups or {}
+    for _idx, def in ipairs(STATS_GROUP_PLACEHOLDERS) do
+        local content = groups[def.id] or ""
+
+        -- Section variant: auto-labeled, disappears when empty
+        local section = ""
+        if content ~= "" then
+            section = def.label .. "\n" .. content
+        end
+        text = replace_placeholder(text, "{" .. def.id .. "_section}", section)
+
+        -- Raw variant: just the list, no label
+        text = replace_placeholder(text, "{" .. def.id .. "}", content)
+    end
+    return text
+end
+
 --- Build the complete user message from action prompt and context data.
 -- @param params table with fields:
 --   prompt: action object with prompt/template field
@@ -330,6 +361,12 @@ function MessageBuilder.build(params)
     if data.library_content ~= nil then
         user_prompt = replace_placeholder(user_prompt, "{library}", data.library_content)
     end
+
+    -- Stats engagement group placeholders
+    -- Raw: {deep_reads}, {recently_finished}, {stalled}, {briefly_started}
+    -- Section: {deep_reads_section}, etc. — auto-labeled, disappear when empty
+    user_prompt = resolveStatsGroupPlaceholders(user_prompt, data)
+
     if data.full_document then
         user_prompt = replace_placeholder(user_prompt, "{full_document}", data.full_document)
     end
@@ -724,6 +761,10 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     if data.library_content ~= nil then
         result = replace_placeholder(result, "{library}", data.library_content)
     end
+
+    -- Stats engagement group placeholders
+    result = resolveStatsGroupPlaceholders(result, data)
+
     if data.full_document then
         result = replace_placeholder(result, "{full_document}", data.full_document)
     end
