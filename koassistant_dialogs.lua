@@ -2848,11 +2848,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 trusted_providers = config.features and config.features.trusted_providers,
                 enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
                 enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
-                enable_progress_sharing = config.features and config.features.enable_progress_sharing,
-                enable_stats_sharing = config.features and config.features.enable_stats_sharing,
+                enable_basic_stats = config.features and config.features.enable_basic_stats,
                 enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
                 -- Library scanning (session folders from library dialog override permanent config)
                 enable_library_scanning = config.features and config.features.enable_library_scanning,
+                enable_advanced_stats = config.features and config.features.enable_advanced_stats,
                 library_scan_folders = config.features and config.features.library_scan_folders,
                 _session_scan_folders = plugin and plugin._session_scan_folders,
             })
@@ -2893,8 +2893,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 trusted_providers = config.features and config.features.trusted_providers,
                 enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
                 enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
-                enable_progress_sharing = config.features and config.features.enable_progress_sharing,
-                enable_stats_sharing = config.features and config.features.enable_stats_sharing,
+                enable_basic_stats = config.features and config.features.enable_basic_stats,
                 enable_notebook_sharing = config.features and config.features.enable_notebook_sharing,
             })
             logger.info("KOAssistant: Sidecar extraction for file browser:", fb_document_path)
@@ -2931,9 +2930,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 local scan_result = LibraryScanner.scan(scan_settings)
                 if scan_result and scan_result.books and #scan_result.books > 0 then
                     -- Stats enrichment: engagement labels + group placeholders
-                    -- Gated: enable_stats_sharing (opt-out) + use_reading_stats per-action
+                    -- Gated: enable_advanced_stats (opt-in) + use_reading_stats per-action
+                    local provider_trusted = lib_features.trusted_providers and config and config.provider
+                    if provider_trusted then
+                        provider_trusted = false
+                        for _idx, tp in ipairs(lib_features.trusted_providers) do
+                            if tp == config.provider then provider_trusted = true; break end
+                        end
+                    end
                     local stats_gated = prompt.use_reading_stats
-                        and lib_features.enable_stats_sharing ~= false
+                        and (provider_trusted or lib_features.enable_advanced_stats == true)
                     if stats_gated then
                         local stats_ok, StatsReader = pcall(require, "koassistant_stats_reader")
                         if stats_ok and StatsReader then
@@ -3033,7 +3039,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     end
 
                     -- Progress (for display in per-book headers)
-                    local progress_allowed = provider_trusted or features.enable_progress_sharing ~= false
+                    local progress_allowed = provider_trusted or features.enable_basic_stats ~= false
                     if progress_allowed then
                         local progress = ContextExtractor.readSidecarProgress(book.file)
                         if progress.formatted ~= "" then

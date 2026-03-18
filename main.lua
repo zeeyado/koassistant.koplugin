@@ -1445,8 +1445,8 @@ function AskGPT:updateConfigFromSettings()
         -- where false↔nil distinction matters.
         local privacy_keys = {
           "enable_highlights_sharing", "enable_annotations_sharing",
-          "enable_notebook_sharing", "enable_progress_sharing",
-          "enable_stats_sharing", "enable_book_text_extraction",
+          "enable_notebook_sharing", "enable_basic_stats",
+          "enable_advanced_stats", "enable_book_text_extraction",
           "enable_library_scanning",
         }
         for _idx, pk in ipairs(privacy_keys) do
@@ -10517,8 +10517,8 @@ function AskGPT:applyPrivacyPresetDefault(touchmenu_instance)
   f.enable_highlights_sharing = false
   f.enable_annotations_sharing = false
   f.enable_notebook_sharing = false
-  f.enable_progress_sharing = true
-  f.enable_stats_sharing = true
+  f.enable_basic_stats = true
+  f.enable_advanced_stats = false
   f.enable_book_text_extraction = false
   f.enable_library_scanning = false
   self.settings:saveSetting("features", f)
@@ -10540,8 +10540,8 @@ function AskGPT:applyPrivacyPresetMinimal(touchmenu_instance)
   f.enable_highlights_sharing = false
   f.enable_annotations_sharing = false
   f.enable_notebook_sharing = false
-  f.enable_progress_sharing = false
-  f.enable_stats_sharing = false
+  f.enable_basic_stats = false
+  f.enable_advanced_stats = false
   f.enable_book_text_extraction = false
   f.enable_library_scanning = false
   self.settings:saveSetting("features", f)
@@ -10564,8 +10564,8 @@ function AskGPT:applyPrivacyPresetFull(touchmenu_instance)
   f.enable_annotations_sharing = true
   f.enable_notebook_sharing = true
   f.enable_library_scanning = true
-  f.enable_progress_sharing = true
-  f.enable_stats_sharing = true
+  f.enable_basic_stats = true
+  f.enable_advanced_stats = true
   -- Note: enable_book_text_extraction not touched - user must enable manually
   self.settings:saveSetting("features", f)
   self.settings:flush()

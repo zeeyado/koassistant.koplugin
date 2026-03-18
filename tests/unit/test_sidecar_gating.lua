@@ -398,14 +398,14 @@ local function runSidecarGatingTests()
         TestRunner:assertEquals(data.progress_decimal, "0.65")
     end)
 
-    TestRunner:test("sidecar progress allowed when enable_progress_sharing=true", function()
-        local extractor = createSidecarExtractor({ enable_progress_sharing = true })
+    TestRunner:test("sidecar progress allowed when enable_basic_stats=true", function()
+        local extractor = createSidecarExtractor({ enable_basic_stats = true })
         local data = extractor:extractForAction({})
         TestRunner:assertEquals(data.reading_progress, "65%")
     end)
 
-    TestRunner:test("sidecar progress blocked when enable_progress_sharing=false", function()
-        local extractor = createSidecarExtractor({ enable_progress_sharing = false })
+    TestRunner:test("sidecar progress blocked when enable_basic_stats=false", function()
+        local extractor = createSidecarExtractor({ enable_basic_stats = false })
         local data = extractor:extractForAction({})
         TestRunner:assertEquals(data.reading_progress, "")
         TestRunner:assertEquals(data.progress_decimal, "")
@@ -413,7 +413,7 @@ local function runSidecarGatingTests()
 
     TestRunner:test("sidecar progress bypass with trusted provider", function()
         local extractor = createSidecarExtractor({
-            enable_progress_sharing = false,
+            enable_basic_stats = false,
             provider = "my_trusted",
             trusted_providers = { "my_trusted" },
         })
@@ -1089,7 +1089,7 @@ local function runParityTests()
             enable_highlights_sharing = false,
             enable_annotations_sharing = false,
             enable_notebook_sharing = false,
-            enable_progress_sharing = false,
+            enable_basic_stats = false,
             provider = "trusted_one",
             trusted_providers = { "trusted_one" },
         }
@@ -1338,7 +1338,7 @@ local function runRealActionTests()
                     enable_highlights_sharing = false,
                     enable_annotations_sharing = false,
                     enable_notebook_sharing = false,
-                    enable_progress_sharing = false,
+                    enable_basic_stats = false,
                 }
                 local sidecar_ext = createSidecarExtractor(settings)
                 local open_book_ext = createOpenBookExtractor(settings)
@@ -1449,17 +1449,12 @@ local function runEdgeCaseTests()
         TestRunner:assertEquals(data.notebook_content, "", "nil should behave like false for opt-in setting")
     end)
 
-    TestRunner:test("enable_progress_sharing=nil → allowed (opt-out, default true)", function()
-        local extractor = createSidecarExtractor({})  -- nil, not explicitly true
+    TestRunner:test("enable_basic_stats=nil → allowed (opt-out, default true)", function()
+        local extractor = createSidecarExtractor({})  -- nil = default enabled
         local data = extractor:extractForAction({})
         TestRunner:assertEquals(data.reading_progress, "50%", "nil should behave like true for opt-out setting")
-    end)
-
-    TestRunner:test("enable_stats_sharing=nil → allowed (opt-out, default true)", function()
-        local extractor = createSidecarExtractor({})
-        local data = extractor:extractForAction({})
-        -- Stats are only available with open book, but the gate should pass
-        TestRunner:assert(data.chapter_title ~= nil, "stats gate should pass when nil (opt-out)")
+        -- Stats (chapter info) are only available with open book, but the gate should pass
+        TestRunner:assert(data.chapter_title ~= nil, "basic stats gate should pass when nil (opt-out)")
     end)
 
     -- =========================================================================

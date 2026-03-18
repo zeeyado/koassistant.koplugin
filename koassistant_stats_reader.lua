@@ -3,7 +3,7 @@
 -- Raw stats never leave the device — only human-readable group labels are used.
 --
 -- Two consumers:
--- 1. Library scan formatter: engagement labels in {library} output (gated by enable_stats_sharing + use_reading_stats)
+-- 1. Library scan formatter: engagement labels in {library} output (gated by enable_advanced_stats + use_reading_stats)
 -- 2. Items presets: cross-referenced with ReadHistory for quick-add (ungated, deferred)
 --
 -- Groups are the core abstraction: each is a filter (status + stats thresholds) producing a book list.
