@@ -296,8 +296,7 @@ Ground every observation in specific highlights or notes. Do not use emojis. {ha
 What should I read next **from books I already own**? Consider:
 - What's unread or started but not finished
 - My reading patterns — what genres, authors, and topics I gravitate toward
-- What I've finished recently and what would complement or follow well
-- Books I started but set aside — are any worth returning to?
+- Any reading engagement data provided above
 
 Suggest 3-5 books. For each:
 - Why this one, given my reading patterns
@@ -341,8 +340,8 @@ Skip obvious picks I've almost certainly encountered. Do not use emojis. {halluc
 Analyze my reading patterns based on this collection. Consider:
 - Genres, topics, and themes I gravitate toward
 - Authors or styles that recur
-- Completion patterns — what I finish vs what I abandon or leave unread
-- Engagement patterns — what I spent time with vs what I abandoned quickly
+- Completion patterns — what I finish vs what I set aside or leave unread
+- Any reading engagement data provided above
 - Gaps — areas my collection doesn't cover that someone with these interests might expect
 - Any progression or evolution visible in my reading
 
