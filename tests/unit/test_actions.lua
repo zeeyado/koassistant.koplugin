@@ -349,8 +349,13 @@ function TestActions:runAll()
         self:assertEquals(Actions.requiresOpenBook({ use_annotations = true }), false)
     end)
 
-    self:test("requiresOpenBook returns true for use_reading_stats", function()
+    self:test("requiresOpenBook returns true for use_reading_stats (book context)", function()
         self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true }), true)
+        self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true, context = "book" }), true)
+    end)
+
+    self:test("requiresOpenBook returns false for use_reading_stats in library context", function()
+        self:assertEquals(Actions.requiresOpenBook({ use_reading_stats = true, context = "library" }), false)
     end)
 
     self:test("requiresOpenBook returns false for use_notebook (sidecar flag)", function()

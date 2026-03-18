@@ -5246,7 +5246,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         if prompt.description then
                             UIManager:show(InfoMessage:new{
                                 text = prompt.description,
-                                timeout = 6,
                             })
                         end
                     end,
@@ -5309,7 +5308,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         if action.description then
                             UIManager:show(InfoMessage:new{
                                 text = action.description,
-                                timeout = 6,
                             })
                         end
                     end,
