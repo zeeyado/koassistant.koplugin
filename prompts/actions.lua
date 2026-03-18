@@ -2129,9 +2129,13 @@ function Actions.requiresOpenBook(action)
     end
 
     -- Check LIVE flags (always require open book)
+    -- Exception: library-context actions use use_reading_stats for stats DB queries,
+    -- not live document access, so it doesn't require an open book for them.
     for _idx, flag in ipairs(Actions.LIVE_BOOK_FLAGS) do
         if action[flag] then
-            return true
+            if not (flag == "use_reading_stats" and action.context == "library") then
+                return true
+            end
         end
     end
 

@@ -396,7 +396,7 @@ lua tests/inspect.lua --web
 
 > ⚠️ **Some features are opt-in.** To protect your privacy, personal reading data (highlights, annotations, notebook) is NOT sent to AI providers by default. You must enable sharing in **Settings → Privacy & Data** if you want features like Analyze Notes or Connect with Notes to work fully. See [Privacy Controls](#privacy-controls) below.
 
-KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater or false reassurances of privacy, as the "threat model" here is simply users including sensitive data (Annotations, notes, content, etc.) by accident; you are already being permissive about privacy by using online AIs (especially for personal interest areas) in the first place, and this plugin by its nature does encourage the use of AI to analyze your reading material. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data), but none currently access KOReader's built in advanced local statistics. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions, e.g. Ollama.
+KOAssistant sends data to AI providers to generate responses. This section explains what's shared and how to control it. This is not meant as security or privacy theater or false reassurances of privacy, as the "threat model" here is simply users including sensitive data (Annotations, notes, content, etc.) by accident; you are already being permissive about privacy by using online AIs (especially for personal interest areas) in the first place, and this plugin by its nature does encourage the use of AI to analyze your reading material. The available placeholders/template variables are substantial in this regard (amount and sensitivity of data). Advanced Stats (opt-in, off by default) accesses KOReader's Statistics plugin locally to derive reading engagement groups — see [Design Choices](#design-choices) for what this means and why it's opt-in. Best practice is to pick providers thoughtfully, and the very best practice is to use local or self-hosted solutions, e.g. Ollama.
 
 ### What Gets Sent
 
@@ -407,8 +407,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 **Sent by default: (for Actions using it)**
 - Document metadata like title, author, identifiers (you can disable this in Action management by unchecking "Include book info")
 - Enabled system content, like user languages, domain, behavior, etc
-- Reading progress (percentage) 
-- Chapter info (current chapter title, chapters read count, time since last opened)
+- Basic stats: reading progress (percentage), chapter title, chapters read count, time since last opened
 - The data used to calculate this (exact date you opened the document last, etc.) is local only
 
 **Opt-in (disabled by default):**
@@ -416,7 +415,8 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - Annotations — your highlighted text with personal notes attached, and the dates they were made
 - Notebook entries — your KOAssistant notebook for the book, with dates
 - Book text content — actual text from the document (for X-Ray, Recap, etc.)
-- Library catalog — book metadata from scanned folders: title, author, series, reading status, progress percentage, last read date. Does **not** include reading time, pages per hour, session history, or any other statistics from KOReader's Statistics plugin. Only sent by library actions when library scanning is enabled with folders configured
+- Library catalog — book metadata from scanned folders: title, author, series, reading status, progress percentage, last read date. Only sent by library actions when library scanning is enabled with folders configured
+- Advanced stats — reading engagement data derived from KOReader's Statistics plugin: curated groups based on reading time and completion patterns (e.g. books read extensively, stalled reads, briefly started). Raw statistics (hours, session counts, pages per hour) are computed locally and **never** sent — only human-readable group labels reach the AI. Only used by library scan actions
 
 ### Privacy Controls
 
@@ -424,16 +424,16 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 
 | Preset | What it does |
 |--------|--------------|
-| **Default** | Progress and chapter info shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. |
-| **Minimal** | Maximum privacy. Only your question and book metadata are sent. Even progress and chapter info are disabled. |
-| **Full** | All data sharing enabled for full functionality. Does not automatically enable text extraction (see below). |
+| **Default** | Basic stats (progress, chapter info) shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. Advanced stats off. |
+| **Minimal** | Maximum privacy. Only your question and book metadata are sent. All stats, library scanning, and personal content disabled. |
+| **Full** | All data sharing enabled for full functionality, including advanced stats. Does not automatically enable text extraction (see below). |
 
 **Individual toggles** (under Data Sharing Controls):
 - **Allow Annotation Notes** — Your personal notes attached to highlights (default: OFF). Automatically enables Allow Highlights. Actions requesting annotations degrade gracefully: when this is off but Allow Highlights is on, they receive highlights-only data (labeled "My highlights so far:" instead of "My annotations:").
 - **Allow Highlights** — Your highlighted text passages (default: OFF). Used by X-Ray, Recap, and actions with `{highlights}` placeholders. Does not include personal notes. Grayed out when annotations is enabled (annotations implies highlights).
 - **Allow Notebook** — Notebook entries for the book (default: OFF)
-- **Allow Reading Progress** — Current reading position percentage (default: ON)
-- **Allow Chapter Info** — Chapter title, chapters read, time since last opened (default: ON)
+- **Allow Basic Stats** — Reading progress percentage, chapter title, chapters read count, time since last opened (default: ON). Used by X-Ray, Recap, and other context-aware features.
+- **Allow Advanced Stats** — Reading engagement data derived from KOReader's Statistics plugin (default: OFF). Shares curated groups based on reading time and completion patterns with library scan actions. Raw statistics never leave the device — only human-readable labels like "read extensively" or "started briefly" reach the AI. See [Design Choices](#design-choices) for details.
 
 **Library Settings** (under Privacy & Data):
 - **Enable Library Scanning** — Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library) and the Suggest from Library book action
@@ -521,7 +521,11 @@ Cloud providers have their own data handling practices. Check their policies on 
 
 **Library scanning** is opt-in. When enabled (Settings → Privacy & Data → Library Settings), KOAssistant scans configured folders for book metadata (title, author, series, reading status, progress, last read date) to power library-aware features like "What to read next?" and reading pattern analysis. Only catalog metadata is sent — **not** book content, highlights, or annotations. Library scanning is triple-gated: (1) global `enable_library_scanning` toggle, (2) at least one folder configured, and (3) per-action `use_library` flag. Trusted providers bypass the global toggle but still require configured folders.
 
-**KOReader's deeper statistics:** KOReader's Statistics plugin collects extensive local data (reading time, pages per session, reading speed, session history, daily patterns). KOAssistant does **not** access any of this — library scanning uses only the metadata listed above (no time-spent data, no pages-per-hour, no session logs). If KOAssistant ever adds features that expose this behavioral data, they will require explicit opt-in with clear warnings about how revealing such information can be. Reading patterns over time create a surprisingly detailed personal profile.
+**Reading engagement data (Advanced Stats):** KOReader's Statistics plugin collects extensive local data (reading time, pages per session, reading speed, session history, daily patterns). With **Allow Advanced Stats** enabled (Settings → Privacy & Data, default: OFF), KOAssistant queries this database **locally** to compute engagement groups — curated categories like "books read extensively" (complete + significant reading time), "stalled reads" (started but inactive for weeks), "briefly started" (opened but barely read), and "recently finished". These groups are exposed as template variables (`{deep_reads_section}`, `{stalled_section}`, etc.) for library scan actions to compose.
+
+**What reaches the AI:** Only human-readable book lists — e.g., `"The Brothers Karamazov" by Fyodor Dostoevsky (47 hours)`. Raw statistics (exact timestamps, pages per session, reading speed, session logs) are used for local computation only and **never** leave the device. The AI sees categorized book lists, not behavioral data.
+
+**Why opt-in:** Reading patterns over time create a surprisingly detailed personal profile. Even the curated groups reveal information about reading habits — which books were abandoned, which consumed obsessively, which ignored for months. This warrants conscious opt-in rather than a default-on toggle.
 
 ---
 
@@ -655,7 +659,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Extract Key Insights** | Distills the most important takeaways — ideas worth remembering, novel perspectives, actionable conclusions. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Suggest from Library** | Suggests what to read next from your own library, based on the current book and your reading patterns. Also triggers in the end-of-book popup. ⚠️ *Requires: Library scanning enabled* |
 
-**What the AI sees**: Document metadata (title, author, DOI when detected). For Analyze Notes: your annotations. For full document actions: entire document text. For Suggest from Library: your library catalog (title, author, series, status, progress, last read date).
+**What the AI sees**: Document metadata (title, author, DOI when detected). For Analyze Notes: your annotations. For full document actions: entire document text. For Suggest from Library: your library catalog (title, author, series, status, progress, last read date). For library scan actions with Advanced Stats enabled: curated engagement groups (book lists categorized by reading patterns — see [Privacy & Data](#privacy--data)).
 
 <a id="research-mode"></a>
 
@@ -703,6 +707,9 @@ These actions analyze your actual reading content. They require specific privacy
 | **Reading Guide** | Full text, summary, or AI knowledge (user choice) + reading progress | Allow Text Extraction (for full text/summary) |
 | **About** | AI training knowledge (+ optional web search) | None (web search optional) |
 | **Suggest from Library** | Library catalog + current book + reading progress | Enable Library Scanning + folders configured |
+| **Next Read** | Library catalog + engagement groups (stalled, briefly started) | Enable Library Scanning + folders configured; Allow Advanced Stats (optional — enhances with engagement data) |
+| **Discover New** | Library catalog + engagement groups (deep reads, recently finished) | Enable Library Scanning + folders configured; Allow Advanced Stats (optional) |
+| **Analyze Library** | Library catalog + all engagement groups | Enable Library Scanning + folders configured; Allow Advanced Stats (optional) |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions with source selection show "AI knowledge only" as the available option. For other actions, the AI gracefully falls back to its training knowledge, with a "*Response generated without: ...*" notice in the chat. **Exception:** X-Ray requires text extraction and blocks generation without it — use X-Ray (Simple) for a prose overview from AI knowledge.
 
@@ -852,9 +859,9 @@ The library dialog splits actions into two zones with their own management butto
 **Library Scan zone** — scan-based actions with a **Library Scan ▾** button for folder management (enable/disable permanent folders, add on-the-fly folders for this session). Hidden when library scanning toggle is off:
 | Action | Description |
 |--------|-------------|
-| **Next Read** | What to read next from your library — based on reading patterns, what you've finished, and what's been sitting unread |
-| **Discover New** | Suggests new books to get based on your entire library — identifies your taste and recommends works you don't have |
-| **Analyze Library** | Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection |
+| **Next Read** | What to read next from your library — based on reading patterns, what you've finished, and what's been sitting unread. With Advanced Stats enabled, includes engagement context (stalled reads, briefly started books) |
+| **Discover New** | Suggests new books to get based on your entire library — identifies your taste and recommends works you don't have. With Advanced Stats enabled, includes deep reads and recently finished books for better taste inference |
+| **Analyze Library** | Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection. With Advanced Stats enabled, includes full engagement data for richer pattern analysis |
 
 **Items zone** — selection-based actions with an **Items ▾** button for book management (presets, browse history, add folder, clear). Require 2+ books selected:
 | Action | Description |
@@ -1131,15 +1138,23 @@ Insert these in your action prompt to reference dynamic values:
 | `{books_list}` | Library | Formatted list of selected books (enriched with per-book highlights/annotations/notebook when action declares sidecar flags) | Allow Highlights/Annotation Notes/Notebook (when sidecar flags set) |
 | `{library}` | Library, Book | Library catalog content (raw, no label) | Enable Library Scanning + folders |
 | `{library_section}` | Library, Book | Library catalog with "My library:" label, or empty | Enable Library Scanning + folders |
+| `{deep_reads}` | Library | Books read extensively (complete + significant reading time) | Allow Advanced Stats |
+| `{deep_reads_section}` | Library | Same as above with "Books I read extensively:" label, or empty | Allow Advanced Stats |
+| `{recently_finished}` | Library | Books recently finished (complete in last 30 days) | Allow Advanced Stats |
+| `{recently_finished_section}` | Library | Same as above with "Books I recently finished:" label, or empty | Allow Advanced Stats |
+| `{stalled}` | Library | Stalled reads (started but inactive 30+ days) | Allow Advanced Stats |
+| `{stalled_section}` | Library | Same as above with "Books I started but haven't returned to:" label, or empty | Allow Advanced Stats |
+| `{briefly_started}` | Library | Briefly started books (opened but barely read) | Allow Advanced Stats |
+| `{briefly_started_section}` | Library | Same as above with "Books I opened briefly:" label, or empty | Allow Advanced Stats |
 | `{translation_language}` | Any | Target language from settings | — |
 | `{dictionary_language}` | Any | Dictionary response language from settings | — |
 | `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) | — |
 | `{context_section}` | Highlight | Context with "Word appears in this context:" label | — |
-| `{reading_progress}` | Book (reading) | Current reading position (e.g., "42%") | Allow Reading Progress |
-| `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") | Allow Reading Progress |
-| `{chapter_title}` | Book (reading) | Current chapter name | Allow Chapter Info |
-| `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") | Allow Chapter Info |
-| `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") | Allow Chapter Info |
+| `{reading_progress}` | Book (reading) | Current reading position (e.g., "42%") | Allow Basic Stats |
+| `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") | Allow Basic Stats |
+| `{chapter_title}` | Book (reading) | Current chapter name | Allow Basic Stats |
+| `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") | Allow Basic Stats |
+| `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") | Allow Basic Stats |
 | `{highlights}` | Book, Highlight (reading) | All highlights from the document | Allow Highlights (or Allow Annotation Notes) |
 | `{annotations}` | Book, Highlight (reading) | All highlights with user notes | Allow Annotation Notes |
 | `{highlights_section}` | Book, Highlight (reading) | Highlights with "My highlights so far:" label | Allow Highlights (or Allow Annotation Notes) |
@@ -1182,8 +1197,12 @@ Insert these in your action prompt to reference dynamic values:
 - `{analyze_cache_section}` → "Document analysis:\n[content]" or "" if empty
 - `{summary_cache_section}` → "Document summary:\n[content]" or "" if empty
 - `{library_section}` → "My library:\n[content]" or "" if empty
+- `{deep_reads_section}` → "Books I read extensively:\n[content]" or "" if empty
+- `{recently_finished_section}` → "Books I recently finished:\n[content]" or "" if empty
+- `{stalled_section}` → "Books I started but haven't returned to:\n[content]" or "" if empty
+- `{briefly_started_section}` → "Books I opened briefly:\n[content]" or "" if empty
 
-"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{page_text}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`, `{library}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{page_text}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`, `{library}`, `{deep_reads}`, `{recently_finished}`, `{stalled}`, `{briefly_started}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references—if you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
@@ -1266,8 +1285,8 @@ return {
 - `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
 - `use_highlights`: Include document highlights (text only, no notes). Requires Allow Highlights or Allow Annotation Notes.
 - `use_annotations`: Include document annotations (highlights with user notes). Requires Allow Annotation Notes.
-- `use_reading_progress`: Include reading position and chapter info
-- `use_reading_stats`: Include time since last read and chapter count
+- `use_reading_progress`: Include reading position and chapter info (requires Allow Basic Stats)
+- `use_reading_stats`: Include reading engagement data — engagement groups (`{deep_reads}`, `{stalled}`, etc.) and per-book engagement labels in library output. Requires Allow Advanced Stats for engagement groups; also gates chapter info placeholders (`{chapter_title}`, `{chapters_read}`, `{time_since_last_read}`) which require Allow Basic Stats
 - `use_notebook`: Include content from the book's KOAssistant notebook
 - `use_surrounding_context`: Include surrounding text for highlight actions (auto-inferred from `{surrounding_context}` placeholder)
 - `include_book_context`: Add book info to highlight actions
@@ -2320,8 +2339,8 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Annotation Notes**: Send your personal notes attached to highlights (default: OFF). Auto-enables Allow Highlights.
   - **Allow Highlights**: Send your highlighted text passages without notes (default: OFF). Grayed out when annotations enabled.
   - **Allow Notebook**: Send notebook entries (default: OFF)
-  - **Allow Reading Progress**: Send current reading position percentage (default: ON)
-  - **Allow Chapter Info**: Send chapter title, chapters read, time since last opened (default: ON)
+  - **Allow Basic Stats**: Send reading progress percentage, chapter title, chapters read count, time since last opened (default: ON)
+  - **Allow Advanced Stats**: Share reading engagement data derived from KOReader's Statistics plugin — curated groups based on reading time and completion patterns (default: OFF)
 - **Text Extraction** (submenu): Settings for extracting book content for AI analysis
   - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs and a tip about using Hidden Flows to save tokens.
   - **Max Text Characters**: Maximum characters to extract (100,000-10,000,000, default 4,000,000 ~1M tokens). The default covers most books with Gemini's 1M-token context; lower it for smaller models
