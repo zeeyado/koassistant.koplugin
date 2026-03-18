@@ -546,7 +546,6 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
             local InfoMessage = require("ui/widget/infomessage")
             UIManager:show(InfoMessage:new{
               text = action_for_hold.description,
-              timeout = 6,
             })
           end
         end,
@@ -8530,7 +8529,6 @@ function AskGPT:onKOAssistantQuickActions()
           if action.description then
             UIManager:show(InfoMessage:new{
               text = action.description,
-              timeout = 6,
             })
           end
         end,
@@ -9502,7 +9500,6 @@ function AskGPT:registerHighlightMenuActions()
           if fresh_action.description then
             UIManager:show(InfoMessage:new{
               text = fresh_action.description,
-              timeout = 6,
             })
           end
         end,
