@@ -4749,9 +4749,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end,
         }})
 
-        -- Add Folder: scan a folder and add all books to item selection
+        -- Browse Folder: open BookPicker with folder source for cherry-picking
         table.insert(menu_buttons, {{
-            text = _("Add Folder…"),
+            text = _("Browse Folder…"),
             callback = function()
                 UIManager:close(add_books_dialog)
                 local PathChooser = require("ui/widget/pathchooser")
@@ -4763,37 +4763,37 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     path = start_path,
                     select_directory = true,
                     onConfirm = function(selected_path)
-                        local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
-                        if not scan_ok or not LibraryScanner then
-                            UIManager:show(InfoMessage:new{
-                                text = _("Failed to load library scanner."),
-                                timeout = 2,
-                            })
-                            return
-                        end
-                        local scan_settings = { library_scan_folders = { selected_path } }
-                        local scan_result = LibraryScanner.scan(scan_settings)
-                        if not scan_result or not scan_result.books or #scan_result.books == 0 then
-                            UIManager:show(InfoMessage:new{
-                                text = T(_("No books found in:\n%1"), selected_path),
-                                timeout = 3,
-                            })
-                            return
-                        end
-                        local new_books = {}
-                        for _idx2, book in ipairs(scan_result.books) do
-                            table.insert(new_books, {
-                                title = book.title or book.path:match("([^/]+)%.[^%.]+$") or book.path,
-                                authors = book.author or "",
-                                file = book.path,
-                            })
-                        end
-                        local added = mergeBooks(new_books)
-                        UIManager:show(InfoMessage:new{
-                            text = T(_("Found %1 books in folder.\n%2 new items added."), #new_books, added),
-                            timeout = 3,
+                        local BookPicker = require("koassistant_book_picker")
+                        BookPicker:show({
+                            initial_source = selected_path,
+                            on_confirm = function(selected_files)
+                                local DocSettings = require("docsettings")
+                                local new_books = {}
+                                for file, _v in pairs(selected_files) do
+                                    local title = nil
+                                    local author = ""
+                                    local ds = DocSettings:open(file)
+                                    local doc_props = ds:readSetting("doc_props")
+                                    if doc_props then
+                                        local dt = doc_props.display_title or doc_props.title
+                                        if dt and dt ~= "" then title = dt end
+                                        if doc_props.authors and doc_props.authors ~= "" then
+                                            author = doc_props.authors:gsub("\n", ", ")
+                                        end
+                                    end
+                                    if not title then
+                                        title = file:match("([^/]+)%.[^%.]+$") or file
+                                    end
+                                    table.insert(new_books, {
+                                        title = title,
+                                        authors = author,
+                                        file = file,
+                                    })
+                                end
+                                mergeBooks(new_books)
+                                refreshInputDialog()
+                            end,
                         })
-                        refreshInputDialog()
                     end,
                 }
                 UIManager:show(path_chooser)

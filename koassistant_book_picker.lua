@@ -2,11 +2,12 @@
 Book Picker for KOAssistant
 
 Multi-select book picker for library actions.
-Shows reading history as a selectable list; selected books are passed
-to compareSelectedBooks() for the standard library action flow.
+Shows books from history or folder as a selectable list; selected books
+are passed to the on_confirm callback.
 
-Supports filtering by book status (All, Reading, On Hold, Finished,
-Finished 75%+) and search by title/author.
+Supports source switching (history / folder), filtering by book status
+(All, Reading, On Hold, Finished, Finished 75%+), and search by
+title/author.
 
 @module koassistant_book_picker
 ]]
@@ -23,7 +24,7 @@ local _ = require("koassistant_gettext")
 
 local BookPicker = {}
 
--- Filter definitions: id, display text, match function
+-- Filter definitions: id, display text
 local FILTERS = {
     { id = "all",          text = _("All") },
     { id = "reading",      text = _("Reading") },
@@ -143,13 +144,21 @@ local function getFilterText(filter_id)
     return _("All")
 end
 
---- Build the title string with filter and selection count
+--- Build the title string with source, filter, and selection count
+--- @param source_label string Source display name ("History" or folder name)
 --- @param filter_id string Active filter id
 --- @param selected_count number Number of selected books
 --- @return string
-local function buildTitle(filter_id, selected_count)
+local function buildTitle(source_label, filter_id, selected_count)
     local filter_text = getFilterText(filter_id)
-    return T(_("History: %1 (%2 selected)"), filter_text, selected_count)
+    return T(_("%1: %2 (%3 selected)"), source_label, filter_text, selected_count)
+end
+
+--- Get short display name for a folder path
+--- @param folder_path string Full folder path
+--- @return string Short folder name
+local function getFolderDisplayName(folder_path)
+    return folder_path:match("([^/]+)/?$") or folder_path
 end
 
 --- Build menu items from entries and selection state
@@ -179,15 +188,12 @@ local function buildMenuItems(entries, selected, toggle_callback)
     return items
 end
 
---- Show reading history book picker for library selection
---- @param opts table Options: on_confirm = function(selected_files_hash)
-function BookPicker:show(opts)
+--- Load entries from reading history
+--- @return table entries Array of book entries, or empty table
+function BookPicker:_loadHistoryEntries()
     local ReadHistory = require("readhistory")
-
-    -- Force reload to get latest history
     ReadHistory:reload()
 
-    -- Build entries from history, filtering to existing files only
     local entries = {}
     for _idx, hist_entry in ipairs(ReadHistory.hist) do
         if not hist_entry.dim then
@@ -202,52 +208,194 @@ function BookPicker:show(opts)
             })
         end
     end
+    return entries
+end
+
+--- Load entries from a folder via LibraryScanner
+--- @param folder_path string Path to scan
+--- @return table entries Array of book entries, or nil on error
+--- @return string|nil error Error message if scan failed
+function BookPicker:_loadFolderEntries(folder_path)
+    local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
+    if not scan_ok or not LibraryScanner then
+        return nil, _("Failed to load library scanner.")
+    end
+
+    local scan_settings = { library_scan_folders = { folder_path } }
+    local scan_result = LibraryScanner.scan(scan_settings)
+    if not scan_result or not scan_result.books or #scan_result.books == 0 then
+        return nil, T(_("No books found in:\n%1"), folder_path)
+    end
+
+    local entries = {}
+    for _idx, book in ipairs(scan_result.books) do
+        -- Format progress as mandatory text (right-side label)
+        local mandatory_text
+        if book.progress and book.progress > 0 then
+            mandatory_text = string.format("%d%%", math.floor(book.progress * 100))
+        end
+        table.insert(entries, {
+            file = book.file or book.path,
+            title = book.title or (book.file or book.path):match("([^/]+)%.[^%.]+$") or book.file or book.path,
+            author = book.author,
+            status = book.status,
+            progress = book.progress,
+            mandatory = mandatory_text,
+        })
+    end
+    return entries
+end
+
+--- Get the display label for the current source
+--- @return string
+function BookPicker:_getSourceLabel()
+    if self._current_source == "history" then
+        return _("History")
+    else
+        return getFolderDisplayName(self._current_source)
+    end
+end
+
+--- Switch to a new source, preserving selections
+--- @param source string "history" or folder path
+function BookPicker:_switchSource(source)
+    if source == self._current_source then return end
+
+    local entries, err
+    if source == "history" then
+        entries = self:_loadHistoryEntries()
+    else
+        entries, err = self:_loadFolderEntries(source)
+        if not entries then
+            UIManager:show(InfoMessage:new{
+                text = err or _("Failed to load folder."),
+                timeout = 3,
+            })
+            return
+        end
+    end
 
     if #entries == 0 then
+        local msg = source == "history"
+            and _("No books in reading history.")
+            or T(_("No books found in:\n%1"), source)
         UIManager:show(InfoMessage:new{
-            text = _("No books in reading history."),
+            text = msg,
+            timeout = 3,
         })
         return
     end
 
-    local selected = {}
-    local menu
+    self._current_source = source
+    if source ~= "history" then
+        self._folder_path = source
+    end
+    self._entries = entries
+    self._filter = "all"
+    self._search_string = nil
+    self:_refresh()
+end
+
+--- Open a PathChooser and switch to the selected folder
+function BookPicker:_browseFolder()
+    local PathChooser = require("ui/widget/pathchooser")
+    local Device = require("device")
+    local DataStorage = require("datastorage")
+    local start_path = self._folder_path
+        or G_reader_settings:readSetting("home_dir")
+        or Device.home_dir
+        or DataStorage:getDataDir()
     local self_ref = self
+    local path_chooser = PathChooser:new{
+        title = _("Select Folder"),
+        path = start_path,
+        select_directory = true,
+        onConfirm = function(selected_path)
+            self_ref:_switchSource(selected_path)
+        end,
+    }
+    UIManager:show(path_chooser)
+end
+
+--- Show the book picker
+--- @param opts table Options: on_confirm = function(selected_files_hash), initial_source = "history"|folder_path
+function BookPicker:show(opts)
     local on_confirm = opts and opts.on_confirm
+    local initial_source = opts and opts.initial_source or "history"
+
+    -- Load initial entries
+    local entries, err
+    if initial_source == "history" then
+        entries = self:_loadHistoryEntries()
+    else
+        entries, err = self:_loadFolderEntries(initial_source)
+        if not entries then
+            UIManager:show(InfoMessage:new{
+                text = err or _("Failed to load folder."),
+                timeout = 3,
+            })
+            return
+        end
+    end
+
+    if #entries == 0 then
+        if initial_source == "history" then
+            UIManager:show(InfoMessage:new{
+                text = _("No books in reading history."),
+            })
+        else
+            UIManager:show(InfoMessage:new{
+                text = T(_("No books found in:\n%1"), initial_source),
+            })
+        end
+        return
+    end
+
+    -- Initialize state
+    self._current_source = initial_source
+    if initial_source ~= "history" then
+        self._folder_path = initial_source
+    end
+    self._entries = entries
+    self._selected = {}
+    self._confirm_callback = on_confirm
     self._filter = "all"
     self._search_string = nil
 
+    local self_ref = self
+
     -- Confirm and close
     local function confirmSelection()
-        if countSelected(selected) < 1 then
+        if countSelected(self_ref._selected) < 1 then
             UIManager:show(InfoMessage:new{
                 text = _("Please select at least 1 book."),
             })
             return
         end
-        UIManager:close(menu)
+        UIManager:close(self_ref._menu)
         self_ref.current_menu = nil
-        if on_confirm then
-            on_confirm(selected)
+        if self_ref._confirm_callback then
+            self_ref._confirm_callback(self_ref._selected)
         end
     end
+    self._confirmSelection = confirmSelection
 
     local filtered = getFilteredEntries(entries, self._filter, self._search_string)
 
-    -- Toggle selection for an entry and refresh the menu
     local function toggleEntry(entry)
-        if selected[entry.file] then
-            selected[entry.file] = nil
+        if self_ref._selected[entry.file] then
+            self_ref._selected[entry.file] = nil
         else
-            selected[entry.file] = true
+            self_ref._selected[entry.file] = true
         end
-        self_ref:_refresh(menu, entries, selected)
+        self_ref:_refresh()
     end
 
-    local menu_items = buildMenuItems(filtered, selected, toggleEntry)
+    local menu_items = buildMenuItems(filtered, self._selected, toggleEntry)
+    local source_label = self:_getSourceLabel()
 
-    menu = Menu:new{
-        title = buildTitle(self._filter, countSelected(selected)),
+    local menu = Menu:new{
+        title = buildTitle(source_label, self._filter, countSelected(self._selected)),
         item_table = menu_items,
         is_borderless = true,
         is_popout = false,
@@ -255,7 +403,7 @@ function BookPicker:show(opts)
         height = Screen:getHeight(),
         title_bar_left_icon = "appbar.menu",
         onLeftButtonTap = function()
-            self_ref:_showPickerOptions(menu, entries, selected, confirmSelection)
+            self_ref:_showPickerOptions()
         end,
         onMenuSelect = function(_self_menu, item)
             if item and item.callback then item.callback() end
@@ -267,7 +415,7 @@ function BookPicker:show(opts)
             else
                 self_ref._search_string = nil
             end
-            self_ref:_refresh(menu, entries, selected)
+            self_ref:_refresh()
         end,
         multilines_show_more_text = true,
         items_max_lines = 2,
@@ -283,94 +431,146 @@ function BookPicker:show(opts)
         end
     end
 
+    self._menu = menu
     self.current_menu = menu
     UIManager:show(menu)
 end
 
---- Refresh menu items and title after selection/filter/search change
---- @param menu userdata The Menu widget
---- @param entries table Full array of book entries (unfiltered)
---- @param selected table Hash of selected file paths
-function BookPicker:_refresh(menu, entries, selected)
+--- Refresh menu items and title after selection/filter/search/source change
+function BookPicker:_refresh()
     local self_ref = self
-    local filtered = getFilteredEntries(entries, self._filter, self._search_string)
+    local filtered = getFilteredEntries(self._entries, self._filter, self._search_string)
 
     local function toggleEntry(entry)
-        if selected[entry.file] then
-            selected[entry.file] = nil
+        if self_ref._selected[entry.file] then
+            self_ref._selected[entry.file] = nil
         else
-            selected[entry.file] = true
+            self_ref._selected[entry.file] = true
         end
-        self_ref:_refresh(menu, entries, selected)
+        self_ref:_refresh()
     end
 
-    local items = buildMenuItems(filtered, selected, toggleEntry)
-    menu:switchItemTable(buildTitle(self._filter, countSelected(selected)), items, -1)
+    local items = buildMenuItems(filtered, self._selected, toggleEntry)
+    local source_label = self:_getSourceLabel()
+    self._menu:switchItemTable(
+        buildTitle(source_label, self._filter, countSelected(self._selected)),
+        items, -1
+    )
 end
 
 --- Show picker options menu (hamburger)
---- @param menu userdata The Menu widget
---- @param entries table Full array of book entries (unfiltered)
---- @param selected table Hash of selected file paths
---- @param confirm_callback function Called to confirm selection
-function BookPicker:_showPickerOptions(menu, entries, selected, confirm_callback)
+function BookPicker:_showPickerOptions()
     local self_ref = self
-    local cur_count = countSelected(selected)
-    local counts = countPerFilter(entries, self._search_string)
+    local cur_count = countSelected(self._selected)
     local dialog
+    local buttons = {}
+
+    -- Confirm Selection
+    table.insert(buttons, {{ text = T(_("Confirm Selection (%1)"), cur_count),
+       enabled = cur_count >= 1,
+       align = "left",
+       callback = function()
+            UIManager:close(dialog)
+            self_ref._confirmSelection()
+       end,
+    }})
+
+    -- Sources section
+    table.insert(buttons, {{ text = _("Sources:"),
+       enabled = false,
+       align = "left",
+    }})
+
+    -- History source
+    local history_label = _("History")
+    if self._current_source == "history" then
+        history_label = history_label .. "  \u{2713}"
+    end
+    table.insert(buttons, {{ text = history_label,
+       align = "left",
+       callback = function()
+            UIManager:close(dialog)
+            self_ref:_switchSource("history")
+       end,
+    }})
+
+    -- Last browsed folder (if any, and not currently active)
+    if self._folder_path then
+        local folder_label = T(_("Folder: %1"), getFolderDisplayName(self._folder_path))
+        if self._current_source == self._folder_path then
+            folder_label = folder_label .. "  \u{2713}"
+        end
+        table.insert(buttons, {{ text = folder_label,
+           align = "left",
+           callback = function()
+                UIManager:close(dialog)
+                self_ref:_switchSource(self_ref._folder_path)
+           end,
+        }})
+    end
+
+    -- Browse Folder...
+    table.insert(buttons, {{ text = _("Browse Folder…"),
+       align = "left",
+       callback = function()
+            UIManager:close(dialog)
+            self_ref:_browseFolder()
+       end,
+    }})
+
+    -- Filter
+    local counts = countPerFilter(self._entries, self._search_string)
+    table.insert(buttons, {{ text = _("Filter…"),
+       align = "left",
+       callback = function()
+            UIManager:close(dialog)
+            self_ref:_showFilterMenu(counts)
+       end,
+    }})
+
+    -- Search
+    table.insert(buttons, {{ text = self._search_string and T(_("Search: \"%1\""), self._search_string) or _("Search…"),
+       align = "left",
+       callback = function()
+            UIManager:close(dialog)
+            self_ref:_showSearchDialog()
+       end,
+    }})
+
+    -- Select All Visible
+    table.insert(buttons, {{ text = _("Select All Visible"), align = "left", callback = function()
+        UIManager:close(dialog)
+        local filtered = getFilteredEntries(self_ref._entries, self_ref._filter, self_ref._search_string)
+        for _idx, entry in ipairs(filtered) do
+            if not self_ref._selected[entry.file] then
+                self_ref._selected[entry.file] = true
+            end
+        end
+        self_ref:_refresh()
+    end }})
+
+    -- Clear Selection
+    table.insert(buttons, {{ text = _("Clear Selection"), align = "left", callback = function()
+        UIManager:close(dialog)
+        for k, _v in pairs(self_ref._selected) do
+            self_ref._selected[k] = nil
+        end
+        self_ref:_refresh()
+    end }})
+
     dialog = ButtonDialog:new{
-        buttons = {
-            {{ text = T(_("Confirm Selection (%1)"), cur_count),
-               enabled = cur_count >= 1,
-               align = "left",
-               callback = function()
-                UIManager:close(dialog)
-                confirm_callback()
-            end }},
-            {{ text = _("Filter…"),
-               align = "left",
-               callback = function()
-                UIManager:close(dialog)
-                self_ref:_showFilterMenu(menu, entries, selected, counts)
-            end }},
-            {{ text = self._search_string and T(_("Search: \"%1\""), self._search_string) or _("Search…"),
-               align = "left",
-               callback = function()
-                UIManager:close(dialog)
-                self_ref:_showSearchDialog(menu, entries, selected)
-            end }},
-            {{ text = _("Select All Visible"), align = "left", callback = function()
-                UIManager:close(dialog)
-                local filtered = getFilteredEntries(entries, self_ref._filter, self_ref._search_string)
-                for _idx, entry in ipairs(filtered) do
-                    if not selected[entry.file] then
-                        selected[entry.file] = true
-                    end
-                end
-                self_ref:_refresh(menu, entries, selected)
-            end }},
-            {{ text = _("Clear Selection"), align = "left", callback = function()
-                UIManager:close(dialog)
-                for k, _v in pairs(selected) do
-                    selected[k] = nil
-                end
-                self_ref:_refresh(menu, entries, selected)
-            end }},
-        },
+        buttons = buttons,
         shrink_unneeded_width = true,
         anchor = function()
-            return menu.title_bar.left_button.image.dimen, true
+            return self_ref._menu.title_bar.left_button.image.dimen, true
         end,
     }
     UIManager:show(dialog)
 end
 
 --- Show filter selection menu
---- @param menu userdata The Menu widget
---- @param entries table Full array of book entries
---- @param selected table Hash of selected file paths
 --- @param counts table Map of filter_id → count
-function BookPicker:_showFilterMenu(menu, entries, selected, counts)
+function BookPicker:_showFilterMenu(counts)
     local self_ref = self
     local buttons = {}
     for _idx, filter in ipairs(FILTERS) do
@@ -385,7 +585,7 @@ function BookPicker:_showFilterMenu(menu, entries, selected, counts)
                 UIManager:close(self_ref._filter_dialog)
                 self_ref._filter_dialog = nil
                 self_ref._filter = filter.id
-                self_ref:_refresh(menu, entries, selected)
+                self_ref:_refresh()
             end,
         }})
     end
@@ -397,7 +597,7 @@ function BookPicker:_showFilterMenu(menu, entries, selected, counts)
                 UIManager:close(self_ref._filter_dialog)
                 self_ref._filter_dialog = nil
                 self_ref._search_string = nil
-                self_ref:_refresh(menu, entries, selected)
+                self_ref:_refresh()
             end,
         }})
     end
@@ -406,7 +606,7 @@ function BookPicker:_showFilterMenu(menu, entries, selected, counts)
         buttons = buttons,
         shrink_unneeded_width = true,
         anchor = function()
-            return menu.title_bar.left_button.image.dimen, true
+            return self_ref._menu.title_bar.left_button.image.dimen, true
         end,
     }
     self._filter_dialog = dialog
@@ -414,10 +614,7 @@ function BookPicker:_showFilterMenu(menu, entries, selected, counts)
 end
 
 --- Show search input dialog
---- @param menu userdata The Menu widget
---- @param entries table Full array of book entries
---- @param selected table Hash of selected file paths
-function BookPicker:_showSearchDialog(menu, entries, selected)
+function BookPicker:_showSearchDialog()
     local self_ref = self
     local InputDialog = require("ui/widget/inputdialog")
     local search_dialog
@@ -437,7 +634,7 @@ function BookPicker:_showSearchDialog(menu, entries, selected)
                 callback = function()
                     UIManager:close(search_dialog)
                     self_ref._search_string = nil
-                    self_ref:_refresh(menu, entries, selected)
+                    self_ref:_refresh()
                 end,
             },
             {
@@ -451,7 +648,7 @@ function BookPicker:_showSearchDialog(menu, entries, selected)
                     else
                         self_ref._search_string = nil
                     end
-                    self_ref:_refresh(menu, entries, selected)
+                    self_ref:_refresh()
                 end,
             },
         }},
