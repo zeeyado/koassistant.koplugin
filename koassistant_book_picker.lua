@@ -319,9 +319,10 @@ function BookPicker:_browseFolder()
 end
 
 --- Show the book picker
---- @param opts table Options: on_confirm = function(selected_files_hash), initial_source = "history"|folder_path
+--- @param opts table Options: on_confirm = function(selected_files_hash), initial_source = "history"|folder_path, on_close = function()
 function BookPicker:show(opts)
     local on_confirm = opts and opts.on_confirm
+    local on_close = opts and opts.on_close
     local initial_source = opts and opts.initial_source or "history"
 
     -- Load initial entries
@@ -335,6 +336,7 @@ function BookPicker:show(opts)
                 text = err or _("Failed to load folder."),
                 timeout = 3,
             })
+            if on_close then on_close() end
             return
         end
     end
@@ -349,6 +351,7 @@ function BookPicker:show(opts)
                 text = T(_("No books found in:\n%1"), initial_source),
             })
         end
+        if on_close then on_close() end
         return
     end
 
@@ -360,6 +363,8 @@ function BookPicker:show(opts)
     self._entries = entries
     self._selected = {}
     self._confirm_callback = on_confirm
+    self._close_callback = on_close
+    self._confirmed = false
     self._filter = "all"
     self._search_string = nil
 
@@ -373,6 +378,7 @@ function BookPicker:show(opts)
             })
             return
         end
+        self_ref._confirmed = true
         UIManager:close(self_ref._menu)
         self_ref.current_menu = nil
         if self_ref._confirm_callback then
@@ -429,6 +435,9 @@ function BookPicker:show(opts)
     menu.close_callback = function()
         if self_ref.current_menu == menu then
             self_ref.current_menu = nil
+        end
+        if not self_ref._confirmed and self_ref._close_callback then
+            self_ref._close_callback()
         end
     end
 

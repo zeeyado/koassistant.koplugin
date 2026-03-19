@@ -4717,8 +4717,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             text = _("Browse History…"),
             callback = function()
                 UIManager:close(add_books_dialog)
+                -- Close input dialog to prevent event leaks (is_always_active)
+                if input_dialog then UIManager:close(input_dialog) end
                 local BookPicker = require("koassistant_book_picker")
                 BookPicker:show({
+                    on_close = function()
+                        refreshInputDialog()
+                    end,
                     on_confirm = function(selected_files)
                         local DocSettings = require("docsettings")
                         local new_books = {}
@@ -4755,19 +4760,26 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             text = _("Browse Folder…"),
             callback = function()
                 UIManager:close(add_books_dialog)
+                -- Close input dialog to prevent event leaks (is_always_active)
+                if input_dialog then UIManager:close(input_dialog) end
                 local PathChooser = require("ui/widget/pathchooser")
                 local Device = require("device")
                 local DataStorage = require("datastorage")
                 local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+                local folder_confirmed = false
                 local path_chooser = PathChooser:new{
                     title = _("Select Folder"),
                     path = start_path,
                     select_directory = true,
                     select_file = false,
                     onConfirm = function(selected_path)
+                        folder_confirmed = true
                         local BookPicker = require("koassistant_book_picker")
                         BookPicker:show({
                             initial_source = selected_path,
+                            on_close = function()
+                                refreshInputDialog()
+                            end,
                             on_confirm = function(selected_files)
                                 local DocSettings = require("docsettings")
                                 local new_books = {}
@@ -4798,6 +4810,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         })
                     end,
                 }
+                path_chooser.close_callback = function()
+                    if not folder_confirmed then
+                        refreshInputDialog()
+                    end
+                end
                 UIManager:show(path_chooser)
             end,
         }})
