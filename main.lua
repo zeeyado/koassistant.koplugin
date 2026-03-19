@@ -1439,18 +1439,14 @@ function AskGPT:updateConfigFromSettings()
         for k, v in pairs(fresh_features) do
           mem_features[k] = v
         end
-        -- Handle values deleted on disk (set to nil): check keys in memory
-        -- that no longer exist on disk. Only for known privacy-relevant keys
-        -- where false↔nil distinction matters.
-        local privacy_keys = {
-          "enable_highlights_sharing", "enable_annotations_sharing",
-          "enable_notebook_sharing", "enable_basic_stats",
-          "enable_advanced_stats", "enable_book_text_extraction",
-          "enable_library_scanning",
-        }
-        for _idx, pk in ipairs(privacy_keys) do
-          if fresh_features[pk] == nil and mem_features[pk] ~= nil then
-            mem_features[pk] = nil
+        -- Clear keys deleted on disk (set to nil). pairs() only sees non-nil
+        -- keys, so the additive merge above can't propagate deletions.
+        -- Clear any non-underscore-prefixed key in memory that's absent on disk.
+        -- Underscore-prefixed keys are transient runtime flags (e.g. _spoiler_free_active)
+        -- that are never persisted and must not be cleared by the disk sync.
+        for k, _ in pairs(mem_features) do
+          if fresh_features[k] == nil and type(k) == "string" and k:sub(1, 1) ~= "_" then
+            mem_features[k] = nil
           end
         end
       else
@@ -1489,6 +1485,15 @@ function AskGPT:updateConfigFromSettings()
     for k, v in pairs(features) do
       if not runtime_only_keys[k] then
         configuration.features[k] = v
+      end
+    end
+    -- Clear settings deleted on disk (nil'd keys). The additive merge above
+    -- can't propagate nil values. Clear any non-runtime, non-transient key
+    -- in configuration.features that no longer exists in disk settings.
+    for k, _ in pairs(configuration.features) do
+      if not runtime_only_keys[k] and type(k) == "string" and k:sub(1, 1) ~= "_"
+          and features[k] == nil then
+        configuration.features[k] = nil
       end
     end
   end
@@ -3147,6 +3152,10 @@ function AskGPT:buildInteractionLanguagesSubmenu()
         f.interaction_languages = new_langs
         -- Update backward compat
         f.user_languages = table.concat(new_langs, ", ")
+        -- If the removed language was the primary, reset to first in list
+        if found and f.primary_language == lang_id then
+            f.primary_language = new_langs[1]  -- nil if list is now empty
+        end
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         self_ref:updateConfigFromSettings()
@@ -3407,25 +3416,19 @@ function AskGPT:buildPrimaryLanguageMenu()
 
   local menu_items = {}
 
-  for i, lang in ipairs(languages) do
-    local is_first = (i == 1)
+  for _i, lang in ipairs(languages) do
     local lang_copy = lang  -- Capture for closure
     local lang_display = getLanguageDisplay(lang)
 
     table.insert(menu_items, {
-      text = is_first and lang_display .. " " .. _("(default)") or lang_display,
+      text = lang_display,
       checked_func = function()
         return lang_copy == self_ref:getEffectivePrimaryLanguage()
       end,
       radio = true,
       callback = function()
         local f = self_ref.settings:readSetting("features") or {}
-        if is_first then
-          -- First language = clear override (use default)
-          f.primary_language = nil
-        else
-          f.primary_language = lang_copy
-        end
+        f.primary_language = lang_copy
         self_ref.settings:saveSetting("features", f)
         self_ref.settings:flush()
         -- Show toast confirmation
