@@ -4588,6 +4588,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     title = _("Add Library Folder"),
                     path = start_path,
                     select_directory = true,
+                    select_file = false,
                     onConfirm = function(selected_path)
                         -- Check if already in permanent or ad-hoc
                         for _idx2, pf in ipairs(perm_folders) do
@@ -4762,6 +4763,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     title = _("Select Folder"),
                     path = start_path,
                     select_directory = true,
+                    select_file = false,
                     onConfirm = function(selected_path)
                         local BookPicker = require("koassistant_book_picker")
                         BookPicker:show({

@@ -2243,6 +2243,7 @@ function ChatHistoryDialog:showExportOptions(document_path, chat_id, chat_histor
                                 title = _("Select Export Directory"),
                                 path = start_path,
                                 select_directory = true,
+                                select_file = false,
                                 onConfirm = function(path)
                                     doSave(selected_content, path, false)  -- User-chosen path, don't skip book title
                                 end,

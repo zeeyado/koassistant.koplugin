@@ -9387,6 +9387,7 @@ function AskGPT:showExportPathPicker(revert_on_cancel)
     title = _("Select Export Folder"),
     path = current_path,
     select_directory = true,
+    select_file = false,
     onConfirm = function(selected_path)
       confirmed = true
       features.export_custom_path = selected_path
@@ -9428,6 +9429,7 @@ function AskGPT:showNotebookPathPicker(revert_to)
     title = _("Select Notebook Folder"),
     path = current_path,
     select_directory = true,
+    select_file = false,
     onConfirm = function(selected_path)
       confirmed = true
       features.notebook_custom_path = selected_path
@@ -10753,6 +10755,7 @@ function AskGPT:getLibraryFoldersMenuItems()
         title = _("Select Library Folder"),
         path = start_path,
         select_directory = true,
+        select_file = false,
         onConfirm = function(selected_path)
           local feat = self_ref.settings:readSetting("features") or {}
           local fldrs = feat.library_scan_folders or {}

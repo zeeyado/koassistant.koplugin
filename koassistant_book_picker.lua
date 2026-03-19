@@ -310,6 +310,7 @@ function BookPicker:_browseFolder()
         title = _("Select Folder"),
         path = start_path,
         select_directory = true,
+        select_file = false,
         onConfirm = function(selected_path)
             self_ref:_switchSource(selected_path)
         end,
