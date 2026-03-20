@@ -2542,37 +2542,39 @@ The update checker intelligently compares versions:
 
 ### configuration.lua
 
-For advanced overrides, copy `configuration.lua.sample` to `configuration.lua`:
+Most settings are managed through the **Settings UI** (Tools > KOAssistant > Settings). The main use case for `configuration.lua` is **custom API endpoints** (proxies, regional mirrors) for built-in providers.
+
+Copy `configuration.lua.sample` to `configuration.lua` and uncomment what you need:
 
 ```lua
 return {
-    -- Force a specific provider/model
-    provider = "anthropic",
-    model = "claude-sonnet-4-20250514",
+    -- Default provider/model (used until changed in the Settings UI)
+    -- provider = "openai",
+    -- model = "gpt-5.4",
 
-    -- Provider-specific settings
+    -- Custom API endpoints — the main reason to use this file
+    -- Override the default URL for any built-in provider
     provider_settings = {
-        anthropic = {
-            base_url = "https://api.anthropic.com/v1/messages",
-            additional_parameters = {
-                max_tokens = 4096
-            }
+        openai = {
+            base_url = "https://your-proxy.example.com/v1/chat/completions",
         },
-        ollama = {
-            model = "llama3",
-            base_url = "http://192.168.1.100:11434/api/chat",
-        }
+        gemini = {
+            -- Gemini base_url is the prefix; the handler appends /{model}:generateContent
+            base_url = "https://your-proxy.example.com/v1beta/models",
+        },
     },
 
-    -- Feature overrides
+    -- Feature defaults (Settings UI values take priority)
     features = {
         enable_streaming = true,
-        ai_behavior_variant = "full",
-        enable_extended_thinking = true,
-        thinking_budget_tokens = 10000,
+        enable_reasoning = true,       -- Master reasoning toggle
+        anthropic_reasoning = true,    -- Anthropic extended thinking
+        reasoning_budget = 32000,      -- Thinking budget tokens
     },
 }
 ```
+
+**Priority:** Settings UI > configuration.lua > built-in defaults. Once you change a setting in the UI, the UI value takes precedence over configuration.lua.
 
 ---
 
@@ -3231,7 +3233,7 @@ The provider will revert to using the system default.
 - **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0
 - **OpenAI**: Reasoning models (o3, o3-pro, GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
 - **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models use `thinkingBudget` (0=off, -1=dynamic, 128-24576=specific), 3 models use `thinkingLevel`; streaming may arrive in larger chunks than other providers
-- **Ollama**: Local only; configure `base_url` in `configuration.lua` for remote instances
+- **Ollama**: Local only; for remote instances, set the endpoint via Settings → Provider → Quick setup: Local provider, or in `configuration.lua`
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
 - **DeepSeek**: V3.2+ supports `thinking` toggle for both `deepseek-chat` and `deepseek-reasoner`; controlled via Enable Reasoning master switch
