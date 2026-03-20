@@ -61,6 +61,20 @@ else
     logger.warn("Could not load configuration.lua, using defaults")
 end
 
+-- Save configuration.lua values as a base layer before settings UI overrides them.
+-- These serve as fallbacks when the Settings UI hasn't set a value.
+local config_file_defaults = {
+    provider = configuration.provider,
+    model = configuration.model,
+    features = {},
+    provider_settings = configuration.provider_settings,
+}
+if configuration.features then
+    for k, v in pairs(configuration.features) do
+        config_file_defaults.features[k] = v
+    end
+end
+
 -- Helper function to count table entries
 local function table_count(t)
     local count = 0
@@ -1459,8 +1473,9 @@ function AskGPT:updateConfigFromSettings()
   -- Provider and model are stored inside features table
   local features = self.settings:readSetting("features") or {}
 
-  configuration.provider = features.provider or "anthropic"
-  configuration.model = features.model
+  -- Settings UI > configuration.lua > default
+  configuration.provider = features.provider or config_file_defaults.provider or "anthropic"
+  configuration.model = features.model or config_file_defaults.model
 
   -- Merge settings into existing features table instead of replacing it.
   -- This preserves runtime-only keys (context flags, book_metadata, etc.)
@@ -1490,10 +1505,19 @@ function AskGPT:updateConfigFromSettings()
     -- Clear settings deleted on disk (nil'd keys). The additive merge above
     -- can't propagate nil values. Clear any non-runtime, non-transient key
     -- in configuration.features that no longer exists in disk settings.
+    -- Preserve keys from configuration.lua (config_file_defaults) — those are
+    -- intentional overrides that shouldn't be wiped by the settings sync.
     for k, _ in pairs(configuration.features) do
       if not runtime_only_keys[k] and type(k) == "string" and k:sub(1, 1) ~= "_"
-          and features[k] == nil then
+          and features[k] == nil and config_file_defaults.features[k] == nil then
         configuration.features[k] = nil
+      end
+    end
+    -- Apply configuration.lua features as defaults for keys not in settings.
+    -- Settings UI values take priority; configuration.lua fills in the gaps.
+    for k, v in pairs(config_file_defaults.features) do
+      if configuration.features[k] == nil then
+        configuration.features[k] = v
       end
     end
   end
