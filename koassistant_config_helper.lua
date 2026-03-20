@@ -48,7 +48,14 @@ function ConfigHelper:mergeWithDefaults(config, provider)
     if merged.model then
         merged.provider_settings[provider].model = merged.model
     end
-    
+
+    -- Propagate provider-specific base_url to top-level for handler access.
+    -- Handlers read config.base_url, not config.provider_settings[provider].base_url.
+    -- This allows configuration.lua to set per-provider base_url overrides.
+    if not merged.base_url and provider_settings.base_url then
+        merged.base_url = provider_settings.base_url
+    end
+
     return merged
 end
 

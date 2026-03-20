@@ -1,78 +1,72 @@
 -- Configuration for KOReader KOAssistant Plugin
 -- Copy this file to configuration.lua and modify as needed
 --
--- NOTE: Most settings are better configured through the Settings UI:
+-- PRIORITY: Settings UI values always take precedence.
+-- This file provides defaults for settings NOT configured via the UI.
+--
+-- MAIN USE CASE: Custom API endpoints (proxies, regional mirrors)
+-- Most other settings are easier to manage through the Settings UI:
 --   Tools > KOAssistant > Settings
 --
--- This file is for ADVANCED OVERRIDES only:
---   - Custom provider endpoints
---   - Model specifications not in the UI
---   - System prompt customizations
---   - Extended thinking configuration
---
--- All settings are optional - uncomment to override defaults
+-- All settings are optional - uncomment only what you need
 
 local CONFIGURATION = {
-    -- AI provider: "anthropic", "openai", "deepseek", "gemini", or "ollama"
+    -- ============================================================
+    -- PROVIDER & MODEL
+    -- ============================================================
+    -- These are used as defaults until changed in the Settings UI.
+    -- Once you pick a provider/model in the UI, the UI value wins.
+    --
+    -- Built-in providers:
+    --   "anthropic", "openai", "deepseek", "gemini", "ollama",
+    --   "groq", "mistral", "xai", "openrouter", "qwen", "kimi",
+    --   "together", "fireworks", "sambanova", "cohere", "doubao",
+    --   "zai", "perplexity"
+    --
     -- provider = "anthropic",
+    -- model = "claude-sonnet-4-6",
 
-    -- Override the default model for your provider
-    -- model = "claude-sonnet-4-20250514",
-
-    -- Provider-specific settings (uncomment to override defaults)
+    -- ============================================================
+    -- CUSTOM API ENDPOINTS (the main reason to use this file)
+    -- ============================================================
+    -- Override the default API URL for any built-in provider.
+    -- Useful for proxies, regional mirrors, or self-hosted endpoints.
+    --
+    -- Only set base_url for providers you actually need to override.
+    -- The model field here is optional — the UI model picker still works.
+    --
     --[[
     provider_settings = {
-        anthropic = {
-            model = "claude-sonnet-4-20250514",
-            base_url = "https://api.anthropic.com/v1/messages",
-            additional_parameters = {
-                anthropic_version = "2023-06-01",
-                max_tokens = 4096
-            }
-        },
         openai = {
-            model = "gpt-4o",
-            base_url = "https://api.openai.com/v1/chat/completions",
-            additional_parameters = {
-                temperature = 0.7,
-                max_tokens = 4096
-            }
+            base_url = "https://your-proxy.example.com/v1/chat/completions",
         },
-        deepseek = {
-            model = "deepseek-chat",
-            base_url = "https://api.deepseek.com/v1/chat/completions",
-            additional_parameters = {
-                temperature = 0.7,
-                max_tokens = 4096
-            }
+        anthropic = {
+            base_url = "https://your-proxy.example.com/v1/messages",
         },
         gemini = {
-            model = "gemini-2.0-flash",
-            base_url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent",
-            additional_parameters = {
-                temperature = 0.7
-            }
+            -- Gemini base_url is the prefix; the handler appends /{model}:generateContent
+            base_url = "https://your-proxy.example.com/v1beta/models",
         },
-        ollama = {
-            model = "deepseek-r1:14b",  -- or "llama3", "mistral", "qwen", etc.
-            base_url = "http://localhost:11434/api/chat",  -- replace with your Ollama server
-            additional_parameters = {
-                temperature = 0.7
-            }
-        }
+        deepseek = {
+            base_url = "https://your-proxy.example.com/v1/chat/completions",
+        },
     },
     --]]
 
-    -- Display and behavior settings
-    -- NOTE: Most of these are available in the Settings UI
+    -- ============================================================
+    -- FEATURE OVERRIDES
+    -- ============================================================
+    -- These serve as defaults until changed in the Settings UI.
+    -- Once a setting is changed via the UI, the UI value takes priority.
+    --
     features = {
-        -- Text display
+        -- Display
         -- hide_highlighted_text = false,      -- Hide highlighted text in responses
         -- hide_long_highlights = true,        -- Replace long highlights with "..."
         -- long_highlight_threshold = 280,     -- Characters before highlight is "long"
 
         -- Translation
-        -- translation_language = "English",    -- Target language for Translate action
+        -- translation_language = "English",   -- Target language for Translate action
 
         -- Response rendering
         -- render_markdown = true,             -- Format responses (bold, lists, etc.)
@@ -82,28 +76,28 @@ local CONFIGURATION = {
         -- auto_save_chats = true,             -- Auto-save when continuing from history
         -- auto_save_all_chats = true,         -- Auto-save all new chats
 
-        -- Streaming (configurable in UI)
+        -- Streaming
         -- enable_streaming = true,            -- Show responses as they generate
         -- stream_auto_scroll = true,          -- Auto-scroll during streaming
         -- large_stream_dialog = true,         -- Full-screen streaming dialog
 
-        -- AI Behavior (Anthropic only)
-        -- ai_behavior_variant = "full",       -- "minimal" (~100 tokens) or "full" (~500 tokens)
-                                               -- Controls how detailed the AI behavior guidelines are
+        -- AI behavior
+        -- selected_behavior = "standard",     -- "minimal", "standard", or "full"
+
+        -- Reasoning (master toggle + per-provider sub-toggles)
+        -- enable_reasoning = false,           -- Master toggle for reasoning/thinking
+        -- anthropic_reasoning = false,        -- Anthropic extended thinking
+        -- reasoning_budget = 32000,           -- Anthropic thinking budget tokens
+        -- openai_reasoning = false,           -- OpenAI 5.1+ reasoning
+        -- gemini_reasoning = false,           -- Gemini thinking
+        -- deepseek_reasoning = true,          -- DeepSeek thinking (sub-toggle)
+
+        -- Web search
+        -- enable_web_search = false,          -- Global web search toggle
 
         -- Development
-        -- debug = false,                      -- Show detailed request/response information
+        -- debug = false,                      -- Console logging (false/minimal/names/full)
     },
-
-    -- Extended Thinking (Anthropic only)
-    -- Enables Claude's extended reasoning for complex questions
-    -- NOTE: When enabled, temperature is forced to 1.0 (API requirement)
-    --[[
-    features = {
-        enable_extended_thinking = true,       -- Enable extended thinking mode
-        thinking_budget_tokens = 10000,        -- Token budget for thinking (1000-100000)
-    },
-    --]]
 
     -- For custom AI behavior, use custom_actions.lua to define actions with:
     --   - behavior_override: Custom system prompt text
