@@ -10641,10 +10641,19 @@ function AskGPT:showTrustedProvidersDialog()
     return a.name:lower() < b.name:lower()
   end)
 
-  -- Track selection state
-  local selected = {}
-  for _idx, provider_id in ipairs(current_trusted) do
-    selected[provider_id] = true
+  -- Track selection state — use pending state from previous rebuild if available,
+  -- otherwise initialize from saved settings.
+  -- State stored on self because the settings manager passes touchmenu_instance
+  -- as first arg — a function parameter would capture that widget object instead.
+  local selected
+  if self._pending_trusted_selection then
+    selected = self._pending_trusted_selection
+    self._pending_trusted_selection = nil
+  else
+    selected = {}
+    for _idx, provider_id in ipairs(current_trusted) do
+      selected[provider_id] = true
+    end
   end
 
   -- Build checkbox buttons
@@ -10660,7 +10669,8 @@ function AskGPT:showTrustedProvidersDialog()
       align = "left",
       callback = function()
         selected[provider.id] = not selected[provider.id]
-        -- Rebuild dialog to show updated state
+        -- Rebuild dialog to show updated state, preserving in-progress selection
+        self._pending_trusted_selection = selected
         UIManager:close(self._trusted_providers_dialog)
         self:showTrustedProvidersDialog()
       end,
