@@ -2521,22 +2521,22 @@ function AskGPT:buildModelMenu(simplified)
     })
   end
 
-  -- Build unified list of all models (built-in first, then custom)
+  -- Build unified list of all models (custom first, then built-in)
   local all_models = {}
+
+  -- Add custom models at the top (user-defined, most likely to be used)
+  for _idx, model in ipairs(custom_models) do
+    table.insert(all_models, {
+      name = model,
+      is_custom = true,
+    })
+  end
 
   -- Add built-in models (preserves order from model lists file)
   for i = 1, #models do
     table.insert(all_models, {
       name = models[i],
       is_custom = false,
-    })
-  end
-
-  -- Add custom models at the end
-  for _idx, model in ipairs(custom_models) do
-    table.insert(all_models, {
-      name = model,
-      is_custom = true,
     })
   end
 
