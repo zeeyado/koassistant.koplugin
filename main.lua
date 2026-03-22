@@ -51,14 +51,24 @@ local function script_path()
 end
 
 local plugin_dir = script_path()
-local config_path = plugin_dir .. "configuration.lua" 
+local config_path = plugin_dir .. "configuration.lua"
+
+-- Track configuration.lua load errors to notify user in init()
+local config_load_error = nil
 
 local ok, loaded_config = pcall(dofile, config_path)
 if ok and loaded_config then
     configuration = loaded_config
     logger.info("Loaded configuration from configuration.lua")
 else
-    logger.warn("Could not load configuration.lua, using defaults")
+    -- Distinguish "file doesn't exist" from "file exists but has errors"
+    if lfs.attributes(config_path, "mode") then
+        -- File exists but failed to parse — likely a syntax error
+        config_load_error = tostring(loaded_config or "unknown error")
+        logger.warn("configuration.lua has errors:", config_load_error)
+    else
+        logger.info("No configuration.lua found, using defaults")
+    end
 end
 
 -- Save configuration.lua values as a base layer before settings UI overrides them.
@@ -156,6 +166,19 @@ local AskGPT = WidgetContainer:extend{
 
 function AskGPT:init()
   logger.info("KOAssistant plugin: init() called")
+
+  -- Notify user if configuration.lua failed to load (syntax error etc.)
+  if config_load_error then
+    UIManager:scheduleIn(2, function()
+      UIManager:show(InfoMessage:new{
+        text = _("KOAssistant: configuration.lua has errors and was not loaded.\n\n")
+          .. config_load_error
+          .. _("\n\nPlease check your configuration.lua for syntax errors. "
+          .. "Your custom settings (endpoints, provider, features) are NOT active."),
+        icon = "notice-warning",
+      })
+    end)
+  end
 
   -- Store configuration on the instance (single source of truth)
   self.configuration = configuration

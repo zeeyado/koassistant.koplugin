@@ -14,7 +14,7 @@ local success, result = pcall(function() return require("configuration") end)
 if success then
     CONFIGURATION = result
 else
-    print("configuration.lua not found, attempting legacy api_key.lua...")
+    logger.warn("KOAssistant: configuration.lua not loaded:", tostring(result))
     -- Try legacy api_key as fallback
     success, result = pcall(function() return require("api_key") end)
     if success then

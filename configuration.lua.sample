@@ -17,11 +17,9 @@ local CONFIGURATION = {
     -- These are used as defaults until changed in the Settings UI.
     -- Once you pick a provider/model in the UI, the UI value wins.
     --
-    -- Built-in providers:
-    --   "anthropic", "openai", "deepseek", "gemini", "ollama",
-    --   "groq", "mistral", "xai", "openrouter", "qwen", "kimi",
-    --   "together", "fireworks", "sambanova", "cohere", "doubao",
-    --   "zai", "perplexity"
+    -- Built-in providers: anthropic, openai, deepseek, gemini, ollama,
+    --   groq, mistral, xai, openrouter, qwen, kimi, together, fireworks,
+    --   sambanova, cohere, doubao, zai, perplexity
     --
     -- provider = "anthropic",
     -- model = "claude-sonnet-4-6",
