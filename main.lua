@@ -167,19 +167,6 @@ local AskGPT = WidgetContainer:extend{
 function AskGPT:init()
   logger.info("KOAssistant plugin: init() called")
 
-  -- Notify user if configuration.lua failed to load (syntax error etc.)
-  if config_load_error then
-    UIManager:scheduleIn(2, function()
-      UIManager:show(InfoMessage:new{
-        text = _("KOAssistant: configuration.lua has errors and was not loaded.\n\n")
-          .. config_load_error
-          .. _("\n\nPlease check your configuration.lua for syntax errors. "
-          .. "Your custom settings (endpoints, provider, features) are NOT active."),
-        icon = "notice-warning",
-      })
-    end)
-  end
-
   -- Store configuration on the instance (single source of truth)
   self.configuration = configuration
 
@@ -12088,6 +12075,18 @@ function AskGPT:ensureInitialized()
     return
   end
   self._initialized = true
+
+  -- Notify user if configuration.lua exists but failed to load (syntax error etc.)
+  -- Shown here (first interaction) rather than at startup — avoids firing when
+  -- the user isn't using KOAssistant, and provides immediate context.
+  if config_load_error then
+    UIManager:show(InfoMessage:new{
+      text = _("configuration.lua has errors and was not loaded.") .. "\n\n"
+        .. config_load_error
+        .. "\n\n" .. _("Please fix the syntax error. Your custom settings (endpoints, provider, features) are not active."),
+      icon = "notice-warning",
+    })
+  end
 
   -- Check migration first (may show dialog if old chats exist)
   self:checkChatMigrationStatus()
