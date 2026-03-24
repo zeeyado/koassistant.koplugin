@@ -175,7 +175,7 @@ Adapt to content type:
 
 {library_section}
 
-Do not use emojis. {hallucination_nudge}]],
+If the reader's library is included above, note which recommendations they already own. Skip obvious picks the reader has almost certainly encountered. Do not use emojis. {hallucination_nudge}]],
 
     explain_author = [[Tell me about the author of "{title}"{author_clause}.{doi_clause} Include:
 
@@ -297,6 +297,7 @@ What should I read next **from books I already own**? Consider:
 - What's unread or started but not finished
 - My reading patterns — what genres, authors, and topics I gravitate toward
 - Any reading engagement data provided above
+- Whether any completed books are worth revisiting, or stalled books worth picking back up
 
 Suggest 3-5 books. For each:
 - Why this one, given my reading patterns
@@ -314,10 +315,11 @@ Only suggest books from my library. Do not use emojis. {hallucination_nudge}]],
 
 Based on what I own, recommend 5-8 new books I should get. First, briefly identify the pattern — what does this library say about the reader's taste?
 
-Then recommend books I don't already own, prioritizing:
-- Works that match the intersection of interests my library reveals
-- A mix: some that lean into clear preferences, some that stretch in a new direction
-- Lesser-known works alongside well-known ones
+Then recommend books I don't already own in two groups:
+
+**In your lane** (4-5 books): Works that match the intersection of interests my library reveals — deepening areas I clearly care about. Include lesser-known works alongside well-known ones.
+
+**Expand your horizons** (2-3 books): Works deliberately outside my comfort zone that I'd likely appreciate despite not being my usual pick. Something that challenges my thinking, exposes a blind spot, or opens a genre/tradition I haven't explored.
 
 For each:
 - Why this reader specifically would enjoy it

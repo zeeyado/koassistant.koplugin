@@ -5589,16 +5589,37 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local has_scan = library_toggle_on and (has_session_scan or has_permanent_folders)
     local dialog_title
     local input_hint_text
+
+    -- Rolling context-sensitive hint suggestions
+    local function pickHint(hints)
+        return hints[(os.time() % #hints) + 1]
+    end
+
     if is_multi then
         if has_scan and multi_count > 0 then
             dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
-            input_hint_text = _("Add instructions for any action, or chat about your library and selected items...")
+            input_hint_text = pickHint({
+                _("Chat about your library and selected items..."),
+                _("\"Something exciting to read next\""),
+                _("\"How do these books connect?\""),
+                _("\"A short, light book from my library\""),
+            })
         elseif has_scan then
             dialog_title = _("Library Actions")
-            input_hint_text = _("Add instructions for any action, or chat about your library...")
+            input_hint_text = pickHint({
+                _("Chat about your library..."),
+                _("\"What should I read next?\""),
+                _("\"What are my reading blind spots?\""),
+                _("\"A book I've been neglecting\""),
+            })
         elseif multi_count > 0 then
             dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
-            input_hint_text = _("Add instructions for any action, or chat about your selected items...")
+            input_hint_text = pickHint({
+                _("Chat about your selected items..."),
+                _("\"How do these books connect?\""),
+                _("\"Which should I read first?\""),
+                _("\"What's unique about each one?\""),
+            })
         elseif library_toggle_on then
             -- Toggle on but no folders configured yet
             dialog_title = _("Library Actions")

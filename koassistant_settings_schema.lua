@@ -1187,6 +1187,15 @@ local SettingsSchema = {
                     help_text = _("Folders always scanned for library actions. You can also pick folders on the fly in the input dialog."),
                     callback = "getLibraryFoldersMenuItems",
                 },
+                {
+                    id = "end_of_book_suggestion_library",
+                    type = "toggle",
+                    text = _("Suggest Next Read on Finish"),
+                    path = "features.enable_end_of_book_suggestion",
+                    default = true,
+                    depends_on = { id = "enable_library_scanning_library", value = true },
+                    help_text = _("When you reach the end of a book, offer to suggest what to read next from your library."),
+                },
             },
         },
 

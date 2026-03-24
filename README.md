@@ -2576,6 +2576,8 @@ return {
 
 **Priority:** Settings UI > configuration.lua > built-in defaults. Once you change a setting in the UI, the UI value takes precedence over configuration.lua.
 
+> **Proxy services vs. custom providers:** If you use a proxy or relay service that speaks each provider's native API format (e.g., an OpenAI-compatible endpoint for OpenAI, an Anthropic-compatible endpoint for Anthropic), use `provider_settings` to override the `base_url` for each provider — don't add it as a custom provider. Custom providers (Settings → Provider → Add custom provider) are for services with their own model catalog that use the OpenAI-compatible API format.
+
 ---
 
 ## Backup & Restore
