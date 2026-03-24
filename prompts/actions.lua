@@ -301,7 +301,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         id = "explain_in_context",
         enable_web_search = false,
         text = _("Explain in Context"),
-        description = _("Helps you understand what a passage means — its content, context, and the ideas it builds on. Comprehension-focused. Source selection: full document text, document summary, or AI knowledge. Works well for longer passages or particularly difficult ones that require document context."),
+        description = _("Helps you understand what a passage means — its content, context, and the ideas it builds on. Comprehension-focused. Works well for longer or particularly difficult passages that benefit from document context."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
@@ -333,7 +333,7 @@ Focus on comprehension — help me grasp what I'm reading, not evaluate it. {con
         id = "analyze_in_context",
         enable_web_search = false,
         text = _("Analyze in Context"),
-        description = _("Connects the passage to your own reading — your highlights, annotations, notebook entries, and the threads you've been tracking. Reader-focused. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Connects the passage to your own reading — your highlights, annotations, notebook entries, and the threads you've been tracking. Reader-focused, not just content-focused."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
@@ -360,6 +360,8 @@ Connect this passage to my engagement with the work:
 3. **Developing threads**: Does this advance, complicate, or echo ideas I've been tracking? If I have notebook entries, do any connect to this passage?
 4. **What to notice**: Based on this passage and my notes, what might be worth paying attention to going forward?
 
+If no highlights, annotations, or notebook entries are provided, focus on what makes this passage significant in the context of the work and what a reader might want to notice going forward.
+
 This is about what this passage means for ME as a reader — not just what it means in the abstract. {conciseness_nudge} {hallucination_nudge}
 
 {text_fallback_nudge}]],
@@ -375,7 +377,7 @@ This is about what this passage means for ME as a reader — not just what it me
         enable_web_search = false,
         doi_web_override = true,
         text = _("Thematic Connection"),
-        description = _("Examines the author's craft — how language, structure, and technique achieve the passage's effect, and how it fits into the work's thematic architecture. Source selection: full document text, document summary, or AI knowledge."),
+        description = _("Examines the author's craft — how language, structure, and technique achieve the passage's effect, and how it fits into the work's thematic architecture."),
         context = "highlight",
         use_book_text = true,
         use_summary_cache = true,
@@ -1026,7 +1028,7 @@ Do not use emojis. {hallucination_nudge}]],
         enable_web_search = false,
         doi_web_override = true,  -- When DOI: follow global setting instead of forcing off
         text = _("X-Ray"),
-        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a personal reader engagement section analyzing what catches your attention and patterns in your highlighting. Without highlights, focuses purely on the text content. Requires text extraction; updates incrementally as you read further. Can generate a complete whole-document X-Ray, or focus on a specific section from the table of contents."),
+        description = _("Builds a structured reference guide — characters, themes, locations, timeline — up to your current reading position. Completely spoiler-free. When highlights are shared, adds a reader engagement section analyzing what catches your attention. Updates incrementally as you read further. Can also target a specific section from the table of contents."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         blocked_hint = _("Or use X-Ray (Simple) for an overview based on AI knowledge."),
@@ -1213,7 +1215,7 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
         id = "recap",
         enable_web_search = false,
         text = _("Recap"),
-        description = _("A 'Previously on...' refresher to help you get back into reading after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Source selection: extracted text (with incremental updates) or AI knowledge. Use KOReader's hidden flows to limit scope to specific chapters."),
+        description = _("A 'Previously on...' refresher to help you get back into reading after time away. Covers recent events, active threads, and where you left off. Adapts to fiction or non-fiction. When highlights are shared, weaves in what you found notable. Updates incrementally as you read further."),
         context = "book",
         -- Context extraction flags
         use_book_text = true,
@@ -1300,7 +1302,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         enable_web_search = false,
         doi_web_override = true,
         text = _("Analyze Notes"),
-        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the work. Requires highlights or annotations sharing."),
+        description = _("Analyzes your note-taking and highlighting patterns to reveal what catches your attention, emerging themes, and connections between your notes. This is about understanding you as a reader, not summarizing the work."),
         context = "book",
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         use_response_caching = true,    -- View/Update popup + per-action cache (pseudo-update)
@@ -1398,7 +1400,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         enable_web_search = false,
         doi_web_override = true,
         text = _("Key Arguments"),
-        description = _("Breaks down the work's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
+        description = _("Breaks down the work's thesis, supporting arguments, evidence, assumptions, and potential counterarguments. For fiction, analyzes themes and the author's worldview instead. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1450,7 +1452,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         id = "discussion_questions",
         enable_web_search = false,
         text = _("Discussion Questions"),
-        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
+        description = _("Generates 8-10 discussion questions spanning comprehension, analysis, interpretation, and personal connection. Good for book clubs or classroom use. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1496,7 +1498,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         id = "generate_quiz",
         enable_web_search = false,
         text = _("Generate Quiz"),
-        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
+        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
@@ -1551,7 +1553,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         enable_web_search = false,
         doi_web_override = true,
         text = _("Document Analysis"),
-        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Can target a specific section. Requires text extraction."),
+        description = _("Analyzes the document's thesis, structure, key insights, and audience. The result is saved as an Analyze artifact that other actions can reference. Can target a specific section."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1585,7 +1587,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         enable_web_search = false,
         doi_web_override = true,
         text = _("Document Summary"),
-        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact, which other actions can use as their document source. Can target a specific section. Requires text extraction."),
+        description = _("Creates a comprehensive summary preserving key details and structure. The result is saved as a Summary artifact, which other actions can use as their document source. Can target a specific section."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
@@ -1611,7 +1613,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         enable_web_search = false,
         doi_web_override = true,
         text = _("Extract Key Insights"),
-        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Source selection: full document text, document summary, or AI knowledge. Can target a specific section. Result is saved as an artifact."),
+        description = _("Distills the most important takeaways: ideas worth remembering, novel perspectives, actionable conclusions, and connections to broader concepts. Can target a specific section. Result is saved as an artifact."),
         context = "book",
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         use_summary_cache = true,
@@ -1646,7 +1648,7 @@ Adapt to the work — a novel's insights look different from a research paper's 
     reading_guide = {
         id = "reading_guide",
         text = _("Reading Guide"),
-        description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Source selection: full document text, document summary, or AI knowledge. Can target a specific section."),
+        description = _("A spoiler-free guide to what's ahead — themes developing, questions worth holding, patterns to notice. Uses your reading position to stay safe. Can target a specific section."),
         context = "book",
         use_book_text = true,
         use_summary_cache = true,
@@ -1814,7 +1816,7 @@ Actions.library = {
     recommend_books = {
         id = "recommend_books",
         text = _("Recommend"),
-        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title. When library scanning is enabled, also considers your full library to avoid recommending books you already own."),
+        description = _("Recommends 5-8 new works based on the patterns across your selected works — matching the intersection of your interests, not just similarity to one title. When library scanning is enabled, notes which recommendations you already own and prioritizes books you haven't read."),
         context = "library",
         requires_selected_books = true,
         use_library = true,  -- Optional: includes library data when scanning is enabled (NOT required)
@@ -1847,7 +1849,7 @@ Actions.library = {
     next_from_library = {
         id = "next_from_library",
         text = _("Next Read"),
-        description = _("Suggests what to read next from your library based on what you've finished recently, what's been sitting unread, and your reading patterns. When advanced stats are enabled, includes engagement context like books you've stalled on or read extensively."),
+        description = _("Suggests what to read next from your library — including books worth revisiting or picking back up. Based on what you've finished recently, what's been sitting unread, and your reading patterns. When advanced stats are enabled, includes engagement context like books you've stalled on or read extensively."),
         context = "library",
         skip_domain = true,
         use_library = true,
@@ -1865,7 +1867,7 @@ Actions.library = {
     discover_books = {
         id = "discover_books",
         text = _("Discover New"),
-        description = _("Suggests new books based on your library — identifies your taste from what you own and recommends works you don't have yet. When advanced stats are enabled, uses engagement data to better understand your preferences."),
+        description = _("Suggests new books based on your library — identifies your taste from what you own and recommends works you don't have yet, including a few picks outside your comfort zone. When advanced stats are enabled, uses engagement data to better understand your preferences."),
         context = "library",
         skip_domain = true,
         use_library = true,
