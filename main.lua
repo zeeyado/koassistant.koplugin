@@ -8865,11 +8865,12 @@ function AskGPT:showDomainPopup(on_close_callback, target_override)
 
   local doc_settings = self.ui and self.ui.document and self.ui.doc_settings or nil
   local book_domain = doc_settings and doc_settings:readSetting("koassistant_book_domain") or nil
+  local book_research = doc_settings and doc_settings:readSetting("koassistant_book_research_mode") or nil
 
   -- Domain target: "book" or "global" — controls where selection is saved
-  -- Default to "book" if a book override exists, otherwise "global"
+  -- Default to "book" if any book override exists (domain or research mode), otherwise "global"
   local domain_target = target_override
-      or (doc_settings and book_domain and "book")
+      or (doc_settings and (book_domain or book_research ~= nil) and "book")
       or "global"
   local is_book_target = doc_settings and domain_target == "book"
 
@@ -8991,6 +8992,76 @@ function AskGPT:showDomainPopup(on_close_callback, target_override)
     end
   end
 
+  -- Research mode section (separator + toggle)
+  -- Shares the same book/global target as domain selection
+  table.insert(buttons, {
+    {
+      text = "─── " .. _("Research Mode") .. " ───",
+      enabled = false,
+    },
+  })
+
+  local book_research = doc_settings and doc_settings:readSetting("koassistant_book_research_mode") or nil
+
+  if is_book_target then
+    -- Book target: three options (Use global / On / Off)
+    local use_global_prefix = (book_research == nil) and "● " or "○ "
+    local on_prefix = (book_research == true) and "● " or "○ "
+    local off_prefix = (book_research == false) and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = use_global_prefix .. _("Use global"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_research_mode", nil)
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+      {
+        text = on_prefix .. _("On"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_research_mode", true)
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+      {
+        text = off_prefix .. _("Off"),
+        callback = function()
+          doc_settings:saveSetting("koassistant_book_research_mode", false)
+          doc_settings:flush()
+          closePopup()
+        end,
+      },
+    })
+  else
+    -- Global target: two options (Off / On)
+    local off_prefix = (not features.research_mode) and "● " or "○ "
+    local on_prefix = (features.research_mode == true) and "● " or "○ "
+    table.insert(buttons, {
+      {
+        text = off_prefix .. _("Off"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.research_mode = nil
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          closePopup()
+        end,
+      },
+      {
+        text = on_prefix .. _("On"),
+        callback = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          f.research_mode = true
+          self_ref.settings:saveSetting("features", f)
+          self_ref.settings:flush()
+          closePopup()
+        end,
+      },
+    })
+  end
+
   -- Close button
   table.insert(buttons, {
     {
@@ -9007,7 +9078,7 @@ function AskGPT:showDomainPopup(on_close_callback, target_override)
   })
 
   self._domain_popup = ButtonDialog:new{
-    title = _("Knowledge Domain"),
+    title = _("Domain & Research"),
     buttons = buttons,
   }
   UIManager:show(self._domain_popup)

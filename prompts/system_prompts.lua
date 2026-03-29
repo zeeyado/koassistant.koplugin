@@ -364,10 +364,10 @@ function SystemPrompts.buildUnifiedSystem(config)
         end
     end
 
-    -- Append research nudge when DOI detected (academic paper)
+    -- Append research nudge when research mode is active (DOI, per-book, or global)
     -- The nudge text is self-conditional ("if web search is available")
     local research_nudge = nil
-    if config.book_metadata and config.book_metadata.doi
+    if config.research_mode
             and Templates and Templates.RESEARCH_NUDGE then
         research_nudge = Templates.RESEARCH_NUDGE
         if content then

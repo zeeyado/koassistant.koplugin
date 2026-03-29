@@ -266,7 +266,7 @@ KOAssistant provides two distinct quick-access panels for different purposes:
 
 Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model** — Quick switching between AI providers and models
-- **Behavior & Domain** — Change communication style and knowledge context
+- **Behavior & Domain** — Change communication style, knowledge context, and Research Mode
 - **Temperature & Reasoning** — Adjust creativity level and toggle Anthropic/Gemini reasoning (has no effect on other providers)
 - **Web Search & Language** — Enable AI web search and set primary response language
 - **Translate & Dictionary** — Translation and dictionary language settings
@@ -666,7 +666,18 @@ Some actions work from the file browser (using only document metadata like title
 
 #### Research Mode
 
-When KOAssistant detects a DOI (Digital Object Identifier) in your document, **Research Mode** activates automatically — no settings, no toggles, no manual configuration. DOI present means academic paper; DOI absent means everything works exactly as before.
+**Research Mode** adapts KOAssistant's prompts, X-Ray schema, and web search behavior for academic and research texts. It can activate automatically via DOI detection or be turned on manually for any book.
+
+**Triggering Research Mode:**
+
+| Trigger | How it works |
+|---------|-------------|
+| **DOI auto-detection** | When KOAssistant detects a DOI (Digital Object Identifier) in your document, Research Mode activates automatically |
+| **Per-book toggle** | Set manually via the Domain & Research picker — persists in the book's sidecar |
+| **Global setting** | Enable in Domain & Research picker (global target) or Settings — applies to all books without a per-book override |
+| **Per-action override** | Actions can force Research Mode on or off regardless of other settings |
+
+**Resolution order:** Action override > per-book setting > DOI auto-detection > global setting. Per-book "Off" explicitly suppresses Research Mode even if a DOI is detected.
 
 **What changes with Research Mode:**
 
@@ -675,19 +686,34 @@ When KOAssistant detects a DOI (Digital Object Identifier) in your document, **R
 | **Academic X-Ray** | Replaces fiction/non-fiction categories with 7 research-appropriate categories: Key Concepts, Foundations (intellectual lineage, paradigms), Methodology, Findings, Referenced Works (with aliases and connections), Technical Terms, Figures & Data |
 | **Academic Prompt Tracks** | About, Find Similar, and X-Ray (Simple) switch to research-oriented prompts (research context, methodology, cited works instead of characters/themes). Recap, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Analyze Notes include expanded academic adaptation (methodology, evidence evaluation, field positioning) |
 | **Research Nudge** | System prompt addition guiding the AI to ground analysis in the provided text, verify claims via web search, and contextualize within the paper's field |
-| **Web Search Override** | Actions that normally have web search disabled (X-Ray, Summarize, etc.) follow your global web search setting instead — if web search is on globally, academic papers get web-enriched analysis |
-| **DOI in Prompts** | Every book-context prompt includes the DOI, helping the AI identify the exact paper and its citation context |
+| **Web Search Override** | Actions that normally have web search disabled (X-Ray, Summarize, etc.) follow your global web search setting instead — if web search is on globally, research texts get web-enriched analysis |
+| **DOI in Prompts** | When a DOI is detected, every book-context prompt includes it, helping the AI identify the exact paper and its citation context |
+
+**How to enable Research Mode:**
+
+The toggle is inside the **Domain & Research** picker (the Domain button in the chat input dialog, or the Domain item in Quick Settings). Below the domain list, a "Research Mode" section appears:
+
+- **Book target:** Use global / On / Off — saved per-book
+- **Global target:** Off / On — applies to all books without a per-book override
+
+This shares the same book/global target toggle as domain selection.
 
 **How DOI detection works:**
 1. **Cached result** — instant (checked first)
 2. **Document metadata** — EPUB identifiers, PDF description/keywords
 3. **First-page text scan** — extracts page 1 text, finds DOI pattern, discards text (most reliable for PDFs)
 
+DOI detection runs independently of the Research Mode toggle — the DOI is always available for `{doi_clause}` in prompts. The toggle only controls whether Research Mode *behavior* (nudge, prompt swaps, web override) activates.
+
 The DOI is a public identifier (like a URL). Only the DOI string enters metadata — no document content leaves the device beyond what you've already opted into via privacy settings.
 
 **Academic X-Ray categories** are discipline-agnostic — the prompt tells the AI to adapt categorization to the field (a physics paper has different natural categories than a sociology study or a philosophy paper). The browsable X-Ray browser works identically: category navigation, search, chapter appearances, AI Wiki, linkable cross-references, and all other features carry over. Academic X-Rays use the same two-track design (incremental vs complete) and support Section X-Rays.
 
+**Cache track consistency:** When updating an existing artifact (e.g., "Update X-Ray to 50%"), the update respects the track the cache was originally built with — a non-fiction X-Ray stays non-fiction even if Research Mode is now on, and vice versa. "Redo" regenerates from scratch using the current Research Mode setting.
+
 > **Tip: Good metadata matters.** DOI detection works best when your documents have clean metadata. Use Calibre or your reference manager (Zotero, Mendeley) to ensure the DOI is in the document's identifier or description fields. For PDFs without metadata DOI, the first-page text scan catches most academic papers since publishers print the DOI on page 1. After the first action run, the detected DOI is cached — subsequent actions (including from the file browser) use the cached result instantly.
+>
+> **Tip: Research Mode without DOI.** For academic books, textbooks, or research-adjacent texts that don't have a DOI, enable Research Mode manually via the Domain & Research picker. This gives you the academic X-Ray schema, research nudge, and web search override — everything except the DOI-specific prompt enrichment.
 
 #### Reading Analysis Actions
 
@@ -1811,11 +1837,11 @@ See [domains.sample/](domains.sample/) for examples including classical language
 
 ### Selecting Domains
 
-Select a domain via the **Domain** button in the chat input dialog, or through Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None".
+Select a domain via the **Domain & Research** button in the chat input dialog, or through Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None". The same picker also contains the [Research Mode](#research-mode) toggle (see below the domain list).
 
 #### Per-Book Domains
 
-When a book is open (or targeted via file browser/artifacts), the domain picker shows a **target toggle**: **[For this book | Global]**. This lets you set a domain that sticks to a specific book:
+When a book is open (or targeted via file browser/artifacts), the Domain & Research picker shows a **target toggle**: **[For this book | Global]**. This lets you set a domain (and Research Mode) that sticks to a specific book:
 
 - **For this book** — Domain is saved in the book's sidecar (DocSettings). Every time you open this book, its domain is used automatically.
 - **Global** — Domain applies to all books that don't have their own domain set.
@@ -1825,6 +1851,8 @@ When a book is open (or targeted via file browser/artifacts), the domain picker 
 **Resolution order:** Action-level domain override > per-book domain > global domain.
 
 The Domain button shows a `(book)` suffix when a per-book domain is active. General and library contexts use the global domain only.
+
+The target toggle (For this book / Global) is shared between domain selection and Research Mode — both use the same target for the current session.
 
 **Note**: Keep the sticky behavior in mind — if you set a global domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. Per-book domains take priority over global when reading that book. You can change the domain through the input dialog, Quick Settings, or gesture actions.
 
@@ -1943,6 +1971,8 @@ Notebooks can be stored in three locations (Settings → Notebook Settings → S
 
 Changing the save location offers to migrate all existing notebooks to the new location.
 
+> **Book deletion:** When stored alongside the book (default), notebooks are deleted with the book — following KOReader's standard behavior for sidecar data. Central and custom folder notebooks survive book deletion, making these modes a good choice if you delete books after reading but want to keep your notes.
+
 #### Obsidian / Synced Folder Integration
 
 Point the custom folder to your Obsidian vault (or any synced folder) and notebooks become regular vault files:
@@ -2022,9 +2052,11 @@ The default viewer can be changed in Settings → Notebook Settings → Viewer M
 This means:
 - ✅ **Book chats travel with books** when you move or copy files
 - ✅ **No data loss** when reorganizing your library
-- ✅ **Automatic index sync**: When you move or rename books via KOReader's file manager, the chat index automatically updates to track the new path — chats remain accessible immediately without needing to reopen books
+- ✅ **Automatic index sync**: When you move, copy, rename, or delete books via KOReader's file manager, all KOAssistant indices automatically stay in sync
 - ✅ **Library context preserved**: Chats comparing multiple books (Compare, Common Themes) preserve the full list of compared books in metadata and appear in a separate section in Chat History
 - ✅ **Pinned artifacts travel with books**: Pinned artifacts are stored in the book's sidecar folder (`koassistant_pinned.lua`) and automatically move with the book. General and library pinned artifacts are stored globally.
+
+> **Book deletion:** When you delete a book via KOReader's file manager, all per-book KOAssistant data is deleted with it — chat history, cached artifacts, pinned artifacts, X-Ray aliases, and sidecar notebooks. This follows KOReader's standard behavior where book settings, highlights, and notes are deleted alongside the book. General and library chats/pinned artifacts are unaffected. Notebooks stored in a central or custom folder survive deletion (see [Save Locations](#save-locations)).
 
 **Storage Modes**: KOAssistant supports all three of KOReader's metadata storage modes:
 - **"Book folder"** (default) — `.sdr` folders alongside book files
@@ -2857,6 +2889,7 @@ All artifact results are cached per book. X-Ray and Recap additionally support *
 **Cache storage:**
 - Stored in the book's sidecar folder (`.sdr/koassistant_cache.lua`)
 - Automatically moves with the book if you reorganize your library
+- Deleted with the book if you delete it via KOReader's file manager
 
 **Clearing the cache:**
 - **Per-action**: In the artifact viewer, use the Delete button. For X-Ray specifically: options menu → "Delete X-Ray" (or "Delete Section X-Ray" for sections). Deleting the main X-Ray also clears all associated AI Wiki entries.
