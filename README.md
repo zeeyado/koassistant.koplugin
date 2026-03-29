@@ -642,7 +642,7 @@ Some actions work from the file browser (using only document metadata like title
 | Action | Description |
 |--------|-------------|
 | **About** | Overview, significance, and why to read it |
-| **Find Similar** | Recommendations for similar works |
+| **Find Similar** | Recommendations for similar works. When library scanning is enabled, notes which you already own |
 | **About Author** | Author biography and writing style |
 | **Historical Context** | When written and historical significance. Adapts to work type (novel, manifesto, religious text, research paper) |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
@@ -860,8 +860,8 @@ The library dialog splits actions into two zones with their own management butto
 **Library Scan zone** — scan-based actions with a **Library Scan ▾** button for folder management (enable/disable permanent folders, add on-the-fly folders for this session). Always visible by default so users can discover scan actions — actions are grayed out until library scanning is enabled with folders configured. Tapping the **Library Scan ▾** button when scanning is not enabled shows a setup prompt. To hide this zone entirely, use the gear menu → **Hide Library Scan Actions**:
 | Action | Description |
 |--------|-------------|
-| **Next Read** | What to read next from your library — based on reading patterns, what you've finished, and what's been sitting unread. With Advanced Stats enabled, includes engagement context (stalled reads, briefly started books) |
-| **Discover New** | Suggests new books to get based on your entire library — identifies your taste and recommends works you don't have. With Advanced Stats enabled, includes deep reads and recently finished books for better taste inference |
+| **Next Read** | What to read next from your library — including books worth revisiting or picking back up. Based on reading patterns, what you've finished, and what's been sitting unread. With Advanced Stats enabled, includes engagement context (stalled reads, briefly started books) |
+| **Discover New** | Suggests new books based on your library — identifies your taste and recommends works you don't have, including a few picks outside your comfort zone ("Expand your horizons"). With Advanced Stats enabled, includes deep reads and recently finished books for better taste inference |
 | **Analyze Library** | Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection. With Advanced Stats enabled, includes full engagement data for richer pattern analysis |
 
 **Items zone** — selection-based actions with an **Items ▾** button for book management (presets, browse history, add folder, clear). Require 2+ books selected:
@@ -872,12 +872,12 @@ The library dialog splits actions into two zones with their own management butto
 | **Analyze Collection** | What this selection reveals about the reader's interests |
 | **Quick Summaries** | Brief summary of each work |
 | **Reading Order** | Suggest optimal order based on dependencies, difficulty, themes |
-| **Recommend** | Suggests 5-8 new works based on patterns across your selected works. When library scanning is enabled, also considers your full library to avoid recommending books you already own |
+| **Recommend** | Suggests 5-8 new works based on patterns across your selected works. When library scanning is enabled, notes which recommendations you already own and prioritizes unread books |
 | **Analyze Notes** | Analyzes highlights, annotations, and notes across selected books — patterns in what you mark, what you write, and how your thinking connects across works ⚠️ *Requires: Allow Highlights or Allow Annotation Notes* |
 
-Selection-based action buttons are grayed out (disabled) until 2+ books are added. Long-press any grayed-out button to see what it does. Tap **Items ▾** to select books via presets (Currently Reading, Recently Finished, On Hold, Last 5 from History, Browse History) or add a folder. The title bar shows the count of selected items.
+Selection-based action buttons are grayed out (disabled) until 2+ books are added. Long-press any grayed-out button to see what it does. Tap **Items ▾** to select books via presets (Currently Reading, Recently Finished, On Hold, Last 5 from History), Browse History, or Browse Folder. The book picker supports source switching — once inside, use the hamburger menu to switch between history and folder sources without closing. Selections persist across source switches. The title bar shows the count of selected items.
 
-**Freeform chat** also works — type a question and tap Send. When library scanning is enabled with folders configured, the library catalog is included as context. When items are selected, those are included too. The input hint text adapts to show what data is active.
+**Freeform chat** also works — type a question and tap Send. When library scanning is enabled with folders configured, the library catalog is included as context. When items are selected, those are included too. The input hint rotates context-sensitive suggestions (e.g., "What should I read next?", "How do these books connect?", "A book I've been neglecting").
 
 **What the AI sees**: For scan-based actions: library catalog metadata (title, author, series, status, progress, last read date). For selection-based actions: list of selected titles, authors, and identifiers. Actions with sidecar flags (e.g., Analyze Notes) also read per-book highlights, annotations, and notebook entries from sidecar files — same privacy double-gating as single-book actions, with annotation degradation. A warning appears when total sidecar data is large. See [Privacy & Data](#privacy--data) for details on library scanning.
 
@@ -2367,7 +2367,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 - **Days Before Reminder**: Number of days since last reading before the reminder appears (default: 7, range: 1-90)
 
 #### End of Book
-- **Suggest Next Read on Finish**: When you reach the end of a book, offer to suggest what to read next from your library (default: ON). Shows a "KOAssistant: Would you like an AI suggestion for what to read next from your library?" popup with a "Suggest" button that runs the Suggest from Library action. Only activates when library scanning is enabled with at least one folder configured — if library scanning is off, the popup never appears regardless of this setting
+- **Suggest Next Read on Finish**: When you reach the end of a book, offer to suggest what to read next from your library (default: ON). Shows a "KOAssistant: Would you like an AI suggestion for what to read next from your library?" popup with a "Suggest" button that runs the Suggest from Library action. Only activates when library scanning is enabled with at least one folder configured — if library scanning is off, the popup never appears regardless of this setting. This setting is also available in Settings → Library Settings for convenience
 
 ### Temperature
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.

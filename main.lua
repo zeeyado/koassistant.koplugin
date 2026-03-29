@@ -12663,75 +12663,100 @@ function AskGPT:patchDocSettingsForChatIndex()
 
   -- Replace with patched version
   DocSettings.updateLocation = function(old_path, new_path)
-    -- Move custom sidecar files BEFORE calling KOReader's original function
-    -- This way, when KOReader's purge() runs, our files are already gone
-    -- and the old .sdr directory will be cleaned up automatically
+    if new_path then
+      -- Move case: move custom sidecar files BEFORE calling KOReader's original function
+      -- This way, when KOReader's purge() runs, our files are already gone
+      -- and the old .sdr directory will be cleaned up automatically
 
-    -- Ensure new .sdr directory exists before moving files
-    local new_sidecar_dir = DocSettings:getSidecarDir(new_path)
-    -- Note: util is already required at file scope (line 18)
-    util.makePath(new_sidecar_dir)
+      -- Ensure new .sdr directory exists before moving files
+      local new_sidecar_dir = DocSettings:getSidecarDir(new_path)
+      -- Note: util is already required at file scope (line 18)
+      util.makePath(new_sidecar_dir)
 
-    for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
-      local old_sidecar = DocSettings:getSidecarDir(old_path) .. "/" .. filename
-      local new_sidecar = new_sidecar_dir .. "/" .. filename
+      for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
+        local old_sidecar = DocSettings:getSidecarDir(old_path) .. "/" .. filename
+        local new_sidecar = new_sidecar_dir .. "/" .. filename
 
-      if lfs.attributes(old_sidecar, "mode") == "file" then
-        logger.dbg("KOAssistant: Moving sidecar file:", filename)
+        if lfs.attributes(old_sidecar, "mode") == "file" then
+          logger.dbg("KOAssistant: Moving sidecar file:", filename)
 
-        -- Try os.rename first (works for same filesystem)
-        local success, err = os.rename(old_sidecar, new_sidecar)
+          -- Try os.rename first (works for same filesystem)
+          local success, err = os.rename(old_sidecar, new_sidecar)
 
-        if success then
-          logger.info("KOAssistant: Moved sidecar file:", filename)
-        else
-          -- Fallback: copy+delete for cross-filesystem moves
-          logger.dbg("KOAssistant: os.rename failed, trying copy+delete:", err)
-
-          local copy_ok, copy_err = copyFileContent(old_sidecar, new_sidecar)
-          if copy_ok then
-            os.remove(old_sidecar)
-            logger.info("KOAssistant: Moved sidecar file (cross-filesystem):", filename)
+          if success then
+            logger.info("KOAssistant: Moved sidecar file:", filename)
           else
-            logger.err("KOAssistant: Failed to move sidecar file", filename, ":", copy_err)
+            -- Fallback: copy+delete for cross-filesystem moves
+            logger.dbg("KOAssistant: os.rename failed, trying copy+delete:", err)
+
+            local copy_ok, copy_err = copyFileContent(old_sidecar, new_sidecar)
+            if copy_ok then
+              os.remove(old_sidecar)
+              logger.info("KOAssistant: Moved sidecar file (cross-filesystem):", filename)
+            else
+              logger.err("KOAssistant: Failed to move sidecar file", filename, ":", copy_err)
+            end
           end
         end
       end
     end
+    -- Delete case (new_path == nil): skip sidecar move — KOReader's purge() will
+    -- delete the entire .sdr directory including our files
 
-    -- Now call KOReader's original function
-    -- Our files are gone, so purge() will successfully remove the old .sdr directory
+    -- Call KOReader's original function
     DocSettings._original_updateLocation(old_path, new_path)
 
-    -- Update KOAssistant chat index (after KOReader's work is done)
+    -- Update KOAssistant indices
+    local needs_flush = false
+
     local chat_index = G_reader_settings:readSetting("koassistant_chat_index", {})
     if chat_index[old_path] then
-      chat_index[new_path] = chat_index[old_path]
+      if new_path then
+        chat_index[new_path] = chat_index[old_path]
+      end
       chat_index[old_path] = nil
       G_reader_settings:saveSetting("koassistant_chat_index", chat_index)
-      logger.info("KOAssistant: Updated chat index for moved file")
+      needs_flush = true
     end
 
-    -- Update KOAssistant notebook index
     local notebook_index = G_reader_settings:readSetting("koassistant_notebook_index", {})
     if notebook_index[old_path] then
-      notebook_index[new_path] = notebook_index[old_path]
+      if new_path then
+        notebook_index[new_path] = notebook_index[old_path]
+      end
       notebook_index[old_path] = nil
       G_reader_settings:saveSetting("koassistant_notebook_index", notebook_index)
-      logger.info("KOAssistant: Updated notebook index for moved file")
+      needs_flush = true
     end
 
-    -- Update KOAssistant artifact index
     local artifact_index = G_reader_settings:readSetting("koassistant_artifact_index", {})
     if artifact_index[old_path] then
-      artifact_index[new_path] = artifact_index[old_path]
+      if new_path then
+        artifact_index[new_path] = artifact_index[old_path]
+      end
       artifact_index[old_path] = nil
       G_reader_settings:saveSetting("koassistant_artifact_index", artifact_index)
-      logger.info("KOAssistant: Updated artifact index for moved file")
+      needs_flush = true
     end
 
-    -- Flush settings once after all index updates
-    G_reader_settings:flush()
+    local pinned_index = G_reader_settings:readSetting("koassistant_pinned_index", {})
+    if pinned_index[old_path] then
+      if new_path then
+        pinned_index[new_path] = pinned_index[old_path]
+      end
+      pinned_index[old_path] = nil
+      G_reader_settings:saveSetting("koassistant_pinned_index", pinned_index)
+      needs_flush = true
+    end
+
+    if needs_flush then
+      G_reader_settings:flush()
+      if new_path then
+        logger.info("KOAssistant: Updated indices for moved file")
+      else
+        logger.info("KOAssistant: Cleaned up indices for deleted file")
+      end
+    end
   end
 
   DocSettings._koassistant_patched = true
