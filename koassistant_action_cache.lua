@@ -254,6 +254,9 @@ local function saveCache(document_path, cache)
             if entry.web_search_used then
                 file:write(string.format("        web_search_used = %s,\n", tostring(entry.web_search_used)))
             end
+            if entry.used_research_mode then
+                file:write(string.format("        used_research_mode = %s,\n", tostring(entry.used_research_mode)))
+            end
             if entry.source_mode then
                 file:write(string.format("        source_mode = %q,\n", entry.source_mode))
             end
@@ -344,6 +347,8 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         -- Track reasoning and web search usage
         used_reasoning = metadata and metadata.used_reasoning,
         web_search_used = metadata and metadata.web_search_used,
+        -- Track research mode at generation time (for update prompt track consistency)
+        used_research_mode = metadata and metadata.used_research_mode,
         -- Track source mode at generation time (for source indication in viewers)
         source_mode = metadata and metadata.source_mode,
         -- Track unavailable data at generation time (pre-formatted string for artifact viewer)

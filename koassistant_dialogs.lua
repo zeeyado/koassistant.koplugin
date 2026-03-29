@@ -196,6 +196,19 @@ local function getBookDomain(doc_settings)
     return doc_settings:readSetting("koassistant_book_domain")
 end
 
+-- Helper to persist per-book research mode to DocSettings
+local function persistBookResearchMode(doc_settings, value)
+    if not doc_settings then return end
+    doc_settings:saveSetting("koassistant_book_research_mode", value)
+    doc_settings:flush()
+end
+
+-- Helper to read per-book research mode from DocSettings
+local function getBookResearchMode(doc_settings)
+    if not doc_settings then return nil end
+    return doc_settings:readSetting("koassistant_book_research_mode")
+end
+
 -- Extract surrounding context for dictionary lookups
 -- Uses KOReader's highlight API to get text before/after selection
 -- @param ui: KOReader UI instance with highlight module
@@ -392,8 +405,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         user_languages = features.user_languages or "",
         primary_language = features.primary_language,
         skip_language_instruction = action and action.skip_language_instruction,
-        -- Research mode: DOI triggers academic nudge in system prompt
-        book_metadata = features.book_metadata,
+        -- Research mode: resolved flag triggers academic nudge in system prompt
+        -- (DOI auto-detection, per-book toggle, global setting, or action override)
+        research_mode = features._research_mode_active,
         -- Spoiler-free mode: inject nudge into system prompt for freeform chat
         spoiler_free = features._spoiler_free_active,
         reading_progress = features.book_metadata and features.book_metadata.reading_progress,
@@ -2728,13 +2742,56 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
-    -- DOI detected: swap to academic prompt track (if available)
+    -- Resolve per-book DocSettings for domain and research mode lookups
+    -- Prefer book_metadata.file (file browser/artifact target) over ui.document.file (open book)
+    local per_book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
+        or (ui and ui.document and ui.document.file)
+    local per_book_ds = nil
+    if per_book_file then
+        if ui and ui.doc_settings and ui.document and ui.document.file == per_book_file then
+            per_book_ds = ui.doc_settings
+        else
+            local DocSettings = require("docsettings")
+            per_book_ds = DocSettings:open(per_book_file)
+        end
+    end
+
+    -- Resolve effective research mode
+    -- Priority: action override > per-book setting > DOI auto-detection > global setting
+    -- DOI scan always runs independently (for {doi_clause} placeholder) — this only controls behavior
+    local research_mode_active = false
+    local action_research = prompt and prompt.research_mode
+    if action_research == true then
+        research_mode_active = true
+    elseif action_research == false then
+        research_mode_active = false
+    else
+        local book_research = getBookResearchMode(per_book_ds)
+        if book_research == true then
+            research_mode_active = true
+        elseif book_research == false then
+            research_mode_active = false
+        else
+            local has_doi = config.features and config.features.book_metadata
+                and config.features.book_metadata.doi
+            if has_doi then
+                research_mode_active = true
+            else
+                research_mode_active = config.features and config.features.research_mode == true
+            end
+        end
+    end
+
+    -- Research mode active: swap to academic prompt track (if available)
     -- Must happen BEFORE full-document swap so doi_complete_prompt is available
-    local doi_metadata = config.features and config.features.book_metadata
-    if doi_metadata and doi_metadata.doi and prompt and prompt.doi_prompt then
+    -- Stash originals so cache update can revert if needed (cache was non-research but current is research)
+    if research_mode_active and prompt and prompt.doi_prompt then
         local original_prompt = prompt
         prompt = {}
         for k, v in pairs(original_prompt) do prompt[k] = v end
+        prompt._original_prompt_text = original_prompt.prompt
+        prompt._original_update_prompt = original_prompt.update_prompt
+        prompt._original_complete_prompt = original_prompt.complete_prompt
         prompt.prompt = original_prompt.doi_prompt
         if original_prompt.doi_complete_prompt then
             prompt.complete_prompt = original_prompt.doi_complete_prompt
@@ -2801,11 +2858,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
-    -- DOI web search override: academic papers benefit from web enrichment
+    -- Research mode web search override: academic papers benefit from web enrichment
     -- Actions with doi_web_override=true have their enable_web_search=false lifted to nil
-    -- (follow global setting) when a DOI is detected in document metadata
-    local doi_metadata = config.features and config.features.book_metadata
-    if doi_metadata and doi_metadata.doi
+    -- (follow global setting) when research mode is active
+    if research_mode_active
             and prompt.doi_web_override and prompt.enable_web_search == false then
         prompt.enable_web_search = nil
     end
@@ -3064,6 +3120,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Get domain context if a domain is set (skip if action opts out)
     -- Priority: prompt.domain (locked) > book domain (DocSettings) > global selected_domain
     -- Book domain "_none" = explicit override to no domain (blocks global fallthrough)
+    -- Uses per_book_ds hoisted earlier (shared with research mode resolution)
     local domain_context = nil
     local skip_domain = prompt and prompt.skip_domain
     local domain_id = nil
@@ -3071,21 +3128,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if prompt and prompt.domain then
             domain_id = prompt.domain
         else
-            -- Book domain: use the relevant book's DocSettings (not necessarily the open book)
-            -- Prefer book_metadata.file (file browser/artifact target) over ui.document.file (open book)
-            local book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
-                or (ui and ui.document and ui.document.file)
-            local book_domain = nil
-            if book_file then
-                local relevant_ds
-                if ui and ui.doc_settings and ui.document and ui.document.file == book_file then
-                    relevant_ds = ui.doc_settings
-                else
-                    local DocSettings = require("docsettings")
-                    relevant_ds = DocSettings:open(book_file)
-                end
-                book_domain = getBookDomain(relevant_ds)
-            end
+            local book_domain = getBookDomain(per_book_ds)
             if book_domain == "_none" then
                 domain_id = nil  -- explicit none, skip global
             elseif book_domain then
@@ -3120,6 +3163,43 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if cached_entry and message_data.progress_decimal then
             local current_progress = tonumber(message_data.progress_decimal) or 0
             local cached_progress = cached_entry.progress_decimal or 0
+
+            -- Research track consistency: force-match the track that built the cache.
+            -- If cache was built with research mode ON but it's now OFF (or vice versa),
+            -- re-swap prompts to maintain schema consistency during updates.
+            -- Only applies when cache explicitly tracked research mode (non-nil).
+            -- Legacy caches (nil) follow the current research mode setting.
+            local cache_research = cached_entry.used_research_mode
+            if cache_research ~= nil and cache_research ~= (research_mode_active or false) then
+                research_mode_active = cache_research
+                -- Re-apply (or undo) the academic prompt swap
+                if cache_research and prompt.doi_prompt then
+                    -- Cache was academic, current is not — swap to academic track
+                    local original_prompt = prompt
+                    prompt = {}
+                    for k, v in pairs(original_prompt) do prompt[k] = v end
+                    prompt.prompt = original_prompt.doi_prompt
+                    if original_prompt.doi_complete_prompt then
+                        prompt.complete_prompt = original_prompt.doi_complete_prompt
+                    end
+                    if original_prompt.doi_update_prompt then
+                        prompt.update_prompt = original_prompt.doi_update_prompt
+                    end
+                end
+                -- Note: if cache was NOT academic but current IS academic, the swap already
+                -- happened at the top. We need to undo it by using the original non-doi prompts.
+                -- The prompt was already copied, so doi_prompt fields are still on it.
+                -- We can detect this: if prompt.prompt == prompt.doi_prompt (same swap), revert.
+                -- Simpler: re-lookup the original action.
+                if not cache_research and prompt._original_prompt_text then
+                    local original_prompt = prompt
+                    prompt = {}
+                    for k, v in pairs(original_prompt) do prompt[k] = v end
+                    prompt.prompt = original_prompt._original_prompt_text
+                    prompt.update_prompt = original_prompt._original_update_prompt
+                    prompt.complete_prompt = original_prompt._original_complete_prompt
+                end
+            end
 
             -- For X-Ray: skip incremental update if cache is legacy markdown (not JSON)
             -- Force a full regeneration to produce structured JSON output
@@ -3224,6 +3304,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Build unified request config for ALL providers
     -- Pass the prompt/action object which contains behavior_variant/behavior_override
+    -- Pass resolved research mode as transient flag (consumed by buildUnifiedSystem)
+    temp_config.features = temp_config.features or {}
+    temp_config.features._research_mode_active = research_mode_active or nil
     local action = prompt._action or prompt  -- Use underlying action if available
     buildUnifiedRequestConfig(temp_config, domain_context, action, plugin)
 
@@ -3324,6 +3407,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                       used_highlights = highlights_were_provided,
                       used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                       web_search_used = web_search_used or false,
+                      used_research_mode = research_mode_active or nil,
                       previous_progress_decimal = message_data.cached_progress_decimal,
                       flow_visible_pages = message_data.flow_visible_pages,
                       progress_page = message_data.progress_page,
@@ -3361,6 +3445,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                         web_search_used = web_search_used or false,
+                        used_research_mode = research_mode_active or nil,
                         previous_progress_decimal = message_data.cached_progress_decimal,
                         flow_visible_pages = message_data.flow_visible_pages,
                         progress_page = message_data.progress_page,
@@ -3841,13 +3926,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
     local book_domain_id = getBookDomain(doc_settings)
+    local book_research_id = getBookResearchMode(doc_settings)
 
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
     local refreshInputDialog
 
     -- Domain target: "book" or "global" — controls where selection is saved
-    -- Default to "book" if a book override exists, otherwise "global"
-    local domain_target = (doc_settings and book_domain_id) and "book" or "global"
+    -- Default to "book" if any book override exists (domain or research mode), otherwise "global"
+    local domain_target = (doc_settings and (book_domain_id or book_research_id ~= nil)) and "book" or "global"
 
     -- Function to show domain selector
     -- Single list with target toggle at top when a book is open
@@ -3978,6 +4064,83 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         end
 
+        -- Research mode section (separator + toggle)
+        -- Shares the same book/global target as domain selection
+        table.insert(buttons, {
+            {
+                text = "─── " .. _("Research Mode") .. " ───",
+                enabled = false,
+            },
+        })
+
+        if is_book_target then
+            -- Book target: three options (Use global / On / Off)
+            local use_global_prefix = (book_research_id == nil) and "● " or "○ "
+            local on_prefix = (book_research_id == true) and "● " or "○ "
+            local off_prefix = (book_research_id == false) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = use_global_prefix .. _("Use global"),
+                    callback = function()
+                        book_research_id = nil
+                        persistBookResearchMode(doc_settings, nil)
+                        closeAndRefresh()
+                    end,
+                },
+                {
+                    text = on_prefix .. _("On"),
+                    callback = function()
+                        book_research_id = true
+                        persistBookResearchMode(doc_settings, true)
+                        closeAndRefresh()
+                    end,
+                },
+                {
+                    text = off_prefix .. _("Off"),
+                    callback = function()
+                        book_research_id = false
+                        persistBookResearchMode(doc_settings, false)
+                        closeAndRefresh()
+                    end,
+                },
+            })
+        else
+            -- Global target: two options (Off / On)
+            local global_research = configuration.features and configuration.features.research_mode
+            local off_prefix = (not global_research) and "● " or "○ "
+            local on_prefix = (global_research == true) and "● " or "○ "
+            table.insert(buttons, {
+                {
+                    text = off_prefix .. _("Off"),
+                    callback = function()
+                        configuration.features = configuration.features or {}
+                        configuration.features.research_mode = nil
+                        if plugin and plugin.settings then
+                            local f = plugin.settings:readSetting("features") or {}
+                            f.research_mode = nil
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                        end
+                        closeAndRefresh()
+                    end,
+                },
+                {
+                    text = on_prefix .. _("On"),
+                    callback = function()
+                        configuration.features = configuration.features or {}
+                        configuration.features.research_mode = true
+                        if plugin and plugin.settings then
+                            local f = plugin.settings:readSetting("features") or {}
+                            f.research_mode = true
+                            plugin.settings:saveSetting("features", f)
+                            plugin.settings:flush()
+                        end
+                        closeAndRefresh()
+                    end,
+                },
+            })
+        end
+
         -- Close button
         table.insert(buttons, {
             {
@@ -3991,7 +4154,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         local ButtonDialog = require("ui/widget/buttondialog")
         _G.domain_selector_dialog = ButtonDialog:new{
-            title = _("Select Domain"),
+            title = _("Domain & Research"),
             buttons = buttons,
         }
         UIManager:show(_G.domain_selector_dialog)
@@ -5133,6 +5296,27 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             configuration.features._spoiler_free_active = nil
                         end
                     end
+
+                    -- Resolve research mode for freeform chat (no action override)
+                    -- Priority: per-book setting > DOI auto-detection > global setting
+                    local freeform_research = false
+                    local book_research_setting = getBookResearchMode(doc_settings)
+                    if book_research_setting == true then
+                        freeform_research = true
+                    elseif book_research_setting == false then
+                        freeform_research = false
+                    else
+                        local has_doi = configuration.features and configuration.features.book_metadata
+                            and configuration.features.book_metadata.doi
+                        if has_doi then
+                            freeform_research = true
+                        else
+                            freeform_research = configuration.features
+                                and configuration.features.research_mode == true
+                        end
+                    end
+                    configuration.features = configuration.features or {}
+                    configuration.features._research_mode_active = freeform_research or nil
 
                     -- Build unified request config for ALL providers
                     -- No action specified, uses global behavior setting
@@ -6728,6 +6912,34 @@ end
 local function launchArtifactChat(user_question, artifact_content, artifact_type_name, ui, configuration, plugin, book_metadata)
     local document_path = book_metadata and book_metadata.file
     local title = (artifact_type_name or _("Artifact")) .. ": " .. _("Chat")
+
+    -- Resolve research mode for artifact chat (no action override)
+    local artifact_research = false
+    if document_path then
+        local artifact_ds
+        if ui and ui.doc_settings and ui.document and ui.document.file == document_path then
+            artifact_ds = ui.doc_settings
+        else
+            local DocSettings = require("docsettings")
+            artifact_ds = DocSettings:open(document_path)
+        end
+        local book_research_setting = getBookResearchMode(artifact_ds)
+        if book_research_setting == true then
+            artifact_research = true
+        elseif book_research_setting == false then
+            artifact_research = false
+        else
+            local has_doi = book_metadata and book_metadata.doi
+            if has_doi then
+                artifact_research = true
+            else
+                artifact_research = configuration.features
+                    and configuration.features.research_mode == true
+            end
+        end
+    end
+    configuration.features = configuration.features or {}
+    configuration.features._research_mode_active = artifact_research or nil
 
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, nil, nil, plugin)
