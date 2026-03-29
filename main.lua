@@ -96,14 +96,21 @@ local function table_count(t)
     return count
 end
 
--- KOAssistant custom sidecar files to track during book moves
--- These files are automatically moved when books are moved via FileManager
--- Add new custom files here as they're implemented (e.g., notebooks, stats, annotations)
+-- KOAssistant custom sidecar files to track during book move/copy/delete
+-- These files are automatically moved/copied/deleted alongside books in FileManager
 local KOASSISTANT_SIDECAR_FILES = {
     "koassistant_notebook.md",
     "koassistant_cache.lua",  -- X-Ray/Recap response cache
     "koassistant_user_aliases.lua",  -- User-defined X-Ray search terms
     "koassistant_pinned.lua",  -- Pinned artifacts
+}
+
+-- All G_reader_settings indices that track per-book KOAssistant data
+local KOASSISTANT_INDICES = {
+    "koassistant_chat_index",
+    "koassistant_notebook_index",
+    "koassistant_artifact_index",
+    "koassistant_pinned_index",
 }
 
 -- Language data (shared module)
@@ -12648,113 +12655,97 @@ function AskGPT:patchTextSelectionHandlers()
   end
 end
 
--- Patch DocSettings.updateLocation() to keep chat index in sync and move custom sidecar files
+-- Patch DocSettings.updateLocation() to handle sidecar files and indices on move/copy/delete
+-- Mirrors KOReader's own behavior: move on cut, copy on copy, delete on delete
 function AskGPT:patchDocSettingsForChatIndex()
   local DocSettings = require("docsettings")
-  -- Note: lfs is already required at file scope (line 15)
 
-  -- Only patch once
   if DocSettings._koassistant_patched then
     return
   end
 
-  -- Save original function
   DocSettings._original_updateLocation = DocSettings.updateLocation
 
-  -- Replace with patched version
-  DocSettings.updateLocation = function(old_path, new_path)
-    if new_path then
-      -- Move case: move custom sidecar files BEFORE calling KOReader's original function
-      -- This way, when KOReader's purge() runs, our files are already gone
-      -- and the old .sdr directory will be cleaned up automatically
+  DocSettings.updateLocation = function(old_path, new_path, copy)
+    local old_sidecar_dir = DocSettings:getSidecarDir(old_path)
 
-      -- Ensure new .sdr directory exists before moving files
+    if new_path then
+      -- Move or Copy: transfer sidecar files to new .sdr BEFORE KOReader's original
+      -- runs, so purge() (on move) finds the old .sdr empty and can rmdir it
       local new_sidecar_dir = DocSettings:getSidecarDir(new_path)
-      -- Note: util is already required at file scope (line 18)
       util.makePath(new_sidecar_dir)
 
       for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
-        local old_sidecar = DocSettings:getSidecarDir(old_path) .. "/" .. filename
+        local old_sidecar = old_sidecar_dir .. "/" .. filename
         local new_sidecar = new_sidecar_dir .. "/" .. filename
 
         if lfs.attributes(old_sidecar, "mode") == "file" then
-          logger.dbg("KOAssistant: Moving sidecar file:", filename)
-
-          -- Try os.rename first (works for same filesystem)
-          local success, err = os.rename(old_sidecar, new_sidecar)
-
-          if success then
-            logger.info("KOAssistant: Moved sidecar file:", filename)
-          else
-            -- Fallback: copy+delete for cross-filesystem moves
-            logger.dbg("KOAssistant: os.rename failed, trying copy+delete:", err)
-
-            local copy_ok, copy_err = copyFileContent(old_sidecar, new_sidecar)
-            if copy_ok then
-              os.remove(old_sidecar)
-              logger.info("KOAssistant: Moved sidecar file (cross-filesystem):", filename)
+          if copy then
+            -- Copy: duplicate file, keep original in place
+            local ok, err = copyFileContent(old_sidecar, new_sidecar)
+            if ok then
+              logger.info("KOAssistant: Copied sidecar file:", filename)
             else
-              logger.err("KOAssistant: Failed to move sidecar file", filename, ":", copy_err)
+              logger.err("KOAssistant: Failed to copy sidecar file", filename, ":", err)
+            end
+          else
+            -- Move: rename (same filesystem) or copy+delete (cross-filesystem)
+            local ok, err = os.rename(old_sidecar, new_sidecar)
+            if ok then
+              logger.info("KOAssistant: Moved sidecar file:", filename)
+            else
+              logger.dbg("KOAssistant: os.rename failed, trying copy+delete:", err)
+              local copy_ok, copy_err = copyFileContent(old_sidecar, new_sidecar)
+              if copy_ok then
+                os.remove(old_sidecar)
+                logger.info("KOAssistant: Moved sidecar file (cross-filesystem):", filename)
+              else
+                logger.err("KOAssistant: Failed to move sidecar file", filename, ":", copy_err)
+              end
             end
           end
         end
       end
+    else
+      -- Delete: remove our sidecar files so KOReader's purge() can rmdir the .sdr
+      -- (purge only removes its own known files, then rmdir which needs empty dir)
+      for _idx, filename in ipairs(KOASSISTANT_SIDECAR_FILES) do
+        local sidecar_file = old_sidecar_dir .. "/" .. filename
+        if lfs.attributes(sidecar_file, "mode") == "file" then
+          os.remove(sidecar_file)
+          logger.dbg("KOAssistant: Removed sidecar file:", filename)
+        end
+      end
     end
-    -- Delete case (new_path == nil): skip sidecar move — KOReader's purge() will
-    -- delete the entire .sdr directory including our files
 
-    -- Call KOReader's original function
-    DocSettings._original_updateLocation(old_path, new_path)
+    -- Call KOReader's original function (passes through copy parameter)
+    DocSettings._original_updateLocation(old_path, new_path, copy)
 
-    -- Update KOAssistant indices
+    -- Update indices: move replaces old→new, copy adds new (keeps old), delete removes old
     local needs_flush = false
 
-    local chat_index = G_reader_settings:readSetting("koassistant_chat_index", {})
-    if chat_index[old_path] then
-      if new_path then
-        chat_index[new_path] = chat_index[old_path]
+    for _idx, index_name in ipairs(KOASSISTANT_INDICES) do
+      local index = G_reader_settings:readSetting(index_name, {})
+      if index[old_path] then
+        if new_path then
+          index[new_path] = index[old_path]
+        end
+        if not copy then
+          index[old_path] = nil
+        end
+        G_reader_settings:saveSetting(index_name, index)
+        needs_flush = true
       end
-      chat_index[old_path] = nil
-      G_reader_settings:saveSetting("koassistant_chat_index", chat_index)
-      needs_flush = true
-    end
-
-    local notebook_index = G_reader_settings:readSetting("koassistant_notebook_index", {})
-    if notebook_index[old_path] then
-      if new_path then
-        notebook_index[new_path] = notebook_index[old_path]
-      end
-      notebook_index[old_path] = nil
-      G_reader_settings:saveSetting("koassistant_notebook_index", notebook_index)
-      needs_flush = true
-    end
-
-    local artifact_index = G_reader_settings:readSetting("koassistant_artifact_index", {})
-    if artifact_index[old_path] then
-      if new_path then
-        artifact_index[new_path] = artifact_index[old_path]
-      end
-      artifact_index[old_path] = nil
-      G_reader_settings:saveSetting("koassistant_artifact_index", artifact_index)
-      needs_flush = true
-    end
-
-    local pinned_index = G_reader_settings:readSetting("koassistant_pinned_index", {})
-    if pinned_index[old_path] then
-      if new_path then
-        pinned_index[new_path] = pinned_index[old_path]
-      end
-      pinned_index[old_path] = nil
-      G_reader_settings:saveSetting("koassistant_pinned_index", pinned_index)
-      needs_flush = true
     end
 
     if needs_flush then
       G_reader_settings:flush()
-      if new_path then
-        logger.info("KOAssistant: Updated indices for moved file")
-      else
+      if not new_path then
         logger.info("KOAssistant: Cleaned up indices for deleted file")
+      elseif copy then
+        logger.info("KOAssistant: Duplicated indices for copied file")
+      else
+        logger.info("KOAssistant: Updated indices for moved file")
       end
     end
   end
