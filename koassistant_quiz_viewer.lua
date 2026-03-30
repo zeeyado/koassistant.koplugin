@@ -38,11 +38,11 @@ ul, ol { margin: 0.3em 0; padding-left: 1.5em; }
 
 local QuizViewer = InputContainer:extend{
     quiz_data = nil,      -- parsed quiz data from QuizParser
-    opts = nil,           -- { title, chapter, book_author, on_save_notebook }
+    opts = nil,           -- { title, chapter, book_author, on_save_notebook, on_save_state }
     width = nil,
     height = nil,
 
-    -- State
+    -- State (can be restored from saved quiz_state)
     current_index = 1,
     answers = nil,        -- {[idx] = "B" or "user typed text"}
     revealed = nil,       -- {[idx] = true} when answer has been shown
@@ -185,7 +185,7 @@ function QuizViewer:_buildQuestionHTML(q, idx)
     local type_labels = {
         multiple_choice = _("Multiple Choice"),
         short_answer = _("Short Answer"),
-        essay = _("Essay / Discussion"),
+        essay = _("Discussion"),
     }
     table.insert(parts, "<h3>" .. (type_labels[q.type] or q.type) .. "</h3>")
 
@@ -205,10 +205,10 @@ function QuizViewer:_buildQuestionHTML(q, idx)
                 if self.revealed[idx] then
                     if letter == q.correct then
                         -- Correct answer: bold with checkmark
-                        table.insert(parts, "<li><b>" .. prefix .. opt_text .. "</b> [correct]</li>")
+                        table.insert(parts, "<li><b>" .. prefix .. opt_text .. "</b> \xE2\x9C\x93</li>")
                     elseif letter == self.answers[idx] and letter ~= q.correct then
                         -- User's wrong pick: regular with X
-                        table.insert(parts, "<li>" .. prefix .. opt_text .. " [your answer]</li>")
+                        table.insert(parts, "<li>" .. prefix .. opt_text .. " \xE2\x9C\x97</li>")
                     else
                         -- Not picked: grayed out
                         table.insert(parts, '<li><span class="option-not-picked">' .. prefix .. opt_text .. "</span></li>")
@@ -287,56 +287,27 @@ function QuizViewer:_buildQuestionButtons(q, idx)
             end
             table.insert(buttons, {{ text = result_text, enabled = false }})
         end
-    elseif q.type == "short_answer" then
+    elseif q.type == "short_answer" or q.type == "essay" then
+        local reveal_label = q.type == "essay" and _("Show Key Points") or _("Show Answer")
         if not self.revealed[idx] then
             table.insert(buttons, {
                 {
-                    text = _("Show Answer"),
+                    text = reveal_label,
                     callback = function() self_ref:_revealAnswer(idx) end,
                 },
             })
         else
-            -- Self-grading buttons (if not already graded)
-            if self.correct[idx] == nil then
-                table.insert(buttons, {
-                    {
-                        text = _("Got it right"),
-                        callback = function() self_ref:_selfGrade(idx, true) end,
-                    },
-                    {
-                        text = _("Missed it"),
-                        callback = function() self_ref:_selfGrade(idx, false) end,
-                    },
-                })
-            else
-                local grade_text = self.correct[idx] and _("Marked: Correct") or _("Marked: Incorrect")
-                table.insert(buttons, {{ text = grade_text, enabled = false }})
-            end
-        end
-    elseif q.type == "essay" then
-        if not self.revealed[idx] then
+            -- Self-grading: always show both buttons, highlight current selection
             table.insert(buttons, {
                 {
-                    text = _("Show Key Points"),
-                    callback = function() self_ref:_revealAnswer(idx) end,
+                    text = self.correct[idx] == true and ("[" .. _("Got it right") .. "]") or _("Got it right"),
+                    callback = function() self_ref:_selfGrade(idx, true) end,
+                },
+                {
+                    text = self.correct[idx] == false and ("[" .. _("Missed it") .. "]") or _("Missed it"),
+                    callback = function() self_ref:_selfGrade(idx, false) end,
                 },
             })
-        else
-            if self.correct[idx] == nil then
-                table.insert(buttons, {
-                    {
-                        text = _("Got it right"),
-                        callback = function() self_ref:_selfGrade(idx, true) end,
-                    },
-                    {
-                        text = _("Missed it"),
-                        callback = function() self_ref:_selfGrade(idx, false) end,
-                    },
-                })
-            else
-                local grade_text = self.correct[idx] and _("Marked: Correct") or _("Marked: Incorrect")
-                table.insert(buttons, {{ text = grade_text, enabled = false }})
-            end
         end
     end
 
@@ -425,7 +396,7 @@ function QuizViewer:_showQuestionPicker()
 
     for idx, q in ipairs(questions) do
         -- Build label: number + type indicator + status
-        local type_short = { multiple_choice = "MC", short_answer = "SA", essay = "E" }
+        local type_short = { multiple_choice = "MC", short_answer = "SA", essay = "D" }
         local status = ""
         if self_ref.correct[idx] == true then
             status = " [+]"
@@ -493,9 +464,9 @@ function QuizViewer:_buildCompletionUI()
     -- Build summary HTML
     local parts = {}
     table.insert(parts, "<h3>" .. _("Quiz Complete") .. "</h3>")
-    table.insert(parts, "<p><b>" .. T(_("Score: %1/%2 (%3%%)"), total_correct, total_answered, pct) .. "</b></p>")
+    table.insert(parts, "<p><b>" .. T(_("Score: %1/%2 (%3)"), total_correct, total_answered, pct .. "%") .. "</b></p>")
 
-    local type_labels = { multiple_choice = _("Multiple Choice"), short_answer = _("Short Answer"), essay = _("Essay") }
+    local type_labels = { multiple_choice = _("Multiple Choice"), short_answer = _("Short Answer"), essay = _("Discussion") }
     table.insert(parts, "<ul>")
     for _ti, qtype in ipairs({"multiple_choice", "short_answer", "essay"}) do
         if scores[qtype][2] > 0 then
@@ -528,17 +499,31 @@ function QuizViewer:_buildCompletionUI()
     local button_rows = {
         {
             {
+                text = _("Copy"),
+                callback = function()
+                    self_ref:_copyResults()
+                end,
+            },
+            {
+                text = _("Export"),
+                callback = function()
+                    self_ref:_exportResults()
+                end,
+            },
+            {
+                text = _("Notebook"),
+                callback = function()
+                    self_ref:_saveToNotebook()
+                end,
+            },
+        },
+        {
+            {
                 text = _("Review All"),
                 callback = function()
                     self_ref.phase = "taking"
                     self_ref.current_index = 1
                     self_ref:_refresh()
-                end,
-            },
-            {
-                text = _("Save to Notebook"),
-                callback = function()
-                    self_ref:_saveToNotebook()
                 end,
             },
             {
@@ -617,12 +602,9 @@ function QuizViewer:_refresh()
     UIManager:setDirty(self, "partial")
 end
 
---- Save quiz results to notebook
-function QuizViewer:_saveToNotebook()
+--- Build formatted text summary of quiz results (for notebook, copy, export)
+function QuizViewer:_buildResultText()
     local questions = self.quiz_data.questions or {}
-    local total = #questions
-
-    -- Build text summary
     local lines = {}
     local book_title = self.opts and self.opts.title or _("Unknown")
     local chapter = self.opts and self.opts.chapter
@@ -636,7 +618,6 @@ function QuizViewer:_saveToNotebook()
     table.insert(lines, T(_("**Date:** %1"), os.date("%Y-%m-%d %H:%M")))
     table.insert(lines, "")
 
-    -- Score
     local total_correct = 0
     local total_answered = 0
     for idx in ipairs(questions) do
@@ -646,14 +627,13 @@ function QuizViewer:_saveToNotebook()
         end
     end
     local pct = total_answered > 0 and math.floor(total_correct / total_answered * 100 + 0.5) or 0
-    table.insert(lines, T(_("**Score: %1/%2 (%3%%)**"), total_correct, total_answered, pct))
+    table.insert(lines, T(_("**Score: %1/%2 (%3)**"), total_correct, total_answered, pct .. "%"))
     table.insert(lines, "")
 
-    -- Per-question details
     for idx, q in ipairs(questions) do
         table.insert(lines, T("**%1.** %2", idx, q.question))
-        if self.answers[idx] then
-            table.insert(lines, T(_("Your answer: %1"), self.answers[idx]))
+        if q.type == "multiple_choice" and self.answers[idx] then
+            table.insert(lines, T(_("Your answer: %1 — Correct: %2"), self.answers[idx], q.correct or "?"))
         end
         if self.correct[idx] == true then
             table.insert(lines, _("Result: Correct"))
@@ -665,18 +645,65 @@ function QuizViewer:_saveToNotebook()
         table.insert(lines, "")
     end
 
-    local notebook_text = table.concat(lines, "\n")
+    return table.concat(lines, "\n")
+end
 
-    -- Use the on_save_notebook callback if provided
-    if self.opts and self.opts.on_save_notebook then
-        self.opts.on_save_notebook(notebook_text)
+--- Copy quiz results to clipboard
+function QuizViewer:_copyResults()
+    local Device = require("device")
+    local text = self:_buildResultText()
+    Device.input.setClipboardText(text)
+    UIManager:show(InfoMessage:new{
+        text = _("Quiz results copied to clipboard."),
+        timeout = 2,
+    })
+end
+
+--- Export quiz results to file
+function QuizViewer:_exportResults()
+    local text = self:_buildResultText()
+    local book_title = self.opts and self.opts.title or "Quiz"
+    local chapter = self.opts and self.opts.chapter
+
+    -- Build filename
+    local filename = book_title:gsub("[/\\:*?\"<>|]", "_")
+    if chapter then
+        filename = filename .. " - " .. chapter:gsub("[/\\:*?\"<>|]", "_")
+    end
+    filename = filename .. " Quiz " .. os.date("%Y-%m-%d") .. ".md"
+
+    local DataStorage = require("datastorage")
+    local export_dir = DataStorage:getDataDir() .. "/koassistant_exports"
+    local lfs = require("libs/libkoreader-lfs")
+    lfs.mkdir(export_dir)
+    local filepath = export_dir .. "/" .. filename
+
+    local file = io.open(filepath, "w")
+    if file then
+        file:write(text)
+        file:close()
         UIManager:show(InfoMessage:new{
-            text = _("Quiz results saved to notebook."),
+            text = T(_("Saved to:\n%1"), filepath),
         })
     else
-        -- Fallback: show as copyable text
         UIManager:show(InfoMessage:new{
-            text = _("Notebook save not available. Quiz results shown below."),
+            text = _("Failed to save file."),
+        })
+    end
+end
+
+--- Save quiz results to notebook
+function QuizViewer:_saveToNotebook()
+    local text = self:_buildResultText()
+    if self.opts and self.opts.on_save_notebook then
+        self.opts.on_save_notebook(text)
+        UIManager:show(InfoMessage:new{
+            text = _("Quiz results saved to notebook."),
+            timeout = 2,
+        })
+    else
+        UIManager:show(InfoMessage:new{
+            text = _("Notebook not available for this book."),
         })
     end
 end
@@ -713,6 +740,23 @@ end
 -- Event handlers
 
 function QuizViewer:onClose()
+    -- Save quiz state for review on next open
+    if self.opts and self.opts.on_save_state then
+        -- Only save if user has answered at least one question
+        local has_answers = false
+        for _idx in ipairs(self.quiz_data.questions or {}) do
+            if self.revealed[_idx] then has_answers = true; break end
+        end
+        if has_answers then
+            self.opts.on_save_state({
+                answers = self.answers,
+                revealed = self.revealed,
+                correct = self.correct,
+                current_index = self.current_index,
+                phase = self.phase,
+            })
+        end
+    end
     UIManager:close(self)
     return true
 end

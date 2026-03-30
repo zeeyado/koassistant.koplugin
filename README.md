@@ -289,7 +289,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz, Chapter Quiz
+- **Default actions** — X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Quiz
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
@@ -537,7 +537,7 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions (
 | Context | Built-in Actions |
 |---------|------------------|
 | **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray†† |
-| **Book** | About, Find Similar, Suggest from Library†, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
+| **Book** | About, Find Similar, Suggest from Library†, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
 | **Library** | Next Read‡, Discover New‡, Analyze Library‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§, Analyze Notes§ⁿ |
 | **General** | News Update* |
 
@@ -600,7 +600,7 @@ Several actions let you choose which document source the AI uses when you trigge
 - **Use summary** — Uses a pre-generated summary (~2-8K tokens) instead of raw text. Much cheaper for repeated use or follow-up conversations. Requires generating the summary first via the Document Summary action. When scoped to a section, uses the section summary if available. If no summary exists, this option shows "(generate first)".
 - **AI knowledge only** — No document data sent. The AI uses its training knowledge of the work. Free and fast, but less accurate for obscure works.
 
-Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights, Document Summary, Document Analysis, Recap. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage. Document Summary and Document Analysis require text extraction (other sources are grayed out). Recap doesn't support section scoping (scope row is grayed with an explanation).
+Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Quiz, Extract Key Insights, Document Summary, Document Analysis, Recap. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage. Document Summary and Document Analysis require text extraction (other sources are grayed out). Recap doesn't support section scoping (scope row is grayed with an explanation).
 
 **When to use each source:**
 - **Full text**: Short to medium documents, one-off queries, when you need the AI to work from the actual text
@@ -652,8 +652,7 @@ Some actions work from the file browser (using only document metadata like title
 | **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge. Supports section scope |
-| **Generate Quiz** | Comprehension quiz — questions first, answer key at the bottom (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge. Supports section scope. Saved as an artifact |
-| **Chapter Quiz** | Interactive comprehension quiz — one question at a time with answer selection, scoring, and review. Multiple choice (auto-graded), short answer (type and self-grade), essay (self-grade). Triggered automatically at chapter ends (configurable) or manually via chapter picker from Quick Actions. Question types, count, and difficulty are configurable in Settings. Source selection: full text, summary, or AI knowledge. Supports section scope |
+| **Quiz** | Interactive comprehension quiz — one question at a time with answer selection, scoring, and review. Multiple choice (auto-graded), short answer and essay (self-graded). Triggered automatically at chapter ends (configurable) or manually from Quick Actions with scope picker. Question types, count, and difficulty configurable in Settings. Result saved as artifact. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Reading Guide** | Spoiler-free guide to what's ahead — threads in motion, patterns to notice, helpful background, how to approach the rest. Uses reading position to stay safe. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
 | **Document Summary** | Comprehensive summary. Saved as a Summary artifact, which other actions can use as their document source. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
@@ -684,7 +683,7 @@ Some actions work from the file browser (using only document metadata like title
 | Enhancement | What it does |
 |-------------|-------------|
 | **Academic X-Ray** | Replaces fiction/non-fiction categories with 7 research-appropriate categories: Key Concepts, Foundations (intellectual lineage, paradigms), Methodology, Findings, Referenced Works (with aliases and connections), Technical Terms, Figures & Data |
-| **Academic Prompt Tracks** | About, Find Similar, and X-Ray (Simple) switch to research-oriented prompts (research context, methodology, cited works instead of characters/themes). Recap, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Analyze Notes include expanded academic adaptation (methodology, evidence evaluation, field positioning) |
+| **Academic Prompt Tracks** | About, Find Similar, and X-Ray (Simple) switch to research-oriented prompts (research context, methodology, cited works instead of characters/themes). Recap, Key Arguments, Discussion Questions, Quiz, Reading Guide, and Analyze Notes include expanded academic adaptation (methodology, evidence evaluation, field positioning) |
 | **Research Nudge** | System prompt addition guiding the AI to ground analysis in the provided text, verify claims via web search, and contextualize within the paper's field |
 | **Web Search Override** | Actions that normally have web search disabled (X-Ray, Summarize, etc.) follow your global web search setting instead — if web search is on globally, research texts get web-enriched analysis |
 | **DOI in Prompts** | When a DOI is detected, every book-context prompt includes it, helping the AI identify the exact paper and its citation context |
@@ -727,7 +726,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **Analyze Notes** | Your highlights and annotations | Allow Annotation Notes |
 | **Key Arguments** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Discussion Questions** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
-| **Generate Quiz** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
+| **Quiz** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
 | **Document Analysis** | Entire document or section (user choice) | Allow Text Extraction |
 | **Document Summary** | Entire document or section (user choice) | Allow Text Extraction |
 | **Extract Key Insights** | Full text, summary, or AI knowledge (user choice) | Allow Text Extraction (for full text/summary) |
@@ -854,11 +853,11 @@ When an X-Ray cache covers 100% — whether from a complete generation, an incre
 
 > **Tip:** Section X-Rays are ideal when the full document is too large for a single detailed analysis, or when chapters cover disparate topics (as in many textbooks, academic works, or the Quran surah-by-surah). Rather than trimming the document globally with Hidden Flows, sections let you run deep analyses on specific parts while keeping the full document intact for other actions. Also useful for pivotal scenes in novels, individual essays in collections, or introductory sections you want to reference independently. For trimming away content you never want analyzed (bibliography, indices, notes, apparatus), use [Hidden Flows](#hidden-flows-support) instead — the two approaches are complementary. Section scoping is also available for other text-extraction actions — see [Section support](#section-support) below.
 
-**Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Generate Quiz, Explain in Context, Analyze in Context, Thematic Connection): These actions use the entire document context. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Actions with **source selection** (Key Arguments, Discussion Questions, Generate Quiz, Extract Insights, Explain in Context, Analyze in Context, Thematic Connection) let you choose between full text, a cached summary, or AI knowledge only — see [Source selection](#highlight-mode). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
+**Full Document Actions** (Document Analysis, Document Summary, Extract Insights, Key Arguments, Discussion Questions, Quiz, Explain in Context, Analyze in Context, Thematic Connection): These actions use the entire document context. **Document Analysis** and **Document Summary** require text extraction — they block generation when it's disabled, like X-Ray. Actions with **source selection** (Key Arguments, Discussion Questions, Quiz, Extract Insights, Explain in Context, Analyze in Context, Thematic Connection) let you choose between full text, a cached summary, or AI knowledge only — see [Source selection](#highlight-mode). They adapt to your content type and work especially well with [Domains](#domains). For example, with a "Linguistics" domain active, analyzing a linguistics paper will naturally focus on relevant aspects.
 
 <a id="section-support"></a>
 
-**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. Scope and source are combined in a single unified popup — tap "Pick section…" to choose via a hierarchical TOC picker. For X-Ray, the action's own popup offers section options (see [Section X-Rays](#section-x-rays)). Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser. When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the action popup. Naming a section with the same page range as an existing one replaces the old entry. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Generate Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
+**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. Scope and source are combined in a single unified popup — tap "Pick section…" to choose via a hierarchical TOC picker. For X-Ray, the action's own popup offers section options (see [Section X-Rays](#section-x-rays)). Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser. When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the action popup. Naming a section with the same page range as an existing one replaces the old entry. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Section scoping respects KOReader's custom/handmade TOC — create custom chapter boundaries to define your own scopes.
 
 > **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
 
@@ -1251,7 +1250,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 **Why use these?**
 - **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.5) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 17 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
 - **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all library actions (Next Read, Discover New, Analyze Library, Suggest from Library, Recommend).
-- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Generate Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
+- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge — and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 7 built-in actions: Explain in Context, Analyze in Context, Recap, Key Arguments, Discussion Questions, Quiz, Extract Insights. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
 - **`{spoiler_free_nudge}`**: Adds a spoiler prevention instruction when spoiler-free mode is active (see [Spoiler-Free Mode](#spoiler-free-mode)). When reading progress is available, the nudge tells the AI the reader's exact position and forbids revealing anything beyond it. When progress is unavailable (e.g., file browser with no saved progress), a generic "has not finished" variant is used. When spoiler-free mode is inactive, the placeholder expands to nothing. Not used by any built-in actions (freeform chat injects this via the system prompt instead), but available for custom actions that want spoiler awareness.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}` — it ensures your action produces useful results even when text extraction is disabled.
@@ -2206,18 +2205,16 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 
 ### Reading & Library (within Chat & Export Settings)
 
-#### Chapter Quiz
-- **Quiz on Chapter End**: Offer a comprehension quiz when you finish reading a chapter. The quiz is interactive: one question at a time with answer selection, self-grading, and a score summary. Requires a book with a table of contents. (default: OFF)
+#### Quiz
+- **Quiz on Chapter End**: Offer a comprehension quiz when you finish reading a chapter. Requires a book with a table of contents. (default: OFF)
 - **Chapter Depth**: Which TOC levels trigger a quiz — Follow KOReader TOC (default, uses your existing TOC filter), Level 1 only, Level 1-2, or Level 1-3
 - **Question Count**: Total number of questions per quiz (3-15, default: 8)
 - **Difficulty**: Easy (straightforward recall), Medium (comprehension and application, default), or Hard (analysis and synthesis)
 - **Include Multiple Choice**: Auto-graded A/B/C/D questions (default: ON)
-- **Include Short Answer**: Type your answer, then compare with model answer and self-grade (default: ON)
+- **Include Short Answer**: View model answer, then self-grade (default: ON)
 - **Include Essay / Discussion**: View key points a good answer should cover, then self-grade (default: ON)
 
-The **Chapter Quiz** action is also available manually from the Quick Actions panel — tap it to see a chapter picker (TOC list) and quiz any chapter on demand. The interactive quiz action uses structured JSON output from the AI and parses it into an interactive one-at-a-time viewer with navigation, scoring, and optional "Save to Notebook" for your results. If JSON parsing fails, the raw response is shown as a fallback.
-
-The static **Generate Quiz** action (in Quick Actions) remains available as a non-interactive study guide artifact with answer key — useful for printing or reference.
+The **Quiz** action is also available manually from the Quick Actions panel — opens the standard scope picker (full document or specific section). The quiz uses structured JSON output from the AI, parsed into an interactive one-at-a-time viewer with navigation, scoring, and Copy/Export/Notebook on the results screen. Result is saved as an artifact (View/Redo from Quick Actions). If JSON parsing fails, the raw response is shown as a fallback.
 
 #### Recap Reminder
 - **Remind to Recap on Book Open**: Show a reminder to run AI Recap when you open a book you haven't read in a while (default: OFF)
@@ -2397,7 +2394,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Insights, Reading Guide) for the current book (requires book to be open). Chapter Quiz is not cached (fresh each time). To clear just one action, use the delete button in the artifact viewer instead.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes, Key Arguments, Discussion Questions, Quiz, Insights, Reading Guide) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2842,7 +2839,7 @@ Twelve actions produce **document artifacts** — persistent, per-book outputs y
 | **Analyze Notes** | Analyze Notes action | Analysis of your highlights and annotations | **Text viewer** — patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 | **Key Arguments** | Key Arguments action | Thesis, evidence, assumptions, counterarguments | **Text viewer** — source selection (full text / summary / AI knowledge). Supports section scope. |
 | **Discussion Questions** | Discussion Questions action | Comprehension, analytical, interpretive, personal questions | **Text viewer** — source selection. Supports section scope. |
-| **Generate Quiz** | Generate Quiz action | Multiple choice, short answer, and essay questions with answer key at bottom | **Text viewer** — source selection. Supports section scope. |
+| **Quiz** | Quiz action | Interactive one-at-a-time viewer with scoring | **Quiz viewer** — source selection. Supports section scope. Auto-trigger at chapter ends. |
 | **Reading Guide** | Reading Guide action | Spoiler-free guide: threads, patterns, context, approach | **Text viewer** — source selection. Supports section scope. Updates as you read further. |
 | **Key Insights** | Extract Key Insights action | Important takeaways, novel perspectives, actionable conclusions | **Text viewer** — source selection. Supports section scope. |
 
@@ -2910,7 +2907,7 @@ All artifact results are cached per book. X-Ray and Recap additionally support *
 - Actions requiring text extraction (X-Ray, Document Summary, Document Analysis, Recap) must be run from reading mode (not file browser)
 - Sidecar-eligible actions (X-Ray Simple, Analyze Notes, etc.) can be run from file browser — they read highlights, annotations, notebook, and progress from disk
 - Progress must advance by at least 1% to trigger an incremental update (incremental track only)
-- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), About, Key Arguments, Discussion Questions, Generate Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
+- X-Ray, Document Summary, and Document Analysis require text extraction; X-Ray (Simple), About, Key Arguments, Discussion Questions, Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
 
 **Limitations:**
 - Only X-Ray and Recap support incremental caching (all other artifact actions cache results but regenerate fresh). Reading Guide tracks reading progress ("Update to X%") but regenerates fully each time

@@ -901,10 +901,19 @@ function ArtifactBrowser:_showSectionGroupPopup(sections, doc_path, doc_title, A
                         UIManager:close(self_ref._section_group_dialog)
                     end
                     if on_select then on_select() end
-                    AskGPT:showCacheViewer({
-                        name = T(_("Section %1: %2"), type_label, label),
-                        key = captured.key, data = captured.data,
-                        book_title = doc_title, file = doc_path })
+                    -- Route through viewCachedAction for per-action types (e.g. quiz → quiz viewer)
+                    local action_id = section_type
+                    local action_stub = AskGPT.action_service and AskGPT.action_service:getAction("book", action_id)
+                    if action_stub and action_stub.interactive_quiz then
+                        AskGPT:viewCachedAction(action_stub, action_id, captured.data, {
+                            file = doc_path, book_title = doc_title,
+                            section_label = label, section_key = captured.key })
+                    else
+                        AskGPT:showCacheViewer({
+                            name = T(_("Section %1: %2"), type_label, label),
+                            key = captured.key, data = captured.data,
+                            book_title = doc_title, file = doc_path })
+                    end
                 end,
             }})
         end
