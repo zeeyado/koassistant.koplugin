@@ -6520,7 +6520,7 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
   if prefix then
     scope = self:_buildSectionScope(entry, label, cache_label, prefix)
   else
-    -- Non-cacheable section action (e.g. chapter_quiz): build scope without cache key
+    -- Section action without cache prefix: build scope without cache key
     local vis_sp = self.ui.document.getPageNumberInFlow
         and self.ui.document:getPageNumberInFlow(entry.start_page) or entry.start_page
     local vis_ep = self.ui.document.getPageNumberInFlow
@@ -6960,6 +6960,83 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
     end
   end
 
+  -- Interactive quiz: parse cached JSON and open quiz viewer
+  if action.interactive_quiz and cached_entry and cached_entry.result then
+    local QuizParser = require("koassistant_quiz_parser")
+    local parsed = QuizParser.parse(cached_entry.result)
+    if parsed and parsed.questions and #parsed.questions > 0 then
+      local quiz_book_title = (opts and opts.book_title) or (self.ui and self.ui.doc_props and (self.ui.doc_props.display_title or self.ui.doc_props.title)) or ""
+      local quiz_book_author = (opts and opts.book_author) or (self.ui and self.ui.doc_props and self.ui.doc_props.authors) or ""
+      local section_label = opts and opts.section_label
+      local file = (opts and opts.file) or (self.ui and self.ui.document and self.ui.document.file)
+      local cache_key = (opts and opts.section_key) or action_id
+
+      local function openQuizViewer(saved_state)
+        local QuizViewer = require("koassistant_quiz_viewer")
+        local viewer_opts = {
+          quiz_data = parsed,
+          opts = {
+            title = quiz_book_title,
+            chapter = section_label,
+            book_author = quiz_book_author,
+            on_save_notebook = file and function(text)
+              local Notebook = require("koassistant_notebook")
+              local notebook_path = Notebook.getPath(file)
+              if notebook_path then
+                Notebook.append(notebook_path, "\n---\n\n" .. text .. "\n")
+              end
+            end,
+            on_save_state = file and function(state)
+              local ActionCache = require("koassistant_action_cache")
+              local entry = ActionCache.get(file, cache_key)
+              if entry then
+                entry.quiz_state = state
+                ActionCache.set(file, cache_key, entry)
+              end
+            end,
+          },
+        }
+        -- Restore saved state if provided
+        if saved_state then
+          viewer_opts.answers = saved_state.answers
+          viewer_opts.revealed = saved_state.revealed
+          viewer_opts.correct = saved_state.correct
+          viewer_opts.current_index = saved_state.current_index or 1
+          viewer_opts.phase = saved_state.phase or "taking"
+        end
+        UIManager:show(QuizViewer:new(viewer_opts))
+      end
+
+      -- Check for saved quiz state
+      local saved_state = cached_entry.quiz_state
+      if saved_state then
+        local ButtonDialog = require("ui/widget/buttondialog")
+        local quiz_dialog
+        quiz_dialog = ButtonDialog:new{
+          title = _("Quiz"),
+          buttons = {
+            {{ text = _("Review Previous Attempt"), callback = function()
+              UIManager:close(quiz_dialog)
+              openQuizViewer(saved_state)
+            end }},
+            {{ text = _("Take Again"), callback = function()
+              UIManager:close(quiz_dialog)
+              openQuizViewer(nil)
+            end }},
+            {{ text = _("Cancel"), callback = function()
+              UIManager:close(quiz_dialog)
+            end }},
+          },
+        }
+        UIManager:show(quiz_dialog)
+      else
+        openQuizViewer(nil)
+      end
+      return
+    end
+    -- Fallback: JSON parse failed, show raw text in generic viewer below
+  end
+
   -- Generic viewer for per-action caches (e.g., Recap)
   local ChatGPTViewer = require("koassistant_chatgptviewer")
   local action_name = action.text or action_id
@@ -7307,7 +7384,7 @@ function AskGPT:_offerChapterQuiz(chapter_index)
 end
 
 --- Execute a chapter quiz for the specified chapter.
---- Extracts chapter boundaries from TOC and runs the chapter_quiz action
+--- Extracts chapter boundaries from TOC and runs the quiz action
 --- with section scope matching the chapter's page range.
 --- @param chapter_index number TOC index of the chapter
 function AskGPT:_runChapterQuiz(chapter_index)
@@ -7337,7 +7414,7 @@ function AskGPT:_runChapterQuiz(chapter_index)
   end
 
   -- Get the chapter_quiz action
-  local action = self.action_service:getAction("book", "chapter_quiz")
+  local action = self.action_service:getAction("book", "quiz")
   if not action then return end
 
   -- Block if requirements unmet
@@ -7345,7 +7422,7 @@ function AskGPT:_runChapterQuiz(chapter_index)
 
   -- Execute using the standard section action path (scoped extraction)
   local label = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)
-  self:_executeSectionAction(action, "chapter_quiz", {
+  self:_executeSectionAction(action, "quiz", {
     start_page = start_page,
     end_page = end_page,
     title = label,

@@ -648,7 +648,7 @@ local SettingsSchema = {
                 {
                     id = "quiz_essay_enabled",
                     type = "toggle",
-                    text = _("Include Essay / Discussion"),
+                    text = _("Include Discussion"),
                     path = "features.quiz_essay_enabled",
                     default = true,
                     separator = true,

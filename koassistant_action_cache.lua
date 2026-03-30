@@ -69,7 +69,7 @@ end
 local CACHE_VERSION = 2
 
 -- Artifact keys tracked in the browsing index
-local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights", "key_arguments", "discussion_questions", "generate_quiz", "extract_insights" }
+local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights", "key_arguments", "discussion_questions", "quiz", "extract_insights" }
 
 --- Update the artifact index in g_reader_settings after any cache mutation.
 --- Scans the in-memory cache table for known artifact keys and updates the index entry.
@@ -432,7 +432,7 @@ local ARTIFACT_NAMES = {
     ["analyze_highlights"] = _("Notes Analysis"),
     ["key_arguments"] = _("Key Arguments"),
     ["discussion_questions"] = _("Discussion Questions"),
-    ["generate_quiz"] = _("Generate Quiz"),
+    ["quiz"] = _("Quiz"),
     ["extract_insights"] = _("Key Insights"),
 }
 ActionCache.ARTIFACT_NAMES = ARTIFACT_NAMES
@@ -440,7 +440,7 @@ ActionCache.ARTIFACT_NAMES = ARTIFACT_NAMES
 -- Artifact keys that are per-action caches (vs document-level caches)
 local PER_ACTION_ARTIFACTS = {
     recap = true, xray_simple = true, book_info = true, analyze_highlights = true,
-    key_arguments = true, discussion_questions = true, generate_quiz = true, extract_insights = true,
+    key_arguments = true, discussion_questions = true, quiz = true, extract_insights = true,
 }
 
 --- Get available artifacts for a document file.
@@ -492,7 +492,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
     end
     -- Add non-X-Ray section groups
     local other_section_types = { "summary", "analyze", "key_arguments",
-        "discussion_questions", "generate_quiz", "extract_insights" }
+        "discussion_questions", "quiz", "extract_insights" }
     for _idx, sec_type in ipairs(other_section_types) do
         local prefix = ActionCache.SECTION_PREFIXES[sec_type]
         if prefix then
@@ -651,7 +651,7 @@ ActionCache.SECTION_PREFIXES = {
     analyze = "_analyze_section:",
     key_arguments = "key_arguments_section:",
     discussion_questions = "discussion_questions_section:",
-    generate_quiz = "generate_quiz_section:",
+    quiz = "quiz_section:",
     extract_insights = "extract_insights_section:",
 }
 
@@ -662,7 +662,7 @@ ActionCache.SECTION_GROUP_NAMES = {
     analyze = _("View Section Analyses"),
     key_arguments = _("View Section Key Arguments"),
     discussion_questions = _("View Section Discussion Questions"),
-    generate_quiz = _("View Section Quizzes"),
+    quiz = _("View Section Quizzes"),
     extract_insights = _("View Section Key Insights"),
 }
 

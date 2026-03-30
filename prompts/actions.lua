@@ -1494,72 +1494,19 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         builtin = true,
     },
     -- Generate Quiz: Create comprehension questions
-    generate_quiz = {
-        id = "generate_quiz",
+    -- Quiz: Interactive comprehension quiz with structured JSON output, saved as artifact
+    quiz = {
+        id = "quiz",
         enable_web_search = false,
-        text = _("Generate Quiz"),
-        description = _("Creates a comprehension quiz with multiple choice, short answer, and essay questions with model answers. Can target a specific section. Result is saved as an artifact."),
+        text = _("Quiz"),
+        description = _("Interactive comprehension quiz with multiple choice, short answer, and essay questions. Answers one at a time with scoring. Result is saved as an artifact. Can be triggered automatically at chapter ends."),
         context = "book",
         use_book_text = true,  -- Permission gate for text extraction
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
-        use_response_caching = true,
-        in_quick_actions = 9,     -- Appears in Quick Actions menu
-        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.{doi_clause}
-
-{document_context_section}
-
-Generate 8-10 questions to test understanding. Present ALL questions first, then ALL answers in a separate Answer Key at the end.
-
-## Questions
-
-### Multiple Choice (3-4 questions)
-Test recall of key facts, concepts, or findings.
-Format: Numbered question, options A-D in a bullet list. Do NOT indicate which option is correct.
-
-### Short Answer (3-4 questions)
-Test understanding of themes, arguments, methods, or motivations.
-Format: Numbered question only (no hints or answer).
-
-### Discussion/Essay (2 questions)
-Open-ended questions requiring synthesis or analysis.
-Format: Numbered question only.
-
-Adapt to content type:
-- Fiction: Focus on plot, characters, themes, narrative choices
-- Non-fiction: Focus on arguments, evidence, key concepts, implications
-- Academic: Focus on methodology, research design, evidence evaluation, theoretical contributions, and limitations
-
-## Answer Key
-After all questions, provide a consolidated answer key:
-- Multiple choice: Correct letter with brief explanation
-- Short answer: Model answer (2-3 sentences)
-- Discussion/Essay: Key points a good answer should cover
-
-Use key terms and proper nouns in the work's original language where applicable. {conciseness_nudge}
-
-Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. {hallucination_nudge}
-
-{text_fallback_nudge}]],
-        api_params = {
-            temperature = 0.6,  -- Balanced variety
-            max_tokens = 4096,
-        },
-        builtin = true,
-    },
-    -- Chapter Quiz: Interactive comprehension quiz with structured JSON output
-    chapter_quiz = {
-        id = "chapter_quiz",
-        enable_web_search = false,
-        text = _("Chapter Quiz"),
-        description = _("Interactive comprehension quiz with multiple choice, short answer, and essay questions. Answers one at a time with scoring. Can be triggered automatically at chapter ends."),
-        context = "book",
-        use_book_text = true,  -- Permission gate for text extraction
-        use_summary_cache = true,
-        source_selection = true,  -- Show source selection popup
-        use_response_caching = false,  -- Fresh each time, not cached as artifact
+        use_response_caching = true,  -- Cached as artifact
         interactive_quiz = true,  -- Route to quiz viewer instead of chat viewer
-        in_quick_actions = 10,  -- After generate_quiz (9)
+        in_quick_actions = 9,
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
 
 {document_context_section}

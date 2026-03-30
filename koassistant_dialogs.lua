@@ -2707,7 +2707,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             elseif qtype == "short_answer" then
                 table.insert(type_instructions, '- Include short_answer questions (test understanding of themes/arguments)')
             elseif qtype == "essay" then
-                table.insert(type_instructions, '- Include essay questions (open-ended synthesis/analysis)')
+                table.insert(type_instructions, '- Include discussion questions (open-ended synthesis/analysis)')
             end
         end
         table.insert(parts, "Question types to include:\n" .. table.concat(type_instructions, "\n"))
@@ -6716,22 +6716,27 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     local quiz_title = book_metadata and book_metadata.title or ""
                     local chapter_title = configuration and configuration.features
                         and configuration.features._chapter_quiz_title
+                    local quiz_file = ui and ui.document and ui.document.file
+                    local quiz_cache_key = action.id or "quiz"
                     UIManager:show(QuizViewer:new{
                         quiz_data = parsed,
                         opts = {
                             title = quiz_title,
                             chapter = chapter_title,
                             book_author = book_metadata and book_metadata.author,
-                            on_save_notebook = plugin and function(text)
+                            on_save_notebook = quiz_file and function(text)
                                 local Notebook = require("koassistant_notebook")
-                                local file = ui and ui.document and ui.document.file
-                                if file and Notebook then
-                                    local notebook_path = Notebook.getPath(file)
-                                    if notebook_path then
-                                        -- Format as a notebook entry with timestamp separator
-                                        local entry = "\n---\n\n" .. text .. "\n"
-                                        Notebook.append(notebook_path, entry)
-                                    end
+                                local notebook_path = Notebook.getPath(quiz_file)
+                                if notebook_path then
+                                    Notebook.append(notebook_path, "\n---\n\n" .. text .. "\n")
+                                end
+                            end,
+                            on_save_state = quiz_file and function(state)
+                                local ActionCache = require("koassistant_action_cache")
+                                local entry = ActionCache.get(quiz_file, quiz_cache_key)
+                                if entry then
+                                    entry.quiz_state = state
+                                    ActionCache.set(quiz_file, quiz_cache_key, entry)
                                 end
                             end,
                         },
