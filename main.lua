@@ -1176,7 +1176,7 @@ function AskGPT:onDispatcherRegisterActions()
   Dispatcher:registerAction("koassistant_library_actions", {
     category = "none",
     event = "KOAssistantLibraryActions",
-    title = _("KOAssistant: Library Actions"),
+    title = _("KOAssistant: Library Chat/Action"),
     general = true,
   })
 
@@ -8597,7 +8597,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["library_actions"] = {
-    text = E("\u{1F4DA}", _("Library Actions")),
+    text = E("\u{1F4DA}", _("Library Chat/Action")),
     callback = function()
       opening_subdialog = true
       UIManager:close(dialog)

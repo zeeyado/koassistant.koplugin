@@ -5825,7 +5825,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
     if is_multi then
         if has_scan and multi_count > 0 then
-            dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
+            dialog_title = T(multi_count == 1 and _("Library Chat/Action \xC2\xB7 %1 item") or _("Library Chat/Action \xC2\xB7 %1 items"), multi_count)
             input_hint_text = pickHint({
                 _("Chat about your library and selected items..."),
                 _("\"Something exciting to read next\""),
@@ -5833,7 +5833,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 _("\"A short, light book from my library\""),
             })
         elseif has_scan then
-            dialog_title = _("Library Actions")
+            dialog_title = _("Library Chat/Action")
             input_hint_text = pickHint({
                 _("Chat about your library..."),
                 _("\"What should I read next?\""),
@@ -5841,7 +5841,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 _("\"A book I've been neglecting\""),
             })
         elseif multi_count > 0 then
-            dialog_title = T(multi_count == 1 and _("Library Actions \xC2\xB7 %1 item") or _("Library Actions \xC2\xB7 %1 items"), multi_count)
+            dialog_title = T(multi_count == 1 and _("Library Chat/Action \xC2\xB7 %1 item") or _("Library Chat/Action \xC2\xB7 %1 items"), multi_count)
             input_hint_text = pickHint({
                 _("Chat about your selected items..."),
                 _("\"How do these books connect?\""),
@@ -5850,11 +5850,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             })
         elseif library_toggle_on then
             -- Toggle on but no folders configured yet
-            dialog_title = _("Library Actions")
+            dialog_title = _("Library Chat/Action")
             input_hint_text = _("Add library scan folders or items to run any action...")
         else
             -- Toggle off
-            dialog_title = _("Library Actions")
+            dialog_title = _("Library Chat/Action")
             input_hint_text = _("Add items to chat about them or run any action...")
         end
     else

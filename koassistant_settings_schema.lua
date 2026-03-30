@@ -45,7 +45,7 @@ local SettingsSchema = {
         {
             id = "library_actions",
             type = "action",
-            text = _("Library Actions"),
+            text = _("Library Chat/Action"),
             emoji = "\u{1F4DA}",
             callback = "openLibraryDialog",
         },
