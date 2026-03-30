@@ -2588,6 +2588,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         temp_config.features.storage_key = prompt.storage_key
     end
 
+    -- Disable streaming for interactive quiz (JSON output is meaningless during streaming)
+    if prompt.interactive_quiz then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.enable_streaming = false
+    end
+
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
     -- System prompt is built by buildUnifiedRequestConfig and passed in config.system
     -- No longer embedded in the consolidated message
@@ -6717,10 +6723,15 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             chapter = chapter_title,
                             book_author = book_metadata and book_metadata.author,
                             on_save_notebook = plugin and function(text)
-                                local NotebookManager = require("koassistant_notebook")
+                                local Notebook = require("koassistant_notebook")
                                 local file = ui and ui.document and ui.document.file
-                                if file and NotebookManager then
-                                    NotebookManager.appendToNotebook(file, text, plugin.settings)
+                                if file and Notebook then
+                                    local notebook_path = Notebook.getPath(file)
+                                    if notebook_path then
+                                        -- Format as a notebook entry with timestamp separator
+                                        local entry = "\n---\n\n" .. text .. "\n"
+                                        Notebook.append(notebook_path, entry)
+                                    end
                                 end
                             end,
                         },

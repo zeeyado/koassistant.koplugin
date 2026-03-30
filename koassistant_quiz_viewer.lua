@@ -13,7 +13,6 @@ local Geom = require("ui/geometry")
 local GestureRange = require("ui/gesturerange")
 local InfoMessage = require("ui/widget/infomessage")
 local InputContainer = require("ui/widget/container/inputcontainer")
-local InputDialog = require("ui/widget/inputdialog")
 local MovableContainer = require("ui/widget/container/movablecontainer")
 local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
 local Size = require("ui/size")
@@ -33,8 +32,7 @@ body { margin: 0; line-height: 1.3; text-align: left; padding: 0; }
 h3 { font-size: 1.1em; margin: 0.5em 0 0.3em 0; font-weight: bold; }
 p { margin: 0.4em 0; }
 ul, ol { margin: 0.3em 0; padding-left: 1.5em; }
-.correct { color: #006600; font-weight: bold; }
-.incorrect { color: #990000; font-weight: bold; }
+.option-not-picked { color: #999; }
 .answer-key { margin-top: 0.8em; padding-top: 0.5em; border-top: 1px solid #999; }
 ]]
 
@@ -203,14 +201,17 @@ function QuizViewer:_buildQuestionHTML(q, idx)
                 local prefix = letter .. ") "
                 local opt_text = q.options[letter]
 
-                -- Highlight selected answer after reveal
+                -- Highlight selected answer after reveal (monochrome e-ink friendly)
                 if self.revealed[idx] then
                     if letter == q.correct then
-                        table.insert(parts, '<li><span class="correct">' .. prefix .. opt_text .. ' ✓</span></li>')
+                        -- Correct answer: bold with checkmark
+                        table.insert(parts, "<li><b>" .. prefix .. opt_text .. "</b> [correct]</li>")
                     elseif letter == self.answers[idx] and letter ~= q.correct then
-                        table.insert(parts, '<li><span class="incorrect">' .. prefix .. opt_text .. ' ✗</span></li>')
+                        -- User's wrong pick: regular with X
+                        table.insert(parts, "<li>" .. prefix .. opt_text .. " [your answer]</li>")
                     else
-                        table.insert(parts, "<li>" .. prefix .. opt_text .. "</li>")
+                        -- Not picked: grayed out
+                        table.insert(parts, '<li><span class="option-not-picked">' .. prefix .. opt_text .. "</span></li>")
                     end
                 else
                     -- Before answering: plain options
@@ -230,9 +231,6 @@ function QuizViewer:_buildQuestionHTML(q, idx)
                 table.insert(parts, "<p>" .. q.explanation .. "</p>")
             end
         elseif q.type == "short_answer" then
-            if self.answers[idx] and self.answers[idx] ~= "" then
-                table.insert(parts, "<p><b>" .. _("Your answer:") .. "</b> " .. self.answers[idx] .. "</p>")
-            end
             if q.model_answer and q.model_answer ~= "" then
                 table.insert(parts, "<p><b>" .. _("Model answer:") .. "</b> " .. q.model_answer .. "</p>")
             end
@@ -292,10 +290,6 @@ function QuizViewer:_buildQuestionButtons(q, idx)
     elseif q.type == "short_answer" then
         if not self.revealed[idx] then
             table.insert(buttons, {
-                {
-                    text = _("Type Answer"),
-                    callback = function() self_ref:_showAnswerInput(idx) end,
-                },
                 {
                     text = _("Show Answer"),
                     callback = function() self_ref:_revealAnswer(idx) end,
@@ -401,40 +395,7 @@ function QuizViewer:_selectMCAnswer(idx, letter)
     self:_refresh()
 end
 
---- Show InputDialog for typing a short answer
-function QuizViewer:_showAnswerInput(idx)
-    local self_ref = self
-    local input_dialog
-    input_dialog = InputDialog:new{
-        title = _("Your Answer"),
-        input = self.answers[idx] or "",
-        input_hint = _("Type your answer..."),
-        buttons = {{
-            {
-                text = _("Cancel"),
-                id = "close",
-                callback = function()
-                    UIManager:close(input_dialog)
-                end,
-            },
-            {
-                text = _("Submit"),
-                is_enter_default = true,
-                callback = function()
-                    local answer = input_dialog:getInputText()
-                    UIManager:close(input_dialog)
-                    self_ref.answers[idx] = answer
-                    self_ref.revealed[idx] = true
-                    self_ref:_refresh()
-                end,
-            },
-        }},
-    }
-    UIManager:show(input_dialog)
-    input_dialog:onShowKeyboard()
-end
-
---- Reveal answer without typing (for short answer / essay)
+--- Reveal answer (for short answer / essay)
 function QuizViewer:_revealAnswer(idx)
     self.revealed[idx] = true
     self:_refresh()
