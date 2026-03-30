@@ -5914,7 +5914,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     UIManager:close(gear_menu)
                     if plugin and plugin.settings then
                         local f = plugin.settings:readSetting("features") or {}
-                        f.hide_library_scan_actions = not (f.hide_library_scan_actions == true)
+                        f.hide_library_scan_actions = f.hide_library_scan_actions ~= true
                         plugin.settings:saveSetting("features", f)
                         plugin.settings:flush()
                         refreshInputDialog()
