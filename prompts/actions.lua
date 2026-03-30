@@ -964,7 +964,7 @@ Be substantive but not exhaustive. {hallucination_nudge}]],
         builtin = true,
         in_quick_actions = 3,     -- Appears in Quick Actions menu
         in_file_browser = 1,
-        in_reading_features = 5,  -- After X-Ray Simple (4), AI-knowledge companion
+        -- (in_reading_features removed — menu replaced by Reading & Library settings)
     },
     similar_books = {
         id = "similar_books",
@@ -1080,7 +1080,7 @@ CRITICAL: This must cover only content up to {reading_progress}. Output ONLY val
         },
         builtin = true,
         no_duplicate = true,  -- JSON output requires X-Ray browser; duplicates would produce unusable raw JSON in chat
-        in_reading_features = 1,  -- Appears in Reading Features menu + default gesture
+        -- (in_reading_features removed)
         in_quick_actions = 1,     -- Appears in Quick Actions menu
         -- Document cache: save result for other actions to reference via {xray_cache_section}
         cache_as_xray = true,
@@ -1205,7 +1205,7 @@ CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. No foreshadowing, no
             max_tokens = 8192,
         },
         builtin = true,
-        in_reading_features = 4,        -- After X-Ray(1), Recap(2), Analyze My Notes(3)
+        -- (in_reading_features removed)
         storage_key = "__SKIP__",       -- Cache, not chat history
         use_response_caching = true,    -- Saves result to ActionCache for cache-first viewing
         -- NO update_prompt — every generation is fresh (regenerate, not incremental)
@@ -1267,7 +1267,7 @@ If you don't recognize this work or the title/content seems unclear, tell me hon
             max_tokens = 8192,
         },
         builtin = true,
-        in_reading_features = 2,  -- Appears in Reading Features menu + default gesture
+        -- (in_reading_features removed)
         in_quick_actions = 2,     -- Appears in Quick Actions menu
         -- Response caching: enables incremental updates as reading progresses
         storage_key = "__SKIP__",       -- Cache, not chat history
@@ -1357,7 +1357,7 @@ If you don't recognize this work or the highlights seem insufficient for meaning
             max_tokens = 4096,
         },
         builtin = true,
-        in_reading_features = 3,  -- Appears in Reading Features menu + default gesture
+        -- (in_reading_features removed)
         in_quick_actions = 5,
     },
     -- Related Thinkers: Intellectual landscape and influences
@@ -1547,6 +1547,68 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         },
         builtin = true,
     },
+    -- Chapter Quiz: Interactive comprehension quiz with structured JSON output
+    chapter_quiz = {
+        id = "chapter_quiz",
+        enable_web_search = false,
+        text = _("Chapter Quiz"),
+        description = _("Interactive comprehension quiz with multiple choice, short answer, and essay questions. Answers one at a time with scoring. Can be triggered automatically at chapter ends."),
+        context = "book",
+        use_book_text = true,  -- Permission gate for text extraction
+        use_summary_cache = true,
+        source_selection = true,  -- Show source selection popup
+        use_response_caching = false,  -- Fresh each time, not cached as artifact
+        interactive_quiz = true,  -- Route to quiz viewer instead of chat viewer
+        in_quick_actions = 10,  -- After generate_quiz (9)
+        prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
+
+{document_context_section}
+
+{quiz_instructions}
+
+CRITICAL: You MUST respond with ONLY a JSON object, no other text. Use this exact structure:
+
+```json
+{
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "question": "What is the main theme explored in this section?",
+      "options": {"A": "Option text", "B": "Option text", "C": "Option text", "D": "Option text"},
+      "correct": "B",
+      "explanation": "Brief explanation of why B is correct."
+    },
+    {
+      "type": "short_answer",
+      "question": "Explain the significance of...",
+      "model_answer": "A good answer would mention...",
+      "key_points": ["Key point 1", "Key point 2"]
+    },
+    {
+      "type": "essay",
+      "question": "Discuss how the author...",
+      "key_points": ["Point about X", "Point about Y", "Connection to Z"]
+    }
+  ]
+}
+```
+
+Rules:
+- "type" must be exactly: "multiple_choice", "short_answer", or "essay"
+- Multiple choice: always 4 options (A-D), "correct" is the letter, include "explanation"
+- Short answer: include "model_answer" (2-3 sentences) and "key_points" array
+- Essay: include "key_points" array (3-5 points a good answer should cover)
+- Adapt to content type (fiction: plot/characters/themes, non-fiction: arguments/evidence/concepts, academic: methodology/findings)
+- Use key terms in the work's original language where applicable
+
+{hallucination_nudge}
+{text_fallback_nudge}]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
     -- Analyze Full Document: Complete document analysis for short content
     analyze_full_document = {
         id = "analyze_full_document",
@@ -1560,7 +1622,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         cache_as_analyze = true,  -- Save for other actions via {analyze_cache_section}
         use_response_caching = true,  -- Per-action cache + viewer buttons
         source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
-        in_reading_features = 7,  -- After Document Summary (6)
+        -- (in_reading_features removed)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Analyze this document: "{title}"{author_clause}.{doi_clause}
 
@@ -1594,7 +1656,7 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         cache_as_summary = true,  -- Save for other actions via {summary_cache_section}
         use_response_caching = true,  -- Per-action cache + viewer buttons
         source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
-        in_reading_features = 6,  -- After About (5)
+        -- (in_reading_features removed)
         in_quick_actions = 4,  -- After About (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
         prompt = [[Summarize: "{title}"{author_clause}.{doi_clause}
@@ -1710,7 +1772,7 @@ CRITICAL: No spoilers beyond {reading_progress}. Guide attention without reveali
         },
         reasoning_config = { default = "off" },
         builtin = true,
-        in_reading_features = 8,
+        -- (in_reading_features removed)
         in_quick_actions = 10,
     },
     -- Web-enhanced book actions (force web search on)

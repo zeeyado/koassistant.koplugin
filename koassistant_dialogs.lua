@@ -2666,6 +2666,50 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     }
     logger.info("KOAssistant: message_data.book_metadata=", message_data.book_metadata and "present" or "nil")
 
+    -- Build dynamic quiz instructions from settings (for interactive quiz actions)
+    if prompt and prompt.interactive_quiz then
+        local features = config.features or {}
+        local parts = {}
+        local count = features.quiz_question_count or 8
+        table.insert(parts, "Generate " .. count .. " questions total.")
+
+        -- Difficulty
+        local difficulty = features.quiz_difficulty or "medium"
+        if difficulty == "easy" then
+            table.insert(parts, "Difficulty: Easy — focus on straightforward recall and recognition.")
+        elseif difficulty == "hard" then
+            table.insert(parts, "Difficulty: Hard — focus on nuanced analysis, synthesis, and evaluation.")
+        else
+            table.insert(parts, "Difficulty: Medium — balance recall with comprehension and application.")
+        end
+
+        -- Question type distribution
+        local types_enabled = {}
+        if features.quiz_mc_enabled ~= false then table.insert(types_enabled, "multiple_choice") end
+        if features.quiz_short_answer_enabled ~= false then table.insert(types_enabled, "short_answer") end
+        if features.quiz_essay_enabled ~= false then table.insert(types_enabled, "essay") end
+
+        if #types_enabled == 0 then
+            -- All disabled — fall back to MC only
+            types_enabled = { "multiple_choice" }
+        end
+
+        local type_instructions = {}
+        for _idx, qtype in ipairs(types_enabled) do
+            if qtype == "multiple_choice" then
+                table.insert(type_instructions, '- Include multiple_choice questions (test recall of key facts)')
+            elseif qtype == "short_answer" then
+                table.insert(type_instructions, '- Include short_answer questions (test understanding of themes/arguments)')
+            elseif qtype == "essay" then
+                table.insert(type_instructions, '- Include essay questions (open-ended synthesis/analysis)')
+            end
+        end
+        table.insert(parts, "Question types to include:\n" .. table.concat(type_instructions, "\n"))
+        table.insert(parts, "Distribute questions roughly evenly across the enabled types.")
+
+        message_data.quiz_instructions = table.concat(parts, "\n")
+    end
+
     -- Add book info for highlight context when:
     -- 1. include_book_context is enabled for the prompt, OR
     -- 2. The prompt uses template variables that require book info
@@ -6652,6 +6696,39 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                         return
                     end
                 end
+            end
+
+            -- For interactive quiz: parse JSON and open quiz viewer
+            if action.interactive_quiz then
+                local messages = history:getMessages()
+                local last_msg = messages[#messages]
+                local result_text = last_msg and last_msg.content or ""
+                local QuizParser = require("koassistant_quiz_parser")
+                local parsed = QuizParser.parse(result_text)
+                if parsed and parsed.questions and #parsed.questions > 0 then
+                    local QuizViewer = require("koassistant_quiz_viewer")
+                    local quiz_title = book_metadata and book_metadata.title or ""
+                    local chapter_title = configuration and configuration.features
+                        and configuration.features._chapter_quiz_title
+                    UIManager:show(QuizViewer:new{
+                        quiz_data = parsed,
+                        opts = {
+                            title = quiz_title,
+                            chapter = chapter_title,
+                            book_author = book_metadata and book_metadata.author,
+                            on_save_notebook = plugin and function(text)
+                                local NotebookManager = require("koassistant_notebook")
+                                local file = ui and ui.document and ui.document.file
+                                if file and NotebookManager then
+                                    NotebookManager.appendToNotebook(file, text, plugin.settings)
+                                end
+                            end,
+                        },
+                    })
+                    return
+                end
+                -- Fallback: if JSON parsing failed, show raw text in normal viewer
+                logger.warn("KOAssistant: Quiz JSON parsing failed, falling back to text viewer")
             end
 
             -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer

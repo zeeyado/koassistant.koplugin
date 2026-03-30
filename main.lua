@@ -312,6 +312,9 @@ function AskGPT:init()
     end
     -- Check if recap reminder should be shown
     self:checkRecapReminder()
+    -- Initialize chapter quiz state (reset on each book open)
+    self._last_chapter_index = nil
+    self._last_quiz_offered_chapter = nil
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
@@ -1887,30 +1890,6 @@ function AskGPT:getEffectiveDefaultModel(provider)
   return nil
 end
 
--- Helper: Build reading features sub-menu dynamically from actions with in_reading_features flag
--- Used by settings schema - items are built at runtime from action definitions
-function AskGPT:buildReadingFeaturesMenu()
-  local self_ref = self
-  local items = {}
-  local features = self.settings:readSetting("features") or {}
-
-  -- Get reading features actions from action service
-  local reading_actions = self.action_service:getReadingFeaturesActions()
-
-  for _i, action in ipairs(reading_actions) do
-    -- Look up full action to get data access flags for indicators
-    local full_action = self.action_service:getAction("book", action.id)
-    table.insert(items, {
-      text = ActionService.getActionDisplayText(full_action or action, features),
-      info_text = action.info_text,
-      callback = function()
-        self_ref:executeBookLevelAction(action.id)
-      end,
-    })
-  end
-
-  return items
-end
 
 -- Helper: Build provider selection sub-menu
 -- @param simplified: if true, shows only provider list without management options (for quick settings)
@@ -7211,6 +7190,228 @@ function AskGPT:onEndOfBook()
   end)
 end
 
+--- Chapter transition detection for automatic chapter quizzes.
+--- Fires on every page turn. Compares TOC index to detect when the user
+--- crosses a chapter boundary and offers a quiz for the finished chapter.
+function AskGPT:onPageUpdate(pageno)
+  local features = self.settings:readSetting("features") or {}
+  if features.enable_chapter_quiz ~= true then return end
+  if not self.ui or not self.ui.document or not self.ui.toc then return end
+  -- Per-book disable
+  if self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_chapter_quiz_disabled") then return end
+
+  local toc = self.ui.toc
+  if not toc.toc or #toc.toc == 0 then return end
+
+  -- Determine whether to filter by depth or use KOReader's TOC filter
+  local depth_setting = features.quiz_chapter_depth or "toc_filter"
+  local skip_ignored
+  if depth_setting == "toc_filter" then
+    skip_ignored = true -- Use KOReader's toc_ticks_ignored_levels
+  else
+    skip_ignored = nil -- We'll filter manually by depth below
+  end
+
+  local current_toc_index = toc:getTocIndexByPage(pageno, skip_ignored)
+
+  -- Manual depth filter: if numeric depth is set, check the resolved TOC entry
+  if type(depth_setting) == "number" and current_toc_index then
+    local entry = toc.toc[current_toc_index]
+    if entry and entry.depth > depth_setting then
+      -- This TOC entry is deeper than the configured depth; ignore it
+      -- Find the parent entry at the right depth instead
+      local parent_idx
+      for i = current_toc_index, 1, -1 do
+        if toc.toc[i].depth <= depth_setting then
+          parent_idx = i
+          break
+        end
+      end
+      current_toc_index = parent_idx
+    end
+  end
+
+  -- Initialize tracking on first call
+  if not self._last_chapter_index then
+    self._last_chapter_index = current_toc_index
+    return
+  end
+
+  -- Detect chapter transition
+  if current_toc_index and current_toc_index ~= self._last_chapter_index then
+    local previous_chapter_index = self._last_chapter_index
+    self._last_chapter_index = current_toc_index
+
+    -- Debounce: don't re-offer for the same chapter
+    if self._last_quiz_offered_chapter == previous_chapter_index then return end
+    self._last_quiz_offered_chapter = previous_chapter_index
+
+    -- Only offer quiz when moving forward (not re-reading earlier chapters)
+    if current_toc_index > previous_chapter_index then
+      self:_offerChapterQuiz(previous_chapter_index)
+    end
+  end
+end
+
+--- Show a "quiz?" popup after a chapter transition.
+--- @param chapter_index number TOC index of the finished chapter
+function AskGPT:_offerChapterQuiz(chapter_index)
+  local toc_entries = self.ui.toc.toc
+  local chapter = toc_entries[chapter_index]
+  if not chapter then return end
+
+  local chapter_title = chapter.title or ""
+  -- Clean up TOC title if available
+  if self.ui.toc.cleanUpTocTitle then
+    chapter_title = self.ui.toc:cleanUpTocTitle(chapter_title) or chapter_title
+  end
+  local display_title = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)
+
+  local self_ref = self
+  UIManager:scheduleIn(0.3, function()
+    local ConfirmBox = require("ui/widget/confirmbox")
+    UIManager:show(ConfirmBox:new{
+      text = T(_("End of: %1\n\nWould you like a comprehension quiz?"), display_title),
+      ok_text = _("Quiz"),
+      cancel_text = _("Skip"),
+      ok_callback = function()
+        self_ref:_runChapterQuiz(chapter_index)
+      end,
+      other_buttons = {{
+        {
+          text = _("Disable for this book"),
+          callback = function()
+            if self_ref.ui.doc_settings then
+              self_ref.ui.doc_settings:saveSetting("koassistant_chapter_quiz_disabled", true)
+            end
+          end,
+        },
+      }},
+    })
+  end)
+end
+
+--- Execute a chapter quiz for the specified chapter.
+--- Extracts chapter boundaries from TOC and runs the chapter_quiz action
+--- with section scope matching the chapter's page range.
+--- @param chapter_index number TOC index of the chapter
+function AskGPT:_runChapterQuiz(chapter_index)
+  self:ensureInitialized()
+
+  local toc_entries = self.ui.toc.toc
+  local chapter = toc_entries[chapter_index]
+  if not chapter then return end
+
+  -- Find chapter page range
+  local start_page = chapter.page
+  local end_page
+  -- Find next chapter at same or higher level (same depth or less)
+  for i = chapter_index + 1, #toc_entries do
+    if toc_entries[i].depth <= chapter.depth then
+      end_page = toc_entries[i].page - 1
+      break
+    end
+  end
+  if not end_page then
+    end_page = self.ui.document:getPageCount()
+  end
+
+  local chapter_title = chapter.title or ""
+  if self.ui.toc.cleanUpTocTitle then
+    chapter_title = self.ui.toc:cleanUpTocTitle(chapter_title) or chapter_title
+  end
+
+  -- Get the chapter_quiz action
+  local action = self.action_service:getAction("book", "chapter_quiz")
+  if not action then return end
+
+  -- Block if requirements unmet
+  if self:_checkRequirements(action) then return end
+
+  -- Execute with section scope (reuses existing scoped extraction)
+  self:_executeBookLevelActionDirect(action, "chapter_quiz", {
+    section_scope = {
+      label = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index),
+      start_page = start_page,
+      end_page = end_page,
+    },
+  })
+end
+
+--- Show a chapter picker for manual quiz trigger (from Quick Actions panel).
+--- Displays TOC entries as a ButtonDialog, defaulting to the current chapter.
+function AskGPT:showChapterQuizPicker()
+  if not self.ui or not self.ui.document or not self.ui.toc then
+    UIManager:show(InfoMessage:new{
+      icon = "notice-warning",
+      text = _("Please open a book first."),
+    })
+    return
+  end
+
+  local toc_entries = self.ui.toc.toc
+  if not toc_entries or #toc_entries == 0 then
+    -- No TOC: fall back to normal execution (source_selection popup)
+    self:executeBookLevelAction("chapter_quiz")
+    return
+  end
+
+  local current_page = self.ui.document:getCurrentPage()
+  local current_toc_idx = self.ui.toc:getTocIndexByPage(current_page)
+
+  -- Filter to reasonable depth (top 2 levels max for readability)
+  local features = self.settings:readSetting("features") or {}
+  local depth_limit = features.quiz_chapter_depth
+  if depth_limit == "toc_filter" or depth_limit == nil then
+    depth_limit = 2 -- Default to top 2 levels for picker
+  end
+
+  local self_ref = self
+  local buttons = {}
+  for idx, entry in ipairs(toc_entries) do
+    if entry.depth <= depth_limit then
+      local title = entry.title or T(_("Chapter %1"), idx)
+      if self.ui.toc.cleanUpTocTitle then
+        title = self.ui.toc:cleanUpTocTitle(title) or title
+      end
+      -- Mark current chapter
+      if idx == current_toc_idx then
+        title = title .. " ←"
+      end
+      -- Indent by depth
+      local indent = string.rep("  ", entry.depth - 1)
+      table.insert(buttons, {{
+        text = indent .. title,
+        align = "left",
+        callback = function()
+          UIManager:close(self_ref._chapter_picker)
+          self_ref:_runChapterQuiz(idx)
+        end,
+      }})
+    end
+  end
+
+  if #buttons == 0 then
+    self:executeBookLevelAction("chapter_quiz")
+    return
+  end
+
+  -- Add cancel
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(self_ref._chapter_picker)
+    end,
+  }})
+
+  local ButtonDialog = require("ui/widget/buttondialog")
+  self._chapter_picker = ButtonDialog:new{
+    title = _("Quiz: Choose a chapter"),
+    buttons = buttons,
+  }
+  UIManager:show(self._chapter_picker)
+end
+
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)
 --- @param action_id string: The action ID from Actions.book
 function AskGPT:executeBookLevelAction(action_id)
@@ -7235,6 +7436,12 @@ function AskGPT:executeBookLevelAction(action_id)
 
   -- Block actions when declared requirements are unmet
   if self:_checkRequirements(action) then
+    return
+  end
+
+  -- Interactive quiz: show chapter picker instead of source_selection popup
+  if action.interactive_quiz then
+    self:showChapterQuizPicker()
     return
   end
 
@@ -7525,6 +7732,10 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   if opts and opts.section_scope then
     config_copy.features._section_scope = opts.section_scope
     config_copy.features._full_document_xray = true  -- Triggers full extraction + 100% progress
+    -- Pass chapter title for quiz viewer (consumed by onComplete routing)
+    if action and action.interactive_quiz and opts.section_scope.label then
+      config_copy.features._chapter_quiz_title = opts.section_scope.label
+    end
   end
 
   -- Get book metadata from KOReader's merged props (includes user edits from Book Info dialog)
