@@ -6514,9 +6514,24 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
 
   local cache_label = label:gsub(":", "-")
   local prefix = ActionCache.getSectionPrefix(action_id)
-  if not prefix then return end
 
-  local scope = self:_buildSectionScope(entry, label, cache_label, prefix)
+  -- Build scope (or lightweight scope for non-cacheable actions)
+  local scope
+  if prefix then
+    scope = self:_buildSectionScope(entry, label, cache_label, prefix)
+  else
+    -- Non-cacheable section action (e.g. chapter_quiz): build scope without cache key
+    local vis_sp = self.ui.document.getPageNumberInFlow
+        and self.ui.document:getPageNumberInFlow(entry.start_page) or entry.start_page
+    local vis_ep = self.ui.document.getPageNumberInFlow
+        and self.ui.document:getPageNumberInFlow(entry.end_page) or entry.end_page
+    scope = {
+      label = label,
+      start_page = entry.start_page,
+      end_page = entry.end_page,
+      page_summary = T(_("pp %1–%2"), vis_sp, vis_ep),
+    }
+  end
 
   -- Clone the action and override for section behavior
   local section_action = {}
@@ -7328,89 +7343,15 @@ function AskGPT:_runChapterQuiz(chapter_index)
   -- Block if requirements unmet
   if self:_checkRequirements(action) then return end
 
-  -- Execute with section scope (reuses existing scoped extraction)
-  self:_executeBookLevelActionDirect(action, "chapter_quiz", {
-    section_scope = {
-      label = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index),
-      start_page = start_page,
-      end_page = end_page,
-    },
-  })
+  -- Execute using the standard section action path (scoped extraction)
+  local label = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)
+  self:_executeSectionAction(action, "chapter_quiz", {
+    start_page = start_page,
+    end_page = end_page,
+    title = label,
+  }, label, { source_mode = "full_text" })
 end
 
---- Show a chapter picker for manual quiz trigger (from Quick Actions panel).
---- Displays TOC entries as a ButtonDialog, defaulting to the current chapter.
-function AskGPT:showChapterQuizPicker()
-  if not self.ui or not self.ui.document or not self.ui.toc then
-    UIManager:show(InfoMessage:new{
-      icon = "notice-warning",
-      text = _("Please open a book first."),
-    })
-    return
-  end
-
-  local toc_entries = self.ui.toc.toc
-  if not toc_entries or #toc_entries == 0 then
-    -- No TOC: fall back to normal execution (source_selection popup)
-    self:executeBookLevelAction("chapter_quiz")
-    return
-  end
-
-  local current_page = self.ui.document:getCurrentPage()
-  local current_toc_idx = self.ui.toc:getTocIndexByPage(current_page)
-
-  -- Filter to reasonable depth (top 2 levels max for readability)
-  local features = self.settings:readSetting("features") or {}
-  local depth_limit = features.quiz_chapter_depth
-  if depth_limit == "toc_filter" or depth_limit == nil then
-    depth_limit = 2 -- Default to top 2 levels for picker
-  end
-
-  local self_ref = self
-  local buttons = {}
-  for idx, entry in ipairs(toc_entries) do
-    if entry.depth <= depth_limit then
-      local title = entry.title or T(_("Chapter %1"), idx)
-      if self.ui.toc.cleanUpTocTitle then
-        title = self.ui.toc:cleanUpTocTitle(title) or title
-      end
-      -- Mark current chapter
-      if idx == current_toc_idx then
-        title = title .. " ←"
-      end
-      -- Indent by depth
-      local indent = string.rep("  ", entry.depth - 1)
-      table.insert(buttons, {{
-        text = indent .. title,
-        align = "left",
-        callback = function()
-          UIManager:close(self_ref._chapter_picker)
-          self_ref:_runChapterQuiz(idx)
-        end,
-      }})
-    end
-  end
-
-  if #buttons == 0 then
-    self:executeBookLevelAction("chapter_quiz")
-    return
-  end
-
-  -- Add cancel
-  table.insert(buttons, {{
-    text = _("Cancel"),
-    callback = function()
-      UIManager:close(self_ref._chapter_picker)
-    end,
-  }})
-
-  local ButtonDialog = require("ui/widget/buttondialog")
-  self._chapter_picker = ButtonDialog:new{
-    title = _("Quiz: Choose a chapter"),
-    buttons = buttons,
-  }
-  UIManager:show(self._chapter_picker)
-end
 
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)
 --- @param action_id string: The action ID from Actions.book
@@ -7436,12 +7377,6 @@ function AskGPT:executeBookLevelAction(action_id)
 
   -- Block actions when declared requirements are unmet
   if self:_checkRequirements(action) then
-    return
-  end
-
-  -- Interactive quiz: show chapter picker instead of source_selection popup
-  if action.interactive_quiz then
-    self:showChapterQuizPicker()
     return
   end
 
