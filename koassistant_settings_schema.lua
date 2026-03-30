@@ -72,18 +72,174 @@ local SettingsSchema = {
             separator = true,
         },
 
-        -- Reading Features submenu (visible only when document is open)
-        -- Items built dynamically from actions with in_reading_features flag
+        -- Reading & Library settings (always visible)
+        -- Consolidates: chapter quiz, recap reminder, end-of-book, library scanning
         {
-            id = "reading_features",
+            id = "reading_and_library",
             type = "submenu",
-            text = _("Reading Features"),
+            text = _("Reading & Library"),
             emoji = "📖",
-            visible_func = function(plugin)
-                return plugin.ui and plugin.ui.document ~= nil
-            end,
             separator = true,
-            callback = "buildReadingFeaturesMenu",
+            items = {
+                -- Chapter Quiz
+                {
+                    id = "chapter_quiz_header",
+                    type = "header",
+                    text = _("Chapter Quiz"),
+                },
+                {
+                    id = "enable_chapter_quiz",
+                    type = "toggle",
+                    text = _("Quiz on Chapter End"),
+                    path = "features.enable_chapter_quiz",
+                    default = false,
+                    help_text = _("Offer a comprehension quiz when you finish reading a chapter. Requires a book with a table of contents."),
+                },
+                {
+                    id = "quiz_chapter_depth",
+                    type = "dropdown",
+                    text = _("Chapter Depth"),
+                    path = "features.quiz_chapter_depth",
+                    default = "toc_filter",
+                    options = {
+                        { value = "toc_filter", label = _("Follow KOReader TOC") },
+                        { value = 1, label = _("Level 1 only") },
+                        { value = 2, label = _("Level 1-2") },
+                        { value = 3, label = _("Level 1-3") },
+                    },
+                    help_text = _("Which TOC levels trigger a quiz. 'Follow KOReader TOC' uses your existing TOC filter settings."),
+                    depends_on = { id = "enable_chapter_quiz", value = true },
+                },
+                {
+                    id = "quiz_question_count",
+                    type = "spinner",
+                    text = _("Question Count"),
+                    path = "features.quiz_question_count",
+                    default = 8,
+                    min = 3,
+                    max = 15,
+                    step = 1,
+                    precision = "%d",
+                    help_text = _("Total number of questions to generate per quiz."),
+                },
+                {
+                    id = "quiz_difficulty",
+                    type = "dropdown",
+                    text = _("Difficulty"),
+                    path = "features.quiz_difficulty",
+                    default = "medium",
+                    options = {
+                        { value = "easy", label = _("Easy") },
+                        { value = "medium", label = _("Medium") },
+                        { value = "hard", label = _("Hard") },
+                    },
+                    help_text = _("Easy: straightforward recall. Medium: comprehension and application. Hard: analysis and synthesis."),
+                },
+                {
+                    id = "quiz_mc_enabled",
+                    type = "toggle",
+                    text = _("Include Multiple Choice"),
+                    path = "features.quiz_mc_enabled",
+                    default = true,
+                },
+                {
+                    id = "quiz_short_answer_enabled",
+                    type = "toggle",
+                    text = _("Include Short Answer"),
+                    path = "features.quiz_short_answer_enabled",
+                    default = true,
+                },
+                {
+                    id = "quiz_essay_enabled",
+                    type = "toggle",
+                    text = _("Include Essay / Discussion"),
+                    path = "features.quiz_essay_enabled",
+                    default = true,
+                    separator = true,
+                },
+                -- Recap Reminder (moved from KOReader Integration)
+                {
+                    id = "recap_reminder_header",
+                    type = "header",
+                    text = _("Recap Reminder"),
+                },
+                {
+                    id = "enable_recap_reminder",
+                    type = "toggle",
+                    text = _("Remind to Recap on Book Open"),
+                    path = "features.enable_recap_reminder",
+                    default = false,
+                    help_text = _("Show a reminder to run Recap when you open a book you haven't read in a while."),
+                },
+                {
+                    id = "recap_reminder_days",
+                    type = "spinner",
+                    text = _("Days Before Reminder"),
+                    path = "features.recap_reminder_days",
+                    default = 7,
+                    min = 1,
+                    max = 90,
+                    step = 1,
+                    precision = "%d",
+                    help_text = _("Number of days since last reading before the reminder appears."),
+                    depends_on = { id = "enable_recap_reminder", value = true },
+                    separator = true,
+                },
+                -- End of Book (moved from KOReader Integration)
+                {
+                    id = "end_of_book_header",
+                    type = "header",
+                    text = _("End of Book"),
+                },
+                {
+                    id = "enable_end_of_book_suggestion",
+                    type = "toggle",
+                    text = _("Suggest Next Read on Finish"),
+                    path = "features.enable_end_of_book_suggestion",
+                    default = true,
+                    help_text = _("When you reach the end of a book, offer to suggest what to read next from your library. Requires library scanning to be enabled with at least one folder configured."),
+                    separator = true,
+                },
+                -- Library (moved from Library Settings)
+                {
+                    id = "library_header",
+                    type = "header",
+                    text = _("Library"),
+                },
+                {
+                    id = "enable_library_scanning_reading",
+                    type = "toggle",
+                    text = _("Allow Library Scanning"),
+                    path = "features.enable_library_scanning",
+                    default = false,
+                    help_text = _("Enables library actions that analyze your book collection. Add permanent scan folders below, or pick folders on the fly in the input dialog."),
+                    on_change = function(new_value)
+                        if new_value then
+                            local InfoMessage = require("ui/widget/infomessage")
+                            local UIManager = require("ui/uimanager")
+                            UIManager:show(InfoMessage:new{
+                                text = _("Enables library actions that analyze your book collection.\n\nAdd permanent scan folders below, or pick folders on the fly in the input dialog."),
+                            })
+                        end
+                    end,
+                },
+                {
+                    id = "library_scan_folders_reading",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local folders = f.library_scan_folders or {}
+                        if #folders == 0 then
+                            return _("Permanent Scan Folders: None")
+                        else
+                            return T(_("Permanent Scan Folders: %1"), #folders)
+                        end
+                    end,
+                    depends_on = { id = "enable_library_scanning_reading", value = true },
+                    help_text = _("Folders always scanned for library actions. You can also pick folders on the fly in the input dialog."),
+                    callback = "getLibraryFoldersMenuItems",
+                },
+            },
         },
 
         -- Provider, Model, Temperature (top-level)
@@ -1147,57 +1303,7 @@ local SettingsSchema = {
             },
         },
 
-        -- Library Settings submenu
-        {
-            id = "library_settings",
-            type = "submenu",
-            text = _("Library Settings"),
-            emoji = "📚",
-            items = {
-                {
-                    id = "enable_library_scanning_library",
-                    type = "toggle",
-                    text = _("Allow Library Scanning"),
-                    path = "features.enable_library_scanning",
-                    default = false,
-                    help_text = _("Enables library actions that analyze your book collection. Add permanent scan folders below, or pick folders on the fly in the input dialog."),
-                    on_change = function(new_value)
-                        if new_value then
-                            local InfoMessage = require("ui/widget/infomessage")
-                            local UIManager = require("ui/uimanager")
-                            UIManager:show(InfoMessage:new{
-                                text = _("Enables library actions that analyze your book collection.\n\nAdd permanent scan folders below, or pick folders on the fly in the input dialog."),
-                            })
-                        end
-                    end,
-                },
-                {
-                    id = "library_scan_folders",
-                    type = "submenu",
-                    text_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
-                        local folders = f.library_scan_folders or {}
-                        if #folders == 0 then
-                            return _("Permanent Scan Folders: None")
-                        else
-                            return T(_("Permanent Scan Folders: %1"), #folders)
-                        end
-                    end,
-                    depends_on = { id = "enable_library_scanning_library", value = true },
-                    help_text = _("Folders always scanned for library actions. You can also pick folders on the fly in the input dialog."),
-                    callback = "getLibraryFoldersMenuItems",
-                },
-                {
-                    id = "end_of_book_suggestion_library",
-                    type = "toggle",
-                    text = _("Suggest Next Read on Finish"),
-                    path = "features.enable_end_of_book_suggestion",
-                    default = true,
-                    depends_on = { id = "enable_library_scanning_library", value = true },
-                    help_text = _("When you reach the end of a book, offer to suggest what to read next from your library."),
-                },
-            },
-        },
+        -- (Library Settings moved to Reading & Library section above)
 
         -- Privacy & Data submenu
         {
@@ -1512,47 +1618,8 @@ local SettingsSchema = {
                             text = _("Please restart KOReader for this change to take effect."),
                         })
                     end,
-                    separator = true,
                 },
-                {
-                    id = "recap_reminder_header",
-                    type = "header",
-                    text = _("Recap Reminder"),
-                },
-                {
-                    id = "enable_recap_reminder",
-                    type = "toggle",
-                    text = _("Remind to Recap on Book Open"),
-                    path = "features.enable_recap_reminder",
-                    default = false,
-                    help_text = _("Show a reminder to run Recap when you open a book you haven't read in a while."),
-                },
-                {
-                    id = "recap_reminder_days",
-                    type = "spinner",
-                    text = _("Days Before Reminder"),
-                    path = "features.recap_reminder_days",
-                    default = 7,
-                    min = 1,
-                    max = 90,
-                    step = 1,
-                    precision = "%d",
-                    help_text = _("Number of days since last reading before the reminder appears."),
-                    depends_on = { id = "enable_recap_reminder", value = true },
-                },
-                {
-                    id = "end_of_book_header",
-                    type = "header",
-                    text = _("End of Book"),
-                },
-                {
-                    id = "enable_end_of_book_suggestion",
-                    type = "toggle",
-                    text = _("Suggest Next Read on Finish"),
-                    path = "features.enable_end_of_book_suggestion",
-                    default = true,
-                    help_text = _("When you reach the end of a book, offer to suggest what to read next from your library. Requires library scanning to be enabled with at least one folder configured."),
-                },
+                -- (Recap Reminder and End of Book moved to Reading & Library section)
             },
         },
 

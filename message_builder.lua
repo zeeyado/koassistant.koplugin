@@ -171,6 +171,13 @@ function MessageBuilder.build(params)
         user_prompt = replace_placeholder(user_prompt, "{hallucination_nudge}", hallucination_text)
     end
 
+    -- Substitute quiz instructions placeholder (built from settings in dialogs)
+    if data.quiz_instructions then
+        user_prompt = replace_placeholder(user_prompt, "{quiz_instructions}", data.quiz_instructions)
+    else
+        user_prompt = replace_placeholder(user_prompt, "{quiz_instructions}", "")
+    end
+
     -- Substitute language placeholders early (applies to all contexts)
     -- Using replace_placeholder (find+sub) to avoid gsub escaping issues
     if data.translation_language then
