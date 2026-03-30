@@ -2212,7 +2212,7 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 - **Difficulty**: Easy (straightforward recall), Medium (comprehension and application, default), or Hard (analysis and synthesis)
 - **Include Multiple Choice**: Auto-graded A/B/C/D questions (default: ON)
 - **Include Short Answer**: View model answer, then self-grade (default: ON)
-- **Include Essay / Discussion**: View key points a good answer should cover, then self-grade (default: ON)
+- **Include Discussion**: View key points a good answer should cover, then self-grade (default: ON)
 
 The **Quiz** action is also available manually from the Quick Actions panel — opens the standard scope picker (full document or specific section). The quiz uses structured JSON output from the AI, parsed into an interactive one-at-a-time viewer with navigation, scoring, and Copy/Export/Notebook on the results screen. Result is saved as an artifact (View/Redo from Quick Actions). If JSON parsing fails, the raw response is shown as a fallback.
 
