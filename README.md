@@ -273,7 +273,7 @@ Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-co
 - **Highlight Bypass & Dictionary Bypass** — Toggle bypass modes on/off
 - **Text Extraction** — Toggle book text extraction on/off (must be enabled once via Settings → Privacy & Data first)
 - **Chat History, Browse Notebooks & Browse Artifacts** — Quick access to saved chats, notebooks, and cached artifacts
-- **Library Actions** — Launch library actions by selecting books from your reading history
+- **Library Chat/Action** — Launch library actions by selecting books from your reading history
 - **General Chat/Action** — Start a context-free conversation or run a general action
 - **Manage Actions** — Edit and configure your actions
 
@@ -289,7 +289,7 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 <a href="screenshots/QApanelmore.png"><img src="screenshots/QApanelmore.png" width="300" alt="Quick Actions panel"></a>
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
-- **Default actions** — X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz
+- **Default actions** — X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Generate Quiz, Chapter Quiz
 - **Artifact button** — "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
 - **Utilities** — Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
 
@@ -332,7 +332,7 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book or document | Gesture → "KOAssistant: Quick Actions" |
 | **[Research Mode](#research-mode)** | Automatic academic enhancements when DOI detected (academic X-Ray, web search, research prompts) | Automatic — no configuration needed |
-| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, chapter tracking | Reading Features or Quick Actions → X-Ray |
+| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, chapter tracking | Quick Actions → X-Ray |
 | **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (8 defaults including Translate, ELI5, Explain) | Manage Actions → Add to Highlight Menu |
 | **[Notebooks](#notebooks-per-book-notes)** | Per-book markdown notes with Obsidian vault support | Settings → Notebook Settings |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
@@ -435,7 +435,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - **Allow Basic Stats** — Reading progress percentage, chapter title, chapters read count, time since last opened (default: ON). Used by X-Ray, Recap, and other context-aware features.
 - **Allow Advanced Stats** — Reading engagement data derived from KOReader's Statistics plugin (default: OFF). Shares curated groups based on reading time and completion patterns with library scan actions. Raw statistics never leave the device — only human-readable labels like "read extensively" or "started briefly" reach the AI. See [Design Choices](#design-choices) for details.
 
-**Library Settings** (under Privacy & Data):
+**Library Settings** (in Chat & Export Settings → Reading & Library):
 - **Enable Library Scanning** — Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library) and the Suggest from Library book action
 - **Permanent Scan Folders** — Folders always scanned for library actions. You can also pick folders on the fly in the input dialog
 - The global toggle is an absolute gate — all library scanning (including on-the-fly folders picked in the input dialog) requires it to be enabled. Per-action `use_library` flag provides the second gate
@@ -616,8 +616,7 @@ With AI knowledge only, the AI is essentially giving you its "remembered take" o
 **In short:** Text extraction gives the AI a job to do on specific material. AI knowledge asks it what it thinks it knows.
 
 **Accessing summaries:**
-- **Reading Features** → Document Summary (shows View/Redo popup if summary exists, generates if not)
-- **Quick Actions** → Document Summary (same behavior)
+- **Quick Actions** → Document Summary (shows View/Redo popup if summary exists, generates if not)
 - **File browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact. X-Ray opens in a browsable category menu; all others open in the text viewer.
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
 - **Coverage**: The viewer title shows coverage percentage if document was truncated (e.g., "Summary (78%)")
@@ -653,7 +652,8 @@ Some actions work from the file browser (using only document metadata like title
 | **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge. Supports section scope |
-| **Generate Quiz** | Comprehension quiz — questions first, answer key at the bottom (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge. Supports section scope |
+| **Generate Quiz** | Comprehension quiz — questions first, answer key at the bottom (multiple choice, short answer, essay). Source selection: full text, summary, or AI knowledge. Supports section scope. Saved as an artifact |
+| **Chapter Quiz** | Interactive comprehension quiz — one question at a time with answer selection, scoring, and review. Multiple choice (auto-graded), short answer (type and self-grade), essay (self-grade). Triggered automatically at chapter ends (configurable) or manually via chapter picker from Quick Actions. Question types, count, and difficulty are configurable in Settings. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Reading Guide** | Spoiler-free guide to what's ahead — threads in motion, patterns to notice, helpful background, how to approach the rest. Uses reading position to stay safe. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
 | **Document Summary** | Comprehensive summary. Saved as a Summary artifact, which other actions can use as their document source. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
@@ -804,7 +804,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 
 **X-Ray** requires text extraction to generate — it blocks with a message directing you to enable text extraction or use X-Ray (Simple) instead. If you've already cached an X-Ray and later disable text extraction, you can still view the cached result but cannot update or redo it.
 
-**X-Ray (Simple)** is a separate action that produces a prose overview (Characters, Themes, Setting, Key Terms, Where Things Stand) from the AI's training knowledge — no text extraction needed. Uses your reading progress for spoiler gating and optionally includes your highlights. Available in the Reading Features menu and as a separate artifact. Every generation is fresh (no incremental updates). Best for well-known books when you don't want to enable text extraction. For obscure works or research papers, results will be limited since the AI may not recognize the title.
+**X-Ray (Simple)** is a separate action that produces a prose overview (Characters, Themes, Setting, Key Terms, Where Things Stand) from the AI's training knowledge — no text extraction needed. Uses your reading progress for spoiler gating and optionally includes your highlights. Available in the Quick Actions panel and as a separate artifact. Every generation is fresh (no incremental updates). Best for well-known books when you don't want to enable text extraction. For obscure works or research papers, results will be limited since the AI may not recognize the title.
 
 **Recap** works with source selection: choose between extracted text (recommended, with incremental updates as you read) or AI knowledge only. Use KOReader's Hidden Flows to limit scope to specific chapters or parts of the book.
 - **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results. Results are cached and labeled "Based on extracted document text."
@@ -879,7 +879,7 @@ Custom actions using placeholders like `{book_text}`, `{full_document}`, or `{pa
 
 ### Library Mode
 
-**Access**: Quick Settings → Library Actions, or Settings menu → Library Actions, or via gesture. Opens directly to an input dialog with all library actions available. File browser multi-select also works: select multiple documents → tap any → "Compare with KOAssistant".
+**Access**: Quick Settings → Library Chat/Action, or Settings menu → Library Chat/Action, or via gesture. Opens directly to an input dialog with all library actions available. File browser multi-select also works: select multiple documents → tap any → "Compare with KOAssistant".
 
 The library dialog splits actions into two zones with their own management buttons:
 
@@ -1655,7 +1655,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - KOAssistant: Settings — Open main settings menu
 - KOAssistant: General Chat/Action — Start a new general conversation or run a general action
 - KOAssistant: Quick Settings — Two-column settings panel
-- KOAssistant: Library Actions — Pick books from reading history for library actions
+- KOAssistant: Library Chat/Action — Pick books from reading history for library actions
 - KOAssistant: Toggle Dictionary Bypass — Toggle dictionary bypass on/off
 - KOAssistant: Toggle Highlight Bypass — Toggle highlight bypass on/off
 
@@ -2111,21 +2111,10 @@ Two complementary features for making important content easily available:
 ### Quick Actions
 - **New Book Chat/Action**: Start a conversation about the current book or access book actions
 - **General Chat/Action**: Start a context-free conversation or run a general action
-- **Quick Settings**: Quick access to provider, model, behavior, and other settings
+- **Library Chat/Action**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Analyze Library) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
-- **Library Actions**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Analyze Library) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
-
-### Reading Features (visible when document is open)
-- **X-Ray**: Generate a browsable reference guide for the book up to your current reading position — opens in a structured category menu with characters, locations, themes, lexicon, timeline, and per-item chapter distribution. Requires text extraction enabled
-- **Recap**: Get a "Previously on..." style summary to help you resume reading
-- **Analyze Notes**: Discover patterns and connections in your highlights and annotations
-- **X-Ray (Simple)**: Prose companion guide from AI knowledge — characters, themes, settings, key terms. No text extraction needed
-- **About**: Overview, significance, and why to read it — from AI knowledge with optional web search
-- **Document Summary**: Generate a comprehensive document summary — reusable by other actions as a document source. Requires text extraction
-- **Document Analysis**: Deep analysis of thesis, structure, key insights, and audience. Requires text extraction
-- **Suggest from Library**: Suggests what to read next from your library based on the current book. Requires library scanning enabled
 
 ### Provider & Model
 - **Provider**: Select AI provider (18 built-in + custom providers)
@@ -2158,7 +2147,7 @@ Two complementary features for making important content easily available:
 
 #### Emoji (sub-menu)
 - **Emoji Menu Icons**: Show emoji icons in plugin UI menus and buttons. Off by default. When enabled:
-  - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading Features, 🔒 Privacy, etc.)
+  - **Settings menu**: Descriptive emojis on menu items and section headers (💬 Chat, 🔗 Provider, 🤖 Model, 📖 Reading & Library, 🔒 Privacy, etc.)
   - **Chat history**: Type prefixes on documents (💬 general, 📚 library, 📖 book chats), 💬 on individual chats, 🏷️ on tag browser entries
   - **Notebook browser**: 📓 prefix on entries
   - **Artifact browser**: 📖 prefix on entries
@@ -2172,7 +2161,7 @@ Two complementary features for making important content easily available:
   - 📝 = annotations (highlights with personal notes)
   - 📓 = notebook
   - 🌐 = web search forced on
-  - Visible in: action manager, reading features menu, quick actions, highlight/dictionary menus, file browser buttons
+  - Visible in: action manager, quick actions, highlight/dictionary menus, file browser buttons
   - Helps you see at a glance which actions send personal data to AI providers. See [Privacy & Data](#privacy--data) for details on what gets shared.
   - Requires **emoji font support** — see [Emoji Font Setup](#emoji-font-setup).
 
@@ -2214,6 +2203,32 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
   - **Ask every time**: PathChooser dialog on each save
 - **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
 - **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
+
+### Reading & Library (within Chat & Export Settings)
+
+#### Chapter Quiz
+- **Quiz on Chapter End**: Offer a comprehension quiz when you finish reading a chapter. The quiz is interactive: one question at a time with answer selection, self-grading, and a score summary. Requires a book with a table of contents. (default: OFF)
+- **Chapter Depth**: Which TOC levels trigger a quiz — Follow KOReader TOC (default, uses your existing TOC filter), Level 1 only, Level 1-2, or Level 1-3
+- **Question Count**: Total number of questions per quiz (3-15, default: 8)
+- **Difficulty**: Easy (straightforward recall), Medium (comprehension and application, default), or Hard (analysis and synthesis)
+- **Include Multiple Choice**: Auto-graded A/B/C/D questions (default: ON)
+- **Include Short Answer**: Type your answer, then compare with model answer and self-grade (default: ON)
+- **Include Essay / Discussion**: View key points a good answer should cover, then self-grade (default: ON)
+
+The **Chapter Quiz** action is also available manually from the Quick Actions panel — tap it to see a chapter picker (TOC list) and quiz any chapter on demand. The interactive quiz action uses structured JSON output from the AI and parses it into an interactive one-at-a-time viewer with navigation, scoring, and optional "Save to Notebook" for your results. If JSON parsing fails, the raw response is shown as a fallback.
+
+The static **Generate Quiz** action (in Quick Actions) remains available as a non-interactive study guide artifact with answer key — useful for printing or reference.
+
+#### Recap Reminder
+- **Remind to Recap on Book Open**: Show a reminder to run AI Recap when you open a book you haven't read in a while (default: OFF)
+- **Days Before Reminder**: Number of days since last reading before the reminder appears (default: 7, range: 1-90)
+
+#### End of Book
+- **Suggest Next Read on Finish**: When you reach the end of a book, offer to suggest what to read next from your library (default: ON). Only activates when library scanning is enabled with at least one folder configured.
+
+#### Library
+- **Allow Library Scanning**: Enables library actions that analyze your book collection (default: OFF). Add permanent scan folders below, or pick folders on the fly in the input dialog.
+- **Permanent Scan Folders**: Folders always scanned for library actions
 
 ### AI Language Settings
 These settings control what language the AI responds in.
@@ -2326,8 +2341,9 @@ Configure the Quick Settings panel (available via gesture or gear icon in input 
   - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
   - H.Bypass, D.Bypass, Text Extraction
-  - Chat History, Browse Notebooks, Browse Artifacts, Library Actions
-  - General Chat/Action, Continue Last Chat, New Book Chat/Action, Manage Actions, Quick Actions, More Settings
+  - Chat History, Browse Notebooks, Browse Artifacts, Library Chat/Action
+  - General Chat/Action, Continue Last Chat, New Book Chat/Action
+  - Manage Actions, Quick Actions, More Settings
   - All buttons are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Quick Actions Settings
@@ -2381,7 +2397,7 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit — shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text — most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes, Key Arguments, Discussion Questions, Quiz, Insights, Reading Guide) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes, Key Arguments, Discussion Questions, Generate Quiz, Insights, Reading Guide) for the current book (requires book to be open). Chapter Quiz is not cached (fresh each time). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### KOReader Integration
 Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
@@ -2394,12 +2410,7 @@ Control where KOAssistant appears in KOReader's menus. All toggles default to ON
 
 **Note:** File browser, highlight menu, gesture menu, and Enhance Text Selection changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
 
-#### Recap Reminder
-- **Remind to Recap on Book Open**: When enabled, shows a reminder to run AI Recap when you open a book you haven't read in a while (default: OFF)
-- **Days Before Reminder**: Number of days since last reading before the reminder appears (default: 7, range: 1-90)
-
-#### End of Book
-- **Suggest Next Read on Finish**: When you reach the end of a book, offer to suggest what to read next from your library (default: ON). Shows a "KOAssistant: Would you like an AI suggestion for what to read next from your library?" popup with a "Suggest" button that runs the Suggest from Library action. Only activates when library scanning is enabled with at least one folder configured — if library scanning is off, the popup never appears regardless of this setting. This setting is also available in Settings → Library Settings for convenience
+> Recap Reminder and End of Book settings have moved to **Chat & Export Settings → Reading & Library**.
 
 ### Temperature
 - **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.
@@ -2838,8 +2849,7 @@ Twelve actions produce **document artifacts** — persistent, per-book outputs y
 Beyond these twelve generated artifacts, **AI Wiki** entries (generated from the X-Ray browser or from highlighted text) are also stored as cached artifacts and appear in the Artifact Browser. You can also **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
 
 **Viewing artifacts:**
-- **Reading Features** → Tap any artifact action. If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly.
-- **Quick Actions** → Same artifact action buttons, plus "View Artifacts" appears when any artifacts exist, opening a picker.
+- **Quick Actions** → Tap any artifact action. If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly. "View Artifacts" button appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Top sections**: General Pinned and Library Pinned appear at the top when pinned artifacts exist in those contexts
@@ -2878,7 +2888,7 @@ All artifact results are cached per book. X-Ray and Recap additionally support *
 
 **Section X-Ray caching:** Section X-Rays are stored alongside the main X-Ray cache. Each is independent — you can have multiple Section X-Rays per book plus the main X-Ray. Section X-Rays are always complete (no incremental updates) since they analyze a bounded page range. They store XPointers for font-size-independent page reconversion (EPUB only). When you're reading within a section's page range, a quick-access "View" button appears directly in the X-Ray popup. All sections are also browsable via the "View Section X-Rays (N)" group button.
 
-**View/Update popup:** Appears everywhere you can trigger an artifact action: Quick Actions panel, Reading Features menu, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate Complete X-Ray". For non-incremental actions, the popup shows "View" and "Redo" or "Regenerate". Reading Guide shows "Update to X%" when your reading position advances. All action popups also surface in-range section artifacts.
+**View/Update popup:** Appears everywhere you can trigger an artifact action: Quick Actions panel, gestures, and the book chat input field action picker. For X-Ray specifically, if no cache exists yet, the popup offers "Generate X-Ray (to X%)" and "Generate Complete X-Ray". For non-incremental actions, the popup shows "View" and "Redo" or "Regenerate". Reading Guide shows "Update to X%" when your reading position advances. All action popups also surface in-range section artifacts.
 
 **Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰). Stale notifications don't appear for 100% caches.
 
@@ -2945,7 +2955,7 @@ Three artifacts can be referenced in custom actions using `{summary_cache_sectio
 
 If you haven't run X-Ray yet, the placeholder renders empty and the action still runs, just without the analysis context. Permission requirements for the placeholder depend on how the X-Ray was built — see [Cache permission inheritance](#text-extraction-and-double-gating) above.
 
-> **Tip**: For documents you'll query multiple times, generate the summary proactively via Document Summary (Reading Features or Quick Actions). The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), tap references to navigate between related items, check who appears in the current chapter, search for any entry, or use "Look up in X-Ray" to instantly search cached data while reading. Review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
+> **Tip**: For documents you'll query multiple times, generate the summary proactively via Document Summary (Quick Actions). The artifacts are also convenient in themselves — browse a book's X-Ray to look up characters (with aliases and connections), tap references to navigate between related items, check who appears in the current chapter, search for any entry, or use "Look up in X-Ray" to instantly search cached data while reading. Review the Analysis for a refresher on key arguments, or skim the Summary before resuming a book you haven't read in a while.
 
 **Text extraction guidelines:**
 - ~100 pages ≈ 25,000-40,000 characters (varies by formatting)

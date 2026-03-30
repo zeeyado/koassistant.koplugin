@@ -182,7 +182,7 @@ function Constants.getQsItemText(id, _)
         chat_history = _("Chat History"),
         browse_notebooks = _("Browse Notebooks"),
         browse_artifacts = _("Browse Artifacts"),
-        library_actions = _("Library Actions"),
+        library_actions = _("Library Chat/Action"),
         general_chat = _("General Chat/Action"),
         continue_last_chat = _("Continue Last Chat"),
         new_book_chat = _("Book Chat/Action"),
