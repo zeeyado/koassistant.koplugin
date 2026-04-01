@@ -2425,7 +2425,7 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
   - **Anthropic Adaptive Thinking (4.6+)**: Effort level (low/medium/high, max for Opus 4.6). Claude decides when and how much to think based on the task. Recommended for 4.6 models. Takes priority over Extended Thinking when model supports both. (requires master toggle)
   - **Anthropic Extended Thinking**: Budget 1024-32000 tokens. Manual thinking budget mode for all thinking-capable Claude models (4.6, 4.5, 4.1, 4, 3.7). On 4.6 models, Adaptive Thinking takes priority if both are enabled. (requires master toggle)
   - **Gemini Thinking**: Controls thinking for all Gemini models (requires master toggle). Gemini 3: configurable thinking depth (minimal/low/medium/high). Gemini 2.5: configurable thinking budget (dynamic/low/medium/high/max). Gemini 2.5 models think by default — when the master toggle is off, their natural thinking behavior is preserved.
-  - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1, GPT-5.2, and GPT-5.4 models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano, GPT-5.4-mini, GPT-5.4-nano) always reason at their factory defaults and are not affected by this toggle.
+  - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.1, GPT-5.2, GPT-5.4, GPT-5.4-mini, and GPT-5.4-nano models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano) always reason at their factory defaults and are not affected by this toggle.
   - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
 - **Web Search**: Allow AI to search the web for current information:
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter. Perplexity always searches the web (no toggle needed).
@@ -3069,7 +3069,7 @@ GPT-5.1, GPT-5.2, and GPT-5.4 ship with reasoning off by default (reasoning_effo
 **Always-On Reasoning (effort level only):**
 These models always reason — you can only adjust the effort level, not turn reasoning off. These controls are independent of the master toggle.
 
-- **OpenAI** (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano, GPT-5.4-mini, GPT-5.4-nano): Effort low/medium/high (default: medium)
+- **OpenAI** (o3, o3-mini, o3-pro, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano): Effort low/medium/high (default: medium)
 - **xAI** (grok-3-mini): Effort low/high (default: high)
 - **Perplexity** (sonar-reasoning-pro, sonar-reasoning, sonar-deep-research): Effort low/medium/high (default: high)
 - **Groq** (gpt-oss-120b, gpt-oss-20b, qwen3-32b): Effort low/medium/high (default: high)

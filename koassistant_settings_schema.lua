@@ -2016,7 +2016,7 @@ local SettingsSchema = {
                                 local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
                                 return T(_("OpenAI (o3, GPT-5): %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Reasoning effort for always-on OpenAI models (o3, o3-mini, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano, GPT-5.4-mini, GPT-5.4-nano).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
+                            help_text = _("Reasoning effort for always-on OpenAI models (o3, o3-mini, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
                             path = "features.openai_always_on_effort",
                             default = "medium",
                             separator = true,
