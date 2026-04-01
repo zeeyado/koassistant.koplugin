@@ -7011,7 +7011,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
         quiz_dialog = ButtonDialog:new{
           title = _("Quiz"),
           buttons = {
-            {{ text = _("Review Previous Attempt"), callback = function()
+            {{ text = _("Continue / Review"), callback = function()
               UIManager:close(quiz_dialog)
               openQuizViewer(saved_state)
             end }},
