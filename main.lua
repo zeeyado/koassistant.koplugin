@@ -6988,11 +6988,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
             end,
             on_save_state = file and function(state)
               local ActionCache = require("koassistant_action_cache")
-              local entry = ActionCache.get(file, cache_key)
-              if entry then
-                entry.quiz_state = state
-                ActionCache.set(file, cache_key, entry)
-              end
+              ActionCache.updateField(file, cache_key, "quiz_state", state)
             end,
           },
         }

@@ -6763,7 +6763,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     local chapter_title = configuration and configuration.features
                         and configuration.features._chapter_quiz_title
                     local quiz_file = ui and ui.document and ui.document.file
-                    local quiz_cache_key = action.id or "quiz"
+                    -- Determine cache key: section-scoped quizzes use the section cache key
+                    local section_scope = configuration and configuration.features
+                        and configuration.features._section_scope
+                    local quiz_cache_key = (section_scope and section_scope.cache_key)
+                        or action.id or "quiz"
                     UIManager:show(QuizViewer:new{
                         quiz_data = parsed,
                         opts = {
@@ -6779,11 +6783,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             end,
                             on_save_state = quiz_file and function(state)
                                 local ActionCache = require("koassistant_action_cache")
-                                local entry = ActionCache.get(quiz_file, quiz_cache_key)
-                                if entry then
-                                    entry.quiz_state = state
-                                    ActionCache.set(quiz_file, quiz_cache_key, entry)
-                                end
+                                ActionCache.updateField(quiz_file, quiz_cache_key, "quiz_state", state)
                             end,
                         },
                     })

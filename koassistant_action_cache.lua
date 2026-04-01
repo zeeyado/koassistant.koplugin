@@ -406,6 +406,21 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
     return saveCache(document_path, cache)
 end
 
+--- Update a field on an existing cached entry without rebuilding it.
+--- Used for quiz_state persistence (answers, scores) without overwriting the full entry.
+--- @param document_path string The document file path
+--- @param action_id string The action ID
+--- @param field string The field name to update
+--- @param value any The value to set
+--- @return boolean success
+function ActionCache.updateField(document_path, action_id, field, value)
+    if not document_path or not action_id or not field then return false end
+    local cache = loadCache(document_path)
+    if not cache[action_id] then return false end
+    cache[action_id][field] = value
+    return saveCache(document_path, cache)
+end
+
 --- Clear cached entry for an action
 --- @param document_path string The document file path
 --- @param action_id string The action ID to clear

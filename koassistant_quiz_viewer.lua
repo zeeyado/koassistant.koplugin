@@ -66,8 +66,9 @@ function QuizViewer:init()
         w = Screen:getWidth(),
         h = Screen:getHeight(),
     }
-    self.width = self.width or Screen:getWidth() - Screen:scaleBySize(12)
-    self.height = self.height or Screen:getHeight() - Screen:scaleBySize(12)
+    local UIConstants = require("koassistant_ui.constants")
+    self.width = self.width or UIConstants.CHAT_WIDTH()
+    self.height = self.height or UIConstants.CHAT_HEIGHT()
 
     if Device:hasKeys() then
         self.key_events.Close = { { Device.input.group.Back } }
