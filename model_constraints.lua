@@ -11,6 +11,8 @@ local ModelConstraints = {
         ["gpt-5"] = { temperature = 1.0 },
         ["gpt-5-mini"] = { temperature = 1.0 },
         ["gpt-5-nano"] = { temperature = 1.0 },
+        ["gpt-5.4-mini"] = { temperature = 1.0 },
+        ["gpt-5.4-nano"] = { temperature = 1.0 },
         ["o3"] = { temperature = 1.0 },
         ["o3-mini"] = { temperature = 1.0 },
         ["o3-pro"] = { temperature = 1.0 },
@@ -54,7 +56,8 @@ ModelConstraints.capabilities = {
         -- Models that support reasoning.effort parameter
         reasoning = {
             "o3", "o3-mini", "o3-pro", "o4-mini",
-            "gpt-5", "gpt-5-mini", "gpt-5-nano", "gpt-5.1", "gpt-5.2",
+            "gpt-5", "gpt-5-mini", "gpt-5-nano",
+            "gpt-5.1", "gpt-5.2", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Models where reasoning is opt-in (default=none from OpenAI)
         -- Gated by master reasoning toggle + openai_reasoning sub-toggle
@@ -94,7 +97,7 @@ ModelConstraints.capabilities = {
         -- IMPORTANT: Z.AI requires temperature=1.0 when thinking is enabled
         -- (enforced in zai.lua handler, not here — thinking is togglable)
         thinking = {
-            "glm-5-turbo", "glm-5",
+            "glm-5.1", "glm-5-turbo", "glm-5",
             "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash",
             "glm-4.6", "glm-4.5", "glm-4.5-flash",
         },
@@ -128,7 +131,8 @@ ModelConstraints.capabilities = {
     },
     sambanova = {
         -- Models with thinking toggle (chat_template_kwargs.enable_thinking)
-        thinking = { "DeepSeek-R1-0528", "Qwen3-32B" },
+        -- DeepSeek-R1-0528 and Qwen3-32B deprecated March 31, 2026
+        thinking = { "DeepSeek-R1-Distill-Llama-70B" },
     },
     xai = {
         -- Only grok-3-mini supports reasoning_effort (low/high)
