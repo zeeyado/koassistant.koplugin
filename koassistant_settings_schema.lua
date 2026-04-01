@@ -1760,7 +1760,7 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Reasoning"),
-                            help_text = _("Controls reasoning/thinking for providers that support configurable reasoning.\n\nWhen ON, all sub-toggles below are enabled by default. You can selectively disable individual providers.\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• DeepSeek: Thinking for V3.2+ models\n• Z.AI: Thinking for GLM-4.5+ models\n• OpenRouter: Reasoning effort (translates to backend)\n• SambaNova: Thinking toggle (R1, Qwen3)\n\nWhen OFF, models keep their natural behavior (e.g. Gemini 2.5 and DeepSeek Reasoner still think by default).\n\nAlways-on models (o3, GPT-5, Grok-3-mini, Magistral, etc.) are not affected by this toggle. Effort controls for always-on providers are in a separate section below."),
+                            help_text = _("Controls reasoning/thinking for providers that support configurable reasoning.\n\nWhen ON, all sub-toggles below are enabled by default. You can selectively disable individual providers.\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• DeepSeek: Thinking for V3.2+ models\n• Z.AI: Thinking for GLM-4.5+ models\n• OpenRouter: Reasoning effort (translates to backend)\n• SambaNova: Thinking toggle (R1-Distill)\n\nWhen OFF, models keep their natural behavior (e.g. Gemini 2.5 and DeepSeek Reasoner still think by default).\n\nAlways-on models (o3, GPT-5, Grok-3-mini, Magistral, etc.) are not affected by this toggle. Effort controls for always-on providers are in a separate section below."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
@@ -1984,7 +1984,7 @@ local SettingsSchema = {
                             id = "sambanova_reasoning",
                             type = "toggle",
                             text = _("SambaNova Thinking"),
-                            help_text = _("Supported models:\n") .. getModelList("sambanova", "thinking") .. _("\n\nToggle thinking for SambaNova-hosted reasoning models (DeepSeek-R1, Qwen3)."),
+                            help_text = _("Supported models:\n") .. getModelList("sambanova", "thinking") .. _("\n\nToggle thinking for SambaNova-hosted reasoning models."),
                             path = "features.sambanova_reasoning",
                             default = true,
                             depends_on = { id = "enable_reasoning", value = true },
@@ -2016,7 +2016,7 @@ local SettingsSchema = {
                                 local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
                                 return T(_("OpenAI (o3, GPT-5): %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Reasoning effort for always-on OpenAI models (o3, o3-mini, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
+                            help_text = _("Reasoning effort for always-on OpenAI models (o3, o3-mini, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano, GPT-5.4-mini, GPT-5.4-nano).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
                             path = "features.openai_always_on_effort",
                             default = "medium",
                             separator = true,
