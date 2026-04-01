@@ -709,33 +709,9 @@ function QuizViewer:_saveToNotebook()
     end
 end
 
---- Confirm close when quiz is in progress
+--- Close the quiz (progress is saved automatically via on_save_state)
 function QuizViewer:_confirmClose()
-    -- If quiz is complete or all answered, just close
-    local all_revealed = true
-    for idx in ipairs(self.quiz_data.questions or {}) do
-        if not self.revealed[idx] then
-            all_revealed = false
-            break
-        end
-    end
-
-    if self.phase == "complete" or all_revealed then
-        self:onClose()
-        return
-    end
-
-    -- Confirm with unanswered questions
-    local ConfirmBox = require("ui/widget/confirmbox")
-    local self_ref = self
-    UIManager:show(ConfirmBox:new{
-        text = _("You have unanswered questions. Close the quiz?"),
-        ok_text = _("Close"),
-        cancel_text = _("Continue"),
-        ok_callback = function()
-            self_ref:onClose()
-        end,
-    })
+    self:onClose()
 end
 
 -- Event handlers

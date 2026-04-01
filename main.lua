@@ -7285,8 +7285,6 @@ function AskGPT:onPageUpdate(pageno)
   local features = self.settings:readSetting("features") or {}
   if features.enable_chapter_quiz ~= true then return end
   if not self.ui or not self.ui.document or not self.ui.toc then return end
-  -- Per-book disable
-  if self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_chapter_quiz_disabled") then return end
 
   local toc = self.ui.toc
   if not toc.toc or #toc.toc == 0 then return end
@@ -7342,6 +7340,7 @@ function AskGPT:onPageUpdate(pageno)
 end
 
 --- Show a "quiz?" popup after a chapter transition.
+--- Skips if a quiz already exists for this chapter.
 --- @param chapter_index number TOC index of the finished chapter
 function AskGPT:_offerChapterQuiz(chapter_index)
   local toc_entries = self.ui.toc.toc
@@ -7349,10 +7348,22 @@ function AskGPT:_offerChapterQuiz(chapter_index)
   if not chapter then return end
 
   local chapter_title = chapter.title or ""
-  -- Clean up TOC title if available
   if self.ui.toc.cleanUpTocTitle then
     chapter_title = self.ui.toc:cleanUpTocTitle(chapter_title) or chapter_title
   end
+
+  -- Skip if a quiz already exists for this chapter (check section cache)
+  local file = self.ui and self.ui.document and self.ui.document.file
+  if file then
+    local ActionCache = require("koassistant_action_cache")
+    local prefix = ActionCache.SECTION_PREFIXES.quiz
+    if prefix then
+      local cache_label = (chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)):gsub(":", "-")
+      local cached = ActionCache.get(file, prefix .. cache_label)
+      if cached and cached.result then return end
+    end
+  end
+
   local display_title = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)
 
   local self_ref = self
@@ -7365,16 +7376,6 @@ function AskGPT:_offerChapterQuiz(chapter_index)
       ok_callback = function()
         self_ref:_runChapterQuiz(chapter_index)
       end,
-      other_buttons = {{
-        {
-          text = _("Disable for this book"),
-          callback = function()
-            if self_ref.ui.doc_settings then
-              self_ref.ui.doc_settings:saveSetting("koassistant_chapter_quiz_disabled", true)
-            end
-          end,
-        },
-      }},
     })
   end)
 end
