@@ -57,13 +57,14 @@ ModelConstraints.capabilities = {
         reasoning = {
             "o3", "o3-mini", "o3-pro", "o4-mini",
             "gpt-5", "gpt-5-mini", "gpt-5-nano",
-            "gpt-5.1", "gpt-5.2", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Models where reasoning is opt-in (default=none from OpenAI)
+        -- Starting with GPT-5.2, default reasoning_effort changed from medium to none
         -- Gated by master reasoning toggle + openai_reasoning sub-toggle
         -- Other reasoning models (o3, gpt-5, etc.) always reason at factory defaults
         reasoning_gated = {
-            "gpt-5.1", "gpt-5.2", "gpt-5.4",
+            "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Note: OpenAI Chat Completions API does NOT have native web search.
         -- Web search requires Responses API or function calling with external tools.
