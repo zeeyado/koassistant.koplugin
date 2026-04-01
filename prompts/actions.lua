@@ -1513,41 +1513,6 @@ Note: These are general questions for the complete work. If the reader is mid-bo
 
 {quiz_instructions}
 
-CRITICAL: You MUST respond with ONLY a JSON object, no other text. Use this exact structure:
-
-```json
-{
-  "questions": [
-    {
-      "type": "multiple_choice",
-      "question": "What is the main theme explored in this section?",
-      "options": {"A": "Option text", "B": "Option text", "C": "Option text", "D": "Option text"},
-      "correct": "B",
-      "explanation": "Brief explanation of why B is correct."
-    },
-    {
-      "type": "short_answer",
-      "question": "Explain the significance of...",
-      "model_answer": "A good answer would mention...",
-      "key_points": ["Key point 1", "Key point 2"]
-    },
-    {
-      "type": "essay",
-      "question": "Discuss how the author...",
-      "key_points": ["Point about X", "Point about Y", "Connection to Z"]
-    }
-  ]
-}
-```
-
-Rules:
-- "type" must be exactly: "multiple_choice", "short_answer", or "essay"
-- Multiple choice: always 4 options (A-D), "correct" is the letter, include "explanation"
-- Short answer: include "model_answer" (2-3 sentences) and "key_points" array
-- Essay: include "key_points" array (3-5 points a good answer should cover)
-- Adapt to content type (fiction: plot/characters/themes, non-fiction: arguments/evidence/concepts, academic: methodology/findings)
-- Use key terms in the work's original language where applicable
-
 {hallucination_nudge}
 {text_fallback_nudge}]],
         api_params = {

@@ -282,6 +282,47 @@ local function saveCache(document_path, cache)
             if entry.scope_page_summary then
                 file:write(string.format("        scope_page_summary = %q,\n", entry.scope_page_summary))
             end
+            -- Quiz state (answers, correct, revealed) — nested table serialization
+            if entry.quiz_state and type(entry.quiz_state) == "table" then
+                file:write("        quiz_state = {\n")
+                -- answers: sparse table {[1] = "B", [3] = "A"}
+                if entry.quiz_state.answers then
+                    file:write("            answers = {")
+                    for k, v in pairs(entry.quiz_state.answers) do
+                        if type(k) == "number" and type(v) == "string" then
+                            file:write(string.format(" [%d] = %q,", k, v))
+                        end
+                    end
+                    file:write(" },\n")
+                end
+                -- revealed: sparse table {[1] = true, [2] = true}
+                if entry.quiz_state.revealed then
+                    file:write("            revealed = {")
+                    for k, v in pairs(entry.quiz_state.revealed) do
+                        if type(k) == "number" and v == true then
+                            file:write(string.format(" [%d] = true,", k))
+                        end
+                    end
+                    file:write(" },\n")
+                end
+                -- correct: sparse table {[1] = true, [2] = false}
+                if entry.quiz_state.correct then
+                    file:write("            correct = {")
+                    for k, v in pairs(entry.quiz_state.correct) do
+                        if type(k) == "number" and type(v) == "boolean" then
+                            file:write(string.format(" [%d] = %s,", k, tostring(v)))
+                        end
+                    end
+                    file:write(" },\n")
+                end
+                if entry.quiz_state.current_index then
+                    file:write(string.format("            current_index = %d,\n", entry.quiz_state.current_index))
+                end
+                if entry.quiz_state.phase then
+                    file:write(string.format("            phase = %q,\n", entry.quiz_state.phase))
+                end
+                file:write("        },\n")
+            end
             -- Result may contain special characters, use long string with safe delimiter
             local result_text = entry.result or ""
             local eq_count = findSafeDelimiter(result_text)

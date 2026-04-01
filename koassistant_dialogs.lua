@@ -2677,7 +2677,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         local features = config.features or {}
         local parts = {}
         local count = features.quiz_question_count or 8
-        table.insert(parts, "Generate " .. count .. " questions total.")
+        table.insert(parts, "Generate exactly " .. count .. " questions total.")
 
         -- Difficulty
         local difficulty = features.quiz_difficulty or "medium"
@@ -2689,29 +2689,75 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             table.insert(parts, "Difficulty: Medium — balance recall with comprehension and application.")
         end
 
-        -- Question type distribution
-        local types_enabled = {}
-        if features.quiz_mc_enabled ~= false then table.insert(types_enabled, "multiple_choice") end
-        if features.quiz_short_answer_enabled ~= false then table.insert(types_enabled, "short_answer") end
-        if features.quiz_essay_enabled ~= false then table.insert(types_enabled, "essay") end
+        -- Question types
+        local mc = features.quiz_mc_enabled ~= false
+        local sa = features.quiz_short_answer_enabled ~= false
+        local essay = features.quiz_essay_enabled ~= false
+        if not mc and not sa and not essay then mc = true end -- fallback
 
-        if #types_enabled == 0 then
-            -- All disabled — fall back to MC only
-            types_enabled = { "multiple_choice" }
+        -- Build JSON example with only enabled types
+        local json_examples = {}
+        local rules = {}
+        local type_list = {}
+
+        if mc then
+            table.insert(type_list, "multiple_choice")
+            table.insert(json_examples, [[    {
+      "type": "multiple_choice",
+      "question": "What is the main theme explored in this section?",
+      "options": {"A": "Option text", "B": "Option text", "C": "Option text", "D": "Option text"},
+      "correct": "B",
+      "explanation": "Brief explanation of why B is correct."
+    }]])
+            table.insert(rules, '- Multiple choice: always 4 options (A-D), "correct" is the letter, include "explanation"')
+        end
+        if sa then
+            table.insert(type_list, "short_answer")
+            table.insert(json_examples, [[    {
+      "type": "short_answer",
+      "question": "Explain the significance of...",
+      "model_answer": "A good answer would mention...",
+      "key_points": ["Key point 1", "Key point 2"]
+    }]])
+            table.insert(rules, '- Short answer: include "model_answer" (2-3 sentences) and "key_points" array')
+        end
+        if essay then
+            table.insert(type_list, "essay")
+            table.insert(json_examples, [[    {
+      "type": "essay",
+      "question": "Discuss how the author...",
+      "key_points": ["Point about X", "Point about Y", "Connection to Z"]
+    }]])
+            table.insert(rules, '- Discussion/essay: include "key_points" array (3-5 points a good answer should cover)')
         end
 
-        local type_instructions = {}
-        for _idx, qtype in ipairs(types_enabled) do
-            if qtype == "multiple_choice" then
-                table.insert(type_instructions, '- Include multiple_choice questions (test recall of key facts)')
-            elseif qtype == "short_answer" then
-                table.insert(type_instructions, '- Include short_answer questions (test understanding of themes/arguments)')
-            elseif qtype == "essay" then
-                table.insert(type_instructions, '- Include discussion questions (open-ended synthesis/analysis)')
-            end
+        -- Distribution instruction
+        if #type_list == 1 then
+            table.insert(parts, "All " .. count .. ' questions must be type "' .. type_list[1] .. '".')
+        else
+            table.insert(parts, "Distribute questions across these types: " .. table.concat(type_list, ", ") .. ".")
+            table.insert(parts, "Do NOT include any other question types.")
         end
-        table.insert(parts, "Question types to include:\n" .. table.concat(type_instructions, "\n"))
-        table.insert(parts, "Distribute questions roughly evenly across the enabled types.")
+
+        -- JSON schema
+        table.insert(parts, "")
+        table.insert(parts, "CRITICAL: Respond with ONLY a JSON object. Use this exact structure:")
+        table.insert(parts, "")
+        table.insert(parts, '```json')
+        table.insert(parts, '{')
+        table.insert(parts, '  "questions": [')
+        table.insert(parts, table.concat(json_examples, ",\n"))
+        table.insert(parts, '  ]')
+        table.insert(parts, '}')
+        table.insert(parts, '```')
+        table.insert(parts, "")
+        table.insert(parts, "Rules:")
+        table.insert(parts, '- "type" must be exactly one of: ' .. table.concat(type_list, ", "))
+        for _idx, rule in ipairs(rules) do
+            table.insert(parts, rule)
+        end
+        table.insert(parts, "- Adapt to content type (fiction: plot/characters/themes, non-fiction: arguments/evidence/concepts, academic: methodology/findings)")
+        table.insert(parts, "- Use key terms in the work's original language where applicable")
 
         message_data.quiz_instructions = table.concat(parts, "\n")
     end
