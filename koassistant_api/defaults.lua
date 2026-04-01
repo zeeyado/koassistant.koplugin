@@ -22,7 +22,7 @@ local function getDefaultModel(provider)
         xai = "grok-4-1-fast-non-reasoning",
         openrouter = "anthropic/claude-sonnet-4.6",
         qwen = "qwen3-max",
-        kimi = "kimi-k2-0905-preview",
+        kimi = "kimi-k2.5",
         together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
         fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
         sambanova = "Llama-4-Maverick-17B-128E-Instruct",
