@@ -2588,10 +2588,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         temp_config.features.storage_key = prompt.storage_key
     end
 
-    -- Disable streaming for interactive quiz (JSON output is meaningless during streaming)
+    -- Hide streaming output for interactive quiz (avoid spoiling answers)
     if prompt.interactive_quiz then
         temp_config.features = temp_config.features or {}
-        temp_config.features.enable_streaming = false
+        temp_config.features.hidden_streaming = true
     end
 
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers

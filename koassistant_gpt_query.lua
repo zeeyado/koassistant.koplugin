@@ -465,6 +465,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             display_interval_ms = config.features and config.features.stream_display_interval or 250,
             enable_emoji_icons = config.features and config.features.enable_emoji_icons == true,
             debug = config.features and config.features.debug,
+            hidden_streaming = config.features and config.features.hidden_streaming,
         }
 
         -- Streaming is async - show dialog and call on_complete when done

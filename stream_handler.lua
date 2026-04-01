@@ -103,6 +103,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local has_post_search_content = false  -- Track if real answer content arrived after a search
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
     local was_truncated = false  -- Track if response was truncated (max tokens)
+    -- Hidden streaming: accumulate data but show placeholder (for quiz etc.)
+    local hidden_streaming = settings and settings.hidden_streaming
+    local hidden_output_visible = false  -- Toggle: user pressed "Show" to reveal
     local has_streamed_content = false  -- Track if real content (not error text) was extracted
     local usage_data = nil  -- Track token usage from SSE events
     -- State for <think> tag parsing (R1-style models: groq, together, fireworks, sambanova, ollama, perplexity)
@@ -397,6 +400,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         iw:scrollToBottom()
     end
 
+    -- Hidden streaming: build placeholder text with animated dots
+    local hidden_animation = hidden_streaming and self:createWaitingAnimation()
+    local hidden_animation_task = nil
+
     -- Throttled UI update function - batches multiple chunks into single display refresh
     local function scheduleUIUpdate()
         if pending_ui_update or completed then return end
@@ -410,10 +417,17 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                     -- Preserve user's manual scroll position
                     iw:resyncPos()
                 end
-                local display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                local display
+                if hidden_streaming and not hidden_output_visible then
+                    -- Show placeholder instead of actual content
+                    display = _("Generating quiz") .. (hidden_animation and hidden_animation:getNextFrame() or "...")
+                        .. "\n\n" .. _("Output hidden to avoid spoilers.")
+                else
+                    display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                end
                 iw:setText(display, true)
 
-                if auto_scroll_active then
+                if auto_scroll_active and not (hidden_streaming and not hidden_output_visible) then
                     if page_scroll then
                         applyPageScroll(iw, display)
                     else
@@ -492,6 +506,37 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             },
         }
     }
+
+    -- Add Show/Hide toggle for hidden streaming actions (e.g. quiz)
+    if hidden_streaming then
+        table.insert(dialog_buttons[1], 2, {
+            text = _("Show"),
+            id = "hidden_toggle",
+            callback = function()
+                hidden_output_visible = not hidden_output_visible
+                local btn = streamDialog.button_table:getButtonById("hidden_toggle")
+                if btn then
+                    btn:setText(hidden_output_visible and _("Hide") or _("Show"), btn.width)
+                    UIManager:setDirty(streamDialog, "ui")
+                end
+                -- Force immediate display update
+                if streamDialog and streamDialog._input_widget then
+                    local iw = streamDialog._input_widget
+                    local display
+                    if hidden_output_visible then
+                        display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                    else
+                        display = _("Generating quiz") .. (hidden_animation and hidden_animation:getNextFrame() or "...")
+                            .. "\n\n" .. _("Output hidden to avoid spoilers.")
+                    end
+                    iw:setText(display, true)
+                    if hidden_output_visible and auto_scroll_active then
+                        iw:scrollToBottom()
+                    end
+                end
+            end,
+        })
+    end
 
     streamDialog = InputDialog:new{
         title = _("AI is responding"),
@@ -583,10 +628,23 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
     -- Set up waiting animation
     local animation = self:createWaitingAnimation()
-    streamDialog._input_widget:setText(animation:getNextFrame(), true)
+    local function getWaitingText()
+        if hidden_streaming and not hidden_output_visible then
+            return _("Generating quiz") .. hidden_animation:getNextFrame()
+                .. "\n\n" .. _("Output hidden to avoid spoilers.")
+        end
+        return animation:getNextFrame()
+    end
+    streamDialog._input_widget:setText(getWaitingText(), true)
     local function updateAnimation()
         if not first_content_received and not completed then
-            streamDialog._input_widget:setText(animation:getNextFrame(), true)
+            streamDialog._input_widget:setText(getWaitingText(), true)
+            animation_task = UIManager:scheduleIn(0.4, updateAnimation)
+        elseif hidden_streaming and not hidden_output_visible and not completed then
+            -- Keep animating the placeholder even after content arrives
+            streamDialog._input_widget:setText(
+                _("Generating quiz") .. hidden_animation:getNextFrame()
+                    .. "\n\n" .. _("Output hidden to avoid spoilers."), true)
             animation_task = UIManager:scheduleIn(0.4, updateAnimation)
         end
     end
