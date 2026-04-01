@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-03-16
+-- Last updated: 2026-03-31
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -28,13 +28,15 @@ local ModelLists = {
         -- GPT-5.4 (latest flagship, Mar 2026)
         "gpt-5.4",                      -- flagship (default)
         "gpt-5.4-pro",                  -- premium (Pro/Enterprise)
+        "gpt-5.4-mini",                 -- standard (400K context)
+        "gpt-5.4-nano",                 -- fast
         -- GPT-5.2 (Dec 2025)
         "gpt-5.2",
         "gpt-5.1",
         -- GPT-5 family (Aug 2025)
         "gpt-5",
-        "gpt-5-mini",                   -- standard
-        "gpt-5-nano",                   -- fast
+        "gpt-5-mini",
+        "gpt-5-nano",
         -- GPT-4.1 family
         "gpt-4.1",
         "gpt-4.1-mini",
@@ -115,7 +117,6 @@ local ModelLists = {
         -- Preview models
         "meta-llama/llama-4-scout-17b-16e-instruct",
         "qwen/qwen3-32b",
-        "moonshotai/kimi-k2-instruct-0905",             -- 256K context
         -- Compound AI (agentic)
         "groq/compound",                                -- web search + code exec
         "groq/compound-mini",
@@ -173,6 +174,8 @@ local ModelLists = {
         -- OpenAI
         "openai/gpt-5.4",
         "openai/gpt-5.4-pro",
+        "openai/gpt-5.4-mini",
+        "openai/gpt-5.4-nano",
         "openai/gpt-5.2",
         "openai/gpt-5.1",
         "openai/gpt-5",
@@ -264,8 +267,10 @@ local ModelLists = {
     },
 
     kimi = {
-        -- K2 (latest, 256K context)
-        "kimi-k2-0905-preview",         -- flagship (default) - Sep 2025
+        -- K2.5 (latest, 256K context, multimodal)
+        "kimi-k2.5",                    -- flagship (default) - Jan 2026
+        -- K2 (256K context)
+        "kimi-k2-0905-preview",         -- Sep 2025
         "kimi-k2-turbo-preview",        -- fast (100 tok/s)
         "kimi-k2-thinking",             -- reasoning
         "kimi-k2-thinking-turbo",       -- reasoning (faster)
@@ -312,18 +317,11 @@ local ModelLists = {
 
     sambanova = {
         -- Llama 4
-        "Llama-4-Maverick-17B-128E-Instruct",                -- flagship (preview)
+        "Llama-4-Maverick-17B-128E-Instruct",                -- flagship
         -- Llama 3.x
         "Meta-Llama-3.3-70B-Instruct",                       -- standard
-        "Meta-Llama-3.1-8B-Instruct",                        -- ultrafast
         -- DeepSeek
-        "DeepSeek-V3.1",
-        "DeepSeek-R1-0528",                                  -- reasoning
-        "DeepSeek-V3-0324",
-        "DeepSeek-R1-Distill-Llama-70B",
-        -- Qwen
-        "Qwen3-235B-A22B-Instruct-2507",
-        "Qwen3-32B",
+        "DeepSeek-R1-Distill-Llama-70B",                     -- reasoning
         -- Other
         "MiniMax-M2.5",
         "gpt-oss-120b",
@@ -366,8 +364,9 @@ local ModelLists = {
     },
 
     zai = {
-        -- GLM-5 (200K context)
+        -- GLM-5.x (200K context)
         "glm-5-turbo",                  -- agent flagship (default)
+        "glm-5.1",                      -- coding flagship (Mar 2026)
         "glm-5",                        -- flagship
         -- GLM-4.7 (200K context)
         "glm-4.7",                      -- reasoning
@@ -401,7 +400,7 @@ local ModelLists = {
             openrouter = "deepseek/deepseek-r1",
             together = "Qwen/Qwen3.5-397B-A17B",
             fireworks = "accounts/fireworks/models/deepseek-r1",
-            sambanova = "DeepSeek-R1-0528",
+            sambanova = "DeepSeek-R1-Distill-Llama-70B",
             qwen = "qwen3-max",
             kimi = "kimi-k2-thinking",
             doubao = "doubao-1.8-pro-256k",
@@ -425,7 +424,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
             sambanova = "Llama-4-Maverick-17B-128E-Instruct",
             qwen = "qwen3-max",
-            kimi = "kimi-k2-0905-preview",
+            kimi = "kimi-k2.5",
             doubao = "doubao-1.8-pro-32k",
             zai = "glm-5-turbo",
             perplexity = "sonar-pro",
@@ -434,7 +433,7 @@ local ModelLists = {
         -- Balanced performance and cost
         standard = {
             anthropic = "claude-sonnet-4-5-20250929",  -- still excellent, lower cost alternative
-            openai = "gpt-5-mini",
+            openai = "gpt-5.4-mini",
             deepseek = "deepseek-chat",
             gemini = "gemini-2.5-flash",
             groq = "llama-3.3-70b-versatile",
@@ -447,7 +446,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen-plus",
-            kimi = "kimi-k2-0905-preview",
+            kimi = "kimi-k2.5",
             doubao = "doubao-1.5-pro-32k",
             zai = "glm-5",
             perplexity = "sonar",
@@ -456,7 +455,7 @@ local ModelLists = {
         -- Optimized for speed and lower cost
         fast = {
             anthropic = "claude-haiku-4-5-20251001",
-            openai = "gpt-5-nano",
+            openai = "gpt-5.4-nano",
             deepseek = "deepseek-chat",
             gemini = "gemini-2.5-flash",
             groq = "llama-3.1-8b-instant",
@@ -467,7 +466,7 @@ local ModelLists = {
             openrouter = "google/gemini-2.5-flash",
             together = "mistralai/Mistral-Small-24B-Instruct-2501",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
-            sambanova = "Meta-Llama-3.1-8B-Instruct",
+            sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen-turbo",
             kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-seed-1.6-flash",
@@ -478,7 +477,7 @@ local ModelLists = {
         -- Smallest/cheapest models for basic tasks
         ultrafast = {
             anthropic = "claude-haiku-4-5-20251001",
-            openai = "gpt-4.1-nano",
+            openai = "gpt-5.4-nano",
             deepseek = "deepseek-chat",
             gemini = "gemini-2.5-flash-lite",
             groq = "llama-3.1-8b-instant",
@@ -489,7 +488,7 @@ local ModelLists = {
             openrouter = "google/gemini-3-flash-preview",   -- FREE tier
             together = "mistralai/Mistral-Small-24B-Instruct-2501",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
-            sambanova = "Meta-Llama-3.1-8B-Instruct",
+            sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen-turbo",
             kimi = "kimi-k2-turbo-preview",
             doubao = "doubao-lite-32k",
