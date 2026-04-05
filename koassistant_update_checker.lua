@@ -909,19 +909,13 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
     local ltn12 = require("ltn12")
     local socket = require("socket")
 
-    -- Warmup: Make a quick TCP connection in parent before fork.
-    -- Required on macOS where subprocess HTTPS connections fail without it.
-    -- Skipped for auto-checks at startup to avoid blocking the UI thread.
+    -- Pre-resolve DNS in parent process (macOS only).
+    -- After fork(), getaddrinfo() hangs for ~75s due to invalid mDNSResponder Mach ports.
+    -- Skipped for silent auto-checks at startup to avoid blocking the UI thread.
+    local resolved_ip
     if not skip_warmup and IS_MACOS and url:sub(1, 8) == "https://" then
-        local host = url:match("https://([^/:]+)")
-        if host then
-            pcall(function()
-                local sock = socket.tcp()
-                sock:settimeout(WARMUP_TIMEOUT)
-                sock:connect(host, 443)
-                sock:close()
-            end)
-        end
+        local BaseHandler = require("koassistant_api.base")
+        resolved_ip = BaseHandler.resolveForSubprocess(url)
     end
 
     local pid, parent_read_fd
@@ -981,37 +975,122 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
         if not subprocess_pid or not child_write_fd then return end
 
         local ok, err = pcall(function()
-            local http = require("socket.http")
-            local subprocess_ltn12 = require("ltn12")
+            if IS_MACOS and url:sub(1, 8) == "https://" then
+                -- macOS: use raw SSL to bypass http.request which hangs after fork
+                local BaseHandler = require("koassistant_api.base")
+                local parsed_host = url:match("https://([^/:]+)")
+                local parsed_port = tonumber(url:match("https://[^/:]+:(%d+)")) or 443
+                local parsed_path = url:match("https://[^/]+(.*)") or "/"
 
-            -- Set tight timeouts for update check (fail fast).
-            -- socketutil monkey-patches socket.tcp to enforce TCP-level timeouts.
-            local su_ok, socketutil = pcall(require, "socketutil")
-            if su_ok and socketutil then
-                socketutil:set_timeout(8, 15)  -- 8s block, 15s total
-            else
-                local https = require("ssl.https")
-                https.TIMEOUT = 8
-            end
-
-            local pipe_w = wrap_fd(child_write_fd)
-            local request = {
-                url = url,
-                method = "GET",
-                headers = {
+                local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, parsed_host, parsed_port, 8)
+                local req_headers = {
                     ["Accept"] = "application/vnd.github.v3+json",
-                    ["User-Agent"] = "KOReader-KOAssistant-Plugin"
-                },
-                sink = subprocess_ltn12.sink.file(pipe_w),
-            }
+                    ["User-Agent"] = "KOReader-KOAssistant-Plugin",
+                }
 
-            -- Use http.request (KOReader's http.lua handles HTTPS via SCHEMES table)
-            local req_ok, code = pcall(function()
-                return select(2, http.request(request))
-            end)
+                -- Send GET request and read headers (reuse helper via raw protocol)
+                local req_lines = {
+                    string.format("GET %s HTTP/1.1", parsed_path),
+                    string.format("Host: %s", parsed_host),
+                }
+                for k, v in pairs(req_headers) do
+                    table.insert(req_lines, string.format("%s: %s", k, v))
+                end
+                table.insert(req_lines, "Connection: close")
+                table.insert(req_lines, "")
+                table.insert(req_lines, "")
+                ssl_sock:send(table.concat(req_lines, "\r\n"))
 
-            if not req_ok or (code and code ~= 200) then
-                ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(code or "connection failed"))
+                -- Read status line
+                local status_line = ssl_sock:receive("*l")
+                local status_code = status_line and tonumber(status_line:match("HTTP/%S+%s+(%d+)"))
+
+                -- Read response headers
+                local is_chunked = false
+                while true do
+                    local line = ssl_sock:receive("*l")
+                    if not line or line == "" then break end
+                    if line:lower():match("^transfer%-encoding:%s*chunked") then
+                        is_chunked = true
+                    end
+                end
+
+                if not status_code or status_code ~= 200 then
+                    -- Read error body and report
+                    local err_chunks = {}
+                    if is_chunked then
+                        while true do
+                            local size_line = ssl_sock:receive("*l")
+                            if not size_line then break end
+                            local chunk_size = tonumber(size_line:match("^%s*(%x+)"), 16)
+                            if not chunk_size or chunk_size == 0 then break end
+                            local chunk_data = ssl_sock:receive(chunk_size)
+                            if chunk_data then table.insert(err_chunks, chunk_data) end
+                            ssl_sock:receive("*l")
+                        end
+                    else
+                        while true do
+                            local chunk, recv_err, partial = ssl_sock:receive(8192)
+                            if chunk then table.insert(err_chunks, chunk)
+                            elseif partial and #partial > 0 then table.insert(err_chunks, partial) end
+                            if recv_err then break end
+                        end
+                    end
+                    ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(status_code or "connection failed"))
+                else
+                    -- Stream response body to pipe
+                    if is_chunked then
+                        while true do
+                            local size_line = ssl_sock:receive("*l")
+                            if not size_line then break end
+                            local chunk_size = tonumber(size_line:match("^%s*(%x+)"), 16)
+                            if not chunk_size or chunk_size == 0 then break end
+                            local chunk_data = ssl_sock:receive(chunk_size)
+                            if chunk_data then ffiutil.writeToFD(child_write_fd, chunk_data) end
+                            ssl_sock:receive("*l")
+                        end
+                    else
+                        while true do
+                            local chunk, recv_err, partial = ssl_sock:receive(8192)
+                            if chunk then ffiutil.writeToFD(child_write_fd, chunk)
+                            elseif partial and #partial > 0 then ffiutil.writeToFD(child_write_fd, partial) end
+                            if recv_err then break end
+                        end
+                    end
+                end
+
+                ssl_sock:close()
+            else
+                -- Non-macOS: use standard http.request path
+                local http = require("socket.http")
+                local subprocess_ltn12 = require("ltn12")
+
+                local su_ok, socketutil = pcall(require, "socketutil")
+                if su_ok and socketutil then
+                    socketutil:set_timeout(8, 15)  -- 8s block, 15s total
+                else
+                    local subprocess_https = require("ssl.https")
+                    subprocess_https.TIMEOUT = 8
+                end
+
+                local pipe_w = wrap_fd(child_write_fd)
+                local request = {
+                    url = url,
+                    method = "GET",
+                    headers = {
+                        ["Accept"] = "application/vnd.github.v3+json",
+                        ["User-Agent"] = "KOReader-KOAssistant-Plugin"
+                    },
+                    sink = subprocess_ltn12.sink.file(pipe_w),
+                }
+
+                local req_ok, code = pcall(function()
+                    return select(2, http.request(request))
+                end)
+
+                if not req_ok or (code and code ~= 200) then
+                    ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(code or "connection failed"))
+                end
             end
         end)
 
@@ -1106,19 +1185,11 @@ end
 --- @param dest_path string Path to write the downloaded file
 --- @param callback function Called with (success, error_msg_or_nil)
 local function downloadFile(url, dest_path, callback)
-    local socket = require("socket")
-
-    -- Warmup: Quick TCP connection in parent before fork (macOS fix)
+    -- Pre-resolve DNS in parent process (macOS only)
+    local resolved_ip
     if IS_MACOS and url:sub(1, 8) == "https://" then
-        local host = url:match("https://([^/:]+)")
-        if host then
-            pcall(function()
-                local sock = socket.tcp()
-                sock:settimeout(WARMUP_TIMEOUT)
-                sock:connect(host, 443)
-                sock:close()
-            end)
-        end
+        local BaseHandler = require("koassistant_api.base")
+        resolved_ip = BaseHandler.resolveForSubprocess(url)
     end
 
     local pid, parent_read_fd
@@ -1185,32 +1256,104 @@ local function downloadFile(url, dest_path, callback)
         if not subprocess_pid or not child_write_fd then return end
 
         local ok, sub_err = pcall(function()
-            local subprocess_https = require("ssl.https")
-            local subprocess_ltn12 = require("ltn12")
-            subprocess_https.TIMEOUT = DOWNLOAD_TIMEOUT - 5
+            if IS_MACOS and url:sub(1, 8) == "https://" then
+                -- macOS: use raw SSL to bypass http.request which hangs after fork
+                local BaseHandler = require("koassistant_api.base")
+                local parsed_host = url:match("https://([^/:]+)")
+                local parsed_port = tonumber(url:match("https://[^/:]+:(%d+)")) or 443
+                local parsed_path = url:match("https://[^/]+(.*)") or "/"
 
-            local output_file = io.open(dest_path, "wb")
-            if not output_file then
-                ffiutil.writeToFD(child_write_fd, "ERROR:Failed to create file")
-                return
-            end
+                local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, parsed_host, parsed_port, DOWNLOAD_TIMEOUT - 5)
 
-            local req_ok, code = pcall(function()
-                return select(2, subprocess_https.request{
-                    url = url,
-                    method = "GET",
-                    headers = {
-                        ["User-Agent"] = "KOReader-KOAssistant-Plugin",
-                    },
-                    sink = subprocess_ltn12.sink.file(output_file),
-                })
-            end)
+                -- Send GET request
+                local req_lines = {
+                    string.format("GET %s HTTP/1.1", parsed_path),
+                    string.format("Host: %s", parsed_host),
+                    "User-Agent: KOReader-KOAssistant-Plugin",
+                    "Connection: close",
+                    "", "",
+                }
+                ssl_sock:send(table.concat(req_lines, "\r\n"))
 
-            if not req_ok or (code and code ~= 200) then
-                os.remove(dest_path)
-                ffiutil.writeToFD(child_write_fd, "ERROR:" .. tostring(code or "connection failed"))
+                -- Read status line
+                local status_line = ssl_sock:receive("*l")
+                local status_code = status_line and tonumber(status_line:match("HTTP/%S+%s+(%d+)"))
+
+                -- Read response headers, detect chunked TE and content-length
+                local is_chunked = false
+                local content_length = nil
+                while true do
+                    local line = ssl_sock:receive("*l")
+                    if not line or line == "" then break end
+                    if line:lower():match("^transfer%-encoding:%s*chunked") then
+                        is_chunked = true
+                    end
+                    local cl = line:lower():match("^content%-length:%s*(%d+)")
+                    if cl then content_length = tonumber(cl) end
+                end
+
+                if not status_code or status_code ~= 200 then
+                    os.remove(dest_path)
+                    ffiutil.writeToFD(child_write_fd, "ERROR:" .. tostring(status_code or "connection failed"))
+                else
+                    -- Write body to file
+                    local output_file = io.open(dest_path, "wb")
+                    if not output_file then
+                        ffiutil.writeToFD(child_write_fd, "ERROR:Failed to create file")
+                    else
+                        if is_chunked then
+                            while true do
+                                local size_line = ssl_sock:receive("*l")
+                                if not size_line then break end
+                                local chunk_size = tonumber(size_line:match("^%s*(%x+)"), 16)
+                                if not chunk_size or chunk_size == 0 then break end
+                                local chunk_data = ssl_sock:receive(chunk_size)
+                                if chunk_data then output_file:write(chunk_data) end
+                                ssl_sock:receive("*l")
+                            end
+                        else
+                            while true do
+                                local chunk, recv_err, partial = ssl_sock:receive(8192)
+                                if chunk then output_file:write(chunk)
+                                elseif partial and #partial > 0 then output_file:write(partial) end
+                                if recv_err then break end
+                            end
+                        end
+                        output_file:close()
+                        ffiutil.writeToFD(child_write_fd, "OK")
+                    end
+                end
+
+                ssl_sock:close()
             else
-                ffiutil.writeToFD(child_write_fd, "OK")
+                -- Non-macOS: use standard https.request path
+                local subprocess_https = require("ssl.https")
+                local subprocess_ltn12 = require("ltn12")
+                subprocess_https.TIMEOUT = DOWNLOAD_TIMEOUT - 5
+
+                local output_file = io.open(dest_path, "wb")
+                if not output_file then
+                    ffiutil.writeToFD(child_write_fd, "ERROR:Failed to create file")
+                    return
+                end
+
+                local req_ok, code = pcall(function()
+                    return select(2, subprocess_https.request{
+                        url = url,
+                        method = "GET",
+                        headers = {
+                            ["User-Agent"] = "KOReader-KOAssistant-Plugin",
+                        },
+                        sink = subprocess_ltn12.sink.file(output_file),
+                    })
+                end)
+
+                if not req_ok or (code and code ~= 200) then
+                    os.remove(dest_path)
+                    ffiutil.writeToFD(child_write_fd, "ERROR:" .. tostring(code or "connection failed"))
+                else
+                    ffiutil.writeToFD(child_write_fd, "OK")
+                end
             end
         end)
 
