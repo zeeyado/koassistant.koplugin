@@ -6696,7 +6696,8 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 end
             end
             -- For generic section actions: open in simple viewer from section cache
-            if configuration and configuration.features and configuration.features._section_scope and plugin then
+            -- (skip interactive_quiz — has its own routing below that handles section cache keys)
+            if not action.interactive_quiz and configuration and configuration.features and configuration.features._section_scope and plugin then
                 local ActionCache = require("koassistant_action_cache")
                 local scope = configuration.features._section_scope
                 local file = ui and ui.document and ui.document.file or document_path
