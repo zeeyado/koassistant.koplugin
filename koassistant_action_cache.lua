@@ -69,7 +69,7 @@ end
 local CACHE_VERSION = 2
 
 -- Artifact keys tracked in the browsing index
-local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights", "key_arguments", "discussion_questions", "quiz", "extract_insights" }
+local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "recap", "xray_simple", "book_info", "analyze_highlights", "key_arguments", "discussion_questions", "quiz", "extract_insights", "reading_guide" }
 
 --- Update the artifact index in g_reader_settings after any cache mutation.
 --- Scans the in-memory cache table for known artifact keys and updates the index entry.
@@ -106,16 +106,20 @@ local function updateArtifactIndex(document_path, cache)
             end
         end
     end
-    -- Also count section X-Ray and wiki entries (prefix scan)
-    local section_prefix = ActionCache.SECTION_XRAY_PREFIX
-    local section_prefix_len = #section_prefix
+    -- Also count section artifacts (all types) and wiki entries (prefix scan)
     local wiki_prefix = ActionCache.WIKI_PREFIX
     local wiki_prefix_len = #wiki_prefix
     for key, entry in pairs(cache) do
         if type(key) == "string" and type(entry) == "table"
            and entry.version == CACHE_VERSION and entry.result then
-            if key:sub(1, section_prefix_len) == section_prefix
-               or key:sub(1, wiki_prefix_len) == wiki_prefix then
+            local is_section = false
+            for _sp_type, sp in pairs(ActionCache.SECTION_PREFIXES) do
+                if key:sub(1, #sp) == sp then
+                    is_section = true
+                    break
+                end
+            end
+            if is_section or key:sub(1, wiki_prefix_len) == wiki_prefix then
                 count = count + 1
                 if (entry.timestamp or 0) > latest then
                     latest = entry.timestamp or 0
@@ -490,13 +494,14 @@ local ARTIFACT_NAMES = {
     ["discussion_questions"] = _("Discussion Questions"),
     ["quiz"] = _("Quiz"),
     ["extract_insights"] = _("Key Insights"),
+    ["reading_guide"] = _("Reading Guide"),
 }
 ActionCache.ARTIFACT_NAMES = ARTIFACT_NAMES
 
 -- Artifact keys that are per-action caches (vs document-level caches)
 local PER_ACTION_ARTIFACTS = {
     recap = true, xray_simple = true, book_info = true, analyze_highlights = true,
-    key_arguments = true, discussion_questions = true, quiz = true, extract_insights = true,
+    key_arguments = true, discussion_questions = true, quiz = true, extract_insights = true, reading_guide = true,
 }
 
 --- Get available artifacts for a document file.
@@ -548,7 +553,7 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
     end
     -- Add non-X-Ray section groups
     local other_section_types = { "summary", "analyze", "key_arguments",
-        "discussion_questions", "quiz", "extract_insights" }
+        "discussion_questions", "quiz", "extract_insights", "reading_guide" }
     for _idx, sec_type in ipairs(other_section_types) do
         local prefix = ActionCache.SECTION_PREFIXES[sec_type]
         if prefix then
@@ -709,6 +714,7 @@ ActionCache.SECTION_PREFIXES = {
     discussion_questions = "discussion_questions_section:",
     quiz = "quiz_section:",
     extract_insights = "extract_insights_section:",
+    reading_guide = "reading_guide_section:",
 }
 
 -- Human-readable names for section group display (plural for group titles)
@@ -720,6 +726,7 @@ ActionCache.SECTION_GROUP_NAMES = {
     discussion_questions = _("View Section Discussion Questions"),
     quiz = _("View Section Quizzes"),
     extract_insights = _("View Section Key Insights"),
+    reading_guide = _("View Section Reading Guides"),
 }
 
 -- Singular type labels for individual section viewer titles
@@ -731,6 +738,7 @@ ActionCache.SECTION_TYPE_LABELS = {
     discussion_questions = _("Discussion Questions"),
     generate_quiz = _("Quiz"),
     extract_insights = _("Key Insights"),
+    reading_guide = _("Reading Guide"),
 }
 
 -- Wiki entry prefix for per-item encyclopedia entries (stored in same cache file)

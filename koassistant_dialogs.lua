@@ -6695,6 +6695,25 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     end
                 end
             end
+            -- For generic section actions: open in simple viewer from section cache
+            if configuration and configuration.features and configuration.features._section_scope and plugin then
+                local ActionCache = require("koassistant_action_cache")
+                local scope = configuration.features._section_scope
+                local file = ui and ui.document and ui.document.file or document_path
+                if scope.cache_key and file then
+                    local section_cache = ActionCache.get(file, scope.cache_key)
+                    if section_cache and section_cache.result then
+                        plugin:viewCachedAction(action, action.id or action_id, section_cache, {
+                            file = file,
+                            section_key = scope.cache_key,
+                            section_label = scope.label,
+                            book_title = book_metadata and book_metadata.title,
+                            book_author = book_metadata and book_metadata.author,
+                        })
+                        return
+                    end
+                end
+            end
             -- For X-Ray: open browser directly instead of chat viewer
             -- The result is already saved to the X-Ray cache; the chat viewer is unnecessary
             if action.cache_as_xray and ui and ui.document and ui.document.file then
