@@ -315,6 +315,7 @@ function AskGPT:init()
     -- Initialize chapter quiz state (reset on each book open)
     self._last_chapter_index = nil
     self._last_quiz_offered_chapter = nil
+    self._last_quiz_page = nil
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
@@ -7281,6 +7282,7 @@ end
 --- Chapter transition detection for automatic chapter quizzes.
 --- Fires on every page turn. Compares TOC index to detect when the user
 --- crosses a chapter boundary and offers a quiz for the finished chapter.
+--- Only triggers on sequential reading (small page deltas), not TOC jumps.
 function AskGPT:onPageUpdate(pageno)
   local features = self.settings:readSetting("features") or {}
   if features.enable_chapter_quiz ~= true then return end
@@ -7288,6 +7290,10 @@ function AskGPT:onPageUpdate(pageno)
 
   local toc = self.ui.toc
   if not toc.toc or #toc.toc == 0 then return end
+
+  -- Track page for sequential reading detection
+  local prev_page = self._last_quiz_page
+  self._last_quiz_page = pageno
 
   -- Determine whether to filter by depth or use KOReader's TOC filter
   local depth_setting = features.quiz_chapter_depth or "toc_filter"
@@ -7327,6 +7333,12 @@ function AskGPT:onPageUpdate(pageno)
   if current_toc_index and current_toc_index ~= self._last_chapter_index then
     local previous_chapter_index = self._last_chapter_index
     self._last_chapter_index = current_toc_index
+
+    -- Only trigger on sequential reading (small page delta), not TOC navigation jumps
+    -- A normal page turn moves 1-3 pages; a TOC jump moves many more
+    if prev_page and math.abs(pageno - prev_page) > 5 then
+      return
+    end
 
     -- Debounce: don't re-offer for the same chapter
     if self._last_quiz_offered_chapter == previous_chapter_index then return end
