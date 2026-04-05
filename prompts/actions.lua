@@ -958,6 +958,7 @@ If web search is available, consider searching for the DOI or title to find cita
 
 Be substantive but not exhaustive. {hallucination_nudge}]],
         use_response_caching = true,
+        storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         api_params = {
             temperature = 0.5,  -- Factual overview, lower variance
         },
@@ -1306,6 +1307,7 @@ CRITICAL: No spoilers beyond {reading_progress}.]],
         context = "book",
         requires = {"highlights"},      -- Block if no highlight-type data can reach the prompt
         use_response_caching = true,    -- View/Update popup + per-action cache (pseudo-update)
+        storage_key = "__SKIP__",       -- Result lives in artifact cache, not chat history
         -- Context extraction flags
         use_highlights = true,
         use_annotations = true,
@@ -1406,6 +1408,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         use_response_caching = true,
+        storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
         prompt = [[Analyze the main arguments in "{title}"{author_clause}.{doi_clause}
@@ -1458,6 +1461,7 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         use_response_caching = true,
+        storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         in_quick_actions = 8,     -- Appears in Quick Actions menu
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.{doi_clause}
@@ -1505,6 +1509,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
         use_response_caching = true,  -- Cached as artifact
+        storage_key = "__SKIP__",     -- Result lives in artifact cache, not chat history
         interactive_quiz = true,  -- Route to quiz viewer instead of chat viewer
         in_quick_actions = 9,
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
@@ -1592,6 +1597,7 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         use_book_text = true,  -- Permission gate (UI: "Allow text extraction")
         use_summary_cache = true,
         source_selection = true,  -- Show source selection popup
+        storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         use_response_caching = true,
         prompt = [[Extract the key insights from: "{title}"{author_clause}.{doi_clause}
 
@@ -1629,6 +1635,7 @@ Adapt to the work — a novel's insights look different from a research paper's 
         use_reading_progress = true,
         source_selection = true,  -- Unified scope/source popup
         use_response_caching = true,
+        storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         prompt = [[Create a spoiler-free reading guide for what lies ahead in "{title}"{author_clause}.{doi_clause}
 
 I'm at {reading_progress}.
