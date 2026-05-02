@@ -36,6 +36,7 @@ local function hasContent(msg)
     return true
 end
 
+-- Gemini only accepts "user" and "model"; function response turns also use "user"
 local function geminiRole(role)
     if role == "assistant" or role == "model" then
         return "model"

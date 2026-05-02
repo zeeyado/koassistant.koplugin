@@ -11,6 +11,7 @@ local MAX_SNIPPET_CHARS = 1200
 local DEFAULT_TOC_SNIPPET_CHARS = 300
 local MAX_TOC_SNIPPET_CHARS = 800
 local MAX_TOC_ENTRIES = 120
+local MAX_SENTENCE_CHUNK = 700
 
 local function clamp(value, min_value, max_value)
     value = tonumber(value) or min_value
@@ -65,8 +66,8 @@ local function splitSentences(text)
     for sentence in text:gmatch("[^%.%!%?]+[%.%!%?]?") do
         local current = squeeze(sentence)
         if current ~= "" then
-            while #current > 700 do
-                local cut = current:sub(1, 700):match("^(.+)%s+%S*$") or current:sub(1, 700)
+            while #current > MAX_SENTENCE_CHUNK do
+                local cut = current:sub(1, MAX_SENTENCE_CHUNK):match("^(.+)%s+%S*$") or current:sub(1, MAX_SENTENCE_CHUNK)
                 table.insert(sentences, trim(cut))
                 current = trim(current:sub(#cut + 1))
             end
@@ -194,10 +195,10 @@ function BookTools:getPageText(page, max_chars)
     local cached = self.page_cache[page]
     if cached then return cached end
 
-    local result = self.extractor:getPageRangeText(page, page, {
-        max_chars = max_chars or 20000,
-    })
-    local text = result and result.text or ""
+    local ok, result = pcall(function()
+        return self.extractor:getPageRangeText(page, page, { max_chars = max_chars or 20000 })
+    end)
+    local text = ok and result and result.text or ""
     self.page_cache[page] = text
     return text
 end
