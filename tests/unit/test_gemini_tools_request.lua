@@ -20,45 +20,7 @@ require("mock_koreader")
 
 local GeminiHandler = require("koassistant_api.gemini")
 
-local TestRunner = {
-    passed = 0,
-    failed = 0,
-}
-
-function TestRunner:test(name, fn)
-    local ok, err = pcall(fn)
-    if ok then
-        self.passed = self.passed + 1
-        print(string.format("    PASS %s", name))
-    else
-        self.failed = self.failed + 1
-        print(string.format("    FAIL %s", name))
-        print(string.format("      Error: %s", tostring(err)))
-    end
-end
-
-function TestRunner:assertEqual(actual, expected, msg)
-    if actual ~= expected then
-        error(string.format("%s: expected %q, got %q", msg or "Assertion failed", tostring(expected), tostring(actual)))
-    end
-end
-
-function TestRunner:assertTrue(value, msg)
-    if not value then
-        error(string.format("%s: expected true", msg or "Assertion failed"))
-    end
-end
-
-function TestRunner:summary()
-    print("")
-    local total = self.passed + self.failed
-    if self.failed == 0 then
-        print(string.format("  All %d Gemini tool request tests passed!", total))
-    else
-        print(string.format("  %d passed, %d failed (of %d total)", self.passed, self.failed, total))
-    end
-    return self.failed == 0
-end
+local TestRunner = require("test_runner"):new()
 
 print("")
 print(string.rep("=", 50))

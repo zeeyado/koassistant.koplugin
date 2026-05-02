@@ -12,7 +12,7 @@ When answering questions about the current book, use the local book tools when y
 
 local FINAL_INSTRUCTIONS = [[
 
-Use the gathered local book tool results to answer the user's question. Do not claim access to unread pages.]]
+Use the gathered local book tool results to answer the user's question. Do not use or reveal any information about events or plot developments beyond the user's current reading position.]]
 
 local FUNCTION_DECLARATIONS = {
     {
@@ -123,7 +123,7 @@ end
 local function buildToolSettings(features)
     features = features or {}
     return {
-        enable_book_text_extraction = features.enable_book_text_extraction == true,
+        enable_book_text_extraction = true,
         max_book_text_chars = features.max_book_text_chars,
         max_pdf_pages = features.max_pdf_pages,
     }
@@ -188,7 +188,6 @@ function GeminiToolRunner.shouldUse(config, ui)
         and features.is_book_context == true
         and features.is_library_context ~= true
         and features.is_general_context ~= true
-        and features.enable_book_text_extraction == true
         and ui ~= nil
         and ui.document ~= nil
 end
