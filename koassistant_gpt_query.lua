@@ -96,7 +96,7 @@ end
 --- Uses subprocess to avoid blocking the UI
 --- @param background_fn function: The background request function from handler
 --- @param provider string: Provider name for error messages
---- @param on_complete function: Callback with (success, content, error, reasoning, web_search_used)
+--- @param on_complete function: Callback with (success, content, error, reasoning, web_search_used, usage)
 --- @param response_parser function: Function to parse JSON response to content
 --- @param config table: Configuration with model info and optional loading_message
 local function handleNonStreamingBackground(background_fn, provider, on_complete, response_parser, config)
@@ -149,7 +149,7 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
     end
 
     -- Handle completion
-    local function finish(success_flag, content, err, reasoning, web_search_used)
+    local function finish(success_flag, content, err, reasoning, web_search_used, usage)
         if completed then return end
         completed = true
         cleanup()
@@ -158,7 +158,7 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
             loading_dialog = nil
         end
         if on_complete then
-            on_complete(success_flag, content, err, reasoning, web_search_used)
+            on_complete(success_flag, content, err, reasoning, web_search_used, usage)
         end
     end
 
@@ -258,22 +258,24 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
             return
         end
 
+        local usage = DebugUtils.extractUsage(parsed)
+
         -- Debug: Print token usage
-        if config and config.features and config.features.debug then
-            DebugUtils.printUsage(provider, parsed)
+        if config and config.features and config.features.debug and usage then
+            print(string.format("[%s] Token usage: %s", provider, DebugUtils.formatUsage(usage)))
         end
 
         -- Use response parser to extract content
         if response_parser then
             local parse_success, content, reasoning, web_search_used = response_parser(parsed)
             if parse_success then
-                finish(true, content, nil, reasoning, web_search_used)
+                finish(true, content, nil, reasoning, web_search_used, usage)
             else
                 finish(false, nil, content)  -- content is error message when parse fails
             end
         else
             -- Fallback: just return the parsed response
-            finish(true, parsed, nil)
+            finish(true, parsed, nil, nil, nil, usage)
         end
     end
 
@@ -438,9 +440,9 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         handleNonStreamingBackground(
             non_streaming_bg_fn,
             provider,
-            function(bg_success, content, err, reasoning, web_search_used)
+            function(bg_success, content, err, reasoning, web_search_used, usage)
                 if on_complete then
-                    on_complete(bg_success, content, err, reasoning, web_search_used)
+                    on_complete(bg_success, content, err, reasoning, web_search_used, usage)
                 end
             end,
             response_parser,
@@ -474,7 +476,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             provider,
             config.model,
             stream_settings,
-            function(stream_success, content, err, reasoning_content, stream_web_search_used)
+            function(stream_success, content, err, reasoning_content, stream_web_search_used, usage)
                 if stream_handler.user_interrupted then
                     if on_complete then on_complete(false, nil, "Request cancelled by user.") end
                     return
@@ -491,7 +493,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
                 -- 3. Otherwise → nil
                 local reasoning_info = reasoning_content or stream_reasoning_requested
 
-                if on_complete then on_complete(true, content, nil, reasoning_info, stream_web_search_used) end
+                if on_complete then on_complete(true, content, nil, reasoning_info, stream_web_search_used, usage) end
             end
         )
 

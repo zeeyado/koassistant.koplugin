@@ -1,10 +1,15 @@
 local BookTools = require("koassistant_book_tools")
 local ConfigHelper = require("koassistant_config_helper")
+local DebugUtils = require("koassistant_debug_utils")
+local json = require("json")
 
 local GeminiToolRunner = {}
 
 local MAX_TOOL_TURNS = 4
 local MAX_TOOL_CALLS = 8
+-- TODO(jgruber): Remove temporary Gemini tool diagnostics after validation.
+local VERBOSE_TOOL_OUTPUT = true
+local SHOW_TURN_TOKEN_USAGE = true
 
 local TOOL_INSTRUCTIONS = [[
 
@@ -160,6 +165,97 @@ local function appendTrace(answer, trace)
     return answer .. "\n" .. table.concat(lines, "\n")
 end
 
+local function appendVerboseToolOutput(answer, tool_outputs)
+    if not VERBOSE_TOOL_OUTPUT or type(answer) ~= "string" or #tool_outputs == 0 then
+        return answer
+    end
+
+    local lines = { "", "---", "**Gemini tool output sent to model:**" }
+    for i, output in ipairs(tool_outputs) do
+        local ok, encoded = pcall(json.encode, output.content)
+        table.insert(lines, "")
+        table.insert(lines, string.format("Tool turn %d:", i))
+        table.insert(lines, "```json")
+        table.insert(lines, ok and encoded or tostring(output.content))
+        table.insert(lines, "```")
+    end
+    return answer .. "\n" .. table.concat(lines, "\n")
+end
+
+local function mergeUsage(total, usage)
+    if type(usage) ~= "table" then return total end
+    total = total or { _call_count = 0 }
+    total._call_count = total._call_count + 1
+
+    local fields = {
+        "input_tokens",
+        "output_tokens",
+        "total_tokens",
+        "cache_read",
+        "cache_creation",
+        "reasoning_tokens",
+    }
+    for _, field in ipairs(fields) do
+        if type(usage[field]) == "number" then
+            total[field] = (total[field] or 0) + usage[field]
+        end
+    end
+
+    if not usage.total_tokens then
+        local computed = (usage.input_tokens or 0) + (usage.output_tokens or 0) + (usage.reasoning_tokens or 0)
+        if computed > 0 then
+            total.total_tokens = (total.total_tokens or 0) + computed
+        end
+    end
+
+    return total
+end
+
+local function formatTurnUsage(usage)
+    if type(usage) ~= "table" then
+        return "unavailable"
+    end
+
+    local parts = {}
+    if usage.input_tokens then
+        table.insert(parts, string.format("%d input", usage.input_tokens))
+    end
+    if usage.output_tokens then
+        table.insert(parts, string.format("%d output", usage.output_tokens))
+    end
+    if usage.reasoning_tokens and usage.reasoning_tokens > 0 then
+        table.insert(parts, string.format("%d thinking", usage.reasoning_tokens))
+    end
+    if usage.cache_read and usage.cache_read > 0 then
+        table.insert(parts, string.format("%d cache_read", usage.cache_read))
+    end
+    if usage.cache_creation and usage.cache_creation > 0 then
+        table.insert(parts, string.format("%d cache_write", usage.cache_creation))
+    end
+
+    local text = usage.total_tokens and string.format("%d total tokens", usage.total_tokens)
+        or DebugUtils.formatUsage(usage)
+    if usage.total_tokens and #parts > 0 then
+        text = text .. " (" .. table.concat(parts, ", ") .. ")"
+    end
+    if text == "" then
+        text = "unavailable"
+    end
+
+    if usage._call_count and usage._call_count > 0 then
+        local call_label = usage._call_count == 1 and "Gemini API call" or "Gemini API calls"
+        text = text .. string.format(" across %d %s", usage._call_count, call_label)
+    end
+    return text
+end
+
+local function appendTurnTokenUsage(answer, usage)
+    if not SHOW_TURN_TOKEN_USAGE or type(answer) ~= "string" then
+        return answer
+    end
+    return answer .. "\n\n---\n**Total token usage this turn:** " .. formatTurnUsage(usage)
+end
+
 local function makeFunctionResponsePart(call, result)
     local response = {
         name = call.name,
@@ -206,6 +302,8 @@ function GeminiToolRunner.run(params)
     local features = config.features or {}
     local tools = BookTools:new(params.ui, buildToolSettings(features))
     local trace = {}
+    local tool_outputs = {}
+    local token_usage = nil
     local tool_turns = 0
     local tool_calls = 0
     local completed = false
@@ -215,6 +313,8 @@ function GeminiToolRunner.run(params)
         completed = true
         if success and type(answer) == "string" then
             answer = appendTrace(answer, trace)
+            answer = appendVerboseToolOutput(answer, tool_outputs)
+            answer = appendTurnTokenUsage(answer, token_usage)
         end
         if on_complete then
             on_complete(success, answer, err, reasoning, web_search_used)
@@ -228,7 +328,8 @@ function GeminiToolRunner.run(params)
             role = "user",
             content = "Answer the user's question using the gathered tool results. Do not call more tools.",
         })
-        return query_fn(messages, final_config, function(success, answer, err, reasoning, web_search_used)
+        return query_fn(messages, final_config, function(success, answer, err, reasoning, web_search_used, usage)
+            token_usage = mergeUsage(token_usage, usage)
             finish(success, answer, err, reasoning, web_search_used)
         end, params.settings)
     end
@@ -245,7 +346,8 @@ function GeminiToolRunner.run(params)
             and "Gemini book tools\nThinking..."
             or "Gemini book tools\nReading..."
 
-        return query_fn(messages, tool_config, function(success, answer, err, reasoning, web_search_used)
+        return query_fn(messages, tool_config, function(success, answer, err, reasoning, web_search_used, usage)
+            token_usage = mergeUsage(token_usage, usage)
             if not success then
                 finish(false, nil, err, reasoning, web_search_used)
                 return
@@ -275,6 +377,12 @@ function GeminiToolRunner.run(params)
             end
 
             if #response_parts > 0 then
+                table.insert(tool_outputs, {
+                    content = {
+                        role = "user",
+                        parts = response_parts,
+                    },
+                })
                 table.insert(messages, {
                     role = "tool",
                     parts = response_parts,

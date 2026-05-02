@@ -319,11 +319,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                 DebugUtils.formatUsage(usage_data)))
         end
 
-        -- Pass reasoning content as 4th arg (string if captured, nil otherwise)
-        -- Pass web_search_used as 5th arg (true if search was used, nil otherwise)
+        -- Pass reasoning content as 4th arg, web_search_used as 5th, usage as 6th.
         local reasoning_content = #reasoning_buffer > 0 and table.concat(reasoning_buffer) or nil
         local search_used = web_search_used and true or nil
-        if on_complete then on_complete(true, result, nil, reasoning_content, search_used) end
+        if on_complete then on_complete(true, result, nil, reasoning_content, search_used, usage_data) end
 
         -- Show any pending update popup (deferred during streaming)
         local ok, UpdateChecker = pcall(require, "koassistant_update_checker")
