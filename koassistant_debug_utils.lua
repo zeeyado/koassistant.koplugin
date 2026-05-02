@@ -184,11 +184,13 @@ function DebugUtils.extractUsage(response)
 
     -- OpenAI/compatible: { usage: { prompt_tokens, completion_tokens, total_tokens } }
     if usage and (usage.prompt_tokens or usage.completion_tokens) then
+        local completion_details = usage.completion_tokens_details or usage.output_tokens_details
         return {
             input_tokens = usage.prompt_tokens,
             output_tokens = usage.completion_tokens,
             total_tokens = usage.total_tokens or ((usage.prompt_tokens or 0) + (usage.completion_tokens or 0)),
             cache_read = usage.prompt_tokens_details and usage.prompt_tokens_details.cached_tokens,
+            reasoning_tokens = completion_details and completion_details.reasoning_tokens,
         }
     end
 
@@ -200,6 +202,7 @@ function DebugUtils.extractUsage(response)
             output_tokens = gemini.candidatesTokenCount,
             total_tokens = gemini.totalTokenCount or ((gemini.promptTokenCount or 0) + (gemini.candidatesTokenCount or 0)),
             cache_read = gemini.cachedContentTokenCount,
+            reasoning_tokens = gemini.thoughtsTokenCount,
         }
     end
 
@@ -236,6 +239,9 @@ function DebugUtils.formatUsage(usage)
     end
     if usage.output_tokens then
         table.insert(parts, string.format("%d output", usage.output_tokens))
+    end
+    if usage.reasoning_tokens and usage.reasoning_tokens > 0 then
+        table.insert(parts, string.format("%d thinking", usage.reasoning_tokens))
     end
     if usage.cache_read and usage.cache_read > 0 then
         table.insert(parts, string.format("%d cache_read", usage.cache_read))
