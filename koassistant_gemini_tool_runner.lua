@@ -1,7 +1,6 @@
 local BookTools = require("koassistant_book_tools")
 local ConfigHelper = require("koassistant_config_helper")
 local DebugUtils = require("koassistant_debug_utils")
-local json = require("json")
 
 local GeminiToolRunner = {}
 
@@ -13,7 +12,7 @@ local SHOW_TURN_TOKEN_USAGE = true
 
 local TOOL_INSTRUCTIONS = [[
 
-When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; read_around for nearby context; and toc for chapter structure. Do not claim access to unread pages.]]
+When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with compact excerpts and page counts. Use read_around on the relevant hit_id or page when you need surrounding context, and toc for chapter structure. Do not claim access to unread pages.]]
 
 local FINAL_INSTRUCTIONS = [[
 
@@ -22,17 +21,13 @@ Use the gathered local book tool results to answer the user's question. Do not u
 local FUNCTION_DECLARATIONS = {
     {
         name = "search_book",
-        description = "Search the book text up to the current reading position. Supports exact, case-insensitive, token, and fuzzy matching.",
+        description = "Search the book text up to the current reading position. Returns every hit as compact metadata plus page counts; call read_around for surrounding context.",
         parameters = {
             type = "object",
             properties = {
                 query = {
                     type = "string",
                     description = "Phrase, name, event, or detail to search for.",
-                },
-                max_results = {
-                    type = "integer",
-                    description = "Maximum number of hits to return. Defaults to 8 and is capped at 12.",
                 },
                 fuzzy = {
                     type = "boolean",
@@ -139,14 +134,18 @@ local function summarizeToolCall(call, result)
     result = result or {}
     if name == "search_book" then
         local pages = {}
-        if result.results then
-            for i, hit in ipairs(result.results) do
-                if i > 3 then break end
-                table.insert(pages, tostring(hit.page))
+        if result.page_summary then
+            for i, page in ipairs(result.page_summary) do
+                if i > 5 then break end
+                table.insert(pages, string.format("%s(%s)", tostring(page.page), tostring(page.count or 0)))
             end
         end
         local suffix = #pages > 0 and (" on pp. " .. table.concat(pages, ", ")) or ""
-        return string.format("search_book: %d result(s) for %q%s", result.result_count or 0, (call.args and call.args.query) or "", suffix)
+        return string.format("search_book: %d hit(s) across %d page(s) for %q%s",
+            result.total_hits or result.result_count or 0,
+            result.matching_pages or 0,
+            (call.args and call.args.query) or "",
+            suffix)
     elseif name == "read_around" then
         local range = result.range or {}
         return string.format("read_around: pp. %s-%s", tostring(range.start_page or "?"), tostring(range.end_page or "?"))
@@ -165,19 +164,88 @@ local function appendTrace(answer, trace)
     return answer .. "\n" .. table.concat(lines, "\n")
 end
 
+local function formatToolResultText(name, result)
+    if name == "search_book" then
+        local lines = {}
+        local page_lines = {}
+        if result.page_summary then
+            for i, page in ipairs(result.page_summary) do
+                if i > 20 then
+                    table.insert(page_lines, string.format("... %d more page(s)", #result.page_summary - 20))
+                    break
+                end
+                table.insert(page_lines, string.format("p%d:%d", page.page or 0, page.count or 0))
+            end
+        end
+        if result.results then
+            for i, hit in ipairs(result.results) do
+                if i > 12 then
+                    table.insert(lines, string.format("  ... %d more hit(s)", #result.results - 12))
+                    break
+                end
+                table.insert(lines, string.format("  [%s, p%d, %s] %s",
+                    hit.hit_id or "?",
+                    hit.page or 0,
+                    hit.match_type or "?",
+                    hit.snippet or ""))
+            end
+        end
+        local header = string.format("search_book: %d hits across %d pages for %q",
+            result.total_hits or result.result_count or 0,
+            result.matching_pages or 0,
+            result.query or "")
+        if #page_lines > 0 then
+            table.insert(lines, 1, "  pages: " .. table.concat(page_lines, ", "))
+        end
+        if #lines > 0 then
+            return header .. "\n" .. table.concat(lines, "\n")
+        end
+        return header
+    elseif name == "read_around" then
+        local range = result.range or {}
+        return string.format("read_around: pp. %s-%s\n  %s",
+            tostring(range.start_page or "?"),
+            tostring(range.end_page or "?"),
+            result.text or "")
+    elseif name == "toc" then
+        local lines = {}
+        if result.entries then
+            for _, entry in ipairs(result.entries) do
+                local snippet = entry.snippet and #entry.snippet > 0 and (": " .. entry.snippet) or ""
+                table.insert(lines, string.format("  %s (pp. %d-%d)%s",
+                    entry.title or "",
+                    entry.start_page or 0,
+                    entry.end_page or 0,
+                    snippet))
+            end
+        end
+        local header = string.format("toc: %d entries", result.entry_count or 0)
+        if #lines > 0 then
+            return header .. "\n" .. table.concat(lines, "\n")
+        end
+        return header
+    end
+    return name .. ": " .. tostring(result)
+end
+
 local function appendVerboseToolOutput(answer, tool_outputs)
     if not VERBOSE_TOOL_OUTPUT or type(answer) ~= "string" or #tool_outputs == 0 then
         return answer
     end
 
-    local lines = { "", "---", "**Gemini tool output sent to model:**" }
+    local lines = { "", "---", "**Tool results sent to model:**" }
     for i, output in ipairs(tool_outputs) do
-        local ok, encoded = pcall(json.encode, output.content)
         table.insert(lines, "")
-        table.insert(lines, string.format("Tool turn %d:", i))
-        table.insert(lines, "```json")
-        table.insert(lines, ok and encoded or tostring(output.content))
-        table.insert(lines, "```")
+        table.insert(lines, string.format("Turn %d:", i))
+        if output.content and output.content.parts then
+            for _, part in ipairs(output.content.parts) do
+                if part.functionResponse then
+                    local name = part.functionResponse.name or "tool"
+                    local result = part.functionResponse.response or {}
+                    table.insert(lines, formatToolResultText(name, result))
+                end
+            end
+        end
     end
     return answer .. "\n" .. table.concat(lines, "\n")
 end
@@ -290,6 +358,7 @@ end
 
 function GeminiToolRunner.run(params)
     params = params or {}
+    GeminiToolRunner._cancelled = false
     local query_fn = params.query_fn
     local on_complete = params.on_complete
     if not query_fn then
@@ -337,6 +406,10 @@ function GeminiToolRunner.run(params)
     local step
     step = function()
         if completed then return nil end
+        if GeminiToolRunner._cancelled then
+            finish(false, nil, "Request cancelled by user.")
+            return nil
+        end
         if tool_turns >= MAX_TOOL_TURNS or tool_calls >= MAX_TOOL_CALLS then
             return requestFinal()
         end
@@ -397,5 +470,9 @@ function GeminiToolRunner.run(params)
 end
 
 GeminiToolRunner.function_declarations = FUNCTION_DECLARATIONS
+
+function GeminiToolRunner.cancel()
+    GeminiToolRunner._cancelled = true
+end
 
 return GeminiToolRunner

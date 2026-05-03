@@ -49,7 +49,7 @@ print(string.rep("=", 50))
 print("  Unit Tests: Gemini Tool Runner")
 print(string.rep("=", 50))
 
-TestRunner:test("appends verbose tool output and aggregate token usage", function()
+TestRunner:test("formats tool results as plain text and appends token usage", function()
     local calls = 0
     local final_answer = nil
     local function query_fn(_messages, _config, callback)
@@ -107,11 +107,29 @@ TestRunner:test("appends verbose tool output and aggregate token usage", functio
     })
 
     TestRunner:assertEqual(calls, 2, "query calls")
-    TestRunner:assertTrue(final_answer:find("Gemini tool output sent to model", 1, true) ~= nil, "verbose output")
-    TestRunner:assertTrue(final_answer:find('"role":"user"', 1, true) ~= nil, "Gemini role in tool output")
+    TestRunner:assertTrue(final_answer:find("Tool results sent to model", 1, true) ~= nil, "verbose output header")
+    TestRunner:assertTrue(final_answer:find("search_book: 1 hits", 1, true) ~= nil, "search result summary")
     TestRunner:assertTrue(final_answer:find("Daisy was mentioned in a letter", 1, true) ~= nil, "tool result text")
     TestRunner:assertTrue(final_answer:find("38 total tokens", 1, true) ~= nil, "total token usage")
     TestRunner:assertTrue(final_answer:find("across 2 Gemini API calls", 1, true) ~= nil, "call count")
+end)
+
+TestRunner:test("cancel method sets cancelled flag", function()
+    GeminiToolRunner._cancelled = false
+    GeminiToolRunner.cancel()
+    TestRunner:assertTrue(GeminiToolRunner._cancelled, "cancel sets the flag")
+    -- run() resets the flag
+    local function query_fn(_messages, _config, callback)
+        callback(true, "ok")
+    end
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "test" } },
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertFalse(GeminiToolRunner._cancelled, "run resets cancelled flag")
 end)
 
 return TestRunner:summary()
