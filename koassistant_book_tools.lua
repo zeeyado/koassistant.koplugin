@@ -3,11 +3,10 @@ local ContextExtractor = require("koassistant_context_extractor")
 local BookTools = {}
 BookTools.__index = BookTools
 
-local DEFAULT_MAX_RESULTS = 8
-local MAX_RESULTS = 12
 local MAX_READ_PAGES = 5
 local MAX_READ_CHARS = 8000
 local MAX_SNIPPET_CHARS = 1200
+local MAX_SEARCH_EXCERPT_CHARS = 240
 local DEFAULT_TOC_SNIPPET_CHARS = 300
 local MAX_TOC_SNIPPET_CHARS = 800
 local MAX_TOC_ENTRIES = 120
@@ -220,18 +219,18 @@ function BookTools:scoreSentence(sentence, query, query_tokens, fuzzy, case_sens
     local normalized_query = normalizeText(query, case_sensitive)
 
     if normalized_sentence:find(normalized_query, 1, true) then
-        return 100 + math.min(#normalized_query, 40)
+        return 100 + math.min(#normalized_query, 40), "phrase"
     end
     if allTokensPresent(query_tokens, normalized_sentence) then
-        return 70 + #query_tokens
+        return 70 + #query_tokens, "tokens"
     end
     if fuzzy then
         local sentence_tokens = tokenize(sentence, case_sensitive)
         if allTokensFuzzy(query_tokens, sentence_tokens) then
-            return 45 + #query_tokens
+            return 45 + #query_tokens, "fuzzy"
         end
     end
-    return 0
+    return 0, nil
 end
 
 function BookTools:searchBook(args)
@@ -245,7 +244,6 @@ function BookTools:searchBook(args)
     end
 
     local current_page = self:getCurrentPage() or self:getTotalPages()
-    local max_results = clamp(args.max_results or DEFAULT_MAX_RESULTS, 1, MAX_RESULTS)
     local fuzzy = args.fuzzy ~= false
     local case_sensitive = args.case_sensitive == true
     local query_tokens = tokenize(query, case_sensitive)
@@ -254,28 +252,41 @@ function BookTools:searchBook(args)
     end
 
     local scored = {}
+    local page_summary = {}
     self.last_hits = {}
 
     for page = 1, current_page do
         local page_text = self:getPageText(page)
         local sentences = splitSentences(page_text)
+        local page_hits = 0
+        local first_hit_id = nil
+        local last_hit_id = nil
         for index, sentence in ipairs(sentences) do
-            local score = self:scoreSentence(sentence, query, query_tokens, fuzzy, case_sensitive)
+            local score, match_type = self:scoreSentence(sentence, query, query_tokens, fuzzy, case_sensitive)
             if score > 0 then
                 local hit_id = string.format("p%d:%d", page, index)
-                local snippet_parts = {}
-                if sentences[index - 1] then table.insert(snippet_parts, sentences[index - 1]) end
-                table.insert(snippet_parts, sentence)
-                if sentences[index + 1] then table.insert(snippet_parts, sentences[index + 1]) end
                 local hit = {
                     hit_id = hit_id,
                     page = page,
+                    sentence_index = index,
                     score = score,
-                    snippet = excerpt(table.concat(snippet_parts, " "), MAX_SNIPPET_CHARS),
+                    match_type = match_type,
+                    snippet = excerpt(sentence, MAX_SEARCH_EXCERPT_CHARS),
                 }
                 table.insert(scored, hit)
                 self.last_hits[hit_id] = hit
+                page_hits = page_hits + 1
+                first_hit_id = first_hit_id or hit_id
+                last_hit_id = hit_id
             end
+        end
+        if page_hits > 0 then
+            table.insert(page_summary, {
+                page = page,
+                count = page_hits,
+                first_hit_id = first_hit_id,
+                last_hit_id = last_hit_id,
+            })
         end
     end
 
@@ -286,17 +297,16 @@ function BookTools:searchBook(args)
         return a.score > b.score
     end)
 
-    local results = {}
-    for i = 1, math.min(#scored, max_results) do
-        table.insert(results, scored[i])
-    end
-
     return {
         ok = true,
         query = query,
         scope = { start_page = 1, end_page = current_page },
-        result_count = #results,
-        results = results,
+        result_count = #scored,
+        total_hits = #scored,
+        matching_pages = #page_summary,
+        page_summary = page_summary,
+        result_format = "All hits are returned as compact matching-sentence excerpts. Use read_around with a hit_id or page for surrounding context.",
+        results = scored,
     }
 end
 
