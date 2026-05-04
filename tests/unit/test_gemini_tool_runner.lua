@@ -52,9 +52,11 @@ print(string.rep("=", 50))
 TestRunner:test("formats tool results as plain text and appends token usage", function()
     local calls = 0
     local final_answer = nil
-    local function query_fn(_messages, _config, callback)
+    local scope_message = nil
+    local function query_fn(messages, _config, callback)
         calls = calls + 1
         if calls == 1 then
+            scope_message = messages[#messages].content
             callback(true, {
                 _gemini_function_calls = true,
                 calls = {
@@ -107,6 +109,8 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
     })
 
     TestRunner:assertEqual(calls, 2, "query calls")
+    TestRunner:assertTrue(scope_message:find("Current page: 2 of 2", 1, true) ~= nil, "current page scope")
+    TestRunner:assertTrue(scope_message:find("Readable page range: 1-2", 1, true) ~= nil, "readable range scope")
     TestRunner:assertTrue(final_answer:find("Tool results sent to model", 1, true) ~= nil, "verbose output header")
     TestRunner:assertTrue(final_answer:find("search_book: 1 hits", 1, true) ~= nil, "search result summary")
     TestRunner:assertTrue(final_answer:find("Daisy was mentioned in a letter", 1, true) ~= nil, "tool result text")

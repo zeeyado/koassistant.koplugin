@@ -12,7 +12,7 @@ local SHOW_TURN_TOKEN_USAGE = true
 
 local TOOL_INSTRUCTIONS = [[
 
-When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with compact excerpts and page counts. Use read_around on the relevant hit_id or page when you need surrounding context, and toc for chapter structure. Do not claim access to unread pages.]]
+When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with short concordance excerpts and page counts. Use read_around on the relevant hit_id(s) or page(s) when you need surrounding context, and toc for chapter structure. Do not claim access to unread pages.]]
 
 local FINAL_INSTRUCTIONS = [[
 
@@ -21,7 +21,7 @@ Use the gathered local book tool results to answer the user's question. Do not u
 local FUNCTION_DECLARATIONS = {
     {
         name = "search_book",
-        description = "Search the book text up to the current reading position. Returns every hit as compact metadata plus page counts; call read_around for surrounding context.",
+        description = "Search the book text up to the current reading position. Returns every hit as compact metadata plus short concordance excerpts; call read_around for surrounding context.",
         parameters = {
             type = "object",
             properties = {
@@ -43,7 +43,7 @@ local FUNCTION_DECLARATIONS = {
     },
     {
         name = "read_around",
-        description = "Read surrounding text near a search hit or page number, capped to a small spoiler-safe range before the current page.",
+        description = "Read surrounding text near one or more search hits or page numbers, capped to a small spoiler-safe range before the current page.",
         parameters = {
             type = "object",
             properties = {
@@ -54,6 +54,27 @@ local FUNCTION_DECLARATIONS = {
                 page = {
                     type = "integer",
                     description = "Page to read around when no hit_id is available.",
+                },
+                hit_ids = {
+                    type = "array",
+                    description = "Multiple hit_id values returned by search_book. Up to 4 are read in one call.",
+                    items = { type = "string" },
+                },
+                pages = {
+                    type = "array",
+                    description = "Multiple page numbers to read around. Up to 4 are read in one call.",
+                    items = { type = "integer" },
+                },
+                targets = {
+                    type = "array",
+                    description = "Multiple targets, each with hit_id or page. Up to 4 are read in one call.",
+                    items = {
+                        type = "object",
+                        properties = {
+                            hit_id = { type = "string" },
+                            page = { type = "integer" },
+                        },
+                    },
                 },
                 before_pages = {
                     type = "integer",
@@ -68,13 +89,13 @@ local FUNCTION_DECLARATIONS = {
     },
     {
         name = "toc",
-        description = "List table-of-contents entries up to the current reading position, with short snippets from each chapter start.",
+        description = "List table-of-contents entries up to the current reading position. No snippets are included by default.",
         parameters = {
             type = "object",
             properties = {
                 max_snippet_chars = {
                     type = "integer",
-                    description = "Maximum snippet length per entry. Defaults to 300 and is capped at 800.",
+                    description = "Maximum snippet length per entry. Defaults to 0 and is capped at 800.",
                 },
                 max_entries = {
                     type = "integer",
@@ -97,6 +118,20 @@ local function copyMessages(messages)
         table.insert(copy, ConfigHelper:deepCopy(msg))
     end
     return copy
+end
+
+local function appendScopeMessage(messages, scope)
+    if type(scope) ~= "table" then return end
+    table.insert(messages, {
+        role = "user",
+        content = string.format(
+            "[Book tool scope]\nCurrent page: %s of %s\nReadable page range: 1-%s\nDo not request or infer content after page %s.",
+            tostring(scope.current_page or "?"),
+            tostring(scope.total_pages or "?"),
+            tostring(scope.end_page or "?"),
+            tostring(scope.end_page or "?")),
+        is_context = true,
+    })
 end
 
 local function buildToolConfig(config, final_only)
@@ -147,8 +182,22 @@ local function summarizeToolCall(call, result)
             (call.args and call.args.query) or "",
             suffix)
     elseif name == "read_around" then
-        local range = result.range or {}
-        return string.format("read_around: pp. %s-%s", tostring(range.start_page or "?"), tostring(range.end_page or "?"))
+        if result.results then
+            local ranges = {}
+            for i, item in ipairs(result.results) do
+                if i > 4 then break end
+                local range = item.range or {}
+                table.insert(ranges, string.format("%s-%s",
+                    tostring(range.start_page or "?"),
+                    tostring(range.end_page or "?")))
+            end
+            return string.format("read_around: %d target(s), pp. %s",
+                result.target_count or #result.results,
+                table.concat(ranges, ", "))
+        else
+            local range = result.range or {}
+            return string.format("read_around: pp. %s-%s", tostring(range.start_page or "?"), tostring(range.end_page or "?"))
+        end
     elseif name == "toc" then
         return string.format("toc: %d entries", result.entry_count or 0)
     end
@@ -202,11 +251,24 @@ local function formatToolResultText(name, result)
         end
         return header
     elseif name == "read_around" then
-        local range = result.range or {}
-        return string.format("read_around: pp. %s-%s\n  %s",
-            tostring(range.start_page or "?"),
-            tostring(range.end_page or "?"),
-            result.text or "")
+        if result.results then
+            local lines = { string.format("read_around: %d targets", result.target_count or #result.results) }
+            for _, item in ipairs(result.results) do
+                local range = item.range or {}
+                table.insert(lines, string.format("  [%s, pp. %s-%s] %s",
+                    item.hit_id or ("p" .. tostring(item.page or "?")),
+                    tostring(range.start_page or "?"),
+                    tostring(range.end_page or "?"),
+                    item.text or ""))
+            end
+            return table.concat(lines, "\n")
+        else
+            local range = result.range or {}
+            return string.format("read_around: pp. %s-%s\n  %s",
+                tostring(range.start_page or "?"),
+                tostring(range.end_page or "?"),
+                result.text or "")
+        end
     elseif name == "toc" then
         local lines = {}
         if result.entries then
@@ -370,6 +432,7 @@ function GeminiToolRunner.run(params)
     local config = params.config or {}
     local features = config.features or {}
     local tools = BookTools:new(params.ui, buildToolSettings(features))
+    appendScopeMessage(messages, tools:getScope())
     local trace = {}
     local tool_outputs = {}
     local token_usage = nil

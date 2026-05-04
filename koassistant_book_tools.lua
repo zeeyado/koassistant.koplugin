@@ -5,9 +5,11 @@ BookTools.__index = BookTools
 
 local MAX_READ_PAGES = 5
 local MAX_READ_CHARS = 8000
+local MAX_READ_TARGETS = 4
 local MAX_SNIPPET_CHARS = 1200
-local MAX_SEARCH_EXCERPT_CHARS = 240
-local DEFAULT_TOC_SNIPPET_CHARS = 300
+local MAX_SEARCH_EXCERPT_CHARS = 180
+local SEARCH_CONTEXT_WORDS = 5
+local DEFAULT_TOC_SNIPPET_CHARS = 0
 local MAX_TOC_SNIPPET_CHARS = 800
 local MAX_TOC_ENTRIES = 120
 local MAX_SENTENCE_CHUNK = 700
@@ -57,6 +59,22 @@ local function tokenize(text, case_sensitive)
         end
     end
     return tokens
+end
+
+local function cleanWord(word, case_sensitive)
+    word = tostring(word or ""):gsub("^%W+", ""):gsub("%W+$", "")
+    if not case_sensitive then
+        word = word:lower()
+    end
+    return word
+end
+
+local function splitWords(text)
+    local words = {}
+    for word in tostring(text or ""):gmatch("%S+") do
+        table.insert(words, word)
+    end
+    return words
 end
 
 local function splitSentences(text)
@@ -146,6 +164,48 @@ local function safeCall(fn)
     return nil
 end
 
+local function wordMatches(word, query_tokens, fuzzy, case_sensitive)
+    local cleaned = cleanWord(word, case_sensitive)
+    if cleaned == "" then return false end
+    for _, token in ipairs(query_tokens or {}) do
+        if cleaned == token then
+            return true
+        end
+        if fuzzy then
+            local threshold = tokenThreshold(token)
+            if threshold > 0 and levenshteinWithin(token, cleaned, threshold) then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function concordanceExcerpt(sentence, query_tokens, fuzzy, case_sensitive)
+    local words = splitWords(sentence)
+    if #words == 0 then return "" end
+
+    local match_index = nil
+    for i, word in ipairs(words) do
+        if wordMatches(word, query_tokens, fuzzy, case_sensitive) then
+            match_index = i
+            break
+        end
+    end
+    match_index = match_index or 1
+
+    local start_index = math.max(1, match_index - SEARCH_CONTEXT_WORDS)
+    local end_index = math.min(#words, match_index + SEARCH_CONTEXT_WORDS)
+    local excerpt_text = table.concat(words, " ", start_index, end_index)
+    if start_index > 1 then
+        excerpt_text = "..." .. excerpt_text
+    end
+    if end_index < #words then
+        excerpt_text = excerpt_text .. "..."
+    end
+    return excerpt(excerpt_text, MAX_SEARCH_EXCERPT_CHARS)
+end
+
 function BookTools:new(ui, settings)
     local instance = setmetatable({}, self)
     instance.ui = ui
@@ -183,6 +243,17 @@ end
 
 function BookTools:isAvailable()
     return self.ui and self.ui.document and self:getTotalPages() > 0
+end
+
+function BookTools:getScope()
+    local total_pages = self:getTotalPages()
+    local current_page = self:getCurrentPage() or total_pages
+    return {
+        start_page = 1,
+        current_page = current_page,
+        end_page = current_page,
+        total_pages = total_pages,
+    }
 end
 
 function BookTools:getPageText(page, max_chars)
@@ -271,7 +342,7 @@ function BookTools:searchBook(args)
                     sentence_index = index,
                     score = score,
                     match_type = match_type,
-                    snippet = excerpt(sentence, MAX_SEARCH_EXCERPT_CHARS),
+                    snippet = concordanceExcerpt(sentence, query_tokens, fuzzy, case_sensitive),
                 }
                 table.insert(scored, hit)
                 self.last_hits[hit_id] = hit
@@ -310,12 +381,7 @@ function BookTools:searchBook(args)
     }
 end
 
-function BookTools:readAround(args)
-    args = args or {}
-    if not self:isAvailable() then
-        return { ok = false, error = "book text is not available" }
-    end
-
+function BookTools:resolveReadTarget(args)
     local page = tonumber(args.page)
     if args.hit_id and self.last_hits[args.hit_id] then
         page = self.last_hits[args.hit_id].page
@@ -323,7 +389,7 @@ function BookTools:readAround(args)
         page = tonumber(tostring(args.hit_id):match("^p(%d+):%d+$"))
     end
     if not page then
-        return { ok = false, error = "hit_id or page is required" }
+        return nil, "hit_id or page is required"
     end
 
     local current_page = self:getCurrentPage() or self:getTotalPages()
@@ -344,11 +410,74 @@ function BookTools:readAround(args)
     local text = self:getRangeText(start_page, end_page, MAX_READ_CHARS)
     return {
         ok = true,
+        hit_id = args.hit_id,
         page = page,
         range = { start_page = start_page, end_page = end_page },
         chars = #text,
         text = excerpt(text, MAX_READ_CHARS),
     }
+end
+
+function BookTools:readAround(args)
+    args = args or {}
+    if not self:isAvailable() then
+        return { ok = false, error = "book text is not available" }
+    end
+
+    local targets = nil
+    if type(args.targets) == "table" then
+        targets = args.targets
+    elseif type(args.hit_ids) == "table" then
+        targets = {}
+        for _, hit_id in ipairs(args.hit_ids) do
+            table.insert(targets, { hit_id = hit_id })
+        end
+    elseif type(args.pages) == "table" then
+        targets = {}
+        for _, page in ipairs(args.pages) do
+            table.insert(targets, { page = page })
+        end
+    end
+
+    if targets then
+        local results = {}
+        for i, target in ipairs(targets) do
+            if i > MAX_READ_TARGETS then break end
+            local merged = {}
+            for key, value in pairs(args) do
+                if key ~= "targets" and key ~= "hit_ids" and key ~= "pages" then
+                    merged[key] = value
+                end
+            end
+            if type(target) == "table" then
+                for key, value in pairs(target) do
+                    merged[key] = value
+                end
+            else
+                merged.hit_id = target
+            end
+            local result = self:resolveReadTarget(merged)
+            if result then
+                table.insert(results, result)
+            end
+        end
+        if #results == 0 then
+            return { ok = false, error = "no readable targets" }
+        end
+        return {
+            ok = true,
+            target_count = #results,
+            truncated = #targets > MAX_READ_TARGETS,
+            max_targets = MAX_READ_TARGETS,
+            results = results,
+        }
+    end
+
+    local result, err = self:resolveReadTarget(args)
+    if not result then
+        return { ok = false, error = err }
+    end
+    return result
 end
 
 function BookTools:getEffectiveToc()
