@@ -304,27 +304,43 @@ function BookTools:scoreSentence(sentence, query, query_tokens, fuzzy, case_sens
     return 0, nil
 end
 
-function BookTools:searchBook(args)
-    args = args or {}
-    local query = trim(args.query)
-    if query == "" then
-        return { ok = false, error = "query is required" }
+function BookTools:collectQueries(args)
+    local queries = {}
+    local seen = {}
+    local function push(value)
+        local cleaned = trim(value)
+        if cleaned == "" then return end
+        local key = cleaned:lower()
+        if seen[key] then return end
+        seen[key] = true
+        table.insert(queries, cleaned)
     end
-    if not self:isAvailable() then
-        return { ok = false, error = "book text is not available" }
+    if type(args.queries) == "table" then
+        for _, q in ipairs(args.queries) do
+            if type(q) == "string" then push(q) end
+        end
     end
+    if type(args.query) == "string" then
+        push(args.query)
+    end
+    return queries
+end
 
-    local current_page = self:getCurrentPage() or self:getTotalPages()
-    local fuzzy = args.fuzzy ~= false
-    local case_sensitive = args.case_sensitive == true
+function BookTools:runQuery(query, current_page, fuzzy, case_sensitive, q_index)
     local query_tokens = tokenize(query, case_sensitive)
     if #query_tokens == 0 then
-        return { ok = false, error = "query must contain searchable text" }
+        return {
+            query = query,
+            error = "query must contain searchable text",
+            results = {},
+            page_summary = {},
+            total_hits = 0,
+            matching_pages = 0,
+        }
     end
 
     local scored = {}
     local page_summary = {}
-    self.last_hits = {}
 
     for page = 1, current_page do
         local page_text = self:getPageText(page)
@@ -335,7 +351,7 @@ function BookTools:searchBook(args)
         for index, sentence in ipairs(sentences) do
             local score, match_type = self:scoreSentence(sentence, query, query_tokens, fuzzy, case_sensitive)
             if score > 0 then
-                local hit_id = string.format("p%d:%d", page, index)
+                local hit_id = string.format("q%d:p%d:%d", q_index, page, index)
                 local hit = {
                     hit_id = hit_id,
                     page = page,
@@ -369,16 +385,55 @@ function BookTools:searchBook(args)
     end)
 
     return {
-        ok = true,
         query = query,
-        scope = { start_page = 1, end_page = current_page },
-        result_count = #scored,
+        results = scored,
+        page_summary = page_summary,
         total_hits = #scored,
         matching_pages = #page_summary,
-        page_summary = page_summary,
-        result_format = "All hits are returned as compact matching-sentence excerpts. Use read_around with a hit_id or page for surrounding context.",
-        results = scored,
     }
+end
+
+function BookTools:searchBook(args)
+    args = args or {}
+    if not self:isAvailable() then
+        return { ok = false, error = "book text is not available" }
+    end
+
+    local queries = self:collectQueries(args)
+    if #queries == 0 then
+        return { ok = false, error = "query or queries is required" }
+    end
+
+    local current_page = self:getCurrentPage() or self:getTotalPages()
+    local fuzzy = args.fuzzy ~= false
+    local case_sensitive = args.case_sensitive == true
+    self.last_hits = {}
+
+    local query_blocks = {}
+    local total_hits = 0
+    for q_index, query in ipairs(queries) do
+        local block = self:runQuery(query, current_page, fuzzy, case_sensitive, q_index)
+        table.insert(query_blocks, block)
+        total_hits = total_hits + (block.total_hits or 0)
+    end
+
+    return {
+        ok = true,
+        scope = { start_page = 1, end_page = current_page },
+        query_count = #queries,
+        total_hits = total_hits,
+        result_format = "Per-query blocks in queries[]. Hit IDs are namespaced like q1:p42:3. Pass multiple search terms via queries=[...] to batch lookups; use read_around with hit_ids or pages for surrounding context.",
+        queries = query_blocks,
+    }
+end
+
+local function parseHitIdPage(hit_id)
+    if type(hit_id) ~= "string" then return nil end
+    local page = hit_id:match("^p(%d+):%d+$")
+    if page then return tonumber(page) end
+    page = hit_id:match("^q%d+:p(%d+):%d+$")
+    if page then return tonumber(page) end
+    return nil
 end
 
 function BookTools:resolveReadTarget(args)
@@ -386,7 +441,7 @@ function BookTools:resolveReadTarget(args)
     if args.hit_id and self.last_hits[args.hit_id] then
         page = self.last_hits[args.hit_id].page
     elseif args.hit_id then
-        page = tonumber(tostring(args.hit_id):match("^p(%d+):%d+$"))
+        page = parseHitIdPage(args.hit_id)
     end
     if not page then
         return nil, "hit_id or page is required"
