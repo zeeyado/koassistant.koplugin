@@ -112,7 +112,7 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
     TestRunner:assertTrue(scope_message:find("Current page: 2 of 2", 1, true) ~= nil, "current page scope")
     TestRunner:assertTrue(scope_message:find("Readable page range: 1-2", 1, true) ~= nil, "readable range scope")
     TestRunner:assertTrue(final_answer:find("Tool results sent to model", 1, true) ~= nil, "verbose output header")
-    TestRunner:assertTrue(final_answer:find("search_book: 1 hits", 1, true) ~= nil, "search result summary")
+    TestRunner:assertTrue(final_answer:find("search_book: 1 query, 1 total hit", 1, true) ~= nil, "search result summary")
     TestRunner:assertTrue(final_answer:find("Daisy was mentioned in a letter", 1, true) ~= nil, "tool result text")
     TestRunner:assertTrue(final_answer:find("38 total tokens", 1, true) ~= nil, "total token usage")
     TestRunner:assertTrue(final_answer:find("across 2 Gemini API calls", 1, true) ~= nil, "call count")

@@ -8,11 +8,12 @@ local MAX_TOOL_TURNS = 4
 local MAX_TOOL_CALLS = 8
 -- TODO(jgruber): Remove temporary Gemini tool diagnostics after validation.
 local VERBOSE_TOOL_OUTPUT = true
+local VERBOSE_SECTION_MAX_CHARS = 256
 local SHOW_TURN_TOKEN_USAGE = true
 
 local TOOL_INSTRUCTIONS = [[
 
-When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with short concordance excerpts and page counts. Use read_around on the relevant hit_id(s) or page(s) when you need surrounding context, and toc for chapter structure. Do not claim access to unread pages.]]
+When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with short concordance excerpts and page counts. Batch related lookups: pass multiple terms via search_book queries=[...] and multiple targets via read_around hit_ids=[...] / pages=[...] in a single call to avoid extra round trips. Use read_around for surrounding context, and toc for chapter structure. Do not claim access to unread pages.]]
 
 local FINAL_INSTRUCTIONS = [[
 
@@ -21,13 +22,18 @@ Use the gathered local book tool results to answer the user's question. Do not u
 local FUNCTION_DECLARATIONS = {
     {
         name = "search_book",
-        description = "Search the book text up to the current reading position. Returns every hit as compact metadata plus short concordance excerpts; call read_around for surrounding context.",
+        description = "Search the book text up to the current reading position. Pass multiple terms via queries=[...] to batch lookups in one call. Returns per-query blocks with compact hit metadata and short concordance excerpts; hit IDs are namespaced (e.g. q1:p42:3). Call read_around for surrounding context.",
         parameters = {
             type = "object",
             properties = {
+                queries = {
+                    type = "array",
+                    description = "Multiple phrases, names, or details to search for in one call. Preferred when you have several distinct lookups.",
+                    items = { type = "string" },
+                },
                 query = {
                     type = "string",
-                    description = "Phrase, name, event, or detail to search for.",
+                    description = "Single phrase, name, event, or detail. Use queries=[...] for multiple terms.",
                 },
                 fuzzy = {
                     type = "boolean",
@@ -38,7 +44,6 @@ local FUNCTION_DECLARATIONS = {
                     description = "Require exact casing. Defaults to false.",
                 },
             },
-            required = { "query" },
         },
     },
     {
@@ -49,7 +54,7 @@ local FUNCTION_DECLARATIONS = {
             properties = {
                 hit_id = {
                     type = "string",
-                    description = "A hit_id returned by search_book, such as p42:3.",
+                    description = "A hit_id returned by search_book, such as q1:p42:3.",
                 },
                 page = {
                     type = "integer",
@@ -168,18 +173,22 @@ local function summarizeToolCall(call, result)
     local name = call and call.name or "tool"
     result = result or {}
     if name == "search_book" then
-        local pages = {}
-        if result.page_summary then
-            for i, page in ipairs(result.page_summary) do
-                if i > 5 then break end
-                table.insert(pages, string.format("%s(%s)", tostring(page.page), tostring(page.count or 0)))
+        local query_count = result.query_count or (result.queries and #result.queries) or 0
+        local terms = {}
+        if result.queries then
+            for i, block in ipairs(result.queries) do
+                if i > 4 then
+                    table.insert(terms, "...")
+                    break
+                end
+                table.insert(terms, string.format("%q(%d)", block.query or "", block.total_hits or 0))
             end
         end
-        local suffix = #pages > 0 and (" on pp. " .. table.concat(pages, ", ")) or ""
-        return string.format("search_book: %d hit(s) across %d page(s) for %q%s",
-            result.total_hits or result.result_count or 0,
-            result.matching_pages or 0,
-            (call.args and call.args.query) or "",
+        local suffix = #terms > 0 and (" [" .. table.concat(terms, ", ") .. "]") or ""
+        return string.format("search_book: %d quer%s, %d hit(s)%s",
+            query_count,
+            query_count == 1 and "y" or "ies",
+            result.total_hits or 0,
             suffix)
     elseif name == "read_around" then
         if result.results then
@@ -215,37 +224,47 @@ end
 
 local function formatToolResultText(name, result)
     if name == "search_book" then
+        local query_count = result.query_count or (result.queries and #result.queries) or 0
         local lines = {}
-        local page_lines = {}
-        if result.page_summary then
-            for i, page in ipairs(result.page_summary) do
-                if i > 20 then
-                    table.insert(page_lines, string.format("... %d more page(s)", #result.page_summary - 20))
-                    break
+        if result.queries then
+            for q_index, block in ipairs(result.queries) do
+                table.insert(lines, string.format("  [q%d %q] %d hit(s) across %d page(s)",
+                    q_index,
+                    block.query or "",
+                    block.total_hits or 0,
+                    block.matching_pages or 0))
+                local page_lines = {}
+                if block.page_summary then
+                    for i, page in ipairs(block.page_summary) do
+                        if i > 20 then
+                            table.insert(page_lines, string.format("... %d more page(s)", #block.page_summary - 20))
+                            break
+                        end
+                        table.insert(page_lines, string.format("p%d:%d", page.page or 0, page.count or 0))
+                    end
                 end
-                table.insert(page_lines, string.format("p%d:%d", page.page or 0, page.count or 0))
+                if #page_lines > 0 then
+                    table.insert(lines, "    pages: " .. table.concat(page_lines, ", "))
+                end
+                if block.results then
+                    for i, hit in ipairs(block.results) do
+                        if i > 12 then
+                            table.insert(lines, string.format("    ... %d more hit(s)", #block.results - 12))
+                            break
+                        end
+                        table.insert(lines, string.format("    [%s, p%d, %s] %s",
+                            hit.hit_id or "?",
+                            hit.page or 0,
+                            hit.match_type or "?",
+                            hit.snippet or ""))
+                    end
+                end
             end
         end
-        if result.results then
-            for i, hit in ipairs(result.results) do
-                if i > 12 then
-                    table.insert(lines, string.format("  ... %d more hit(s)", #result.results - 12))
-                    break
-                end
-                table.insert(lines, string.format("  [%s, p%d, %s] %s",
-                    hit.hit_id or "?",
-                    hit.page or 0,
-                    hit.match_type or "?",
-                    hit.snippet or ""))
-            end
-        end
-        local header = string.format("search_book: %d hits across %d pages for %q",
-            result.total_hits or result.result_count or 0,
-            result.matching_pages or 0,
-            result.query or "")
-        if #page_lines > 0 then
-            table.insert(lines, 1, "  pages: " .. table.concat(page_lines, ", "))
-        end
+        local header = string.format("search_book: %d quer%s, %d total hit(s)",
+            query_count,
+            query_count == 1 and "y" or "ies",
+            result.total_hits or 0)
         if #lines > 0 then
             return header .. "\n" .. table.concat(lines, "\n")
         end
@@ -290,12 +309,20 @@ local function formatToolResultText(name, result)
     return name .. ": " .. tostring(result)
 end
 
+local function truncateSection(text, max_chars)
+    if type(text) ~= "string" or max_chars <= 0 or #text <= max_chars then
+        return text
+    end
+    return text:sub(1, max_chars - 3) .. "..."
+end
+
 local function appendVerboseToolOutput(answer, tool_outputs)
     if not VERBOSE_TOOL_OUTPUT or type(answer) ~= "string" or #tool_outputs == 0 then
         return answer
     end
 
-    local lines = { "", "---", "**Tool results sent to model:**" }
+    local lines = { "", "---", "**Tool results sent to model:**", "",
+        string.format("(each section truncated to %d chars; verbose preview only)", VERBOSE_SECTION_MAX_CHARS) }
     for i, output in ipairs(tool_outputs) do
         table.insert(lines, "")
         table.insert(lines, string.format("Turn %d:", i))
@@ -304,7 +331,8 @@ local function appendVerboseToolOutput(answer, tool_outputs)
                 if part.functionResponse then
                     local name = part.functionResponse.name or "tool"
                     local result = part.functionResponse.response or {}
-                    table.insert(lines, formatToolResultText(name, result))
+                    local section = formatToolResultText(name, result)
+                    table.insert(lines, truncateSection(section, VERBOSE_SECTION_MAX_CHARS))
                 end
             end
         end
@@ -411,7 +439,6 @@ function GeminiToolRunner.shouldUse(config, ui)
     local features = config and config.features or {}
     local provider = config and (config.provider or config.default_provider)
     return provider == "gemini"
-        and features.is_book_context == true
         and features.is_library_context ~= true
         and features.is_general_context ~= true
         and ui ~= nil

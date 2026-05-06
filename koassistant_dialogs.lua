@@ -5420,7 +5420,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                     local function queryWithOptionalGeminiTools(messages, cfg, callback)
                         local GeminiToolRunner = require("koassistant_gemini_tool_runner")
-                        if GeminiToolRunner.shouldUse(cfg, ui_instance) then
+                        if not is_xray_chat and GeminiToolRunner.shouldUse(cfg, ui_instance) then
                             return GeminiToolRunner.run({
                                 query_fn = queryChatGPT,
                                 messages = messages,
