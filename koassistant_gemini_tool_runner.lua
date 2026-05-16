@@ -441,8 +441,26 @@ function GeminiToolRunner.shouldUse(config, ui)
     return provider == "gemini"
         and features.is_library_context ~= true
         and features.is_general_context ~= true
+        and features._xray_chat_active ~= true
         and ui ~= nil
         and ui.document ~= nil
+end
+
+-- Convenience wrapper: route through GeminiToolRunner.run when shouldUse is true,
+-- otherwise call query_fn directly. Lets all chat reply paths share one call site
+-- without each caller knowing about the runner.
+function GeminiToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
+    if GeminiToolRunner.shouldUse(cfg, ui) then
+        return GeminiToolRunner.run({
+            query_fn = query_fn,
+            messages = messages,
+            config = cfg,
+            settings = plugin and plugin.settings,
+            ui = ui,
+            on_complete = callback,
+        })
+    end
+    return query_fn(messages, cfg, callback, plugin and plugin.settings)
 end
 
 function GeminiToolRunner.run(params)

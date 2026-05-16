@@ -12,6 +12,7 @@ local MessageHistory = require("koassistant_message_history")
 local GptQuery = require("koassistant_gpt_query")
 local queryChatGPT = GptQuery.query
 local isStreamingInProgress = GptQuery.isStreamingInProgress
+local GeminiToolRunner = require("koassistant_gemini_tool_runner")
 local ConfigHelper = require("koassistant_config_helper")
 local Constants = require("koassistant_constants")
 local logger = require("logger")
@@ -1639,7 +1640,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
         -- Use callback pattern for streaming support
         logger.info("KOAssistant: Calling queryChatGPT with " .. #history:getMessages() .. " messages")
-        local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err, reasoning, web_search_used)
+        -- Only enable book tools when the currently open document matches this chat's book.
+        -- A continued chat opened from the file browser may run against a different (or no) ui.document.
+        local tool_ui = (ui and ui.document and ui.document.file == document_path) and ui or nil
+        local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), config, function(success, answer, err, reasoning, web_search_used)
             logger.info("KOAssistant: queryChatGPT callback - success: " .. tostring(success) .. ", answer length: " .. tostring(answer and #answer or 0) .. ", err: " .. tostring(err))
             -- Only save if we got a non-empty answer
             if success and answer and answer ~= "" then
@@ -1711,7 +1715,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             end
             -- Call the completion callback
             if on_complete then on_complete(success, answer, err) end
-        end)
+        end, nil, tool_ui)
 
         -- For non-streaming, return the result directly
         if not isStreamingInProgress(answer_result) then
