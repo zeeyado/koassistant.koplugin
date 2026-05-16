@@ -11,6 +11,7 @@ local T = require("ffi/util").template
 local GptQuery = require("koassistant_gpt_query")
 local queryChatGPT = GptQuery.query
 local isStreamingInProgress = GptQuery.isStreamingInProgress
+local GeminiToolRunner = require("koassistant_gemini_tool_runner")
 local ConfigHelper = require("koassistant_config_helper")
 local MessageHistory = require("koassistant_message_history")
 local ChatHistoryManager = require("koassistant_chat_history_manager")
@@ -1743,7 +1744,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- IMPORTANT: Use viewer's cfg for the query, not the closure-captured temp_config
             -- This ensures expanded views use large_stream_dialog=true
             history:addUserMessage(question, false)
-            queryChatGPT(history:getMessages(), cfg, function(success, answer, err, reasoning, web_search_used)
+            GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), cfg, function(success, answer, err, reasoning, web_search_used)
                 if success and answer and answer ~= "" then
                     history:addAssistantMessage(answer, ConfigHelper:getModelInfo(cfg), reasoning, ConfigHelper:buildDebugInfo(cfg), web_search_used)
 
@@ -1918,7 +1919,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         timeout = 2,
                     })
                 end
-            end, plugin and plugin.settings)
+            end, plugin, ui_instance)
 
             -- For non-streaming, the callback was already called, viewer will be updated
         end,
@@ -4328,12 +4329,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local temp_config = temp_config_or_error
                         local function addMessage(message, is_context, on_complete)
                             history:addUserMessage(message, is_context)
-                            local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                            local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                                 if success and answer then
                                     history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
                                 end
                                 if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
-                            end, plugin and plugin.settings)
+                            end, plugin, ui_instance)
                             if not isStreamingInProgress(answer_result) then
                                 return answer_result
                             end
@@ -5413,25 +5414,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
                     configuration.features = configuration.features or {}
                     configuration.features._research_mode_active = freeform_research or nil
+                    -- Persist x-ray flag for the chat session so reply paths can skip book tools
+                    -- (GeminiToolRunner.shouldUse reads features._xray_chat_active).
+                    configuration.features._xray_chat_active = is_xray_chat or nil
 
                     -- Build unified request config for ALL providers
                     -- No action specified, uses global behavior setting
                     buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
-
-                    local function queryWithOptionalGeminiTools(messages, cfg, callback)
-                        local GeminiToolRunner = require("koassistant_gemini_tool_runner")
-                        if not is_xray_chat and GeminiToolRunner.shouldUse(cfg, ui_instance) then
-                            return GeminiToolRunner.run({
-                                query_fn = queryChatGPT,
-                                messages = messages,
-                                config = cfg,
-                                settings = plugin and plugin.settings,
-                                ui = ui_instance,
-                                on_complete = callback,
-                            })
-                        end
-                        return queryChatGPT(messages, cfg, callback, plugin and plugin.settings)
-                    end
 
                     -- Callback to handle response (for both streaming and non-streaming)
                     local function onResponseReady(success, answer, err, reasoning, web_search_used)
@@ -5444,12 +5433,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
-                                local answer_result = queryWithOptionalGeminiTools(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
+                                local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                                     if msg_success and msg_answer then
                                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
                                     end
                                     if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used) end
-                                end, plugin and plugin.settings)
+                                end, plugin, ui_instance)
                                 if not isStreamingInProgress(answer_result) then
                                     return answer_result
                                 end
@@ -5468,7 +5457,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
 
                     -- Get initial response with callback
-                    local result = queryWithOptionalGeminiTools(history:getMessages(), configuration, onResponseReady)
+                    local result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui_instance)
                     -- If not streaming, callback was already invoked
                 end)
             end,
@@ -6871,12 +6860,12 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
 
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
-                local answer_result = queryChatGPT(history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                     if success and answer then
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
                     end
                     if on_complete_msg then on_complete_msg(success, answer, err, reasoning, web_search_used) end
-                end, plugin and plugin.settings)
+                end, plugin, ui)
                 if not isStreamingInProgress(answer_result) then
                     return answer_result
                 end
@@ -7158,12 +7147,12 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
 
             local function addMessage(message, is_context, on_complete)
                 history:addUserMessage(message, is_context)
-                local answer_result = queryChatGPT(history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
+                local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                     if msg_success and msg_answer then
                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
                     end
                     if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used) end
-                end, plugin and plugin.settings)
+                end, plugin, ui)
                 if not isStreamingInProgress(answer_result) then
                     return answer_result
                 end
@@ -7179,7 +7168,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
         end
     end
 
-    queryChatGPT(history:getMessages(), configuration, onResponseReady, plugin and plugin.settings)
+    GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui)
 end
 
 return {
