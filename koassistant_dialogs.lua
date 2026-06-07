@@ -4286,6 +4286,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         and configuration.features.enable_emoji_icons == true
 
     local function getWebToggleText()
+        -- Unsupported provider/model: show N/A (tap explains, doesn't toggle)
+        if not ConfigHelper:supportsWebSearch(configuration) then
+            return Constants.getEmojiText("🔍", _("Web N/A"), enable_emoji)
+        end
         local web_on = configuration and configuration.features
             and configuration.features.enable_web_search
         local label = web_on and _("Web ON") or _("Web OFF")
@@ -5208,6 +5212,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             {
                 text = getWebToggleText(),
                 callback = function()
+                    -- Gate: unsupported providers can't search — explain instead of toggling
+                    if not ConfigHelper:supportsWebSearch(configuration) then
+                        UIManager:show(InfoMessage:new{
+                            text = T(_("Web search isn't currently available for %1.\n\nSupported providers: %2."),
+                                configuration.provider or _("this provider"),
+                                ConfigHelper:getWebSearchProvidersLabel()),
+                        })
+                        return
+                    end
                     configuration.features = configuration.features or {}
                     configuration.features.enable_web_search = not configuration.features.enable_web_search
                     -- Persist to settings
@@ -5220,8 +5233,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     refreshInputDialog()
                 end,
                 hold_callback = function()
+                    local msg = ConfigHelper:supportsWebSearch(configuration)
+                        and _("Toggle web search for AI requests")
+                        or _("Web search isn't available for this provider")
                     UIManager:show(InfoMessage:new{
-                        text = _("Toggle web search for AI requests"),
+                        text = msg,
                         timeout = 2,
                     })
                 end,

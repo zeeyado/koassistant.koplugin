@@ -2137,13 +2137,15 @@ local SettingsSchema = {
                     items = {
                         {
                             type = "info",
-                            text = _("Supported: Anthropic, Gemini, OpenRouter"),
+                            text = T(_("Supported: %1 (other providers currently ignore this)"),
+                                ModelConstraints.getWebSearchProvidersLabel()),
                         },
                         {
                             id = "enable_web_search",
                             type = "toggle",
                             text = _("Enable Web Search"),
-                            help_text = _("Allow AI to search the web for current information.\n\nSupported providers:\n• Anthropic (Claude)\n• Gemini\n• OpenRouter (all models)\n\nPerplexity always searches the web (no toggle needed).\n\nOther providers ignore this setting.\n\nIncreases token usage/cost."),
+                            help_text = T(_("Allow AI to search the web for current information.\n\nSupported providers: %1.\n\nGemini supports it only on Search-grounding-capable models; Perplexity always searches (no toggle needed); OpenRouter works for any model via the :online suffix.\n\nOther providers currently ignore this setting.\n\nThis is a global default — per-request toggles (input dialog, chat viewer) adapt to the active provider.\n\nIncreases token usage/cost."),
+                                ModelConstraints.getWebSearchProvidersLabel()),
                             path = "features.enable_web_search",
                             default = false,
                         },

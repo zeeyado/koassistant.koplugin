@@ -225,6 +225,53 @@ ModelConstraints.reasoning_defaults = {
     },
 }
 
+-- SINGLE SOURCE OF TRUTH for web search support + UI gating.
+-- To add a provider when web search is expanded, add ONE entry here — both
+-- supportsWebSearch() and every "supported providers" label/help string update.
+--   mode = "all"                  -> every model of this provider can search
+--   mode = "capability:<name>"    -> only models with that capability (e.g. Gemini's google_search)
+-- Mechanisms today: anthropic (web_search_20250305 tool), openrouter (:online / Exa),
+-- perplexity (built-in Sonar, always on), gemini (googleSearch grounding, capable models).
+-- Everything else (OpenAI, DeepSeek, xAI, Mistral, Groq, etc.) has NO web search via the
+-- Chat Completions API the plugin uses.
+ModelConstraints._web_search_providers = {
+    { id = "anthropic",  label = "Anthropic",  mode = "all" },
+    { id = "gemini",     label = "Gemini",     mode = "capability:google_search" },
+    { id = "perplexity", label = "Perplexity", mode = "all" },
+    { id = "openrouter", label = "OpenRouter", mode = "all" },
+}
+
+--- Check if a provider/model can actually perform web search in this plugin.
+--- Single source of truth for UI gating (input dialog, chat viewer, quick settings).
+--- @param provider string: Provider name
+--- @param model string: Model name (only relevant for capability-gated providers, e.g. Gemini)
+--- @return boolean: true if web search requests are honored
+function ModelConstraints.supportsWebSearch(provider, model)
+    if not provider then return false end
+    for _, p in ipairs(ModelConstraints._web_search_providers) do
+        if p.id == provider then
+            if p.mode == "all" then return true end
+            local cap = p.mode:match("^capability:(.+)$")
+            if cap then
+                return ModelConstraints.supportsCapability(provider, model, cap)
+            end
+            return false
+        end
+    end
+    return false
+end
+
+--- Friendly, comma-joined list of providers that support web search.
+--- Derived from _web_search_providers so UI strings stay in sync on expansion.
+--- @return string e.g. "Anthropic, Gemini, Perplexity, OpenRouter"
+function ModelConstraints.getWebSearchProvidersLabel()
+    local labels = {}
+    for _, p in ipairs(ModelConstraints._web_search_providers) do
+        labels[#labels + 1] = p.label
+    end
+    return table.concat(labels, ", ")
+end
+
 --- Check if a model supports a specific capability
 --- @param provider string: Provider name (e.g., "anthropic", "openai")
 --- @param model string: Model name (e.g., "claude-sonnet-4-5-20250929")

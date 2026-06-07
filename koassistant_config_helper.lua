@@ -63,13 +63,44 @@ function ConfigHelper:getModelInfo(config)
     if not config then return "default" end
     local provider = config.provider
     
-    return (config.provider_settings and 
-        config.provider_settings[provider] and 
+    return (config.provider_settings and
+        config.provider_settings[provider] and
         config.provider_settings[provider].model) or
         (config.model) or
-        (Defaults.ProviderDefaults[provider] and 
+        (Defaults.ProviderDefaults[provider] and
         Defaults.ProviderDefaults[provider].model) or
         "default"
+end
+
+--- Resolve the active provider from a config (robust to the various shapes).
+--- @param config table
+--- @return string|nil provider id
+function ConfigHelper:getProvider(config)
+    if not config then return nil end
+    return config.provider
+        or config.default_provider
+        or (config.features and config.features.provider)
+end
+
+--- Whether web search can actually run for the config's active provider/model.
+--- Used to gate the web-search toggles in the UI (input dialog + chat viewer).
+--- @param config table
+--- @return boolean
+function ConfigHelper:supportsWebSearch(config)
+    local provider = self:getProvider(config)
+    if not provider then return false end
+    -- Resolve model against the resolved provider (getModelInfo keys on config.provider)
+    local model = (config.provider_settings and config.provider_settings[provider]
+            and config.provider_settings[provider].model)
+        or config.model
+        or (Defaults.ProviderDefaults[provider] and Defaults.ProviderDefaults[provider].model)
+    return ModelConstraints.supportsWebSearch(provider, model)
+end
+
+--- Friendly list of web-search-capable providers (for UI messages). Single source.
+--- @return string
+function ConfigHelper:getWebSearchProvidersLabel()
+    return ModelConstraints.getWebSearchProvidersLabel()
 end
 
 -- Deep copy with circular reference detection
