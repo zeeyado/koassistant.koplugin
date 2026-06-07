@@ -24,12 +24,12 @@ local ModelLists = {
     openai = {
         -- GPT-5.5 (current flagship)
         "gpt-5.5",                      -- flagship (default), reasons by default (medium)
-        "gpt-5.5-pro",                  -- premium (Pro/Enterprise)
         -- GPT-5.4 (concurrent affordable tier)
         "gpt-5.4",
-        "gpt-5.4-pro",
         "gpt-5.4-mini",                 -- standard
         "gpt-5.4-nano",                 -- fast/ultrafast
+        -- NOTE: gpt-5.5-pro / gpt-5.4-pro are NOT chat-completions models
+        -- (v1/responses only) — excluded so they don't 404 here.
     },
 
     deepseek = {
@@ -104,9 +104,6 @@ local ModelLists = {
         -- Coding
         "codestral-latest",
         "devstral-2512",                -- code agents (Devstral 2, Apache 2.0)
-        -- Edge / small (Ministral 3)
-        "ministral-3-8b-2512",
-        "ministral-3-3b-2512",          -- ultrafast
     },
 
     xai = {
@@ -136,7 +133,6 @@ local ModelLists = {
 
         -- Google
         "google/gemini-3.5-flash",
-        "google/gemini-3-pro-preview",
         "google/gemini-3-flash-preview",
 
         -- DeepSeek
@@ -146,7 +142,6 @@ local ModelLists = {
         -- xAI Grok
         "x-ai/grok-4.3",
         "x-ai/grok-4.20",
-        "x-ai/grok-4.1-fast",
 
         -- Meta Llama
         "meta-llama/llama-3.3-70b-instruct",
@@ -367,7 +362,7 @@ local ModelLists = {
             deepseek = "deepseek-v4-flash",
             gemini = "gemini-3.1-flash-lite",
             groq = "llama-3.1-8b-instant",
-            mistral = "ministral-3-3b-2512",
+            mistral = "mistral-small-latest",
             xai = "grok-4.20-0309-non-reasoning",
             cohere = "command-r7b-12-2024",
             ollama = "tinyllama",

@@ -16,6 +16,32 @@ BaseHandler.CODE_CANCELLED = "USER_CANCELED"
 BaseHandler.CODE_NETWORK_ERROR = "NETWORK_ERROR"
 BaseHandler.PROTOCOL_NON_200 = "X-NON-200-STATUS:"
 
+--- Format a non-200 HTTP error body into a SINGLE-LINE message.
+--- The streaming reader consumes the PROTOCOL_NON_200 marker line-by-line, so a
+--- multi-line JSON body (e.g. Gemini's {\n "error": {...}}) would be truncated to
+--- just "{". Collapsing to one line — and extracting error.message when the body
+--- is JSON — lets the full message survive to the UI. Works for any provider.
+--- @param code number|string HTTP status code
+--- @param err_body string Raw response body
+--- @return string Single-line "Error <code>: <message>"
+function BaseHandler.formatNon200(code, err_body)
+    local msg = err_body
+    if type(err_body) == "string" and err_body ~= "" then
+        local ok, j = pcall(json.decode, err_body)
+        if ok and type(j) == "table" then
+            local e = j.error or (type(j[1]) == "table" and j[1].error)
+            if type(e) == "table" then
+                msg = e.message or e.status or err_body
+            elseif type(e) == "string" then
+                msg = e
+            end
+        end
+    end
+    msg = tostring(msg or ""):gsub("%s+", " "):gsub("^%s*(.-)%s*$", "%1")
+    if msg == "" then msg = "Request failed" end
+    return string.format("HTTP %s: %s", tostring(code), msg)
+end
+
 function BaseHandler:new(o)
     o = o or {}
     setmetatable(o, self)
@@ -346,8 +372,11 @@ function BaseHandler:backgroundRequest(url, headers, body)
 
                 if status_code and status_code ~= 200 then
                     local err_body = readFullBody(ssl_sock, is_chunked)
+                    -- Collapse to one line so the streaming reader captures the whole
+                    -- message (a multi-line JSON body would be truncated to "{").
                     ffiutil.writeToFD(child_write_fd,
-                        string.format("\r\n%s%s\n\n", self.PROTOCOL_NON_200, err_body))
+                        string.format("\r\n%s%s\n\n", self.PROTOCOL_NON_200,
+                            BaseHandler.formatNon200(status_code, err_body)))
                 else
                     streamBodyToPipe(ssl_sock, is_chunked, child_write_fd)
                 end
