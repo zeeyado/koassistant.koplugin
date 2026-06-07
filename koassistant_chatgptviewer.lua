@@ -2443,13 +2443,12 @@ function ChatGPTViewer:init()
           input = "",
           input_type = "text",
           input_hint = _("What would you like to discuss?"),
-          input_height = 8,
           allow_newline = true,
           input_multiline = true,
-          text_height = 380,
+          -- ~6 lines, scaled by screen size for cross-device consistency.
+          -- (Was a raw 380px; text_widget_width/height were no-ops InputDialog ignores.)
+          text_height = Screen:scaleBySize(160),
           width = UIConstants.DIALOG_WIDTH(),
-          text_widget_width = UIConstants.DIALOG_WIDTH() - Screen:scaleBySize(50),
-          text_widget_height = math.floor(Screen:getHeight() * 0.38),
           buttons = {{
             {
               text = _("Cancel"),
@@ -2778,13 +2777,12 @@ function ChatGPTViewer:askAnotherQuestion()
     input = self.reply_draft or "",  -- Restore saved draft
     input_type = "text",
     input_hint = _("Type your reply..."),
-    input_height = 8,  -- Taller (was 6)
     allow_newline = true,
     input_multiline = true,
-    text_height = 380,  -- Taller (was 300)
+    -- ~6 lines, scaled by screen size for cross-device consistency.
+    -- (Was a raw 380px; text_widget_width/height were no-ops InputDialog ignores.)
+    text_height = Screen:scaleBySize(160),
     width = UIConstants.DIALOG_WIDTH(),
-    text_widget_width = UIConstants.DIALOG_WIDTH() - Screen:scaleBySize(50),  -- Dialog width minus padding
-    text_widget_height = math.floor(Screen:getHeight() * 0.38),  -- Taller (was 0.3)
     buttons = {
       {
         {

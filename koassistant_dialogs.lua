@@ -5919,10 +5919,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         input_hint = input_hint_text,
         input_type = "text",
         buttons = buildInputDialogButtons(),
-        input_height = 6,
         allow_newline = true,
         input_multiline = true,
-        text_height = 300,
+        -- ~3 lines, scaled by screen size (like fonts) so the box holds a
+        -- consistent line-count across e-readers / phones / desktop.
+        -- (Was a raw, unscaled 300px — device-inconsistent and oversized.)
+        text_height = Screen:scaleBySize(96),
         -- Settings icon in title bar — opens anchored gear menu
         title_bar_left_icon = "appbar.settings",
         title_bar_left_icon_tap_callback = function()
