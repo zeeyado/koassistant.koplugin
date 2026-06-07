@@ -8,15 +8,8 @@ local ModelConstraints = {
     openai = {
         -- Models requiring temperature=1.0 (reject other values)
         -- Discovered via: lua tests/run_tests.lua --models openai
-        ["gpt-5"] = { temperature = 1.0 },
-        ["gpt-5-mini"] = { temperature = 1.0 },
-        ["gpt-5-nano"] = { temperature = 1.0 },
         ["gpt-5.4-mini"] = { temperature = 1.0 },
         ["gpt-5.4-nano"] = { temperature = 1.0 },
-        ["o3"] = { temperature = 1.0 },
-        ["o3-mini"] = { temperature = 1.0 },
-        ["o3-pro"] = { temperature = 1.0 },
-        ["o4-mini"] = { temperature = 1.0 },
     },
     anthropic = {
         -- Max temperature is 1.0 for all Anthropic models (vs 2.0 for others)
@@ -35,57 +28,54 @@ ModelConstraints.capabilities = {
         -- Models that support adaptive thinking (4.6+)
         -- New mode: thinking = {type = "adaptive"}, output_config = {effort = "..."}
         adaptive_thinking = {
+            "claude-opus-4-8",        -- 4.8 Opus
+            "claude-opus-4-7",        -- 4.7 Opus (prefix-matched for safety)
             "claude-sonnet-4-6",      -- 4.6 Sonnet
-            "claude-opus-4-6",        -- 4.6 Opus
+            "claude-opus-4-6",        -- 4.6 Opus (prefix-matched for safety)
         },
-        -- Models that support extended thinking (manual budget mode)
-        -- Still works on 4.6 but deprecated in favor of adaptive
+        -- Models that REJECT sampling params (temperature/top_p/top_k → HTTP 400)
+        -- Opus 4.7+ removed sampling params entirely; the request builder strips them.
+        no_sampling_params = {
+            "claude-opus-4-8",
+            "claude-opus-4-7",
+        },
+        -- Models that support extended thinking (manual budget_tokens mode)
+        -- Deprecated in favor of adaptive; NOTE: NOT supported on Opus 4.7/4.8 (would 400).
         extended_thinking = {
-            "claude-sonnet-4-6",      -- 4.6 Sonnet
-            "claude-opus-4-6",        -- 4.6 Opus
-            "claude-sonnet-4-5",      -- 4.5 Sonnet
+            "claude-sonnet-4-6",      -- 4.6 Sonnet (also adaptive; budget mode still works)
             "claude-haiku-4-5",       -- 4.5 Haiku
-            "claude-opus-4-5",        -- 4.5 Opus
-            "claude-opus-4-1",        -- 4.1 Opus
-            "claude-sonnet-4",        -- 4 Sonnet (not 4.5)
-            "claude-opus-4",          -- 4 Opus (not 4.1 or 4.5)
-            "claude-3-7-sonnet",      -- 3.7 Sonnet
         },
     },
     openai = {
         -- Models that support reasoning.effort parameter
         reasoning = {
-            "o3", "o3-mini", "o3-pro", "o4-mini",
-            "gpt-5", "gpt-5-mini", "gpt-5-nano",
-            "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-5.5", "gpt-5.5-pro",
+            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Models where reasoning is opt-in (default=none from OpenAI)
-        -- Starting with GPT-5.2, default reasoning_effort changed from medium to none
-        -- Gated by master reasoning toggle + openai_reasoning sub-toggle
-        -- Other reasoning models (o3, gpt-5, etc.) always reason at factory defaults
+        -- GPT-5.2/5.4 default reasoning_effort=none (off); gated by master toggle + openai_reasoning sub-toggle.
+        -- GPT-5.5 reasons at medium by default (NOT gated — always reasons at factory default).
         reasoning_gated = {
-            "gpt-5.1", "gpt-5.2", "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Note: OpenAI Chat Completions API does NOT have native web search.
         -- Web search requires Responses API or function calling with external tools.
     },
     deepseek = {
-        -- V3.2+: both models support thinking toggle (type: enabled/disabled)
-        -- deepseek-reasoner defaults ON, deepseek-chat defaults OFF
-        thinking = { "deepseek-chat", "deepseek-reasoner" },
+        -- V4: both models support thinking toggle (type: enabled/disabled), ON by default
+        thinking = { "deepseek-v4-pro", "deepseek-v4-flash" },
         -- Keep reasoning list for tier system (which models are "reasoning-class")
-        reasoning = { "deepseek-reasoner" },
+        reasoning = { "deepseek-v4-pro" },
     },
     gemini = {
-        -- Gemini 3 preview models support thinkingLevel
-        thinking = { "gemini-3.1-pro-preview", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview" },
-        -- Gemini 2.5 models support thinkingBudget (0=off, -1=dynamic, 128-24576)
-        -- Flash-Lite excluded (thinking disabled by default, no budget control)
-        thinking_budget = { "gemini-2.5-pro", "gemini-2.5-flash" },
-        -- Google Search grounding (most Gemini 2.x+ models)
+        -- Gemini 3 models use thinkingLevel (minimal/low/medium/high)
+        thinking = { "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite" },
+        -- Gemini 2.5 models use thinkingBudget (0=off, -1=dynamic, 128-24576)
+        thinking_budget = { "gemini-2.5-flash" },
+        -- Google Search grounding
         google_search = {
-            "gemini-2.5-pro", "gemini-2.5-flash",
-            "gemini-3.1-pro-preview", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview",
+            "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
+            "gemini-2.5-flash",
         },
     },
     -- Note: xAI web search requires Responses API (/v1/responses) which is
@@ -99,8 +89,7 @@ ModelConstraints.capabilities = {
         -- (enforced in zai.lua handler, not here — thinking is togglable)
         thinking = {
             "glm-5.1", "glm-5-turbo", "glm-5",
-            "glm-4.7", "glm-4.7-flashx", "glm-4.7-flash",
-            "glm-4.6", "glm-4.5", "glm-4.5-flash",
+            "glm-4.7", "glm-4.7-flash",
         },
     },
     openrouter = {
@@ -118,7 +107,7 @@ ModelConstraints.capabilities = {
     together = {
         -- Models with reasoning_effort support
         reasoning = {
-            "deepseek-ai/DeepSeek-R1",
+            "deepseek-ai/DeepSeek-V4-Pro",
             "Qwen/Qwen3.5-397B-A17B",
             "Qwen/Qwen3-235B-A22B",
         },
@@ -126,24 +115,25 @@ ModelConstraints.capabilities = {
     fireworks = {
         -- Models with reasoning_effort support
         reasoning = {
+            "accounts/fireworks/models/deepseek-v4-pro",
             "accounts/fireworks/models/deepseek-r1",
+            "accounts/fireworks/models/kimi-k2-thinking",
             "accounts/fireworks/models/qwen3-235b-a22b",
         },
     },
     sambanova = {
         -- Models with thinking toggle (chat_template_kwargs.enable_thinking)
-        -- DeepSeek-R1-0528 and Qwen3-32B deprecated March 31, 2026
-        thinking = { "DeepSeek-R1-Distill-Llama-70B" },
+        thinking = { "DeepSeek-V3.1", "DeepSeek-V3.2" },
     },
     xai = {
-        -- Only grok-3-mini supports reasoning_effort (low/high)
-        -- Other Grok models reason internally but don't expose content via Chat Completions
-        reasoning = { "grok-3-mini" },
+        -- grok-4.3 and the grok-4.20 reasoning variant support reasoning_effort (none/low/medium/high)
+        -- The grok-4.20 non-reasoning slug has no effort control
+        reasoning = { "grok-4.3", "grok-4.20-0309-reasoning" },
     },
     perplexity = {
         -- Reasoning models (always-on, but effort is controllable)
         -- sonar-reasoning-pro uses <think> tags, sonar-deep-research also supports effort
-        reasoning = { "sonar-reasoning-pro", "sonar-reasoning", "sonar-deep-research" },
+        reasoning = { "sonar-reasoning-pro", "sonar-deep-research" },
     },
     mistral = {
         -- Magistral models always think (no toggle, extraction only)
@@ -157,16 +147,11 @@ ModelConstraints.capabilities = {
 -- Models with known output token ceilings (prevents API 400 errors)
 ModelConstraints._max_output_tokens = {
     anthropic = {
-        ["claude-opus-4-6"] = 128000,    -- 128K max output
+        ["claude-opus-4-8"] = 128000,    -- 128K max output
         ["claude-sonnet-4-6"] = 64000,
-        ["claude-sonnet-4-5"] = 64000,
-        ["claude-opus-4-5"] = 64000,
         ["claude-haiku-4-5"] = 64000,
     },
-    deepseek = {
-        ["deepseek-chat"] = 8192,
-        -- deepseek-reasoner: no cap needed (64K limit)
-    },
+    -- deepseek: v4 models allow 384K output (no cap needed)
     groq = {
         ["groq/compound"] = 8192,
         ["groq/compound-mini"] = 8192,
@@ -183,8 +168,8 @@ ModelConstraints.reasoning_defaults = {
     -- Anthropic adaptive thinking (4.6+)
     anthropic_adaptive = {
         effort = "high",     -- Default effort level
-        effort_options = { "low", "medium", "high" },  -- Common options
-        effort_options_opus = { "low", "medium", "high", "max" },  -- Opus 4.6 only
+        effort_options = { "low", "medium", "high" },  -- Common options (Sonnet)
+        effort_options_opus = { "low", "medium", "high", "xhigh", "max" },  -- Opus (4.7+ adds xhigh)
     },
     -- Anthropic extended thinking (manual budget mode)
     anthropic = {
@@ -232,7 +217,7 @@ ModelConstraints.reasoning_defaults = {
     },
     xai = {
         effort = "high",
-        effort_options = { "low", "high" },
+        effort_options = { "low", "medium", "high" },
     },
     perplexity = {
         effort = "high",

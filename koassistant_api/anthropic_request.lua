@@ -155,21 +155,28 @@ function AnthropicRequest:build(config)
 
             if supports_adaptive then
                 request_body.thinking = { type = "adaptive" }
+                -- Opus 4.7/4.8 default thinking display to "omitted" (empty thinking text).
+                -- Request "summarized" so reasoning is returned for the chat viewer.
+                if ModelConstraints.supportsCapability("anthropic", model, "no_sampling_params") then
+                    request_body.thinking.display = "summarized"
+                end
                 -- Pass through output_config (effort level) if provided
                 if params.output_config then
                     request_body.output_config = params.output_config
-                    -- Clamp "max" effort to "high" for non-Opus models
+                    -- Clamp "max" effort to "high" for non-Opus models (Opus keeps xhigh/max)
                     if request_body.output_config.effort == "max" and not model:match("opus") then
                         adjustments.effort = {
                             from = "max",
                             to = "high",
-                            reason = "max effort is Opus 4.6 only"
+                            reason = "max effort is Opus-only"
                         }
                         request_body.output_config.effort = "high"
                     end
                 end
-                -- Adaptive thinking requires temperature=1.0
-                if request_body.temperature ~= 1.0 then
+                -- Adaptive thinking on 4.6 requires temperature=1.0. Opus 4.7/4.8 reject
+                -- sampling params entirely (stripped below), so skip the temp=1.0 step for them.
+                if not ModelConstraints.supportsCapability("anthropic", model, "no_sampling_params")
+                        and request_body.temperature ~= 1.0 then
                     adjustments.temperature = {
                         from = request_body.temperature,
                         to = 1.0,
@@ -222,6 +229,21 @@ function AnthropicRequest:build(config)
                 }
             end
         end
+    end
+
+    -- Strip sampling params for models that reject them (Opus 4.7/4.8 → HTTP 400).
+    -- Runs for both thinking and non-thinking requests (default temp would otherwise 400).
+    if ModelConstraints.supportsCapability("anthropic", model, "no_sampling_params") then
+        if request_body.temperature ~= nil then
+            adjustments.temperature = {
+                from = request_body.temperature,
+                to = nil,
+                reason = "Opus 4.7/4.8 reject sampling params"
+            }
+            request_body.temperature = nil
+        end
+        request_body.top_p = nil
+        request_body.top_k = nil
     end
 
     -- Add streaming if requested

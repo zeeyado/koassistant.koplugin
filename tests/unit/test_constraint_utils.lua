@@ -117,8 +117,8 @@ function TestConstraintUtils:runAll()
     -- Test supportsCapability
     self:test("supportsCapability detects Anthropic thinking", function()
         local supports = ConstraintUtils.supportsCapability(
-            "anthropic", "claude-sonnet-4-5-20250929", "extended_thinking")
-        self:assert(supports, "claude-sonnet-4-5 should support extended thinking")
+            "anthropic", "claude-sonnet-4-6", "extended_thinking")
+        self:assert(supports, "claude-sonnet-4-6 should support extended thinking")
     end)
 
     self:test("supportsCapability rejects non-thinking models", function()
@@ -129,8 +129,8 @@ function TestConstraintUtils:runAll()
 
     self:test("supportsCapability detects OpenAI reasoning", function()
         local supports = ConstraintUtils.supportsCapability(
-            "openai", "o3-mini", "reasoning")
-        self:assert(supports, "o3-mini should support reasoning")
+            "openai", "gpt-5.5", "reasoning")
+        self:assert(supports, "gpt-5.5 should support reasoning")
     end)
 
     self:test("supportsCapability detects Z.AI thinking (glm-5-turbo)", function()
@@ -243,7 +243,7 @@ function TestConstraintUtils:runAll()
     self:test("applyConstraints delegates to ModelConstraints", function()
         local params = { temperature = 0.5, max_tokens = 100 }
         local new_params, adjustments = ConstraintUtils.applyConstraints(
-            "anthropic", "claude-sonnet-4-5", params)
+            "anthropic", "claude-sonnet-4-6", params)
 
         -- Anthropic max temp is 1.0, so 0.5 should pass through
         -- But if temp was > 1.0, it would be adjusted

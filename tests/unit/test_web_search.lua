@@ -529,8 +529,8 @@ TestRunner:test("xAI does NOT have web_search capability (API deprecated)", func
 end)
 
 TestRunner:test("Gemini supports google_search", function()
-    local supports = ModelConstraints.supportsCapability("gemini", "gemini-2.5-pro", "google_search")
-    TestRunner:assertTrue(supports, "gemini-2.5-pro should support google_search")
+    local supports = ModelConstraints.supportsCapability("gemini", "gemini-3.5-flash", "google_search")
+    TestRunner:assertTrue(supports, "gemini-3.5-flash should support google_search")
 end)
 
 TestRunner:test("Unknown provider returns false", function()

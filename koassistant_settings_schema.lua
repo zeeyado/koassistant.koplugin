@@ -1760,7 +1760,7 @@ local SettingsSchema = {
                             id = "enable_reasoning",
                             type = "toggle",
                             text = _("Enable Reasoning"),
-                            help_text = _("Controls reasoning/thinking for providers that support configurable reasoning.\n\nWhen ON, all sub-toggles below are enabled by default. You can selectively disable individual providers.\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.1+ models\n• DeepSeek: Thinking for V3.2+ models\n• Z.AI: Thinking for GLM-4.5+ models\n• OpenRouter: Reasoning effort (translates to backend)\n• SambaNova: Thinking toggle (R1-Distill)\n\nWhen OFF, models keep their natural behavior (e.g. Gemini 2.5 and DeepSeek Reasoner still think by default).\n\nAlways-on models (o3, GPT-5, Grok-3-mini, Magistral, etc.) are not affected by this toggle. Effort controls for always-on providers are in a separate section below."),
+                            help_text = _("Controls reasoning/thinking for providers that support configurable reasoning.\n\nWhen ON, all sub-toggles below are enabled by default. You can selectively disable individual providers.\n\n• Anthropic: Adaptive thinking (4.6+) / Extended thinking\n• Gemini: Thinking budget (2.5) / Thinking depth (3)\n• OpenAI: Reasoning for GPT-5.4+ models\n• DeepSeek: Thinking for V4 models\n• Z.AI: Thinking for GLM-4.7+ models\n• OpenRouter: Reasoning effort (translates to backend)\n• SambaNova: Thinking toggle (DeepSeek V3.x)\n\nWhen OFF, models keep their natural behavior (e.g. DeepSeek V4 still thinks by default).\n\nAlways-on models (GPT-5.5, Grok 4.3, Magistral, etc.) are not affected by this toggle. Effort controls for always-on providers are in a separate section below."),
                             path = "features.enable_reasoning",
                             default = false,
                             separator = true,
@@ -1781,10 +1781,10 @@ local SettingsSchema = {
                             text_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 local effort = f.anthropic_effort or "high"
-                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High"), max = _("Max") }
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High"), xhigh = _("Extra High"), max = _("Max") }
                                 return T(_("Effort: %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Low = may skip thinking for simple tasks\nMedium = balanced\nHigh = almost always thinks\nMax = deepest thinking (Opus 4.6 only)"),
+                            help_text = _("Low = may skip thinking for simple tasks\nMedium = balanced\nHigh = almost always thinks\nExtra High / Max = deepest thinking (Opus only)"),
                             path = "features.anthropic_effort",
                             default = "high",
                             depends_on = {
@@ -1796,7 +1796,8 @@ local SettingsSchema = {
                                 { value = "low", text = _("Low (may skip thinking)") },
                                 { value = "medium", text = _("Medium") },
                                 { value = "high", text = _("High (default)") },
-                                { value = "max", text = _("Max (Opus 4.6 only)") },
+                                { value = "xhigh", text = _("Extra High (Opus 4.7+ only)") },
+                                { value = "max", text = _("Max (Opus only)") },
                             },
                         },
                         -- Anthropic Extended Thinking (4.5)
@@ -1921,7 +1922,7 @@ local SettingsSchema = {
                                 { value = "low", text = _("Low (faster)") },
                                 { value = "medium", text = _("Medium (default)") },
                                 { value = "high", text = _("High (thorough)") },
-                                { value = "xhigh", text = _("Extra High (5.2+ only)") },
+                                { value = "xhigh", text = _("Extra High (5.4+ only)") },
                             },
                         },
                         -- Z.AI Thinking
@@ -1940,7 +1941,7 @@ local SettingsSchema = {
                             id = "deepseek_reasoning",
                             type = "toggle",
                             text = _("DeepSeek Thinking"),
-                            help_text = _("Supported models:\n") .. getModelList("deepseek", "thinking") .. _("\n\nToggle thinking for DeepSeek V3.2+ models.\n\nWhen the master toggle is off, models keep their natural behavior (deepseek-reasoner thinks by default, deepseek-chat does not)."),
+                            help_text = _("Supported models:\n") .. getModelList("deepseek", "thinking") .. _("\n\nToggle thinking for DeepSeek V4 models.\n\nWhen the master toggle is off, models keep their natural behavior (V4 models think by default)."),
                             path = "features.deepseek_reasoning",
                             default = true,
                             depends_on = { id = "enable_reasoning", value = true },
@@ -2006,7 +2007,7 @@ local SettingsSchema = {
                             type = "info",
                             text = _("Always-on reasoning (effort level):"),
                         },
-                        -- OpenAI always-on effort (o3, gpt-5 family)
+                        -- OpenAI always-on effort (GPT-5.5 — reasons by default)
                         {
                             id = "openai_always_on_effort",
                             type = "radio",
@@ -2014,9 +2015,9 @@ local SettingsSchema = {
                                 local f = plugin.settings:readSetting("features") or {}
                                 local effort = f.openai_always_on_effort or "medium"
                                 local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
-                                return T(_("OpenAI (o3, GPT-5): %1"), labels[effort] or effort)
+                                return T(_("OpenAI (GPT-5.5): %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Reasoning effort for always-on OpenAI models (o3, o3-mini, o4-mini, GPT-5, GPT-5-mini, GPT-5-nano).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
+                            help_text = _("Reasoning effort for always-on OpenAI models (GPT-5.5, which reasons by default).\n\nThese models always reason — this controls depth, not on/off.\nDefault matches factory setting (medium)."),
                             path = "features.openai_always_on_effort",
                             default = "medium",
                             separator = true,
@@ -2033,15 +2034,16 @@ local SettingsSchema = {
                             text_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 local effort = f.xai_effort or "high"
-                                local labels = { low = _("Low"), high = _("High") }
-                                return T(_("xAI (Grok-3-mini): %1"), labels[effort] or effort)
+                                local labels = { low = _("Low"), medium = _("Medium"), high = _("High") }
+                                return T(_("xAI (Grok 4.3): %1"), labels[effort] or effort)
                             end,
-                            help_text = _("Reasoning effort for Grok-3-mini.\n\nThis model always reasons — this controls depth, not on/off."),
+                            help_text = _("Reasoning effort for Grok 4.3 and the Grok 4.20 reasoning variant.\n\nThese models always reason — this controls depth, not on/off."),
                             path = "features.xai_effort",
                             default = "high",
                             separator = true,
                             options = {
                                 { value = "low", text = _("Low (faster)") },
+                                { value = "medium", text = _("Medium") },
                                 { value = "high", text = _("High (default)") },
                             },
                         },

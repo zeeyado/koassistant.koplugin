@@ -112,17 +112,17 @@ TestRunner:suite("DeepSeek thinking injection")
 
 local DeepSeekHandler = require("deepseek")
 
-TestRunner:test("deepseek-reasoner supports thinking capability", function()
+TestRunner:test("deepseek-v4-pro supports thinking capability", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("deepseek", "deepseek-reasoner", "thinking"),
-        "deepseek-reasoner should support thinking"
+        ModelConstraints.supportsCapability("deepseek", "deepseek-v4-pro", "thinking"),
+        "deepseek-v4-pro should support thinking"
     )
 end)
 
-TestRunner:test("deepseek-chat supports thinking capability", function()
+TestRunner:test("deepseek-v4-flash supports thinking capability", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("deepseek", "deepseek-chat", "thinking"),
-        "deepseek-chat should support thinking"
+        ModelConstraints.supportsCapability("deepseek", "deepseek-v4-flash", "thinking"),
+        "deepseek-v4-flash should support thinking"
     )
 end)
 
@@ -186,7 +186,7 @@ TestRunner:suite("Together reasoning injection")
 local TogetherHandler = require("together")
 
 TestRunner:test("adds reasoning_effort for R1", function()
-    local body = { model = "deepseek-ai/DeepSeek-R1", messages = {} }
+    local body = { model = "deepseek-ai/DeepSeek-V4-Pro", messages = {} }
     local config = { api_params = { together_reasoning = { effort = "low" } } }
     local result = TogetherHandler:customizeRequestBody(body, config)
     TestRunner:assertEqual(result.reasoning_effort, "low", "reasoning_effort")
@@ -215,7 +215,7 @@ TestRunner:suite("SambaNova thinking injection")
 local SambaNovaHandler = require("sambanova")
 
 TestRunner:test("enables thinking when config present", function()
-    local body = { model = "DeepSeek-R1-0528", messages = {} }
+    local body = { model = "DeepSeek-V3.1", messages = {} }
     local config = { api_params = { sambanova_thinking = true } }
     local result = SambaNovaHandler:customizeRequestBody(body, config)
     TestRunner:assertNotNil(result.chat_template_kwargs, "should set chat_template_kwargs")
@@ -223,7 +223,7 @@ TestRunner:test("enables thinking when config present", function()
 end)
 
 TestRunner:test("disables thinking when config absent", function()
-    local body = { model = "DeepSeek-R1-0528", messages = {} }
+    local body = { model = "DeepSeek-V3.1", messages = {} }
     local config = { api_params = {} }
     local result = SambaNovaHandler:customizeRequestBody(body, config)
     TestRunner:assertNotNil(result.chat_template_kwargs, "should set chat_template_kwargs")
@@ -241,8 +241,8 @@ TestRunner:suite("xAI reasoning injection")
 
 local XAIHandler = require("xai")
 
-TestRunner:test("adds reasoning_effort for grok-3-mini", function()
-    local body = { model = "grok-3-mini", messages = {} }
+TestRunner:test("adds reasoning_effort for grok-4.3", function()
+    local body = { model = "grok-4.3", messages = {} }
     local config = { api_params = { xai_reasoning = { effort = "low" } } }
     local result = XAIHandler:customizeRequestBody(body, config)
     TestRunner:assertEqual(result.reasoning_effort, "low", "reasoning_effort")
@@ -393,7 +393,7 @@ end)
 
 TestRunner:suite("Response Parser: xAI reasoning_content")
 
-TestRunner:test("extracts reasoning_content from grok-3-mini", function()
+TestRunner:test("extracts reasoning_content from grok-4.3", function()
     local response = {
         choices = { {
             message = {
@@ -541,38 +541,36 @@ TestRunner:suite("Model capability checks for new providers")
 
 -- Verify all new capability entries resolve correctly
 local capability_checks = {
-    { "deepseek", "deepseek-chat", "thinking", true },
-    { "deepseek", "deepseek-reasoner", "thinking", true },
+    { "deepseek", "deepseek-v4-flash", "thinking", true },
+    { "deepseek", "deepseek-v4-pro", "thinking", true },
     { "groq", "openai/gpt-oss-120b", "reasoning", true },
     { "groq", "qwen/qwen3-32b", "reasoning", true },
     { "groq", "llama-3.3-70b", "reasoning", false },
-    { "together", "deepseek-ai/DeepSeek-R1", "reasoning", true },
+    { "together", "deepseek-ai/DeepSeek-V4-Pro", "reasoning", true },
     { "together", "Qwen/Qwen3-235B-A22B", "reasoning", true },
     { "together", "Qwen/Qwen3.5-397B-A17B", "reasoning", true },
     { "together", "meta-llama/Llama-4-Maverick", "reasoning", false },
     { "fireworks", "accounts/fireworks/models/deepseek-r1", "reasoning", true },
     { "fireworks", "accounts/fireworks/models/llama-v3p3-70b", "reasoning", false },
-    { "sambanova", "DeepSeek-R1-0528", "thinking", true },
-    { "sambanova", "Qwen3-32B", "thinking", true },
+    { "sambanova", "DeepSeek-V3.1", "thinking", true },
+    { "sambanova", "DeepSeek-V3.2", "thinking", true },
     { "sambanova", "Llama-4-Maverick", "thinking", false },
-    { "xai", "grok-3-mini", "reasoning", true },
-    { "xai", "grok-4", "reasoning", false },
+    { "xai", "grok-4.3", "reasoning", true },
+    { "xai", "grok-4.20-0309-reasoning", "reasoning", true },
+    { "xai", "grok-4.20-0309-non-reasoning", "reasoning", false },
     { "perplexity", "sonar-reasoning-pro", "reasoning", true },
-    { "perplexity", "sonar-reasoning", "reasoning", true },
+    { "perplexity", "sonar-deep-research", "reasoning", true },
     { "perplexity", "sonar", "reasoning", false },
     { "perplexity", "sonar-pro", "reasoning", false },
     { "mistral", "magistral-medium", "thinking", true },
     { "mistral", "magistral-small", "thinking", true },
     { "mistral", "mistral-large-latest", "thinking", false },
     -- Z.AI thinking capabilities
+    { "zai", "glm-5.1", "thinking", true },
     { "zai", "glm-5-turbo", "thinking", true },
     { "zai", "glm-5", "thinking", true },
     { "zai", "glm-4.7", "thinking", true },
     { "zai", "glm-4.7-flash", "thinking", true },
-    { "zai", "glm-4.7-flashx", "thinking", true },
-    { "zai", "glm-4.6", "thinking", true },
-    { "zai", "glm-4.5", "thinking", true },
-    { "zai", "glm-4.5-flash", "thinking", true },
     { "zai", "glm-4-plus", "thinking", false },
 }
 
@@ -598,11 +596,12 @@ TestRunner:test("OpenRouter defaults to high effort", function()
     TestRunner:assertEqual(ModelConstraints.reasoning_defaults.openrouter.effort, "high", "default effort")
 end)
 
-TestRunner:test("xAI has low and high effort options only", function()
+TestRunner:test("xAI has low/medium/high effort options", function()
     local opts = ModelConstraints.reasoning_defaults.xai.effort_options
-    TestRunner:assertEqual(#opts, 2, "should have 2 options")
+    TestRunner:assertEqual(#opts, 3, "should have 3 options")
     TestRunner:assertEqual(opts[1], "low", "first option")
-    TestRunner:assertEqual(opts[2], "high", "second option")
+    TestRunner:assertEqual(opts[2], "medium", "second option")
+    TestRunner:assertEqual(opts[3], "high", "third option")
 end)
 
 TestRunner:test("all effort providers default to high", function()
@@ -620,50 +619,50 @@ end)
 TestRunner:suite("Provider reasoning categories")
 
 -- Always-on models should have reasoning capability but NOT be in reasoning_gated
-TestRunner:test("OpenAI o3 is reasoning-capable but not gated", function()
+TestRunner:test("OpenAI gpt-5.5 is reasoning-capable but not gated (category)", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("openai", "o3", "reasoning"),
-        "o3 should have reasoning capability"
+        ModelConstraints.supportsCapability("openai", "gpt-5.5", "reasoning"),
+        "gpt-5.5 should have reasoning capability"
     )
     TestRunner:assertFalse(
-        ModelConstraints.supportsCapability("openai", "o3", "reasoning_gated"),
-        "o3 should NOT be gated"
+        ModelConstraints.supportsCapability("openai", "gpt-5.5", "reasoning_gated"),
+        "gpt-5.5 should NOT be gated"
     )
 end)
 
-TestRunner:test("OpenAI o4-mini is reasoning-capable but not gated", function()
+TestRunner:test("OpenAI gpt-5.5-pro is reasoning-capable but not gated", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("openai", "o4-mini", "reasoning"),
-        "o4-mini should have reasoning capability"
+        ModelConstraints.supportsCapability("openai", "gpt-5.5-pro", "reasoning"),
+        "gpt-5.5-pro should have reasoning capability"
     )
     TestRunner:assertFalse(
-        ModelConstraints.supportsCapability("openai", "o4-mini", "reasoning_gated"),
-        "o4-mini should NOT be gated"
+        ModelConstraints.supportsCapability("openai", "gpt-5.5-pro", "reasoning_gated"),
+        "gpt-5.5-pro should NOT be gated"
     )
 end)
 
-TestRunner:test("OpenAI gpt-5 is reasoning-capable but not gated", function()
+TestRunner:test("OpenAI gpt-5.5 is reasoning-capable but not gated", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("openai", "gpt-5", "reasoning"),
-        "gpt-5 should have reasoning capability"
+        ModelConstraints.supportsCapability("openai", "gpt-5.5", "reasoning"),
+        "gpt-5.5 should have reasoning capability"
     )
     TestRunner:assertFalse(
-        ModelConstraints.supportsCapability("openai", "gpt-5", "reasoning_gated"),
-        "gpt-5 should NOT be gated"
+        ModelConstraints.supportsCapability("openai", "gpt-5.5", "reasoning_gated"),
+        "gpt-5.5 should NOT be gated (reasons by default)"
     )
 end)
 
-TestRunner:test("OpenAI gpt-5.1 IS gated (toggleable)", function()
+TestRunner:test("OpenAI gpt-5.4 IS gated (toggleable)", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("openai", "gpt-5.1", "reasoning_gated"),
-        "gpt-5.1 should be gated"
+        ModelConstraints.supportsCapability("openai", "gpt-5.4", "reasoning_gated"),
+        "gpt-5.4 should be gated"
     )
 end)
 
-TestRunner:test("xAI grok-3-mini is always-on reasoning", function()
+TestRunner:test("xAI grok-4.3 is always-on reasoning", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("xai", "grok-3-mini", "reasoning"),
-        "grok-3-mini should have reasoning"
+        ModelConstraints.supportsCapability("xai", "grok-4.3", "reasoning"),
+        "grok-4.3 should have reasoning"
     )
 end)
 
