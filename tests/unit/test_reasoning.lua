@@ -630,14 +630,14 @@ TestRunner:test("OpenAI gpt-5.5 is reasoning-capable but not gated (category)", 
     )
 end)
 
-TestRunner:test("OpenAI gpt-5.5-pro is reasoning-capable but not gated", function()
+TestRunner:test("OpenAI gpt-5.4-nano is reasoning-capable and gated", function()
     TestRunner:assertTrue(
-        ModelConstraints.supportsCapability("openai", "gpt-5.5-pro", "reasoning"),
-        "gpt-5.5-pro should have reasoning capability"
+        ModelConstraints.supportsCapability("openai", "gpt-5.4-nano", "reasoning"),
+        "gpt-5.4-nano should have reasoning capability"
     )
-    TestRunner:assertFalse(
-        ModelConstraints.supportsCapability("openai", "gpt-5.5-pro", "reasoning_gated"),
-        "gpt-5.5-pro should NOT be gated"
+    TestRunner:assertTrue(
+        ModelConstraints.supportsCapability("openai", "gpt-5.4-nano", "reasoning_gated"),
+        "gpt-5.4-nano should be gated"
     )
 end)
 

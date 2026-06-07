@@ -783,11 +783,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         if ModelConstraints.supportsCapability("deepseek", model, "thinking") then
             local enabled = deepseek_reasoning
             if action_deepseek_override ~= nil then enabled = action_deepseek_override end
+            -- DeepSeek V4 models think by DEFAULT, so we must ALWAYS send an explicit
+            -- type when not enabled — otherwise reasoning stays on regardless of the toggle.
             if enabled then
                 config.api_params.deepseek_thinking = { type = "enabled" }
-            elseif action_deepseek_override == false or enable_reasoning_master then
-                -- Suppress when per-action says OFF or master ON but sub-toggle OFF.
-                -- When master OFF with no override: API default (reasoner thinks, chat doesn't).
+            else
                 config.api_params.deepseek_thinking = { type = "disabled" }
             end
         end

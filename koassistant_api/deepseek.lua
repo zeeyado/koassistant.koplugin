@@ -59,12 +59,10 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
-    -- V3.2+ thinking toggle: apply when explicitly set by dialogs
-    -- When nil: don't send anything — let API defaults apply
-    -- (deepseek-reasoner thinks by default, deepseek-chat doesn't)
-    if api_params.deepseek_thinking then
-        request_body.thinking = api_params.deepseek_thinking
-    end
+    -- DeepSeek V4 thinking toggle. V4 models think by DEFAULT, so default to
+    -- disabled when no explicit setting (reasoning is opt-in) — otherwise reasoning
+    -- stays on regardless of the toggle. Explicit enabled/disabled from dialogs wins.
+    request_body.thinking = api_params.deepseek_thinking or { type = "disabled" }
 
     local headers = {
         ["Content-Type"] = "application/json",
@@ -122,12 +120,10 @@ function DeepSeekHandler:query(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
-    -- V3.2+ thinking toggle: apply when explicitly set by dialogs
-    -- When nil: don't send anything — let API defaults apply
-    -- (deepseek-reasoner thinks by default, deepseek-chat doesn't)
-    if api_params.deepseek_thinking then
-        request_body.thinking = api_params.deepseek_thinking
-    end
+    -- DeepSeek V4 thinking toggle. V4 models think by DEFAULT, so default to
+    -- disabled when no explicit setting (reasoning is opt-in) — otherwise reasoning
+    -- stays on regardless of the toggle. Explicit enabled/disabled from dialogs wins.
+    request_body.thinking = api_params.deepseek_thinking or { type = "disabled" }
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming

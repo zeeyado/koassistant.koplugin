@@ -16,6 +16,29 @@ local ffiutil = require("ffi/util")
 local UIConstants = require("koassistant_ui.constants")
 local Constants = require("koassistant_constants")
 
+--- Extract a clean API error message from a raw/partial response buffer.
+--- Handles object {"error":{...}} and array [{"error":{...}}] shapes (any provider),
+--- with a regex fallback for truncated/multi-chunk bodies. Returns nil if no error.
+local function extractApiError(text)
+    if not text or text == "" then return nil end
+    if not text:find('"error"', 1, true) then return nil end
+    local ok, j = pcall(json.decode, text)
+    if ok and type(j) == "table" then
+        local err = j.error or (type(j[1]) == "table" and j[1].error)
+        if type(err) == "table" then
+            return err.message or (err.code and ("API error " .. tostring(err.code))) or err.status
+        elseif type(err) == "string" then
+            return err
+        end
+    end
+    -- Decode failed (partial body) — fall back to patterns
+    local msg = text:match('"message"%s*:%s*"([^"]+)"')
+    if msg and msg ~= "" then return msg end
+    local code = text:match('"code"%s*:%s*(%d+)')
+    if code then return "API error " .. code end
+    return nil
+end
+
 local StreamHandler = {
     interrupt_stream = nil,      -- function to interrupt the stream query
     user_interrupted = false,    -- flag to indicate if the stream was interrupted
@@ -285,16 +308,27 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         -- Case 2: Real content was streamed then error appended — strip error, mark truncated
         local error_pattern = '"error"%s*:%s*{%s*"code"'
         if not has_streamed_content then
-            local msg = result:match('"message"%s*:%s*"([^"]+)"')
-            if msg then
-                if on_complete then on_complete(false, nil, msg) end
+            -- Whole response is an API error (e.g. 429 quota, 400) — surface the
+            -- real message instead of dumping the raw JSON body ("Error: {").
+            local apierr = extractApiError(result) or extractApiError(partial_data)
+            if apierr then
+                if on_complete then on_complete(false, nil, apierr) end
                 return
             end
         elseif result:find(error_pattern) then
-            -- Strip trailing API error from otherwise valid content
             local error_pos = result:find('"error"%s*:')
             if error_pos then
-                result = result:sub(1, error_pos - 1):match("^(.-)%s*$") or ""
+                -- Content before the error key, minus any dangling brace/bracket
+                -- that actually belongs to the error JSON (avoids leaving "{").
+                local before = result:sub(1, error_pos - 1):match("^(.-)%s*$") or ""
+                if before:match("^[%s{%[]*$") then
+                    -- No real content preceded the error — it was a pure error response
+                    local apierr = extractApiError(result) or extractApiError(partial_data)
+                    if on_complete then on_complete(false, nil, apierr or _("API error")) end
+                    return
+                end
+                -- Real content streamed then error appended — strip + mark truncated
+                result = before
                 was_truncated = true
                 logger.warn("Mid-stream API error detected after content, treating as truncated")
             end

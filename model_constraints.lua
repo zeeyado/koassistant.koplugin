@@ -8,6 +8,7 @@ local ModelConstraints = {
     openai = {
         -- Models requiring temperature=1.0 (reject other values)
         -- Discovered via: lua tests/run_tests.lua --models openai
+        ["gpt-5.5"] = { temperature = 1.0 },
         ["gpt-5.4-mini"] = { temperature = 1.0 },
         ["gpt-5.4-nano"] = { temperature = 1.0 },
     },
@@ -49,14 +50,14 @@ ModelConstraints.capabilities = {
     openai = {
         -- Models that support reasoning.effort parameter
         reasoning = {
-            "gpt-5.5", "gpt-5.5-pro",
-            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-5.5",
+            "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Models where reasoning is opt-in (default=none from OpenAI)
-        -- GPT-5.2/5.4 default reasoning_effort=none (off); gated by master toggle + openai_reasoning sub-toggle.
+        -- GPT-5.4 defaults reasoning_effort=none (off); gated by master toggle + openai_reasoning sub-toggle.
         -- GPT-5.5 reasons at medium by default (NOT gated — always reasons at factory default).
         reasoning_gated = {
-            "gpt-5.4", "gpt-5.4-pro", "gpt-5.4-mini", "gpt-5.4-nano",
+            "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
         },
         -- Note: OpenAI Chat Completions API does NOT have native web search.
         -- Web search requires Responses API or function calling with external tools.
