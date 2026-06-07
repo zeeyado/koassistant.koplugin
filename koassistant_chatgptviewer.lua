@@ -1204,6 +1204,8 @@ function ChatGPTViewer:init()
 
   -- Web search state helpers (used by Row 2 toggle)
   -- Session override > global setting
+  local ConfigHelper = require("koassistant_config_helper")
+  local web_search_supported = ConfigHelper:supportsWebSearch(self.configuration)
   local function getWebSearchState()
     if self.session_web_search_override ~= nil then
       return self.session_web_search_override
@@ -1217,7 +1219,9 @@ function ChatGPTViewer:init()
   end
   -- Helper to get web search button text with optional emoji
   local function getWebSearchButtonText(state)
-    local label = state and _("ON") or _("OFF")
+    -- Unsupported provider/model: show N/A (tap explains, doesn't toggle)
+    local label = (not web_search_supported) and _("N/A")
+                  or (state and _("ON") or _("OFF"))
     if enable_emoji then
       return Constants.getEmojiText("🔍", label, enable_emoji)
     end
@@ -1267,6 +1271,15 @@ function ChatGPTViewer:init()
         end,
         id = "toggle_web_search",
         callback = function()
+          -- Gate: unsupported providers can't search — explain instead of toggling
+          if not web_search_supported then
+            local provider = (self.configuration and self.configuration.provider) or _("this provider")
+            UIManager:show(InfoMessage:new{
+              text = T(_("Web search isn't currently available for %1.\n\nSupported providers: %2."),
+                provider, ConfigHelper:getWebSearchProvidersLabel()),
+            })
+            return
+          end
           -- Toggle web search override for this session
           local current_state = getWebSearchState()
           self.session_web_search_override = not current_state
@@ -1283,8 +1296,11 @@ function ChatGPTViewer:init()
           end)
         end,
         hold_callback = function()
+          local msg = web_search_supported
+            and _("Toggle web search for this session")
+            or _("Web search isn't available for this provider")
           UIManager:show(Notification:new{
-            text = _("Toggle web search for this session (Anthropic, Gemini)"),
+            text = msg,
             timeout = 2,
           })
         end,

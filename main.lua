@@ -8320,6 +8320,10 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   local streaming = features.enable_streaming ~= false  -- Default true
   local reasoning_enabled = features.enable_reasoning == true  -- Default false
   local web_search = features.enable_web_search == true  -- Default false
+  -- Whether the *currently active* provider/model can actually use web search.
+  -- The toggle stays usable (it sets the global default); we just annotate when N/A.
+  local ModelConstraints = require("model_constraints")
+  local web_search_supported = ModelConstraints.supportsWebSearch(provider, model)
   local text_extraction = features.enable_book_text_extraction == true  -- Default false
 
   -- Get behavior display name (with source indicator)
@@ -8497,13 +8501,27 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   }
 
   button_defs["web_search"] = {
-    text = E("\u{1F50D}", web_search and _("Web Search: ON") or _("Web Search: OFF")),
+    text = (function()
+      local base = web_search and _("Web Search: ON") or _("Web Search: OFF")
+      if not web_search_supported then
+        -- Provider can't search — annotate but keep the global default toggle usable
+        base = base .. " \u{00B7} " .. T(_("N/A for %1"), provider_display)
+      end
+      return E("\u{1F50D}", base)
+    end)(),
     callback = function()
       local f = self_ref.settings:readSetting("features") or {}
       f.enable_web_search = not f.enable_web_search
       self_ref.settings:saveSetting("features", f)
       self_ref.settings:flush()
       self_ref:updateConfigFromSettings()
+      if not web_search_supported then
+        UIManager:show(Notification:new{
+          text = T(_("Saved as default. %1 can't use web search — switch to: %2."),
+            provider_display, ModelConstraints.getWebSearchProvidersLabel()),
+          timeout = 3,
+        })
+      end
       opening_subdialog = true
       UIManager:close(dialog)
       reopenQuickSettings()

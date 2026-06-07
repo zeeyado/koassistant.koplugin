@@ -781,6 +781,109 @@ TestRunner:test("returns content normally when no annotations in delta", functio
 end)
 
 --------------------------------------------------------------------------------
+-- Test: ModelConstraints.supportsWebSearch (UI gating source of truth)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Model Constraints: supportsWebSearch matrix")
+
+-- Providers that support web search for ALL models
+for _idx, p in ipairs({ "anthropic", "openrouter", "perplexity" }) do
+    TestRunner:test(p .. " supports web search (any model)", function()
+        TestRunner:assertTrue(
+            ModelConstraints.supportsWebSearch(p, "any-model"),
+            p .. " should support web search")
+    end)
+end
+
+-- Gemini: only google_search-capable models
+TestRunner:test("gemini-3.5-flash supports web search", function()
+    TestRunner:assertTrue(
+        ModelConstraints.supportsWebSearch("gemini", "gemini-3.5-flash"),
+        "gemini-3.5-flash should support web search")
+end)
+
+TestRunner:test("gemini unsupported model does NOT support web search", function()
+    TestRunner:assertFalse(
+        ModelConstraints.supportsWebSearch("gemini", "gemini-2.0-flash"),
+        "gemini-2.0-flash should NOT support web search")
+end)
+
+-- Providers WITHOUT web search (toggle is a no-op there) — root cause of issue #81
+for _idx, p in ipairs({ "openai", "deepseek", "xai", "mistral", "groq",
+                        "qwen", "kimi", "together", "fireworks", "sambanova",
+                        "cohere", "doubao", "zai", "ollama" }) do
+    TestRunner:test(p .. " does NOT support web search", function()
+        TestRunner:assertFalse(
+            ModelConstraints.supportsWebSearch(p, "any-model"),
+            p .. " should NOT support web search")
+    end)
+end
+
+TestRunner:test("nil provider returns false", function()
+    TestRunner:assertFalse(ModelConstraints.supportsWebSearch(nil, "x"),
+        "nil provider should be false")
+end)
+
+TestRunner:test("getWebSearchProvidersLabel lists supported providers (single source)", function()
+    local label = ModelConstraints.getWebSearchProvidersLabel()
+    for _idx, name in ipairs({ "Anthropic", "Gemini", "Perplexity", "OpenRouter" }) do
+        TestRunner:assertNotNil(label:find(name, 1, true), name .. " should appear in label")
+    end
+end)
+
+--------------------------------------------------------------------------------
+-- Test: Request building - supported providers DO inject web search
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Request building: Anthropic web_search tool")
+
+local AnthropicRequest = require("anthropic_request")
+
+TestRunner:test("Anthropic adds web_search tool when enabled", function()
+    local body = AnthropicRequest:build({
+        model = "claude-sonnet-4-6",
+        messages = { { role = "user", content = "hi" } },
+        features = { enable_web_search = true },
+    })
+    TestRunner:assertNotNil(body.tools, "tools should be present")
+    TestRunner:assertEqual(body.tools[1].type, "web_search_20250305", "web_search tool injected")
+end)
+
+TestRunner:test("Anthropic omits web_search tool when disabled", function()
+    local body = AnthropicRequest:build({
+        model = "claude-sonnet-4-6",
+        messages = { { role = "user", content = "hi" } },
+        features = { enable_web_search = false },
+    })
+    TestRunner:assertNil(body.tools, "tools should NOT be present")
+end)
+
+TestRunner:suite("Request building: Gemini grounding (gated)")
+
+local GeminiHandler = require("gemini")
+
+TestRunner:test("Gemini adds googleSearch for supported model", function()
+    local result = GeminiHandler:buildRequestBody({ { role = "user", content = "hi" } }, {
+        api_key = "test-key",
+        model = "gemini-3.5-flash",
+        api_params = {},
+        features = { enable_web_search = true },
+    })
+    TestRunner:assertNotNil(result.body.tools, "tools should be present for capable model")
+    TestRunner:assertNotNil(result.body.tools[1].googleSearch, "googleSearch grounding injected")
+end)
+
+TestRunner:test("Gemini skips grounding for unsupported model", function()
+    local result = GeminiHandler:buildRequestBody({ { role = "user", content = "hi" } }, {
+        api_key = "test-key",
+        model = "gemini-2.0-flash",
+        api_params = {},
+        features = { enable_web_search = true },
+    })
+    TestRunner:assertNil(result.body.tools, "tools should NOT be present for unsupported model")
+end)
+
+--------------------------------------------------------------------------------
 -- Summary
 --------------------------------------------------------------------------------
 
