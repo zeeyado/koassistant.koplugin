@@ -1639,6 +1639,11 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
         -- Use callback pattern for streaming support
         logger.info("KOAssistant: Calling queryChatGPT with " .. #history:getMessages() .. " messages")
+        -- Pass plugin settings so GUI-entered API keys take priority over apikeys.lua.
+        -- Without settings, getApiKey() skips the GUI keys and falls back to apikeys.lua,
+        -- which can return an unfilled sample placeholder (e.g. YOUR_DEEPSEEK_API_KEY) and
+        -- produce a provider 401 ("****_KEY is invalid"). See issue #82.
+        local plugin = ui and ui.koassistant
         local answer_result = queryChatGPT(history:getMessages(), config, function(success, answer, err, reasoning, web_search_used)
             logger.info("KOAssistant: queryChatGPT callback - success: " .. tostring(success) .. ", answer length: " .. tostring(answer and #answer or 0) .. ", err: " .. tostring(err))
             -- Only save if we got a non-empty answer
@@ -1711,7 +1716,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             end
             -- Call the completion callback
             if on_complete then on_complete(success, answer, err) end
-        end)
+        end, plugin and plugin.settings)
 
         -- For non-streaming, return the result directly
         if not isStreamingInProgress(answer_result) then

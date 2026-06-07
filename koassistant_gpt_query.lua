@@ -63,6 +63,17 @@ loadHandler("perplexity")
 -- Generic handler for custom OpenAI-compatible providers
 loadHandler("custom_openai")
 
+-- Detect unfilled sample placeholders from apikeys.lua.sample (e.g. "YOUR_DEEPSEEK_API_KEY")
+-- so we never send them to a provider, which would echo back a confusing 401
+-- ("Authentication Fails, Your api key: ****_KEY is invalid"). See issue #82.
+local function isPlaceholderKey(key)
+    if not key or key == "" then return true end
+    local upper = key:upper()
+    return upper:find("YOUR_", 1, true) ~= nil
+        or upper:find("_HERE", 1, true) ~= nil
+        or upper:find("API_KEY", 1, true) ~= nil
+end
+
 local function getApiKey(provider, settings)
     -- 1. Check GUI-entered keys first (highest priority)
     if settings then
@@ -74,10 +85,13 @@ local function getApiKey(provider, settings)
         end
     end
 
-    -- 2. Fall back to apikeys.lua file
+    -- 2. Fall back to apikeys.lua file (ignore unfilled sample placeholders)
     local success, apikeys = pcall(function() return require("apikeys") end)
     if success and apikeys and apikeys[provider] then
-        return apikeys[provider]
+        local file_key = apikeys[provider]:match("^%s*(.-)%s*$")
+        if not isPlaceholderKey(file_key) then
+            return file_key
+        end
     end
     return nil
 end
