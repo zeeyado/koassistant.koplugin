@@ -642,10 +642,9 @@ local function translateAndShowContent(markdown_content, target_language, title,
         },
     }
 
-    -- Get API key
-    local apikeys = {}
-    pcall(function() apikeys = require("apikeys") end)
-    configuration.api_key = apikeys[configuration.provider]
+    -- API key is resolved by GptQuery.query via getApiKey() using the settings
+    -- passed below (GUI keys take priority over apikeys.lua, placeholders ignored).
+    -- Do not read apikeys.lua here — that bypasses GUI keys and the placeholder guard.
 
     -- Build translation prompt
     local prompt = T(_("Translate the following release notes to %1. Preserve markdown formatting:\n\n%2"), target_language, markdown_content)
