@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-03-31
+-- Last updated: 2026-06-07
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -15,95 +15,64 @@ local ModelLists = {
     ---------------------------------------------------------------------------
 
     anthropic = {
-        -- Claude 4.6 (latest generation)
-        "claude-sonnet-4-6",            -- flagship (default)
-        "claude-opus-4-6",              -- reasoning
+        -- Claude 4.x (current generation)
+        "claude-sonnet-4-6",            -- flagship (default), 1M context
+        "claude-opus-4-8",              -- reasoning (most capable, adaptive thinking only)
         "claude-haiku-4-5-20251001",    -- fast
-        -- Claude 4.5 (still active through late 2026)
-        "claude-sonnet-4-5-20250929",
-        "claude-opus-4-5-20251101",
     },
 
     openai = {
-        -- GPT-5.4 (latest flagship, Mar 2026)
-        "gpt-5.4",                      -- flagship (default)
-        "gpt-5.4-pro",                  -- premium (Pro/Enterprise)
-        "gpt-5.4-mini",                 -- standard (400K context)
-        "gpt-5.4-nano",                 -- fast
-        -- GPT-5.2 (Dec 2025)
-        "gpt-5.2",
-        "gpt-5.1",
-        -- GPT-5 family (Aug 2025)
-        "gpt-5",
-        "gpt-5-mini",
-        "gpt-5-nano",
-        -- GPT-4.1 family
-        "gpt-4.1",
-        "gpt-4.1-mini",
-        "gpt-4.1-nano",                 -- ultrafast
-        -- Reasoning models (o-series)
-        "o3",                           -- reasoning
-        "o3-pro",
-        "o3-mini",
-        "o4-mini",
-        -- Legacy
-        "gpt-4o",
-        "gpt-4o-mini",
+        -- GPT-5.5 (current flagship)
+        "gpt-5.5",                      -- flagship (default), reasons by default (medium)
+        "gpt-5.5-pro",                  -- premium (Pro/Enterprise)
+        -- GPT-5.4 (concurrent affordable tier)
+        "gpt-5.4",
+        "gpt-5.4-pro",
+        "gpt-5.4-mini",                 -- standard
+        "gpt-5.4-nano",                 -- fast/ultrafast
     },
 
     deepseek = {
-        -- These are the only two official API model IDs
-        "deepseek-chat",                -- flagship (default) - non-thinking
-        "deepseek-reasoner",            -- reasoning - always thinks
+        -- DeepSeek V4 (current generation, 1M context, thinking on by default)
+        "deepseek-v4-pro",              -- flagship (default) + reasoning
+        "deepseek-v4-flash",            -- standard/fast
     },
 
     gemini = {
-        -- Gemini 2.5 (stable, recommended)
-        "gemini-2.5-flash",             -- standard (default), free quota
-        "gemini-2.5-pro",               -- flagship, reasoning
-        "gemini-2.5-flash-lite",        -- ultrafast
-        -- Gemini 3 (preview)
-        "gemini-3-flash-preview",       -- FREE tier available
-        "gemini-3.1-pro-preview",       -- replaces gemini-3-pro-preview (shutdown Mar 9, 2026)
-        "gemini-3.1-flash-lite-preview", -- cost-efficient, fastest TTFT
+        -- Gemini 3.x (current generation)
+        "gemini-3.5-flash",             -- standard (default), free tier
+        "gemini-3.1-pro-preview",       -- flagship, reasoning (paid only)
+        "gemini-3.1-flash-lite",        -- ultrafast, free tier
+        -- Gemini 2.5 (kept for popularity)
+        "gemini-2.5-flash",             -- still popular, free tier
     },
 
     ollama = {
-        -- Llama 3.x (Meta) - most popular open models
-        "llama3.3",                     -- latest Llama 3 (default)
+        -- Llama (Meta) - most popular open models
+        "llama4",                       -- latest Llama (default)
+        "llama3.3",
         "llama3.3:70b",
         "llama3.2",
-        "llama3.2:3b",
-        "llama3.2:1b",                  -- ultrafast
-        "llama3.1",
-        "llama3.1:70b",
+        "llama3.2:3b",                  -- fast
         -- Qwen (Alibaba) - excellent multilingual
+        "qwen3.5",
         "qwen3",
         "qwen3:8b",
         "qwen3:32b",
-        "qwen2.5",
-        "qwen2.5:0.5b",                 -- tiny, good for testing
-        "qwen2.5:7b",
-        "qwen2.5:32b",
-        "qwen2.5:72b",
         -- DeepSeek
+        "deepseek-v4",
         "deepseek-r1",                  -- reasoning
         "deepseek-r1:8b",
-        "deepseek-r1:70b",
-        "deepseek-v3",
         -- Gemma (Google)
+        "gemma4",
         "gemma3",
         "gemma3:4b",
         "gemma3:27b",
-        "gemma2",
-        "gemma2:9b",
-        "gemma2:27b",
         -- Mistral
         "mistral",
         "mistral-nemo",                 -- Apache 2.0, 12B
         -- Phi (Microsoft) - small but capable
         "phi4",
-        "phi3",
         -- Tiny models
         "tinyllama",                    -- ~637MB, good for testing
     },
@@ -123,41 +92,31 @@ local ModelLists = {
     },
 
     mistral = {
-        -- Flagship
+        -- Flagship (Mistral Large 3 via -latest alias)
         "mistral-large-latest",         -- flagship (default)
-        -- Medium
+        -- Medium (Mistral Medium 3.5)
         "mistral-medium-latest",        -- standard
-        -- Coding
-        "codestral-latest",
-        "devstral-latest",              -- code agents
-        -- Vision
-        "pixtral-large-latest",
-        "pixtral-12b",
-        -- Reasoning
+        -- Small (Mistral Small 4 - unified reasoning/multimodal/coding, open-weight)
+        "mistral-small-latest",         -- fast (open-weight)
+        -- Reasoning (Magistral 1.2)
         "magistral-medium-latest",
         "magistral-small-latest",       -- open-weight (Apache 2.0)
-        -- Small/Fast
-        "mistral-small-latest",         -- fast (open-weight)
-        "ministral-8b-latest",
-        "ministral-3b-latest",          -- ultrafast
-        "open-mistral-nemo",            -- open-weight (Apache 2.0)
+        -- Coding
+        "codestral-latest",
+        "devstral-2512",                -- code agents (Devstral 2, Apache 2.0)
+        -- Edge / small (Ministral 3)
+        "ministral-3-8b-2512",
+        "ministral-3-3b-2512",          -- ultrafast
     },
 
     xai = {
-        -- Grok 4.20 (latest, multi-agent)
-        "grok-4.20-beta-0309-non-reasoning",  -- latest non-reasoning
-        "grok-4.20-beta-0309-reasoning",      -- latest reasoning
-        -- Grok 4.1 (2M context)
-        "grok-4-1-fast-non-reasoning",  -- flagship (default)
-        "grok-4-1-fast-reasoning",      -- reasoning tier
-        -- Grok 4.x
-        "grok-4",
-        "grok-4-fast",
-        -- Grok 3 (stable)
-        "grok-3",                       -- standard
-        "grok-3-mini",                  -- reasoning effort support
+        -- Grok 4.3 (current flagship, 1M context)
+        "grok-4.3",                     -- flagship (default) + reasoning
+        -- Grok 4.20 (1M context; reasoning toggle baked into the slug)
+        "grok-4.20-0309-non-reasoning", -- standard/fast
+        "grok-4.20-0309-reasoning",     -- reasoning
         -- Specialized
-        "grok-code-fast-1",             -- coding (256K context)
+        "grok-build-0.1",               -- coding (256K context)
     },
 
     openrouter = {
@@ -166,193 +125,126 @@ local ModelLists = {
 
         -- Anthropic
         "anthropic/claude-sonnet-4.6",  -- default (flagship)
-        "anthropic/claude-opus-4.6",
+        "anthropic/claude-opus-4.8",
         "anthropic/claude-haiku-4.5",
-        "anthropic/claude-sonnet-4.5",
-        "anthropic/claude-opus-4.5",
 
         -- OpenAI
+        "openai/gpt-5.5",
+        "openai/gpt-5.5-pro",
         "openai/gpt-5.4",
-        "openai/gpt-5.4-pro",
         "openai/gpt-5.4-mini",
-        "openai/gpt-5.4-nano",
-        "openai/gpt-5.2",
-        "openai/gpt-5.1",
-        "openai/gpt-5",
-        "openai/gpt-5-mini",
-        "openai/gpt-4o",
-        "openai/gpt-4o-mini",
-        "openai/o3",
-        "openai/o3-mini",
-        "openai/o4-mini",
 
         -- Google
-        "google/gemini-2.5-pro",
-        "google/gemini-2.5-flash",
-        "google/gemini-3.1-pro-preview",
+        "google/gemini-3.5-flash",
+        "google/gemini-3-pro-preview",
         "google/gemini-3-flash-preview",
-        "google/gemini-3.1-flash-lite-preview",
-        "google/gemma-3-27b-it",
-        "google/gemma-3-27b-it:free",
-
-        -- Meta Llama
-        "meta-llama/llama-4-maverick",
-        "meta-llama/llama-4-scout",
-        "meta-llama/llama-3.3-70b-instruct",
-        "meta-llama/llama-3.1-405b-instruct",
-        "meta-llama/llama-3.1-405b-instruct:free",
 
         -- DeepSeek
-        "deepseek/deepseek-r1",
-        "deepseek/deepseek-r1-0528",
-        "deepseek/deepseek-r1-0528:free",
-        "deepseek/deepseek-v3.2",
-        "deepseek/deepseek-chat",
-
-        -- Mistral
-        "mistralai/mistral-large",
-        "mistralai/mistral-large-2512",
-        "mistralai/mistral-medium-3.1",
-        "mistralai/codestral-2508",
-        "mistralai/pixtral-large-2411",
+        "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v4-flash",
 
         -- xAI Grok
-        "x-ai/grok-4",
-        "x-ai/grok-4-fast",
+        "x-ai/grok-4.3",
+        "x-ai/grok-4.20",
         "x-ai/grok-4.1-fast",
-        "x-ai/grok-3",
-        "x-ai/grok-3-mini",
+
+        -- Meta Llama
+        "meta-llama/llama-3.3-70b-instruct",
+
+        -- Mistral
+        "mistralai/mistral-large-2512",
+        "mistralai/mistral-medium-3.1",
 
         -- Qwen
         "qwen/qwen3-max",
         "qwen/qwen3-235b-a22b",
-        "qwen/qwen3-coder-plus",
-        "qwen/qwen-max",
-        "qwen/qwq-32b",
 
-        -- Perplexity (has built-in web search)
+        -- Perplexity (built-in web search)
         "perplexity/sonar-pro",
-        "perplexity/sonar-pro-search",
         "perplexity/sonar-reasoning-pro",
-        "perplexity/sonar-deep-research",
         "perplexity/sonar",
 
-        -- Cohere
-        "cohere/command-a",
-        "cohere/command-r-plus-08-2024",
-
-        -- Other notable models
-        "nvidia/llama-3.1-nemotron-ultra-253b-v1",
+        -- Other notable
         "moonshotai/kimi-k2-thinking",
-        "nousresearch/hermes-4-405b",
         "minimax/minimax-m2.1",
     },
 
     qwen = {
-        -- Qwen3 (latest)
+        -- Qwen3 / Qwen3.5 (current)
         "qwen3-max",                    -- flagship (default)
-        "qwen3-max-2025-09-23",
-        -- Qwen Max
-        "qwen-max",
-        "qwen-max-2025-01-25",
-        -- Qwen Plus
-        "qwen-plus",                    -- standard
-        "qwen-plus-latest",
-        -- Turbo (fast)
-        "qwen-turbo",                   -- fast
-        -- Coding
-        "qwen3-coder-flash",
-        -- Math
-        "qwen-math-plus",
+        "qwen3.5-plus",                 -- standard
+        "qwen3.5-flash",                -- fast
+        "qwen-turbo",                   -- ultrafast
+        "qwen3-coder-plus",             -- coding
     },
 
     kimi = {
-        -- K2.5 (latest, 256K context, multimodal)
-        "kimi-k2.5",                    -- flagship (default) - Jan 2026
-        -- K2 (256K context)
-        "kimi-k2-0905-preview",         -- Sep 2025
-        "kimi-k2-turbo-preview",        -- fast (100 tok/s)
-        "kimi-k2-thinking",             -- reasoning
-        "kimi-k2-thinking-turbo",       -- reasoning (faster)
-        -- Legacy K2
-        "kimi-k2-0711-preview",         -- July 2025
-        -- Moonshot v1 (legacy)
-        "moonshot-v1-8k",
-        "moonshot-v1-32k",
-        "moonshot-v1-128k",
+        -- Kimi K2.6 (current, multimodal)
+        "kimi-k2.6",                    -- flagship (default)
+        "kimi-k2.6-thinking",           -- reasoning
+        "kimi-k2-turbo-preview",        -- fast
     },
 
     together = {
-        -- Llama 4
-        "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",  -- flagship
-        -- Llama 3.3
-        "meta-llama/Llama-3.3-70B-Instruct-Turbo",           -- standard
-        -- Qwen 3.5/3
-        "Qwen/Qwen3.5-397B-A17B",                            -- reasoning (MoE flagship)
+        -- DeepSeek V4 (current)
+        "deepseek-ai/DeepSeek-V4-Pro",                       -- flagship + reasoning
+        "deepseek-ai/DeepSeek-V4-Flash",
+        -- Qwen
+        "Qwen/Qwen3.5-397B-A17B",                            -- MoE flagship
         "Qwen/Qwen3-235B-A22B-Instruct-2507-tput",
-        "Qwen/Qwen3-Coder-480B-A35B-Instruct-FP8",
-        -- DeepSeek
-        "deepseek-ai/DeepSeek-V3.1",
-        "deepseek-ai/DeepSeek-R1",                           -- reasoning
+        -- Llama 3.3
+        "meta-llama/Llama-3.3-70B-Instruct-Turbo",           -- standard/fast
         -- Other
-        "moonshotai/Kimi-K2.5",                              -- 262K context
+        "moonshotai/Kimi-K2.6",
         "zai-org/GLM-5",
-        "MiniMaxAI/MiniMax-M2.5",
-        "mistralai/Mistral-Small-24B-Instruct-2501",         -- fast
+        "MiniMaxAI/MiniMax-M2.7",
     },
 
     fireworks = {
-        -- Llama 4
-        "accounts/fireworks/models/llama4-maverick-instruct-basic",  -- flagship
-        "accounts/fireworks/models/llama4-scout-instruct-basic",
+        -- DeepSeek (current)
+        "accounts/fireworks/models/deepseek-v4-pro",                 -- flagship + reasoning
+        "accounts/fireworks/models/deepseek-r1",                     -- reasoning
         -- Llama 3.3
-        "accounts/fireworks/models/llama-v3p3-70b-instruct",         -- standard
+        "accounts/fireworks/models/llama-v3p3-70b-instruct",         -- standard/fast
         -- Qwen 3
         "accounts/fireworks/models/qwen3-235b-a22b",
-        -- DeepSeek
-        "accounts/fireworks/models/deepseek-r1",                     -- reasoning
-        -- Mixtral
-        "accounts/fireworks/models/mixtral-8x22b-instruct",
+        -- Other
+        "accounts/fireworks/models/kimi-k2-thinking",                -- reasoning
+        "accounts/fireworks/models/glm-5",
+        "accounts/fireworks/models/gpt-oss-120b",
     },
 
     sambanova = {
         -- Llama 4
         "Llama-4-Maverick-17B-128E-Instruct",                -- flagship
-        -- Llama 3.x
-        "Meta-Llama-3.3-70B-Instruct",                       -- standard
         -- DeepSeek
-        "DeepSeek-R1-Distill-Llama-70B",                     -- reasoning
+        "DeepSeek-V3.1",                                     -- reasoning
+        "DeepSeek-V3.2",
+        -- Llama 3.x
+        "Meta-Llama-3.3-70B-Instruct",                       -- standard/fast
         -- Other
-        "MiniMax-M2.5",
+        "MiniMax-M2.7",
+        "gemma-4-31B-it",
         "gpt-oss-120b",
     },
 
     cohere = {
-        -- Command A (latest, strongest)
-        "command-a-03-2025",            -- flagship (default)
+        -- Command A+ (latest, strongest - first MoE)
+        "command-a-plus-05-2026",       -- flagship (default)
+        -- Reasoning
         "command-a-reasoning-08-2025",  -- reasoning
-        -- Command R+
-        "command-r-plus-08-2024",       -- standard
-        -- Command R
-        "command-r-08-2024",            -- fast
-        -- Smaller
-        "command-r7b-12-2024",          -- ultrafast
+        -- Smaller/fast
+        "command-r7b-12-2024",          -- fast
     },
 
     doubao = {
-        -- Doubao 1.8 (latest, Dec 2025)
-        "doubao-1.8-pro-32k",           -- flagship (default)
-        "doubao-1.8-pro-256k",
-        -- Doubao 1.6 (tool-calling)
-        "doubao-1.6-vision-pro-32k",    -- vision with tool-calling
-        -- Doubao 1.5
-        "doubao-1.5-pro-32k",           -- standard
-        "doubao-1.5-pro-256k",
-        -- Seed models
-        "doubao-seed-1.6-flash",        -- fast
-        "doubao-seed-code",             -- coding (SWE-Bench SOTA)
-        -- Lite (fast/cheap)
-        "doubao-lite-32k",              -- ultrafast
+        -- Doubao Seed 2.0 (current, Feb 2026)
+        -- NOTE: native ARK may require date-suffixed snapshot or endpoint IDs;
+        -- verify exact strings in the Volcengine console.
+        "doubao-seed-2.0-pro-32k",      -- flagship (default)
+        "doubao-seed-2.0-pro-256k",
+        "doubao-seed-2.0-lite",         -- fast
+        "doubao-seed-2.0-code",         -- coding
     },
 
     perplexity = {
@@ -365,18 +257,12 @@ local ModelLists = {
 
     zai = {
         -- GLM-5.x (200K context)
-        "glm-5-turbo",                  -- agent flagship (default)
-        "glm-5.1",                      -- coding flagship (Mar 2026)
-        "glm-5",                        -- flagship
+        "glm-5.1",                      -- flagship (default), coding leader
+        "glm-5",
+        "glm-5-turbo",                  -- fast
         -- GLM-4.7 (200K context)
         "glm-4.7",                      -- reasoning
-        "glm-4.7-flashx",              -- fast (paid)
-        "glm-4.7-flash",              -- free tier
-        -- GLM-4.6 (200K context)
-        "glm-4.6",                      -- standard
-        -- GLM-4.5 (96K context)
-        "glm-4.5",
-        "glm-4.5-flash",              -- free tier
+        "glm-4.7-flash",                -- free tier
     },
 
     ---------------------------------------------------------------------------
@@ -388,22 +274,22 @@ local ModelLists = {
     _tiers = {
         -- Models with explicit thinking/reasoning traces
         reasoning = {
-            anthropic = "claude-opus-4-6",
-            openai = "o3",
-            deepseek = "deepseek-reasoner",
-            gemini = "gemini-2.5-pro",
+            anthropic = "claude-opus-4-8",
+            openai = "gpt-5.5",
+            deepseek = "deepseek-v4-pro",
+            gemini = "gemini-3.1-pro-preview",
             groq = "openai/gpt-oss-120b",            -- OpenAI open-weight
             mistral = "magistral-medium-latest",
-            xai = "grok-4-1-fast-reasoning",
+            xai = "grok-4.3",
             cohere = "command-a-reasoning-08-2025",
             ollama = "deepseek-r1",
-            openrouter = "deepseek/deepseek-r1",
-            together = "Qwen/Qwen3.5-397B-A17B",
-            fireworks = "accounts/fireworks/models/deepseek-r1",
-            sambanova = "DeepSeek-R1-Distill-Llama-70B",
+            openrouter = "deepseek/deepseek-v4-pro",
+            together = "deepseek-ai/DeepSeek-V4-Pro",
+            fireworks = "accounts/fireworks/models/deepseek-v4-pro",
+            sambanova = "DeepSeek-V3.1",
             qwen = "qwen3-max",
-            kimi = "kimi-k2-thinking",
-            doubao = "doubao-1.8-pro-256k",
+            kimi = "kimi-k2.6-thinking",
+            doubao = "doubao-seed-2.0-pro-256k",
             zai = "glm-4.7",
             perplexity = "sonar-reasoning-pro",
         },
@@ -411,43 +297,43 @@ local ModelLists = {
         -- Provider's most capable general-purpose model
         flagship = {
             anthropic = "claude-sonnet-4-6",
-            openai = "gpt-5.4",
-            deepseek = "deepseek-chat",
-            gemini = "gemini-2.5-pro",
+            openai = "gpt-5.5",
+            deepseek = "deepseek-v4-pro",
+            gemini = "gemini-3.1-pro-preview",
             groq = "llama-3.3-70b-versatile",
             mistral = "mistral-large-latest",
-            xai = "grok-4-1-fast-non-reasoning",
-            cohere = "command-a-03-2025",
-            ollama = "llama3.3",
+            xai = "grok-4.3",
+            cohere = "command-a-plus-05-2026",
+            ollama = "llama4",
             openrouter = "anthropic/claude-sonnet-4.6",
-            together = "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8",
-            fireworks = "accounts/fireworks/models/llama4-maverick-instruct-basic",
+            together = "deepseek-ai/DeepSeek-V4-Pro",
+            fireworks = "accounts/fireworks/models/deepseek-v4-pro",
             sambanova = "Llama-4-Maverick-17B-128E-Instruct",
             qwen = "qwen3-max",
-            kimi = "kimi-k2.5",
-            doubao = "doubao-1.8-pro-32k",
-            zai = "glm-5-turbo",
+            kimi = "kimi-k2.6",
+            doubao = "doubao-seed-2.0-pro-32k",
+            zai = "glm-5.1",
             perplexity = "sonar-pro",
         },
 
         -- Balanced performance and cost
         standard = {
-            anthropic = "claude-sonnet-4-5-20250929",  -- still excellent, lower cost alternative
+            anthropic = "claude-sonnet-4-6",
             openai = "gpt-5.4-mini",
-            deepseek = "deepseek-chat",
-            gemini = "gemini-2.5-flash",
+            deepseek = "deepseek-v4-flash",
+            gemini = "gemini-3.5-flash",
             groq = "llama-3.3-70b-versatile",
             mistral = "mistral-medium-latest",
-            xai = "grok-3",
-            cohere = "command-r-plus-08-2024",
-            ollama = "llama3.3:70b",
-            openrouter = "google/gemini-2.5-pro",
+            xai = "grok-4.20-0309-non-reasoning",
+            cohere = "command-a-plus-05-2026",
+            ollama = "llama3.3",
+            openrouter = "google/gemini-3.5-flash",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.3-70B-Instruct",
-            qwen = "qwen-plus",
-            kimi = "kimi-k2.5",
-            doubao = "doubao-1.5-pro-32k",
+            qwen = "qwen3.5-plus",
+            kimi = "kimi-k2.6",
+            doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5",
             perplexity = "sonar",
         },
@@ -456,21 +342,21 @@ local ModelLists = {
         fast = {
             anthropic = "claude-haiku-4-5-20251001",
             openai = "gpt-5.4-nano",
-            deepseek = "deepseek-chat",
-            gemini = "gemini-2.5-flash",
+            deepseek = "deepseek-v4-flash",
+            gemini = "gemini-3.5-flash",
             groq = "llama-3.1-8b-instant",
             mistral = "mistral-small-latest",
-            xai = "grok-4-fast",
-            cohere = "command-r-08-2024",
+            xai = "grok-4.20-0309-non-reasoning",
+            cohere = "command-r7b-12-2024",
             ollama = "llama3.2:3b",
-            openrouter = "google/gemini-2.5-flash",
-            together = "mistralai/Mistral-Small-24B-Instruct-2501",
+            openrouter = "google/gemini-3.5-flash",
+            together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.3-70B-Instruct",
-            qwen = "qwen-turbo",
+            qwen = "qwen3.5-flash",
             kimi = "kimi-k2-turbo-preview",
-            doubao = "doubao-seed-1.6-flash",
-            zai = "glm-4.7-flashx",
+            doubao = "doubao-seed-2.0-lite",
+            zai = "glm-5-turbo",
             perplexity = "sonar",
         },
 
@@ -478,20 +364,20 @@ local ModelLists = {
         ultrafast = {
             anthropic = "claude-haiku-4-5-20251001",
             openai = "gpt-5.4-nano",
-            deepseek = "deepseek-chat",
-            gemini = "gemini-2.5-flash-lite",
+            deepseek = "deepseek-v4-flash",
+            gemini = "gemini-3.1-flash-lite",
             groq = "llama-3.1-8b-instant",
-            mistral = "ministral-3b-latest",
-            xai = "grok-3-mini",
+            mistral = "ministral-3-3b-2512",
+            xai = "grok-4.20-0309-non-reasoning",
             cohere = "command-r7b-12-2024",
-            ollama = "qwen2.5:0.5b",
-            openrouter = "google/gemini-3-flash-preview",   -- FREE tier
-            together = "mistralai/Mistral-Small-24B-Instruct-2501",
+            ollama = "tinyllama",
+            openrouter = "google/gemini-3.5-flash",   -- FREE tier
+            together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             fireworks = "accounts/fireworks/models/llama-v3p3-70b-instruct",
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen-turbo",
             kimi = "kimi-k2-turbo-preview",
-            doubao = "doubao-lite-32k",
+            doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
             perplexity = "sonar",
         },
