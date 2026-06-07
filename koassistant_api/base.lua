@@ -103,8 +103,11 @@ end
 -- getaddrinfo entirely) instead of http.request.
 -- ============================================================================
 
---- Resolve hostname to IP in the parent process (before fork).
---- Uses a quick TCP connect + getpeername to resolve via the system DNS.
+--- Resolve hostname to IPv4 in the parent process (before fork).
+--- Must return IPv4 because connectSSLInSubprocess uses inet_aton (IPv4-only).
+--- On dual-stack hosts, getpeername() may return IPv6, which inet_aton silently
+--- rejects — leaving sin_addr as 0.0.0.0 and the subprocess connecting to
+--- localhost (ECONNREFUSED).
 --- @param url string HTTPS URL to resolve
 --- @return string|nil resolved_ip, string|nil hostname, number port
 function BaseHandler.resolveForSubprocess(url)
@@ -116,13 +119,34 @@ function BaseHandler.resolveForSubprocess(url)
     if not host then return nil end
 
     local resolved_ip
+
+    -- Prefer getaddrinfo, picking the first IPv4 entry.
     pcall(function()
-        local sock = socket.tcp()
-        sock:settimeout(2)
-        sock:connect(host, port)
-        resolved_ip = sock:getpeername()
-        sock:close()
+        local addrs = socket.dns.getaddrinfo(host)
+        if addrs then
+            for _idx, a in ipairs(addrs) do
+                if a.family == "inet" and a.addr and not a.addr:find(":") then
+                    resolved_ip = a.addr
+                    return
+                end
+            end
+        end
     end)
+
+    -- Fallback: TCP connect + getpeername (filtered to IPv4).
+    if not resolved_ip then
+        pcall(function()
+            local sock = socket.tcp()
+            sock:settimeout(2)
+            sock:connect(host, port)
+            local ip = sock:getpeername()
+            sock:close()
+            if ip and not ip:find(":") then
+                resolved_ip = ip
+            end
+        end)
+    end
+
     return resolved_ip, host, port
 end
 
