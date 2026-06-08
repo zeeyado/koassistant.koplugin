@@ -9526,9 +9526,8 @@ function AskGPT:showDomainPopup(on_close_callback, target_override)
   local domain_target = target_override
       or (doc_settings and (book_domain or book_research ~= nil) and "book")
       or "global"
-  local is_book_target = doc_settings and domain_target == "book"
 
-  -- Helper to close popup and notify caller
+  -- Helper to close popup and notify caller (after a selection)
   local function closePopup()
     if self_ref._domain_popup then
       UIManager:close(self_ref._domain_popup)
@@ -9538,198 +9537,59 @@ function AskGPT:showDomainPopup(on_close_callback, target_override)
     if on_close_callback then on_close_callback() end
   end
 
-  -- Helper to reopen with different target (toggle)
-  local function reopenWithTarget(new_target)
-    if self_ref._domain_popup then
-      UIManager:close(self_ref._domain_popup)
-      self_ref._domain_popup = nil
-    end
-    self_ref:showDomainPopup(on_close_callback, new_target)
-  end
+  local state = {
+    domains = all_domains,
+    has_book = doc_settings ~= nil,
+    is_book_target = (doc_settings and domain_target == "book") or false,
+    book_domain = book_domain,
+    global_domain = features.selected_domain,
+    book_research = book_research,
+    global_research = features.research_mode,
+  }
 
-  local buttons = {}
+  local cb = {
+    set_target = function(new_target)
+      if self_ref._domain_popup then
+        UIManager:close(self_ref._domain_popup)
+        self_ref._domain_popup = nil
+      end
+      self_ref:showDomainPopup(on_close_callback, new_target)
+    end,
+    pick_book_domain = function(val)
+      doc_settings:saveSetting("koassistant_book_domain", val)
+      doc_settings:flush()
+      closePopup()
+    end,
+    pick_global_domain = function(id)
+      local f = self_ref.settings:readSetting("features") or {}
+      f.selected_domain = id
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      closePopup()
+    end,
+    set_book_research = function(val)
+      doc_settings:saveSetting("koassistant_book_research_mode", val)
+      doc_settings:flush()
+      closePopup()
+    end,
+    set_global_research = function(val)
+      local f = self_ref.settings:readSetting("features") or {}
+      f.research_mode = val
+      self_ref.settings:saveSetting("features", f)
+      self_ref.settings:flush()
+      closePopup()
+    end,
+    close = function()
+      if self_ref._domain_popup then
+        UIManager:close(self_ref._domain_popup)
+        self_ref._domain_popup = nil
+      end
+      if on_close_callback then on_close_callback() end
+    end,
+  }
 
-  if doc_settings then
-    -- Target toggle row: [For this book] [Global default]
-    local book_label = is_book_target and ("● " .. _("For this book")) or ("○ " .. _("For this book"))
-    local global_label = (not is_book_target) and ("● " .. _("Global")) or ("○ " .. _("Global"))
-    table.insert(buttons, {
-      {
-        text = book_label,
-        callback = function()
-          if domain_target ~= "book" then reopenWithTarget("book") end
-        end,
-      },
-      {
-        text = global_label,
-        callback = function()
-          if domain_target ~= "global" then reopenWithTarget("global") end
-        end,
-      },
-    })
-
-  end
-
-  if is_book_target then
-    -- Book target: "Use global default" option first
-    local use_global_prefix = (not book_domain) and "● " or "○ "
-    table.insert(buttons, {
-      {
-        text = use_global_prefix .. _("Use global"),
-        callback = function()
-          doc_settings:saveSetting("koassistant_book_domain", nil)
-          doc_settings:flush()
-          closePopup()
-        end,
-      },
-    })
-
-    -- "None" (explicit override to no domain)
-    local none_prefix = (book_domain == "_none") and "● " or "○ "
-    table.insert(buttons, {
-      {
-        text = none_prefix .. _("None"),
-        callback = function()
-          doc_settings:saveSetting("koassistant_book_domain", "_none")
-          doc_settings:flush()
-          closePopup()
-        end,
-      },
-    })
-
-    -- Domain options
-    for _idx, domain in ipairs(all_domains) do
-      local domain_copy = domain
-      local prefix = (book_domain == domain_copy.id) and "● " or "○ "
-      table.insert(buttons, {
-        {
-          text = prefix .. (domain_copy.display_name or domain_copy.name or domain_copy.id),
-          callback = function()
-            doc_settings:saveSetting("koassistant_book_domain", domain_copy.id)
-            doc_settings:flush()
-            closePopup()
-          end,
-        },
-      })
-    end
-  else
-    -- Global target (or no book open): standard list
-    local none_prefix = (not features.selected_domain) and "● " or "○ "
-    table.insert(buttons, {
-      {
-        text = none_prefix .. _("None"),
-        callback = function()
-          local f = self_ref.settings:readSetting("features") or {}
-          f.selected_domain = nil
-          self_ref.settings:saveSetting("features", f)
-          self_ref.settings:flush()
-          closePopup()
-        end,
-      },
-    })
-
-    for _idx, domain in ipairs(all_domains) do
-      local domain_copy = domain
-      local prefix = (features.selected_domain == domain_copy.id) and "● " or "○ "
-      table.insert(buttons, {
-        {
-          text = prefix .. (domain_copy.display_name or domain_copy.name or domain_copy.id),
-          callback = function()
-            local f = self_ref.settings:readSetting("features") or {}
-            f.selected_domain = domain_copy.id
-            self_ref.settings:saveSetting("features", f)
-            self_ref.settings:flush()
-            closePopup()
-          end,
-        },
-      })
-    end
-  end
-
-  -- Research mode section (separator + toggle)
-  -- Shares the same book/global target as domain selection
-  table.insert(buttons, {
-    {
-      text = "─── " .. _("Research Mode") .. " ───",
-      enabled = false,
-    },
-  })
-
-  local book_research = doc_settings and doc_settings:readSetting("koassistant_book_research_mode") or nil
-
-  if is_book_target then
-    -- Book target: three options (Use global / On / Off)
-    local use_global_prefix = (book_research == nil) and "● " or "○ "
-    local on_prefix = (book_research == true) and "● " or "○ "
-    local off_prefix = (book_research == false) and "● " or "○ "
-    table.insert(buttons, {
-      {
-        text = use_global_prefix .. _("Use global"),
-        callback = function()
-          doc_settings:saveSetting("koassistant_book_research_mode", nil)
-          doc_settings:flush()
-          closePopup()
-        end,
-      },
-      {
-        text = on_prefix .. _("On"),
-        callback = function()
-          doc_settings:saveSetting("koassistant_book_research_mode", true)
-          doc_settings:flush()
-          closePopup()
-        end,
-      },
-      {
-        text = off_prefix .. _("Off"),
-        callback = function()
-          doc_settings:saveSetting("koassistant_book_research_mode", false)
-          doc_settings:flush()
-          closePopup()
-        end,
-      },
-    })
-  else
-    -- Global target: two options (Off / On)
-    local off_prefix = (not features.research_mode) and "● " or "○ "
-    local on_prefix = (features.research_mode == true) and "● " or "○ "
-    table.insert(buttons, {
-      {
-        text = off_prefix .. _("Off"),
-        callback = function()
-          local f = self_ref.settings:readSetting("features") or {}
-          f.research_mode = nil
-          self_ref.settings:saveSetting("features", f)
-          self_ref.settings:flush()
-          closePopup()
-        end,
-      },
-      {
-        text = on_prefix .. _("On"),
-        callback = function()
-          local f = self_ref.settings:readSetting("features") or {}
-          f.research_mode = true
-          self_ref.settings:saveSetting("features", f)
-          self_ref.settings:flush()
-          closePopup()
-        end,
-      },
-    })
-  end
-
-  -- Close button
-  table.insert(buttons, {
-    {
-      text = _("Close"),
-      id = "close",
-      callback = function()
-        if self_ref._domain_popup then
-          UIManager:close(self_ref._domain_popup)
-          self_ref._domain_popup = nil
-        end
-        if on_close_callback then on_close_callback() end
-      end,
-    },
-  })
+  local BookSettings = require("koassistant_book_settings")
+  local buttons = BookSettings.buildDomainResearchButtons(state, cb)
 
   self._domain_popup = ButtonDialog:new{
     title = _("Domain & Research"),
