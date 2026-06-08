@@ -424,9 +424,10 @@ function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, mod
         return err_msg
     end
     return err_msg .. "\n\n" ..
-        "Tip: Google Search grounding on Gemini 3 models uses a separate monthly quota " ..
-        "shared across all Gemini-3 models, which appears to be used up. Try a Gemini 2.5 " ..
-        "model for grounding, turn off web search, or link a billing account in Google AI Studio."
+        "Tip: This is a Google quota limit, not a plugin error. Gemini 3 grounding can hit a " ..
+        "free-tier limit of 0 even with billing attached, when your project's paid tier isn't " ..
+        "provisioned for it. Workarounds: use a Gemini 2.5 model for web search, switch to " ..
+        "Anthropic/Perplexity/OpenRouter, or enable paid-tier quota for Gemini 3 in Google AI Studio."
 end
 
 return ModelConstraints

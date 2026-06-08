@@ -150,7 +150,7 @@ end)
 
 TestRunner:suite("maybeAppendGemini3GroundingHint: gating")
 
-local TIP_NEEDLE = "separate monthly quota"
+local TIP_NEEDLE = "free-tier limit of 0"
 
 local function ws_on() return { features = { enable_web_search = true } } end
 
