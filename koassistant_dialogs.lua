@@ -452,7 +452,6 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     end
     local reasoning_decision = ModelConstraints.resolveReasoning(provider, reasoning_model, {
         global_stance = ReasoningPrefs.getStance(features),
-        provider_pref = ReasoningPrefs.getProviderPref(features, provider),
         model_pref = ReasoningPrefs.getModelPref(features, provider, reasoning_model),
         action_override = action and ModelConstraints.parseActionReasoning(action, provider) or nil,
     })

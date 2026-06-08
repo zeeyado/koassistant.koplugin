@@ -808,21 +808,19 @@ end)
 
 TestRunner:suite("resolveReasoning: precedence layering")
 
-TestRunner:test("model_pref beats provider_pref beats stance", function()
+TestRunner:test("model_pref beats stance", function()
     local d = ModelConstraints.resolveReasoning("anthropic", "claude-opus-4-8", {
-        global_stance = "maximum",                       -- would be max
-        provider_pref = { effort = "low" },              -- would be low
-        model_pref = { effort = "medium" },              -- wins
+        global_stance = "maximum",            -- would be max
+        model_pref = { effort = "medium" },   -- wins
     })
-    TestRunner:assertEqual(d.effort, "medium", "model_pref wins")
+    TestRunner:assertEqual(d.effort, "medium", "model_pref wins over stance")
 end)
 
-TestRunner:test("provider_pref used when no model_pref", function()
-    local d = ModelConstraints.resolveReasoning("anthropic", "claude-opus-4-8", {
-        global_stance = "maximum",
-        provider_pref = { state = "off" },
+TestRunner:test("stance applies when no model_pref", function()
+    local d = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", {
+        global_stance = "minimal",
     })
-    TestRunner:assertEqual(d.mode, "off", "provider_pref off wins over stance")
+    TestRunner:assertEqual(d.mode, "off", "minimal stance off when no model pref")
 end)
 
 TestRunner:test("action force-off beats global Maximum on Opus", function()
@@ -924,16 +922,7 @@ TestRunner:test("setStance / getStance round-trip", function()
     local f = {}
     ReasoningPrefs.setStance(f, "minimal")
     TestRunner:assertEqual(ReasoningPrefs.getStance(f), "minimal", "stance saved")
-    TestRunner:assertNil(f.reasoning_prefs.providers, "stance set does not create providers")
     TestRunner:assertNil(f.reasoning_prefs.models, "stance set does not create models")
-end)
-
-TestRunner:test("provider pref set / get / clear", function()
-    local f = {}
-    ReasoningPrefs.setProviderPref(f, "anthropic", { effort = "low" })
-    TestRunner:assertEqual(ReasoningPrefs.getProviderPref(f, "anthropic").effort, "low", "saved")
-    ReasoningPrefs.clearProviderPref(f, "anthropic")
-    TestRunner:assertNil(ReasoningPrefs.getProviderPref(f, "anthropic"), "cleared")
 end)
 
 TestRunner:test("model pref set / get / clear (keyed by provider/model)", function()

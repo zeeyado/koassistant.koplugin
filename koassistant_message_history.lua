@@ -481,7 +481,6 @@ function MessageHistory:createResultText(highlightedText, config)
                 -- Reasoning info from the per-model resolver (stored prefs + stance).
                 local rdecision = ModelConstraints.resolveReasoning(provider, full_model, {
                     global_stance = ReasoningPrefs.getStance(features),
-                    provider_pref = ReasoningPrefs.getProviderPref(features, provider),
                     model_pref = ReasoningPrefs.getModelPref(features, provider, full_model),
                 })
                 if rdecision.axis == "none" then

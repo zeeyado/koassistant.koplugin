@@ -1744,18 +1744,52 @@ local SettingsSchema = {
             emoji = "⚙️",
             items = {
                 -- Reasoning / Thinking — per-model reasoning system.
-                -- Global Minimal/Default/Maximum stance + optional per-provider and
-                -- per-model overrides (features.reasoning_prefs), resolved in
-                -- model_constraints.lua. Opens a dedicated dialog (shared with the
-                -- Quick Settings reasoning popup) rather than a flat list of toggles.
+                -- Global Minimal/Default/Maximum stance + optional per-model overrides
+                -- (features.reasoning_prefs), resolved in model_constraints.lua.
                 {
-                    id = "reasoning_settings",
-                    type = "action",
+                    id = "reasoning_submenu",
+                    type = "submenu",
                     text = _("Reasoning"),
-                    help_text = _("Reasoning is controlled per model: a global Minimal / Default / Maximum stance plus optional per-provider and per-model overrides. Opens the reasoning settings page."),
-                    callback = "showReasoningSettings",
-                    keep_menu_open = true,
-                    separator = true,
+                    items = {
+                        -- Global stance (base layer for every model)
+                        {
+                            id = "reasoning_stance",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local stance = (f.reasoning_prefs and f.reasoning_prefs.stance) or "default"
+                                local labels = { minimal = _("Minimal"), default = _("Default"), maximum = _("Maximum") }
+                                return T(_("Global stance: %1"), labels[stance] or stance)
+                            end,
+                            help_text = _("How much reasoning across all models, as far as each model allows. Override individual models below."),
+                            path = "features.reasoning_prefs.stance",
+                            default = "default",
+                            options = {
+                                { value = "minimal", text = _("Minimal (off where possible)") },
+                                { value = "default", text = _("Default (model's normal behavior)") },
+                                { value = "maximum", text = _("Maximum (most reasoning)") },
+                            },
+                            separator = true,
+                        },
+                        -- Per-model overrides (dynamic, callback-built submenu)
+                        {
+                            id = "reasoning_per_model",
+                            type = "submenu",
+                            text = _("Per-model reasoning"),
+                            callback = "buildReasoningModelProviderMenu",
+                            separator = true,
+                        },
+                        -- Indicator in chat (display only, separate from "Show Reasoning" button)
+                        {
+                            id = "show_reasoning_indicator",
+                            type = "toggle",
+                            text = _("Show Indicator in Chat"),
+                            help_text = _("Show '*[Reasoning was used]*' indicator in chat when reasoning is requested or used.\n\nFull reasoning content is always viewable via 'Show Reasoning' button."),
+                            path = "features.show_reasoning_indicator",
+                            default = true,
+                            separator = true,
+                        },
+                    },
                 },
                 -- Web Search submenu
                 {

@@ -8262,7 +8262,6 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
   local model = self:getCurrentModel() or "default"
   local profile = ModelConstraints.getReasoningProfile(provider, model)
   local stance = ReasoningPrefs.getStance(features)
-  local model_pref = ReasoningPrefs.getModelPref(features, provider, model)
 
   -- Persist a mutation, then close+reopen so labels/checkmarks refresh.
   local function mutate(fn)
@@ -8287,9 +8286,9 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
   -- Global stance (affects every model, respecting each model's capability)
   header(_("Stance (all models)"))
   local STANCES = {
-    { id = "minimal", label = _("Minimal") },
-    { id = "default", label = _("Default") },
-    { id = "maximum", label = _("Maximum") },
+    { id = "minimal", label = _("Minimal (off where possible)") },
+    { id = "default", label = _("Default (model's normal behavior)") },
+    { id = "maximum", label = _("Maximum (most reasoning)") },
   }
   for _idx, s in ipairs(STANCES) do
     row(s.label, stance == s.id, function()
@@ -8297,9 +8296,13 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
     end)
   end
 
-  -- This model (rendered from the model's reasoning profile, via shared builder)
+  -- This model (rendered from the model's reasoning profile, via shared builder).
+  -- "Inherit" shows the FALLBACK (provider default then stance) — what you'd get
+  -- with no per-model override — NOT the current model pref.
   header(T(_("This model: %1"), model))
-  local eff = ReasoningPrefs.resolve(features, provider, model)
+  local eff = ModelConstraints.resolveReasoning(provider, model, {
+    global_stance = ReasoningPrefs.getStance(features),
+  })
   local eff_label
   if eff.send_nothing then
     eff_label = _("model default")
@@ -8310,27 +8313,22 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
   else
     eff_label = _("On")
   end
-  local model_rows = self:_reasoningControlRows(profile, model_pref, eff_label,
+  local function get_model_pref()
+    return ReasoningPrefs.getModelPref(self_ref.settings:readSetting("features") or {}, provider, model)
+  end
+  local model_rows = self:_reasoningControlRows(profile, get_model_pref, eff_label,
     function(p) mutate(function(f) ReasoningPrefs.setModelPref(f, provider, model, p) end) end,
     function() mutate(function(f) ReasoningPrefs.clearModelPref(f, provider, model) end) end)
   for _idx, r in ipairs(model_rows) do
     if r.info then
       table.insert(buttons, {{ text = r.text, enabled = false }})
     else
-      row(r.text, r.checked, r.callback)
+      row(r.text, r.checked_func(), r.callback)
     end
   end
 
-  -- Footer: full settings + close
+  -- Footer: close
   header("\u{2500}\u{2500}\u{2500}\u{2500}")
-  table.insert(buttons, {{
-    text = _("Full reasoning settings\u{2026}"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_qs_dialog)
-      self_ref._reasoning_qs_dialog = nil
-      self_ref:showReasoningSettings(on_close_callback)
-    end,
-  }})
   table.insert(buttons, {{
     text = _("Close"),
     callback = function()
@@ -8352,9 +8350,13 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
 end
 
 --- Shared builder: abstract control rows for a reasoning target (model or provider),
---- driven by its reasoning profile. Each row is { text=, checked=bool, callback=fn }
---- or { info=true, text= }. on_set(pref)/on_clear() persist the choice.
-function AskGPT:_reasoningControlRows(profile, pref, effective_label, on_set, on_clear)
+--- driven by its reasoning profile. Used by both the Quick Settings popup
+--- (ButtonDialog) and the Settings reasoning menu (TouchMenu).
+--- Each row is { text=, checked_func=()->bool, callback=fn } or { info=true, text= }.
+--- get_pref() re-reads the current stored pref so checked_func stays live; on_set(pref)
+--- / on_clear() persist the choice. effective_label is the resolved fallback shown on
+--- the "Inherit" row (what you get with NO override at this level).
+function AskGPT:_reasoningControlRows(profile, get_pref, effective_label, on_set, on_clear)
   local ReasoningPrefs = require("reasoning_prefs")
   local rows = {}
   if profile.axis == "none" then
@@ -8364,30 +8366,31 @@ function AskGPT:_reasoningControlRows(profile, pref, effective_label, on_set, on
     return rows
   end
   rows[#rows + 1] = {
-    text = T(_("Inherit (%1)"), effective_label),
-    checked = (pref == nil),
+    text = T(_("Follow global (%1)"), effective_label),
+    checked_func = function() return get_pref() == nil end,
     callback = on_clear,
   }
   if profile.can_disable then
     rows[#rows + 1] = {
       text = _("Off"),
-      checked = (pref ~= nil and pref.state == "off"),
+      checked_func = function() local p = get_pref(); return p ~= nil and p.state == "off" end,
       callback = function() on_set({ state = "off" }) end,
     }
   end
   if profile.axis == "binary" then
     rows[#rows + 1] = {
       text = _("On"),
-      checked = (pref ~= nil and pref.state == "on"),
+      checked_func = function() local p = get_pref(); return p ~= nil and p.state == "on" end,
       callback = function() on_set({ state = "on" }) end,
     }
   else
     for _idx, opt in ipairs(profile.options or {}) do
-      local checked = pref ~= nil and pref.state ~= "off"
-        and (pref.effort == opt or pref.budget == opt)
       rows[#rows + 1] = {
         text = ReasoningPrefs.effortLabel(opt),
-        checked = checked,
+        checked_func = function()
+          local p = get_pref()
+          return p ~= nil and p.state ~= "off" and (p.effort == opt or p.budget == opt)
+        end,
         callback = function()
           local p = { state = "on" }
           if profile.axis == "budget" then p.budget = opt else p.effort = opt end
@@ -8397,115 +8400,6 @@ function AskGPT:_reasoningControlRows(profile, pref, effective_label, on_set, on
     end
   end
   return rows
-end
-
--- Convert abstract control rows into ButtonDialog button rows.
-function AskGPT:_reasoningRowsToButtons(rows)
-  local out = {}
-  for _idx, r in ipairs(rows) do
-    if r.info then
-      out[#out + 1] = {{ text = r.text, enabled = false }}
-    else
-      out[#out + 1] = {{ text = (r.checked and "\u{2713} " or "") .. r.text, callback = r.callback }}
-    end
-  end
-  return out
-end
-
---- Full reasoning settings page (ButtonDialog). Reached from the Quick Settings
---- popup ("Full reasoning settings…") and from Settings → Advanced → Reasoning.
---- Global stance + per-provider defaults + per-model overrides + indicator toggle.
-function AskGPT:showReasoningSettings(on_close_callback)
-  local ButtonDialog = require("ui/widget/buttondialog")
-  local ReasoningPrefs = require("reasoning_prefs")
-  local self_ref = self
-  -- Action items pass a touchmenu_instance here, not a function — only call functions.
-  local back = (type(on_close_callback) == "function") and on_close_callback or nil
-
-  local features = self.settings:readSetting("features") or {}
-  local stance = ReasoningPrefs.getStance(features)
-  local indicator_on = features.show_reasoning_indicator ~= false  -- default true
-
-  local function reopen()
-    UIManager:close(self_ref._reasoning_settings_dialog)
-    self_ref._reasoning_settings_dialog = nil
-    self_ref:showReasoningSettings(back)
-  end
-  local function mutate(fn)
-    local f = self_ref.settings:readSetting("features") or {}
-    fn(f)
-    self_ref.settings:saveSetting("features", f)
-    self_ref.settings:flush()
-    self_ref:updateConfigFromSettings()
-    reopen()
-  end
-
-  local buttons = {}
-  local function header(text) table.insert(buttons, {{ text = text, enabled = false }}) end
-  local function row(text, checked, cb)
-    table.insert(buttons, {{ text = (checked and "\u{2713} " or "") .. text, callback = cb }})
-  end
-
-  header(_("Stance (all models)"))
-  for _idx, s in ipairs({
-    { id = "minimal", label = _("Minimal \u{2014} least reasoning where allowed") },
-    { id = "default", label = _("Default \u{2014} each model's normal behavior") },
-    { id = "maximum", label = _("Maximum \u{2014} most reasoning where allowed") },
-  }) do
-    row(s.label, stance == s.id, function()
-      mutate(function(f) ReasoningPrefs.setStance(f, s.id) end)
-    end)
-  end
-
-  header("\u{2500}\u{2500}\u{2500}\u{2500}")
-  table.insert(buttons, {{
-    text = _("Per-provider defaults\u{2026}"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_settings_dialog)
-      self_ref._reasoning_settings_dialog = nil
-      self_ref:showReasoningProviderDefaults(function() self_ref:showReasoningSettings(back) end)
-    end,
-  }})
-  table.insert(buttons, {{
-    text = _("Per-model overrides\u{2026}"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_settings_dialog)
-      self_ref._reasoning_settings_dialog = nil
-      self_ref:showReasoningModelBrowser(function() self_ref:showReasoningSettings(back) end)
-    end,
-  }})
-
-  header("\u{2500}\u{2500}\u{2500}\u{2500}")
-  row(T(_("Reasoning indicator in chat: %1"), indicator_on and _("ON") or _("OFF")), false, function()
-    mutate(function(f) f.show_reasoning_indicator = (f.show_reasoning_indicator == false) end)
-  end)
-  table.insert(buttons, {{
-    text = _("About reasoning control\u{2026}"),
-    callback = function()
-      UIManager:show(InfoMessage:new{
-        text = _("Reasoning is resolved per model. Precedence (highest first):\n\n1. Per-action settings (some actions force reasoning off)\n2. Per-model override\n3. Per-provider default\n4. Global stance\n5. The model's natural default\n\nMinimal/Maximum push reasoning down/up only as far as each model allows; models that always reason (or can't reason) are shown accordingly."),
-      })
-    end,
-  }})
-
-  table.insert(buttons, {{
-    text = _("Close"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_settings_dialog)
-      self_ref._reasoning_settings_dialog = nil
-      if back then back() end
-    end,
-  }})
-
-  self._reasoning_settings_dialog = ButtonDialog:new{
-    title = _("Reasoning settings"),
-    buttons = buttons,
-    tap_close_callback = function()
-      self_ref._reasoning_settings_dialog = nil
-      if back then back() end
-    end,
-  }
-  UIManager:show(self._reasoning_settings_dialog)
 end
 
 -- Short summary of a stored reasoning pref ({state,effort,budget} or nil).
@@ -8531,226 +8425,95 @@ local function reasoningCapableProviders()
   return out
 end
 
--- Representative model for a provider (its default / first listed).
-local function reasoningReprModel(provider)
-  local Defaults = require("koassistant_api.defaults")
-  local ModelLists = require("koassistant_model_lists")
-  local pd = Defaults.ProviderDefaults[provider]
-  if pd and pd.model then return pd.model end
-  local list = ModelLists[provider]
-  return list and list[1] or "default"
-end
-
---- Per-provider defaults browser: pick a provider, then set its default reasoning.
-function AskGPT:showReasoningProviderDefaults(back_cb)
-  local ButtonDialog = require("ui/widget/buttondialog")
-  local ReasoningPrefs = require("reasoning_prefs")
-  local self_ref = self
-  local features = self.settings:readSetting("features") or {}
-
-  local buttons = {}
-  for _idx, provider in ipairs(reasoningCapableProviders()) do
-    local pref = ReasoningPrefs.getProviderPref(features, provider)
-    local label = T(_("%1: %2"), self:getProviderDisplayName(provider), reasoningPrefSummary(pref))
-    table.insert(buttons, {{
-      text = label,
-      callback = function()
-        UIManager:close(self_ref._reasoning_provider_dialog)
-        self_ref._reasoning_provider_dialog = nil
-        self_ref:showReasoningTargetControl({
-          scope = "provider",
-          provider = provider,
-          model = reasoningReprModel(provider),
-          back = function() self_ref:showReasoningProviderDefaults(back_cb) end,
-        })
-      end,
-    }})
-  end
-  table.insert(buttons, {{
-    text = _("Back"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_provider_dialog)
-      self_ref._reasoning_provider_dialog = nil
-      if back_cb then back_cb() end
-    end,
-  }})
-
-  self._reasoning_provider_dialog = ButtonDialog:new{
-    title = _("Per-provider reasoning"),
-    buttons = buttons,
-    tap_close_callback = function()
-      self_ref._reasoning_provider_dialog = nil
-      if back_cb then back_cb() end
-    end,
-  }
-  UIManager:show(self._reasoning_provider_dialog)
-end
-
---- Per-model overrides browser: pick a provider, then a model, then set its reasoning.
-function AskGPT:showReasoningModelBrowser(back_cb)
-  local ButtonDialog = require("ui/widget/buttondialog")
-  local self_ref = self
-
-  local buttons = {}
-  for _idx, provider in ipairs(reasoningCapableProviders()) do
-    table.insert(buttons, {{
-      text = self:getProviderDisplayName(provider),
-      callback = function()
-        UIManager:close(self_ref._reasoning_modelprov_dialog)
-        self_ref._reasoning_modelprov_dialog = nil
-        self_ref:showReasoningModelList(provider, function() self_ref:showReasoningModelBrowser(back_cb) end)
-      end,
-    }})
-  end
-  table.insert(buttons, {{
-    text = _("Back"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_modelprov_dialog)
-      self_ref._reasoning_modelprov_dialog = nil
-      if back_cb then back_cb() end
-    end,
-  }})
-
-  self._reasoning_modelprov_dialog = ButtonDialog:new{
-    title = _("Per-model: pick provider"),
-    buttons = buttons,
-    tap_close_callback = function()
-      self_ref._reasoning_modelprov_dialog = nil
-      if back_cb then back_cb() end
-    end,
-  }
-  UIManager:show(self._reasoning_modelprov_dialog)
-end
-
---- List a provider's models with their current per-model reasoning pref.
-function AskGPT:showReasoningModelList(provider, back_cb)
-  local ButtonDialog = require("ui/widget/buttondialog")
-  local ReasoningPrefs = require("reasoning_prefs")
-  local ModelLists = require("koassistant_model_lists")
-  local self_ref = self
-  local features = self.settings:readSetting("features") or {}
-
-  local buttons = {}
-  for _idx, model in ipairs(ModelLists[provider] or {}) do
-    local pref = ReasoningPrefs.getModelPref(features, provider, model)
-    table.insert(buttons, {{
-      text = T(_("%1: %2"), model, reasoningPrefSummary(pref)),
-      callback = function()
-        UIManager:close(self_ref._reasoning_modellist_dialog)
-        self_ref._reasoning_modellist_dialog = nil
-        self_ref:showReasoningTargetControl({
-          scope = "model",
-          provider = provider,
-          model = model,
-          back = function() self_ref:showReasoningModelList(provider, back_cb) end,
-        })
-      end,
-    }})
-  end
-  table.insert(buttons, {{
-    text = _("Back"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_modellist_dialog)
-      self_ref._reasoning_modellist_dialog = nil
-      if back_cb then back_cb() end
-    end,
-  }})
-
-  self._reasoning_modellist_dialog = ButtonDialog:new{
-    title = T(_("%1 models"), self:getProviderDisplayName(provider)),
-    buttons = buttons,
-    tap_close_callback = function()
-      self_ref._reasoning_modellist_dialog = nil
-      if back_cb then back_cb() end
-    end,
-  }
-  UIManager:show(self._reasoning_modellist_dialog)
-end
-
---- Reasoning control for one target (a provider default or a specific model).
---- opts = { scope="provider"|"model", provider, model, back }
-function AskGPT:showReasoningTargetControl(opts)
-  local ButtonDialog = require("ui/widget/buttondialog")
+--- TouchMenu items: reasoning control (Follow global / Off / On / effort) for one
+--- model. Uses the shared _reasoningControlRows; checked_func keeps the radio marks
+--- live as the user taps.
+function AskGPT:buildReasoningTargetMenu(provider, model)
   local ModelConstraints = require("model_constraints")
   local ReasoningPrefs = require("reasoning_prefs")
   local self_ref = self
-  local provider, model, scope, back = opts.provider, opts.model, opts.scope, opts.back
 
-  local features = self.settings:readSetting("features") or {}
   local profile = ModelConstraints.getReasoningProfile(provider, model)
 
-  local pref, effective
-  if scope == "provider" then
-    pref = ReasoningPrefs.getProviderPref(features, provider)
-    -- Inherit (no provider pref) => global stance only, on a representative model.
-    effective = ModelConstraints.resolveReasoning(provider, model, {
-      global_stance = ReasoningPrefs.getStance(features),
-    })
-  else
-    pref = ReasoningPrefs.getModelPref(features, provider, model)
-    -- Inherit (no model pref) => provider pref then stance.
-    effective = ModelConstraints.resolveReasoning(provider, model, {
-      global_stance = ReasoningPrefs.getStance(features),
-      provider_pref = ReasoningPrefs.getProviderPref(features, provider),
-    })
+  local function get_pref()
+    return ReasoningPrefs.getModelPref(self_ref.settings:readSetting("features") or {}, provider, model)
   end
 
+  -- "Follow global" fallback = the global stance applied to this model.
+  local eff = ModelConstraints.resolveReasoning(provider, model, {
+    global_stance = ReasoningPrefs.getStance(self.settings:readSetting("features") or {}),
+  })
   local eff_label
-  if effective.send_nothing then eff_label = _("model default")
-  elseif effective.mode == "off" then eff_label = _("Off")
-  elseif effective.option then eff_label = ReasoningPrefs.effortLabel(effective.option)
+  if eff.send_nothing then eff_label = _("model default")
+  elseif eff.mode == "off" then eff_label = _("Off")
+  elseif eff.option then eff_label = ReasoningPrefs.effortLabel(eff.option)
   else eff_label = _("On") end
 
-  local function reopen()
-    UIManager:close(self_ref._reasoning_target_dialog)
-    self_ref._reasoning_target_dialog = nil
-    self_ref:showReasoningTargetControl(opts)
-  end
   local function persist(fn)
     local f = self_ref.settings:readSetting("features") or {}
     fn(f)
     self_ref.settings:saveSetting("features", f)
     self_ref.settings:flush()
     self_ref:updateConfigFromSettings()
-    reopen()
   end
-
   local on_set = function(p)
-    persist(function(f)
-      if scope == "provider" then ReasoningPrefs.setProviderPref(f, provider, p)
-      else ReasoningPrefs.setModelPref(f, provider, model, p) end
-    end)
+    persist(function(f) ReasoningPrefs.setModelPref(f, provider, model, p) end)
   end
   local on_clear = function()
-    persist(function(f)
-      if scope == "provider" then ReasoningPrefs.clearProviderPref(f, provider)
-      else ReasoningPrefs.clearModelPref(f, provider, model) end
-    end)
+    persist(function(f) ReasoningPrefs.clearModelPref(f, provider, model) end)
   end
 
-  local rows = self:_reasoningControlRows(profile, pref, eff_label, on_set, on_clear)
-  local buttons = self:_reasoningRowsToButtons(rows)
-  table.insert(buttons, {{
-    text = _("Back"),
-    callback = function()
-      UIManager:close(self_ref._reasoning_target_dialog)
-      self_ref._reasoning_target_dialog = nil
-      if back then back() end
-    end,
-  }})
+  local rows = self:_reasoningControlRows(profile, get_pref, eff_label, on_set, on_clear)
+  local items = {}
+  for _idx, r in ipairs(rows) do
+    if r.info then
+      items[#items + 1] = { text = r.text, enabled_func = function() return false end }
+    else
+      items[#items + 1] = {
+        text = r.text,
+        radio = true,
+        checked_func = r.checked_func,
+        callback = r.callback,
+        keep_menu_open = true,
+      }
+    end
+  end
+  return items
+end
 
-  local title = (scope == "provider")
-    and T(_("%1 default"), self:getProviderDisplayName(provider))
-    or model
-  self._reasoning_target_dialog = ButtonDialog:new{
-    title = title,
-    buttons = buttons,
-    tap_close_callback = function()
-      self_ref._reasoning_target_dialog = nil
-      if back then back() end
-    end,
-  }
-  UIManager:show(self._reasoning_target_dialog)
+--- TouchMenu callback submenu: per-model overrides — pick a provider first.
+function AskGPT:buildReasoningModelProviderMenu()
+  local self_ref = self
+  local items = {}
+  for _idx, provider in ipairs(reasoningCapableProviders()) do
+    local p = provider
+    items[#items + 1] = {
+      text = self_ref:getProviderDisplayName(p),
+      sub_item_table_func = function() return self_ref:buildReasoningModelListMenu(p) end,
+    }
+  end
+  return items
+end
+
+--- TouchMenu: a provider's models, each opening its per-model reasoning control.
+function AskGPT:buildReasoningModelListMenu(provider)
+  local ReasoningPrefs = require("reasoning_prefs")
+  local ModelLists = require("koassistant_model_lists")
+  local self_ref = self
+  local items = {}
+  for _idx, model in ipairs(ModelLists[provider] or {}) do
+    local m = model
+    items[#items + 1] = {
+      text_func = function()
+        local f = self_ref.settings:readSetting("features") or {}
+        return T(_("%1: %2"), m, reasoningPrefSummary(ReasoningPrefs.getModelPref(f, provider, m)))
+      end,
+      sub_item_table_func = function()
+        return self_ref:buildReasoningTargetMenu(provider, m)
+      end,
+    }
+  end
+  return items
 end
 
 --- Build behavior variant menu (for Quick Settings panel)

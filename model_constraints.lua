@@ -660,12 +660,11 @@ end
 
 --- Resolve the effective reasoning decision for a request.
 --- Precedence (highest first):
----   action_override > model_pref > provider_pref > global_stance > model natural default.
+---   action_override > model_pref > global_stance > model natural default.
 --- @param provider string
 --- @param model string
 --- @param layers table { global_stance="minimal"|"default"|"maximum",
----                       provider_pref={state=,effort=,budget=}|nil,
----                       model_pref={...}|nil,
+---                       model_pref={state=,effort=,budget=}|nil,
 ---                       action_override={force="on"|"off", effort=, budget=}|nil }
 --- @return table decision { mode="on"|"off", axis, effort, budget, send_nothing,
 ---                          needs_temp_1, needs_no_sampling, off_option, profile }
@@ -695,7 +694,7 @@ function ModelConstraints.resolveReasoning(provider, model, layers)
     elseif ao and ao.force == "on" then
         desired = { state = "on", option = ao.effort or ao.budget }
     else
-        desired = prefDesired(layers.model_pref) or prefDesired(layers.provider_pref)
+        desired = prefDesired(layers.model_pref)
         if not desired then
             local stance = layers.global_stance or "default"
             if stance == "minimal" then

@@ -7,8 +7,7 @@
 -- Store shape (sparse — keys exist only when the user customizes):
 --   features.reasoning_prefs = {
 --       stance = "minimal" | "default" | "maximum",   -- absent => "default"
---       providers = { [provider] = { state="on"|"off", effort=, budget= } },
---       models    = { ["provider/model"] = { state=, effort=, budget= } },
+--       models = { ["provider/model"] = { state="on"|"off", effort=, budget= } },
 --   }
 -- A nil field means "inherit from the layer below". We always use state="off"
 -- (string), never false, so nil cleanly means inherit.
@@ -55,12 +54,6 @@ function ReasoningPrefs.getStance(features)
     return "default"
 end
 
---- @return table|nil  { state=, effort=, budget= } or nil
-function ReasoningPrefs.getProviderPref(features, provider)
-    local p = root(features).providers
-    return p and p[provider] or nil
-end
-
 --- @return table|nil
 function ReasoningPrefs.getModelPref(features, provider, model)
     local m = root(features).models
@@ -83,16 +76,6 @@ function ReasoningPrefs.setStance(features, stance)
     ensure(features).stance = stance
 end
 
---- Set (or clear, pref=nil) a per-provider preference. Mutates features.
-function ReasoningPrefs.setProviderPref(features, provider, pref)
-    ensure(features, "providers").providers[provider] = pref
-end
-
-function ReasoningPrefs.clearProviderPref(features, provider)
-    local rp = root(features)
-    if rp.providers then rp.providers[provider] = nil end
-end
-
 --- Set (or clear, pref=nil) a per-model preference. Mutates features.
 function ReasoningPrefs.setModelPref(features, provider, model, pref)
     ensure(features, "models").models[ReasoningPrefs.modelKey(provider, model)] = pref
@@ -109,7 +92,6 @@ end
 function ReasoningPrefs.resolve(features, provider, model)
     return ModelConstraints.resolveReasoning(provider, model, {
         global_stance = ReasoningPrefs.getStance(features),
-        provider_pref = ReasoningPrefs.getProviderPref(features, provider),
         model_pref = ReasoningPrefs.getModelPref(features, provider, model),
     })
 end
