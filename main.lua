@@ -9506,96 +9506,18 @@ function AskGPT:onKOAssistantChangeDomain()
   return true
 end
 
---- Show domain popup with two-column layout when a book is open, flat list otherwise
+--- Show the per-book settings popup (Domain & Research) from Quick Settings.
+--- Thin wrapper over the shared BookSettings.show entry point.
 --- @param on_close_callback function|nil: Called after popup closes (e.g., reopen quick settings)
+--- @param target_override string|nil: "book" | "global" — forces the editing layer
 function AskGPT:showDomainPopup(on_close_callback, target_override)
-  local DomainLoader = require("domain_loader")
-  local ButtonDialog = require("ui/widget/buttondialog")
-  local self_ref = self
-
-  local features = self.settings:readSetting("features") or {}
-  local custom_domains = features.custom_domains or {}
-  local all_domains = DomainLoader.getSortedDomains(custom_domains)
-
-  local doc_settings = self.ui and self.ui.document and self.ui.doc_settings or nil
-  local book_domain = doc_settings and doc_settings:readSetting("koassistant_book_domain") or nil
-  local book_research = doc_settings and doc_settings:readSetting("koassistant_book_research_mode") or nil
-
-  -- Domain target: "book" or "global" — controls where selection is saved
-  -- Default to "book" if any book override exists (domain or research mode), otherwise "global"
-  local domain_target = target_override
-      or (doc_settings and (book_domain or book_research ~= nil) and "book")
-      or "global"
-
-  -- Helper to close popup and notify caller (after a selection)
-  local function closePopup()
-    if self_ref._domain_popup then
-      UIManager:close(self_ref._domain_popup)
-      self_ref._domain_popup = nil
-    end
-    self_ref:updateConfigFromSettings()
-    if on_close_callback then on_close_callback() end
-  end
-
-  local state = {
-    domains = all_domains,
-    has_book = doc_settings ~= nil,
-    is_book_target = (doc_settings and domain_target == "book") or false,
-    book_domain = book_domain,
-    global_domain = features.selected_domain,
-    book_research = book_research,
-    global_research = features.research_mode,
-  }
-
-  local cb = {
-    set_target = function(new_target)
-      if self_ref._domain_popup then
-        UIManager:close(self_ref._domain_popup)
-        self_ref._domain_popup = nil
-      end
-      self_ref:showDomainPopup(on_close_callback, new_target)
-    end,
-    pick_book_domain = function(val)
-      doc_settings:saveSetting("koassistant_book_domain", val)
-      doc_settings:flush()
-      closePopup()
-    end,
-    pick_global_domain = function(id)
-      local f = self_ref.settings:readSetting("features") or {}
-      f.selected_domain = id
-      self_ref.settings:saveSetting("features", f)
-      self_ref.settings:flush()
-      closePopup()
-    end,
-    set_book_research = function(val)
-      doc_settings:saveSetting("koassistant_book_research_mode", val)
-      doc_settings:flush()
-      closePopup()
-    end,
-    set_global_research = function(val)
-      local f = self_ref.settings:readSetting("features") or {}
-      f.research_mode = val
-      self_ref.settings:saveSetting("features", f)
-      self_ref.settings:flush()
-      closePopup()
-    end,
-    close = function()
-      if self_ref._domain_popup then
-        UIManager:close(self_ref._domain_popup)
-        self_ref._domain_popup = nil
-      end
-      if on_close_callback then on_close_callback() end
-    end,
-  }
-
   local BookSettings = require("koassistant_book_settings")
-  local buttons = BookSettings.buildDomainResearchButtons(state, cb)
-
-  self._domain_popup = ButtonDialog:new{
-    title = _("Domain & Research"),
-    buttons = buttons,
-  }
-  UIManager:show(self._domain_popup)
+  BookSettings.show({
+    plugin = self,
+    ui = self.ui,
+    on_close = on_close_callback,
+    target_override = target_override,
+  })
 end
 
 -- Dictionary Popup Manager gesture handler

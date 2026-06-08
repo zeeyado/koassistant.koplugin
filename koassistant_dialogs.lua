@@ -6185,7 +6185,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 if scope.cache_key and file then
                     local section_cache = ActionCache.get(file, scope.cache_key)
                     if section_cache and section_cache.result then
-                        plugin:viewCachedAction(action, action.id or action_id, section_cache, {
+                        plugin:viewCachedAction(action, action.id, section_cache, {
                             file = file,
                             section_key = scope.cache_key,
                             section_label = scope.label,
