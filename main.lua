@@ -12765,12 +12765,16 @@ function AskGPT:showWizardLanguagePicker(next_step)
   local buttons = {}
   local row = {}
   local picker_dialog
+  -- Guard so picking a language and dismissing the dialog can't both advance.
+  local picker_advancing = false
   for _i, lang in ipairs(Languages.REGULAR) do
     local lang_id = lang.id
     local lang_display = lang.display
     table.insert(row, {
       text = lang_display,
       callback = function()
+        if picker_advancing then return end
+        picker_advancing = true
         UIManager:close(picker_dialog)
         -- Save selected language
         local features = self.settings:readSetting("features") or {}
@@ -12794,6 +12798,13 @@ function AskGPT:showWizardLanguagePicker(next_step)
   picker_dialog = ButtonDialog:new{
     title = _("Choose your AI language"),
     buttons = buttons,
+    -- Dismissing (tap outside / Back) must not strand the wizard: continue
+    -- without forcing a language (auto-detect stays in effect).
+    tap_close_callback = function()
+      if picker_advancing then return end
+      picker_advancing = true
+      next_step()
+    end,
   }
   UIManager:show(picker_dialog)
 end
