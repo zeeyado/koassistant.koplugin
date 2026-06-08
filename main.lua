@@ -8284,7 +8284,7 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
   end
 
   -- Global stance (affects every model, respecting each model's capability)
-  header(_("Stance (all models)"))
+  header(_("Global stance (all models)"))
   local STANCES = {
     { id = "minimal", label = _("Minimal (off where possible)") },
     { id = "default", label = _("Default (model's normal behavior)") },
@@ -8413,14 +8413,23 @@ local function reasoningPrefSummary(pref)
   return _("Inherit")
 end
 
--- Providers that have at least one reasoning profile (for the browsers).
+-- Providers with at least one CONFIGURABLE reasoning model (axis ~= "none").
+-- Excludes providers whose only reasoning models always reason with no control
+-- (e.g. Mistral Magistral) and providers with no reasoning at all.
 local function reasoningCapableProviders()
   local ModelConstraints = require("model_constraints")
   local ModelLists = require("koassistant_model_lists")
   local out = {}
   for _idx, p in ipairs(ModelLists.getAllProviders()) do
     local profiles = ModelConstraints.reasoning_profiles[p]
-    if profiles and #profiles > 0 then out[#out + 1] = p end
+    if profiles then
+      for _i, prof in ipairs(profiles) do
+        if prof.axis ~= "none" then
+          out[#out + 1] = p
+          break
+        end
+      end
+    end
   end
   return out
 end
@@ -8495,23 +8504,31 @@ function AskGPT:buildReasoningModelProviderMenu()
   return items
 end
 
---- TouchMenu: a provider's models, each opening its per-model reasoning control.
+--- TouchMenu: a provider's CONFIGURABLE models, each opening its per-model control.
+--- Models with no controllable reasoning (axis "none" — always-on or no reasoning)
+--- are omitted, since there is nothing to set for them.
 function AskGPT:buildReasoningModelListMenu(provider)
+  local ModelConstraints = require("model_constraints")
   local ReasoningPrefs = require("reasoning_prefs")
   local ModelLists = require("koassistant_model_lists")
   local self_ref = self
   local items = {}
   for _idx, model in ipairs(ModelLists[provider] or {}) do
-    local m = model
-    items[#items + 1] = {
-      text_func = function()
-        local f = self_ref.settings:readSetting("features") or {}
-        return T(_("%1: %2"), m, reasoningPrefSummary(ReasoningPrefs.getModelPref(f, provider, m)))
-      end,
-      sub_item_table_func = function()
-        return self_ref:buildReasoningTargetMenu(provider, m)
-      end,
-    }
+    if ModelConstraints.getReasoningProfile(provider, model).axis ~= "none" then
+      local m = model
+      items[#items + 1] = {
+        text_func = function()
+          local f = self_ref.settings:readSetting("features") or {}
+          return T(_("%1: %2"), m, reasoningPrefSummary(ReasoningPrefs.getModelPref(f, provider, m)))
+        end,
+        sub_item_table_func = function()
+          return self_ref:buildReasoningTargetMenu(provider, m)
+        end,
+      }
+    end
+  end
+  if #items == 0 then
+    items[#items + 1] = { text = _("No configurable models"), enabled_func = function() return false end }
   end
   return items
 end
