@@ -98,6 +98,7 @@ end
 -- Load modules
 local ModelConstraints = require("model_constraints")
 local ResponseParser = require("response_parser")
+local _ = require("koassistant_gettext")
 
 print("")
 print(string.rep("=", 50))
@@ -222,12 +223,19 @@ TestRunner:test("enables thinking when config present", function()
     TestRunner:assertTrue(result.chat_template_kwargs.enable_thinking, "enable_thinking")
 end)
 
-TestRunner:test("disables thinking when config absent", function()
+TestRunner:test("omits chat_template_kwargs when config absent (model default)", function()
     local body = { model = "DeepSeek-V3.1", messages = {} }
     local config = { api_params = {} }
     local result = SambaNovaHandler:customizeRequestBody(body, config)
+    TestRunner:assertNil(result.chat_template_kwargs, "should not set chat_template_kwargs (send nothing)")
+end)
+
+TestRunner:test("disables thinking when explicitly false", function()
+    local body = { model = "DeepSeek-V3.1", messages = {} }
+    local config = { api_params = { sambanova_thinking = false } }
+    local result = SambaNovaHandler:customizeRequestBody(body, config)
     TestRunner:assertNotNil(result.chat_template_kwargs, "should set chat_template_kwargs")
-    TestRunner:assertFalse(result.chat_template_kwargs.enable_thinking, "enable_thinking should be false")
+    TestRunner:assertFalse(result.chat_template_kwargs.enable_thinking, "enable_thinking false")
 end)
 
 TestRunner:test("no thinking for unsupported model", function()
@@ -678,6 +686,289 @@ TestRunner:test("Mistral magistral has thinking but is always-on (no toggle)", f
         ModelConstraints.supportsCapability("mistral", "magistral-medium", "thinking"),
         "magistral should have thinking capability"
     )
+end)
+
+--------------------------------------------------------------------------------
+-- Test: Reasoning RESOLVER (resolveReasoning / applyReasoningParams / parseActionReasoning)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Reasoning profiles")
+
+TestRunner:test("getReasoningProfile returns matching profile for known model", function()
+    local p = ModelConstraints.getReasoningProfile("deepseek", "deepseek-v4-pro")
+    TestRunner:assertEqual(p.axis, "binary", "deepseek axis")
+    TestRunner:assertEqual(p.default_state, "on", "deepseek default on")
+end)
+
+TestRunner:test("getReasoningProfile prefix-matches dated model ids", function()
+    local p = ModelConstraints.getReasoningProfile("anthropic", "claude-opus-4-8-20260115")
+    TestRunner:assertEqual(p.axis, "adaptive_effort", "opus axis via prefix")
+    TestRunner:assertTrue(p.needs_no_sampling, "opus needs_no_sampling")
+end)
+
+TestRunner:test("getReasoningProfile returns passthrough (none) for unknown model", function()
+    local p = ModelConstraints.getReasoningProfile("openai", "totally-unknown-model")
+    TestRunner:assertEqual(p.axis, "none", "unknown -> none")
+    TestRunner:assertFalse(p.can_disable, "unknown not disableable")
+end)
+
+TestRunner:test("OpenRouter universal profile matches any model", function()
+    local p = ModelConstraints.getReasoningProfile("openrouter", "anthropic/claude-sonnet-4.5")
+    TestRunner:assertEqual(p.axis, "effort", "openrouter axis")
+end)
+
+TestRunner:suite("resolveReasoning: global stance")
+
+TestRunner:test("Minimal turns DeepSeek V4 OFF (explicit disable, not send_nothing)", function()
+    local d = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", { global_stance = "minimal" })
+    TestRunner:assertEqual(d.mode, "off", "mode off")
+    TestRunner:assertFalse(d.send_nothing, "must emit explicit disable")
+    local params = {}
+    ModelConstraints.applyReasoningParams("deepseek", params, d)
+    TestRunner:assertNotNil(params.deepseek_thinking, "deepseek_thinking set")
+    TestRunner:assertEqual(params.deepseek_thinking.type, "disabled", "type disabled")
+end)
+
+TestRunner:test("Default stance leaves DeepSeek natural (send_nothing, no param)", function()
+    local d = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", { global_stance = "default" })
+    TestRunner:assertTrue(d.send_nothing, "send_nothing")
+    local params = {}
+    ModelConstraints.applyReasoningParams("deepseek", params, d)
+    TestRunner:assertNil(params.deepseek_thinking, "no thinking param -> model default")
+end)
+
+TestRunner:test("Maximum on Opus 4.8 -> max effort, needs_no_sampling", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-opus-4-8", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.mode, "on", "on")
+    TestRunner:assertEqual(d.effort, "max", "max effort")
+    TestRunner:assertTrue(d.needs_no_sampling, "needs_no_sampling")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertEqual(params.thinking.type, "adaptive", "adaptive thinking")
+    TestRunner:assertEqual(params.output_config.effort, "max", "output_config effort")
+end)
+
+TestRunner:test("Maximum on Sonnet 4.6 -> high effort (no max), needs_temp_1", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-4-6", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.effort, "high", "high effort (sonnet has no max)")
+    TestRunner:assertTrue(d.needs_temp_1, "needs_temp_1")
+    TestRunner:assertFalse(d.needs_no_sampling, "sonnet keeps sampling params")
+end)
+
+TestRunner:test("Minimal on Gemini 2.5 -> thinking_budget 0", function()
+    local d = ModelConstraints.resolveReasoning("gemini", "gemini-2.5-flash", { global_stance = "minimal" })
+    TestRunner:assertEqual(d.mode, "off", "off")
+    local params = {}
+    ModelConstraints.applyReasoningParams("gemini", params, d)
+    TestRunner:assertEqual(params.thinking_budget, 0, "explicit budget 0")
+end)
+
+TestRunner:test("Maximum on Gemini 2.5 -> max budget", function()
+    local d = ModelConstraints.resolveReasoning("gemini", "gemini-2.5-flash", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.budget, 24576, "max budget value")
+    local params = {}
+    ModelConstraints.applyReasoningParams("gemini", params, d)
+    TestRunner:assertEqual(params.thinking_budget, 24576, "thinking_budget applied")
+end)
+
+TestRunner:test("Minimal on Gemini 3 flash -> minimal level (can't disable)", function()
+    local d = ModelConstraints.resolveReasoning("gemini", "gemini-3.5-flash", { global_stance = "minimal" })
+    TestRunner:assertEqual(d.mode, "on", "still on")
+    TestRunner:assertEqual(d.effort, "minimal", "minimal level")
+    local params = {}
+    ModelConstraints.applyReasoningParams("gemini", params, d)
+    TestRunner:assertEqual(params.thinking_level, "minimal", "thinkingLevel minimal")
+end)
+
+TestRunner:suite("resolveReasoning: can't-disable clamping")
+
+TestRunner:test("Perplexity Minimal cannot disable -> on at lowest effort", function()
+    local d = ModelConstraints.resolveReasoning("perplexity", "sonar-reasoning-pro", { global_stance = "minimal" })
+    TestRunner:assertEqual(d.mode, "on", "clamped on")
+    TestRunner:assertEqual(d.effort, "low", "lowest effort")
+end)
+
+TestRunner:test("Perplexity action force-off cannot truly disable -> on at lowest", function()
+    local d = ModelConstraints.resolveReasoning("perplexity", "sonar-reasoning-pro", {
+        global_stance = "default",
+        action_override = { force = "off" },
+    })
+    TestRunner:assertEqual(d.mode, "on", "force-off clamped to on")
+    TestRunner:assertEqual(d.effort, "low", "lowest effort")
+end)
+
+TestRunner:test("Mistral Magistral: axis none, send_nothing, emits nothing", function()
+    local d = ModelConstraints.resolveReasoning("mistral", "magistral-medium", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.axis, "none", "axis none")
+    TestRunner:assertTrue(d.send_nothing, "send_nothing")
+    local params = {}
+    ModelConstraints.applyReasoningParams("mistral", params, d)
+    TestRunner:assertNil(next(params), "no params emitted")
+end)
+
+TestRunner:suite("resolveReasoning: precedence layering")
+
+TestRunner:test("model_pref beats provider_pref beats stance", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-opus-4-8", {
+        global_stance = "maximum",                       -- would be max
+        provider_pref = { effort = "low" },              -- would be low
+        model_pref = { effort = "medium" },              -- wins
+    })
+    TestRunner:assertEqual(d.effort, "medium", "model_pref wins")
+end)
+
+TestRunner:test("provider_pref used when no model_pref", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-opus-4-8", {
+        global_stance = "maximum",
+        provider_pref = { state = "off" },
+    })
+    TestRunner:assertEqual(d.mode, "off", "provider_pref off wins over stance")
+end)
+
+TestRunner:test("action force-off beats global Maximum on Opus", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-opus-4-8", {
+        global_stance = "maximum",
+        model_pref = { state = "on", effort = "high" },
+        action_override = { force = "off" },
+    })
+    TestRunner:assertEqual(d.mode, "off", "action force-off wins over everything")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertNil(params.thinking, "no thinking param when off")
+end)
+
+TestRunner:test("action force-on at effort beats global Minimal", function()
+    local d = ModelConstraints.resolveReasoning("openai", "gpt-5.4", {
+        global_stance = "minimal",
+        action_override = { force = "on", effort = "high" },
+    })
+    TestRunner:assertEqual(d.mode, "on", "forced on")
+    TestRunner:assertEqual(d.effort, "high", "forced effort")
+end)
+
+TestRunner:suite("parseActionReasoning")
+
+TestRunner:test("string 'off' -> force off", function()
+    local o = ModelConstraints.parseActionReasoning({ reasoning_config = "off" }, "anthropic")
+    TestRunner:assertEqual(o.force, "off", "force off")
+end)
+
+TestRunner:test("{ default = 'off' } -> force off (regression: latent bug)", function()
+    local o = ModelConstraints.parseActionReasoning({ reasoning_config = { default = "off" } }, "deepseek")
+    TestRunner:assertNotNil(o, "should not be nil")
+    TestRunner:assertEqual(o.force, "off", "default off honoured")
+    -- end-to-end: suggest_from_library-style action now actually disables DeepSeek
+    local d = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", {
+        global_stance = "maximum", action_override = o,
+    })
+    TestRunner:assertEqual(d.mode, "off", "resolves to off")
+end)
+
+TestRunner:test("per-provider entry overrides default", function()
+    local rc = { default = "off", anthropic = { effort = "high" } }
+    local a = ModelConstraints.parseActionReasoning({ reasoning_config = rc }, "anthropic")
+    TestRunner:assertEqual(a.force, "on", "anthropic forced on")
+    TestRunner:assertEqual(a.effort, "high", "effort high")
+    local g = ModelConstraints.parseActionReasoning({ reasoning_config = rc }, "gemini")
+    TestRunner:assertEqual(g.force, "off", "gemini falls to default off")
+end)
+
+TestRunner:test("gemini 'level' maps to effort", function()
+    local o = ModelConstraints.parseActionReasoning({ reasoning_config = { gemini = { level = "low" } } }, "gemini")
+    TestRunner:assertEqual(o.force, "on", "on")
+    TestRunner:assertEqual(o.effort, "low", "level -> effort")
+end)
+
+TestRunner:test("legacy reasoning='off' -> force off", function()
+    local o = ModelConstraints.parseActionReasoning({ reasoning = "off" }, "openai")
+    TestRunner:assertEqual(o.force, "off", "legacy off")
+end)
+
+TestRunner:test("no reasoning config -> nil (inherit)", function()
+    local o = ModelConstraints.parseActionReasoning({}, "openai")
+    TestRunner:assertNil(o, "nil inherit")
+end)
+
+TestRunner:suite("applyReasoningParams: xAI off via 'none'")
+
+TestRunner:test("xAI force-off sends effort 'none'", function()
+    local d = ModelConstraints.resolveReasoning("xai", "grok-4.3", {
+        global_stance = "default", action_override = { force = "off" },
+    })
+    TestRunner:assertEqual(d.mode, "off", "off")
+    local params = {}
+    ModelConstraints.applyReasoningParams("xai", params, d)
+    TestRunner:assertEqual(params.xai_reasoning.effort, "none", "effort none")
+end)
+
+--------------------------------------------------------------------------------
+-- Test: ReasoningPrefs store (accessors / mutators / display)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("ReasoningPrefs store")
+
+local ReasoningPrefs = require("reasoning_prefs")
+
+TestRunner:test("modelKey composes provider/model", function()
+    TestRunner:assertEqual(ReasoningPrefs.modelKey("anthropic", "claude-opus-4-8"),
+        "anthropic/claude-opus-4-8", "key format")
+end)
+
+TestRunner:test("getStance defaults to 'default' when unset", function()
+    TestRunner:assertEqual(ReasoningPrefs.getStance({}), "default", "empty -> default")
+    TestRunner:assertEqual(ReasoningPrefs.getStance({ reasoning_prefs = { stance = "bogus" } }),
+        "default", "invalid -> default")
+end)
+
+TestRunner:test("setStance / getStance round-trip", function()
+    local f = {}
+    ReasoningPrefs.setStance(f, "minimal")
+    TestRunner:assertEqual(ReasoningPrefs.getStance(f), "minimal", "stance saved")
+    TestRunner:assertNil(f.reasoning_prefs.providers, "stance set does not create providers")
+    TestRunner:assertNil(f.reasoning_prefs.models, "stance set does not create models")
+end)
+
+TestRunner:test("provider pref set / get / clear", function()
+    local f = {}
+    ReasoningPrefs.setProviderPref(f, "anthropic", { effort = "low" })
+    TestRunner:assertEqual(ReasoningPrefs.getProviderPref(f, "anthropic").effort, "low", "saved")
+    ReasoningPrefs.clearProviderPref(f, "anthropic")
+    TestRunner:assertNil(ReasoningPrefs.getProviderPref(f, "anthropic"), "cleared")
+end)
+
+TestRunner:test("model pref set / get / clear (keyed by provider/model)", function()
+    local f = {}
+    ReasoningPrefs.setModelPref(f, "deepseek", "deepseek-v4-pro", { state = "off" })
+    TestRunner:assertEqual(ReasoningPrefs.getModelPref(f, "deepseek", "deepseek-v4-pro").state, "off", "saved")
+    TestRunner:assertNil(ReasoningPrefs.getModelPref(f, "deepseek", "deepseek-v4-flash"), "other model unaffected")
+    ReasoningPrefs.clearModelPref(f, "deepseek", "deepseek-v4-pro")
+    TestRunner:assertNil(ReasoningPrefs.getModelPref(f, "deepseek", "deepseek-v4-pro"), "cleared")
+end)
+
+TestRunner:test("two features tables stay independent (no aliasing)", function()
+    local a, b = {}, {}
+    ReasoningPrefs.setModelPref(a, "deepseek", "deepseek-v4-pro", { state = "off" })
+    TestRunner:assertNil(ReasoningPrefs.getModelPref(b, "deepseek", "deepseek-v4-pro"), "b unaffected")
+end)
+
+TestRunner:test("resolve applies stored model pref", function()
+    local f = {}
+    ReasoningPrefs.setModelPref(f, "deepseek", "deepseek-v4-pro", { state = "off" })
+    local d = ReasoningPrefs.resolve(f, "deepseek", "deepseek-v4-pro")
+    TestRunner:assertEqual(d.mode, "off", "model pref off resolves off")
+end)
+
+TestRunner:test("summaryLabel reflects effective state", function()
+    local f = {}
+    -- default stance, deepseek thinks naturally -> "Default"
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Default"), "default")
+    ReasoningPrefs.setStance(f, "minimal")
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Off"), "minimal -> off")
+    -- Opus at maximum shows the effort level
+    ReasoningPrefs.setStance(f, "maximum")
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "anthropic", "claude-opus-4-8"), _("Max"), "maximum -> Max")
+    -- Mistral always on
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "mistral", "magistral-medium"), _("Always on"), "mistral")
 end)
 
 -- Summary
