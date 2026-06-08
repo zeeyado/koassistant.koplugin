@@ -393,4 +393,40 @@ function ModelConstraints.clampMaxTokens(provider, model, value)
     return value
 end
 
+--- Append an actionable tip when a Gemini-3 grounded (web-search) request fails with a
+--- 429/quota error. Gemini-3 grounding uses a separate monthly quota shared across all
+--- Gemini-3 models, independent of 2.5's daily quota, so it can be exhausted while 2.5
+--- grounding still works on the same key. Plain text (emoji don't render in MuPDF).
+--- Returns err_msg unchanged unless every condition holds.
+--- @param err_msg string: user-facing error message already built
+--- @param provider string|nil: provider id
+--- @param model string|nil: model id
+--- @param config table|nil: unified request config (for web-search gating)
+--- @return string
+function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, model, config)
+    if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
+    if provider ~= "gemini" then return err_msg end
+    if not (model and model:match("^gemini%-3")) then return err_msg end
+    -- web search enabled? per-action override > global (mirrors gemini.lua:146-153)
+    local ws = false
+    if config then
+        if config.enable_web_search ~= nil then
+            ws = config.enable_web_search
+        elseif config.features and config.features.enable_web_search then
+            ws = true
+        end
+    end
+    if not ws then return err_msg end
+    local lowered = err_msg:lower()
+    if not (lowered:find("429", 1, true)
+            or lowered:find("resource_exhausted", 1, true)
+            or lowered:find("quota", 1, true)) then
+        return err_msg
+    end
+    return err_msg .. "\n\n" ..
+        "Tip: Google Search grounding on Gemini 3 models uses a separate monthly quota " ..
+        "shared across all Gemini-3 models, which appears to be used up. Try a Gemini 2.5 " ..
+        "model for grounding, turn off web search, or link a billing account in Google AI Studio."
+end
+
 return ModelConstraints
