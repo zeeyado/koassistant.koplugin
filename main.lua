@@ -275,7 +275,11 @@ function AskGPT:init()
 
   -- Sync dictionary bypass setting (override Translator if enabled)
   self:syncDictionaryBypass()
-  
+
+  -- Register dictionary-popup AI buttons on KOReader's new addToDictButtons API
+  -- (no-op on older builds, which use the legacy onDictButtonsReady event).
+  self:installDictButtonRegistration()
+
   -- Register to main menu immediately
   self:registerToMainMenu()
   
@@ -284,6 +288,9 @@ function AskGPT:init()
     self:registerToMainMenu()
     -- Sync highlight bypass (needs ui.highlight to be available)
     self:syncHighlightBypass()
+    -- Backup: ensure new-API dict buttons are registered (idempotent;
+    -- covers cases where ui.dictionary wasn't ready at init time).
+    self:installDictButtonRegistration()
     -- Auto-reopen X-Ray browser after opening book from file browser
     local XrayBrowser = require("koassistant_xray_browser")
     if XrayBrowser._pending_reopen then
@@ -3805,7 +3812,251 @@ end
 
 -- Dictionary popup hook - adds AI Dictionary button to KOReader's native dictionary popup
 -- This event is fired by KOReader when the dictionary popup is about to display
+-- Shared executor for a dictionary-popup action. Used by BOTH the new
+-- addToDictButtons adapter (syncDictButtons) and the legacy onDictButtonsReady
+-- fallback. `word` is the looked-up word, `dict_popup` the DictQuickLookup
+-- instance, `non_reader_lookup` true when the lookup originated outside the
+-- reader (e.g. the chat viewer) so book context must NOT be extracted.
+function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
+  local features = self.settings:readSetting("features") or {}
+
+  -- FIRST: Capture selection_data for "Save to Note" feature (before popup closes)
+  -- The popup being open means selected_text still exists
+  local selection_data = nil
+  if self.ui and self.ui.highlight and self.ui.highlight.selected_text then
+    local st = self.ui.highlight.selected_text
+    selection_data = {
+      text = st.text,  -- Just the word
+      pos0 = st.pos0,
+      pos1 = st.pos1,
+      sboxes = st.sboxes,
+      pboxes = st.pboxes,
+      ext = st.ext,
+      drawer = st.drawer or "lighten",
+      color = st.color or "yellow",
+    }
+  end
+
+  -- CRITICAL: Extract context BEFORE closing the popup
+  -- The highlight/selection is cleared when the popup closes
+  -- Extract context only for reader-originated lookups.
+  -- Non-reader lookups (ChatGPT viewer, nested dictionary) have no meaningful
+  -- book context to extract — the word came from AI-generated or dictionary text.
+  local context = ""
+  local context_mode = features.dictionary_context_mode or "none"
+  local context_chars = features.dictionary_context_chars or 100
+  local extraction_mode = (context_mode == "none") and "sentence" or context_mode
+
+  if not non_reader_lookup then
+    if self.ui and self.ui.highlight and self.ui.highlight.getSelectedWordContext then
+      context = Dialogs.extractSurroundingContext(
+        self.ui,
+        word,
+        extraction_mode,
+        context_chars
+      )
+    end
+
+    if context ~= "" then
+      logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
+    else
+      logger.info("KOAssistant DICT: No context available (word tap, not selection)")
+    end
+  end
+
+  if action.local_handler then
+    -- Local actions don't need network or dictionary-specific config
+    self:updateConfigFromSettings()
+    -- Pass dictionary popup reference so X-Ray browser can close it
+    -- when launching book text search (prevents widget stack blocking)
+    configuration.features._source_widget = dict_popup
+    Dialogs.executeDirectAction(self.ui, action, word, configuration, self)
+  else
+    -- Ensure network is available (use runWhenConnected to avoid blocking DNS check)
+    NetworkMgr:runWhenConnected(function()
+      -- Make sure we're using the latest configuration
+      self:updateConfigFromSettings()
+      -- Get effective dictionary language
+      local SystemPrompts = require("prompts.system_prompts")
+      local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
+        dictionary_language = features.dictionary_language,
+        translation_language = features.translation_language,
+        translation_use_primary = features.translation_use_primary,
+        interaction_languages = features.interaction_languages,
+        user_languages = features.user_languages,
+        primary_language = features.primary_language,
+      })
+
+      -- Create a shallow copy of configuration to avoid polluting global state
+      local dict_config = {}
+      for k, v in pairs(configuration) do
+        dict_config[k] = v
+      end
+      -- Deep copy features to avoid modifying global
+      dict_config.features = {}
+      if configuration.features then
+        for k, v in pairs(configuration.features) do
+          dict_config.features[k] = v
+        end
+      end
+
+      -- Clear context flags to ensure highlight context (like executeQuickAction does)
+      dict_config.features.is_general_context = nil
+      dict_config.features.is_book_context = nil
+      dict_config.features.is_library_context = nil
+
+      -- Set dictionary-specific values
+      if non_reader_lookup then
+        -- Non-reader lookup: no context available, disable CTX toggle
+        dict_config.features.dictionary_context = ""
+        dict_config.features._original_context = ""
+        dict_config.features._no_context_available = true
+      else
+        -- Only include context in the request if mode is not "none"
+        dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
+        -- Always store extracted context so compact view toggle can use it
+        dict_config.features._original_context = context
+        dict_config.features._original_context_mode = extraction_mode
+      end
+      dict_config.features.dictionary_language = dict_language
+      dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
+      -- Store selection_data for "Save to Note" feature (word position only)
+      dict_config.features.selection_data = selection_data
+
+      -- Skip auto-save for dictionary if setting is enabled (default: true)
+      if features.dictionary_disable_auto_save ~= false then
+        dict_config.features.storage_key = "__SKIP__"
+      end
+
+      -- Apply view mode from action definition (respects user overrides)
+      if action.compact_view then
+        dict_config.features.compact_view = true
+        dict_config.features.hide_highlighted_text = true
+        dict_config.features.minimal_buttons = action.minimal_buttons ~= false
+        dict_config.features.large_stream_dialog = false  -- Small streaming dialog
+      elseif action.dictionary_view then
+        dict_config.features.dictionary_view = true
+        dict_config.features.hide_highlighted_text = true
+        dict_config.features.minimal_buttons = action.minimal_buttons ~= false
+      end
+
+      -- Check dictionary streaming setting
+      if features.dictionary_enable_streaming == false then
+        dict_config.features.enable_streaming = false
+      end
+
+      -- In popup mode, KOReader's dictionary already triggered WordLookedUp
+      -- (the word was added/skipped by KOReader's own vocab builder settings).
+      -- We just reflect the state for our UI button — don't fire the event again.
+      local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
+      if vocab_settings.enabled then
+        dict_config.features.vocab_word_auto_added = true
+      end
+
+      -- Execute the action
+      Dialogs.executeDirectAction(
+        self.ui,       -- ui
+        action,        -- action
+        word,          -- highlighted_text
+        dict_config,   -- local config copy (not global)
+        self           -- plugin
+      )
+    end)
+  end
+end
+
+-- New-API adapter: register our dictionary-popup actions via KOReader's
+-- addToDictButtons (PR #15184+). Re-runnable — clears our prior entries first,
+-- so it reflects the current configured action set on every call. Buttons are
+-- `conditional` (always shown, gated only by show_func) and grouped into rows of
+-- three to mirror the legacy layout. Driven by the showDict wrapper installed in
+-- init(), so reorders / X-Ray-cache changes take effect on the next popup.
+function AskGPT:syncDictButtons()
+  local dictionary = self.ui and self.ui.dictionary
+  if not dictionary or type(dictionary.addToDictButtons) ~= "function" then
+    return  -- old KOReader: legacy onDictButtonsReady path handles registration
+  end
+
+  local DictButtons = require("koassistant_dict_buttons")
+
+  -- Clear our previously-registered buttons (no removal API; nil the keys).
+  -- Collect keys first, then delete — never mutate while iterating.
+  if dictionary._dict_buttons then
+    local stale = DictButtons.ourKeys(dictionary._dict_buttons)
+    for _idx = 1, #stale do
+      dictionary._dict_buttons[stale[_idx]] = nil
+    end
+  end
+
+  local features = self.settings:readSetting("features") or {}
+  if features.enable_dictionary_hook == false then
+    return  -- hook disabled: leave our buttons cleared
+  end
+
+  local has_open_book = self.ui and self.ui.document ~= nil
+  local document_path = has_open_book and self.ui.document.file
+  local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book, document_path)
+
+  local self_ref = self
+  for i, action in ipairs(popup_actions) do
+    local act = action  -- capture per-iteration for closures
+    local spec = DictButtons.scaffold(act, i, ActionService.getActionDisplayText(act, features))
+    spec.show_func = function(popup)
+      local has_doc = (self_ref.ui and self_ref.ui.document) ~= nil
+      local visible = DictButtons.shouldShow(popup, act, has_doc, function()
+        local path = self_ref.ui and self_ref.ui.document and self_ref.ui.document.file
+        return path ~= nil and require("koassistant_action_cache").hasAnyXray(path)
+      end)
+      if not visible then return false end
+      -- Consume the non-reader-lookup flag once, onto the popup (idempotent
+      -- across rebuilds from pagination/resize).
+      DictButtons.consumeNonReader(popup, self_ref.ui and self_ref.ui.dictionary)
+      return true
+    end
+    spec.callback = function(popup)
+      self_ref:executeDictAction(act, popup.word, popup, popup._koassistant_non_reader)
+    end
+    dictionary:addToDictButtons(spec)
+  end
+end
+
+-- Install new-API (KOReader PR #15184+) dictionary button registration.
+-- No-op on older KOReader (the legacy onDictButtonsReady event handles those).
+-- Wraps showDict — the single popup-builder for every lookup — so the button set
+-- is refreshed right before each popup builds. This per-popup refresh is what
+-- keeps reorders and the conditional X-Ray button live without relying on events
+-- (onWordLookedUp is unreliable: VocabBuilder consumes it before us).
+function AskGPT:installDictButtonRegistration()
+  local dictionary = self.ui and self.ui.dictionary
+  if not dictionary or type(dictionary.addToDictButtons) ~= "function" then
+    return  -- old API: nothing to install (legacy path covers it)
+  end
+
+  if not dictionary._koassistant_original_showDict then
+    dictionary._koassistant_original_showDict = dictionary.showDict
+    local self_ref = self
+    dictionary.showDict = function(dict_self, ...)
+      self_ref:syncDictButtons()
+      local result = dictionary._koassistant_original_showDict(dict_self, ...)
+      -- Safety: clear any non-reader flag that no show_func consumed (e.g. when
+      -- our buttons are hidden) so it cannot leak to a later popup.
+      dict_self._koassistant_non_reader_lookup = nil
+      return result
+    end
+  end
+
+  -- Eager initial registration so the very first popup already has buttons.
+  self:syncDictButtons()
+end
+
 function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
+  -- New KOReader (PR #15184+) uses addToDictButtons and no longer broadcasts the
+  -- DictButtonsReady event, so this legacy hook is dead there. Guard anyway: on
+  -- such builds registration happens via syncDictButtons (showDict wrapper).
+  if self.ui and self.ui.dictionary and type(self.ui.dictionary.addToDictButtons) == "function" then
+    return
+  end
+
   -- Check if the hook is enabled
   local features = self.settings:readSetting("features") or {}
   if features.enable_dictionary_hook == false then
@@ -3848,168 +4099,17 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
       text = ActionService.getActionDisplayText(action, features) .. " (KOA)",
       font_bold = true,
       callback = function()
-        -- FIRST: Capture selection_data for "Save to Note" feature (before popup closes)
-        -- The popup being open means selected_text still exists
-        local selection_data = nil
-        if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.selected_text then
-          local st = self_ref.ui.highlight.selected_text
-          selection_data = {
-            text = st.text,  -- Just the word
-            pos0 = st.pos0,
-            pos1 = st.pos1,
-            sboxes = st.sboxes,
-            pboxes = st.pboxes,
-            ext = st.ext,
-            drawer = st.drawer or "lighten",
-            color = st.color or "yellow",
-          }
-        end
-
-        -- CRITICAL: Extract context BEFORE closing the popup
-        -- The highlight/selection is cleared when the popup closes
-        -- Extract context only for reader-originated lookups.
-        -- Non-reader lookups (ChatGPT viewer, nested dictionary) have no meaningful
-        -- book context to extract — the word came from AI-generated or dictionary text.
-        local context = ""
-        local context_mode = features.dictionary_context_mode or "none"
-        local context_chars = features.dictionary_context_chars or 100
-        local extraction_mode = (context_mode == "none") and "sentence" or context_mode
-
-        if not non_reader_lookup then
-          if self_ref.ui and self_ref.ui.highlight and self_ref.ui.highlight.getSelectedWordContext then
-            context = Dialogs.extractSurroundingContext(
-              self_ref.ui,
-              word,
-              extraction_mode,
-              context_chars
-            )
-          end
-
-          if context ~= "" then
-            logger.info("KOAssistant DICT: Got context (" .. #context .. " chars)")
-          else
-            logger.info("KOAssistant DICT: No context available (word tap, not selection)")
-          end
-        end
-
-        if action.local_handler then
-          -- Local actions don't need network or dictionary-specific config
-          self_ref:updateConfigFromSettings()
-          -- Pass dictionary popup reference so X-Ray browser can close it
-          -- when launching book text search (prevents widget stack blocking)
-          configuration.features._source_widget = dict_popup
-          Dialogs.executeDirectAction(self_ref.ui, action, word, configuration, self_ref)
-        else
-          -- Ensure network is available (use runWhenConnected to avoid blocking DNS check)
-          NetworkMgr:runWhenConnected(function()
-            -- Make sure we're using the latest configuration
-            self_ref:updateConfigFromSettings()
-            -- Get effective dictionary language
-            local SystemPrompts = require("prompts.system_prompts")
-            local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
-              dictionary_language = features.dictionary_language,
-              translation_language = features.translation_language,
-              translation_use_primary = features.translation_use_primary,
-              interaction_languages = features.interaction_languages,
-              user_languages = features.user_languages,
-              primary_language = features.primary_language,
-            })
-
-            -- Create a shallow copy of configuration to avoid polluting global state
-            local dict_config = {}
-            for k, v in pairs(configuration) do
-              dict_config[k] = v
-            end
-            -- Deep copy features to avoid modifying global
-            dict_config.features = {}
-            if configuration.features then
-              for k, v in pairs(configuration.features) do
-                dict_config.features[k] = v
-              end
-            end
-
-            -- Clear context flags to ensure highlight context (like executeQuickAction does)
-            dict_config.features.is_general_context = nil
-            dict_config.features.is_book_context = nil
-            dict_config.features.is_library_context = nil
-
-            -- Set dictionary-specific values
-            if non_reader_lookup then
-              -- Non-reader lookup: no context available, disable CTX toggle
-              dict_config.features.dictionary_context = ""
-              dict_config.features._original_context = ""
-              dict_config.features._no_context_available = true
-            else
-              -- Only include context in the request if mode is not "none"
-              dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
-              -- Always store extracted context so compact view toggle can use it
-              dict_config.features._original_context = context
-              dict_config.features._original_context_mode = extraction_mode
-            end
-            dict_config.features.dictionary_language = dict_language
-            dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
-            -- Store selection_data for "Save to Note" feature (word position only)
-            dict_config.features.selection_data = selection_data
-
-            -- Skip auto-save for dictionary if setting is enabled (default: true)
-            if features.dictionary_disable_auto_save ~= false then
-              dict_config.features.storage_key = "__SKIP__"
-            end
-
-            -- Apply view mode from action definition (respects user overrides)
-            if action.compact_view then
-              dict_config.features.compact_view = true
-              dict_config.features.hide_highlighted_text = true
-              dict_config.features.minimal_buttons = action.minimal_buttons ~= false
-              dict_config.features.large_stream_dialog = false  -- Small streaming dialog
-            elseif action.dictionary_view then
-              dict_config.features.dictionary_view = true
-              dict_config.features.hide_highlighted_text = true
-              dict_config.features.minimal_buttons = action.minimal_buttons ~= false
-            end
-
-            -- Check dictionary streaming setting
-            if features.dictionary_enable_streaming == false then
-              dict_config.features.enable_streaming = false
-            end
-
-            -- In popup mode, KOReader's dictionary already triggered WordLookedUp
-            -- (the word was added/skipped by KOReader's own vocab builder settings).
-            -- We just reflect the state for our UI button — don't fire the event again.
-            local vocab_settings = G_reader_settings and G_reader_settings:readSetting("vocabulary_builder") or {}
-            if vocab_settings.enabled then
-              dict_config.features.vocab_word_auto_added = true
-            end
-
-            -- Execute the action
-            Dialogs.executeDirectAction(
-              self_ref.ui,   -- ui
-              action,        -- action (from closure)
-              word,          -- highlighted_text
-              dict_config,   -- local config copy (not global)
-              self_ref       -- plugin
-            )
-          end)
-        end
+        self_ref:executeDictAction(action, word, dict_popup, non_reader_lookup)
       end,
     }
   end
 
   -- Create buttons arranged in rows of 3
-  local plugin_rows = {}
-  local current_row = {}
-
+  local buttons = {}
   for _i, action in ipairs(popup_actions) do
-    table.insert(current_row, createActionButton(action))
-    if #current_row == 3 then
-      table.insert(plugin_rows, current_row)
-      current_row = {}
-    end
+    table.insert(buttons, createActionButton(action))
   end
-  -- Add any remaining buttons in a partial row
-  if #current_row > 0 then
-    table.insert(plugin_rows, current_row)
-  end
+  local plugin_rows = require("koassistant_dict_buttons").splitRows(buttons)
 
   -- Insert all rows at position 2 (after the first row of standard buttons)
   -- Insert in reverse order so they appear in correct order
