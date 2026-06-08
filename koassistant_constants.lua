@@ -119,8 +119,8 @@ Constants.QUICK_ACTION_UTILITIES = {
     { id = "chat_history",       callback = "onKOAssistantChatHistory",         default = true },
     { id = "notebook",           callback = "onKOAssistantNotebook",            default = true },
     { id = "view_caches",        callback = "viewCache",                        default = true },  -- "View Artifacts": single button, opens cache picker
-    { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
     { id = "book_settings",      callback = "onKOAssistantBookSettings",        default = true },  -- per-book settings (domain, research, AI title/author)
+    { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
 }
 
 --- Get display text for a Quick Action utility
