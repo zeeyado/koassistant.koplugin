@@ -3653,209 +3653,63 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Get all domains (folder + UI-created) sorted
         local sorted_domains = DomainLoader.getSortedDomains(custom_domains)
 
-        local buttons = {}
-
         -- Helper to close and refresh input dialog
         local function closeAndRefresh()
             UIManager:close(_G.domain_selector_dialog)
             refreshInputDialog()
         end
 
-        -- Helper to close and reopen this selector (for target toggle)
-        local function reopenSelector()
-            UIManager:close(_G.domain_selector_dialog)
-            showDomainSelector()
-        end
+        local state = {
+            domains = sorted_domains,
+            has_book = doc_settings ~= nil,
+            is_book_target = (doc_settings and domain_target == "book") or false,
+            book_domain = book_domain_id,
+            global_domain = selected_domain,
+            book_research = book_research_id,
+            global_research = configuration.features and configuration.features.research_mode,
+        }
 
-        local is_book_target = doc_settings and domain_target == "book"
+        local cb = {
+            set_target = function(new_target)
+                domain_target = new_target
+                UIManager:close(_G.domain_selector_dialog)
+                showDomainSelector()
+            end,
+            pick_book_domain = function(val)
+                book_domain_id = val
+                persistBookDomain(doc_settings, val)
+                closeAndRefresh()
+            end,
+            pick_global_domain = function(id)
+                selected_domain = id
+                configuration.features = configuration.features or {}
+                configuration.features.selected_domain = id
+                persistDomainSelection(plugin, id)
+                closeAndRefresh()
+            end,
+            set_book_research = function(val)
+                book_research_id = val
+                persistBookResearchMode(doc_settings, val)
+                closeAndRefresh()
+            end,
+            set_global_research = function(val)
+                configuration.features = configuration.features or {}
+                configuration.features.research_mode = val
+                if plugin and plugin.settings then
+                    local f = plugin.settings:readSetting("features") or {}
+                    f.research_mode = val
+                    plugin.settings:saveSetting("features", f)
+                    plugin.settings:flush()
+                end
+                closeAndRefresh()
+            end,
+            close = function()
+                UIManager:close(_G.domain_selector_dialog)
+            end,
+        }
 
-        if doc_settings then
-            -- Target toggle row: [For this book] [Global default]
-            local book_label = is_book_target and ("● " .. _("For this book")) or ("○ " .. _("For this book"))
-            local global_label = (not is_book_target) and ("● " .. _("Global")) or ("○ " .. _("Global"))
-            table.insert(buttons, {
-                {
-                    text = book_label,
-                    callback = function()
-                        if domain_target ~= "book" then
-                            domain_target = "book"
-                            reopenSelector()
-                        end
-                    end,
-                },
-                {
-                    text = global_label,
-                    callback = function()
-                        if domain_target ~= "global" then
-                            domain_target = "global"
-                            reopenSelector()
-                        end
-                    end,
-                },
-            })
-        end
-
-        if is_book_target then
-            -- Book target: show "Use global default" option first
-            local use_global_prefix = (not book_domain_id) and "● " or "○ "
-            table.insert(buttons, {
-                {
-                    text = use_global_prefix .. _("Use global"),
-                    callback = function()
-                        book_domain_id = nil
-                        persistBookDomain(doc_settings, nil)
-                        closeAndRefresh()
-                    end,
-                },
-            })
-
-            -- "None" (explicit override to no domain)
-            local none_prefix = (book_domain_id == "_none") and "● " or "○ "
-            table.insert(buttons, {
-                {
-                    text = none_prefix .. _("None"),
-                    callback = function()
-                        book_domain_id = "_none"
-                        persistBookDomain(doc_settings, "_none")
-                        closeAndRefresh()
-                    end,
-                },
-            })
-
-            -- Domain options
-            for _idx, domain in ipairs(sorted_domains) do
-                local prefix = (book_domain_id == domain.id) and "● " or "○ "
-                table.insert(buttons, {
-                    {
-                        text = prefix .. domain.display_name,
-                        callback = function()
-                            book_domain_id = domain.id
-                            persistBookDomain(doc_settings, domain.id)
-                            closeAndRefresh()
-                        end,
-                    },
-                })
-            end
-        else
-            -- Global target (or no book open): standard list
-            local none_prefix = (not selected_domain) and "● " or "○ "
-            table.insert(buttons, {
-                {
-                    text = none_prefix .. _("None"),
-                    callback = function()
-                        selected_domain = nil
-                        configuration.features = configuration.features or {}
-                        configuration.features.selected_domain = nil
-                        persistDomainSelection(plugin, nil)
-                        closeAndRefresh()
-                    end,
-                },
-            })
-
-            for _idx, domain in ipairs(sorted_domains) do
-                local prefix = (selected_domain == domain.id) and "● " or "○ "
-                table.insert(buttons, {
-                    {
-                        text = prefix .. domain.display_name,
-                        callback = function()
-                            selected_domain = domain.id
-                            configuration.features = configuration.features or {}
-                            configuration.features.selected_domain = domain.id
-                            persistDomainSelection(plugin, domain.id)
-                            closeAndRefresh()
-                        end,
-                    },
-                })
-            end
-        end
-
-        -- Research mode section (separator + toggle)
-        -- Shares the same book/global target as domain selection
-        table.insert(buttons, {
-            {
-                text = "─── " .. _("Research Mode") .. " ───",
-                enabled = false,
-            },
-        })
-
-        if is_book_target then
-            -- Book target: three options (Use global / On / Off)
-            local use_global_prefix = (book_research_id == nil) and "● " or "○ "
-            local on_prefix = (book_research_id == true) and "● " or "○ "
-            local off_prefix = (book_research_id == false) and "● " or "○ "
-            table.insert(buttons, {
-                {
-                    text = use_global_prefix .. _("Use global"),
-                    callback = function()
-                        book_research_id = nil
-                        persistBookResearchMode(doc_settings, nil)
-                        closeAndRefresh()
-                    end,
-                },
-                {
-                    text = on_prefix .. _("On"),
-                    callback = function()
-                        book_research_id = true
-                        persistBookResearchMode(doc_settings, true)
-                        closeAndRefresh()
-                    end,
-                },
-                {
-                    text = off_prefix .. _("Off"),
-                    callback = function()
-                        book_research_id = false
-                        persistBookResearchMode(doc_settings, false)
-                        closeAndRefresh()
-                    end,
-                },
-            })
-        else
-            -- Global target: two options (Off / On)
-            local global_research = configuration.features and configuration.features.research_mode
-            local off_prefix = (not global_research) and "● " or "○ "
-            local on_prefix = (global_research == true) and "● " or "○ "
-            table.insert(buttons, {
-                {
-                    text = off_prefix .. _("Off"),
-                    callback = function()
-                        configuration.features = configuration.features or {}
-                        configuration.features.research_mode = nil
-                        if plugin and plugin.settings then
-                            local f = plugin.settings:readSetting("features") or {}
-                            f.research_mode = nil
-                            plugin.settings:saveSetting("features", f)
-                            plugin.settings:flush()
-                        end
-                        closeAndRefresh()
-                    end,
-                },
-                {
-                    text = on_prefix .. _("On"),
-                    callback = function()
-                        configuration.features = configuration.features or {}
-                        configuration.features.research_mode = true
-                        if plugin and plugin.settings then
-                            local f = plugin.settings:readSetting("features") or {}
-                            f.research_mode = true
-                            plugin.settings:saveSetting("features", f)
-                            plugin.settings:flush()
-                        end
-                        closeAndRefresh()
-                    end,
-                },
-            })
-        end
-
-        -- Close button
-        table.insert(buttons, {
-            {
-                text = _("Close"),
-                id = "close",
-                callback = function()
-                    UIManager:close(_G.domain_selector_dialog)
-                end,
-            },
-        })
+        local BookSettings = require("koassistant_book_settings")
+        local buttons = BookSettings.buildDomainResearchButtons(state, cb)
 
         local ButtonDialog = require("ui/widget/buttondialog")
         _G.domain_selector_dialog = ButtonDialog:new{
