@@ -44,6 +44,9 @@ local StreamHandler = {
     user_interrupted = false,    -- flag to indicate if the stream was interrupted
 }
 
+-- Exposed for unit testing (the local above is the canonical implementation).
+StreamHandler.extractApiError = extractApiError
+
 function StreamHandler:new(o)
     o = o or {}
     setmetatable(o, self)
@@ -118,6 +121,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local partial_data = ""
     local result_buffer = {}
     local reasoning_buffer = {}  -- Capture reasoning content during stream
+    local error_body_lines = {}  -- raw unrecognized lines (e.g. a non-200 JSON error body
+                                 -- streamed before the PROTOCOL_NON_200 marker on non-macOS);
+                                 -- kept OUT of result_buffer so fragments never reach the viewer
     local non200 = false
     local completed = false
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
@@ -239,6 +245,15 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             ui_update_task = nil
         end
         UIManager:close(streamDialog)
+
+        -- If unrecognized lines were buffered but no error marker fired, this was a
+        -- genuine (if unusual) content stream — flush them so nothing is lost.
+        if not non200 and #error_body_lines > 0 then
+            for _idx = 1, #error_body_lines do
+                table.insert(result_buffer, error_body_lines[_idx])
+            end
+            for _idx = #error_body_lines, 1, -1 do error_body_lines[_idx] = nil end
+        end
 
         local result = table.concat(result_buffer):match("^%s*(.-)%s*$") or "" -- trim
 
@@ -981,13 +996,30 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                         end
                     elseif line:sub(1, #PROTOCOL_NON_200) == PROTOCOL_NON_200 then
                         non200 = true
-                        table.insert(result_buffer, "\n\n" .. line:sub(#PROTOCOL_NON_200 + 1))
+                        -- Prefer the clean message from the JSON error body that streamed in
+                        -- before the marker (non-macOS path); mirrors the non-streaming consumer
+                        -- in koassistant_gpt_query.lua. macOS sends only the marker (no body), so
+                        -- error_body_lines is empty and we fall back to the marker text, which is
+                        -- already clean ("HTTP <code>: <message>" from BaseHandler.formatNon200).
+                        local marker_text = line:sub(#PROTOCOL_NON_200 + 1)
+                        local body = table.concat(error_body_lines):match("^%s*(.-)%s*$") or ""
+                        local clean = (#body > 0 and extractApiError(body)) or marker_text:match("^%s*(.-)%s*$")
+                        if not clean or clean == "" then clean = "Request failed" end
+                        -- result_buffer must hold ONLY the clean message. Clear in place
+                        -- (closures hold this upvalue by reference).
+                        for _idx = #result_buffer, 1, -1 do result_buffer[_idx] = nil end
+                        for _idx = #error_body_lines, 1, -1 do error_body_lines[_idx] = nil end
+                        table.insert(result_buffer, clean)
                         completed = true
                         finishStream()
                         return
                     else
                         if #line:match("^%s*(.-)%s*$") > 0 then
-                            table.insert(result_buffer, line)
+                            -- Buffer separately, NOT into result_buffer. On non-macOS a non-200
+                            -- JSON error body streams in as "unrecognized" lines before the
+                            -- PROTOCOL_NON_200 marker; inserting it into result_buffer dumps
+                            -- garbled JSON fragments into the viewer.
+                            table.insert(error_body_lines, line)
                             logger.warn("Unrecognized line format:", line)
                         end
                     end

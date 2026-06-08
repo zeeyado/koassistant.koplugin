@@ -8,6 +8,7 @@ local ffi = require("ffi")
 local ffiutil = require("ffi/util")
 local json = require("json")
 local DebugUtils = require("koassistant_debug_utils")
+local ModelConstraints = require("model_constraints")
 
 -- Attempt to load the configuration module first
 local success, result = pcall(function() return require("configuration") end)
@@ -250,7 +251,8 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
                 if decode_ok and j then
                     local err = (j.error and j.error.message) or j.message
                     if err then
-                        finish(false, nil, err)
+                        finish(false, nil, ModelConstraints.maybeAppendGemini3GroundingHint(
+                            err, provider, config and config.model, config))
                         return
                     end
                 end
@@ -260,7 +262,9 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
             if err_msg then
                 err_msg = err_msg:gsub("^%s*", ""):gsub("%s*$", "")  -- trim
             end
-            finish(false, nil, err_msg ~= "" and err_msg or "Request failed")
+            finish(false, nil, ModelConstraints.maybeAppendGemini3GroundingHint(
+                err_msg ~= "" and err_msg or "Request failed",
+                provider, config and config.model, config))
             return
         end
 
@@ -495,7 +499,9 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
                 end
 
                 if not stream_success then
-                    if on_complete then on_complete(false, nil, err or "Unknown streaming error") end
+                    local emsg = ModelConstraints.maybeAppendGemini3GroundingHint(
+                        err or "Unknown streaming error", provider, config.model, config)
+                    if on_complete then on_complete(false, nil, emsg) end
                     return
                 end
 
