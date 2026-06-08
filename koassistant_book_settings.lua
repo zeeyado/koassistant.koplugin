@@ -94,8 +94,9 @@ end
 --   set_book_research(true | false | nil)
 --   set_global_research(true | nil)
 --   close()
+-- @param opts table|nil: { omit_close = bool }  -- caller appends its own rows + Close
 -- @return table buttons (ButtonDialog rows)
-function BookSettings.buildDomainResearchButtons(state, cb)
+function BookSettings.buildDomainResearchButtons(state, cb, opts)
     local buttons = {}
     local function dot(active) return active and "● " or "○ " end
 
@@ -185,11 +186,13 @@ function BookSettings.buildDomainResearchButtons(state, cb)
         })
     end
 
-    table.insert(buttons, {{
-        text = _("Close"),
-        id = "close",
-        callback = function() cb.close() end,
-    }})
+    if not (opts and opts.omit_close) then
+        table.insert(buttons, {{
+            text = _("Close"),
+            id = "close",
+            callback = function() cb.close() end,
+        }})
+    end
 
     return buttons
 end
@@ -205,7 +208,10 @@ end
 --   document_path   string|nil  -- explicit target book; nil = the open book
 --   on_close        function|nil -- called after the dialog closes (e.g. reopen QS panel)
 --   target_override "book" | "global" | nil  -- forces the editing layer (used by the toggle)
-function BookSettings.show(opts)
+-- Internal: build and show the per-book dialog. full=true adds the AI title/author
+-- rows and titles it "Book Settings"; full=false is the Domain & Research picker only
+-- (used by the Quick Settings chip, which must stay a domain/research control).
+local function buildAndShow(opts, full)
     opts = opts or {}
     local plugin = opts.plugin
     local ui = opts.ui
@@ -231,6 +237,14 @@ function BookSettings.show(opts)
     local function closeDialog()
         if dialog then UIManager:close(dialog); dialog = nil end
     end
+    -- Reopen the same dialog (same mode + target), e.g. after a target toggle or an edit.
+    local function reopen(new_target)
+        closeDialog()
+        buildAndShow({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target or domain_target,
+        }, full)
+    end
     -- After a write: close, re-sync in-memory config from disk, notify caller.
     local function commit()
         closeDialog()
@@ -255,13 +269,7 @@ function BookSettings.show(opts)
     }
 
     local cb = {
-        set_target = function(new_target)
-            closeDialog()
-            BookSettings.show({
-                plugin = plugin, ui = ui, document_path = document_path,
-                on_close = on_close, target_override = new_target,
-            })
-        end,
+        set_target = function(new_target) reopen(new_target) end,
         pick_book_domain = function(val)
             doc_settings:saveSetting("koassistant_book_domain", val)
             doc_settings:flush()
@@ -286,11 +294,93 @@ function BookSettings.show(opts)
         end,
     }
 
+    -- Domain & Research only: the builder owns the Close button. (Quick Settings chip.)
+    if not full then
+        dialog = ButtonDialog:new{
+            title = _("Domain & Research"),
+            buttons = BookSettings.buildDomainResearchButtons(state, cb),
+        }
+        UIManager:show(dialog)
+        return
+    end
+
+    -- Per-book AI title/author override editor (sidecar key; never touches library metadata)
+    local function editOverride(key, dialog_title)
+        local InputDialog = require("ui/widget/inputdialog")
+        local current = (doc_settings and doc_settings:readSetting(key)) or ""
+        local input
+        input = InputDialog:new{
+            title = dialog_title,
+            input = current,
+            input_hint = _("Leave empty to use the book's real metadata"),
+            buttons = {
+                {
+                    {
+                        text = _("Cancel"),
+                        id = "close",
+                        callback = function() UIManager:close(input) end,
+                    },
+                    {
+                        text = _("Save"),
+                        is_enter_default = true,
+                        callback = function()
+                            local val = input:getInputText()
+                            if val == "" then val = nil end
+                            doc_settings:saveSetting(key, val)
+                            doc_settings:flush()
+                            UIManager:close(input)
+                            reopen()  -- reflect the change, preserve target
+                        end,
+                    },
+                },
+            },
+        }
+        UIManager:show(input)
+        input:onShowKeyboard()
+    end
+
+    local buttons = BookSettings.buildDomainResearchButtons(state, cb, { omit_close = true })
+
+    -- AI title/author override rows (per-book only; shown when editing this book)
+    if state.is_book_target then
+        local ai_title, ai_author = BookSettings.getMetadataOverride(doc_settings)
+        table.insert(buttons, {{
+            text = "─── " .. _("AI sees this book as") .. " ───",
+            enabled = false,
+        }})
+        table.insert(buttons, {{
+            text = _("Title: ") .. (ai_title or _("(actual)")),
+            callback = function() editOverride(BookSettings.KEY_AI_TITLE, _("AI title for this book")) end,
+        }})
+        table.insert(buttons, {{
+            text = _("Author: ") .. (ai_author or _("(actual)")),
+            callback = function() editOverride(BookSettings.KEY_AI_AUTHOR, _("AI author for this book")) end,
+        }})
+    end
+
+    table.insert(buttons, {{
+        text = _("Close"),
+        id = "close",
+        callback = function() cb.close() end,
+    }})
+
     dialog = ButtonDialog:new{
-        title = _("Domain & Research"),
-        buttons = BookSettings.buildDomainResearchButtons(state, cb),
+        title = _("Book Settings"),
+        buttons = buttons,
     }
     UIManager:show(dialog)
+end
+
+--- Full per-book "Book Settings" dialog (domain/research + AI title/author + future tiers).
+--- For the Quick Actions panel, file browser, and the input-dialog button.
+function BookSettings.show(opts)
+    buildAndShow(opts, true)
+end
+
+--- Domain & Research picker only (no per-book AI overrides). For the Quick Settings panel
+--- domain chip — keeps that surface as the domain/research control it has always been.
+function BookSettings.showDomainResearch(opts)
+    buildAndShow(opts, false)
 end
 
 return BookSettings

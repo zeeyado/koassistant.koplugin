@@ -163,7 +163,15 @@ local function getRawDocProps(file)
 end
 
 local function buildBookMetadata(title, authors, file, doc_props, document, doc_settings)
-    return DOIResolver.buildBookMetadata(title, authors, file, doc_props, document, doc_settings)
+    local metadata = DOIResolver.buildBookMetadata(title, authors, file, doc_props, document, doc_settings)
+    -- Apply per-book AI title/author override (what the AI sees; never touches library metadata).
+    -- Load the sidecar from disk when no doc_settings was passed but we have a file path.
+    local ds = doc_settings
+    if not ds and file then
+        local DocSettings = require("docsettings")
+        ds = DocSettings:open(file)
+    end
+    return require("koassistant_book_settings").applyMetadataOverride(metadata, ds)
 end
 
 local AskGPT = WidgetContainer:extend{
@@ -9498,7 +9506,7 @@ end
 --- @param target_override string|nil: "book" | "global" — forces the editing layer
 function AskGPT:showDomainPopup(on_close_callback, target_override)
   local BookSettings = require("koassistant_book_settings")
-  BookSettings.show({
+  BookSettings.showDomainResearch({
     plugin = self,
     ui = self.ui,
     on_close = on_close_callback,

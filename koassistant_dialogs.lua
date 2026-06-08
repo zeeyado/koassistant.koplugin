@@ -2461,6 +2461,21 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
+    -- Apply per-book AI title/author override to what the AI sees (never library metadata).
+    -- Covers the highlight path (book_title/book_author read straight from doc_props) and any
+    -- book_metadata built from the doc_props fallback above.
+    do
+        local BookSettings = require("koassistant_book_settings")
+        local ai_title, ai_author = BookSettings.getMetadataOverride(per_book_ds)
+        if ai_title or ai_author then
+            if message_data.book_metadata then
+                message_data.book_metadata = BookSettings.applyMetadataOverride(message_data.book_metadata, per_book_ds)
+            end
+            if ai_title and message_data.book_title then message_data.book_title = ai_title end
+            if ai_author and message_data.book_author then message_data.book_author = ai_author end
+        end
+    end
+
     -- Resolve effective research mode
     -- Priority: action override > per-book setting > DOI auto-detection > global setting
     -- DOI scan always runs independently (for {doi_clause} placeholder) — this only controls behavior
@@ -6092,6 +6107,19 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             title = cfg_metadata.title or "Unknown",
             author = cfg_metadata.author or "",
         }
+    end
+
+    -- Apply per-book AI title/author override to what the AI sees (never library metadata)
+    if book_metadata then
+        local override_ds
+        if document_path then
+            if ui and ui.doc_settings and ui.document and ui.document.file == document_path then
+                override_ds = ui.doc_settings
+            else
+                override_ds = require("docsettings"):open(document_path)
+            end
+        end
+        book_metadata = require("koassistant_book_settings").applyMetadataOverride(book_metadata, override_ds)
     end
 
     -- Handle local-only actions (no AI call)
