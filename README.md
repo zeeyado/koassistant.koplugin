@@ -1180,6 +1180,7 @@ Insert these in your action prompt to reference dynamic values:
 | `{progress_decimal}` | Book (reading) | Reading position as decimal (e.g., "0.42") | Allow Basic Stats |
 | `{chapter_title}` | Book (reading) | Current chapter name | Allow Basic Stats |
 | `{chapters_read}` | Book (reading) | Number of chapters read (e.g., "5 of 12") | Allow Basic Stats |
+| `{page_number}` | Book (reading) | EPUB reference page label, e.g. "37" (the print-edition page from the book's page map; empty when the EPUB has none) | Allow Basic Stats |
 | `{time_since_last_read}` | Book (reading) | Time since last reading session (e.g., "3 days ago") | Allow Basic Stats |
 | `{highlights}` | Book, Highlight (reading) | All highlights from the document | Allow Highlights (or Allow Annotation Notes) |
 | `{annotations}` | Book, Highlight (reading) | All highlights with user notes | Allow Annotation Notes |

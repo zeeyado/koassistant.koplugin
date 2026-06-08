@@ -1070,6 +1070,7 @@ function ContextExtractor:getReadingStats()
         chapter_title = "(Chapter unavailable)",
         time_since_last_read = "Recently",
         last_read_timestamp = nil,
+        page_number = "",
     }
 
     if not self:isAvailable() then
@@ -1101,6 +1102,21 @@ function ContextExtractor:getReadingStats()
 
     if success_chapter and chapter_info then
         result.chapter_title = chapter_info.title
+    end
+
+    -- Get the EPUB reference page label from the document's page map
+    -- (the print-edition page number embedded in <nav epub:type="page-list">).
+    -- This is stable across font size / screen, unlike KOReader's reflow page
+    -- index, which makes it meaningful to the AI. Empty when the book ships no
+    -- page map (most EPUBs) or for page-based formats (PDF).
+    local success_page, page_label = pcall(function()
+        if self.ui.pagemap and self.ui.pagemap.has_pagemap then
+            return self.ui.pagemap:getCurrentPageLabel(true)
+        end
+        return nil
+    end)
+    if success_page and page_label and page_label ~= "" then
+        result.page_number = tostring(page_label)
     end
 
     -- Calculate chapters read (approximate from TOC)
@@ -1318,10 +1334,12 @@ function ContextExtractor:extractForAction(action)
         data.chapter_title = stats.chapter_title
         data.chapters_read = stats.chapters_read
         data.time_since_last_read = stats.time_since_last_read
+        data.page_number = stats.page_number
     else
         data.chapter_title = ""
         data.chapters_read = ""
         data.time_since_last_read = ""
+        data.page_number = ""
     end
 
     -- Page text extraction: exempt from text extraction gating (single page, minimal data)
