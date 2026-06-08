@@ -59,10 +59,11 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
-    -- DeepSeek V4 thinking toggle. V4 models think by DEFAULT, so default to
-    -- disabled when no explicit setting (reasoning is opt-in) — otherwise reasoning
-    -- stays on regardless of the toggle. Explicit enabled/disabled from dialogs wins.
-    request_body.thinking = api_params.deepseek_thinking or { type = "disabled" }
+    -- DeepSeek V4 thinking toggle (resolved upstream by the reasoning resolver).
+    -- When the resolver emits nothing (model behaves at its API default) we omit
+    -- `thinking` entirely so V4's default-on behaviour applies; an explicit
+    -- enabled/disabled decision is honoured as-is.
+    request_body.thinking = api_params.deepseek_thinking
 
     local headers = {
         ["Content-Type"] = "application/json",
@@ -120,10 +121,11 @@ function DeepSeekHandler:query(message_history, config)
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
-    -- DeepSeek V4 thinking toggle. V4 models think by DEFAULT, so default to
-    -- disabled when no explicit setting (reasoning is opt-in) — otherwise reasoning
-    -- stays on regardless of the toggle. Explicit enabled/disabled from dialogs wins.
-    request_body.thinking = api_params.deepseek_thinking or { type = "disabled" }
+    -- DeepSeek V4 thinking toggle (resolved upstream by the reasoning resolver).
+    -- When the resolver emits nothing (model behaves at its API default) we omit
+    -- `thinking` entirely so V4's default-on behaviour applies; an explicit
+    -- enabled/disabled decision is honoured as-is.
+    request_body.thinking = api_params.deepseek_thinking
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming

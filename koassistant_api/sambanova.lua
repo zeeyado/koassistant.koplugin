@@ -30,11 +30,12 @@ end
 function SambaNovaHandler:customizeRequestBody(body, config)
     local model = body.model or ""
     if ModelConstraints.supportsCapability("sambanova", model, "thinking") then
-        if config.api_params and config.api_params.sambanova_thinking then
-            body.chat_template_kwargs = { enable_thinking = true }
-        else
-            -- Default: explicitly disable (R1/Qwen3 default ON)
-            body.chat_template_kwargs = { enable_thinking = false }
+        local thinking = config.api_params and config.api_params.sambanova_thinking
+        -- Emit chat_template_kwargs only when the reasoning resolver made an explicit
+        -- on/off decision. When nil (resolver sent nothing) we omit it so the model
+        -- behaves at its API default (R1/Qwen3 think by default).
+        if thinking ~= nil then
+            body.chat_template_kwargs = { enable_thinking = thinking and true or false }
         end
     end
     return body

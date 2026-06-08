@@ -1,4 +1,5 @@
 local ModelConstraints = require("model_constraints")
+local ReasoningPrefs = require("reasoning_prefs")
 local DebugUtils = require("koassistant_debug_utils")
 
 local MessageHistory = {}
@@ -477,28 +478,24 @@ function MessageHistory:createResultText(highlightedText, config)
                 local features = config.features or {}
                 local full_model = config.model or model
 
-                if provider == "anthropic" then
-                    if features.anthropic_adaptive and ModelConstraints.supportsCapability("anthropic", full_model, "adaptive_thinking") then
-                        local effort = features.anthropic_effort or "high"
-                        reasoning_info = string.format(", adaptive(%s)", effort)
-                    elseif features.anthropic_reasoning and ModelConstraints.supportsCapability("anthropic", full_model, "extended_thinking") then
-                        local budget = features.reasoning_budget or 32000
-                        reasoning_info = string.format(", thinking=%d", budget)
-                    end
-                elseif provider == "openai" then
-                    if features.openai_reasoning and ModelConstraints.supportsCapability("openai", full_model, "reasoning_gated") then
-                        local effort = features.reasoning_effort or "medium"
-                        reasoning_info = string.format(", reasoning=%s", effort)
-                    end
-                elseif provider == "gemini" and features.gemini_reasoning then
-                    if ModelConstraints.supportsCapability("gemini", full_model, "thinking") then
-                        local depth = features.reasoning_depth or "high"
-                        reasoning_info = string.format(", thinking=%s", depth:lower())
-                    end
-                elseif provider == "deepseek" then
-                    if ModelConstraints.supportsCapability("deepseek", full_model, "reasoning") then
-                        reasoning_info = ", reasoning=auto"
-                    end
+                -- Reasoning info from the per-model resolver (stored prefs + stance).
+                local rdecision = ModelConstraints.resolveReasoning(provider, full_model, {
+                    global_stance = ReasoningPrefs.getStance(features),
+                    provider_pref = ReasoningPrefs.getProviderPref(features, provider),
+                    model_pref = ReasoningPrefs.getModelPref(features, provider, full_model),
+                })
+                if rdecision.axis == "none" then
+                    if rdecision.mode == "on" then reasoning_info = ", reasoning=always" end
+                elseif rdecision.send_nothing then
+                    reasoning_info = ", reasoning=default"
+                elseif rdecision.mode == "off" then
+                    reasoning_info = ", reasoning=off"
+                elseif rdecision.effort then
+                    reasoning_info = string.format(", reasoning=%s", rdecision.effort)
+                elseif rdecision.budget ~= nil then
+                    reasoning_info = string.format(", reasoning=budget:%d", rdecision.budget)
+                else
+                    reasoning_info = ", reasoning=on"
                 end
             end
 

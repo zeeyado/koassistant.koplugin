@@ -171,7 +171,7 @@ function Constants.getQsItemText(id, _)
         behavior = _("Behavior"),
         domain = _("Domain"),
         temperature = _("Temperature"),
-        extended_thinking = _("Anthropic/Gemini Reasoning"),
+        extended_thinking = _("Reasoning"),
         web_search = _("Web Search"),
         language = _("Language"),
         translation_language = _("Translation Language"),

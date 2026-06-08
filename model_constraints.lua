@@ -226,6 +226,188 @@ ModelConstraints.reasoning_defaults = {
     },
 }
 
+-- Per-model reasoning PROFILES — the single source of truth for the reasoning
+-- RESOLVER (resolveReasoning): each model's reasoning nature and how it responds
+-- to the global stance / per-provider+model preferences / per-action overrides.
+--
+-- NOTE: model membership here must stay in sync with ModelConstraints.capabilities
+-- above, which backs supportsCapability() gating used by the provider request
+-- builders. When adding/removing a model, update BOTH.
+--
+-- Fields:
+--   match          prefix-matched model id (same matching as supportsCapability)
+--   axis           "none"|"binary"|"effort"|"budget"|"adaptive_effort"
+--   default_state  "on"|"off" — natural behavior when NO reasoning param is sent
+--   can_disable    can reasoning be turned fully off?
+--   can_enable     can reasoning be turned on when off by default?
+--   options        ordered levels: effort labels (effort/adaptive) or budget keys (budget)
+--   default_option level used for "on" without an explicit choice
+--   off_option     effort axis only: explicit "off" value to send (e.g. xAI "none")
+--   stance_map     { minimal = {state=,option=}, maximum = {state=,option=} } (data-driven)
+--   needs_temp_1   builder must force temperature=1.0 when reasoning on (informational)
+--   needs_no_sampling builder strips all sampling params (Opus 4.7/4.8)
+--   budget_map     budget axis only: option key -> numeric budget
+ModelConstraints.reasoning_profiles = {
+    anthropic = {
+        -- Opus 4.8 / 4.7: adaptive-only, reject sampling params, default off (we only
+        -- think when `thinking` is sent), full Opus effort ladder incl. xhigh/max.
+        { match = "claude-opus-4-8", axis = "adaptive_effort", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_no_sampling = true },
+        { match = "claude-opus-4-7", axis = "adaptive_effort", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_no_sampling = true },
+        -- Opus 4.6: adaptive, full effort ladder, requires temp=1.0 when on.
+        { match = "claude-opus-4-6", axis = "adaptive_effort", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_temp_1 = true },
+        -- Sonnet 4.6: adaptive (preferred over legacy budget mode), low/medium/high.
+        { match = "claude-sonnet-4-6", axis = "adaptive_effort", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } },
+          needs_temp_1 = true },
+        -- Haiku 4.5: extended thinking (manual budget) only, requires temp=1.0 when on.
+        { match = "claude-haiku-4-5", axis = "budget", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "max" }, default_option = "high",
+          budget_map = { low = 8000, medium = 16000, high = 24000, max = 32000 },
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_temp_1 = true },
+    },
+    openai = {
+        -- GPT-5.5: reasons by default (medium), cannot be fully disabled.
+        { match = "gpt-5.5", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- GPT-5.4 family: gated (off by default), opt-in effort incl. xhigh.
+        { match = "gpt-5.4", axis = "effort", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+    },
+    deepseek = {
+        { match = "deepseek-v4-pro", axis = "binary", default_state = "on",
+          can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        { match = "deepseek-v4-flash", axis = "binary", default_state = "on",
+          can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+    },
+    gemini = {
+        -- Gemini 3 (thinkingLevel). Pro has no "minimal" floor; flash variants do.
+        { match = "gemini-3.1-pro-preview", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "gemini-3.5-flash", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "minimal" }, maximum = { option = "high" } } },
+        { match = "gemini-3.1-flash-lite", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "minimal" }, maximum = { option = "high" } } },
+        -- Gemini 2.5 (thinkingBudget): thinks by default (dynamic), can disable via 0.
+        { match = "gemini-2.5-flash", axis = "budget", default_state = "on",
+          can_disable = true, can_enable = true,
+          options = { "dynamic", "low", "medium", "high", "max" }, default_option = "dynamic",
+          budget_map = { dynamic = -1, low = 1024, medium = 8192, high = 16384, max = 24576 },
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+    },
+    zai = {
+        -- GLM-4.5+: thinking on by default, disableable; temp must be 1.0 when on.
+        { match = "glm-5.1", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        { match = "glm-5-turbo", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        { match = "glm-5", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        { match = "glm-4.7", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        { match = "glm-4.7-flash", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+    },
+    sambanova = {
+        { match = "DeepSeek-V3.1", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        { match = "DeepSeek-V3.2", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+    },
+    openrouter = {
+        -- Universal effort; "off" = don't request reasoning (backends may still reason).
+        { match = "", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+    },
+    groq = {
+        { match = "openai/gpt-oss-120b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "openai/gpt-oss-20b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "qwen/qwen3-32b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+    },
+    together = {
+        { match = "deepseek-ai/DeepSeek-V4-Pro", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "Qwen/Qwen3.5-397B-A17B", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "Qwen/Qwen3-235B-A22B", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+    },
+    fireworks = {
+        { match = "accounts/fireworks/models/deepseek-v4-pro", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "accounts/fireworks/models/deepseek-r1", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "accounts/fireworks/models/kimi-k2-thinking", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "accounts/fireworks/models/qwen3-235b-a22b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+    },
+    xai = {
+        -- grok-4.3 / 4.20 reasoning: reasons by default, disableable via effort "none".
+        { match = "grok-4.3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        { match = "grok-4.20-0309-reasoning", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+    },
+    perplexity = {
+        -- Always-on (web-grounded); effort only, cannot fully disable.
+        { match = "sonar-reasoning-pro", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "sonar-deep-research", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+    },
+    mistral = {
+        -- Magistral: always thinks, no control (extraction only).
+        { match = "magistral-medium", axis = "none", default_state = "on", can_disable = false, can_enable = false },
+        { match = "magistral-small", axis = "none", default_state = "on", can_disable = false, can_enable = false },
+    },
+}
+
 -- SINGLE SOURCE OF TRUTH for web search support + UI gating.
 -- To add a provider when web search is expanded, add ONE entry here — both
 -- supportsWebSearch() and every "supported providers" label/help string update.
@@ -273,6 +455,16 @@ function ModelConstraints.getWebSearchProvidersLabel()
     return table.concat(labels, ", ")
 end
 
+--- Match a model id against a base pattern: exact, or prefix (for versioned/dated ids).
+--- e.g. prefixMatch("claude-opus-4-8-20260115", "claude-opus-4-8") == true
+--- @param model string|nil
+--- @param pattern string|nil
+--- @return boolean
+local function prefixMatch(model, pattern)
+    if not model or not pattern then return false end
+    return model == pattern or model:match("^" .. pattern:gsub("%-", "%%-")) ~= nil
+end
+
 --- Check if a model supports a specific capability
 --- @param provider string: Provider name (e.g., "anthropic", "openai")
 --- @param model string: Model name (e.g., "claude-sonnet-4-5-20250929")
@@ -285,8 +477,7 @@ function ModelConstraints.supportsCapability(provider, model, capability)
     end
 
     for _, supported in ipairs(caps[capability]) do
-        -- Exact match or prefix match (for versioned models)
-        if model == supported or model:match("^" .. supported:gsub("%-", "%%-")) then
+        if prefixMatch(model, supported) then
             return true
         end
     end
@@ -428,6 +619,241 @@ function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, mod
         "free-tier limit of 0 even with billing attached, when your project's paid tier isn't " ..
         "provisioned for it. Workarounds: use a Gemini 2.5 model for web search, switch to " ..
         "Anthropic/Perplexity/OpenRouter, or enable paid-tier quota for Gemini 3 in Google AI Studio."
+end
+
+--------------------------------------------------------------------------------
+-- Reasoning resolution
+--------------------------------------------------------------------------------
+
+--- Look up the reasoning profile for a provider/model.
+--- Returns the first prefix match, or a synthetic passthrough profile for
+--- unknown/custom models (axis="none" => resolver emits nothing => request untouched).
+--- @param provider string|nil
+--- @param model string|nil
+--- @return table profile
+function ModelConstraints.getReasoningProfile(provider, model)
+    local list = provider and ModelConstraints.reasoning_profiles[provider]
+    if list then
+        for _, p in ipairs(list) do
+            if prefixMatch(model, p.match) then
+                return p
+            end
+        end
+    end
+    return {
+        axis = "none",
+        default_state = "off",
+        can_disable = false,
+        can_enable = false,
+    }
+end
+
+-- Extract a {state, option} intent from a stored preference table, or nil if the
+-- pref carries no reasoning fields (so resolution falls through to the next layer).
+local function prefDesired(pref)
+    if not pref then return nil end
+    if pref.state ~= nil or pref.effort ~= nil or pref.budget ~= nil then
+        return { state = pref.state, option = pref.effort or pref.budget }
+    end
+    return nil
+end
+
+--- Resolve the effective reasoning decision for a request.
+--- Precedence (highest first):
+---   action_override > model_pref > provider_pref > global_stance > model natural default.
+--- @param provider string
+--- @param model string
+--- @param layers table { global_stance="minimal"|"default"|"maximum",
+---                       provider_pref={state=,effort=,budget=}|nil,
+---                       model_pref={...}|nil,
+---                       action_override={force="on"|"off", effort=, budget=}|nil }
+--- @return table decision { mode="on"|"off", axis, effort, budget, send_nothing,
+---                          needs_temp_1, needs_no_sampling, off_option, profile }
+function ModelConstraints.resolveReasoning(provider, model, layers)
+    layers = layers or {}
+    local profile = ModelConstraints.getReasoningProfile(provider, model)
+    local decision = {
+        axis = profile.axis,
+        profile = profile,
+        needs_no_sampling = profile.needs_no_sampling or false,
+        off_option = profile.off_option,
+    }
+
+    -- axis "none": no controllable reasoning. Report natural state, emit nothing.
+    if profile.axis == "none" then
+        decision.mode = (profile.default_state == "on") and "on" or "off"
+        decision.send_nothing = true
+        decision.needs_temp_1 = false
+        return decision
+    end
+
+    -- 1. Resolve desired {state, option} by precedence (highest non-nil wins).
+    local desired
+    local ao = layers.action_override
+    if ao and ao.force == "off" then
+        desired = { state = "off" }
+    elseif ao and ao.force == "on" then
+        desired = { state = "on", option = ao.effort or ao.budget }
+    else
+        desired = prefDesired(layers.model_pref) or prefDesired(layers.provider_pref)
+        if not desired then
+            local stance = layers.global_stance or "default"
+            if stance == "minimal" then
+                desired = profile.stance_map and profile.stance_map.minimal
+            elseif stance == "maximum" then
+                desired = profile.stance_map and profile.stance_map.maximum
+            end
+            -- "default" stance => desired stays nil => send_nothing (model behaves naturally)
+        end
+    end
+
+    decision.send_nothing = (desired == nil)
+
+    -- 2. Resolve concrete state, clamped to capability.
+    local state = (desired and desired.state) or profile.default_state
+    local clamped_from_off = false
+    if state == "off" and not profile.can_disable then
+        state = "on"
+        clamped_from_off = true  -- can't truly disable (e.g. Perplexity, Mistral)
+    end
+    if state == "on" and not profile.can_enable and profile.default_state == "off" then
+        state = "off"
+    end
+    decision.mode = state
+
+    -- 3. Resolve option (effort level / budget). When we had to clamp "off" up to
+    -- "on" (can't disable), prefer the lowest level rather than the default.
+    local option = desired and desired.option
+    if not option then
+        if clamped_from_off and profile.options and profile.options[1] then
+            option = profile.options[1]
+        else
+            option = profile.default_option
+        end
+    end
+
+    decision.option = (type(option) == "string") and option or nil  -- resolved level name (for display)
+    if profile.axis == "effort" or profile.axis == "adaptive_effort" then
+        decision.effort = option
+    elseif profile.axis == "budget" then
+        if type(option) == "number" then
+            decision.budget = option
+        elseif type(option) == "string" and profile.budget_map and profile.budget_map[option] then
+            decision.budget = profile.budget_map[option]
+        elseif profile.budget_map and profile.default_option then
+            decision.budget = profile.budget_map[profile.default_option]
+        end
+    end
+
+    decision.needs_temp_1 = (profile.needs_temp_1 and state == "on") or false
+
+    return decision
+end
+
+--- Parse a per-action reasoning override into a per-provider intent for the resolver.
+--- Supports the new schema (string "off", { default=... }, per-provider table) and
+--- the legacy fields (action.reasoning / action.extended_thinking + effort/budget).
+--- @param action table|nil
+--- @param provider string
+--- @return table|nil  nil (inherit) | {force="off"} | {force="on", effort=, budget=}
+function ModelConstraints.parseActionReasoning(action, provider)
+    if not action then return nil end
+
+    local rc = action.reasoning_config
+    if rc ~= nil then
+        if rc == "off" then return { force = "off" } end
+        if type(rc) == "table" then
+            local entry = rc[provider]
+            if entry == nil then
+                -- No provider-specific entry: honour a table-level default.
+                if rc.default == "off" or rc.default == false then return { force = "off" } end
+                if rc.default == "on" or rc.default == true then return { force = "on" } end
+                return nil
+            end
+            if entry == "off" or entry == false then return { force = "off" } end
+            if entry == true then return { force = "on" } end
+            if type(entry) == "table" then
+                return {
+                    force = "on",
+                    effort = entry.effort or entry.level,  -- level = Gemini 3 thinkingLevel
+                    budget = entry.budget,
+                }
+            end
+            return nil
+        end
+        return nil
+    end
+
+    -- Legacy fields
+    if action.reasoning == "off" or action.extended_thinking == "off" then
+        return { force = "off" }
+    end
+    if action.reasoning == "on" or action.extended_thinking == "on" then
+        return {
+            force = "on",
+            effort = action.reasoning_effort or action.reasoning_depth,
+            budget = action.thinking_budget,
+        }
+    end
+
+    return nil
+end
+
+--- Translate a resolved reasoning decision into provider-specific api_params keys
+--- (mutated in place). Wire format matches the existing per-provider builders.
+--- Emits nothing when decision.send_nothing is true (model behaves at API default).
+--- @param provider string
+--- @param api_params table  (mutated in place)
+--- @param decision table    (from resolveReasoning)
+function ModelConstraints.applyReasoningParams(provider, api_params, decision)
+    if not api_params or not decision then return end
+    if decision.send_nothing or decision.axis == "none" then return end
+    local on = (decision.mode == "on")
+
+    if provider == "anthropic" then
+        if on then
+            if decision.axis == "adaptive_effort" then
+                api_params.thinking = { type = "adaptive" }
+                api_params.output_config = { effort = decision.effort }
+            elseif decision.axis == "budget" then
+                api_params.thinking = {
+                    type = "enabled",
+                    budget_tokens = math.max(decision.budget or 32000, 1024),
+                }
+            end
+        end
+        -- off: emit nothing (Anthropic reasons only when `thinking` is present)
+    elseif provider == "openai" then
+        if on then api_params.reasoning = { effort = decision.effort } end
+    elseif provider == "gemini" then
+        if decision.axis == "budget" then
+            api_params.thinking_budget = on and (decision.budget or -1) or 0
+        elseif decision.axis == "effort" then  -- Gemini 3 thinkingLevel
+            if on then api_params.thinking_level = decision.effort end
+        end
+    elseif provider == "deepseek" then
+        api_params.deepseek_thinking = { type = on and "enabled" or "disabled" }
+    elseif provider == "zai" then
+        api_params.zai_thinking = { type = on and "enabled" or "disabled" }
+    elseif provider == "sambanova" then
+        api_params.sambanova_thinking = on
+    elseif provider == "openrouter" then
+        if on then api_params.openrouter_reasoning = { effort = decision.effort } end
+    elseif provider == "groq" then
+        if on then api_params.groq_reasoning = { effort = decision.effort } end
+    elseif provider == "together" then
+        if on then api_params.together_reasoning = { effort = decision.effort } end
+    elseif provider == "fireworks" then
+        if on then api_params.fireworks_reasoning = { effort = decision.effort } end
+    elseif provider == "xai" then
+        if on then
+            api_params.xai_reasoning = { effort = decision.effort }
+        elseif decision.off_option then
+            api_params.xai_reasoning = { effort = decision.off_option }  -- e.g. "none"
+        end
+    elseif provider == "perplexity" then
+        if on then api_params.perplexity_reasoning = { effort = decision.effort } end
+    end
 end
 
 return ModelConstraints
