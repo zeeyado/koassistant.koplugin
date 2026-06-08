@@ -120,6 +120,7 @@ Constants.QUICK_ACTION_UTILITIES = {
     { id = "notebook",           callback = "onKOAssistantNotebook",            default = true },
     { id = "view_caches",        callback = "viewCache",                        default = true },  -- "View Artifacts": single button, opens cache picker
     { id = "ai_quick_settings",  callback = "onKOAssistantAISettings",          default = true },
+    { id = "book_settings",      callback = "onKOAssistantBookSettings",        default = true },  -- per-book settings (domain, research, AI title/author)
 }
 
 --- Get display text for a Quick Action utility
@@ -137,6 +138,7 @@ function Constants.getQuickActionUtilityText(id, _)
         notebook = _("Notebook"),
         view_caches = _("View Artifacts"),
         ai_quick_settings = _("Quick Settings"),
+        book_settings = _("Book Settings"),
     }
     return texts[id]
 end

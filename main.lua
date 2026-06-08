@@ -9244,6 +9244,7 @@ function AskGPT:onKOAssistantQuickActions()
     notebook = "\u{1F4D3}",            -- 📓
     view_caches = "\u{1F4E6}",         -- 📦
     ai_quick_settings = "\u{2699}\u{FE0F}", -- ⚙️
+    book_settings = "\u{1F4D5}",       -- 📕
   }
 
   -- Build lookup map from constants
@@ -9500,8 +9501,17 @@ function AskGPT:onKOAssistantChangeDomain()
   return true
 end
 
---- Show the per-book settings popup (Domain & Research) from Quick Settings.
---- Thin wrapper over the shared BookSettings.show entry point.
+--- Book Settings — per-book settings (domain, research, AI title/author). Quick Actions
+--- panel utility; reader-only (a book is open).
+function AskGPT:onKOAssistantBookSettings()
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.show({ plugin = self, ui = self.ui })
+  return true
+end
+
+--- Show the Domain & Research picker from the Quick Settings domain chip.
+--- Thin wrapper over the shared BookSettings.showDomainResearch entry point — this
+--- surface stays the domain/research control (it opens with no book too), NOT Book Settings.
 --- @param on_close_callback function|nil: Called after popup closes (e.g., reopen quick settings)
 --- @param target_override string|nil: "book" | "global" — forces the editing layer
 function AskGPT:showDomainPopup(on_close_callback, target_override)

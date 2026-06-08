@@ -227,9 +227,11 @@ local function buildAndShow(opts, full)
     local book_domain = doc_settings and doc_settings:readSetting("koassistant_book_domain") or nil
     local book_research = doc_settings and doc_settings:readSetting("koassistant_book_research_mode") or nil
 
-    -- Default to "book" when any per-book override exists, else "global"
+    -- Full Book Settings (full=true) defaults to the book layer — it is about this book,
+    -- and the per-book title/author rows live there. The QS domain picker (full=false)
+    -- defaults to "global" unless the book already has a domain/research override.
     local domain_target = opts.target_override
-        or (doc_settings and (book_domain or book_research ~= nil) and "book")
+        or (doc_settings and (full or book_domain or book_research ~= nil) and "book")
         or "global"
 
     local dialog
