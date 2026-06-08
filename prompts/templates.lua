@@ -22,6 +22,7 @@
 --   {book_text}            - Extracted text up to current position (highlight, book contexts)
 --   {chapter_title}        - Current chapter name (highlight, book contexts)
 --   {chapters_read}        - Number of chapters completed (highlight, book contexts)
+--   {page_number}          - EPUB reference page label, e.g. "37" (highlight, book contexts; requires open book with a page map)
 --   {time_since_last_read} - Human-readable time since last read (highlight, book contexts)
 --
 -- Section-aware placeholders (include label, disappear when empty - RECOMMENDED):
@@ -37,6 +38,7 @@
 --   {book_text}            - Empty string "" if extraction disabled or unavailable
 --   {chapter_title}        - Fallback: "(Chapter unavailable)"
 --   {chapters_read}        - Fallback: "0"
+--   {page_number}          - Empty string "" when no page map is available
 --   {time_since_last_read} - Fallback: "Recently"
 --
 -- Utility placeholders (always available):

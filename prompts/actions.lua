@@ -94,6 +94,7 @@ Actions.PLACEHOLDER_TO_FLAG = {
     -- Reading stats placeholders (chapter info from open book)
     ["{chapter_title}"] = "use_reading_stats",
     ["{chapters_read}"] = "use_reading_stats",
+    ["{page_number}"] = "use_reading_stats",
 
     -- Stats engagement group placeholders (from stats DB, double-gated: enable_advanced_stats + use_advanced_stats)
     ["{deep_reads}"] = "use_advanced_stats",

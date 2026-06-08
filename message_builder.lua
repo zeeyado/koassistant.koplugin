@@ -359,6 +359,9 @@ function MessageBuilder.build(params)
     if data.chapters_read then
         user_prompt = replace_placeholder(user_prompt, "{chapters_read}", data.chapters_read)
     end
+    if data.page_number then
+        user_prompt = replace_placeholder(user_prompt, "{page_number}", data.page_number)
+    end
     if data.time_since_last_read then
         user_prompt = replace_placeholder(user_prompt, "{time_since_last_read}", data.time_since_last_read)
     end
@@ -758,6 +761,9 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     if data.chapters_read then
         result = replace_placeholder(result, "{chapters_read}", data.chapters_read)
+    end
+    if data.page_number then
+        result = replace_placeholder(result, "{page_number}", data.page_number)
     end
     if data.time_since_last_read then
         result = replace_placeholder(result, "{time_since_last_read}", data.time_since_last_read)
