@@ -21,6 +21,42 @@ local DomainLoader = require("domain_loader")
 
 local BookSettings = {}
 
+-- Per-book DocSettings sidecar keys.
+BookSettings.KEY_AI_TITLE = "koassistant_book_ai_title"
+BookSettings.KEY_AI_AUTHOR = "koassistant_book_ai_author"
+
+--- Read the per-book AI title/author overrides (what the AI sees for this book).
+-- Empty strings are treated as unset.
+-- @return title|nil, author|nil
+function BookSettings.getMetadataOverride(doc_settings)
+    if not doc_settings then return nil, nil end
+    local t = doc_settings:readSetting(BookSettings.KEY_AI_TITLE)
+    local a = doc_settings:readSetting(BookSettings.KEY_AI_AUTHOR)
+    if t == "" then t = nil end
+    if a == "" then a = nil end
+    return t, a
+end
+
+--- Apply the per-book AI title/author override to a book_metadata table.
+-- Returns a NEW table when an override exists (never mutates the input, which may
+-- be a shared config table); returns the input unchanged when no override is set.
+-- Affects only what KOAssistant sends to the AI — never KOReader's library metadata.
+-- @param metadata table|nil  book_metadata { title, author, author_clause, ... }
+-- @param doc_settings table|nil
+-- @return table|nil
+function BookSettings.applyMetadataOverride(metadata, doc_settings)
+    local t, a = BookSettings.getMetadataOverride(doc_settings)
+    if not t and not a then return metadata end
+    local m = {}
+    if metadata then for k, v in pairs(metadata) do m[k] = v end end
+    if t then m.title = t end
+    if a then
+        m.author = a
+        m.author_clause = " by " .. a
+    end
+    return m
+end
+
 --- Resolve the DocSettings instance for a per-book target.
 -- Prefers the live in-memory instance when the target book is the open one
 -- (avoids a stale-read/whole-file-flush clobber); otherwise opens from disk.

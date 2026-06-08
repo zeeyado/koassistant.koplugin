@@ -1463,17 +1463,13 @@ function AskGPT:initSettings()
         "openai_always_on_effort", "xai_effort", "perplexity_effort", "groq_effort",
         "together_effort", "fireworks_effort", "_reasoning_hint_shown",
       }
-      local had_old_reasoning = false
       for _idx, k in ipairs(old_reasoning_keys) do
         if features[k] ~= nil then
           features[k] = nil
-          had_old_reasoning = true
         end
       end
       features._reasoning_v2_migrated = true
       needs_save = true
-      -- Only notify users who actually had old reasoning settings (not fresh installs).
-      self._reasoning_migration_notice = had_old_reasoning
       logger.info("KOAssistant: Migrated reasoning settings to per-model system (v2)")
     end
 
@@ -1484,16 +1480,6 @@ function AskGPT:initSettings()
   end
 
   self.settings:flush()
-
-  -- One-time notice for the reasoning redesign (only for users who had old settings).
-  if self._reasoning_migration_notice then
-    self._reasoning_migration_notice = nil
-    UIManager:scheduleIn(1, function()
-      UIManager:show(InfoMessage:new{
-        text = _("KOAssistant: Reasoning settings were redesigned.\n\nReasoning is now controlled per model — a global Minimal / Default / Maximum stance plus optional per-provider and per-model overrides (Quick Settings → Reasoning, and Settings → Reasoning).\n\nYour previous reasoning toggles were reset to each model's default behavior."),
-      })
-    end)
-  end
 
   -- Initialize Notebook module with plugin settings reference
   local Notebook = require("koassistant_notebook")
