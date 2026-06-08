@@ -169,6 +169,7 @@ Actions.DOUBLE_GATED_FLAGS = {
 Actions.highlight = {
     explain = {
         id = "explain",
+        enable_web_search = false,
         text = _("Explain"),
         description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
