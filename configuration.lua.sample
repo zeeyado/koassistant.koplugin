@@ -82,13 +82,15 @@ local CONFIGURATION = {
         -- AI behavior
         -- selected_behavior = "standard",     -- "minimal", "standard", or "full"
 
-        -- Reasoning (master toggle + per-provider sub-toggles)
-        -- enable_reasoning = false,           -- Master toggle for reasoning/thinking
-        -- anthropic_reasoning = false,        -- Anthropic extended thinking
-        -- reasoning_budget = 32000,           -- Anthropic thinking budget tokens
-        -- openai_reasoning = false,           -- OpenAI 5.1+ reasoning
-        -- gemini_reasoning = false,           -- Gemini thinking
-        -- deepseek_reasoning = true,          -- DeepSeek thinking (sub-toggle)
+        -- Reasoning (per-model; usually set in the UI instead)
+        -- reasoning_prefs = {
+        --     stance = "default",             -- "minimal" | "default" | "maximum" (applies to all models)
+        --     -- Per-model overrides, keyed "provider/model":
+        --     -- models = {
+        --     --     ["anthropic/claude-opus-4-8"] = { state = "on", effort = "high" },
+        --     --     ["deepseek/deepseek-v4-pro"]  = { state = "off" },
+        --     -- },
+        -- },
 
         -- Web search
         -- enable_web_search = false,          -- Global web search toggle

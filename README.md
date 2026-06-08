@@ -267,7 +267,7 @@ KOAssistant provides two distinct quick-access panels for different purposes:
 Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model**: Quick switching between AI providers and models
 - **Behavior & Domain**: Change communication style, knowledge context, and Research Mode
-- **Temperature & Reasoning**: Adjust creativity level and toggle Anthropic/Gemini reasoning (has no effect on other providers)
+- **Temperature & Reasoning**: Adjust creativity level, and set the reasoning stance (Minimal/Default/Maximum) or override the current model's reasoning
 - **Web Search & Language**: Enable AI web search and set primary response language
 - **Translate & Dictionary**: Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass**: Toggle bypass modes on/off
@@ -797,7 +797,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 >
 > Without highlights, X-Ray still works fully: you just won't see the Reader Engagement category or highlight mentions in entries.
 
-> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), enabling **Reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated: the AI produces more thorough entries and fewer omissions. For Claude 4.6+ models, use **Adaptive Thinking** (effort: high or max for Opus); the model decides how much thinking each part of the analysis needs. For other models, **Extended Thinking** with a higher budget helps. This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
+> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), more **reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated: the AI produces more thorough entries and fewer omissions. Set the global reasoning **stance to Maximum**, or override your current model's reasoning to a high level (Settings → Advanced → Reasoning, or the Quick Settings Reasoning chip). This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
 
 <a id="x-ray-modes"></a>
 
@@ -1325,15 +1325,18 @@ return {
 - `domain`: Force a specific domain by ID (overrides per-book and global domain selection; file-only, no UI for this yet)
 - `enable_web_search`: Override global web search setting (true=force on, false=force off, nil=follow global)
 
-**Per-provider reasoning config** (new in v0.6):
+**Per-provider reasoning config.** This is the top reasoning layer — it wins over your global stance and any per-model override (see [Reasoning/Thinking](#reasoningthinking)).
 ```lua
 reasoning_config = {
-    anthropic = { budget = 4096 },      -- Extended thinking budget
-    openai = { effort = "medium" },     -- low/medium/high
-    gemini = { level = "high" },        -- low/medium/high
+    anthropic = { effort = "high" },    -- low/medium/high (+ xhigh/max on Opus)
+    openai = { effort = "medium" },     -- low/medium/high/xhigh
+    gemini = { level = "high" },        -- minimal/low/medium/high (Gemini 3)
+    deepseek = "off",                   -- binary providers: "on" / "off"
 }
--- Or: reasoning_config = "off" to disable for all providers
+-- reasoning_config = "off"                -- force off for all providers
+-- reasoning_config = { default = "off" }  -- default for providers not listed above
 ```
+Built-in actions like Translate, Quick Define, Dictionary, and Summarize use `reasoning_config = "off"`.
 
 See `custom_actions.lua.sample` for more examples.
 
@@ -2335,7 +2338,7 @@ See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-a
 ### Quick Settings Settings
 Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
 - **QS Panel Utilities**: Show/hide and reorder buttons in the Quick Settings panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon in the Quick Settings panel title bar.
-  - Provider, Model, Behavior, Domain, Temperature, Anthropic/Gemini Reasoning
+  - Provider, Model, Behavior, Domain, Temperature, Reasoning
   - Web Search, Language, Translation Language, Dictionary Language
   - H.Bypass, D.Bypass, Text Extraction
   - Chat History, Browse Notebooks, Browse Artifacts, Library Chat/Action
@@ -2420,13 +2423,10 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
 - **Reset Settings**: Re-run Setup Wizard, Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
 
 ### Advanced
-- **Reasoning/Thinking**: Per-provider reasoning settings:
-  - **Enable Reasoning**: Master toggle for optional reasoning (default: off). Controls Anthropic (adaptive/extended thinking), Gemini (2.5 thinking budget / 3 thinking depth), OpenAI GPT-5.4+ (reasoning effort), DeepSeek (V4 thinking), Z.AI (GLM-4.7+ thinking), OpenRouter (effort), and SambaNova (thinking). Models that think by default (Gemini 2.5, DeepSeek V4, GLM-4.7+) keep their natural behavior when the toggle is off. Thinking is only suppressed when explicitly disabled via the toggle or per-action overrides.
-  - **Anthropic Adaptive Thinking (4.6+)**: Effort level (low/medium/high, plus xhigh and max for Opus models). Claude decides when and how much to think based on the task. Recommended for 4.6 models. Takes priority over Extended Thinking when model supports both. (requires master toggle)
-  - **Anthropic Extended Thinking**: Budget 1024-32000 tokens. Manual thinking budget mode for thinking-capable Claude models (Sonnet 4.6, Haiku 4.5). On 4.6 models, Adaptive Thinking takes priority if both are enabled. (requires master toggle)
-  - **Gemini Thinking**: Controls thinking for all Gemini models (requires master toggle). Gemini 3: configurable thinking depth (minimal/low/medium/high). Gemini 2.5: configurable thinking budget (dynamic/low/medium/high/max). Gemini 2.5 models think by default. When the master toggle is off, their natural thinking behavior is preserved.
-  - **OpenAI Reasoning (5.1+)**: Enables reasoning for GPT-5.4, GPT-5.4-mini, and GPT-5.4-nano models where it is off by default (requires master toggle). Effort level: low/medium/high/xhigh. Other OpenAI reasoning models (o3, GPT-5, GPT-5.5) always reason at their factory defaults and are not affected by this toggle.
-  - **Show Reasoning Indicator**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on)
+- **Reasoning/Thinking**: Per-model reasoning control. See [Reasoning/Thinking](#reasoningthinking) for the full explanation.
+  - **Global stance**: Minimal / Default / Maximum — one dial applied to every model, as far as each allows (default: **Default** = each model's normal behavior). "Minimal" turns reasoning off where the model supports it (otherwise its lowest setting); "Maximum" requests the deepest reasoning.
+  - **Per-model reasoning**: Browse a provider's models and override any individual model — Follow global / Off / a specific level. Only configurable models are listed.
+  - **Show Indicator in Chat**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on). The full reasoning is always viewable via the "Show Reasoning" button regardless.
 - **Web Search**: Allow AI to search the web for current information:
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter. Perplexity always searches the web (no toggle needed).
   - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
@@ -2607,9 +2607,12 @@ return {
     -- Feature defaults (Settings UI values take priority)
     features = {
         enable_streaming = true,
-        enable_reasoning = true,       -- Master reasoning toggle
-        anthropic_reasoning = true,    -- Anthropic extended thinking
-        reasoning_budget = 32000,      -- Thinking budget tokens
+        -- Reasoning is per-model. Optional global stance: "minimal" | "default" | "maximum".
+        -- Per-model overrides are keyed "provider/model". Usually set this in the UI instead.
+        reasoning_prefs = {
+            stance = "default",
+            -- models = { ["anthropic/claude-opus-4-8"] = { state = "on", effort = "high" } },
+        },
     },
 }
 ```
@@ -3005,83 +3008,43 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 
 ### Reasoning/Thinking
 
-For complex questions, supported models can "think" through the problem before responding. Reasoning increases latency and token usage but can significantly improve results for complex tasks like X-Ray generation, deep analysis, and nuanced questions.
+For complex questions, many models can "think" through the problem before responding. Reasoning increases latency and token usage but can significantly improve results for complex tasks like X-Ray generation, deep analysis, and nuanced questions.
 
-> **Note:** Some models always reason at their factory defaults and don't need any settings. The toggles below are only for models where reasoning is *optional*. A first-time info notification appears when you enable reasoning via Quick Settings, explaining which models are affected.
+Reasoning is controlled **per model**, not by a single global switch. Every model has its own reasoning nature — some always reason, some can't, some are off by default, some on — and KOAssistant respects that. You steer it with two controls:
 
-**Anthropic Adaptive Thinking (4.6+)** Recommended for Claude 4.6+ models:
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable Anthropic Adaptive Thinking (4.6+)
-3. Set effort level (low/medium/high, xhigh/max for Opus only)
-4. Temperature is forced to 1.0 (API requirement)
-5. Works with: Claude Sonnet 4.6, Opus 4.8, Opus 4.7, Opus 4.6
-6. Claude decides when and how much to think based on the task, no manual budget needed
+**1. Global stance** (Settings → Advanced → Reasoning, or the Reasoning chip in the Quick Settings panel). One dial applied to every model, *as far as each model allows*:
+- **Minimal** — off where the model can be turned off; otherwise its lowest setting.
+- **Default** — each model's normal behavior; nothing is forced. This is the default for everyone.
+- **Maximum** — the model's deepest reasoning.
 
-**Anthropic Extended Thinking** Manual budget mode for thinking-capable Claude models:
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable Anthropic Extended Thinking
-3. Set token budget (1024-32000)
-4. Temperature is forced to 1.0 (API requirement)
-5. Works with: Claude Sonnet 4.6, Haiku 4.5 (NOT Opus 4.7/4.8, which reject budget_tokens)
-6. On 4.6 models, Adaptive Thinking takes priority if both are enabled
+Because the stance respects each model's capability, "Minimal" genuinely turns reasoning *off* on models that support it (DeepSeek V4, Gemini 2.5, Claude, GPT-5.4, …) and dials always-on models (Perplexity, GPT-5.5, Grok) down to their lowest effort. It never claims a model is off when it isn't.
 
-**Gemini 3 Thinking:**
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable Gemini Thinking
-3. Set level (minimal/low/medium/high)
-4. Works with: gemini-3.5-flash, gemini-3.1-pro-preview, gemini-3.1-flash-lite
+**2. Per-model overrides** (Settings → Advanced → Reasoning → Per-model reasoning). Pick a provider, then a model, then set its reasoning explicitly: **Follow global** (the default — defer to the stance), **Off** (where supported), or a specific level (effort/depth/budget, depending on the model). Only models you can actually configure are listed.
 
-**Gemini 2.5 Thinking Budget:**
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable Gemini Thinking
-3. Set thinking budget (dynamic/low/medium/high/max)
-4. Works with: gemini-2.5-flash
-5. Flash-Lite is excluded (thinking disabled by default, no budget control)
-6. Gemini 2.5 thinks by default: when the toggle is off, natural behavior is preserved (per-action overrides can still suppress thinking)
+The Reasoning chip in the Quick Settings panel shows the **effective** state for your current model (e.g. "Default", "Off", "High") and opens a popup with the global stance plus a control for the model in front of you.
 
-**OpenAI Reasoning (5.1+):**
-The GPT-5.4 family ships with reasoning off by default (reasoning_effort=none from OpenAI). To enable:
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable OpenAI Reasoning (5.1+)
-3. Set effort level (low/medium/high/xhigh)
-4. Temperature is forced to 1.0 (API requirement)
+**Precedence** (highest wins): per-action setting → per-model override → global stance → the model's natural default.
 
-**DeepSeek Thinking:**
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable DeepSeek Thinking
-3. Works with: deepseek-v4-pro, deepseek-v4-flash
+**What each model can do:**
 
-**Z.AI Thinking:**
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable Z.AI Thinking
-3. Works with: GLM-4.7+ models
+| Model family | Nature | Control |
+|---|---|---|
+| Claude Opus 4.8 / 4.7 / 4.6, Sonnet 4.6 | Adaptive, off by default | Off / effort (low…high; Opus adds xhigh, max) |
+| Claude Haiku 4.5 | Extended thinking, off by default | Off / budget level (low…max) |
+| Gemini 3 (3.5-flash, 3.1-pro, 3.1-flash-lite) | Thinks by default | Effort/depth (minimal…high); can't be fully disabled |
+| Gemini 2.5-flash | Thinks by default | Off / budget (dynamic…max) |
+| OpenAI GPT-5.4 family | Off by default (gated) | Off / effort (low…xhigh) |
+| OpenAI GPT-5.5 | Reasons by default | Effort (low/medium/high); can't be fully disabled |
+| DeepSeek V4, Z.AI GLM-4.7+, SambaNova DeepSeek-V3.x | Thinks by default | On / Off |
+| xAI Grok 4.3 / 4.20-reasoning | Reasons by default | Off / effort (low/medium/high) |
+| Perplexity Sonar, Groq, Together, Fireworks reasoning models | Always reason | Effort only (low/medium/high) |
+| Mistral Magistral | Always reasons, no control | — (thinking is extracted and viewable) |
 
-**OpenRouter Reasoning:**
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable OpenRouter Reasoning
-3. Set effort level (low/medium/high)
-4. OpenRouter auto-translates to each backend provider's native format
+> Temperature is forced to 1.0 automatically where a model's reasoning requires it (Claude adaptive/extended, Z.AI thinking). Opus 4.7/4.8 reject sampling parameters entirely; the plugin strips them.
 
-**SambaNova Thinking:**
-1. Enable the master toggle: Settings → Advanced → Enable Reasoning
-2. Enable SambaNova Thinking
-3. Works with: DeepSeek-V3.1, DeepSeek-V3.2
+**Viewing reasoning:** When a model returns its thinking (Anthropic, Gemini, DeepSeek, Z.AI, Mistral, and R1-style `<think>`-tag models on Groq/Together/Fireworks/SambaNova/Ollama/Perplexity), it's captured and viewable via the **Show Reasoning** button in the chat viewer gear menu. A "*[Reasoning was used]*" indicator appears in chat when enabled (Settings → Advanced → Reasoning → Show Indicator in Chat).
 
-**Always-On Reasoning (effort level only):**
-These models always reason. You can only adjust the effort level, not turn reasoning off. These controls are independent of the master toggle.
-
-- **OpenAI** (GPT-5.5, GPT-5.5-pro): Effort low/medium/high (default: medium)
-- **xAI** (grok-4.3, grok-4.20-0309-reasoning): Effort low/medium/high (default: high)
-- **Perplexity** (sonar-reasoning-pro, sonar-deep-research): Effort low/medium/high (default: high)
-- **Groq** (gpt-oss-120b, gpt-oss-20b, qwen3-32b): Effort low/medium/high (default: high)
-- **Together** (DeepSeek-V4-Pro, Qwen3.5-397B, Qwen3-235B): Effort low/medium/high (default: high)
-- **Fireworks** (deepseek-v4-pro, deepseek-r1, kimi-k2-thinking, qwen3-235b): Effort low/medium/high (default: high)
-
-**Mistral Magistral:** Always reasons (structured content blocks). Thinking content is automatically extracted and viewable via "Show Reasoning", no toggle or effort control.
-
-**R1-style `<think>` tag extraction:** Models that use `<think>` tags for reasoning (DeepSeek-R1, Qwen3, and others on Groq, Together, Fireworks, SambaNova, Ollama, Perplexity) have their thinking content automatically extracted during streaming and made viewable via "Show Reasoning".
-
-**Per-action overrides:** Any action can override reasoning settings for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This works for all reasoning-capable models, including those not controlled by the master toggle. See [Tuning Built-in Actions](#tuning-built-in-actions).
+**Per-action overrides:** Any action can override reasoning for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This is the top layer — it wins over the global stance and per-model overrides. Several built-in actions (e.g. Translate, Quick Define, Dictionary, Summarize) deliberately force reasoning off because the task doesn't benefit from it. See [Tuning Built-in Actions](#tuning-built-in-actions).
 
 ### Web Search
 
@@ -3279,7 +3242,7 @@ The provider will revert to using the system default.
 - **Ollama**: Local only; for remote instances, set the endpoint via Settings → Provider → Quick setup: Local provider, or in `configuration.lua`
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
-- **DeepSeek**: V4 supports a `thinking` toggle for both `deepseek-v4-pro` and `deepseek-v4-flash` (on by default); controlled via Enable Reasoning master switch
+- **DeepSeek**: V4 supports a `thinking` toggle for both `deepseek-v4-pro` and `deepseek-v4-flash` (on by default); controlled by the reasoning stance / per-model override (see [Reasoning/Thinking](#reasoningthinking))
 
 ### Meta-Providers Note
 
