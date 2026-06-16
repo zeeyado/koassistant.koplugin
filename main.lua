@@ -573,6 +573,20 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
     })
   end
 
+  -- Book Settings (KOA) button — per-book domain, research, AI title/author overrides
+  table.insert(buttons, {
+    text = _("Book Settings") .. " (KOA)",
+    callback = function()
+      local UIManager = require("ui/uimanager")
+      local current_dialog = UIManager:getTopmostVisibleWidget()
+      if current_dialog and current_dialog.close then
+        UIManager:close(current_dialog)
+      end
+      local BookSettings = require("koassistant_book_settings")
+      BookSettings.show({ plugin = self, ui = self.ui, document_path = file })
+    end,
+  })
+
   -- Pinned file browser actions (user-selected via Action Manager hold menu)
   local fb_actions = self.action_service and self.action_service:getFileBrowserActions() or {}
   if #fb_actions > 0 then
