@@ -5453,6 +5453,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     refreshInputDialog()
                 end }},
             }
+            -- Book Settings entry — only when a book is in scope (book/highlight contexts)
+            if document_path then
+                table.insert(gear_buttons, {{ text = _("Book Settings"), callback = function()
+                    UIManager:close(gear_menu)
+                    local BookSettings = require("koassistant_book_settings")
+                    BookSettings.show({
+                        plugin = plugin,
+                        ui = ui_instance,
+                        document_path = document_path,
+                        on_close = function() refreshInputDialog() end,
+                    })
+                end }})
+            end
             -- Library context: toggle to hide/show library scan actions
             if input_context == "library" then
                 local cur_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
