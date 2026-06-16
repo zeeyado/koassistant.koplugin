@@ -268,6 +268,34 @@ TestRunner:test("basic does NOT append position even if present", function()
     TestRunner:assertNotContains(result, "Reading progress:")
 end)
 
+-- Composition: book-info level × AI title/author override
+TestRunner:suite("interaction: override + book-info level")
+
+TestRunner:test("full + custom title/author: custom values AND position; original gone", function()
+    local meta = BookSettings.applyMetadataOverride(REAL, makeDocSettings({ [KT] = "Fake T", [KA] = "Fake A" }))
+    local result = MessageBuilder.build({
+        prompt = { prompt = 'About "{title}"{author_clause}.' }, context = "book",
+        data = { book_metadata = meta, _book_info_level = "full",
+                 reading_progress = "62%", chapter_title = "Ch 3", page_number = "484" },
+    })
+    TestRunner:assertContains(result, 'Book: "Fake T" by Fake A', "custom in auto-block")
+    TestRunner:assertContains(result, "Reading progress: 62%", "position present")
+    TestRunner:assertContains(result, 'About "Fake T" by Fake A', "{title}/{author_clause} also custom")
+    TestRunner:assertNotContains(result, "Real Title", "original suppressed")
+    TestRunner:assertNotContains(result, "Real Author")
+end)
+
+TestRunner:test("none + custom title: no auto-block, but {title} still resolves to custom (X-Ray case)", function()
+    local meta = BookSettings.applyMetadataOverride(REAL, makeDocSettings({ [KT] = "Fake T" }))
+    local result = MessageBuilder.build({
+        prompt = { prompt = 'Create an X-Ray for "{title}".' }, context = "book",
+        data = { book_metadata = meta, _book_info_level = "none" },
+    })
+    TestRunner:assertNotContains(result, 'Book: "', "generic auto-block suppressed")
+    TestRunner:assertContains(result, 'X-Ray for "Fake T"', "{title} still resolves to the custom value")
+    TestRunner:assertNotContains(result, "Real Title", "original never appears")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
