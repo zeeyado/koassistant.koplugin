@@ -23,37 +23,37 @@ local DomainLoader = require("domain_loader")
 local BookSettings = {}
 
 -- Per-book DocSettings sidecar keys.
+-- AI title/author are tri-state: nil = use the book's real metadata; "" = send empty
+-- (suppress entirely); any other string = that custom value.
 BookSettings.KEY_AI_TITLE = "koassistant_book_ai_title"
 BookSettings.KEY_AI_AUTHOR = "koassistant_book_ai_author"
+BookSettings.KEY_SPOILER_FREE = "koassistant_book_spoiler_free"  -- true | false | nil(=follow global)
 
 --- Read the per-book AI title/author overrides (what the AI sees for this book).
--- Empty strings are treated as unset.
--- @return title|nil, author|nil
+-- @return title, author  -- each: nil (use metadata) | "" (send empty) | string (custom)
 function BookSettings.getMetadataOverride(doc_settings)
     if not doc_settings then return nil, nil end
-    local t = doc_settings:readSetting(BookSettings.KEY_AI_TITLE)
-    local a = doc_settings:readSetting(BookSettings.KEY_AI_AUTHOR)
-    if t == "" then t = nil end
-    if a == "" then a = nil end
-    return t, a
+    return doc_settings:readSetting(BookSettings.KEY_AI_TITLE),
+           doc_settings:readSetting(BookSettings.KEY_AI_AUTHOR)
 end
 
 --- Apply the per-book AI title/author override to a book_metadata table.
 -- Returns a NEW table when an override exists (never mutates the input, which may
 -- be a shared config table); returns the input unchanged when no override is set.
+-- A nil override leaves the field as-is; "" sends an empty value; a string replaces it.
 -- Affects only what KOAssistant sends to the AI — never KOReader's library metadata.
 -- @param metadata table|nil  book_metadata { title, author, author_clause, ... }
 -- @param doc_settings table|nil
 -- @return table|nil
 function BookSettings.applyMetadataOverride(metadata, doc_settings)
     local t, a = BookSettings.getMetadataOverride(doc_settings)
-    if not t and not a then return metadata end
+    if t == nil and a == nil then return metadata end
     local m = {}
     if metadata then for k, v in pairs(metadata) do m[k] = v end end
-    if t then m.title = t end
-    if a then
+    if t ~= nil then m.title = t end
+    if a ~= nil then
         m.author = a
-        m.author_clause = " by " .. a
+        m.author_clause = (a ~= "") and (" by " .. a) or ""
     end
     return m
 end
@@ -362,19 +362,19 @@ function BookSettings.show(opts)
         UIManager:show(picker)
     end
 
-    -- Sub-picker: this book's research mode (Follow global / On / Off)
-    local function showResearchSubPicker()
+    -- Sub-picker for a tri-state per-book boolean (Follow global / On / Off).
+    -- Used by Research mode, Spoiler-free, and future on/off per-book settings.
+    local function showBoolSubPicker(key, dialog_title, global_on)
         closeDialog()
-        local cur = doc_settings:readSetting("koassistant_book_research_mode")  -- true | false | nil
+        local cur = doc_settings:readSetting(key)  -- true | false | nil
         local picker
         local function pick(val)
-            doc_settings:saveSetting("koassistant_book_research_mode", val)
+            doc_settings:saveSetting(key, val)
             doc_settings:flush()
             syncConfig()
             UIManager:close(picker)
             BookSettings.show(opts)
         end
-        local global_on = features.research_mode == true
         local rows = {
             {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), global_on and _("On") or _("Off")),
                 callback = function() pick(nil) end }},
@@ -383,27 +383,26 @@ function BookSettings.show(opts)
             {{ text = _("Cancel"), id = "close",
                 callback = function() UIManager:close(picker); BookSettings.show(opts) end }},
         }
-        picker = ButtonDialog:new{ title = _("Research mode (this book)"), buttons = rows }
+        picker = ButtonDialog:new{ title = dialog_title, buttons = rows }
         UIManager:show(picker)
     end
 
-    -- AI title/author override editor (sidecar key; never touches library metadata)
+    -- Custom-value text input for an AI title/author override (stored as-is; "" = send empty,
+    -- but that state is normally reached via the "Send empty" sub-picker option).
     local function editOverride(key, dialog_title)
         local InputDialog = require("ui/widget/inputdialog")
         local input
         input = InputDialog:new{
             title = dialog_title,
             input = doc_settings:readSetting(key) or "",
-            input_hint = _("Leave empty to use the book's real metadata"),
+            input_hint = _("What the AI should see for this book"),
             buttons = {{
                 { text = _("Cancel"), id = "close", callback = function() UIManager:close(input) end },
                 {
                     text = _("Save"),
                     is_enter_default = true,
                     callback = function()
-                        local val = input:getInputText()
-                        if val == "" then val = nil end
-                        doc_settings:saveSetting(key, val)
+                        doc_settings:saveSetting(key, input:getInputText())
                         doc_settings:flush()
                         syncConfig()
                         UIManager:close(input)
@@ -416,28 +415,80 @@ function BookSettings.show(opts)
         input:onShowKeyboard()
     end
 
+    -- Sub-picker for a tri-state metadata override: Use real metadata / Custom… / Send empty.
+    -- nil = real metadata, "" = send empty (suppressed), string = custom.
+    local function showOverrideSubPicker(key, dialog_title, custom_input_title)
+        closeDialog()
+        local cur = doc_settings:readSetting(key)  -- nil | "" | string
+        local picker
+        local function setVal(val)
+            doc_settings:saveSetting(key, val)
+            doc_settings:flush()
+            syncConfig()
+            UIManager:close(picker)
+            BookSettings.show(opts)
+        end
+        local custom_text = (cur ~= nil and cur ~= "") and T(_("Custom: %1"), cur) or _("Custom…")
+        local rows = {
+            {{ text = dot(cur == nil) .. _("Use the book's real metadata"),
+                callback = function() setVal(nil) end }},
+            {{ text = dot(cur ~= nil and cur ~= "") .. custom_text,
+                callback = function() UIManager:close(picker); editOverride(key, custom_input_title) end }},
+            {{ text = dot(cur == "") .. _("Send empty"),
+                callback = function() setVal("") end }},
+            {{ text = _("Cancel"), id = "close",
+                callback = function() UIManager:close(picker); BookSettings.show(opts) end }},
+        }
+        picker = ButtonDialog:new{ title = dialog_title, buttons = rows }
+        UIManager:show(picker)
+    end
+
     -- Current per-book values → row labels
+    local function boolLabel(v)
+        if v == true then return _("On")
+        elseif v == false then return _("Off")
+        else return _("Follow global") end
+    end
+
     local book_domain = doc_settings:readSetting("koassistant_book_domain")
     local domain_label
     if book_domain == "_none" then domain_label = _("None")
     elseif book_domain == nil then domain_label = _("Follow global")
     else domain_label = domainDisplayName(book_domain, features) or book_domain end
 
-    local book_research = doc_settings:readSetting("koassistant_book_research_mode")
-    local research_label
-    if book_research == true then research_label = _("On")
-    elseif book_research == false then research_label = _("Off")
-    else research_label = _("Follow global") end
+    local research_label = boolLabel(doc_settings:readSetting("koassistant_book_research_mode"))
+    local spoiler_label = boolLabel(doc_settings:readSetting(BookSettings.KEY_SPOILER_FREE))
 
-    local ai_title, ai_author = BookSettings.getMetadataOverride(doc_settings)
+    -- AI title/author tri-state label: nil = real metadata, "" = empty/suppressed, string = custom
+    local function overrideLabel(v)
+        if v == nil then return _("using metadata")
+        elseif v == "" then return _("empty") end
+        return v
+    end
+    local title_ov, author_ov = BookSettings.getMetadataOverride(doc_settings)
 
     local buttons = {
         {{ text = T(_("Domain: %1"), domain_label), callback = showDomainSubPicker }},
-        {{ text = T(_("Research mode: %1"), research_label), callback = showResearchSubPicker }},
-        {{ text = T(_("AI title: %1"), ai_title or _("(actual)")),
-            callback = function() editOverride(BookSettings.KEY_AI_TITLE, _("AI title for this book")) end }},
-        {{ text = T(_("AI author: %1"), ai_author or _("(actual)")),
-            callback = function() editOverride(BookSettings.KEY_AI_AUTHOR, _("AI author for this book")) end }},
+        {{ text = T(_("Research mode: %1"), research_label),
+            callback = function()
+                showBoolSubPicker("koassistant_book_research_mode",
+                    _("Research mode (this book)"), features.research_mode == true)
+            end }},
+        {{ text = T(_("Spoiler-free chat: %1"), spoiler_label),
+            callback = function()
+                showBoolSubPicker(BookSettings.KEY_SPOILER_FREE,
+                    _("Spoiler-free chat (this book)"), features.spoiler_free_chat == true)
+            end }},
+        {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
+            callback = function()
+                showOverrideSubPicker(BookSettings.KEY_AI_TITLE,
+                    _("AI title (this book)"), _("Custom AI title"))
+            end }},
+        {{ text = T(_("AI author: %1"), overrideLabel(author_ov)),
+            callback = function()
+                showOverrideSubPicker(BookSettings.KEY_AI_AUTHOR,
+                    _("AI author (this book)"), _("Custom AI author"))
+            end }},
         {{ text = _("Close"), id = "close", callback = function()
             closeDialog()
             if on_close then on_close() end

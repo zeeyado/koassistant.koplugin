@@ -2467,12 +2467,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     do
         local BookSettings = require("koassistant_book_settings")
         local ai_title, ai_author = BookSettings.getMetadataOverride(per_book_ds)
-        if ai_title or ai_author then
+        -- nil = no override; "" = send empty; string = custom (so test ~= nil, not truthiness)
+        if ai_title ~= nil or ai_author ~= nil then
             if message_data.book_metadata then
                 message_data.book_metadata = BookSettings.applyMetadataOverride(message_data.book_metadata, per_book_ds)
             end
-            if ai_title and message_data.book_title then message_data.book_title = ai_title end
-            if ai_author and message_data.book_author then message_data.book_author = ai_author end
+            if ai_title ~= nil and message_data.book_title then message_data.book_title = ai_title end
+            if ai_author ~= nil and message_data.book_author then message_data.book_author = ai_author end
         end
     end
 
@@ -3510,11 +3511,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         configuration.features._session_spoiler_free = nil
     end
 
-    -- Initialize session spoiler-free state from global setting if not restored from refresh
-    if session_spoiler_free == nil then
-        session_spoiler_free = configuration and configuration.features
-            and configuration.features.spoiler_free_chat == true
-    end
+    -- session_spoiler_free is initialized further below, once the book's DocSettings is
+    -- resolved (per-book override > global default) — unless it was restored from a refresh.
 
     -- Log which provider we're using
     local logger = require("logger")
@@ -3647,6 +3645,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     local book_domain_id = getBookDomain(doc_settings)
     local book_research_id = getBookResearchMode(doc_settings)
+
+    -- Initialize session spoiler-free: per-book override > global default.
+    -- Skipped when restored from a refresh (the user's session choice is preserved).
+    if session_spoiler_free == nil then
+        local book_spoiler = doc_settings and doc_settings:readSetting("koassistant_book_spoiler_free")
+        if book_spoiler ~= nil then
+            session_spoiler_free = book_spoiler
+        else
+            session_spoiler_free = configuration and configuration.features
+                and configuration.features.spoiler_free_chat == true
+        end
+    end
 
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
     local refreshInputDialog
