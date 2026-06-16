@@ -22,6 +22,7 @@ require("mock_koreader")
 package.loaded["ui/widget/buttondialog"] = package.loaded["ui/widget/buttondialog"] or {}
 
 local BookSettings = require("koassistant_book_settings")
+local MessageBuilder = require("message_builder")
 
 -- Simple test framework (matches the other unit tests)
 local TestRunner = { passed = 0, failed = 0 }
@@ -48,6 +49,16 @@ function TestRunner:assertNil(value, msg)
         error(string.format("%s: expected nil, got %q", msg or "assertNil", tostring(value)))
     end
 end
+function TestRunner:assertContains(str, needle, msg)
+    if not str or not str:find(needle, 1, true) then
+        error(string.format("%s: expected to contain %q", msg or "assertContains", tostring(needle)))
+    end
+end
+function TestRunner:assertNotContains(str, needle, msg)
+    if str and str:find(needle, 1, true) then
+        error(string.format("%s: expected NOT to contain %q", msg or "assertNotContains", tostring(needle)))
+    end
+end
 
 -- Mock DocSettings: only readSetting is exercised
 local function makeDocSettings(map)
@@ -63,9 +74,9 @@ TestRunner:test("nil doc_settings → nil, nil", function()
     TestRunner:assertNil(t); TestRunner:assertNil(a)
 end)
 
-TestRunner:test("empty strings treated as unset", function()
+TestRunner:test("empty string = send-empty override (NOT unset)", function()
     local t, a = BookSettings.getMetadataOverride(makeDocSettings({ [KT] = "", [KA] = "" }))
-    TestRunner:assertNil(t); TestRunner:assertNil(a)
+    TestRunner:assertEqual(t, ""); TestRunner:assertEqual(a, "")
 end)
 
 TestRunner:test("returns set values", function()
@@ -117,6 +128,60 @@ end)
 TestRunner:test("nil metadata + override → fresh table", function()
     local out = BookSettings.applyMetadataOverride(nil, makeDocSettings({ [KT] = "Only" }))
     TestRunner:assertEqual(out.title, "Only")
+end)
+
+TestRunner:test("empty-string override → field emptied, author_clause cleared", function()
+    local out = BookSettings.applyMetadataOverride(
+        { title = "Real", author = "Auth", author_clause = " by Auth" },
+        makeDocSettings({ [KA] = "" }))  -- author = send empty; title untouched
+    TestRunner:assertEqual(out.author, "")
+    TestRunner:assertEqual(out.author_clause, "")
+    TestRunner:assertEqual(out.title, "Real", "nil title override leaves title")
+end)
+
+-- End-to-end: the override must actually reach the prompt the AI sees, and the
+-- real title/author must be suppressed when overridden.
+TestRunner:suite("integration: override reaches the prompt, original suppressed")
+
+local REAL = { title = "Real Title", author = "Real Author", author_clause = " by Real Author" }
+local function buildBookPrompt(meta)
+    return MessageBuilder.build({
+        prompt = { prompt = 'Discuss "{title}"{author_clause}.' },
+        context = "book",
+        data = { book_metadata = meta },
+    })
+end
+
+TestRunner:test("book context: fake title+author sent; original NOT sent", function()
+    local meta = BookSettings.applyMetadataOverride(REAL, makeDocSettings({ [KT] = "Fake Title", [KA] = "Fake Author" }))
+    local result = buildBookPrompt(meta)
+    TestRunner:assertContains(result, "Fake Title", "fake title in prompt")
+    TestRunner:assertContains(result, "Fake Author", "fake author in prompt")
+    TestRunner:assertNotContains(result, "Real Title", "original title suppressed")
+    TestRunner:assertNotContains(result, "Real Author", "original author suppressed")
+end)
+
+TestRunner:test("no override → real metadata reaches the prompt", function()
+    local meta = BookSettings.applyMetadataOverride(REAL, makeDocSettings({}))
+    local result = buildBookPrompt(meta)
+    TestRunner:assertContains(result, "Real Title")
+    TestRunner:assertContains(result, "Real Author")
+end)
+
+TestRunner:test("title-only override: fake title, real author retained", function()
+    local meta = BookSettings.applyMetadataOverride(REAL, makeDocSettings({ [KT] = "Fake Title" }))
+    local result = buildBookPrompt(meta)
+    TestRunner:assertContains(result, "Fake Title")
+    TestRunner:assertContains(result, "Real Author")
+    TestRunner:assertNotContains(result, "Real Title")
+end)
+
+TestRunner:test("send-empty author: real title kept, author fully suppressed", function()
+    local meta = BookSettings.applyMetadataOverride(REAL, makeDocSettings({ [KA] = "" }))
+    local result = buildBookPrompt(meta)
+    TestRunner:assertContains(result, "Real Title")
+    TestRunner:assertNotContains(result, "Real Author")
+    TestRunner:assertNotContains(result, " by ", "no author clause when author is empty")
 end)
 
 print("")
