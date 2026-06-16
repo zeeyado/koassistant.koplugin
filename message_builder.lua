@@ -526,16 +526,21 @@ function MessageBuilder.build(params)
 
     elseif context == "book" or context == "file_browser" then
         -- Book context: add book info and substitute template variables
+        -- Book-info level gates the generic auto-block (per-book "Book info" setting); "none"
+        -- skips it. Explicit {title}/{author} placeholders always resolve regardless.
+        local book_info_level = data._book_info_level or "basic"
         if data.book_metadata then
             local metadata = data.book_metadata
-            -- Add book context so AI knows which book we're discussing
-            table.insert(parts, "[Context]")
-            local book_info = string.format('Book: "%s"', metadata.title or "Unknown")
-            if metadata.author and metadata.author ~= "" then
-                book_info = book_info .. " by " .. metadata.author
+            if book_info_level ~= "none" then
+                -- Add book context so AI knows which book we're discussing
+                table.insert(parts, "[Context]")
+                local book_info = string.format('Book: "%s"', metadata.title or "Unknown")
+                if metadata.author and metadata.author ~= "" then
+                    book_info = book_info .. " by " .. metadata.author
+                end
+                table.insert(parts, book_info)
+                table.insert(parts, "")
             end
-            table.insert(parts, book_info)
-            table.insert(parts, "")
             -- Replace template variables in user prompt using replace_placeholder (avoids gsub escaping issues)
             if logger then
                 logger.info("MessageBuilder: BOOK CONTEXT - substituting {title} with:", metadata.title or "Unknown")
@@ -544,7 +549,7 @@ function MessageBuilder.build(params)
             user_prompt = replace_placeholder(user_prompt, "{author}", metadata.author or "")
             user_prompt = replace_placeholder(user_prompt, "{author_clause}", metadata.author_clause or "")
             user_prompt = replace_placeholder(user_prompt, "{doi_clause}", metadata.doi_clause or "")
-        elseif data.book_context then
+        elseif data.book_context and book_info_level ~= "none" then
             -- Fallback: use pre-formatted book context string if metadata not available
             table.insert(parts, "[Context]")
             table.insert(parts, data.book_context)
@@ -566,11 +571,15 @@ function MessageBuilder.build(params)
         -- Only include highlighted_text in context if the prompt doesn't already have the variable
         local has_context = data.book_title or (data.highlighted_text and not prompt_has_highlight_var)
 
+        -- Book-info level gates the generic "From ..." line (per-book "Book info" setting);
+        -- the selected text + explicit {title} placeholders are unaffected.
+        local show_book_line = data.book_title and (data._book_info_level or "basic") ~= "none"
+
         if has_context then
             table.insert(parts, "[Context]")
 
-            -- Add book info if available (controlled by include_book_context flag)
-            if data.book_title then
+            -- Add book info if available (controlled by include_book_context flag + book-info level)
+            if show_book_line then
                 table.insert(parts, string.format('From "%s"%s',
                     data.book_title,
                     (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
@@ -578,7 +587,7 @@ function MessageBuilder.build(params)
 
             -- Inject request prefix before selected text (e.g., X-Ray source framing)
             if data.request_prefix then
-                if data.book_title then
+                if show_book_line then
                     table.insert(parts, "")  -- Spacing after book info
                 end
                 table.insert(parts, data.request_prefix)
@@ -586,7 +595,7 @@ function MessageBuilder.build(params)
 
             -- Add highlighted text only if not already in prompt template
             if data.highlighted_text and not prompt_has_highlight_var then
-                if data.book_title or data.request_prefix then
+                if show_book_line or data.request_prefix then
                     table.insert(parts, "")  -- Add spacing if book info or prefix was shown
                 end
                 table.insert(parts, "Selected text:")

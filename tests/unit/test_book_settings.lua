@@ -184,6 +184,63 @@ TestRunner:test("send-empty author: real title kept, author fully suppressed", f
     TestRunner:assertNotContains(result, " by ", "no author clause when author is empty")
 end)
 
+-- Book-info level: resolution + gating of the generic [Context] auto-block
+TestRunner:suite("resolveBookInfoLevel")
+
+local KBI = "koassistant_book_info_level"
+TestRunner:test("per-book override wins over global", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveBookInfoLevel(makeDocSettings({ [KBI] = "none" }), { book_info_in_chat = "full" }), "none")
+end)
+TestRunner:test("falls back to global when no per-book", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveBookInfoLevel(makeDocSettings({}), { book_info_in_chat = "full" }), "full")
+end)
+TestRunner:test("defaults to basic when neither set", function()
+    TestRunner:assertEqual(BookSettings.resolveBookInfoLevel(makeDocSettings({}), {}), "basic")
+end)
+
+TestRunner:suite("book-info level gates the [Context] auto-block")
+
+TestRunner:test("none (book): drops Book: line, but {title} still resolves", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = 'About "{title}".' }, context = "book",
+        data = { book_metadata = { title = "T", author = "A" }, _book_info_level = "none" },
+    })
+    TestRunner:assertNotContains(result, 'Book: "T"', "auto-block suppressed")
+    TestRunner:assertContains(result, 'About "T"', "{title} still resolves")
+end)
+TestRunner:test("basic (book): keeps Book: line", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = 'About "{title}".' }, context = "book",
+        data = { book_metadata = { title = "T", author = "A" }, _book_info_level = "basic" },
+    })
+    TestRunner:assertContains(result, 'Book: "T" by A')
+end)
+TestRunner:test("no level set: keeps Book: line (back-compat default = basic)", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = 'x' }, context = "book",
+        data = { book_metadata = { title = "T", author = "A" } },
+    })
+    TestRunner:assertContains(result, 'Book: "T" by A')
+end)
+TestRunner:test("none (highlight): drops From line, keeps selected text", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "Explain." }, context = "highlight",
+        data = { book_title = "T", book_author = "A", highlighted_text = "the passage", _book_info_level = "none" },
+    })
+    TestRunner:assertNotContains(result, 'From "T"')
+    TestRunner:assertContains(result, "the passage")
+end)
+TestRunner:test("basic (highlight): keeps From line + selected text", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "Explain." }, context = "highlight",
+        data = { book_title = "T", book_author = "A", highlighted_text = "the passage", _book_info_level = "basic" },
+    })
+    TestRunner:assertContains(result, 'From "T" by A')
+    TestRunner:assertContains(result, "the passage")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
