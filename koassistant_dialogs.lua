@@ -2477,6 +2477,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
+    -- Resolve the per-book "book info" level for the generic [Context] auto-block (per-book > global).
+    -- "none" suppresses it; explicit {title}/{author} placeholders are unaffected.
+    message_data._book_info_level = require("koassistant_book_settings").resolveBookInfoLevel(
+        per_book_ds, config.features)
+
     -- Resolve effective research mode
     -- Priority: action override > per-book setting > DOI auto-detection > global setting
     -- DOI scan always runs independently (for {doi_clause} placeholder) — this only controls behavior
@@ -4835,23 +4840,31 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         end
                     elseif configuration.features.is_book_context then
                         -- For book context (file browser or gesture action), include book metadata
-                        table.insert(parts, "[Context]")
-                        if book_metadata then
-                            table.insert(parts, string.format('Book: "%s"%s',
-                                book_metadata.title or "Unknown",
-                                (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
-                        elseif highlighted_text then
-                            -- Fallback to highlighted_text if it contains formatted book info
-                            table.insert(parts, highlighted_text)
+                        -- unless the per-book "Book info" level is None.
+                        local book_info_level = require("koassistant_book_settings")
+                            .resolveBookInfoLevel(doc_settings, configuration.features)
+                        if book_info_level ~= "none" then
+                            table.insert(parts, "[Context]")
+                            if book_metadata then
+                                table.insert(parts, string.format('Book: "%s"%s',
+                                    book_metadata.title or "Unknown",
+                                    (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+                            elseif highlighted_text then
+                                -- Fallback to highlighted_text if it contains formatted book info
+                                table.insert(parts, highlighted_text)
+                            end
+                            table.insert(parts, "")
                         end
-                        table.insert(parts, "")
                     elseif configuration.features.is_general_context then
                         -- For general context, no initial context needed
                         -- User will provide their question/prompt
                     elseif highlighted_text then
-                        -- For highlighted text context - always include book info if available
+                        -- For highlighted text context - include book info unless the per-book
+                        -- "Book info" level is None (the selected text is always included).
+                        local book_info_level = require("koassistant_book_settings")
+                            .resolveBookInfoLevel(doc_settings, configuration.features)
                         table.insert(parts, "[Context]")
-                        if book_metadata and book_metadata.title then
+                        if book_metadata and book_metadata.title and book_info_level ~= "none" then
                             table.insert(parts, string.format('From "%s"%s',
                                 book_metadata.title,
                                 (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))

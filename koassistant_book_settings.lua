@@ -28,6 +28,17 @@ local BookSettings = {}
 BookSettings.KEY_AI_TITLE = "koassistant_book_ai_title"
 BookSettings.KEY_AI_AUTHOR = "koassistant_book_ai_author"
 BookSettings.KEY_SPOILER_FREE = "koassistant_book_spoiler_free"  -- true | false | nil(=follow global)
+-- Book-info level for the generic [Context] book-info block (freeform Send + include_book_context
+-- actions). "none" | "basic" (title+author) | "full" (+position) | nil(=follow global).
+BookSettings.KEY_BOOK_INFO = "koassistant_book_info_level"
+
+--- Resolve the effective book-info level for a book: per-book override > global default ("basic").
+-- @return "none" | "basic" | "full"
+function BookSettings.resolveBookInfoLevel(doc_settings, features)
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_BOOK_INFO)
+    if per_book ~= nil then return per_book end
+    return (features and features.book_info_in_chat) or "basic"
+end
 
 --- Read the per-book AI title/author overrides (what the AI sees for this book).
 -- @return title, author  -- each: nil (use metadata) | "" (send empty) | string (custom)
@@ -450,6 +461,36 @@ function BookSettings.show(opts)
         else return _("Follow global") end
     end
 
+    -- Book-info level: label + sub-picker (None / Title & author; +position lands in Phase B)
+    local function bookInfoLabel(v)
+        if v == "none" then return _("None")
+        elseif v == "full" then return _("Title, author & position")
+        elseif v == "basic" then return _("Title & author") end
+        return _("Follow global")
+    end
+    local function showBookInfoSubPicker()
+        closeDialog()
+        local cur = doc_settings:readSetting(BookSettings.KEY_BOOK_INFO)  -- nil | "none" | "basic" | "full"
+        local picker
+        local function setVal(val)
+            doc_settings:saveSetting(BookSettings.KEY_BOOK_INFO, val)
+            doc_settings:flush()
+            syncConfig()
+            UIManager:close(picker)
+            BookSettings.show(opts)
+        end
+        local rows = {
+            {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), bookInfoLabel(features.book_info_in_chat or "basic")),
+                callback = function() setVal(nil) end }},
+            {{ text = dot(cur == "none") .. _("None"), callback = function() setVal("none") end }},
+            {{ text = dot(cur == "basic") .. _("Title & author"), callback = function() setVal("basic") end }},
+            {{ text = _("Cancel"), id = "close",
+                callback = function() UIManager:close(picker); BookSettings.show(opts) end }},
+        }
+        picker = ButtonDialog:new{ title = _("Book info in chat (this book)"), buttons = rows }
+        UIManager:show(picker)
+    end
+
     local book_domain = doc_settings:readSetting("koassistant_book_domain")
     local domain_label
     if book_domain == "_none" then domain_label = _("None")
@@ -479,6 +520,8 @@ function BookSettings.show(opts)
                 showBoolSubPicker(BookSettings.KEY_SPOILER_FREE,
                     _("Spoiler-free chat (this book)"), features.spoiler_free_chat == true)
             end }},
+        {{ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
+            callback = showBookInfoSubPicker }},
         {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
             callback = function()
                 showOverrideSubPicker(BookSettings.KEY_AI_TITLE,
