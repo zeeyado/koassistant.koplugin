@@ -441,6 +441,19 @@ local SettingsSchema = {
                     path = "features.show_spoiler_toggle",
                     default = false,
                     help_text = _("Show a session checkbox in the book/highlight input dialog to toggle spoiler-free chat on the fly. When the global setting above is on, the checkbox starts checked but can be unchecked per session."),
+                },
+                {
+                    id = "book_info_in_chat",
+                    type = "dropdown",
+                    text = _("Book Info in Chat"),
+                    path = "features.book_info_in_chat",
+                    default = "basic",
+                    options = {
+                        { value = "none", label = _("None") },
+                        { value = "basic", label = _("Title & author") },
+                        { value = "full", label = _("Title, author & position") },
+                    },
+                    help_text = _("Default book context sent with freeform chats and book-aware actions (Explain, etc.). 'None' sends no book line; 'Title & author' is the default; 'Title, author & position' also adds reading progress, chapter, and page (when basic stats are enabled). Override per book in Book Settings. Actions that don't request book info (e.g. Translate) are unaffected."),
                     separator = true,
                 },
                 -- Content Format submenu

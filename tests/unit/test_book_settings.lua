@@ -241,6 +241,33 @@ TestRunner:test("basic (highlight): keeps From line + selected text", function()
     TestRunner:assertContains(result, "the passage")
 end)
 
+TestRunner:test("full (book): appends progress/chapter/page after Book: line", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "x" }, context = "book",
+        data = { book_metadata = { title = "T", author = "A" }, _book_info_level = "full",
+                 reading_progress = "62%", chapter_title = "Ch 3", page_number = "484" },
+    })
+    TestRunner:assertContains(result, 'Book: "T" by A')
+    TestRunner:assertContains(result, "Reading progress: 62%")
+    TestRunner:assertContains(result, "Current chapter: Ch 3")
+    TestRunner:assertContains(result, "Page: 484")
+end)
+TestRunner:test("full degrades gracefully when position data absent (no stats)", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "x" }, context = "book",
+        data = { book_metadata = { title = "T", author = "A" }, _book_info_level = "full" },
+    })
+    TestRunner:assertContains(result, 'Book: "T" by A')
+    TestRunner:assertNotContains(result, "Reading progress:")
+end)
+TestRunner:test("basic does NOT append position even if present", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "x" }, context = "book",
+        data = { book_metadata = { title = "T" }, _book_info_level = "basic", reading_progress = "62%" },
+    })
+    TestRunner:assertNotContains(result, "Reading progress:")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

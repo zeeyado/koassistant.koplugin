@@ -461,7 +461,7 @@ function BookSettings.show(opts)
         else return _("Follow global") end
     end
 
-    -- Book-info level: label + sub-picker (None / Title & author; +position lands in Phase B)
+    -- Book-info level: label + sub-picker (None / Title & author / +position)
     local function bookInfoLabel(v)
         if v == "none" then return _("None")
         elseif v == "full" then return _("Title, author & position")
@@ -484,6 +484,7 @@ function BookSettings.show(opts)
                 callback = function() setVal(nil) end }},
             {{ text = dot(cur == "none") .. _("None"), callback = function() setVal("none") end }},
             {{ text = dot(cur == "basic") .. _("Title & author"), callback = function() setVal("basic") end }},
+            {{ text = dot(cur == "full") .. _("Title, author & position"), callback = function() setVal("full") end }},
             {{ text = _("Cancel"), id = "close",
                 callback = function() UIManager:close(picker); BookSettings.show(opts) end }},
         }
