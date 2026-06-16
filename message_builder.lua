@@ -100,6 +100,22 @@ end
 --   using_new_format: boolean (true = system/domain go in system array, not message)
 --   templates_getter: function(template_name) returns template string (optional)
 -- @return string the consolidated message
+
+-- Append reading-position lines to the book-info block (for book-info level "full").
+-- Uses whatever position data is present (populated by the extractor under Basic Stats);
+-- silently adds nothing when unavailable, so "full" degrades to "basic" without stats.
+local function appendPositionLines(parts, data)
+    if data.reading_progress and data.reading_progress ~= "" and data.reading_progress ~= "0%" then
+        table.insert(parts, "Reading progress: " .. data.reading_progress)
+    end
+    if data.chapter_title and data.chapter_title ~= "" and data.chapter_title ~= "(Chapter unavailable)" then
+        table.insert(parts, "Current chapter: " .. data.chapter_title)
+    end
+    if data.page_number and data.page_number ~= "" then
+        table.insert(parts, "Page: " .. data.page_number)
+    end
+end
+
 function MessageBuilder.build(params)
     local prompt = params.prompt or {}
     local context = params.context or "general"
@@ -539,6 +555,7 @@ function MessageBuilder.build(params)
                     book_info = book_info .. " by " .. metadata.author
                 end
                 table.insert(parts, book_info)
+                if book_info_level == "full" then appendPositionLines(parts, data) end
                 table.insert(parts, "")
             end
             -- Replace template variables in user prompt using replace_placeholder (avoids gsub escaping issues)
@@ -583,6 +600,7 @@ function MessageBuilder.build(params)
                 table.insert(parts, string.format('From "%s"%s',
                     data.book_title,
                     (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
+                if (data._book_info_level or "basic") == "full" then appendPositionLines(parts, data) end
             end
 
             -- Inject request prefix before selected text (e.g., X-Ray source framing)

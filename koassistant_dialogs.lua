@@ -4802,6 +4802,27 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Build consolidated message parts (no system/domain - they're in config.system now)
                     local parts = {}
 
+                    -- For book-info level "full": gather reading position to append to the book
+                    -- line. Respects Basic Stats; silently adds nothing when unavailable.
+                    local function appendSendPosition()
+                        if (configuration.features or {}).enable_basic_stats == false then return end
+                        local prog = book_metadata and book_metadata.reading_progress
+                        local chapter, page
+                        local ok, CE = pcall(require, "koassistant_context_extractor")
+                        if ok and CE and ui_instance and ui_instance.document then
+                            local ex = CE:new(ui_instance, configuration.features or {})
+                            local oks, stats = pcall(function() return ex:getReadingStats() end)
+                            if oks and stats then chapter = stats.chapter_title; page = stats.page_number end
+                            if not prog then
+                                local okp, p = pcall(function() return ex:getReadingProgress() end)
+                                if okp and p then prog = p.formatted end
+                            end
+                        end
+                        if prog and prog ~= "" and prog ~= "0%" then table.insert(parts, "Reading progress: " .. prog) end
+                        if chapter and chapter ~= "" and chapter ~= "(Chapter unavailable)" then table.insert(parts, "Current chapter: " .. chapter) end
+                        if page and page ~= "" then table.insert(parts, "Page: " .. page) end
+                    end
+
                     -- Add appropriate context
                     if configuration.features.is_library_context then
                         -- For library context, include selected books and/or library scan
@@ -4853,6 +4874,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 -- Fallback to highlighted_text if it contains formatted book info
                                 table.insert(parts, highlighted_text)
                             end
+                            if book_info_level == "full" then appendSendPosition() end
                             table.insert(parts, "")
                         end
                     elseif configuration.features.is_general_context then
@@ -4868,6 +4890,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(parts, string.format('From "%s"%s',
                                 book_metadata.title,
                                 (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+                            if book_info_level == "full" then appendSendPosition() end
                             table.insert(parts, "")
                         end
                         -- Inject X-Ray context framing before selected text (explains source)
