@@ -572,6 +572,27 @@ TestRunner:test("resetBook clears every owned key", function()
     TestRunner:assertEqual(BookSettings.countCustomized(ds), 0)
 end)
 
+TestRunner:test("setQuizField sets a field on an empty book (the popup's disable path)", function()
+    local ds = makeMutableDocSettings({})
+    BookSettings.setQuizField(ds, "enabled", false)
+    TestRunner:assertEqual(BookSettings.resolveQuiz(ds, {}).enabled, false, "enabled=false persisted")
+    TestRunner:assertEqual(ds._data[KQ].enabled, false)
+end)
+TestRunner:test("setQuizField merges without clobbering other fields", function()
+    local ds = makeMutableDocSettings({ [KQ] = { count = 4 } })
+    BookSettings.setQuizField(ds, "enabled", false)
+    TestRunner:assertEqual(ds._data[KQ].count, 4, "existing field kept")
+    TestRunner:assertEqual(ds._data[KQ].enabled, false)
+end)
+TestRunner:test("setQuizField clearing the only field drops the table", function()
+    local ds = makeMutableDocSettings({ [KQ] = { enabled = false } })
+    BookSettings.setQuizField(ds, "enabled", nil)
+    TestRunner:assertNil(ds._data[KQ], "emptied table cleared")
+end)
+TestRunner:test("setQuizField nil doc_settings is a no-op", function()
+    BookSettings.setQuizField(nil, "enabled", false)  -- must not error
+end)
+
 TestRunner:test("SIDECAR_KEYS covers all KEY_ constants", function()
     local present = {}
     for _i, k in ipairs(BookSettings.SIDECAR_KEYS) do present[k] = true end
