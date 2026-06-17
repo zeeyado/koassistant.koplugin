@@ -2231,25 +2231,36 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Determine context
     local context = getPromptContext(config)
 
-    -- Resolve effective translation language (uses SystemPrompts for consistency)
-    local SystemPrompts = require("prompts.system_prompts")
-    local effective_translation_language = SystemPrompts.getEffectiveTranslationLanguage({
-        translation_use_primary = config.features.translation_use_primary,
-        interaction_languages = config.features.interaction_languages,
-        user_languages = config.features.user_languages,
-        primary_language = config.features.primary_language,
-        translation_language = config.features.translation_language,
-    })
+    -- Resolve per-book DocSettings once here. Shared by the per-book language overrides
+    -- (just below), the quiz overrides, the AI title/author override, the book-info level,
+    -- and research-mode resolution further down. Prefer book_metadata.file (file browser/
+    -- artifact target) over ui.document.file (open book).
+    local per_book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
+        or (ui and ui.document and ui.document.file)
+    local per_book_ds = nil
+    if per_book_file then
+        if ui and ui.doc_settings and ui.document and ui.document.file == per_book_file then
+            per_book_ds = ui.doc_settings
+        else
+            local DocSettings = require("docsettings")
+            per_book_ds = DocSettings:open(per_book_file)
+        end
+    end
 
-    -- Resolve effective dictionary language (for dictionary action)
-    local effective_dictionary_language = SystemPrompts.getEffectiveDictionaryLanguage({
+    -- Resolve effective translation + dictionary languages (uses SystemPrompts for
+    -- consistency). A per-book language override (Book Settings ▸ Languages) is folded in
+    -- first, so this book can target a different language than the global default.
+    local SystemPrompts = require("prompts.system_prompts")
+    local lang_config = require("koassistant_book_settings").applyLanguageOverride({
         dictionary_language = config.features.dictionary_language,
         translation_use_primary = config.features.translation_use_primary,
         interaction_languages = config.features.interaction_languages,
         user_languages = config.features.user_languages,
         primary_language = config.features.primary_language,
         translation_language = config.features.translation_language,
-    })
+    }, per_book_ds)
+    local effective_translation_language = SystemPrompts.getEffectiveTranslationLanguage(lang_config)
+    local effective_dictionary_language = SystemPrompts.getEffectiveDictionaryLanguage(lang_config)
     -- Store resolved languages back to temp_config for viewer's RTL detection
     -- (temp_config.features is a separate copy from config.features)
     temp_config.features.dictionary_language = effective_dictionary_language
@@ -2281,15 +2292,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     }
     logger.info("KOAssistant: message_data.book_metadata=", message_data.book_metadata and "present" or "nil")
 
-    -- Build dynamic quiz instructions from settings (for interactive quiz actions)
+    -- Build dynamic quiz instructions from settings (for interactive quiz actions).
+    -- Per-book quiz overrides (Book Settings ▸ Quiz) take precedence over the globals.
     if prompt and prompt.interactive_quiz then
-        local features = config.features or {}
+        local BookSettings = require("koassistant_book_settings")
+        local quiz = BookSettings.resolveQuiz(per_book_ds, config.features)
         local parts = {}
-        local count = features.quiz_question_count or 8
+        local count = quiz.count
         table.insert(parts, "Generate exactly " .. count .. " questions total.")
 
         -- Difficulty
-        local difficulty = features.quiz_difficulty or "medium"
+        local difficulty = quiz.difficulty
         if difficulty == "easy" then
             table.insert(parts, "Difficulty: Easy — focus on straightforward recall and recognition.")
         elseif difficulty == "hard" then
@@ -2299,9 +2312,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
 
         -- Question types
-        local mc = features.quiz_mc_enabled ~= false
-        local sa = features.quiz_short_answer_enabled ~= false
-        local essay = features.quiz_essay_enabled ~= false
+        local mc = quiz.mc
+        local sa = quiz.sa
+        local essay = quiz.essay
         if not mc and not sa and not essay then mc = true end -- fallback
 
         -- Build JSON example with only enabled types
@@ -2447,19 +2460,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
-    -- Resolve per-book DocSettings for domain and research mode lookups
-    -- Prefer book_metadata.file (file browser/artifact target) over ui.document.file (open book)
-    local per_book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
-        or (ui and ui.document and ui.document.file)
-    local per_book_ds = nil
-    if per_book_file then
-        if ui and ui.doc_settings and ui.document and ui.document.file == per_book_file then
-            per_book_ds = ui.doc_settings
-        else
-            local DocSettings = require("docsettings")
-            per_book_ds = DocSettings:open(per_book_file)
-        end
-    end
+    -- per_book_ds (per-book DocSettings) is resolved earlier, just above the quiz builder.
 
     -- Apply per-book AI title/author override to what the AI sees (never library metadata).
     -- Covers the highlight path (book_title/book_author read straight from doc_props) and any
