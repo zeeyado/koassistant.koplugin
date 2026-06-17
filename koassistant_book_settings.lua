@@ -65,7 +65,7 @@ function BookSettings.resolveQuiz(doc_settings, features)
         mc = pick(bq.mc, features.quiz_mc_enabled, true),
         sa = pick(bq.sa, features.quiz_short_answer_enabled, true),
         essay = pick(bq.essay, features.quiz_essay_enabled, true),
-        chapter_depth = pick(bq.chapter_depth, features.quiz_chapter_depth, "toc_filter"),
+        chapter_depth = pick(bq.chapter_depth, features.quiz_chapter_depth, 2),
         -- Trigger-gate fields: enabled is suppress-only (raw per-book value, no global fallback
         -- here — the global enable gate is checked separately, before this is read);
         -- min_pages falls back to the global threshold.
@@ -719,11 +719,13 @@ local function quizDifficultyLabel(v)
     elseif v == "hard" then return _("Hard") end
     return _("Medium")
 end
-local function quizDepthLabel(v)
-    if v == 1 then return _("Level 1 only")
-    elseif v == 2 then return _("Level 1-2")
-    elseif v == 3 then return _("Level 1-3") end
-    return _("Follow KOReader TOC")
+local function quizLevelLabel(v)
+    if v == "auto" then return _("Auto-detect")
+    elseif v == 1 then return _("Top level (Level 1)")
+    elseif v == 2 then return _("Level 2")
+    elseif v == 3 then return _("Level 3")
+    elseif v == "toc_filter" or v == "all" then return _("All TOC headings") end
+    return _("Level 2")
 end
 
 --- Per-book QUIZ overrides — a sub-screen of Book Settings. Each row shows the per-book
@@ -884,20 +886,21 @@ function BookSettings.showQuizConfig(opts)
             callback = function()
                 showTriState("essay", _("Discussion (this book)"), features.quiz_essay_enabled ~= false)
             end }},
-        {{ text = T(_("Chapter depth: %1"), (cur.chapter_depth == nil) and _("Follow global") or quizDepthLabel(cur.chapter_depth)),
+        {{ text = T(_("Chapter level: %1"), (cur.chapter_depth == nil) and _("Follow global") or quizLevelLabel(cur.chapter_depth)),
             callback = function()
-                showOptions("chapter_depth", _("Chapter depth (this book)"),
-                    quizDepthLabel(features.quiz_chapter_depth or "toc_filter"), {
-                        { value = "toc_filter", label = _("Follow KOReader TOC") },
-                        { value = 1, label = _("Level 1 only") },
-                        { value = 2, label = _("Level 1-2") },
-                        { value = 3, label = _("Level 1-3") },
+                showOptions("chapter_depth", _("Quiz chapter level (this book)"),
+                    quizLevelLabel(features.quiz_chapter_depth or 2), {
+                        { value = "auto", label = _("Auto-detect") },
+                        { value = 1, label = _("Top level (Level 1)") },
+                        { value = 2, label = _("Level 2") },
+                        { value = 3, label = _("Level 3") },
+                        { value = "toc_filter", label = _("All TOC headings") },
                     })
             end }},
         {{ text = T(_("Min chapter length: %1"), minPagesLabel(cur.min_pages)),
             callback = function()
                 showSpinner("min_pages", _("Min chapter length, pages (this book)"), 0, 30,
-                    features.quiz_min_chapter_pages or 0)
+                    features.quiz_min_chapter_pages or 5)
             end }},
         {{ text = _("Close"), id = "close", callback = function()
             closeDialog()
