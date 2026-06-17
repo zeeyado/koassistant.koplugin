@@ -389,6 +389,20 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local features = config.features or {}
     local SystemPrompts = require("prompts.system_prompts")
 
+    -- Per-book MAIN response-language override (Book Settings ▸ Languages ▸ AI response
+    -- language) — applies to every action's system prompt, distinct from translate/dictionary.
+    -- Resolved from the book's sidecar; book/highlight only (general/library lack book_metadata).
+    local lang_fields = {
+        interaction_languages = features.interaction_languages,
+        user_languages = features.user_languages or "",
+        primary_language = features.primary_language,
+    }
+    local lang_file = features.book_metadata and features.book_metadata.file
+    if lang_file then
+        lang_fields = require("koassistant_book_settings").applyResponseLanguageOverride(
+            lang_fields, require("docsettings"):open(lang_file))
+    end
+
     -- Build unified system prompt (works for all providers)
     local system_config = SystemPrompts.buildUnifiedSystem({
         -- Behavior resolution (priority: action override > action variant > global)
@@ -401,10 +415,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         domain_context = domain_context,
         -- Caching (only effective for Anthropic)
         enable_caching = (config.provider or config.default_provider) == "anthropic",
-        -- Language settings (interaction_languages is new array format, user_languages is old string format)
-        interaction_languages = features.interaction_languages,
-        user_languages = features.user_languages or "",
-        primary_language = features.primary_language,
+        -- Language settings (interaction_languages is new array format, user_languages is old
+        -- string format). Folds in any per-book AI-response-language override (lang_fields above).
+        interaction_languages = lang_fields.interaction_languages,
+        user_languages = lang_fields.user_languages,
+        primary_language = lang_fields.primary_language,
         skip_language_instruction = action and action.skip_language_instruction,
         -- Research mode: resolved flag triggers academic nudge in system prompt
         -- (DOI auto-detection, per-book toggle, global setting, or action override)

@@ -77,6 +77,9 @@ end
 -- Per-book target-language overrides (string language id, or nil/"" = follow global).
 BookSettings.KEY_TRANSLATION_LANG = "koassistant_book_translation_language"
 BookSettings.KEY_DICTIONARY_LANG = "koassistant_book_dictionary_language"
+-- Per-book MAIN AI response language (the "Always respond in X" system-prompt directive that
+-- applies to every action — distinct from the translate/dictionary target languages above).
+BookSettings.KEY_RESPONSE_LANG = "koassistant_book_response_language"
 
 --- Fold per-book translation/dictionary language overrides into a language-resolver config
 -- (the table passed to SystemPrompts.getEffective*Language). Pure: returns the input
@@ -105,6 +108,38 @@ function BookSettings.applyLanguageOverride(config, doc_settings)
     return c
 end
 
+--- Fold a per-book MAIN response-language override into a buildUnifiedSystem language config
+-- ({ interaction_languages, user_languages, primary_language }). Pure: returns the input
+-- unchanged when there's no override, else a shallow copy. parseUserLanguages only honours a
+-- primary override that's already in the list, so the override language is prepended (deduped)
+-- AND set as primary — the user's other languages stay in the "understands" list, preserving
+-- the same switch-on-explicit behaviour as the global multi-language setting.
+-- @param config table { interaction_languages, user_languages, primary_language }
+-- @param doc_settings table|nil
+-- @return table
+function BookSettings.applyResponseLanguageOverride(config, doc_settings)
+    if not doc_settings then return config end
+    local lang = doc_settings:readSetting(BookSettings.KEY_RESPONSE_LANG)
+    if lang == nil or lang == "" then return config end
+    local c = {}
+    for k, v in pairs(config) do c[k] = v end
+    local list = { lang }
+    local existing = config.interaction_languages or config.user_languages
+    if type(existing) == "table" then
+        for _i, l in ipairs(existing) do
+            if l ~= lang and l ~= "" then table.insert(list, l) end
+        end
+    elseif type(existing) == "string" and existing ~= "" then
+        for l in existing:gmatch("([^,]+)") do
+            local trimmed = l:match("^%s*(.-)%s*$")
+            if trimmed ~= "" and trimmed ~= lang then table.insert(list, trimmed) end
+        end
+    end
+    c.interaction_languages = list
+    c.primary_language = lang
+    return c
+end
+
 -- Every DocSettings sidecar key this module owns. Single source of truth for the
 -- "reset book settings" action, the customized-count indicator, and (later) Track 33's
 -- storage registry. Keep in sync when adding a per-book setting.
@@ -118,6 +153,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_QUIZ,
     BookSettings.KEY_TRANSLATION_LANG,
     BookSettings.KEY_DICTIONARY_LANG,
+    BookSettings.KEY_RESPONSE_LANG,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -981,10 +1017,20 @@ function BookSettings.showLanguageConfig(opts)
         translation_language = features.translation_language,
     })
 
+    -- Global main response language (the "Always respond in X" directive's primary).
+    local global_response = SystemPrompts.parseUserLanguages(
+        features.interaction_languages or features.user_languages, features.primary_language)
+
+    local cur_r = doc_settings:readSetting(BookSettings.KEY_RESPONSE_LANG)
     local cur_t = doc_settings:readSetting(BookSettings.KEY_TRANSLATION_LANG)
     local cur_d = doc_settings:readSetting(BookSettings.KEY_DICTIONARY_LANG)
 
     local buttons = {
+        {{ text = T(_("AI response language: %1"), langLabel(cur_r)),
+            callback = function()
+                showLangPicker(BookSettings.KEY_RESPONSE_LANG,
+                    _("AI response language (this book)"), gdisp(global_response))
+            end }},
         {{ text = T(_("Translation language: %1"), langLabel(cur_t)),
             callback = function()
                 showLangPicker(BookSettings.KEY_TRANSLATION_LANG,

@@ -450,6 +450,55 @@ TestRunner:test("book dictionary language wins over global follow-translation", 
     TestRunner:assertEqual(SystemPrompts.getEffectiveDictionaryLanguage(cfg), "japanese")
 end)
 
+-- Per-book MAIN AI response language (the "Always respond in X" directive)
+TestRunner:suite("applyResponseLanguageOverride")
+
+local KRL = BookSettings.KEY_RESPONSE_LANG
+
+TestRunner:test("nil doc_settings / no key / empty → identity", function()
+    local cfg = { interaction_languages = { "english" } }
+    TestRunner:assertEqual(BookSettings.applyResponseLanguageOverride(cfg, nil), cfg)
+    TestRunner:assertEqual(BookSettings.applyResponseLanguageOverride(cfg, makeDocSettings({})), cfg)
+    TestRunner:assertEqual(BookSettings.applyResponseLanguageOverride(cfg, makeDocSettings({ [KRL] = "" })), cfg)
+end)
+
+TestRunner:test("override prepends (deduped) and sets primary; input not mutated", function()
+    local cfg = { interaction_languages = { "english", "french" }, primary_language = "english" }
+    local out = BookSettings.applyResponseLanguageOverride(cfg, makeDocSettings({ [KRL] = "spanish" }))
+    TestRunner:assertEqual(out.interaction_languages[1], "spanish", "book lang first")
+    TestRunner:assertEqual(out.interaction_languages[2], "english")
+    TestRunner:assertEqual(out.interaction_languages[3], "french")
+    TestRunner:assertEqual(out.primary_language, "spanish")
+    TestRunner:assertEqual(#cfg.interaction_languages, 2, "input list not mutated")
+end)
+
+TestRunner:test("override dedups when already present", function()
+    local out = BookSettings.applyResponseLanguageOverride(
+        { interaction_languages = { "english", "spanish" } }, makeDocSettings({ [KRL] = "spanish" }))
+    TestRunner:assertEqual(out.interaction_languages[1], "spanish")
+    TestRunner:assertEqual(out.interaction_languages[2], "english")
+    TestRunner:assertEqual(#out.interaction_languages, 2, "no duplicate spanish")
+end)
+
+TestRunner:test("override parses the legacy comma-string list", function()
+    local out = BookSettings.applyResponseLanguageOverride(
+        { user_languages = "english, french" }, makeDocSettings({ [KRL] = "german" }))
+    TestRunner:assertEqual(out.interaction_languages[1], "german")
+    TestRunner:assertEqual(out.interaction_languages[2], "english")
+    TestRunner:assertEqual(out.interaction_languages[3], "french")
+end)
+
+TestRunner:test("end-to-end: the response-language instruction switches to the book language", function()
+    local cfg = BookSettings.applyResponseLanguageOverride(
+        { interaction_languages = { "english" }, primary_language = "english" },
+        makeDocSettings({ [KRL] = "spanish" }))
+    local instr = SystemPrompts.buildLanguageInstruction(cfg.interaction_languages, cfg.primary_language)
+    TestRunner:assertContains(instr, "Always respond in spanish")
+    -- without the override the instruction would say english
+    local base = SystemPrompts.buildLanguageInstruction({ "english" }, "english")
+    TestRunner:assertContains(base, "Always respond in english")
+end)
+
 -- End-to-end quiz wiring: a per-book sidecar → resolveQuiz → the emitted instructions.
 -- This is the path the quiz-instruction builder runs in handlePredefinedPrompt.
 TestRunner:suite("quiz override reaches the emitted instructions")
@@ -527,7 +576,8 @@ TestRunner:test("SIDECAR_KEYS covers all KEY_ constants", function()
     for _i, k in ipairs(BookSettings.SIDECAR_KEYS) do present[k] = true end
     for _i, k in ipairs({ BookSettings.KEY_SPOILER_FREE, BookSettings.KEY_BOOK_INFO,
         BookSettings.KEY_AI_TITLE, BookSettings.KEY_AI_AUTHOR, BookSettings.KEY_QUIZ,
-        BookSettings.KEY_TRANSLATION_LANG, BookSettings.KEY_DICTIONARY_LANG }) do
+        BookSettings.KEY_TRANSLATION_LANG, BookSettings.KEY_DICTIONARY_LANG,
+        BookSettings.KEY_RESPONSE_LANG }) do
         if not present[k] then error("SIDECAR_KEYS missing " .. tostring(k)) end
     end
 end)
