@@ -3914,16 +3914,17 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
     NetworkMgr:runWhenConnected(function()
       -- Make sure we're using the latest configuration
       self:updateConfigFromSettings()
-      -- Get effective dictionary language
+      -- Get effective dictionary language (per-book override folded in for the open book)
       local SystemPrompts = require("prompts.system_prompts")
-      local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
-        dictionary_language = features.dictionary_language,
-        translation_language = features.translation_language,
-        translation_use_primary = features.translation_use_primary,
-        interaction_languages = features.interaction_languages,
-        user_languages = features.user_languages,
-        primary_language = features.primary_language,
-      })
+      local dict_language = SystemPrompts.getEffectiveDictionaryLanguage(
+        require("koassistant_book_settings").applyLanguageOverride({
+          dictionary_language = features.dictionary_language,
+          translation_language = features.translation_language,
+          translation_use_primary = features.translation_use_primary,
+          interaction_languages = features.interaction_languages,
+          user_languages = features.user_languages,
+          primary_language = features.primary_language,
+        }, self.ui and self.ui.doc_settings))
 
       -- Create a shallow copy of configuration to avoid polluting global state
       local dict_config = {}
@@ -7426,6 +7427,14 @@ function AskGPT:onPageUpdate(pageno)
   if features.enable_chapter_quiz ~= true then return end
   if not self.ui or not self.ui.document or not self.ui.toc then return end
 
+  -- Per-book quiz overrides, read from the live in-memory doc_settings (a hash lookup, not a
+  -- disk read — fresh every page turn, so editing Book Settings mid-book takes effect at once).
+  -- `enabled` is suppress-only: the global gate above already returned for a globally-disabled
+  -- quiz, so a book can only turn this OFF, never force it on. (Key: BookSettings.KEY_QUIZ.)
+  local book_quiz = self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_book_quiz")
+  self._book_quiz = book_quiz
+  if book_quiz and book_quiz.enabled == false then return end
+
   local toc = self.ui.toc
   if not toc.toc or #toc.toc == 0 then return end
 
@@ -7433,8 +7442,8 @@ function AskGPT:onPageUpdate(pageno)
   local prev_page = self._last_quiz_page
   self._last_quiz_page = pageno
 
-  -- Determine whether to filter by depth or use KOReader's TOC filter
-  local depth_setting = features.quiz_chapter_depth or "toc_filter"
+  -- Determine whether to filter by depth or use KOReader's TOC filter (per-book override wins)
+  local depth_setting = (book_quiz and book_quiz.chapter_depth) or features.quiz_chapter_depth or "toc_filter"
   local skip_ignored
   if depth_setting == "toc_filter" then
     skip_ignored = true -- Use KOReader's toc_ticks_ignored_levels
@@ -7496,6 +7505,17 @@ function AskGPT:_offerChapterQuiz(chapter_index)
   local toc_entries = self.ui.toc.toc
   local chapter = toc_entries[chapter_index]
   if not chapter then return end
+
+  -- Minimum chapter length gate (#68): skip the auto-quiz for very short/skimmed chapters.
+  -- Per-book override (self._book_quiz, cached in onPageUpdate) wins over the global threshold;
+  -- 0 means "no minimum". end_page isn't in scope here, so measure via getChapterPageCount,
+  -- which counts the chapter containing the start page and excludes hidden flows (footnotes).
+  local features = self.settings:readSetting("features") or {}
+  local min_pages = (self._book_quiz and self._book_quiz.min_pages) or features.quiz_min_chapter_pages or 0
+  if min_pages > 0 and chapter.page and self.ui.toc.getChapterPageCount then
+    local page_count = self.ui.toc:getChapterPageCount(chapter.page)
+    if page_count and page_count < min_pages then return end
+  end
 
   local chapter_title = chapter.title or ""
   if self.ui.toc.cleanUpTocTitle then
@@ -10251,16 +10271,17 @@ function AskGPT:syncDictionaryBypass()
         NetworkMgr:runWhenConnected(function()
           -- Make sure we're using the latest configuration
           self_ref:updateConfigFromSettings()
-          -- Get effective dictionary language
+          -- Get effective dictionary language (per-book override folded in for the open book)
           local SystemPrompts = require("prompts.system_prompts")
-          local dict_language = SystemPrompts.getEffectiveDictionaryLanguage({
-            dictionary_language = features.dictionary_language,
-            translation_language = features.translation_language,
-            translation_use_primary = features.translation_use_primary,
-            interaction_languages = features.interaction_languages,
-            user_languages = features.user_languages,
-            primary_language = features.primary_language,
-          })
+          local dict_language = SystemPrompts.getEffectiveDictionaryLanguage(
+            require("koassistant_book_settings").applyLanguageOverride({
+              dictionary_language = features.dictionary_language,
+              translation_language = features.translation_language,
+              translation_use_primary = features.translation_use_primary,
+              interaction_languages = features.interaction_languages,
+              user_languages = features.user_languages,
+              primary_language = features.primary_language,
+            }, self_ref.ui and self_ref.ui.doc_settings))
 
           -- Create a shallow copy of configuration to avoid polluting global state
           local dict_config = {}

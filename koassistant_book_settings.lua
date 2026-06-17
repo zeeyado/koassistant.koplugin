@@ -19,6 +19,7 @@ local T = require("ffi/util").template
 local UIManager = require("ui/uimanager")
 local ButtonDialog = require("ui/widget/buttondialog")
 local DomainLoader = require("domain_loader")
+local Languages = require("koassistant_languages")
 
 local BookSettings = {}
 
@@ -31,6 +32,10 @@ BookSettings.KEY_SPOILER_FREE = "koassistant_book_spoiler_free"  -- true | false
 -- Book-info level for the generic [Context] book-info block (freeform Send + include_book_context
 -- actions). "none" | "basic" (title+author) | "full" (+position) | nil(=follow global).
 BookSettings.KEY_BOOK_INFO = "koassistant_book_info_level"
+-- Per-book quiz overrides. Sparse table; each field nil = follow global:
+--   enabled (true|false; suppress-only — can't force-on a globally-disabled chapter quiz),
+--   count, difficulty, mc, sa, essay, chapter_depth, min_pages. (min_minutes deferred.)
+BookSettings.KEY_QUIZ = "koassistant_book_quiz"
 
 --- Resolve the effective book-info level for a book: per-book override > global default ("basic").
 -- @return "none" | "basic" | "full"
@@ -38,6 +43,66 @@ function BookSettings.resolveBookInfoLevel(doc_settings, features)
     local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_BOOK_INFO)
     if per_book ~= nil then return per_book end
     return (features and features.book_info_in_chat) or "basic"
+end
+
+--- Resolve effective quiz settings for a book: per-book field > global > built-in default.
+-- Pure (no I/O beyond the one sidecar read). The quiz-instruction builder consumes the
+-- count/difficulty/mc/sa/essay/chapter_depth fields; the chapter-end trigger consumes
+-- enabled (suppress-only) and min_pages. Booleans collapse the global's "nil = on" rule.
+-- @return table { count, difficulty, mc, sa, essay, chapter_depth, enabled, min_pages }
+function BookSettings.resolveQuiz(doc_settings, features)
+    features = features or {}
+    local bq = (doc_settings and doc_settings:readSetting(BookSettings.KEY_QUIZ)) or {}
+    -- For required fields: book value, else global, else built-in default.
+    local function pick(book_val, global_val, default)
+        if book_val ~= nil then return book_val end
+        if global_val ~= nil then return global_val end
+        return default
+    end
+    return {
+        count = pick(bq.count, features.quiz_question_count, 8),
+        difficulty = pick(bq.difficulty, features.quiz_difficulty, "medium"),
+        mc = pick(bq.mc, features.quiz_mc_enabled, true),
+        sa = pick(bq.sa, features.quiz_short_answer_enabled, true),
+        essay = pick(bq.essay, features.quiz_essay_enabled, true),
+        chapter_depth = pick(bq.chapter_depth, features.quiz_chapter_depth, "toc_filter"),
+        -- Trigger-gate fields: enabled is suppress-only (raw per-book value, no global fallback
+        -- here — the global enable gate is checked separately, before this is read);
+        -- min_pages falls back to the global threshold.
+        enabled = bq.enabled,
+        min_pages = pick(bq.min_pages, features.quiz_min_chapter_pages, 0),
+    }
+end
+
+-- Per-book target-language overrides (string language id, or nil/"" = follow global).
+BookSettings.KEY_TRANSLATION_LANG = "koassistant_book_translation_language"
+BookSettings.KEY_DICTIONARY_LANG = "koassistant_book_dictionary_language"
+
+--- Fold per-book translation/dictionary language overrides into a language-resolver config
+-- (the table passed to SystemPrompts.getEffective*Language). Pure: returns the input
+-- unchanged when there's no override, else a shallow copy with the fields overridden.
+-- A translation override also forces translation_use_primary=false so the resolver actually
+-- uses the override instead of the user's primary language.
+-- @param config table  the resolver config { translation_language, dictionary_language, ... }
+-- @param doc_settings table|nil
+-- @return table
+function BookSettings.applyLanguageOverride(config, doc_settings)
+    if not doc_settings then return config end
+    local t = doc_settings:readSetting(BookSettings.KEY_TRANSLATION_LANG)
+    local d = doc_settings:readSetting(BookSettings.KEY_DICTIONARY_LANG)
+    local has_t = t ~= nil and t ~= ""
+    local has_d = d ~= nil and d ~= ""
+    if not has_t and not has_d then return config end
+    local c = {}
+    for k, v in pairs(config) do c[k] = v end
+    if has_t then
+        c.translation_use_primary = false
+        c.translation_language = t
+    end
+    if has_d then
+        c.dictionary_language = d
+    end
+    return c
 end
 
 --- Read the per-book AI title/author overrides (what the AI sees for this book).
@@ -533,6 +598,20 @@ function BookSettings.show(opts)
                 showOverrideSubPicker(BookSettings.KEY_AI_AUTHOR,
                     _("AI author (this book)"), _("Custom AI author"))
             end }},
+        {{ text = _("Quiz settings ▸"), callback = function()
+            closeDialog()
+            BookSettings.showQuizConfig({
+                plugin = plugin, ui = ui, document_path = opts.document_path,
+                on_close = function() BookSettings.show(opts) end,
+            })
+        end }},
+        {{ text = _("Languages ▸"), callback = function()
+            closeDialog()
+            BookSettings.showLanguageConfig({
+                plugin = plugin, ui = ui, document_path = opts.document_path,
+                on_close = function() BookSettings.show(opts) end,
+            })
+        end }},
         {{ text = _("Close"), id = "close", callback = function()
             closeDialog()
             if on_close then on_close() end
@@ -540,6 +619,334 @@ function BookSettings.show(opts)
     }
 
     dialog = ButtonDialog:new{ title = _("Book Settings"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
+-- Human labels for the quiz "Follow global (X)" rows.
+local function quizDifficultyLabel(v)
+    if v == "easy" then return _("Easy")
+    elseif v == "hard" then return _("Hard") end
+    return _("Medium")
+end
+local function quizDepthLabel(v)
+    if v == 1 then return _("Level 1 only")
+    elseif v == 2 then return _("Level 1-2")
+    elseif v == 3 then return _("Level 1-3") end
+    return _("Follow KOReader TOC")
+end
+
+--- Per-book QUIZ overrides — a sub-screen of Book Settings. Each row shows the per-book
+-- value (or "Follow global (X)") and opens a small picker; "Follow global" clears that
+-- field from the sparse KEY_QUIZ table. `enabled` is suppress-only (it can only turn the
+-- chapter-end auto-quiz OFF for this book, never force it on past the global gate).
+-- @param opts table: { plugin, ui, document_path, on_close }
+function BookSettings.showQuizConfig(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+
+    local doc_settings = resolveDocSettings(ui, opts.document_path)
+    if not doc_settings then return end
+
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function reopen()
+        closeDialog()
+        BookSettings.showQuizConfig(opts)
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    -- Fresh read of the sparse per-book quiz table.
+    local function bq() return doc_settings:readSetting(BookSettings.KEY_QUIZ) or {} end
+    -- Set one field (nil clears it → follow global). Shallow-copies to avoid mutating a
+    -- shared reference; drops an emptied table so a cleared book carries no override.
+    local function setField(field, value)
+        local new = {}
+        for k, v in pairs(bq()) do new[k] = v end
+        new[field] = value
+        if next(new) == nil then new = nil end
+        doc_settings:saveSetting(BookSettings.KEY_QUIZ, new)
+        doc_settings:flush()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+    end
+
+    -- Tri-state picker (Follow global / On / Off) for a boolean field.
+    local function showTriState(field, dialog_title, global_on)
+        closeDialog()
+        local cur = bq()[field]
+        local picker
+        local function setVal(v)
+            UIManager:close(picker)
+            setField(field, v)
+            BookSettings.showQuizConfig(opts)
+        end
+        picker = ButtonDialog:new{ title = dialog_title, buttons = {
+            {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), global_on and _("On") or _("Off")),
+                callback = function() setVal(nil) end }},
+            {{ text = dot(cur == true) .. _("On"), callback = function() setVal(true) end }},
+            {{ text = dot(cur == false) .. _("Off"), callback = function() setVal(false) end }},
+            {{ text = _("Cancel"), id = "close",
+                callback = function() UIManager:close(picker); BookSettings.showQuizConfig(opts) end }},
+        } }
+        UIManager:show(picker)
+    end
+
+    -- Option-list picker: "Follow global (X)" + each { value, label }.
+    local function showOptions(field, dialog_title, global_label, options)
+        closeDialog()
+        local cur = bq()[field]
+        local picker
+        local function setVal(v)
+            UIManager:close(picker)
+            setField(field, v)
+            BookSettings.showQuizConfig(opts)
+        end
+        local rows = {
+            {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), global_label),
+                callback = function() setVal(nil) end }},
+        }
+        for _i, opt in ipairs(options) do
+            local v = opt.value
+            table.insert(rows, {{ text = dot(cur == v) .. opt.label, callback = function() setVal(v) end }})
+        end
+        table.insert(rows, {{ text = _("Cancel"), id = "close",
+            callback = function() UIManager:close(picker); BookSettings.showQuizConfig(opts) end }})
+        picker = ButtonDialog:new{ title = dialog_title, buttons = rows }
+        UIManager:show(picker)
+    end
+
+    -- Numeric spinner with a "Follow global" escape (clears the field on the extra button).
+    local function showSpinner(field, dialog_title, vmin, vmax, default_val)
+        closeDialog()
+        local SpinWidget = require("ui/widget/spinwidget")
+        UIManager:show(SpinWidget:new{
+            title_text = dialog_title,
+            value = bq()[field] or default_val,
+            value_min = vmin,
+            value_max = vmax,
+            value_step = 1,
+            ok_always_enabled = true,
+            extra_text = _("Follow global"),
+            extra_callback = function() setField(field, nil); reopen() end,
+            callback = function(spin) setField(field, spin.value); reopen() end,
+            cancel_callback = function() reopen() end,
+        })
+    end
+
+    local cur = bq()
+    local function triLabel(v)
+        if v == true then return _("On")
+        elseif v == false then return _("Off") end
+        return _("Follow global")
+    end
+    local function numLabel(v) return (v == nil) and _("Follow global") or tostring(v) end
+    local function minPagesLabel(v)
+        if v == nil then return _("Follow global")
+        elseif v == 0 then return _("No minimum") end
+        return T(_("%1 pages"), v)
+    end
+
+    -- `enabled` is suppress-only (the global gate runs before the per-book read in the
+    -- page-turn hot path), so it's an honest two-state: Follow global / Off-for-this-book.
+    -- It can silence the chapter-end auto-quiz for one book, never force it on past a
+    -- globally-disabled quiz.
+    local function enabledLabel(v)
+        if v == false then return _("Off (this book)") end
+        return _("Follow global")
+    end
+
+    local buttons = {
+        {{ text = T(_("Chapter-end quiz: %1"), enabledLabel(cur.enabled)),
+            callback = function()
+                showOptions("enabled", _("Chapter-end quiz (this book)"),
+                    features.enable_chapter_quiz == true and _("On") or _("Off"),
+                    { { value = false, label = _("Off — never quiz this book") } })
+            end }},
+        {{ text = T(_("Question count: %1"), numLabel(cur.count)),
+            callback = function()
+                showSpinner("count", _("Question count (this book)"), 3, 15,
+                    features.quiz_question_count or 8)
+            end }},
+        {{ text = T(_("Difficulty: %1"), (cur.difficulty == nil) and _("Follow global") or quizDifficultyLabel(cur.difficulty)),
+            callback = function()
+                showOptions("difficulty", _("Difficulty (this book)"),
+                    quizDifficultyLabel(features.quiz_difficulty or "medium"), {
+                        { value = "easy", label = _("Easy") },
+                        { value = "medium", label = _("Medium") },
+                        { value = "hard", label = _("Hard") },
+                    })
+            end }},
+        {{ text = T(_("Multiple choice: %1"), triLabel(cur.mc)),
+            callback = function()
+                showTriState("mc", _("Multiple choice (this book)"), features.quiz_mc_enabled ~= false)
+            end }},
+        {{ text = T(_("Short answer: %1"), triLabel(cur.sa)),
+            callback = function()
+                showTriState("sa", _("Short answer (this book)"), features.quiz_short_answer_enabled ~= false)
+            end }},
+        {{ text = T(_("Discussion: %1"), triLabel(cur.essay)),
+            callback = function()
+                showTriState("essay", _("Discussion (this book)"), features.quiz_essay_enabled ~= false)
+            end }},
+        {{ text = T(_("Chapter depth: %1"), (cur.chapter_depth == nil) and _("Follow global") or quizDepthLabel(cur.chapter_depth)),
+            callback = function()
+                showOptions("chapter_depth", _("Chapter depth (this book)"),
+                    quizDepthLabel(features.quiz_chapter_depth or "toc_filter"), {
+                        { value = "toc_filter", label = _("Follow KOReader TOC") },
+                        { value = 1, label = _("Level 1 only") },
+                        { value = 2, label = _("Level 1-2") },
+                        { value = 3, label = _("Level 1-3") },
+                    })
+            end }},
+        {{ text = T(_("Min chapter length: %1"), minPagesLabel(cur.min_pages)),
+            callback = function()
+                showSpinner("min_pages", _("Min chapter length, pages (this book)"), 0, 30,
+                    features.quiz_min_chapter_pages or 0)
+            end }},
+        {{ text = _("Close"), id = "close", callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end }},
+    }
+
+    dialog = ButtonDialog:new{ title = _("Quiz settings (this book)"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
+--- Per-book TRANSLATION / DICTIONARY target-language overrides — a sub-screen of Book
+-- Settings. Each row shows the per-book value (or "Follow global (X)") and opens a language
+-- picker (Follow global / a language from the list / Custom… / Cancel). Stored values are
+-- language ids (same as the global pickers), so the request pipeline treats them identically.
+-- @param opts table: { plugin, ui, document_path, on_close }
+function BookSettings.showLanguageConfig(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+
+    local doc_settings = resolveDocSettings(ui, opts.document_path)
+    if not doc_settings then return end
+
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function syncConfig()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    -- Free-text custom language (matches the global picker's "Custom language…" input).
+    local function editCustom(key, dialog_title)
+        local InputDialog = require("ui/widget/inputdialog")
+        local input
+        input = InputDialog:new{
+            title = dialog_title,
+            input = doc_settings:readSetting(key) or "",
+            input_hint = _("Language name (e.g. Spanish)"),
+            buttons = {{
+                { text = _("Cancel"), id = "close", callback = function() UIManager:close(input) end },
+                {
+                    text = _("Save"),
+                    is_enter_default = true,
+                    callback = function()
+                        local v = input:getInputText()
+                        doc_settings:saveSetting(key, (v ~= "" and v) or nil)
+                        doc_settings:flush()
+                        syncConfig()
+                        UIManager:close(input)
+                        BookSettings.showLanguageConfig(opts)
+                    end,
+                },
+            }},
+        }
+        UIManager:show(input)
+        input:onShowKeyboard()
+    end
+
+    -- Language picker for one key: Follow global / each language / Custom… / Cancel.
+    local function showLangPicker(key, dialog_title, global_display)
+        closeDialog()
+        local cur = doc_settings:readSetting(key)
+        local picker
+        local function setVal(v)
+            doc_settings:saveSetting(key, v)
+            doc_settings:flush()
+            syncConfig()
+            UIManager:close(picker)
+            BookSettings.showLanguageConfig(opts)
+        end
+        local rows = {
+            {{ text = dot(cur == nil or cur == "") .. T(_("Follow global (%1)"), global_display),
+                callback = function() setVal(nil) end }},
+        }
+        for _i, id in ipairs(Languages.getAllIds()) do
+            table.insert(rows, {{ text = dot(cur == id) .. Languages.getDisplay(id),
+                callback = function() setVal(id) end }})
+        end
+        table.insert(rows, {{ text = _("Custom…"),
+            callback = function() UIManager:close(picker); editCustom(key, dialog_title) end }})
+        table.insert(rows, {{ text = _("Cancel"), id = "close",
+            callback = function() UIManager:close(picker); BookSettings.showLanguageConfig(opts) end }})
+        picker = ButtonDialog:new{ title = dialog_title, buttons = rows }
+        UIManager:show(picker)
+    end
+
+    local function gdisp(v)
+        if v == nil or v == "" then return _("primary language") end
+        return Languages.getDisplay(v)
+    end
+    local function langLabel(v)
+        if v == nil or v == "" then return _("Follow global") end
+        return Languages.getDisplay(v)
+    end
+
+    -- Effective global target languages (for the "Follow global (X)" hints).
+    local SystemPrompts = require("prompts.system_prompts")
+    local global_trans = SystemPrompts.getEffectiveTranslationLanguage({
+        translation_use_primary = features.translation_use_primary,
+        interaction_languages = features.interaction_languages,
+        user_languages = features.user_languages,
+        primary_language = features.primary_language,
+        translation_language = features.translation_language,
+    })
+    local global_dict = SystemPrompts.getEffectiveDictionaryLanguage({
+        dictionary_language = features.dictionary_language,
+        translation_use_primary = features.translation_use_primary,
+        interaction_languages = features.interaction_languages,
+        user_languages = features.user_languages,
+        primary_language = features.primary_language,
+        translation_language = features.translation_language,
+    })
+
+    local cur_t = doc_settings:readSetting(BookSettings.KEY_TRANSLATION_LANG)
+    local cur_d = doc_settings:readSetting(BookSettings.KEY_DICTIONARY_LANG)
+
+    local buttons = {
+        {{ text = T(_("Translation language: %1"), langLabel(cur_t)),
+            callback = function()
+                showLangPicker(BookSettings.KEY_TRANSLATION_LANG,
+                    _("Translation language (this book)"), gdisp(global_trans))
+            end }},
+        {{ text = T(_("Dictionary language: %1"), langLabel(cur_d)),
+            callback = function()
+                showLangPicker(BookSettings.KEY_DICTIONARY_LANG,
+                    _("Dictionary language (this book)"), gdisp(global_dict))
+            end }},
+        {{ text = _("Close"), id = "close", callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end }},
+    }
+
+    dialog = ButtonDialog:new{ title = _("Languages (this book)"), buttons = buttons }
     UIManager:show(dialog)
 end
 

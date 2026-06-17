@@ -296,6 +296,160 @@ TestRunner:test("none + custom title: no auto-block, but {title} still resolves 
     TestRunner:assertNotContains(result, "Real Title", "original never appears")
 end)
 
+-- Per-book quiz overrides: per-book field > global > built-in default
+TestRunner:suite("resolveQuiz")
+
+local KQ = BookSettings.KEY_QUIZ
+
+TestRunner:test("no per-book, no globals → built-in defaults", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({}), {})
+    TestRunner:assertEqual(q.count, 8)
+    TestRunner:assertEqual(q.difficulty, "medium")
+    TestRunner:assertEqual(q.mc, true)
+    TestRunner:assertEqual(q.sa, true)
+    TestRunner:assertEqual(q.essay, true)
+    TestRunner:assertEqual(q.chapter_depth, "toc_filter")
+    TestRunner:assertNil(q.enabled, "enabled raw (suppress-only) defaults nil")
+    TestRunner:assertEqual(q.min_pages, 0)
+end)
+
+TestRunner:test("nil doc_settings → globals/defaults only", function()
+    local q = BookSettings.resolveQuiz(nil, { quiz_question_count = 5 })
+    TestRunner:assertEqual(q.count, 5)
+    TestRunner:assertEqual(q.difficulty, "medium")
+end)
+
+TestRunner:test("globals win when no per-book table", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({}), {
+        quiz_question_count = 12, quiz_difficulty = "hard",
+        quiz_mc_enabled = false, quiz_chapter_depth = 2, quiz_min_chapter_pages = 5,
+    })
+    TestRunner:assertEqual(q.count, 12)
+    TestRunner:assertEqual(q.difficulty, "hard")
+    TestRunner:assertEqual(q.mc, false, "global mc=false respected")
+    TestRunner:assertEqual(q.chapter_depth, 2)
+    TestRunner:assertEqual(q.min_pages, 5)
+end)
+
+TestRunner:test("per-book overrides each field", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({ [KQ] = {
+        count = 4, difficulty = "easy", mc = false, sa = false, essay = true,
+        chapter_depth = 1, enabled = false, min_pages = 7,
+    } }), {
+        quiz_question_count = 12, quiz_difficulty = "hard",
+        quiz_mc_enabled = true, quiz_chapter_depth = "toc_filter", quiz_min_chapter_pages = 5,
+    })
+    TestRunner:assertEqual(q.count, 4)
+    TestRunner:assertEqual(q.difficulty, "easy")
+    TestRunner:assertEqual(q.mc, false)
+    TestRunner:assertEqual(q.sa, false)
+    TestRunner:assertEqual(q.essay, true)
+    TestRunner:assertEqual(q.chapter_depth, 1)
+    TestRunner:assertEqual(q.enabled, false, "suppress-only flag carried raw")
+    TestRunner:assertEqual(q.min_pages, 7)
+end)
+
+TestRunner:test("partial per-book: only count overridden; rest follow global", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({ [KQ] = { count = 3 } }), {
+        quiz_question_count = 12, quiz_difficulty = "hard", quiz_mc_enabled = false,
+    })
+    TestRunner:assertEqual(q.count, 3, "per-book count wins")
+    TestRunner:assertEqual(q.difficulty, "hard", "difficulty follows global")
+    TestRunner:assertEqual(q.mc, false, "mc follows global")
+end)
+
+TestRunner:test("per-book boolean false overrides a true global", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({ [KQ] = { essay = false } }),
+        { quiz_essay_enabled = true })
+    TestRunner:assertEqual(q.essay, false)
+end)
+
+TestRunner:test("per-book boolean true overrides a false global", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({ [KQ] = { mc = true } }),
+        { quiz_mc_enabled = false })
+    TestRunner:assertEqual(q.mc, true)
+end)
+
+TestRunner:test("per-book min_pages = 0 overrides a non-zero global (this book: no gate)", function()
+    local q = BookSettings.resolveQuiz(makeDocSettings({ [KQ] = { min_pages = 0 } }),
+        { quiz_min_chapter_pages = 5 })
+    TestRunner:assertEqual(q.min_pages, 0)
+end)
+
+-- Per-book translation/dictionary language overrides
+TestRunner:suite("applyLanguageOverride")
+
+local SystemPrompts = require("prompts.system_prompts")
+local KTL = BookSettings.KEY_TRANSLATION_LANG
+local KDL = BookSettings.KEY_DICTIONARY_LANG
+
+TestRunner:test("nil doc_settings → identity", function()
+    local cfg = { translation_language = "x" }
+    TestRunner:assertEqual(BookSettings.applyLanguageOverride(cfg, nil), cfg)
+end)
+
+TestRunner:test("no per-book keys → identity (same table)", function()
+    local cfg = { translation_language = "x" }
+    TestRunner:assertEqual(BookSettings.applyLanguageOverride(cfg, makeDocSettings({})), cfg)
+end)
+
+TestRunner:test("empty-string overrides are treated as follow-global (identity)", function()
+    local cfg = { translation_language = "x" }
+    TestRunner:assertEqual(BookSettings.applyLanguageOverride(cfg, makeDocSettings({ [KTL] = "", [KDL] = "" })), cfg)
+end)
+
+TestRunner:test("translation override → new table, forces use_primary=false", function()
+    local cfg = { translation_use_primary = true, translation_language = "english" }
+    local out = BookSettings.applyLanguageOverride(cfg, makeDocSettings({ [KTL] = "spanish" }))
+    TestRunner:assertEqual(out.translation_language, "spanish")
+    TestRunner:assertEqual(out.translation_use_primary, false)
+    TestRunner:assertEqual(cfg.translation_use_primary, true, "input not mutated")
+    TestRunner:assertEqual(cfg.translation_language, "english", "input not mutated")
+end)
+
+TestRunner:test("dictionary override → dictionary_language set, translation untouched", function()
+    local out = BookSettings.applyLanguageOverride(
+        { dictionary_language = "english", translation_language = "english", translation_use_primary = true },
+        makeDocSettings({ [KDL] = "french" }))
+    TestRunner:assertEqual(out.dictionary_language, "french")
+    TestRunner:assertEqual(out.translation_use_primary, true, "dict override leaves translation alone")
+end)
+
+TestRunner:test("both overrides applied", function()
+    local out = BookSettings.applyLanguageOverride(
+        { translation_use_primary = true }, makeDocSettings({ [KTL] = "german", [KDL] = "italian" }))
+    TestRunner:assertEqual(out.translation_language, "german")
+    TestRunner:assertEqual(out.translation_use_primary, false)
+    TestRunner:assertEqual(out.dictionary_language, "italian")
+end)
+
+-- End-to-end: the override must actually change the resolved language, even when the
+-- global is set to "use primary" (which would otherwise ignore translation_language).
+TestRunner:suite("integration: per-book language reaches the resolver")
+
+TestRunner:test("book translation language wins over global use-primary", function()
+    local base = {
+        translation_use_primary = true,  -- global would use primary
+        primary_language = "english",
+        translation_language = "english",
+    }
+    local cfg = BookSettings.applyLanguageOverride(base, makeDocSettings({ [KTL] = "spanish" }))
+    TestRunner:assertEqual(SystemPrompts.getEffectiveTranslationLanguage(cfg), "spanish")
+    -- Without the override the global resolves to the primary. The resolver returns the
+    -- primary as a display name ("English"); the override returns the raw id ("spanish"),
+    -- exactly as the global translation_language picker does — the point is they differ.
+    TestRunner:assertEqual(SystemPrompts.getEffectiveTranslationLanguage(base), "English")
+end)
+
+TestRunner:test("book dictionary language wins over global follow-translation", function()
+    local base = {
+        dictionary_language = "__FOLLOW_TRANSLATION__",
+        translation_use_primary = true, primary_language = "english", translation_language = "english",
+    }
+    local cfg = BookSettings.applyLanguageOverride(base, makeDocSettings({ [KDL] = "japanese" }))
+    TestRunner:assertEqual(SystemPrompts.getEffectiveDictionaryLanguage(cfg), "japanese")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
