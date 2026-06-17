@@ -97,6 +97,7 @@ function QuizPrompt.build(quiz)
     end
     table.insert(parts, "- Adapt to content type (fiction: plot/characters/themes, non-fiction: arguments/evidence/concepts, academic: methodology/findings)")
     table.insert(parts, "- Use key terms in the work's original language where applicable")
+    table.insert(parts, "- CRITICAL for valid JSON: inside any question, option, or explanation, use single quotes for quotations (e.g. 'like this'). Never put a raw double quote inside a string value — if you must, escape it as \\\". Unescaped double quotes break the JSON.")
 
     return table.concat(parts, "\n")
 end

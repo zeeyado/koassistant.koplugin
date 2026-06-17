@@ -111,6 +111,45 @@ local function extractFromBraces(text, start_pos)
     return nil
 end
 
+--- Escape double quotes left unescaped *inside* JSON string values — a common LLM error, e.g.
+---   "explanation": "the existence of an "I," a self-aware self"
+--- A double quote is treated as the string's closing quote only when the next non-space
+--- character is structural (: , } ]) or end of input; otherwise it's an inner quote and gets
+--- escaped. Best-effort (genuinely ambiguous cases can't be resolved), and only used after strict
+--- parsing has already failed, so it can't make a parseable response worse.
+--- @param text string
+--- @return string
+local function repairUnescapedQuotes(text)
+    local out = {}
+    local in_string = false
+    local i, n = 1, #text
+    while i <= n do
+        local c = text:sub(i, i)
+        if not in_string then
+            out[#out + 1] = c
+            if c == '"' then in_string = true end
+        elseif c == "\\" then
+            -- copy an escape sequence (backslash + next char) verbatim
+            out[#out + 1] = c
+            if i < n then out[#out + 1] = text:sub(i + 1, i + 1); i = i + 1 end
+        elseif c == '"' then
+            local j = i + 1
+            while j <= n and text:sub(j, j):match("%s") do j = j + 1 end
+            local nxt = (j <= n) and text:sub(j, j) or ""
+            if nxt == "" or nxt == ":" or nxt == "," or nxt == "}" or nxt == "]" then
+                out[#out + 1] = c            -- structural closing quote
+                in_string = false
+            else
+                out[#out + 1] = '\\"'         -- inner quote → escape
+            end
+        else
+            out[#out + 1] = c
+        end
+        i = i + 1
+    end
+    return table.concat(out)
+end
+
 --- Parse a markdown-formatted quiz response as fallback.
 --- Looks for numbered questions, A)/B)/C)/D) options, and answer key sections.
 --- @param text string
@@ -259,6 +298,15 @@ function QuizParser.parse(text)
             logger.dbg("QuizParser: parsed via brace extraction")
             return data, nil
         end
+    end
+
+    -- Attempt 3.5: repair unescaped inner double quotes, then retry the best JSON candidate
+    -- (fenced > braced > whole text). Common LLM error that otherwise breaks json.decode.
+    local candidate = fenced or braced or text
+    data = tryDecode(repairUnescapedQuotes(candidate))
+    if data then
+        logger.dbg("QuizParser: parsed via unescaped-quote repair")
+        return data, nil
     end
 
     -- Attempt 4: markdown fallback
