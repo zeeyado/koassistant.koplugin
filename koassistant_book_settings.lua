@@ -78,6 +78,19 @@ function BookSettings.resolveQuiz(doc_settings, features)
     }
 end
 
+--- Set one field of the sparse per-book quiz table (nil clears it). Shallow-copies so a shared
+-- reference isn't mutated, and drops an emptied table so a reset book carries no override.
+-- Shared by the Book Settings quiz screen and the chapter-quiz popup's "Not for this book".
+function BookSettings.setQuizField(doc_settings, field, value)
+    if not doc_settings then return end
+    local new = {}
+    for k, v in pairs(doc_settings:readSetting(BookSettings.KEY_QUIZ) or {}) do new[k] = v end
+    new[field] = value
+    if next(new) == nil then new = nil end
+    doc_settings:saveSetting(BookSettings.KEY_QUIZ, new)
+    doc_settings:flush()
+end
+
 -- Per-book target-language overrides (string language id, or nil/"" = follow global).
 BookSettings.KEY_TRANSLATION_LANG = "koassistant_book_translation_language"
 BookSettings.KEY_DICTIONARY_LANG = "koassistant_book_dictionary_language"
@@ -760,15 +773,9 @@ function BookSettings.showQuizConfig(opts)
 
     -- Fresh read of the sparse per-book quiz table.
     local function bq() return doc_settings:readSetting(BookSettings.KEY_QUIZ) or {} end
-    -- Set one field (nil clears it → follow global). Shallow-copies to avoid mutating a
-    -- shared reference; drops an emptied table so a cleared book carries no override.
+    -- Set one field (nil clears it → follow global), then re-sync in-memory config.
     local function setField(field, value)
-        local new = {}
-        for k, v in pairs(bq()) do new[k] = v end
-        new[field] = value
-        if next(new) == nil then new = nil end
-        doc_settings:saveSetting(BookSettings.KEY_QUIZ, new)
-        doc_settings:flush()
+        BookSettings.setQuizField(doc_settings, field, value)
         if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
     end
 

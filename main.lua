@@ -7637,6 +7637,27 @@ function AskGPT:_offerChapterQuiz(chapter_index)
       ok_callback = function()
         self_ref:_runChapterQuiz(chapter_index)
       end,
+      -- Inline per-book controls: turn the chapter quiz off for this book, or open its settings.
+      other_buttons_first = true,
+      other_buttons = {{
+        {
+          text = _("Not for this book"),
+          callback = function()
+            require("koassistant_book_settings").setQuizField(
+              self_ref.ui and self_ref.ui.doc_settings, "enabled", false)
+            UIManager:show(InfoMessage:new{
+              text = _("Chapter quizzes turned off for this book.\nRe-enable in Book Settings → Quiz."),
+              timeout = 3,
+            })
+          end,
+        },
+        {
+          text = _("Quiz settings…"),
+          callback = function()
+            require("koassistant_book_settings").showQuizConfig({ plugin = self_ref, ui = self_ref.ui })
+          end,
+        },
+      }},
     })
   end)
   return true
