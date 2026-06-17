@@ -310,7 +310,8 @@ TestRunner:test("no per-book, no globals → built-in defaults", function()
     TestRunner:assertEqual(q.essay, true)
     TestRunner:assertEqual(q.chapter_depth, 2)
     TestRunner:assertNil(q.enabled, "enabled raw (suppress-only) defaults nil")
-    TestRunner:assertEqual(q.min_pages, 0)
+    TestRunner:assertEqual(q.min_pages, 5, "gate active out of the box (schema default, not 0)")
+    TestRunner:assertEqual(q.min_minutes, 3, "time gate active out of the box (schema default, not 0)")
 end)
 
 TestRunner:test("nil doc_settings → globals/defaults only", function()
@@ -580,6 +581,38 @@ TestRunner:test("SIDECAR_KEYS covers all KEY_ constants", function()
         BookSettings.KEY_RESPONSE_LANG }) do
         if not present[k] then error("SIDECAR_KEYS missing " .. tostring(k)) end
     end
+end)
+
+-- Reading-time gate (pass 2): resolveQuiz min_minutes + getReadingTimeInRange fail-open
+TestRunner:suite("resolveQuiz min_minutes")
+
+TestRunner:test("default 3 when nothing set (gate active out of the box)", function()
+    TestRunner:assertEqual(BookSettings.resolveQuiz(makeDocSettings({}), {}).min_minutes, 3)
+end)
+TestRunner:test("falls back to global", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveQuiz(makeDocSettings({}), { quiz_min_chapter_time = 3 }).min_minutes, 3)
+end)
+TestRunner:test("per-book wins over global", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveQuiz(makeDocSettings({ [KQ] = { min_minutes = 10 } }),
+            { quiz_min_chapter_time = 3 }).min_minutes, 10)
+end)
+TestRunner:test("per-book 0 overrides a non-zero global", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveQuiz(makeDocSettings({ [KQ] = { min_minutes = 0 } }),
+            { quiz_min_chapter_time = 3 }).min_minutes, 0)
+end)
+
+TestRunner:suite("getReadingTimeInRange fail-open")
+
+local StatsReader = require("koassistant_stats_reader")
+TestRunner:test("non-number args → nil", function()
+    TestRunner:assertNil(StatsReader.getReadingTimeInRange("x", 1, 5))
+    TestRunner:assertNil(StatsReader.getReadingTimeInRange(1, nil, 5))
+end)
+TestRunner:test("no stats DB available → nil (caller fails open)", function()
+    TestRunner:assertNil(StatsReader.getReadingTimeInRange(1, 1, 5))
 end)
 
 print("")

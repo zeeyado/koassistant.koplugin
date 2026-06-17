@@ -184,6 +184,36 @@ function StatsReader.loadAllStats()
     return lookup
 end
 
+--- Total reading time (seconds) spent in a page range for one book, from the stats DB.
+--- Reads the `page_stat` VIEW (which rescales recorded time to the book's current pagination),
+--- so the page range must be in current pagination. Read-only; all failures return nil so the
+--- caller can fail open (don't block on missing/unavailable stats).
+--- @param id_book number  integer book id in the stats DB (ReaderStatistics.id_curr_book)
+--- @param first_page number
+--- @param last_page number
+--- @return number|nil  seconds, or nil if unavailable/error
+function StatsReader.getReadingTimeInRange(id_book, first_page, last_page)
+    if type(id_book) ~= "number" or type(first_page) ~= "number" or type(last_page) ~= "number" then
+        return nil
+    end
+    local db_path = StatsReader.getDbPath()
+    if not db_path then return nil end
+
+    local sq3_ok, SQ3 = pcall(require, "lua-ljsqlite3/init")
+    if not sq3_ok then return nil end
+
+    local conn_ok, conn = pcall(SQ3.open, db_path, "ro")
+    if not conn_ok or not conn then return nil end
+
+    local sql = string.format(
+        "SELECT COALESCE(SUM(duration),0) AS secs FROM page_stat WHERE id_book=%d AND page>=%d AND page<=%d",
+        math.floor(id_book), math.floor(first_page), math.floor(last_page))
+    local query_ok, result = pcall(conn.exec, conn, sql)
+    pcall(conn.close, conn)
+    if not query_ok or not result or not result.secs then return nil end
+    return tonumber(result.secs[1])
+end
+
 --- Compute engagement group for a single book
 --- @param book table Book metadata (from scanner: title, author, status, progress, md5)
 --- @param stats table Stats data (from DB: total_read_time, last_open, etc.)

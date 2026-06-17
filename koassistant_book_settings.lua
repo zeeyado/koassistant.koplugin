@@ -34,7 +34,7 @@ BookSettings.KEY_SPOILER_FREE = "koassistant_book_spoiler_free"  -- true | false
 BookSettings.KEY_BOOK_INFO = "koassistant_book_info_level"
 -- Per-book quiz overrides. Sparse table; each field nil = follow global:
 --   enabled (true|false; suppress-only — can't force-on a globally-disabled chapter quiz),
---   count, difficulty, mc, sa, essay, chapter_depth, min_pages. (min_minutes deferred.)
+--   count, difficulty, mc, sa, essay, chapter_depth, min_pages, min_minutes.
 BookSettings.KEY_QUIZ = "koassistant_book_quiz"
 
 --- Resolve the effective book-info level for a book: per-book override > global default ("basic").
@@ -48,8 +48,8 @@ end
 --- Resolve effective quiz settings for a book: per-book field > global > built-in default.
 -- Pure (no I/O beyond the one sidecar read). The quiz-instruction builder consumes the
 -- count/difficulty/mc/sa/essay/chapter_depth fields; the chapter-end trigger consumes
--- enabled (suppress-only) and min_pages. Booleans collapse the global's "nil = on" rule.
--- @return table { count, difficulty, mc, sa, essay, chapter_depth, enabled, min_pages }
+-- enabled (suppress-only), min_pages, and min_minutes. Booleans collapse the global's "nil = on" rule.
+-- @return table { count, difficulty, mc, sa, essay, chapter_depth, enabled, min_pages, min_minutes }
 function BookSettings.resolveQuiz(doc_settings, features)
     features = features or {}
     local bq = (doc_settings and doc_settings:readSetting(BookSettings.KEY_QUIZ)) or {}
@@ -68,9 +68,13 @@ function BookSettings.resolveQuiz(doc_settings, features)
         chapter_depth = pick(bq.chapter_depth, features.quiz_chapter_depth, 2),
         -- Trigger-gate fields: enabled is suppress-only (raw per-book value, no global fallback
         -- here — the global enable gate is checked separately, before this is read);
-        -- min_pages falls back to the global threshold.
+        -- min_pages / min_minutes fall back to the global thresholds, then the schema defaults
+        -- (5 pages / 3 min) — NOT 0 — so the gates are active out of the box (schema defaults
+        -- aren't persisted to disk). An explicit 0 still means "no minimum" (0 is truthy in Lua,
+        -- so it isn't replaced by the default).
         enabled = bq.enabled,
-        min_pages = pick(bq.min_pages, features.quiz_min_chapter_pages, 0),
+        min_pages = pick(bq.min_pages, features.quiz_min_chapter_pages, 5),
+        min_minutes = pick(bq.min_minutes, features.quiz_min_chapter_time, 3),
     }
 end
 
@@ -843,6 +847,11 @@ function BookSettings.showQuizConfig(opts)
         elseif v == 0 then return _("No minimum") end
         return T(_("%1 pages"), v)
     end
+    local function minTimeLabel(v)
+        if v == nil then return _("Follow global")
+        elseif v == 0 then return _("No minimum") end
+        return T(_("%1 min"), v)
+    end
 
     -- `enabled` is suppress-only (the global gate runs before the per-book read in the
     -- page-turn hot path), so it's an honest two-state: Follow global / Off-for-this-book.
@@ -901,6 +910,11 @@ function BookSettings.showQuizConfig(opts)
             callback = function()
                 showSpinner("min_pages", _("Min chapter length, pages (this book)"), 0, 30,
                     features.quiz_min_chapter_pages or 5)
+            end }},
+        {{ text = T(_("Min reading time: %1"), minTimeLabel(cur.min_minutes)),
+            callback = function()
+                showSpinner("min_minutes", _("Min reading time, minutes (this book)"), 0, 60,
+                    features.quiz_min_chapter_time or 3)
             end }},
         {{ text = _("Close"), id = "close", callback = function()
             closeDialog()
