@@ -7517,6 +7517,19 @@ function AskGPT:_chapterContentRange(chapter_index)
   return chapter.page, end_page
 end
 
+--- Reading time (seconds) the user spent in a page range, from KOReader's statistics DB.
+--- Flushes volatile in-memory stats first (insertDB self-guards when frozen/disabled), then
+--- queries the page_stat view in current pagination. Returns nil when stats are unavailable so
+--- the caller can fail open (never block a quiz on missing data).
+function AskGPT:_chapterReadingTime(start_page, end_page)
+  local stats = self.ui and self.ui.statistics
+  if not stats or not start_page or not end_page then return nil end
+  local id_book = stats.id_curr_book
+  if type(id_book) ~= "number" or id_book <= 0 then return nil end
+  if stats.insertDB then pcall(function() stats:insertDB() end) end
+  return require("koassistant_stats_reader").getReadingTimeInRange(id_book, start_page, end_page)
+end
+
 --- Chapter transition detection for automatic chapter quizzes.
 --- Range-based: tracks which chapter (at the resolved level) the current page sits in and
 --- offers a quiz for the chapter just finished when you cross forward into the next one.
@@ -7571,11 +7584,14 @@ function AskGPT:_offerChapterQuiz(chapter_index)
   local chapter = toc_entries[chapter_index]
   if not chapter then return false end
 
-  -- Minimum chapter length gate (#68): skip the auto-quiz for very short chapters. Per-book
-  -- override (self._book_quiz, cached in onPageUpdate) wins over the global; 0 = no minimum.
-  -- Measured over the chapter's actual content range (= the quiz scope).
+  -- Resolve the substance gates (per-book > global > schema default 5 pages / 3 min) via the one
+  -- shared resolver, so the active defaults can't drift from the schema. 0 = no minimum.
   local features = self.settings:readSetting("features") or {}
-  local min_pages = (self._book_quiz and self._book_quiz.min_pages) or features.quiz_min_chapter_pages or 0
+  local quiz = require("koassistant_book_settings").resolveQuiz(self.ui and self.ui.doc_settings, features)
+
+  -- Minimum chapter length gate (#68): skip the auto-quiz for very short chapters, measured over
+  -- the chapter's actual content range (= the quiz scope).
+  local min_pages = quiz.min_pages
   if min_pages > 0 then
     local s, e = self:_chapterContentRange(chapter_index)
     if s and e and (e - s + 1) < min_pages then return false end
@@ -7596,6 +7612,17 @@ function AskGPT:_offerChapterQuiz(chapter_index)
       local cached = ActionCache.get(file, prefix .. cache_label)
       if cached and cached.result then return false end
     end
+  end
+
+  -- Minimum reading-time gate: skip if the reader spent too little time in this chapter (catches
+  -- flipping fast through a long chapter, which the page-length gate can't — fast-flipped pages
+  -- record ~0s in KOReader's stats). Fails OPEN: when stats are unavailable, _chapterReadingTime
+  -- returns nil and the quiz is still offered. Last (it's the only gate that touches the stats DB).
+  local min_time = quiz.min_minutes
+  if min_time > 0 then
+    local s, e = self:_chapterContentRange(chapter_index)
+    local secs = self:_chapterReadingTime(s, e)
+    if secs ~= nil and secs < min_time * 60 then return false end
   end
 
   local display_title = chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)
