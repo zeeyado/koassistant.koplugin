@@ -105,6 +105,41 @@ function BookSettings.applyLanguageOverride(config, doc_settings)
     return c
 end
 
+-- Every DocSettings sidecar key this module owns. Single source of truth for the
+-- "reset book settings" action, the customized-count indicator, and (later) Track 33's
+-- storage registry. Keep in sync when adding a per-book setting.
+BookSettings.SIDECAR_KEYS = {
+    "koassistant_book_domain",
+    "koassistant_book_research_mode",
+    BookSettings.KEY_SPOILER_FREE,
+    BookSettings.KEY_BOOK_INFO,
+    BookSettings.KEY_AI_TITLE,
+    BookSettings.KEY_AI_AUTHOR,
+    BookSettings.KEY_QUIZ,
+    BookSettings.KEY_TRANSLATION_LANG,
+    BookSettings.KEY_DICTIONARY_LANG,
+}
+
+--- Count how many per-book settings deviate from the global defaults (any non-nil key).
+-- @return number
+function BookSettings.countCustomized(doc_settings)
+    if not doc_settings then return 0 end
+    local n = 0
+    for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do
+        if doc_settings:readSetting(key) ~= nil then n = n + 1 end
+    end
+    return n
+end
+
+--- Clear every per-book override so this book follows the global defaults again.
+function BookSettings.resetBook(doc_settings)
+    if not doc_settings then return end
+    for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do
+        doc_settings:saveSetting(key, nil)
+    end
+    doc_settings:flush()
+end
+
 --- Read the per-book AI title/author overrides (what the AI sees for this book).
 -- @return title, author  -- each: nil (use metadata) | "" (send empty) | string (custom)
 function BookSettings.getMetadataOverride(doc_settings)
@@ -618,7 +653,27 @@ function BookSettings.show(opts)
         end }},
     }
 
-    dialog = ButtonDialog:new{ title = _("Book Settings"), buttons = buttons }
+    -- Surface customizations: count deviations from global, offer a one-tap reset.
+    -- Without this, sticky per-book overrides are easy to forget (and then global changes
+    -- appear not to take effect for this book).
+    local n_custom = BookSettings.countCustomized(doc_settings)
+    if n_custom > 0 then
+        table.insert(buttons, #buttons, {{ text = _("Reset book settings"), callback = function()
+            local ConfirmBox = require("ui/widget/confirmbox")
+            UIManager:show(ConfirmBox:new{
+                text = _("Reset all KOAssistant settings for this book to follow the global defaults?"),
+                ok_text = _("Reset"),
+                ok_callback = function()
+                    BookSettings.resetBook(doc_settings)
+                    syncConfig()
+                    reopen()
+                end,
+            })
+        end }})
+    end
+
+    local title = (n_custom > 0) and T(_("Book Settings (%1 customized)"), n_custom) or _("Book Settings")
+    dialog = ButtonDialog:new{ title = title, buttons = buttons }
     UIManager:show(dialog)
 end
 
