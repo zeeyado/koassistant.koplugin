@@ -5,6 +5,7 @@
 local json = require("json")
 local logger = require("logger")
 local _ = require("koassistant_gettext")
+local JsonRepair = require("koassistant_json_repair")
 
 local XrayParser = {}
 
@@ -331,12 +332,23 @@ function XrayParser.parse(text)
             break
         end
     end
+    local extracted
     if first_brace and last_brace and last_brace > first_brace then
-        local extracted = text:sub(first_brace, last_brace)
+        extracted = text:sub(first_brace, last_brace)
         ok, data = pcall(json.decode, extracted)
         if ok and isValidXrayData(data) then
             return data, nil
         end
+    end
+
+    -- Attempt 4: repair unescaped inner double quotes (a model can leave a raw " inside a
+    -- description or alias), then retry the best candidate. Only reached after strict parsing
+    -- failed, so it can't make a parseable response worse.
+    local candidate = extracted or text
+    ok, data = pcall(json.decode, JsonRepair.escapeInnerQuotes(candidate))
+    if ok and isValidXrayData(data) then
+        logger.dbg("XrayParser: parsed via unescaped-quote repair")
+        return data, nil
     end
 
     return nil, "failed to parse JSON from response"
