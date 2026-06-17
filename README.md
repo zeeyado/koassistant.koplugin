@@ -75,6 +75,7 @@
   - [Custom Behaviors](#custom-behaviors)
 - [Domains](#domains): Add subject expertise to prompts
   - [Creating Domains](#creating-domains)
+- [Book Settings](#book-settings): Per-book overrides (domain, research, spoiler-free, book info, AI title/author, quiz, languages)
 - [Managing Conversations](#managing-conversations): History, export, notebooks
   - [Auto-Save](#auto-save)
   - [Chat History](#chat-history)
@@ -695,7 +696,7 @@ The toggle is inside the **Domain & Research** picker (the Domain button in the 
 - **Book target:** Use global / On / Off, saved per-book
 - **Global target:** Off / On, applies to all books without a per-book override
 
-This shares the same book/global target toggle as domain selection.
+This shares the same book/global target toggle as domain selection. Research Mode for the current book can also be set from [Book Settings](#book-settings).
 
 **How DOI detection works:**
 1. **Cached result**, instant (checked first)
@@ -952,7 +953,7 @@ Actions like News Update that require [web search](#web-search) are available in
 ### Quick UI Features
 
 - **Action Descriptions**: Long-press any action button to see what it does. Works everywhere: input dialog, Quick Actions panel, highlight menu, and file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books).
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), and **More Actions** (access enabled actions not shown in the grid). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **More Actions** (access enabled actions not shown in the grid), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Web Search Toggle (Input)**: The input dialog has a **Web ON/OFF** button (top row) to toggle web search before running an action. This is a persistent toggle: the setting sticks across sessions. Action button labels update to reflect web search status.
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with Font Size, Alignment, Reset to Defaults, Show Reasoning (when available), and Show/Hide Debug
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout: reorder, show/hide buttons without leaving the panel
@@ -1857,6 +1858,8 @@ The Domain button shows a `(book)` suffix when a per-book domain is active. Gene
 
 The target toggle (For this book / Global) is shared between domain selection and Research Mode; both use the same target for the current session.
 
+> The per-book domain is one of several per-book overrides. The full set (domain, research, spoiler-free, book info, AI title/author, quiz, languages) lives in the dedicated [Book Settings](#book-settings) screen.
+
 **Note**: Keep the sticky behavior in mind. If you set a global domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. Per-book domains take priority over global when reading that book. You can change the domain through the input dialog, Quick Settings, or gesture actions.
 
 ### Browsing by Domain
@@ -1873,6 +1876,74 @@ Chat History → hamburger menu → **View by Domain**
 - **Per-book domains persist**: A domain set "For this book" is saved in the book's metadata and restored every time you open it, even from file browser or artifact views. Set "None" on the book target to explicitly opt a book out of your global domain.
 - **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Most major providers (Anthropic, OpenAI, Gemini, DeepSeek) cache system prompts automatically (50-90% cost reduction on repeated domain context).
 - **Preview domain effects**: Use the [web inspector](#testing-your-setup) to see how domains affect request structure and AI responses before using them on your e-reader.
+
+---
+
+## Book Settings
+
+**Book Settings** is a per-book configuration screen. Every setting here applies only to the book it's set on, sticks to that book (stored in its sidecar/DocSettings, restored each time you open it), and overrides the corresponding global default. Settings you don't touch stay on **Follow global**.
+
+**Opening Book Settings** (a book must be in scope, so reader or file browser only):
+
+| Entry point | Where |
+|---|---|
+| **Quick Actions panel** | The **Book Settings** utility (reader mode). Reorderable/hideable like any panel item. |
+| **File browser** | Long-press a book → **Book Settings (KOA)**. |
+| **Chat input dialog** | The gear (⚙) menu → **Book Settings** (book/highlight chats). |
+
+> The **Domain** and **Research Mode** for a book are also reachable from the quick **Domain & Research** picker (the Domain button in the input dialog, and the Domain chip in Quick Settings). Book Settings is the full per-book screen; the quick picker is the fast domain/research switch. Both write the same per-book values.
+
+### What you can set per book
+
+Each row shows its current value and opens a small picker; **Follow global** is always an option inside each.
+
+| Setting | Options | Notes |
+|---|---|---|
+| **Domain** | Follow global / None / a specific domain | Same per-book domain as the quick picker. See [Per-Book Domains](#per-book-domains). |
+| **Research mode** | Follow global / On / Off | See [Research Mode](#research-mode). "Off" suppresses it even when a DOI is detected. |
+| **Spoiler-free chat** | Follow global / On / Off | See [Spoiler-Free Mode](#spoiler-free-mode). |
+| **Book info** | Follow global / None / Title & author / Title, author & position | Controls the generic book-info block KOAssistant attaches to actions and freeform chat (see below). |
+| **AI title** | Use real metadata / Custom… / Send empty | What the AI is told the book is *called*. |
+| **AI author** | Use real metadata / Custom… / Send empty | What the AI is told the *author* is. |
+| **Quiz settings ▸** | Per-book quiz overrides (sub-screen) | See below. |
+| **Languages ▸** | Per-book response/translation/dictionary language (sub-screen) | See below. |
+
+**Book info** decides how much book context is auto-attached:
+- **None** — no automatic "Book: …" line. Useful if document metadata clutters your context. Explicit `{title}`/`{author}` placeholders in a custom action still resolve, so artifact actions like X-Ray keep working.
+- **Title & author** (default) — the usual "Book: *Title* by Author" line.
+- **Title, author & position** — also appends reading progress, current chapter, and page (requires **Allow Basic Stats**).
+
+**AI title / AI author** override only what KOAssistant sends to the AI (and shows in its own chat header) — they never touch KOReader's library metadata. The override reaches every action, including X-Ray and other artifacts (via `{title}`/`{author}`). Three states:
+- **Use real metadata** — the book's actual title/author (the default).
+- **Custom…** — a value you type (fix wrong metadata, give a working title, or use a name the AI will recognize for a poorly-tagged file).
+- **Send empty** — send nothing for that field (e.g. anonymize the author, or suppress a junk title).
+
+### Quiz settings (per book)
+
+Overrides for the [chapter-end quiz and the Quiz action](#quiz) on this book; each defaults to **Follow global**:
+
+- **Chapter-end quiz** — *Follow global* or *Off for this book*. This is **suppress-only**: it can silence the automatic chapter-end prompt for one book, but cannot turn it on when the global "Quiz on Chapter End" is off.
+- **Question count**, **Difficulty**, **Multiple choice / Short answer / Discussion** — same options as the global quiz settings.
+- **Chapter depth** — which TOC levels trigger the auto-quiz for this book.
+- **Min chapter length** — skip the chapter-end prompt for chapters shorter than N pages (so short or skimmed chapters don't prompt). *No minimum* / *Follow global* / a page count.
+
+### Languages (per book)
+
+Three per-book language overrides, each **Follow global** by default:
+
+- **AI response language** — the language the AI replies in for **every** action on this book (the "Always respond in X" directive). For example: keep your global responses in English, but set a French novel to get replies in French. The book's language is added to your "understands" list, so the AI still switches if you write in one of your other languages.
+- **Translation language** — target language for the Translate action on this book.
+- **Dictionary language** — definition language for dictionary lookups on this book.
+
+> AI response language is distinct from translation/dictionary: it changes the AI's *default reply* language for all actions, whereas the other two only affect the Translate and Dictionary actions. All three are also settable globally in [AI Language Settings](#ai-language-settings) / [Translate Settings](#translate-settings) / [Dictionary Settings](#dictionary-settings).
+
+### Resolution and reset
+
+**Resolution order:** an action-level override (where an action declares one) > the per-book value > the global setting. A per-book value of **Follow global** means "no per-book override — use the global."
+
+Because per-book settings are sticky and silent, Book Settings surfaces them:
+- The screen title shows **"Book Settings (N customized)"** when this book has overrides.
+- A **Reset book settings** button appears (when there's something to reset) to clear every per-book override at once, returning the book to the global defaults. Handy if you set something long ago and a later global change "isn't taking effect" for this book.
 
 ---
 
@@ -2212,11 +2283,14 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 #### Quiz
 - **Quiz on Chapter End**: Offer a comprehension quiz when you finish reading a chapter. Requires a book with a table of contents. (default: OFF)
 - **Chapter Depth**: Which TOC levels trigger a quiz: Follow KOReader TOC (default, uses your existing TOC filter), Level 1 only, Level 1-2, or Level 1-3
+- **Minimum Chapter Length**: Skip the chapter-end quiz prompt for chapters shorter than this many pages, so short or skimmed sections don't prompt (0 = always offer, default; range 0-30)
 - **Question Count**: Total number of questions per quiz (3-15, default: 8)
 - **Difficulty**: Easy (straightforward recall), Medium (comprehension and application, default), or Hard (analysis and synthesis)
 - **Include Multiple Choice**: Auto-graded A/B/C/D questions (default: ON)
 - **Include Short Answer**: View model answer, then self-grade (default: ON)
 - **Include Discussion**: View key points a good answer should cover, then self-grade (default: ON)
+
+All of these (including a per-book *suppress* of the chapter-end auto-quiz) can be overridden for an individual book in [Book Settings](#book-settings) ▸ Quiz settings.
 
 The **Quiz** action is also available manually from the Quick Actions panel, opening the standard scope picker (full document or specific section). The quiz uses structured JSON output from the AI, parsed into an interactive one-at-a-time viewer with navigation, scoring, and Copy/Export/Notebook on the results screen. Result is saved as an artifact (View/Redo from Quick Actions). If JSON parsing fails, the raw response is shown as a fallback.
 
@@ -2233,6 +2307,8 @@ The **Quiz** action is also available manually from the Quick Actions panel, ope
 
 ### AI Language Settings
 These settings control what language the AI responds in.
+
+> **Per book:** the AI response language (and the translation/dictionary targets below) can be overridden for an individual book in [Book Settings](#book-settings) ▸ Languages, leaving your global defaults untouched.
 
 **Auto-detection:** KOAssistant automatically detects your language from KOReader's UI language setting. If you haven't configured any languages, the AI will respond in your KOReader language (e.g., if KOReader is set to Français, the AI responds in French). This also applies to translation and dictionary actions. The auto-detected language is shown as "(auto)" in Quick Settings. Once you explicitly set a language, auto-detection is no longer used.
 
@@ -2302,7 +2378,7 @@ This setup means: AI responds in English by default, translates to Spanish, defi
 ### Dictionary Settings
 See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
 - **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 4 built-in actions)
-- **Response Language**: Language for definitions (`↵T` follows Translation Language by default)
+- **Response Language**: Language for definitions (`↵T` follows Translation Language by default). Can be overridden per book in [Book Settings](#book-settings) ▸ Languages.
 - **Context Mode**: Surrounding text to include: None (default), Sentence, Paragraph, or Characters
 - **Context Characters**: Character count for Characters mode (default: 100)
 - **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
@@ -2317,7 +2393,7 @@ See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass
 > **Tip:** Create custom dictionary actions tailored to your language pair for best results. See [Custom Dictionary Actions](#custom-dictionary-actions).
 
 ### Translate Settings
-See [Translate View](#translate-view) for details on the specialized translation UI.
+See [Translate View](#translate-view) for details on the specialized translation UI. The translation target can be overridden per book in [Book Settings](#book-settings) ▸ Languages.
 - **Translate to Primary Language**: Use your primary language as the translation target (default: on)
 - **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
 - **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
@@ -2353,7 +2429,7 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions". Also accessible via the gear icon in the Quick Actions panel title bar → Panel Actions.
 - **QA Panel Utilities**: Show/hide and reorder utility buttons that appear below actions in the panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon → Panel Utilities.
   - Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action
-  - Chat History, Notebook (View/Edit popup), View Artifacts (opens picker when any artifacts exist), Quick Settings
+  - Chat History, Notebook (View/Edit popup), View Artifacts (opens picker when any artifacts exist), [Book Settings](#book-settings), Quick Settings
   - All utilities are enabled by default. Disable any you don't use to streamline the panel.
 
 ### Actions & Prompts
