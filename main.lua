@@ -327,10 +327,15 @@ function AskGPT:init()
     end
     -- Check if recap reminder should be shown
     self:checkRecapReminder()
-    -- Initialize chapter quiz state (reset on each book open)
-    self._last_chapter_index = nil
+    -- Initialize chapter quiz state (reset on each book open). The chapter boundary list is
+    -- recomputed lazily on the first page turn (and whenever the level setting changes), since
+    -- the TOC may not be filled yet here.
+    self._quiz_cur_idx = nil
     self._last_quiz_offered_chapter = nil
     self._last_quiz_page = nil
+    self._quiz_chapter_indices = nil
+    self._quiz_level = nil
+    self._quiz_setting = nil
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
@@ -7393,10 +7398,37 @@ function AskGPT:checkRecapReminder()
   })
 end
 
+--- Offer a quiz for the book's final chapter at end-of-book — the only place it can fire, since
+--- it has no following chapter to cross into. Gated like any chapter quiz. Returns true if a
+--- prompt was actually scheduled (so the next-read suggestion yields the end-of-book slot).
+function AskGPT:_maybeOfferLastChapterQuiz(features)
+  if features.enable_chapter_quiz ~= true then return false end
+  if not self.ui or not self.ui.document or not self.ui.toc then return false end
+  local toc = self.ui.toc
+  if not toc.toc or #toc.toc == 0 then return false end
+  local book_quiz = self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_book_quiz")
+  self._book_quiz = book_quiz
+  if book_quiz and book_quiz.enabled == false then return false end
+  self:_ensureQuizChapters(features)
+  local indices = self._quiz_chapter_indices
+  if not indices or #indices == 0 then return false end
+  local last_idx = indices[#indices]
+  if self._last_quiz_offered_chapter == last_idx then return false end
+  local offered = self:_offerChapterQuiz(last_idx)
+  if offered then self._last_quiz_offered_chapter = last_idx end
+  return offered
+end
+
 --- Called when user reaches the end of a book.
---- Shows a suggestion prompt if library scanning is available and setting is enabled.
+--- Offers a quiz for the final chapter (quiz-first), else suggests a next read.
 function AskGPT:onEndOfBook()
   local features = self.settings:readSetting("features") or {}
+
+  -- Quiz-first single-slot: if an eligible last-chapter quiz is offered, it takes the
+  -- end-of-book slot and the next-read suggestion yields this once (avoids stacking popups).
+  if self:_maybeOfferLastChapterQuiz(features) then return end
+
+  -- Otherwise, suggest a next read (requires library scanning).
   -- Setting defaults to true (opt-out), requires library scanning to be useful
   if features.enable_end_of_book_suggestion == false then return end
   if features.enable_library_scanning ~= true then return end
@@ -7418,19 +7450,73 @@ function AskGPT:onEndOfBook()
   end)
 end
 
+--- Resolve and cache the chapter-boundary list for the current book + level setting.
+--- The resolved chapter TOC indices are structural (font-size independent), so they're cached
+--- and recomputed only when the level setting changes (or first call after a book opens).
+--- Pages are read live from the TOC each page turn, so pagination changes are handled.
+function AskGPT:_ensureQuizChapters(features)
+  local setting = (self._book_quiz and self._book_quiz.chapter_depth)
+    or (features and features.quiz_chapter_depth) or 2
+  if self._quiz_chapter_indices and self._quiz_setting == setting then return end
+  self._quiz_setting = setting
+
+  local QuizChapters = require("koassistant_quiz_chapters")
+  local toc = self.ui.toc.toc
+  if setting == "toc_filter" or setting == "all" then
+    -- "All TOC headings": every entry, honoring KOReader's per-depth tick-ignore filter.
+    self._quiz_level = "all"
+    local ignored = self.ui.toc.toc_ticks_ignored_levels or {}
+    local idxs = {}
+    for i = 1, #toc do
+      if not ignored[toc[i].depth or 1] then idxs[#idxs + 1] = i end
+    end
+    self._quiz_chapter_indices = idxs
+  else
+    local level
+    if setting == "auto" then
+      local min_pages = (self._book_quiz and self._book_quiz.min_pages)
+        or (features and features.quiz_min_chapter_pages) or 5
+      level = QuizChapters.autoLevel(toc, self.ui.document:getPageCount(), min_pages)
+    elseif type(setting) == "number" then
+      level = setting
+    else
+      level = 2
+    end
+    self._quiz_level = level
+    self._quiz_chapter_indices = QuizChapters.chapterIndices(toc, level)
+  end
+end
+
+--- Content page range [start, end] of a chapter, bounded by the next TOC entry at the same or
+--- shallower depth (the quiz scope). Used by the min-pages gate and _runChapterQuiz.
+function AskGPT:_chapterContentRange(chapter_index)
+  local toc = self.ui.toc.toc
+  local chapter = toc[chapter_index]
+  if not chapter then return nil end
+  local depth = chapter.depth or 1
+  local end_page
+  for i = chapter_index + 1, #toc do
+    if (toc[i].depth or 1) <= depth then
+      end_page = toc[i].page - 1
+      break
+    end
+  end
+  if not end_page then end_page = self.ui.document:getPageCount() end
+  return chapter.page, end_page
+end
+
 --- Chapter transition detection for automatic chapter quizzes.
---- Fires on every page turn. Compares TOC index to detect when the user
---- crosses a chapter boundary and offers a quiz for the finished chapter.
---- Only triggers on sequential reading (small page deltas), not TOC jumps.
+--- Range-based: tracks which chapter (at the resolved level) the current page sits in and
+--- offers a quiz for the chapter just finished when you cross forward into the next one.
+--- Nested sub-entries never trigger (same chapter); a parent heading is not a chapter.
 function AskGPT:onPageUpdate(pageno)
   local features = self.settings:readSetting("features") or {}
   if features.enable_chapter_quiz ~= true then return end
   if not self.ui or not self.ui.document or not self.ui.toc then return end
 
-  -- Per-book quiz overrides, read from the live in-memory doc_settings (a hash lookup, not a
-  -- disk read — fresh every page turn, so editing Book Settings mid-book takes effect at once).
-  -- `enabled` is suppress-only: the global gate above already returned for a globally-disabled
-  -- quiz, so a book can only turn this OFF, never force it on. (Key: BookSettings.KEY_QUIZ.)
+  -- Per-book quiz overrides, read from the live in-memory doc_settings (a hash lookup, fresh
+  -- every page turn). `enabled` is suppress-only (the global gate above already returned for a
+  -- globally-disabled quiz). (Key: BookSettings.KEY_QUIZ.)
   local book_quiz = self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_book_quiz")
   self._book_quiz = book_quiz
   if book_quiz and book_quiz.enabled == false then return end
@@ -7438,83 +7524,49 @@ function AskGPT:onPageUpdate(pageno)
   local toc = self.ui.toc
   if not toc.toc or #toc.toc == 0 then return end
 
-  -- Track page for sequential reading detection
+  -- Track page for jump detection (a TOC jump moves many pages; a page turn moves 1-3).
   local prev_page = self._last_quiz_page
   self._last_quiz_page = pageno
 
-  -- Determine whether to filter by depth or use KOReader's TOC filter (per-book override wins)
-  local depth_setting = (book_quiz and book_quiz.chapter_depth) or features.quiz_chapter_depth or "toc_filter"
-  local skip_ignored
-  if depth_setting == "toc_filter" then
-    skip_ignored = true -- Use KOReader's toc_ticks_ignored_levels
-  else
-    skip_ignored = nil -- We'll filter manually by depth below
-  end
+  self:_ensureQuizChapters(features)
+  local indices = self._quiz_chapter_indices
+  if not indices or #indices == 0 then return end
 
-  local current_toc_index = toc:getTocIndexByPage(pageno, skip_ignored)
+  local QuizChapters = require("koassistant_quiz_chapters")
+  local cur_idx = QuizChapters.currentChapter(toc.toc, indices, pageno)
 
-  -- Manual depth filter: if numeric depth is set, check the resolved TOC entry
-  if type(depth_setting) == "number" and current_toc_index then
-    local entry = toc.toc[current_toc_index]
-    if entry and entry.depth > depth_setting then
-      -- This TOC entry is deeper than the configured depth; ignore it
-      -- Find the parent entry at the right depth instead
-      local parent_idx
-      for i = current_toc_index, 1, -1 do
-        if toc.toc[i].depth <= depth_setting then
-          parent_idx = i
-          break
-        end
-      end
-      current_toc_index = parent_idx
-    end
-  end
-
-  -- Initialize tracking on first call
-  if not self._last_chapter_index then
-    self._last_chapter_index = current_toc_index
-    return
-  end
-
-  -- Detect chapter transition
-  if current_toc_index and current_toc_index ~= self._last_chapter_index then
-    local previous_chapter_index = self._last_chapter_index
-    self._last_chapter_index = current_toc_index
-
-    -- Only trigger on sequential reading (small page delta), not TOC navigation jumps
-    -- A normal page turn moves 1-3 pages; a TOC jump moves many more
-    if prev_page and math.abs(pageno - prev_page) > 5 then
-      return
-    end
-
-    -- Debounce: don't re-offer for the same chapter
-    if self._last_quiz_offered_chapter == previous_chapter_index then return end
-    self._last_quiz_offered_chapter = previous_chapter_index
-
-    -- Only offer quiz when moving forward (not re-reading earlier chapters)
-    if current_toc_index > previous_chapter_index then
-      self:_offerChapterQuiz(previous_chapter_index)
+  if cur_idx and cur_idx ~= self._quiz_cur_idx then
+    local prev_idx = self._quiz_cur_idx
+    self._quiz_cur_idx = cur_idx
+    -- Skip TOC jumps (not sequential reading); we still updated the current chapter above.
+    if prev_page and math.abs(pageno - prev_page) > 5 then return end
+    -- Offer only when moving forward into a later chapter, once per finished chapter, and only
+    -- if we were actually in a chapter (prev_idx nil = opened mid-book or finished front matter).
+    if prev_idx and (toc.toc[cur_idx].page or 0) > (toc.toc[prev_idx].page or 0)
+       and self._last_quiz_offered_chapter ~= prev_idx then
+      self._last_quiz_offered_chapter = prev_idx
+      self:_offerChapterQuiz(prev_idx)
     end
   end
 end
 
---- Show a "quiz?" popup after a chapter transition.
---- Skips if a quiz already exists for this chapter.
+--- Show a "quiz?" popup for a finished chapter.
+--- Applies the substance gate (min pages) and skips if a quiz already exists for this chapter.
 --- @param chapter_index number TOC index of the finished chapter
+--- @return boolean  true if the prompt was scheduled, false if gated out (length/cache)
 function AskGPT:_offerChapterQuiz(chapter_index)
   local toc_entries = self.ui.toc.toc
   local chapter = toc_entries[chapter_index]
-  if not chapter then return end
+  if not chapter then return false end
 
-  -- Minimum chapter length gate (#68): skip the auto-quiz for very short/skimmed chapters.
-  -- Per-book override (self._book_quiz, cached in onPageUpdate) wins over the global threshold;
-  -- 0 means "no minimum". end_page isn't in scope here, so measure via getChapterPageCount,
-  -- which counts the chapter containing the start page and excludes hidden flows (footnotes).
+  -- Minimum chapter length gate (#68): skip the auto-quiz for very short chapters. Per-book
+  -- override (self._book_quiz, cached in onPageUpdate) wins over the global; 0 = no minimum.
+  -- Measured over the chapter's actual content range (= the quiz scope).
   local features = self.settings:readSetting("features") or {}
   local min_pages = (self._book_quiz and self._book_quiz.min_pages) or features.quiz_min_chapter_pages or 0
-  if min_pages > 0 and chapter.page and self.ui.toc.getChapterPageCount then
-    local page_count = self.ui.toc:getChapterPageCount(chapter.page)
-    if page_count and page_count < min_pages then return end
+  if min_pages > 0 then
+    local s, e = self:_chapterContentRange(chapter_index)
+    if s and e and (e - s + 1) < min_pages then return false end
   end
 
   local chapter_title = chapter.title or ""
@@ -7530,7 +7582,7 @@ function AskGPT:_offerChapterQuiz(chapter_index)
     if prefix then
       local cache_label = (chapter_title ~= "" and chapter_title or T(_("Chapter %1"), chapter_index)):gsub(":", "-")
       local cached = ActionCache.get(file, prefix .. cache_label)
-      if cached and cached.result then return end
+      if cached and cached.result then return false end
     end
   end
 
@@ -7548,6 +7600,7 @@ function AskGPT:_offerChapterQuiz(chapter_index)
       end,
     })
   end)
+  return true
 end
 
 --- Execute a chapter quiz for the specified chapter.
@@ -7561,19 +7614,8 @@ function AskGPT:_runChapterQuiz(chapter_index)
   local chapter = toc_entries[chapter_index]
   if not chapter then return end
 
-  -- Find chapter page range
-  local start_page = chapter.page
-  local end_page
-  -- Find next chapter at same or higher level (same depth or less)
-  for i = chapter_index + 1, #toc_entries do
-    if toc_entries[i].depth <= chapter.depth then
-      end_page = toc_entries[i].page - 1
-      break
-    end
-  end
-  if not end_page then
-    end_page = self.ui.document:getPageCount()
-  end
+  -- Chapter content page range (next entry at same-or-shallower depth → quiz scope)
+  local start_page, end_page = self:_chapterContentRange(chapter_index)
 
   local chapter_title = chapter.title or ""
   if self.ui.toc.cleanUpTocTitle then
