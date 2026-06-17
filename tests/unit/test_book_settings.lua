@@ -450,6 +450,88 @@ TestRunner:test("book dictionary language wins over global follow-translation", 
     TestRunner:assertEqual(SystemPrompts.getEffectiveDictionaryLanguage(cfg), "japanese")
 end)
 
+-- End-to-end quiz wiring: a per-book sidecar → resolveQuiz → the emitted instructions.
+-- This is the path the quiz-instruction builder runs in handlePredefinedPrompt.
+TestRunner:suite("quiz override reaches the emitted instructions")
+
+local QuizPrompt = require("koassistant_quiz_prompt")
+
+TestRunner:test("defaults (no override): 8 questions, medium, all three types", function()
+    local instr = QuizPrompt.build(BookSettings.resolveQuiz(makeDocSettings({}), {}))
+    TestRunner:assertContains(instr, "Generate exactly 8 questions")
+    TestRunner:assertContains(instr, "Difficulty: Medium")
+    TestRunner:assertContains(instr, "multiple_choice")
+    TestRunner:assertContains(instr, "short_answer")
+    TestRunner:assertContains(instr, "essay")
+end)
+
+TestRunner:test("per-book count+difficulty+types flow through to instructions", function()
+    local ds = makeDocSettings({ [KQ] = { count = 4, difficulty = "hard", mc = true, sa = false, essay = false } })
+    local instr = QuizPrompt.build(BookSettings.resolveQuiz(ds, {
+        quiz_question_count = 12, quiz_difficulty = "easy",  -- globals that must be overridden
+    }))
+    TestRunner:assertContains(instr, "Generate exactly 4 questions", "per-book count wins")
+    TestRunner:assertContains(instr, "Difficulty: Hard", "per-book difficulty wins")
+    TestRunner:assertContains(instr, 'All 4 questions must be type "multiple_choice"', "single enabled type")
+    TestRunner:assertNotContains(instr, "short_answer", "disabled type absent")
+    TestRunner:assertNotContains(instr, "Generate exactly 12", "global count overridden")
+end)
+
+TestRunner:test("all types disabled per-book → falls back to multiple choice", function()
+    local ds = makeDocSettings({ [KQ] = { mc = false, sa = false, essay = false } })
+    local instr = QuizPrompt.build(BookSettings.resolveQuiz(ds, {}))
+    TestRunner:assertContains(instr, "multiple_choice")
+end)
+
+-- Customized-count indicator + reset
+TestRunner:suite("countCustomized + resetBook")
+
+local function makeMutableDocSettings(map)
+    return {
+        _data = map or {},
+        readSetting = function(self, k) return self._data[k] end,
+        saveSetting = function(self, k, v) self._data[k] = v end,
+        flush = function() end,
+    }
+end
+
+TestRunner:test("nil / empty → 0 customized", function()
+    TestRunner:assertEqual(BookSettings.countCustomized(nil), 0)
+    TestRunner:assertEqual(BookSettings.countCustomized(makeDocSettings({})), 0)
+end)
+
+TestRunner:test('counts each non-nil key, including send-empty ("")', function()
+    local ds = makeDocSettings({
+        koassistant_book_domain = "philosophy",
+        [KQ] = { count = 4 },
+        [KT] = "",  -- send-empty title IS a customization
+    })
+    TestRunner:assertEqual(BookSettings.countCustomized(ds), 3)
+end)
+
+TestRunner:test("resetBook clears every owned key", function()
+    local ds = makeMutableDocSettings({
+        koassistant_book_domain = "philosophy",
+        koassistant_book_research_mode = true,
+        [KQ] = { count = 4 },
+        [KT] = "IJ",
+        [KTL] = "spanish",
+    })
+    TestRunner:assertEqual(BookSettings.countCustomized(ds), 5)
+    BookSettings.resetBook(ds)
+    TestRunner:assertEqual(BookSettings.countCustomized(ds), 0)
+end)
+
+TestRunner:test("SIDECAR_KEYS covers all KEY_ constants", function()
+    local present = {}
+    for _i, k in ipairs(BookSettings.SIDECAR_KEYS) do present[k] = true end
+    for _i, k in ipairs({ BookSettings.KEY_SPOILER_FREE, BookSettings.KEY_BOOK_INFO,
+        BookSettings.KEY_AI_TITLE, BookSettings.KEY_AI_AUTHOR, BookSettings.KEY_QUIZ,
+        BookSettings.KEY_TRANSLATION_LANG, BookSettings.KEY_DICTIONARY_LANG }) do
+        if not present[k] then error("SIDECAR_KEYS missing " .. tostring(k)) end
+    end
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
