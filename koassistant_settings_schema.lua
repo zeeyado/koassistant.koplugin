@@ -623,7 +623,7 @@ local SettingsSchema = {
                 {
                     id = "quiz_min_chapter_pages",
                     type = "spinner",
-                    text = _("Minimum Chapter Length"),
+                    text = _("Minimum Chapter Length (pages)"),
                     path = "features.quiz_min_chapter_pages",
                     default = 5,
                     min = 0,

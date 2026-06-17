@@ -1452,6 +1452,18 @@ function AskGPT:initSettings()
       needs_save = true
     end
 
+    -- ONE-TIME reset: quiz_chapter_depth changed from cumulative TOC levels ("Follow KOReader
+    -- TOC" / "Level 1-2" / "Level 1-3") to a single chapter level (Auto / Level 1/2/3 / All
+    -- headings, default Level 2). The old values' meanings don't carry over, and the old default
+    -- ("Follow KOReader TOC" = every heading) over-triggered, so re-baseline everyone on the new
+    -- default. Runs once; a deliberate later pick (incl. "All TOC headings") is preserved.
+    if not features._quiz_chapter_level_reset then
+      features.quiz_chapter_depth = nil  -- nil → schema default (Level 2)
+      features._quiz_chapter_level_reset = true
+      needs_save = true
+      logger.info("KOAssistant: Reset quiz_chapter_depth to the new single-level default (Level 2)")
+    end
+
     -- ONE-TIME migration: user_languages string → interaction_languages array
     -- Converts old comma-separated string to new array format
     if not features.languages_migrated then
