@@ -2,6 +2,8 @@ local BookTools = require("koassistant_book_tools")
 local BookSettings = require("koassistant_book_settings")
 local ConfigHelper = require("koassistant_config_helper")
 local DebugUtils = require("koassistant_debug_utils")
+local ModelConstraints = require("model_constraints")
+local ToolWire = require("koassistant_api.tool_wire")
 
 local GeminiToolRunner = {}
 
@@ -167,12 +169,13 @@ local function buildToolConfig(config, final_only, reading_scope)
     tool_config.enable_web_search = false
 
     if not final_only then
-        tool_config.gemini_tools = {
-            function_declarations = FUNCTION_DECLARATIONS,
+        -- Provider-neutral tool declaration; each provider's buildRequestBody renders its format.
+        tool_config.tools = {
+            specs = FUNCTION_DECLARATIONS,
             mode = "AUTO",
         }
     else
-        tool_config.gemini_tools = nil
+        tool_config.tools = nil
     end
 
     -- Append the spoiler-scope clause so the instructions match the structural clamp in BookTools.
@@ -271,6 +274,7 @@ local function appendTrace(answer, trace)
 end
 
 local function formatToolResultText(name, result)
+    result = result or {}  -- defensive, mirrors summarizeToolCall (BookTools:execute always returns a table)
     if name == "search_book" then
         local query_count = result.query_count or (result.queries and #result.queries) or 0
         local lines = {}
@@ -374,15 +378,9 @@ local function appendVerboseToolOutput(answer, tool_outputs)
     for i, output in ipairs(tool_outputs) do
         table.insert(lines, "")
         table.insert(lines, string.format("Turn %d:", i))
-        if output.content and output.content.parts then
-            for _, part in ipairs(output.content.parts) do
-                if part.functionResponse then
-                    local name = part.functionResponse.name or "tool"
-                    local result = part.functionResponse.response or {}
-                    local section = formatToolResultText(name, result)
-                    table.insert(lines, truncateSection(section, VERBOSE_SECTION_MAX_CHARS))
-                end
-            end
+        for _, item in ipairs(output.executed or {}) do
+            local section = formatToolResultText(item.call.name, item.result)
+            table.insert(lines, truncateSection(section, VERBOSE_SECTION_MAX_CHARS))
         end
     end
     return answer .. "\n" .. table.concat(lines, "\n")
@@ -462,27 +460,6 @@ local function appendTurnTokenUsage(answer, usage)
     return answer .. "\n\n---\n**Total token usage this turn:** " .. formatTurnUsage(usage)
 end
 
-local function makeFunctionResponsePart(call, result)
-    local response = {
-        name = call.name,
-        response = result,
-    }
-    if call.id then
-        response.id = call.id
-    end
-    return {
-        functionResponse = response,
-    }
-end
-
-local function appendModelContent(messages, model_content)
-    if not model_content or not model_content.parts then return end
-    table.insert(messages, {
-        role = model_content.role or "model",
-        parts = model_content.parts,
-    })
-end
-
 -- Tools read book text, so a trusted provider bypasses the extraction-consent gate
 -- (mirrors ContextExtractor:isProviderTrusted — features.trusted_providers vs the active provider).
 local function isProviderTrusted(provider, features)
@@ -498,12 +475,17 @@ function GeminiToolRunner.shouldUse(config, ui)
     -- Experimental opt-in (default off): the whole feature is gated behind this flag.
     if features.enable_tool_workflows ~= true then return false end
     local provider = config and (config.provider or config.default_provider)
+    -- Provider/model must support function calling AND have a tool_wire adapter; otherwise
+    -- fall through to the normal (whole-context) path. Generalizes the old gemini-only gate.
+    local model = config and ConfigHelper:getModelInfo(config)
+    if not (ModelConstraints.supportsCapability(provider, model, "tools") and ToolWire.hasAdapter(provider)) then
+        return false
+    end
     -- Tools are a form of book-text extraction → respect the consent gate (trusted bypass).
     if features.enable_book_text_extraction ~= true and not isProviderTrusted(provider, features) then
         return false
     end
-    return provider == "gemini"
-        and features.is_library_context ~= true
+    return features.is_library_context ~= true
         and features.is_general_context ~= true
         and features._xray_chat_active ~= true
         and ui ~= nil
@@ -540,6 +522,7 @@ function GeminiToolRunner.run(params)
     local messages = copyMessages(params.messages)
     local config = params.config or {}
     local features = config.features or {}
+    local provider = config.provider or config.default_provider
     local reading_scope = resolveReadingScope(config, params.ui)
     local tools = BookTools:new(params.ui, buildToolSettings(features, reading_scope))
     appendScopeMessage(messages, tools:getScope())
@@ -605,40 +588,32 @@ function GeminiToolRunner.run(params)
                 return
             end
 
-            if type(answer) ~= "table" or answer._gemini_function_calls ~= true then
+            if type(answer) ~= "table" or answer._tool_calls ~= true then
                 finish(true, answer, nil, reasoning, web_search_used)
                 return
             end
 
             local calls = answer.calls or {}
             if #calls == 0 then
-                finish(false, nil, "Gemini returned an empty tool call")
+                finish(false, nil, "Model returned an empty tool call")
                 return
             end
 
             tool_turns = tool_turns + 1
-            appendModelContent(messages, answer.model_content)
 
-            local response_parts = {}
+            local executed = {}
             for _, call in ipairs(calls) do
                 if tool_calls >= MAX_TOOL_CALLS then break end
                 tool_calls = tool_calls + 1
                 local result = tools:execute(call.name, call.args or {})
                 table.insert(trace, summarizeToolCall(call, result))
-                table.insert(response_parts, makeFunctionResponsePart(call, result))
+                table.insert(executed, { call = call, result = result })
             end
 
-            if #response_parts > 0 then
-                table.insert(tool_outputs, {
-                    content = {
-                        role = "user",
-                        parts = response_parts,
-                    },
-                })
-                table.insert(messages, {
-                    role = "tool",
-                    parts = response_parts,
-                })
+            if #executed > 0 then
+                table.insert(tool_outputs, { executed = executed })
+                -- Serialize the model echo + tool results in the provider's native shape.
+                ToolWire.appendToolTurn(provider, messages, answer.raw_assistant_turn, executed)
             end
 
             step()

@@ -78,6 +78,12 @@ ModelConstraints.capabilities = {
             "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
             "gemini-2.5-flash",
         },
+        -- Function calling for the book-tool workflows (same models as google_search).
+        -- The runner's shouldUse gates on this + a tool_wire.lua adapter being registered.
+        tools = {
+            "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
+            "gemini-2.5-flash",
+        },
     },
     -- Note: xAI web search requires Responses API (/v1/responses) which is
     -- not compatible with Chat Completions. Deprecated Feb 20, 2026 (410 Gone).

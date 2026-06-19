@@ -68,8 +68,8 @@ TestRunner:test("preserves raw Gemini parts and adds function declarations", fun
     }, {
         api_key = "test",
         model = "gemini-2.5-flash",
-        gemini_tools = {
-            function_declarations = function_declarations,
+        tools = {
+            specs = function_declarations,
             mode = "AUTO",
         },
     })

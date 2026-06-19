@@ -170,15 +170,16 @@ function GeminiHandler:buildRequestBody(message_history, config)
 
     local tools = {}
 
-    if config.gemini_tools
-       and type(config.gemini_tools.function_declarations) == "table"
-       and #config.gemini_tools.function_declarations > 0 then
+    -- Book-tool function declarations (provider-neutral config.tools = { specs, mode }).
+    if config.tools
+       and type(config.tools.specs) == "table"
+       and #config.tools.specs > 0 then
         table.insert(tools, {
-            functionDeclarations = config.gemini_tools.function_declarations,
+            functionDeclarations = config.tools.specs,
         })
         request_body.toolConfig = {
             functionCallingConfig = {
-                mode = config.gemini_tools.mode or "AUTO",
+                mode = config.tools.mode or "AUTO",
             },
         }
     end

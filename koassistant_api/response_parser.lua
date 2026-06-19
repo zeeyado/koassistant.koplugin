@@ -190,10 +190,13 @@ local RESPONSE_TRANSFORMERS = {
                     end
                 end
                 if #function_calls > 0 then
+                    -- Provider-neutral tool-call shape consumed by the book-tool runner +
+                    -- koassistant_api/tool_wire.lua. raw_assistant_turn is the provider-native
+                    -- echo payload (Gemini's candidate.content here).
                     return true, {
-                        _gemini_function_calls = true,
+                        _tool_calls = true,
                         calls = function_calls,
-                        model_content = candidate.content,
+                        raw_assistant_turn = candidate.content,
                     }, nil, web_search_used
                 end
 
