@@ -101,6 +101,8 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
                 is_book_context = true,
                 -- diagnostics are now gated behind in-chat debug; this test asserts they appear
                 show_debug_in_chat = true,
+                -- spoiler-free keeps the current-page scope wording asserted below
+                spoiler_free_chat = true,
             },
         },
         ui = makeUi(),
@@ -118,6 +120,40 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
     TestRunner:assertTrue(final_answer:find("Daisy was mentioned in a letter", 1, true) ~= nil, "tool result text")
     TestRunner:assertTrue(final_answer:find("38 total tokens", 1, true) ~= nil, "total token usage")
     TestRunner:assertTrue(final_answer:find("across 2 Gemini API calls", 1, true) ~= nil, "call count")
+end)
+
+TestRunner:test("spoiler-free off → tools get full-document reading scope", function()
+    local scope_message
+    local function query_fn(messages, _config, callback)
+        scope_message = messages[#messages].content
+        callback(true, "ok")
+    end
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = { provider = "gemini", features = { is_book_context = true } }, -- no spoiler-free → full
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertTrue(scope_message:find("read the entire document", 1, true) ~= nil,
+        "full-scope scope message")
+end)
+
+TestRunner:test("spoiler-free on → tools are clamped to the current page", function()
+    local scope_message
+    local function query_fn(messages, _config, callback)
+        scope_message = messages[#messages].content
+        callback(true, "ok")
+    end
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = { provider = "gemini", features = { is_book_context = true, spoiler_free_chat = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertTrue(scope_message:find("Do not request or infer content after page", 1, true) ~= nil,
+        "current-scope scope message clamps")
 end)
 
 TestRunner:test("shouldUse skips when _xray_chat_active is set", function()

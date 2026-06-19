@@ -200,6 +200,30 @@ TestRunner:test("defaults to basic when neither set", function()
     TestRunner:assertEqual(BookSettings.resolveBookInfoLevel(makeDocSettings({}), {}), "basic")
 end)
 
+-- Spoiler-free resolution (drives the tool reading scope): per-book true/false wins over global
+TestRunner:suite("resolveSpoilerFree")
+
+local KSF = "koassistant_book_spoiler_free"
+TestRunner:test("per-book true wins over global off", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveSpoilerFree(makeDocSettings({ [KSF] = true }), { spoiler_free_chat = false }), true)
+end)
+TestRunner:test("per-book false overrides global on", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveSpoilerFree(makeDocSettings({ [KSF] = false }), { spoiler_free_chat = true }), false)
+end)
+TestRunner:test("nil per-book follows global on", function()
+    TestRunner:assertEqual(
+        BookSettings.resolveSpoilerFree(makeDocSettings({}), { spoiler_free_chat = true }), true)
+end)
+TestRunner:test("defaults to false when neither set", function()
+    TestRunner:assertEqual(BookSettings.resolveSpoilerFree(makeDocSettings({}), {}), false)
+end)
+TestRunner:test("nil doc_settings follows global", function()
+    TestRunner:assertEqual(BookSettings.resolveSpoilerFree(nil, { spoiler_free_chat = true }), true)
+    TestRunner:assertEqual(BookSettings.resolveSpoilerFree(nil, {}), false)
+end)
+
 TestRunner:suite("book-info level gates the [Context] auto-block")
 
 TestRunner:test("none (book): drops Book: line, but {title} still resolves", function()

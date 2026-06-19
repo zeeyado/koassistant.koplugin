@@ -210,6 +210,9 @@ function BookTools:new(ui, settings)
     local instance = setmetatable({}, self)
     instance.ui = ui
     instance.settings = settings or {}
+    -- "current" = clamp all reads/searches to the current reading position (spoiler-safe);
+    -- "full" = the whole document is readable (research/non-fiction/finished books).
+    instance.reading_scope = instance.settings.reading_scope or "current"
     instance.extractor = ContextExtractor:new(ui, instance.settings)
     instance.page_cache = {}
     instance.last_hits = {}
@@ -245,14 +248,25 @@ function BookTools:isAvailable()
     return self.ui and self.ui.document and self:getTotalPages() > 0
 end
 
+--- Highest page the tools may read/search. Equals the current page under "current" scope
+-- (spoiler-safe — the model cannot reach later pages) or the last page under "full" scope.
+function BookTools:getReadCeiling()
+    if self.reading_scope == "full" then
+        local total = self:getTotalPages()
+        if total > 0 then return total end
+    end
+    return self:getCurrentPage() or self:getTotalPages()
+end
+
 function BookTools:getScope()
     local total_pages = self:getTotalPages()
     local current_page = self:getCurrentPage() or total_pages
     return {
         start_page = 1,
         current_page = current_page,
-        end_page = current_page,
+        end_page = self:getReadCeiling(),
         total_pages = total_pages,
+        reading_scope = self.reading_scope,
     }
 end
 
@@ -274,7 +288,7 @@ function BookTools:getPageText(page, max_chars)
 end
 
 function BookTools:getRangeText(start_page, end_page, max_chars)
-    local current_page = self:getCurrentPage() or self:getTotalPages()
+    local current_page = self:getReadCeiling()
     if not current_page then current_page = 1 end
     start_page = clamp(start_page, 1, current_page)
     end_page = clamp(end_page, start_page, current_page)
@@ -404,7 +418,7 @@ function BookTools:searchBook(args)
         return { ok = false, error = "query or queries is required" }
     end
 
-    local current_page = self:getCurrentPage() or self:getTotalPages()
+    local current_page = self:getReadCeiling()
     local fuzzy = args.fuzzy ~= false
     local case_sensitive = args.case_sensitive == true
     self.last_hits = {}
@@ -447,7 +461,7 @@ function BookTools:resolveReadTarget(args)
         return nil, "hit_id or page is required"
     end
 
-    local current_page = self:getCurrentPage() or self:getTotalPages()
+    local current_page = self:getReadCeiling()
     page = clamp(page, 1, current_page)
     local before_pages = clamp(args.before_pages or 1, 0, MAX_READ_PAGES - 1)
     local after_pages = clamp(args.after_pages or 1, 0, MAX_READ_PAGES - 1)
@@ -558,7 +572,7 @@ function BookTools:toc(args)
         return { ok = false, error = "book text is not available" }
     end
 
-    local current_page = self:getCurrentPage() or self:getTotalPages()
+    local current_page = self:getReadCeiling()
     local max_snippet_chars = clamp(args.max_snippet_chars or DEFAULT_TOC_SNIPPET_CHARS, 0, MAX_TOC_SNIPPET_CHARS)
     local max_entries = clamp(args.max_entries or MAX_TOC_ENTRIES, 1, MAX_TOC_ENTRIES)
     local toc = self:getEffectiveToc()

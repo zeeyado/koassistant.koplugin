@@ -45,6 +45,15 @@ function BookSettings.resolveBookInfoLevel(doc_settings, features)
     return (features and features.book_info_in_chat) or "basic"
 end
 
+--- Resolve effective spoiler-free state for a book: per-book override (true/false) wins,
+-- else follow the global spoiler_free_chat setting. (Session toggle is the caller's concern.)
+-- @return boolean
+function BookSettings.resolveSpoilerFree(doc_settings, features)
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_SPOILER_FREE)
+    if per_book ~= nil then return per_book == true end
+    return (features and features.spoiler_free_chat) == true
+end
+
 --- Resolve effective quiz settings for a book: per-book field > global > built-in default.
 -- Pure (no I/O beyond the one sidecar read). The quiz-instruction builder consumes the
 -- count/difficulty/mc/sa/essay/chapter_depth fields; the chapter-end trigger consumes

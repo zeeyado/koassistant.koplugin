@@ -1,4 +1,5 @@
 local BookTools = require("koassistant_book_tools")
+local BookSettings = require("koassistant_book_settings")
 local ConfigHelper = require("koassistant_config_helper")
 local DebugUtils = require("koassistant_debug_utils")
 
@@ -15,16 +16,23 @@ local SHOW_TURN_TOKEN_USAGE = true
 
 local TOOL_INSTRUCTIONS = [[
 
-When answering questions about the current book, use the local book tools when you need evidence from the text. The tools can only read pages up to the user's current reading position. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with short concordance excerpts and page counts. Batch related lookups: pass multiple terms via search_book queries=[...] and multiple targets via read_around hit_ids=[...] / pages=[...] in a single call to avoid extra round trips. Use read_around for surrounding context, and toc for chapter structure. Do not claim access to unread pages.]]
+When answering questions about the current book, use the local book tools when you need evidence from the text. Prefer search_book for specific phrases, character names, objects, or events; it returns all matching hit references with short concordance excerpts and page counts. Batch related lookups: pass multiple terms via search_book queries=[...] and multiple targets via read_around hit_ids=[...] / pages=[...] in a single call to avoid extra round trips. Use read_around for surrounding context, and toc for chapter structure.]]
+
+-- Reading-scope clause appended to the tool instructions. "current" enforces spoiler safety
+-- (the model is also clamped in BookTools); "full" lets it use the whole document.
+local SCOPE_NOTE_CURRENT = " The tools can only read pages up to the user's current reading position; do not request or claim access to later pages."
+local SCOPE_NOTE_FULL = " The tools can read the entire document."
 
 local FINAL_INSTRUCTIONS = [[
 
-Use the gathered local book tool results to answer the user's question. Do not use or reveal any information about events or plot developments beyond the user's current reading position.]]
+Use the gathered local book tool results to answer the user's question.]]
+
+local FINAL_NOTE_CURRENT = " Do not use or reveal any information about events or plot developments beyond the user's current reading position."
 
 local FUNCTION_DECLARATIONS = {
     {
         name = "search_book",
-        description = "Search the book text up to the current reading position. Pass multiple terms via queries=[...] to batch lookups in one call. Returns per-query blocks with compact hit metadata and short concordance excerpts; hit IDs are namespaced (e.g. q1:p42:3). Call read_around for surrounding context.",
+        description = "Search the readable book text. Pass multiple terms via queries=[...] to batch lookups in one call. Returns per-query blocks with compact hit metadata and short concordance excerpts; hit IDs are namespaced (e.g. q1:p42:3). Call read_around for surrounding context.",
         parameters = {
             type = "object",
             properties = {
@@ -50,7 +58,7 @@ local FUNCTION_DECLARATIONS = {
     },
     {
         name = "read_around",
-        description = "Read surrounding text near one or more search hits or page numbers, capped to a small spoiler-safe range before the current page.",
+        description = "Read surrounding text near one or more search hits or page numbers, capped to a small range within the readable range.",
         parameters = {
             type = "object",
             properties = {
@@ -96,7 +104,7 @@ local FUNCTION_DECLARATIONS = {
     },
     {
         name = "toc",
-        description = "List table-of-contents entries up to the current reading position. No snippets are included by default.",
+        description = "List table-of-contents entries within the readable range. No snippets are included by default.",
         parameters = {
             type = "object",
             properties = {
@@ -129,19 +137,29 @@ end
 
 local function appendScopeMessage(messages, scope)
     if type(scope) ~= "table" then return end
-    table.insert(messages, {
-        role = "user",
+    local content
+    if scope.reading_scope == "full" then
+        content = string.format(
+            "[Book tool scope]\nCurrent page: %s of %s\nYou may read the entire document (pages 1-%s).",
+            tostring(scope.current_page or "?"),
+            tostring(scope.total_pages or "?"),
+            tostring(scope.end_page or scope.total_pages or "?"))
+    else
         content = string.format(
             "[Book tool scope]\nCurrent page: %s of %s\nReadable page range: 1-%s\nDo not request or infer content after page %s.",
             tostring(scope.current_page or "?"),
             tostring(scope.total_pages or "?"),
             tostring(scope.end_page or "?"),
-            tostring(scope.end_page or "?")),
+            tostring(scope.end_page or "?"))
+    end
+    table.insert(messages, {
+        role = "user",
+        content = content,
         is_context = true,
     })
 end
 
-local function buildToolConfig(config, final_only)
+local function buildToolConfig(config, final_only, reading_scope)
     local tool_config = ConfigHelper:deepCopy(config or {})
     tool_config.features = tool_config.features or {}
     tool_config.features.enable_streaming = false
@@ -157,12 +175,20 @@ local function buildToolConfig(config, final_only)
         tool_config.gemini_tools = nil
     end
 
+    -- Append the spoiler-scope clause so the instructions match the structural clamp in BookTools.
+    local spoiler_safe = reading_scope ~= "full"
+    local instructions
+    if final_only then
+        instructions = FINAL_INSTRUCTIONS .. (spoiler_safe and FINAL_NOTE_CURRENT or "")
+    else
+        instructions = TOOL_INSTRUCTIONS .. (spoiler_safe and SCOPE_NOTE_CURRENT or SCOPE_NOTE_FULL)
+    end
     tool_config.system = tool_config.system or {}
-    tool_config.system.text = (tool_config.system.text or "") .. (final_only and FINAL_INSTRUCTIONS or TOOL_INSTRUCTIONS)
+    tool_config.system.text = (tool_config.system.text or "") .. instructions
     return tool_config
 end
 
-local function buildToolSettings(features)
+local function buildToolSettings(features, reading_scope)
     features = features or {}
     return {
         -- Consent is enforced upstream in GeminiToolRunner.shouldUse (requires
@@ -172,7 +198,19 @@ local function buildToolSettings(features)
         enable_book_text_extraction = true,
         max_book_text_chars = features.max_book_text_chars,
         max_pdf_pages = features.max_pdf_pages,
+        reading_scope = reading_scope,
     }
+end
+
+-- Resolve the tool reading scope from the spoiler-free policy: spoiler-free in effect
+-- (session flag, or per-book/global setting) → "current" (clamp to reading position);
+-- otherwise → "full" (whole document — research, non-fiction, finished books).
+local function resolveReadingScope(config, ui)
+    local features = config and config.features or {}
+    if features._spoiler_free_active == true then return "current" end
+    local doc_settings = ui and ui.doc_settings
+    if BookSettings.resolveSpoilerFree(doc_settings, features) then return "current" end
+    return "full"
 end
 
 local function summarizeToolCall(call, result)
@@ -498,7 +536,8 @@ function GeminiToolRunner.run(params)
     local messages = copyMessages(params.messages)
     local config = params.config or {}
     local features = config.features or {}
-    local tools = BookTools:new(params.ui, buildToolSettings(features))
+    local reading_scope = resolveReadingScope(config, params.ui)
+    local tools = BookTools:new(params.ui, buildToolSettings(features, reading_scope))
     appendScopeMessage(messages, tools:getScope())
     local trace = {}
     local tool_outputs = {}
@@ -526,7 +565,7 @@ function GeminiToolRunner.run(params)
     end
 
     local function requestFinal()
-        local final_config = buildToolConfig(config, true)
+        local final_config = buildToolConfig(config, true, reading_scope)
         final_config.features.loading_message = "Gemini book tools\nPreparing answer..."
         table.insert(messages, {
             role = "user",
@@ -549,7 +588,7 @@ function GeminiToolRunner.run(params)
             return requestFinal()
         end
 
-        local tool_config = buildToolConfig(config, false)
+        local tool_config = buildToolConfig(config, false, reading_scope)
         tool_config.features.loading_message = tool_turns == 0
             and "Gemini book tools\nThinking..."
             or "Gemini book tools\nReading..."
