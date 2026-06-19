@@ -22,7 +22,7 @@ local BookTools = require("koassistant_book_tools")
 
 local TestRunner = require("test_runner"):new()
 
-local function makeToolsWithPages(pages, current_page, toc)
+local function makeToolsWithPages(pages, current_page, toc, scope)
     local ui = {
         document = {
             info = {
@@ -46,16 +46,23 @@ local function makeToolsWithPages(pages, current_page, toc)
             },
         },
     }
-    return BookTools:new(ui, { enable_book_text_extraction = true })
+    return BookTools:new(ui, { enable_book_text_extraction = true, reading_scope = scope })
 end
 
+local DEMO_PAGES = {
+    "Alice saw the white rabbit. Daisy was mentioned in a letter.",
+    "The garden path curved behind the old house.",
+    "Daisey carried a lantern into the cellar.",
+    "This spoiler is beyond the current page.",
+}
+
 local function makeTools()
-    return makeToolsWithPages({
-        "Alice saw the white rabbit. Daisy was mentioned in a letter.",
-        "The garden path curved behind the old house.",
-        "Daisey carried a lantern into the cellar.",
-        "This spoiler is beyond the current page.",
-    }, 3)
+    return makeToolsWithPages(DEMO_PAGES, 3)
+end
+
+-- Same book/position but with full ("whole document") reading scope (spoiler-free off).
+local function makeFullTools()
+    return makeToolsWithPages(DEMO_PAGES, 3, nil, "full")
 end
 
 print("")
@@ -167,6 +174,37 @@ TestRunner:test("toc omits snippets by default", function()
     local result = tools:toc()
     TestRunner:assertTrue(result.ok, "toc ok")
     TestRunner:assertEqual(result.entries[1].snippet, "", "default snippet")
+end)
+
+-- Reading scope: "full" lets the tools read the whole document (research / non-fiction)
+TestRunner:test("full reading scope searches beyond the current page", function()
+    local tools = makeFullTools()
+    local result = tools:searchBook({ query = "spoiler" })
+    TestRunner:assertTrue(result.ok, "search ok")
+    TestRunner:assertEqual(result.queries[1].results[1].page, 4, "reads ahead to page 4")
+end)
+
+TestRunner:test("full reading scope read_around reaches a later page", function()
+    local tools = makeFullTools()
+    local result = tools:readAround({ page = 4, before_pages = 0, after_pages = 0 })
+    TestRunner:assertTrue(result.ok, "read ok")
+    TestRunner:assertEqual(result.range.end_page, 4, "reads page 4")
+    TestRunner:assertTrue(result.text:find("spoiler", 1, true) ~= nil, "page-4 text returned")
+end)
+
+TestRunner:test("full reading scope toc includes later chapters", function()
+    local tools = makeFullTools()
+    local result = tools:toc()
+    TestRunner:assertTrue(result.ok, "toc ok")
+    TestRunner:assertEqual(result.entry_count, 3, "includes the unread chapter")
+    TestRunner:assertEqual(result.entries[3].title, "Unread", "last chapter title")
+end)
+
+TestRunner:test("getScope reports the reading scope and ceiling", function()
+    TestRunner:assertEqual(makeTools():getScope().reading_scope, "current", "current scope")
+    TestRunner:assertEqual(makeTools():getScope().end_page, 3, "current ceiling = current page")
+    TestRunner:assertEqual(makeFullTools():getScope().reading_scope, "full", "full scope")
+    TestRunner:assertEqual(makeFullTools():getScope().end_page, 4, "full ceiling = last page")
 end)
 
 return TestRunner:summary()
