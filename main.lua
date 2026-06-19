@@ -1288,10 +1288,14 @@ function AskGPT:registerToMainMenu()
 end
 
 function AskGPT:initSettings()
-  -- Create settings file path
-  self.settings_file = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
+  -- Settings file path. Deliberately NOT named `self.settings_file`: KOReader's
+  -- plugin-management UI shows a "delete plugin settings" button whenever an
+  -- instance exposes `settings_file`, and that button only removes this one file
+  -- (orphaning everything else the plugin owns). The plugin manages its own
+  -- backup/restore/reset (Track 33), so we don't expose that partial-delete hook.
+  self._settings_path = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
   -- Initialize settings with default values from configuration.lua
-  self.settings = LuaSettings:open(self.settings_file)
+  self.settings = LuaSettings:open(self._settings_path)
 
   -- Set default values if they don't exist
   if not self.settings:has("provider") then
@@ -1525,8 +1529,8 @@ function AskGPT:updateConfigFromSettings()
   -- settings changed in one instance are flushed to disk but the other instance's
   -- in-memory LuaSettings remains stale. Re-reading ensures we always have the
   -- latest values regardless of which instance modified them.
-  if self.settings_file then
-    local fresh = LuaSettings:open(self.settings_file)
+  if self._settings_path then
+    local fresh = LuaSettings:open(self._settings_path)
     local fresh_features = fresh:readSetting("features")
     if fresh_features then
       local mem_features = self.settings:readSetting("features")
@@ -13703,55 +13707,6 @@ function AskGPT:openNotebookEditor(notebook_path, document_path)
   }
 
   UIManager:show(editor)
-end
-
--- Issue #77: KOReader's plugin-management hook. KOReader calls this (via pcall)
--- during "Delete/Disable plugin & settings". Non-interactive — the user already
--- confirmed at KOReader's own dialog. Removes the plugin's GLOBAL footprint only:
--- settings-dir files, G_reader_settings keys, and the internal data dirs (v1 chats
--- + migration backup). DELIBERATELY PRESERVES backups/, exports/, the default
--- notebook vault, any custom/Obsidian notebook path, and all per-book .sdr
--- sidecars (book-local content, self-healed on reinstall). Plugin-folder files are
--- removed by KOReader's own folder purge. Registry-driven (Track 33).
-function AskGPT:deletePluginSettings()
-  local FFIUtil = require("ffi/util")
-  local data_dir = DataStorage:getDataDir()
-  local n_files, n_dirs, n_keys = 0, 0, 0
-
-  for _, entry in ipairs(StorageRegistry.uninstallEntries()) do
-    if entry.location == "settings_dir" then
-      local path = StorageRegistry.resolvePath(entry)
-      if path and lfs.attributes(path, "mode") == "file" then
-        os.remove(path)
-        os.remove(path .. ".old")
-        n_files = n_files + 1
-      end
-    elseif entry.location == "data_dir" then
-      local path = StorageRegistry.resolvePath(entry)
-      -- Defense-in-depth: only ever purge a directory that resolves under our own
-      -- data dir AND whose name is koassistant_-prefixed.
-      if path and lfs.attributes(path, "mode") == "directory"
-          and path:sub(1, #data_dir) == data_dir
-          and (path:match("([^/]+)$") or ""):match("^koassistant_") then
-        local ok, err = pcall(FFIUtil.purgeDir, path)
-        if ok then
-          n_dirs = n_dirs + 1
-        else
-          logger.warn("KOAssistant: deletePluginSettings purgeDir failed:", path, err)
-        end
-      end
-    elseif entry.location == "global_key" then
-      if G_reader_settings:readSetting(entry.ref) ~= nil then
-        G_reader_settings:delSetting(entry.ref)
-        n_keys = n_keys + 1
-      end
-    end
-  end
-
-  G_reader_settings:flush()
-  logger.info(string.format(
-    "KOAssistant: deletePluginSettings removed %d file(s), %d dir(s), %d key(s); kept backups/exports/notebooks/sidecars",
-    n_files, n_dirs, n_keys))
 end
 
 return AskGPT
