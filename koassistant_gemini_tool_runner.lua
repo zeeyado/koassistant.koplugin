@@ -8,8 +8,8 @@ local GeminiToolRunner = {}
 local MAX_TOOL_TURNS = 4
 local MAX_TOOL_CALLS = 8
 -- Diagnostic blocks (lookups trace, raw tool-result dump, token usage) are emitted only
--- when features.show_debug_in_chat is on (gated in finish()); off by default. The dump can
--- contain raw book-text snippets, so it must never ship on for ordinary users.
+-- when features.tool_workflow_diagnostics is on (gated in finish()); off by default. The dump
+-- can contain raw book-text snippets, so it must never ship on for ordinary users.
 local VERBOSE_TOOL_OUTPUT = true
 local VERBOSE_SECTION_MAX_CHARS = 256
 local SHOW_TURN_TOKEN_USAGE = true
@@ -555,9 +555,10 @@ function GeminiToolRunner.run(params)
         completed = true
         if success and type(answer) == "string" then
             -- The lookups trace, the raw tool-result dump (may contain book-text snippets),
-            -- and the token-usage footer are developer diagnostics: emit only when in-chat
-            -- debug is enabled. Off by default → clean answers for ordinary users.
-            if config.features and config.features.show_debug_in_chat == true then
+            -- and the token-usage footer are developer diagnostics for the experimental tools:
+            -- emit only behind their own opt-in (NOT show_debug_in_chat — that's the general
+            -- debug section). Off by default → clean answers.
+            if config.features and config.features.tool_workflow_diagnostics == true then
                 answer = appendTrace(answer, trace)
                 answer = appendVerboseToolOutput(answer, tool_outputs)
                 answer = appendTurnTokenUsage(answer, token_usage)
