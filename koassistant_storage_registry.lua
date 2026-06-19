@@ -1,0 +1,390 @@
+--[[
+    koassistant_storage_registry.lua
+
+    SINGLE SOURCE OF TRUTH for every file, directory, and settings key the
+    KOAssistant plugin owns on disk. Track 33 (docs/storage_lifecycle_plan.md).
+
+    Before this module, the inventory was tracked by three disjoint
+    hand-maintained lists (`USER_FILES`/`USER_DIRS` in koassistant_update_checker.lua,
+    `KOASSISTANT_SIDECAR_FILES` in main.lua, and hardcoded copy lists in
+    koassistant_backup_manager.lua) plus several managers in none of them. This
+    registry replaces them: update-preservation, backup, reset, wipe, and the
+    issue-#77 uninstall hook all derive from one declarative table.
+
+    NO file merging — files stay where they are. The registry only *describes*
+    them. Paths are resolved lazily (DataStorage) so this module is pure data at
+    load time and unit-testable without heavy mocking.
+
+    Phase 1 (this commit) wires `updateFiles()/updateDirs()/sidecarFiles()` into
+    the update checker + main.lua and adds a coverage-guard test. The remaining
+    accessors (backup/reset/wipe/uninstall enumeration) are declared here and
+    consumed in later phases.
+
+    ── Entry fields ───────────────────────────────────────────────────────────
+      id            unique string id
+      label         user-facing name (for previews / README)
+      location      settings_dir | settings_subkey | global_key | sidecar_file
+                    | sidecar_dockey | plugin_file | plugin_dir | data_dir
+      ref           filename / key name / dir name (string), OR a function
+                    returning a list of keys (for dockey groups)
+      category      credentials | config | assets | conversations | artifacts
+                    | notebooks | exports | backups | index | internal
+      backup        true | false | "opt_in"   (does createBackup() include it)
+      rebuildable   true for indexes (derivable from on-disk data; safe to clear)
+      reset_in      list of presets that FORCE-clear it by default
+                    (subset of: "fresh_start", "wipe_all")
+      opt_in_reset  true if it appears as an opt-in checkbox in reset/wipe UI
+      update_preserve  true if performUpdate() must carry it across (USER_FILES role)
+      uninstall     true if deletePluginSettings() (issue #77) removes it
+      index_key     for sidecar items: the global index listing which books have it
+      legacy        true for migrated-away names (clean but never create)
+      notes         freeform
+
+    See docs/storage_lifecycle_plan.md "Deletion semantics" for the full matrix.
+]]
+
+local Registry = {}
+
+-- Lazily-resolved storage roots (kept out of module load so tests stay light).
+local DataStorage = require("datastorage")
+local function settingsDir() return DataStorage:getSettingsDir() end
+local function dataDir() return DataStorage:getDataDir() end
+
+-- G_reader_settings keys we own that are NOT koassistant_-prefixed. The
+-- coverage-guard test consults this so it knows these are deliberate, not drift.
+Registry.UNPREFIXED_GLOBAL_KEYS = {
+    "chat_storage_version",
+    "chat_migration_in_progress",
+}
+
+-- Settings sub-key categories (inside koassistant_settings.lua). Used by the
+-- reset engine (Phase 2): config = "everything not listed here"; these three
+-- lists are the non-config sub-keys. This replaces the hardcoded 19-key preserve
+-- list in main.lua `_resetFeatureSettingsInternal`.
+Registry.SETTINGS_SUBKEYS = {
+    -- features.* keys that are credentials (never reset; only wipe/uninstall)
+    credentials = { "api_keys" },
+    -- user-authored assets (preserve by default; opt-in to clear)
+    -- NOTE: custom_actions / custom_prompts are TOP-LEVEL settings keys, the rest
+    -- live under features.*
+    assets = {
+        "custom_actions", "custom_prompts",                 -- top-level
+        "custom_behaviors", "custom_domains",               -- features.*
+        "custom_providers", "custom_models", "provider_default_models",
+        "translation_language", "dictionary_language",
+        "interaction_languages", "additional_languages", "primary_language",
+    },
+    -- internal flags (kept on config resets; cleared only on wipe/uninstall,
+    -- except setup_wizard_completed which Fresh Start clears to re-run onboarding)
+    internal = {
+        "languages_migrated", "behavior_migrated", "_reasoning_v2_migrated",
+        "_reasoning_hint_shown", "setup_wizard_completed",
+    },
+}
+
+-- ── The inventory ────────────────────────────────────────────────────────────
+Registry.entries = {
+    --========================= Settings-dir files =============================
+    {
+        id = "settings", label = "Settings & customizations",
+        location = "settings_dir", ref = "koassistant_settings.lua",
+        category = "config", backup = true,
+        reset_in = { "wipe_all" }, uninstall = true,
+        notes = "Container file. In-place resets edit its sub-keys (see SETTINGS_SUBKEYS); it is only *deleted* on wipe/uninstall.",
+    },
+    {
+        id = "general_chats", label = "General chats",
+        location = "settings_dir", ref = "koassistant_general_chats.lua",
+        category = "conversations", backup = true,
+        reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
+    },
+    {
+        id = "library_chats", label = "Library chats",
+        location = "settings_dir", ref = "koassistant_library_chats.lua",
+        category = "conversations", backup = true,
+        reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
+    },
+    {
+        id = "last_opened", label = "Last-opened chat pointer",
+        location = "settings_dir", ref = "koassistant_last_opened.lua",
+        category = "internal", backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+    },
+    {
+        id = "pinned_general", label = "Pinned (general)",
+        location = "settings_dir", ref = "koassistant_pinned_general.lua",
+        category = "artifacts", backup = true,
+        reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
+    },
+    {
+        id = "pinned_library", label = "Pinned (library)",
+        location = "settings_dir", ref = "koassistant_pinned_library.lua",
+        category = "artifacts", backup = true,
+        reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
+    },
+    {
+        id = "legacy_multi_book_chats", label = "Legacy multi-book chats",
+        location = "settings_dir", ref = "koassistant_multi_book_chats.lua",
+        category = "conversations", backup = false, legacy = true,
+        reset_in = { "wipe_all" }, uninstall = true,
+        notes = "Renamed to koassistant_library_chats.lua on load; clean if stragglers remain.",
+    },
+    {
+        id = "legacy_pinned_multi_book", label = "Legacy multi-book pinned",
+        location = "settings_dir", ref = "koassistant_pinned_multi_book.lua",
+        category = "artifacts", backup = false, legacy = true,
+        reset_in = { "wipe_all" }, uninstall = true,
+        notes = "Renamed to koassistant_pinned_library.lua on load; clean if stragglers remain.",
+    },
+
+    --========================= Global keys (G_reader_settings) ================
+    {
+        id = "chat_index", label = "Chat index",
+        location = "global_key", ref = "koassistant_chat_index",
+        category = "index", rebuildable = true, backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+    },
+    {
+        id = "notebook_index", label = "Notebook index",
+        location = "global_key", ref = "koassistant_notebook_index",
+        category = "index", rebuildable = true, backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+    },
+    {
+        id = "artifact_index", label = "Artifact index",
+        location = "global_key", ref = "koassistant_artifact_index",
+        category = "index", rebuildable = true, backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+    },
+    {
+        id = "pinned_index", label = "Pinned index",
+        location = "global_key", ref = "koassistant_pinned_index",
+        category = "index", rebuildable = true, backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+    },
+    {
+        id = "artifact_index_version", label = "Artifact index schema version",
+        location = "global_key", ref = "koassistant_artifact_index_version",
+        category = "internal", backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+    },
+    {
+        id = "chat_storage_version", label = "Chat storage schema version",
+        location = "global_key", ref = "chat_storage_version",
+        category = "internal", backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+        notes = "NOT koassistant_-prefixed (see UNPREFIXED_GLOBAL_KEYS).",
+    },
+    {
+        id = "chat_migration_in_progress", label = "Chat migration lock",
+        location = "global_key", ref = "chat_migration_in_progress",
+        category = "internal", backup = false,
+        reset_in = { "wipe_all" }, uninstall = true,
+        notes = "Transient lock; NOT koassistant_-prefixed.",
+    },
+
+    --========================= Sidecar files (per-book .sdr) ==================
+    {
+        id = "sidecar_notebook", label = "Per-book notebook",
+        location = "sidecar_file", ref = "koassistant_notebook.md",
+        category = "notebooks", backup = "opt_in",
+        index_key = "koassistant_notebook_index",
+        opt_in_reset = true,
+    },
+    {
+        id = "sidecar_cache", label = "Per-book artifact cache",
+        location = "sidecar_file", ref = "koassistant_cache.lua",
+        category = "artifacts", backup = "opt_in",
+        index_key = "koassistant_artifact_index",
+        opt_in_reset = true,
+    },
+    {
+        id = "sidecar_user_aliases", label = "Per-book X-Ray search terms",
+        location = "sidecar_file", ref = "koassistant_user_aliases.lua",
+        category = "artifacts", backup = "opt_in",
+        index_key = "koassistant_artifact_index",  -- best-effort: shares the artifact sidecar dir; has no dedicated index
+        opt_in_reset = true,
+    },
+    {
+        id = "sidecar_pinned", label = "Per-book pinned",
+        location = "sidecar_file", ref = "koassistant_pinned.lua",
+        category = "artifacts", backup = "opt_in",
+        index_key = "koassistant_pinned_index",
+        opt_in_reset = true,
+    },
+
+    --========================= Sidecar DocSettings keys (per-book) ============
+    {
+        id = "dockey_book_settings", label = "Per-book settings",
+        location = "sidecar_dockey",
+        ref = function() return require("koassistant_book_settings").SIDECAR_KEYS end,
+        category = "config", backup = false,
+        notes = "10 per-book override keys; SIDECAR_KEYS is the owner's source of truth (no dedicated index; per-book DocSettings).",
+    },
+    {
+        id = "dockey_chats", label = "Per-book chats",
+        location = "sidecar_dockey", ref = "koassistant_chats",
+        category = "conversations", backup = true,  -- backed up as JSON today
+        index_key = "koassistant_chat_index",
+        opt_in_reset = true,
+    },
+    {
+        id = "dockey_notebook_ref", label = "Per-book notebook reference",
+        location = "sidecar_dockey", ref = "koassistant_notebook_ref",
+        category = "notebooks", backup = false,
+        index_key = "koassistant_notebook_index",
+        notes = "Currently never cleaned on notebook delete (Track 33 cleanup item).",
+    },
+    {
+        id = "dockey_doi", label = "Per-book DOI cache",
+        location = "sidecar_dockey", ref = "koassistant_doi",
+        category = "artifacts", rebuildable = true, backup = false,
+        notes = "No index; re-resolvable. Registered for visibility.",
+    },
+    {
+        id = "dockey_last_opened", label = "Per-book last-opened timestamp",
+        location = "sidecar_dockey", ref = "koassistant_last_opened",
+        category = "internal", backup = false,
+        notes = "Distinct from the settings-dir koassistant_last_opened.lua pointer.",
+    },
+
+    --========================= Plugin-folder files (USER_FILES) ===============
+    {
+        id = "apikeys", label = "API keys file",
+        location = "plugin_file", ref = "apikeys.lua",
+        category = "credentials", backup = "opt_in",
+        update_preserve = true, uninstall = true,
+        notes = "Removed by KOReader's folder purge on uninstall.",
+    },
+    {
+        id = "configuration", label = "Configuration file",
+        location = "plugin_file", ref = "configuration.lua",
+        category = "config", backup = true,
+        update_preserve = true, uninstall = true,
+    },
+    {
+        id = "custom_actions", label = "Custom actions file",
+        location = "plugin_file", ref = "custom_actions.lua",
+        category = "assets", backup = true,
+        update_preserve = true, uninstall = true,
+    },
+
+    --========================= Plugin-folder dirs (USER_DIRS) =================
+    {
+        id = "behaviors_dir", label = "Custom behaviors",
+        location = "plugin_dir", ref = "behaviors",
+        category = "assets", backup = true,
+        update_preserve = true, uninstall = true,
+    },
+    {
+        id = "domains_dir", label = "Custom domains",
+        location = "plugin_dir", ref = "domains",
+        category = "assets", backup = true,
+        update_preserve = true, uninstall = true,
+    },
+
+    --========================= Data dirs (getDataDir) =========================
+    {
+        id = "chats_v1_dir", label = "Legacy v1 chats",
+        location = "data_dir", ref = "koassistant_chats",
+        category = "internal", legacy = true, backup = false,
+        reset_in = { "fresh_start", "wipe_all" }, uninstall = true,
+        notes = "v1 hash-dir storage; superseded by DocSettings v2.",
+    },
+    {
+        id = "chats_backup_dir", label = "v1→v2 migration backup",
+        location = "data_dir", ref = "koassistant_chats.backup",
+        category = "internal", backup = false,
+        reset_in = { "fresh_start", "wipe_all" }, uninstall = true,
+        notes = "Never purged today (Track 33 cleanup item).",
+    },
+    {
+        id = "backups_dir", label = "Backups",
+        location = "data_dir", ref = "koassistant_backups",
+        category = "backups", backup = false,
+        -- NEVER auto-deleted: the survival point across uninstall/reinstall.
+        uninstall = false,
+    },
+    {
+        id = "exports_dir", label = "Exports",
+        location = "data_dir", ref = "koassistant_exports",
+        category = "exports", backup = false,
+        opt_in_reset = true, uninstall = false,
+        notes = "User-materialized files; preserved on teardown (user decision 2026-06-19).",
+    },
+    {
+        id = "notebooks_vault_dir", label = "Notebook vault (default)",
+        location = "data_dir", ref = "koassistant_notebooks",
+        category = "notebooks", backup = false,
+        opt_in_reset = true, uninstall = false,
+        notes = "Default vault only. A CUSTOM/Obsidian notebook path is never touched by any path.",
+    },
+}
+
+-- ── Path resolution ──────────────────────────────────────────────────────────
+-- Returns the absolute path for settings_dir / data_dir entries (nil otherwise).
+function Registry.resolvePath(entry)
+    if entry.location == "settings_dir" then
+        return settingsDir() .. "/" .. entry.ref
+    elseif entry.location == "data_dir" then
+        return dataDir() .. "/" .. entry.ref
+    end
+    return nil
+end
+
+-- ── Accessors ────────────────────────────────────────────────────────────────
+function Registry.all()
+    return Registry.entries
+end
+
+function Registry.byLocation(loc)
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.location == loc then out[#out + 1] = e end
+    end
+    return out
+end
+
+function Registry.byCategory(cat)
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.category == cat then out[#out + 1] = e end
+    end
+    return out
+end
+
+local function refsForLocation(loc)
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.location == loc then out[#out + 1] = e.ref end
+    end
+    return out
+end
+
+-- CONSUMED IN PHASE 1: replace the three hand-maintained lists.
+-- Plugin-folder files/dirs that must survive auto-updates (USER_FILES/USER_DIRS).
+function Registry.updateFiles()
+    return refsForLocation("plugin_file")
+end
+
+function Registry.updateDirs()
+    return refsForLocation("plugin_dir")
+end
+
+-- Per-book sidecar filenames tracked on book move/copy/delete (KOASSISTANT_SIDECAR_FILES).
+function Registry.sidecarFiles()
+    return refsForLocation("sidecar_file")
+end
+
+-- Global indices (KOASSISTANT_INDICES analogue): rebuildable index keys.
+function Registry.indexKeys()
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.location == "global_key" and e.category == "index" then
+            out[#out + 1] = e.ref
+        end
+    end
+    return out
+end
+
+return Registry

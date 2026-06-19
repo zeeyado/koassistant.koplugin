@@ -29,6 +29,7 @@ local ActionService = require("action_service")
 
 local ModelLists = require("koassistant_model_lists")
 local Constants = require("koassistant_constants")
+local StorageRegistry = require("koassistant_storage_registry")
 
 -- Load the configuration directly
 local configuration = {
@@ -97,21 +98,11 @@ local function table_count(t)
 end
 
 -- KOAssistant custom sidecar files to track during book move/copy/delete
--- These files are automatically moved/copied/deleted alongside books in FileManager
-local KOASSISTANT_SIDECAR_FILES = {
-    "koassistant_notebook.md",
-    "koassistant_cache.lua",  -- X-Ray/Recap response cache
-    "koassistant_user_aliases.lua",  -- User-defined X-Ray search terms
-    "koassistant_pinned.lua",  -- Pinned artifacts
-}
-
--- All G_reader_settings indices that track per-book KOAssistant data
-local KOASSISTANT_INDICES = {
-    "koassistant_chat_index",
-    "koassistant_notebook_index",
-    "koassistant_artifact_index",
-    "koassistant_pinned_index",
-}
+-- (automatically moved/copied/deleted alongside books in FileManager) and the
+-- G_reader_settings indices that track per-book data. Both derive from the
+-- storage registry (single source of truth, Track 33) — no longer hand-listed.
+local KOASSISTANT_SIDECAR_FILES = StorageRegistry.sidecarFiles()
+local KOASSISTANT_INDICES = StorageRegistry.indexKeys()
 
 -- Language data (shared module)
 local Languages = require("koassistant_languages")

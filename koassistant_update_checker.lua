@@ -1,6 +1,7 @@
 local json = require("json")
 local logger = require("logger")
 local Constants = require("koassistant_constants")
+local Registry = require("koassistant_storage_registry")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
 local lfs = require("libs/libkoreader-lfs")
@@ -872,10 +873,11 @@ local DOWNLOAD_TIMEOUT = 120    -- 2 minutes for ~1.4MB zip on slow WiFi
 -- Detect if running on macOS (for TCP warmup which is only needed on macOS)
 local IS_MACOS = ffi.os == "OSX"
 
--- User-owned files and directories that must survive auto-updates
--- Keep in sync with koassistant_backup_manager.lua's backup lists
-local USER_FILES = { "apikeys.lua", "configuration.lua", "custom_actions.lua" }
-local USER_DIRS = { "behaviors", "domains" }
+-- User-owned files and directories that must survive auto-updates.
+-- Derived from the storage registry (single source of truth, Track 33) — no
+-- longer hand-maintained here or in koassistant_backup_manager.lua.
+local USER_FILES = Registry.updateFiles()
+local USER_DIRS = Registry.updateDirs()
 
 -- Platform-specific binary paths (lazy — Device not yet loaded at file scope)
 local mv_bin, cp_bin
