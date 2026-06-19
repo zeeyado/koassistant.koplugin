@@ -25,11 +25,23 @@ end
 
 -- Helper: Check if message has non-empty content
 local function hasContent(msg)
-    if not msg or not msg.content then return false end
+    if not msg then return false end
+    if type(msg.parts) == "table" then
+        return #msg.parts > 0
+    end
+    if not msg.content then return false end
     if type(msg.content) == "string" then
         return msg.content:match("%S") ~= nil
     end
     return true
+end
+
+-- Gemini only accepts "user" and "model"; function response turns also use "user"
+local function geminiRole(role)
+    if role == "assistant" or role == "model" then
+        return "model"
+    end
+    return "user"
 end
 
 --- Build the request body, headers, and URL without making the API call.
@@ -57,9 +69,13 @@ function GeminiHandler:buildRequestBody(message_history, config)
     -- Gemini uses "model" role instead of "assistant" and parts format
     for _, msg in ipairs(message_history) do
         if msg.role ~= "system" and hasContent(msg) then
-            table.insert(request_body.contents, {
-                role = msg.role == "assistant" and "model" or "user",
+            local parts = msg.parts
+            if type(parts) ~= "table" then
                 parts = {{ text = msg.content }}
+            end
+            table.insert(request_body.contents, {
+                role = geminiRole(msg.role),
+                parts = parts,
             })
         end
     end
@@ -152,16 +168,33 @@ function GeminiHandler:buildRequestBody(message_history, config)
         enable_web_search = true
     end
 
+    local tools = {}
+
+    if config.gemini_tools
+       and type(config.gemini_tools.function_declarations) == "table"
+       and #config.gemini_tools.function_declarations > 0 then
+        table.insert(tools, {
+            functionDeclarations = config.gemini_tools.function_declarations,
+        })
+        request_body.toolConfig = {
+            functionCallingConfig = {
+                mode = config.gemini_tools.mode or "AUTO",
+            },
+        }
+    end
+
     if enable_web_search then
         if ModelConstraints.supportsCapability("gemini", model, "google_search") then
-            request_body.tools = {
-                { googleSearch = {} }  -- Empty object enables Google Search
-            }
+            table.insert(tools, { googleSearch = {} })  -- Empty object enables Google Search
         else
             adjustments.web_search_skipped = {
                 reason = "model " .. model .. " does not support Google Search"
             }
         end
+    end
+
+    if #tools > 0 then
+        request_body.tools = tools
     end
 
     local headers = {

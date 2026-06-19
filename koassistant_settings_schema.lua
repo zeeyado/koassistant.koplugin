@@ -1926,6 +1926,15 @@ local SettingsSchema = {
                     },
                 },
                 {
+                    id = "enable_tool_workflows",
+                    type = "toggle",
+                    text = _("AI Book Tools (Experimental)"),
+                    path = "features.enable_tool_workflows",
+                    default = false,
+                    help_text = _("EXPERIMENTAL — Gemini only. When enabled, chatting about an open book lets the AI call local tools to search the text, read specific pages, and view the table of contents, so it can ground answers in what you've actually read instead of guessing.\n\nRequires \"Allow Text Extraction\". Responses do not stream while the AI is looking things up. Work in progress; behavior may change."),
+                    separator = true,
+                },
+                {
                     id = "debug",
                     type = "toggle",
                     text = _("Console Debug"),
