@@ -410,6 +410,31 @@ function Registry.sidecarFiles()
     return refsForLocation("sidecar_file")
 end
 
+-- Plugin-folder config files the backup includes, as { ref, credential }. The
+-- `credential` ones (api keys) are gated by include_api_keys at the call site.
+-- Single source for the list that used to be hardcoded in BOTH createBackup and
+-- restoreBackup.
+function Registry.backupPluginFiles()
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.location == "plugin_file" and e.backup then
+            out[#out + 1] = { ref = e.ref, credential = (e.category == "credentials") }
+        end
+    end
+    return out
+end
+
+-- Plugin-folder dirs the backup includes (domains/, behaviors/).
+function Registry.backupPluginDirs()
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.location == "plugin_dir" and e.backup then
+            out[#out + 1] = e.ref
+        end
+    end
+    return out
+end
+
 -- Global indices (KOASSISTANT_INDICES analogue): rebuildable index keys.
 function Registry.indexKeys()
     local out = {}

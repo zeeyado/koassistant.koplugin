@@ -373,4 +373,23 @@ TestRunner:test("resolvePath returns nil for keys and sidecar entries", function
     end
 end)
 
+--------------------------------------------------------------------------------
+TestRunner:suite("Backup entry accessors (drive createBackup/restoreBackup)")
+
+TestRunner:test("backupPluginFiles covers the config files, with credential flag on api keys", function()
+    local by_ref = {}
+    for _, f in ipairs(Registry.backupPluginFiles()) do by_ref[f.ref] = f end
+    TestRunner:assertTrue(by_ref["apikeys.lua"] and by_ref["apikeys.lua"].credential == true,
+        "apikeys.lua must be a credential-gated backup file")
+    TestRunner:assertTrue(by_ref["configuration.lua"] and by_ref["configuration.lua"].credential ~= true,
+        "configuration.lua must be a non-credential backup file")
+    TestRunner:assertTrue(by_ref["custom_actions.lua"] ~= nil, "custom_actions.lua must be backed up")
+end)
+
+TestRunner:test("backupPluginDirs covers domains + behaviors", function()
+    local set = {}
+    for _, d in ipairs(Registry.backupPluginDirs()) do set[d] = true end
+    TestRunner:assertTrue(set["domains"] and set["behaviors"], "domains + behaviors must be backed up")
+end)
+
 return TestRunner:summary()
