@@ -99,8 +99,8 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
             provider = "gemini",
             features = {
                 is_book_context = true,
-                -- diagnostics are now gated behind in-chat debug; this test asserts they appear
-                show_debug_in_chat = true,
+                -- diagnostics are gated behind their own opt-in; this test asserts they appear
+                tool_workflow_diagnostics = true,
                 -- spoiler-free keeps the current-page scope wording asserted below
                 spoiler_free_chat = true,
             },
@@ -227,7 +227,7 @@ TestRunner:test("shouldUse lets a trusted provider bypass the extraction gate", 
         "trusted provider bypasses the extraction-consent gate")
 end)
 
-TestRunner:test("diagnostics are suppressed unless show_debug_in_chat is set", function()
+TestRunner:test("diagnostics are suppressed unless tool_workflow_diagnostics is set", function()
     local calls = 0
     local function query_fn(_messages, _config, callback)
         calls = calls + 1
