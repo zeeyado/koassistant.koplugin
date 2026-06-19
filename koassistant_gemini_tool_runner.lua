@@ -6,7 +6,9 @@ local GeminiToolRunner = {}
 
 local MAX_TOOL_TURNS = 4
 local MAX_TOOL_CALLS = 8
--- TODO(jgruber): Remove temporary Gemini tool diagnostics after validation.
+-- Diagnostic blocks (lookups trace, raw tool-result dump, token usage) are emitted only
+-- when features.show_debug_in_chat is on (gated in finish()); off by default. The dump can
+-- contain raw book-text snippets, so it must never ship on for ordinary users.
 local VERBOSE_TOOL_OUTPUT = true
 local VERBOSE_SECTION_MAX_CHARS = 256
 local SHOW_TURN_TOKEN_USAGE = true
@@ -163,6 +165,10 @@ end
 local function buildToolSettings(features)
     features = features or {}
     return {
+        -- Consent is enforced upstream in GeminiToolRunner.shouldUse (requires
+        -- enable_book_text_extraction, or a trusted provider) before the runner ever
+        -- builds tools, so the extractor is enabled here unconditionally — this also
+        -- covers the trusted-provider bypass case (extraction setting may be off).
         enable_book_text_extraction = true,
         max_book_text_chars = features.max_book_text_chars,
         max_pdf_pages = features.max_pdf_pages,
@@ -435,9 +441,25 @@ local function appendModelContent(messages, model_content)
     })
 end
 
+-- Tools read book text, so a trusted provider bypasses the extraction-consent gate
+-- (mirrors ContextExtractor:isProviderTrusted — features.trusted_providers vs the active provider).
+local function isProviderTrusted(provider, features)
+    if not provider then return false end
+    for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
+        if trusted_id == provider then return true end
+    end
+    return false
+end
+
 function GeminiToolRunner.shouldUse(config, ui)
     local features = config and config.features or {}
+    -- Experimental opt-in (default off): the whole feature is gated behind this flag.
+    if features.enable_tool_workflows ~= true then return false end
     local provider = config and (config.provider or config.default_provider)
+    -- Tools are a form of book-text extraction → respect the consent gate (trusted bypass).
+    if features.enable_book_text_extraction ~= true and not isProviderTrusted(provider, features) then
+        return false
+    end
     return provider == "gemini"
         and features.is_library_context ~= true
         and features.is_general_context ~= true
@@ -489,9 +511,14 @@ function GeminiToolRunner.run(params)
         if completed then return end
         completed = true
         if success and type(answer) == "string" then
-            answer = appendTrace(answer, trace)
-            answer = appendVerboseToolOutput(answer, tool_outputs)
-            answer = appendTurnTokenUsage(answer, token_usage)
+            -- The lookups trace, the raw tool-result dump (may contain book-text snippets),
+            -- and the token-usage footer are developer diagnostics: emit only when in-chat
+            -- debug is enabled. Off by default → clean answers for ordinary users.
+            if config.features and config.features.show_debug_in_chat == true then
+                answer = appendTrace(answer, trace)
+                answer = appendVerboseToolOutput(answer, tool_outputs)
+                answer = appendTurnTokenUsage(answer, token_usage)
+            end
         end
         if on_complete then
             on_complete(success, answer, err, reasoning, web_search_used)
