@@ -207,7 +207,11 @@ end
 -- otherwise → "full" (whole document — research, non-fiction, finished books).
 local function resolveReadingScope(config, ui)
     local features = config and config.features or {}
-    if features._spoiler_free_active == true then return "current" end
+    -- The session checkbox (set on the Send path) is authoritative when present — true OR
+    -- false — so unchecking it un-clamps (full scope) even while global spoiler-free is on.
+    if features._spoiler_free_active ~= nil then
+        return features._spoiler_free_active and "current" or "full"
+    end
     local doc_settings = ui and ui.doc_settings
     if BookSettings.resolveSpoilerFree(doc_settings, features) then return "current" end
     return "full"

@@ -4856,10 +4856,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     history:addUserMessage(consolidated_message, true)
 
                     -- Set spoiler-free flag for system prompt injection (freeform chat only)
-                    -- This is read by buildUnifiedRequestConfig → buildUnifiedSystem
-                    if session_spoiler_free and not is_general_context and not is_library_context then
+                    -- This is read by buildUnifiedRequestConfig → buildUnifiedSystem, and by the
+                    -- tool runner's resolveReadingScope. Use an explicit true/false (not true/nil)
+                    -- so an unchecked session box is authoritative for BOTH the nudge (truthy) and
+                    -- the tool reading scope, even when global spoiler-free is on.
+                    if not is_general_context and not is_library_context then
                         configuration.features = configuration.features or {}
-                        configuration.features._spoiler_free_active = true
+                        configuration.features._spoiler_free_active = session_spoiler_free == true
                     else
                         if configuration.features then
                             configuration.features._spoiler_free_active = nil
