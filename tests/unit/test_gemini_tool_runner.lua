@@ -99,6 +99,8 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
             provider = "gemini",
             features = {
                 is_book_context = true,
+                -- diagnostics are now gated behind in-chat debug; this test asserts they appear
+                show_debug_in_chat = true,
             },
         },
         ui = makeUi(),
@@ -121,10 +123,78 @@ end)
 TestRunner:test("shouldUse skips when _xray_chat_active is set", function()
     local cfg = {
         provider = "gemini",
-        features = { is_book_context = true, _xray_chat_active = true },
+        features = { is_book_context = true, _xray_chat_active = true,
+            -- opt-in + consent satisfied so _xray_chat_active is the isolated cause
+            enable_tool_workflows = true, enable_book_text_extraction = true },
     }
     TestRunner:assertFalse(GeminiToolRunner.shouldUse(cfg, makeUi()),
         "x-ray chat session must skip book tools")
+end)
+
+TestRunner:test("shouldUse requires the experimental enable_tool_workflows flag", function()
+    local cfg = {
+        provider = "gemini",
+        features = { is_book_context = true, enable_book_text_extraction = true },
+    }
+    TestRunner:assertFalse(GeminiToolRunner.shouldUse(cfg, makeUi()),
+        "tools stay off until enable_tool_workflows is set")
+    cfg.features.enable_tool_workflows = true
+    TestRunner:assertTrue(GeminiToolRunner.shouldUse(cfg, makeUi()),
+        "tools enabled once the flag and extraction consent are set")
+end)
+
+TestRunner:test("shouldUse respects the text-extraction consent gate", function()
+    local cfg = {
+        provider = "gemini",
+        features = { is_book_context = true, enable_tool_workflows = true },
+    }
+    TestRunner:assertFalse(GeminiToolRunner.shouldUse(cfg, makeUi()),
+        "no tools when book-text extraction is not allowed")
+    cfg.features.enable_book_text_extraction = true
+    TestRunner:assertTrue(GeminiToolRunner.shouldUse(cfg, makeUi()),
+        "tools allowed once extraction consent is granted")
+end)
+
+TestRunner:test("shouldUse lets a trusted provider bypass the extraction gate", function()
+    local cfg = {
+        provider = "gemini",
+        features = {
+            is_book_context = true,
+            enable_tool_workflows = true,
+            -- extraction OFF, but the provider is trusted
+            trusted_providers = { "gemini" },
+        },
+    }
+    TestRunner:assertTrue(GeminiToolRunner.shouldUse(cfg, makeUi()),
+        "trusted provider bypasses the extraction-consent gate")
+end)
+
+TestRunner:test("diagnostics are suppressed unless show_debug_in_chat is set", function()
+    local calls = 0
+    local function query_fn(_messages, _config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, {
+                _gemini_function_calls = true,
+                calls = { { name = "search_book", args = { query = "Daisy" } } },
+                model_content = { role = "model", parts = {
+                    { functionCall = { name = "search_book", args = { query = "Daisy" } } } } },
+            }, nil, nil, nil, { input_tokens = 10, output_tokens = 3, total_tokens = 13 })
+        else
+            callback(true, "Daisy is mentioned in a letter.", nil, nil, nil,
+                { input_tokens = 20, output_tokens = 5, total_tokens = 25 })
+        end
+    end
+    local final_answer
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "Where is Daisy?" } },
+        config = { provider = "gemini", features = { is_book_context = true } }, -- no show_debug_in_chat
+        ui = makeUi(),
+        on_complete = function(_success, answer) final_answer = answer end,
+    })
+    TestRunner:assertEqual(final_answer, "Daisy is mentioned in a letter.",
+        "answer is clean (no diagnostic blocks) when debug-in-chat is off")
 end)
 
 TestRunner:test("queryWith delegates to query_fn when shouldUse is false", function()
@@ -136,8 +206,8 @@ TestRunner:test("queryWith delegates to query_fn when shouldUse is false", funct
         callback(true, "direct answer")
     end
     local cfg = {
-        provider = "openai", -- not gemini → shouldUse returns false
-        features = { is_book_context = true },
+        provider = "openai", -- not gemini → shouldUse returns false (even with opt-in + consent)
+        features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true },
     }
     local final
     GeminiToolRunner.queryWith(query_fn, { { role = "user", content = "hi" } }, cfg,
@@ -169,7 +239,7 @@ TestRunner:test("queryWith routes through tool runner when shouldUse is true", f
     end
     local cfg = {
         provider = "gemini",
-        features = { is_book_context = true },
+        features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true },
     }
     local final
     GeminiToolRunner.queryWith(query_fn, { { role = "user", content = "Who is Alice?" } }, cfg,
