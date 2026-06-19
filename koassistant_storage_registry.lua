@@ -58,28 +58,53 @@ Registry.UNPREFIXED_GLOBAL_KEYS = {
 }
 
 -- Settings sub-key categories (inside koassistant_settings.lua). Used by the
--- reset engine (Phase 2): config = "everything not listed here"; these three
--- lists are the non-config sub-keys. This replaces the hardcoded 19-key preserve
--- list in main.lua `_resetFeatureSettingsInternal`.
+-- reset engine (Phase 2): "config" = every sub-key NOT listed here (the plain
+-- feature toggles + action menus/ordering/edits). These four buckets are the
+-- non-config sub-keys, each with a different reset disposition. This replaces the
+-- hardcoded preserve list in main.lua `_resetFeatureSettingsInternal`.
+--
+-- Reset disposition by bucket (decided 2026-06-19; Fresh Start = clean-slate):
+--   credentials  preserved by Reset Settings + Fresh Start; cleared on wipe/uninstall
+--   assets       user-authored customizations. Preserved by Reset Settings;
+--                WIPED by Fresh Start (clean-slate); cleared on wipe/uninstall
+--   languages    personal language setup. Preserved by Reset Settings + Fresh Start
+--                (worth keeping across a fresh start); cleared on wipe/uninstall
+--   preferences  selections/gestures/fonts. Preserved by Reset Settings;
+--                RESET by Fresh Start
+--   internal     migration/version flags. Preserved by Reset Settings + Fresh Start
+--                (track data state — clearing risks re-migration); cleared on
+--                wipe/uninstall — EXCEPT setup_wizard_completed, which Fresh Start
+--                clears so onboarding re-runs.
 Registry.SETTINGS_SUBKEYS = {
-    -- features.* keys that are credentials (never reset; only wipe/uninstall)
     credentials = { "api_keys" },
-    -- user-authored assets (preserve by default; opt-in to clear)
-    -- NOTE: custom_actions / custom_prompts are TOP-LEVEL settings keys, the rest
-    -- live under features.*
     assets = {
-        "custom_actions", "custom_prompts",                 -- top-level
-        "custom_behaviors", "custom_domains",               -- features.*
+        "custom_actions", "custom_prompts",                 -- top-level (see TOPLEVEL_SUBKEYS)
+        "custom_behaviors", "custom_domains",
         "custom_providers", "custom_models", "provider_default_models",
+    },
+    languages = {
         "translation_language", "dictionary_language",
         "interaction_languages", "additional_languages", "primary_language",
     },
-    -- internal flags (kept on config resets; cleared only on wipe/uninstall,
-    -- except setup_wizard_completed which Fresh Start clears to re-run onboarding)
-    internal = {
-        "languages_migrated", "behavior_migrated", "_reasoning_v2_migrated",
-        "_reasoning_hint_shown", "setup_wizard_completed",
+    preferences = {
+        "selected_behavior", "selected_domain", "trusted_providers",
+        "gesture_actions", "markdown_font_size", "export_custom_path",
     },
+    internal = {
+        "languages_migrated", "behavior_migrated", "prompts_migrated_v2",
+        "_reasoning_v2_migrated", "_reasoning_hint_shown",
+        "setup_wizard_completed",                            -- top-level (see TOPLEVEL_SUBKEYS)
+    },
+}
+
+-- Sub-keys that live at the TOP LEVEL of koassistant_settings.lua (siblings of
+-- the `features` table), not inside features.*. `applyDefaults` only rebuilds the
+-- `features` table, so these are excluded from its preserve list and handled by
+-- their own delSetting() resets.
+Registry.TOPLEVEL_SUBKEYS = {
+    custom_actions = true,
+    custom_prompts = true,
+    setup_wizard_completed = true,
 }
 
 -- ── The inventory ────────────────────────────────────────────────────────────
@@ -382,6 +407,53 @@ function Registry.indexKeys()
     for _, e in ipairs(Registry.entries) do
         if e.location == "global_key" and e.category == "index" then
             out[#out + 1] = e.ref
+        end
+    end
+    return out
+end
+
+-- ── Reset preserve-lists (CONSUMED IN PHASE 2) ───────────────────────────────
+-- Build the `features.*` dotted preserve paths for SettingsSchema.applyDefaults
+-- from a set of sub-key buckets. Top-level sub-keys are excluded (applyDefaults
+-- only rebuilds the features table; top-level keys are reset by their own delSetting).
+function Registry.featuresPreserveList(buckets)
+    local out = {}
+    for _, bucket in ipairs(buckets) do
+        for _, key in ipairs(Registry.SETTINGS_SUBKEYS[bucket] or {}) do
+            if not Registry.TOPLEVEL_SUBKEYS[key] then
+                out[#out + 1] = "features." .. key
+            end
+        end
+    end
+    return out
+end
+
+-- "Reset Settings": keep credentials, assets, languages, preferences, and internal
+-- flags; reset only the plain feature toggles.
+function Registry.settingsResetPreserve()
+    return Registry.featuresPreserveList({ "credentials", "assets", "languages", "preferences", "internal" })
+end
+
+-- "Fresh Start" (clean-slate): keep credentials, languages, and internal flags.
+-- Custom assets (no schema default) and preferences are dropped/reset; the wizard
+-- flag is cleared separately (top-level) so onboarding re-runs.
+function Registry.freshStartPreserve()
+    return Registry.featuresPreserveList({ "credentials", "languages", "internal" })
+end
+
+-- Discrete (non-settings-subkey) entries that a reset preset force-clears by
+-- default. preset is "fresh_start" | "wipe_all". (Settings sub-keys are handled
+-- via the preserve-lists above, not here.)
+function Registry.resetEntries(preset)
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.reset_in then
+            for _, p in ipairs(e.reset_in) do
+                if p == preset then
+                    out[#out + 1] = e
+                    break
+                end
+            end
         end
     end
     return out
