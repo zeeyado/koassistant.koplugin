@@ -5,6 +5,7 @@ local lfs = require("libs/libkoreader-lfs")
 local _ = require("koassistant_gettext")
 local DocSettings = require("docsettings")
 local JSON = require("json")
+local StorageRegistry = require("koassistant_storage_registry")
 
 -- Get plugin directory by normalizing the path
 local function getPluginDir()
@@ -914,67 +915,35 @@ function BackupManager:createBackup(options)
         end
     end
 
-    -- Copy config files
+    -- Copy config files (registry-driven; credential files gated by include_api_keys)
     if options.include_configs then
         local configs_dir = temp_dir .. "/configs"
         lfs.mkdir(configs_dir)
-
-        -- Copy apikeys.lua if exists and if API keys included
-        if options.include_api_keys then
-            local apikeys_file = self.PLUGIN_DIR .. "/apikeys.lua"
-            if lfs.attributes(apikeys_file, "mode") == "file" then
-                self:_copyFile(apikeys_file, configs_dir .. "/apikeys.lua")
+        for _, entry in ipairs(StorageRegistry.backupPluginFiles()) do
+            if not entry.credential or options.include_api_keys then
+                local src = self.PLUGIN_DIR .. "/" .. entry.ref
+                if lfs.attributes(src, "mode") == "file" then
+                    self:_copyFile(src, configs_dir .. "/" .. entry.ref)
+                end
             end
-        end
-
-        -- Copy configuration.lua if exists
-        local config_file = self.PLUGIN_DIR .. "/configuration.lua"
-        if lfs.attributes(config_file, "mode") == "file" then
-            self:_copyFile(config_file, configs_dir .. "/configuration.lua")
-        end
-
-        -- Copy custom_actions.lua if exists
-        local custom_actions_file = self.PLUGIN_DIR .. "/custom_actions.lua"
-        if lfs.attributes(custom_actions_file, "mode") == "file" then
-            self:_copyFile(custom_actions_file, configs_dir .. "/custom_actions.lua")
         end
     end
 
-    -- Copy user content (domains and behaviors)
+    -- Copy user content dirs (domains, behaviors; .md/.txt only) — registry-driven
     if options.include_content then
-        -- Copy domains folder
-        local domains_dir = self.PLUGIN_DIR .. "/domains"
-        if lfs.attributes(domains_dir, "mode") == "directory" then
-            local dest_domains = temp_dir .. "/domains"
-            local success, err_msg = self:_copyDirectory(domains_dir, dest_domains, function(entry, path)
-                -- Only copy .md and .txt files
-                return entry:match("%.md$") or entry:match("%.txt$")
-            end)
-            if not success then
-                -- Clean up and return error
-                self:_removeTempDir(temp_dir)
-                if not options.skip_lock then
-                    self:_releaseLock()
+        for _, dir_name in ipairs(StorageRegistry.backupPluginDirs()) do
+            local src = self.PLUGIN_DIR .. "/" .. dir_name
+            if lfs.attributes(src, "mode") == "directory" then
+                local success, err_msg = self:_copyDirectory(src, temp_dir .. "/" .. dir_name, function(entry, path)
+                    return entry:match("%.md$") or entry:match("%.txt$")
+                end)
+                if not success then
+                    self:_removeTempDir(temp_dir)
+                    if not options.skip_lock then
+                        self:_releaseLock()
+                    end
+                    return { success = false, error = err_msg }
                 end
-                return { success = false, error = err_msg }
-            end
-        end
-
-        -- Copy behaviors folder
-        local behaviors_dir = self.PLUGIN_DIR .. "/behaviors"
-        if lfs.attributes(behaviors_dir, "mode") == "directory" then
-            local dest_behaviors = temp_dir .. "/behaviors"
-            local success, err_msg = self:_copyDirectory(behaviors_dir, dest_behaviors, function(entry, path)
-                -- Only copy .md and .txt files
-                return entry:match("%.md$") or entry:match("%.txt$")
-            end)
-            if not success then
-                -- Clean up and return error
-                self:_removeTempDir(temp_dir)
-                if not options.skip_lock then
-                    self:_releaseLock()
-                end
-                return { success = false, error = err_msg }
             end
         end
     end
@@ -1266,7 +1235,11 @@ function BackupManager:createRestorePoint()
         include_api_keys = true,
         include_configs = true,
         include_content = true,
-        include_chats = false,  -- Don't include chats in restore points
+        -- Include chats so a failed restore can be rolled back completely. A
+        -- restore can modify chats (restore_chats), so the rollback snapshot must
+        -- capture them too — otherwise rollback silently loses the user's chats.
+        -- (Paired with restore_chats = true in the rollback options below.)
+        include_chats = true,
         notes = "Automatic restore point",
         skip_lock = true,  -- Don't try to acquire lock (already held by caller)
     }
@@ -1585,64 +1558,33 @@ function BackupManager:restoreBackup(backup_path, options)
         end
     end
 
-    -- Restore config files
+    -- Restore config files (registry-driven; credential files gated)
     if options.restore_configs ~= false and manifest.contents.config_files then
-        -- Restore apikeys.lua if included and requested
-        if options.restore_api_keys and manifest.contents.api_keys then
-            local backup_apikeys = temp_dir .. "/configs/apikeys.lua"
-            if lfs.attributes(backup_apikeys, "mode") == "file" then
-                local dest_apikeys = self.PLUGIN_DIR .. "/apikeys.lua"
-                self:_copyFile(backup_apikeys, dest_apikeys)
+        local restore_creds = options.restore_api_keys and manifest.contents.api_keys
+        for _, entry in ipairs(StorageRegistry.backupPluginFiles()) do
+            if not entry.credential or restore_creds then
+                local src = temp_dir .. "/configs/" .. entry.ref
+                if lfs.attributes(src, "mode") == "file" then
+                    self:_copyFile(src, self.PLUGIN_DIR .. "/" .. entry.ref)
+                end
             end
-        end
-
-        -- Restore configuration.lua if exists
-        local backup_config = temp_dir .. "/configs/configuration.lua"
-        if lfs.attributes(backup_config, "mode") == "file" then
-            local dest_config = self.PLUGIN_DIR .. "/configuration.lua"
-            self:_copyFile(backup_config, dest_config)
-        end
-
-        -- Restore custom_actions.lua if exists
-        local backup_actions = temp_dir .. "/configs/custom_actions.lua"
-        if lfs.attributes(backup_actions, "mode") == "file" then
-            local dest_actions = self.PLUGIN_DIR .. "/custom_actions.lua"
-            self:_copyFile(backup_actions, dest_actions)
         end
     end
 
-    -- Restore user content
+    -- Restore user content dirs (registry-driven; replace mode clears first)
     if options.restore_content ~= false and (manifest.contents.domains or manifest.contents.behaviors) then
-        -- Restore domains
-        local backup_domains = temp_dir .. "/domains"
-        if lfs.attributes(backup_domains, "mode") == "directory" then
-            local dest_domains = self.PLUGIN_DIR .. "/domains"
-            if not options.merge_mode then
-                -- Replace mode: clear existing domains first
-                if lfs.attributes(dest_domains, "mode") == "directory" then
-                    local safe_path, _ = self:_sanitizePath(dest_domains)
+        for _, dir_name in ipairs(StorageRegistry.backupPluginDirs()) do
+            local src = temp_dir .. "/" .. dir_name
+            if lfs.attributes(src, "mode") == "directory" then
+                local dest = self.PLUGIN_DIR .. "/" .. dir_name
+                if not options.merge_mode and lfs.attributes(dest, "mode") == "directory" then
+                    local safe_path = self:_sanitizePath(dest)
                     if safe_path then
                         os.execute(string.format('rm -rf "%s"', safe_path))
                     end
                 end
+                self:_copyDirectory(src, dest)
             end
-            self:_copyDirectory(backup_domains, dest_domains)
-        end
-
-        -- Restore behaviors
-        local backup_behaviors = temp_dir .. "/behaviors"
-        if lfs.attributes(backup_behaviors, "mode") == "directory" then
-            local dest_behaviors = self.PLUGIN_DIR .. "/behaviors"
-            if not options.merge_mode then
-                -- Replace mode: clear existing behaviors first
-                if lfs.attributes(dest_behaviors, "mode") == "directory" then
-                    local safe_path, _ = self:_sanitizePath(dest_behaviors)
-                    if safe_path then
-                        os.execute(string.format('rm -rf "%s"', safe_path))
-                    end
-                end
-            end
-            self:_copyDirectory(backup_behaviors, dest_behaviors)
         end
     end
 
@@ -1714,7 +1656,7 @@ function BackupManager:restoreBackup(backup_path, options)
                 restore_api_keys = true,
                 restore_configs = true,
                 restore_content = true,
-                restore_chats = false,
+                restore_chats = true,  -- restore point now snapshots chats; roll them back too
                 merge_mode = false,  -- Full replace for rollback
             }
 
