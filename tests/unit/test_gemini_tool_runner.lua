@@ -58,14 +58,14 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
         if calls == 1 then
             scope_message = messages[#messages].content
             callback(true, {
-                _gemini_function_calls = true,
+                _tool_calls = true,
                 calls = {
                     {
                         name = "search_book",
                         args = { query = "Daisy" },
                     },
                 },
-                model_content = {
+                raw_assistant_turn = {
                     role = "model",
                     parts = {
                         {
@@ -227,15 +227,31 @@ TestRunner:test("shouldUse lets a trusted provider bypass the extraction gate", 
         "trusted provider bypasses the extraction-consent gate")
 end)
 
+TestRunner:test("shouldUse requires a tools-capable provider/model with an adapter", function()
+    local base = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true }
+    -- gemini + a tools-capable model → eligible
+    TestRunner:assertTrue(GeminiToolRunner.shouldUse(
+        { provider = "gemini", model = "gemini-3.5-flash", features = base }, makeUi()),
+        "gemini tools-capable model is eligible")
+    -- provider with no tools capability / adapter → gated off (falls through to normal path)
+    TestRunner:assertFalse(GeminiToolRunner.shouldUse(
+        { provider = "openai", model = "gpt-5.5", features = base }, makeUi()),
+        "provider without tools capability/adapter is gated off")
+    -- gemini but a model lacking the tools capability → gated off
+    TestRunner:assertFalse(GeminiToolRunner.shouldUse(
+        { provider = "gemini", model = "gemini-1.0-ancient", features = base }, makeUi()),
+        "gemini non-tools model is gated off")
+end)
+
 TestRunner:test("diagnostics are suppressed unless tool_workflow_diagnostics is set", function()
     local calls = 0
     local function query_fn(_messages, _config, callback)
         calls = calls + 1
         if calls == 1 then
             callback(true, {
-                _gemini_function_calls = true,
+                _tool_calls = true,
                 calls = { { name = "search_book", args = { query = "Daisy" } } },
-                model_content = { role = "model", parts = {
+                raw_assistant_turn = { role = "model", parts = {
                     { functionCall = { name = "search_book", args = { query = "Daisy" } } } } },
             }, nil, nil, nil, { input_tokens = 10, output_tokens = 3, total_tokens = 13 })
         else
@@ -284,9 +300,9 @@ TestRunner:test("queryWith routes through tool runner when shouldUse is true", f
         -- First call: function call. Second call: final answer.
         if query_calls == 1 then
             callback(true, {
-                _gemini_function_calls = true,
+                _tool_calls = true,
                 calls = { { name = "search_book", args = { query = "Alice" } } },
-                model_content = {
+                raw_assistant_turn = {
                     role = "model",
                     parts = { { functionCall = { name = "search_book", args = { query = "Alice" } } } },
                 },
