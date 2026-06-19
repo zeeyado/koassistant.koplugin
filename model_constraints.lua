@@ -46,6 +46,10 @@ ModelConstraints.capabilities = {
             "claude-sonnet-4-6",      -- 4.6 Sonnet (also adaptive; budget mode still works)
             "claude-haiku-4-5",       -- 4.5 Haiku
         },
+        -- Function calling for the book-tool workflows (universal on Claude; list families).
+        tools = {
+            "claude-opus-4", "claude-sonnet-4", "claude-haiku-4",
+        },
     },
     openai = {
         -- Models that support reasoning.effort parameter

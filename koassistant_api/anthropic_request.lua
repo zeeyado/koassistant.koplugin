@@ -124,19 +124,35 @@ function AnthropicRequest:build(config)
         enable_web_search = true
     end
 
+    local tools = {}
+
     if enable_web_search then
         -- Get max_uses from settings (default 5)
         local max_uses = 5
         if config.features and config.features.web_search_max_uses then
             max_uses = config.features.web_search_max_uses
         end
-        request_body.tools = {
-            {
-                type = "web_search_20250305",
-                name = "web_search",
-                max_uses = max_uses,
-            },
-        }
+        table.insert(tools, {
+            type = "web_search_20250305",
+            name = "web_search",
+            max_uses = max_uses,
+        })
+    end
+
+    -- Book-tool function declarations (provider-neutral config.tools = { specs, mode }).
+    -- Anthropic uses input_schema (not parameters) and no wrapper object.
+    if config.tools and type(config.tools.specs) == "table" and #config.tools.specs > 0 then
+        for _, spec in ipairs(config.tools.specs) do
+            table.insert(tools, {
+                name = spec.name,
+                description = spec.description,
+                input_schema = spec.parameters,
+            })
+        end
+    end
+
+    if #tools > 0 then
+        request_body.tools = tools
     end
 
     -- Get model for constraints and capability checking

@@ -178,6 +178,72 @@ TestRunner:test("session spoiler checkbox overrides global for tool scope", func
         "session on clamps")
 end)
 
+TestRunner:test("runner serializes tool turns with the provider's adapter (anthropic)", function()
+    local captured_messages
+    local calls = 0
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, {
+                _tool_calls = true,
+                calls = { { id = "tu1", name = "search_book", args = { query = "Daisy" } } },
+                raw_assistant_turn = { role = "assistant", content = {
+                    { type = "tool_use", id = "tu1", name = "search_book", input = { query = "Daisy" } },
+                } },
+            })
+        else
+            captured_messages = messages
+            callback(true, "answer")
+        end
+    end
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "where is daisy?" } },
+        config = { provider = "anthropic", model = "claude-sonnet-4-6", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    local found_tool_result = false
+    for _, m in ipairs(captured_messages or {}) do
+        if type(m.content) == "table" and m.content[1] and m.content[1].type == "tool_result" then
+            found_tool_result = true
+        end
+    end
+    TestRunner:assertTrue(found_tool_result, "anthropic tool_result turn appended via adapter")
+end)
+
+TestRunner:test("every tool call in a turn is answered (no mid-turn drop past the cap)", function()
+    local captured_messages
+    local calls_made = 0
+    local function query_fn(messages, _config, callback)
+        calls_made = calls_made + 1
+        if calls_made == 1 then
+            local many, parts = {}, {}
+            for i = 1, 10 do
+                many[i] = { name = "search_book", args = { query = "q" .. i } }
+                parts[i] = { functionCall = { name = "search_book", args = { query = "q" .. i } } }
+            end
+            callback(true, { _tool_calls = true, calls = many,
+                raw_assistant_turn = { role = "model", parts = parts } })
+        else
+            captured_messages = messages
+            callback(true, "answer")
+        end
+    end
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    local answered = 0
+    for _, m in ipairs(captured_messages or {}) do
+        if m.role == "tool" and m.parts then answered = #m.parts end
+    end
+    TestRunner:assertEqual(answered, 10, "all 10 tool_use calls answered despite MAX_TOOL_CALLS=8")
+end)
+
 TestRunner:test("shouldUse skips when _xray_chat_active is set", function()
     local cfg = {
         provider = "gemini",
@@ -233,6 +299,10 @@ TestRunner:test("shouldUse requires a tools-capable provider/model with an adapt
     TestRunner:assertTrue(GeminiToolRunner.shouldUse(
         { provider = "gemini", model = "gemini-3.5-flash", features = base }, makeUi()),
         "gemini tools-capable model is eligible")
+    -- anthropic (Phase 2) + a tools-capable model → eligible
+    TestRunner:assertTrue(GeminiToolRunner.shouldUse(
+        { provider = "anthropic", model = "claude-sonnet-4-6", features = base }, makeUi()),
+        "anthropic tools-capable model is eligible")
     -- provider with no tools capability / adapter → gated off (falls through to normal path)
     TestRunner:assertFalse(GeminiToolRunner.shouldUse(
         { provider = "openai", model = "gpt-5.5", features = base }, makeUi()),
