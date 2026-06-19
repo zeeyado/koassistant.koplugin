@@ -554,7 +554,7 @@ function GeminiToolRunner.run(params)
 
     local function requestFinal()
         local final_config = buildToolConfig(config, true, reading_scope)
-        final_config.features.loading_message = "Gemini book tools\nPreparing answer..."
+        final_config.features.loading_message = "Book tools\nPreparing answer..."
         table.insert(messages, {
             role = "user",
             content = "Answer the user's question using the gathered tool results. Do not call more tools.",
@@ -578,8 +578,8 @@ function GeminiToolRunner.run(params)
 
         local tool_config = buildToolConfig(config, false, reading_scope)
         tool_config.features.loading_message = tool_turns == 0
-            and "Gemini book tools\nThinking..."
-            or "Gemini book tools\nReading..."
+            and "Book tools\nThinking..."
+            or "Book tools\nReading..."
 
         return query_fn(messages, tool_config, function(success, answer, err, reasoning, web_search_used, usage)
             token_usage = mergeUsage(token_usage, usage)
@@ -603,7 +603,9 @@ function GeminiToolRunner.run(params)
 
             local executed = {}
             for _, call in ipairs(calls) do
-                if tool_calls >= MAX_TOOL_CALLS then break end
+                -- Execute EVERY call in this turn: each tool_use must get a matching tool_result,
+                -- or strict providers (Anthropic) reject the next request (HTTP 400). MAX_TOOL_CALLS
+                -- caps further TURNS (checked at the top of step()), so a turn may slightly overrun.
                 tool_calls = tool_calls + 1
                 local result = tools:execute(call.name, call.args or {})
                 table.insert(trace, summarizeToolCall(call, result))

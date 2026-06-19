@@ -28,6 +28,7 @@ function AnthropicHandler:buildRequestBody(message_history, config)
         additional_parameters = config.additional_parameters,
         features = config.features,  -- For web search global setting
         enable_web_search = config.enable_web_search,  -- Per-action override
+        tools = config.tools,  -- Book-tool declarations from the tool runner ({ specs, mode })
     })
 
     local headers = {
@@ -65,6 +66,7 @@ function AnthropicHandler:query(message_history, config)
         additional_parameters = config.additional_parameters,
         features = config.features,  -- For web search global setting
         enable_web_search = config.enable_web_search,  -- Per-action override
+        tools = config.tools,  -- Book-tool declarations from the tool runner ({ specs, mode })
     })
 
     -- Check if streaming is enabled

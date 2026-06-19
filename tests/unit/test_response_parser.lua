@@ -252,6 +252,23 @@ TestRunner:test("parses function calls", function()
     TestRunner:assertEqual(result.calls[1].args.query, "Daisy", "call args")
 end)
 
+TestRunner:test("anthropic tool_use blocks → neutral tool-call shape", function()
+    local response = {
+        content = {
+            { type = "text", text = "let me look" },
+            { type = "tool_use", id = "tu1", name = "search_book", input = { query = "Daisy" } },
+        },
+        stop_reason = "tool_use",
+    }
+    local success, result = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "neutral tool-call marker")
+    TestRunner:assertEqual(result.calls[1].id, "tu1", "call id")
+    TestRunner:assertEqual(result.calls[1].name, "search_book", "call name")
+    TestRunner:assertEqual(result.calls[1].args.query, "Daisy", "call args (from input)")
+    TestRunner:assertEqual(result.raw_assistant_turn.role, "assistant", "raw_assistant_turn echo")
+end)
+
 -- Test DeepSeek format
 TestRunner:suite("DeepSeek")
 

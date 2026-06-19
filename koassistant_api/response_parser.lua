@@ -59,6 +59,23 @@ local RESPONSE_TRANSFORMERS = {
         -- Also handles regular responses (content array with just text block)
         -- Web search responses may have multiple text blocks (tool_use blocks are ignored)
         if response.content then
+            -- Book-tool function calls: collect tool_use blocks (distinct from web search's
+            -- server_tool_use). If present, emit the provider-neutral tool-call shape the runner
+            -- + koassistant_api/tool_wire.lua consume. raw_assistant_turn echoes the native content.
+            local tool_uses = {}
+            for _, block in ipairs(response.content) do
+                if block.type == "tool_use" and block.name then
+                    table.insert(tool_uses, { id = block.id, name = block.name, args = block.input or {} })
+                end
+            end
+            if #tool_uses > 0 then
+                return true, {
+                    _tool_calls = true,
+                    calls = tool_uses,
+                    raw_assistant_turn = { role = "assistant", content = response.content },
+                }, nil, nil
+            end
+
             local text_blocks = {}
             local thinking_content = nil
             local web_search_used = nil

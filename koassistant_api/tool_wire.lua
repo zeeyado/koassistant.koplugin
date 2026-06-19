@@ -15,7 +15,17 @@
 -- Adding a provider = register an adapter here + handle config.tools in its buildRequestBody
 -- + detect tool calls in its response_parser transformer.
 
+local json = require("json")
+
 local ToolWire = { adapters = {} }
+
+--- Serialize a tool result to a string, for providers whose tool-result content must be a string
+--- (Anthropic, OpenAI). Gemini sends the raw result table instead. JSON keeps it lossless.
+function ToolWire.stringifyResult(name, result)
+    local ok, encoded = pcall(json.encode, result or {})
+    if ok and type(encoded) == "string" then return encoded end
+    return tostring(result)
+end
 
 -- Gemini: tool turns use parts; the model echo keeps its native parts, and each result becomes a
 -- functionResponse part on a "tool" turn (gemini.lua maps the "tool" role to "user").
@@ -38,6 +48,31 @@ ToolWire.adapters.gemini = {
         end
         if #parts > 0 then
             table.insert(messages, { role = "tool", parts = parts })
+        end
+    end,
+}
+
+-- Anthropic: tool turns use content blocks. The assistant echo keeps its native content array
+-- (text + tool_use blocks); each result becomes a tool_result block on a user turn, with the
+-- result stringified (Anthropic tool_result.content must be a string or content-block array).
+ToolWire.adapters.anthropic = {
+    appendToolTurn = function(messages, raw_assistant_turn, executed)
+        if raw_assistant_turn and raw_assistant_turn.content then
+            table.insert(messages, {
+                role = raw_assistant_turn.role or "assistant",
+                content = raw_assistant_turn.content,
+            })
+        end
+        local blocks = {}
+        for _, item in ipairs(executed or {}) do
+            table.insert(blocks, {
+                type = "tool_result",
+                tool_use_id = item.call.id,
+                content = ToolWire.stringifyResult(item.call.name, item.result),
+            })
+        end
+        if #blocks > 0 then
+            table.insert(messages, { role = "user", content = blocks })
         end
     end,
 }
