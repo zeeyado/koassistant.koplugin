@@ -894,7 +894,10 @@ TestRunner:test("spoiler nudge coexists with domain and research", function()
     local result = SystemPrompts.buildUnifiedSystem({
         behavior_variant = "minimal",
         domain_context = "Science fiction",
-        book_metadata = { doi = "10.1234/test" },
+        -- research_mode is the resolved flag (DOI auto-detect / per-book / global /
+        -- action override are resolved upstream in buildUnifiedRequestConfig since
+        -- commit 8d2c6e8); the builder just renders it.
+        research_mode = true,
         spoiler_free = true,
         reading_progress = "60%",
     })
