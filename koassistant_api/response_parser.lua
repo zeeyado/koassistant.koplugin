@@ -178,6 +178,25 @@ local RESPONSE_TRANSFORMERS = {
                 return false, "No content generated (MAX_TOKENS hit before output - increase max_tokens for thinking models)"
             end
             if candidate.content and candidate.content.parts then
+                local function_calls = {}
+                for _, part in ipairs(candidate.content.parts) do
+                    local function_call = part.functionCall or part.function_call
+                    if function_call and function_call.name then
+                        table.insert(function_calls, {
+                            id = function_call.id,
+                            name = function_call.name,
+                            args = function_call.args or {},
+                        })
+                    end
+                end
+                if #function_calls > 0 then
+                    return true, {
+                        _gemini_function_calls = true,
+                        calls = function_calls,
+                        model_content = candidate.content,
+                    }, nil, web_search_used
+                end
+
                 -- Gemini 3 thinking: parts have thought=true for thinking, thought=false/nil for answer
                 local thinking_parts = {}
                 local content_parts = {}

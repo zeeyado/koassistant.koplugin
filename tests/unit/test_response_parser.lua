@@ -224,6 +224,34 @@ TestRunner:test("handles MAX_TOKENS with no content", function()
     TestRunner:assertContains(result, "MAX_TOKENS", "error message mentions MAX_TOKENS")
 end)
 
+TestRunner:test("parses function calls", function()
+    local response = {
+        candidates = {
+            {
+                content = {
+                    role = "model",
+                    parts = {
+                        {
+                            functionCall = {
+                                id = "call-1",
+                                name = "search_book",
+                                args = { query = "Daisy", max_results = 3 },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
+    local success, result = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table", "result table")
+    TestRunner:assertTrue(result._gemini_function_calls, "function call marker")
+    TestRunner:assertEqual(result.calls[1].id, "call-1", "call id")
+    TestRunner:assertEqual(result.calls[1].name, "search_book", "call name")
+    TestRunner:assertEqual(result.calls[1].args.query, "Daisy", "call args")
+end)
+
 -- Test DeepSeek format
 TestRunner:suite("DeepSeek")
 
