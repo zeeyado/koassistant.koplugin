@@ -13705,4 +13705,53 @@ function AskGPT:openNotebookEditor(notebook_path, document_path)
   UIManager:show(editor)
 end
 
+-- Issue #77: KOReader's plugin-management hook. KOReader calls this (via pcall)
+-- during "Delete/Disable plugin & settings". Non-interactive — the user already
+-- confirmed at KOReader's own dialog. Removes the plugin's GLOBAL footprint only:
+-- settings-dir files, G_reader_settings keys, and the internal data dirs (v1 chats
+-- + migration backup). DELIBERATELY PRESERVES backups/, exports/, the default
+-- notebook vault, any custom/Obsidian notebook path, and all per-book .sdr
+-- sidecars (book-local content, self-healed on reinstall). Plugin-folder files are
+-- removed by KOReader's own folder purge. Registry-driven (Track 33).
+function AskGPT:deletePluginSettings()
+  local FFIUtil = require("ffi/util")
+  local data_dir = DataStorage:getDataDir()
+  local n_files, n_dirs, n_keys = 0, 0, 0
+
+  for _, entry in ipairs(StorageRegistry.uninstallEntries()) do
+    if entry.location == "settings_dir" then
+      local path = StorageRegistry.resolvePath(entry)
+      if path and lfs.attributes(path, "mode") == "file" then
+        os.remove(path)
+        os.remove(path .. ".old")
+        n_files = n_files + 1
+      end
+    elseif entry.location == "data_dir" then
+      local path = StorageRegistry.resolvePath(entry)
+      -- Defense-in-depth: only ever purge a directory that resolves under our own
+      -- data dir AND whose name is koassistant_-prefixed.
+      if path and lfs.attributes(path, "mode") == "directory"
+          and path:sub(1, #data_dir) == data_dir
+          and (path:match("([^/]+)$") or ""):match("^koassistant_") then
+        local ok, err = pcall(FFIUtil.purgeDir, path)
+        if ok then
+          n_dirs = n_dirs + 1
+        else
+          logger.warn("KOAssistant: deletePluginSettings purgeDir failed:", path, err)
+        end
+      end
+    elseif entry.location == "global_key" then
+      if G_reader_settings:readSetting(entry.ref) ~= nil then
+        G_reader_settings:delSetting(entry.ref)
+        n_keys = n_keys + 1
+      end
+    end
+  end
+
+  G_reader_settings:flush()
+  logger.info(string.format(
+    "KOAssistant: deletePluginSettings removed %d file(s), %d dir(s), %d key(s); kept backups/exports/notebooks/sidecars",
+    n_files, n_dirs, n_keys))
+end
+
 return AskGPT

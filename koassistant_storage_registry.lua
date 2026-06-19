@@ -45,10 +45,11 @@
 
 local Registry = {}
 
--- Lazily-resolved storage roots (kept out of module load so tests stay light).
-local DataStorage = require("datastorage")
-local function settingsDir() return DataStorage:getSettingsDir() end
-local function dataDir() return DataStorage:getDataDir() end
+-- Storage roots resolved lazily AT CALL TIME (require, not a captured upvalue) so
+-- the registry never holds a stale DataStorage reference — robust to module
+-- load-order and any test that re-mocks `datastorage`.
+local function settingsDir() return require("datastorage"):getSettingsDir() end
+local function dataDir() return require("datastorage"):getDataDir() end
 
 -- G_reader_settings keys we own that are NOT koassistant_-prefixed. The
 -- coverage-guard test consults this so it knows these are deliberate, not drift.
@@ -454,6 +455,23 @@ function Registry.resetEntries(preset)
                     break
                 end
             end
+        end
+    end
+    return out
+end
+
+-- Entries the issue-#77 uninstall hook (`deletePluginSettings`) removes — the
+-- plugin's GLOBAL footprint. Plugin-folder entries (plugin_file/plugin_dir) carry
+-- `uninstall = true` for completeness but are EXCLUDED here: KOReader purges the
+-- plugin folder itself, and our hook only owns state outside it. Sidecars
+-- (no `uninstall` flag) and the preserved data dirs (backups/exports/vault, which
+-- carry `uninstall = false`) are likewise excluded.
+function Registry.uninstallEntries()
+    local out = {}
+    for _, e in ipairs(Registry.entries) do
+        if e.uninstall == true
+                and e.location ~= "plugin_file" and e.location ~= "plugin_dir" then
+            out[#out + 1] = e
         end
     end
     return out
