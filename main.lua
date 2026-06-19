@@ -13533,7 +13533,9 @@ function AskGPT:showChatHistoryForFile(file_path)
   local ChatHistoryManager = require("koassistant_chat_history_manager")
 
   local chat_history_manager = ChatHistoryManager:new()
-  ChatHistoryDialog:showChatHistoryBrowser(self.ui, file_path, chat_history_manager, self.CONFIG)
+  -- Pass the live module config (self.CONFIG was never assigned → nil → resumed chats ran with
+  -- empty features/no provider). Matches AskGPT:showChatHistory()'s call.
+  ChatHistoryDialog:showChatHistoryBrowser(self.ui, file_path, chat_history_manager, configuration)
 end
 
 --- Open notebook for viewing or editing
