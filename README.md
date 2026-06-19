@@ -93,6 +93,7 @@
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
+  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let Gemini/Claude search & read the open book on demand
   - [Prompt Caching](#prompt-caching)
   - [Document Artifacts](#document-artifacts): 12 cacheable artifacts, AI Wiki, pinned, → Chat, incremental caching
   - [Reasoning/Thinking](#reasoningthinking)
@@ -968,6 +969,8 @@ Actions like News Update that require [web search](#web-search) are available in
 Prevents the AI from revealing events beyond your current reading position when chatting about books.
 
 **How it works:** When enabled, a spoiler prevention instruction is injected into the system prompt for freeform chat (the Send button) in book and highlight contexts. The instruction tells the AI your exact reading progress (e.g., "The reader is currently at 42% of this book") and forbids discussing anything beyond that point. When reading progress is unavailable, a generic variant is used ("The reader has not finished this book").
+
+> **With [AI Book Tools](#ai-book-tools-experimental) enabled**, this setting also controls the tools' reading scope *structurally*: spoiler-free **on** → the tools can only read up to your current page (the AI physically cannot read ahead); **off** → they can read the whole document. That's a stronger guarantee than the prompt instruction alone.
 
 **Two independent settings** (both off by default):
 - **Spoiler-free Chat** (`Settings → Chat & Export Settings`): Global toggle: when on, all book/highlight freeform chats get spoiler awareness
@@ -2508,6 +2511,8 @@ Backup and restore functionality, plus reset options. See [Backup & Restore](#ba
   - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter. Perplexity always searches the web (no toggle needed).
   - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
   - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
+- **AI Book Tools (Experimental)**: Let the AI search and read the open book on demand to ground its answers in the actual text (default: **off**). Supported on Gemini and Claude (Anthropic); other providers fall back to normal chat. Requires "Allow Text Extraction". No streaming while the AI looks things up. See [AI Book Tools](#ai-book-tools-experimental).
+  - **AI Book Tools: Show Lookups (debug)**: Append the AI's tool lookups and raw results to each answer, for debugging (default: off). Can include book-text snippets.
 - **Provider Settings**:
   - **Qwen Region**: Select your Alibaba Cloud region (International/China/US). API keys are region-specific and not interchangeable.
   - **Z.AI Region**: Select endpoint (International/China). Same API key works on both endpoints.
@@ -2884,6 +2889,18 @@ When enabled, responses appear in real-time as the AI generates them.
 
 Works with all providers that support streaming.
 
+### AI Book Tools (Experimental)
+
+When chatting about an open book, the AI can call **local tools to look things up in the book on demand**, instead of answering only from book metadata and its own training knowledge. This grounds answers in what you've actually read, with real page references. **Off by default** — opt in via **Settings → Advanced → AI Book Tools (Experimental)**.
+
+- **What it does**: gives the AI three local tools — `search_book` (fuzzy text search), `read_around` (read a specific page range), and `toc` (table of contents) — and lets it call them in a short loop before answering. The search and extraction run **on your device**; only the AI's own tool requests and the bounded text excerpts it asks for are sent to the provider (far less than dumping the whole book).
+- **Providers**: currently **Gemini** and **Claude (Anthropic)**. Other providers automatically fall back to normal chat.
+- **Requires** "Allow Text Extraction" — the tools read book text (see [Text Extraction and Double-gating](#text-extraction-and-double-gating)). A trusted provider also satisfies this.
+- **Where it applies**: freeform chat and replies about an **open book** (book/highlight context). Not predefined actions like X-Ray or Summary (those already extract their own context), and not general or library chat.
+- **Spoiler-aware, structurally**: the tools respect your [Spoiler-Free Mode](#spoiler-free-mode) setting *in code*. When spoiler-free is on, they can only read **up to your current page** — the AI physically cannot read ahead. When it's off, they can read the **whole document** (useful for research papers, non-fiction, and finished books, where you *want* forward references).
+- **No streaming**: responses don't stream while the AI is looking things up (it needs each complete tool result to decide its next step), so expect a short wait before the answer appears.
+- **Experimental**: work in progress; behavior may change. For debugging, **Settings → Advanced → AI Book Tools: Show Lookups** appends what the AI searched/read to each answer (off by default; can include book-text snippets).
+
 ### Prompt Caching
 
 Prompt caching reduces costs and latency by reusing previously processed prompt prefixes. Most major providers support this automatically.
@@ -3205,6 +3222,8 @@ KOAssistant supports **18 AI providers**. Please test and give feedback -- fixes
 > - **Z.AI**: GLM-4.7-Flash is free
 >
 > See details below.
+
+> **Experimental — AI Book Tools**: **Gemini** and **Claude (Anthropic)** can use local tools to search and read the open book on demand, for grounded, page-referenced answers. Off by default; enable via Settings → Advanced. See [AI Book Tools](#ai-book-tools-experimental).
 
 ### Free Tier Providers
 
