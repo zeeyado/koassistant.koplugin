@@ -8,8 +8,14 @@
     hand-maintained lists (`USER_FILES`/`USER_DIRS` in koassistant_update_checker.lua,
     `KOASSISTANT_SIDECAR_FILES` in main.lua, and hardcoded copy lists in
     koassistant_backup_manager.lua) plus several managers in none of them. This
-    registry replaces them: update-preservation, backup, reset, wipe, and the
-    issue-#77 uninstall hook all derive from one declarative table.
+    registry replaces them: update-preservation, backup, reset, and (future)
+    in-plugin wipe all derive from one declarative table.
+
+    NOTE: KOReader's `deletePluginSettings` plugin hook (issue #77) was evaluated
+    and DROPPED — its synchronous, no-preview/no-confirm teardown is weaker than
+    the plugin's own backup/reset/wipe. KOReader only deletes the plugin *folder*;
+    the plugin owns its complete data-delete lifecycle in-app. The `uninstall`
+    field below is retained as declarative teardown metadata for that in-plugin wipe.
 
     NO file merging — files stay where they are. The registry only *describes*
     them. Paths are resolved lazily (DataStorage) so this module is pure data at
@@ -35,7 +41,9 @@
                     (subset of: "fresh_start", "wipe_all")
       opt_in_reset  true if it appears as an opt-in checkbox in reset/wipe UI
       update_preserve  true if performUpdate() must carry it across (USER_FILES role)
-      uninstall     true if deletePluginSettings() (issue #77) removes it
+      uninstall     teardown disposition for the in-plugin complete-wipe:
+                    true = part of the plugin's global footprint (removed by a full
+                    wipe); false = preserved (backups/exports/default vault)
       index_key     for sidecar items: the global index listing which books have it
       legacy        true for migrated-away names (clean but never create)
       notes         freeform
@@ -455,23 +463,6 @@ function Registry.resetEntries(preset)
                     break
                 end
             end
-        end
-    end
-    return out
-end
-
--- Entries the issue-#77 uninstall hook (`deletePluginSettings`) removes — the
--- plugin's GLOBAL footprint. Plugin-folder entries (plugin_file/plugin_dir) carry
--- `uninstall = true` for completeness but are EXCLUDED here: KOReader purges the
--- plugin folder itself, and our hook only owns state outside it. Sidecars
--- (no `uninstall` flag) and the preserved data dirs (backups/exports/vault, which
--- carry `uninstall = false`) are likewise excluded.
-function Registry.uninstallEntries()
-    local out = {}
-    for _, e in ipairs(Registry.entries) do
-        if e.uninstall == true
-                and e.location ~= "plugin_file" and e.location ~= "plugin_dir" then
-            out[#out + 1] = e
         end
     end
     return out

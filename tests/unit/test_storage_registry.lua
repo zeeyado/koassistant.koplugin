@@ -347,44 +347,28 @@ TestRunner:test("resetEntries(wipe_all) includes content + settings but never ba
 end)
 
 --------------------------------------------------------------------------------
-TestRunner:suite("Uninstall scope (issue #77 deletePluginSettings)")
+TestRunner:suite("Path resolution")
 
-TestRunner:test("uninstallEntries covers settings files, global keys, internal data dirs", function()
-    local ids = {}
-    for _, e in ipairs(Registry.uninstallEntries()) do ids[e.id] = true end
-    for _, id in ipairs({
-        "settings", "general_chats", "library_chats", "last_opened",
-        "pinned_general", "pinned_library",
-        "chat_index", "artifact_index", "chat_storage_version",
-        "chats_v1_dir", "chats_backup_dir",
-    }) do
-        TestRunner:assertTrue(ids[id], "uninstall must remove " .. id)
+-- resolvePath is the registry's path resolver, consumed by backup enumeration
+-- (Phase 4) and the future in-plugin wipe.
+TestRunner:test("resolvePath maps settings_dir/data_dir entries to absolute paths", function()
+    local n = 0
+    for _, e in ipairs(Registry.all()) do
+        if e.location == "settings_dir" or e.location == "data_dir" then
+            local p = Registry.resolvePath(e)
+            TestRunner:assertTrue(type(p) == "string" and p:sub(1, #"/tmp/koreader") == "/tmp/koreader",
+                "resolvePath(" .. e.id .. ") should be absolute under the data dir, got " .. tostring(p))
+            n = n + 1
+        end
     end
+    TestRunner:assertTrue(n >= 6, "expected several settings/data entries to resolve")
 end)
 
-TestRunner:test("uninstallEntries preserves backups/exports/vault + sidecars + plugin folder", function()
-    local ids = {}
-    for _, e in ipairs(Registry.uninstallEntries()) do ids[e.id] = true end
-    -- User-facing folders preserved on teardown:
-    TestRunner:assertTrue(not ids["backups_dir"], "uninstall must keep backups")
-    TestRunner:assertTrue(not ids["exports_dir"], "uninstall must keep exports")
-    TestRunner:assertTrue(not ids["notebooks_vault_dir"], "uninstall must keep vault notebooks")
-    -- Per-book sidecars left in place (self-healed on reinstall):
-    TestRunner:assertTrue(not ids["sidecar_notebook"], "uninstall must leave per-book notebooks")
-    TestRunner:assertTrue(not ids["sidecar_pinned"], "uninstall must leave per-book pinned")
-    TestRunner:assertTrue(not ids["dockey_chats"], "uninstall must leave per-book chats")
-    -- Plugin-folder files handled by KOReader's purge, not our hook:
-    TestRunner:assertTrue(not ids["apikeys"], "plugin-folder files excluded (KOReader purges)")
-    TestRunner:assertTrue(not ids["behaviors_dir"], "plugin-folder dirs excluded (KOReader purges)")
-end)
-
-TestRunner:test("every uninstall entry resolves to a settings_dir/data_dir path or a global key", function()
-    for _, e in ipairs(Registry.uninstallEntries()) do
-        local ok = (e.location == "settings_dir" or e.location == "data_dir" or e.location == "global_key")
-        TestRunner:assertTrue(ok, "uninstall entry " .. e.id .. " has unhandled location " .. e.location)
-        if e.location ~= "global_key" then
-            TestRunner:assertTrue(type(Registry.resolvePath(e)) == "string",
-                "uninstall entry " .. e.id .. " must resolve to a path")
+TestRunner:test("resolvePath returns nil for keys and sidecar entries", function()
+    for _, e in ipairs(Registry.all()) do
+        if e.location == "global_key" or e.location == "sidecar_dockey" or e.location == "sidecar_file" then
+            TestRunner:assertTrue(Registry.resolvePath(e) == nil,
+                "resolvePath(" .. e.id .. ") should be nil for " .. e.location)
         end
     end
 end)
