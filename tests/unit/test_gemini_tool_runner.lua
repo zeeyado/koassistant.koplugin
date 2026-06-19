@@ -156,6 +156,28 @@ TestRunner:test("spoiler-free on → tools are clamped to the current page", fun
         "current-scope scope message clamps")
 end)
 
+TestRunner:test("session spoiler checkbox overrides global for tool scope", function()
+    local function scope_msg_for(features)
+        local captured
+        GeminiToolRunner.run({
+            query_fn = function(messages, _c, cb) captured = messages[#messages].content; cb(true, "ok") end,
+            messages = { { role = "user", content = "hi" } },
+            config = { provider = "gemini", features = features },
+            ui = makeUi(),
+            on_complete = function() end,
+        })
+        return captured
+    end
+    -- global spoiler-free ON, but the session box was explicitly unchecked → full document
+    TestRunner:assertTrue(
+        scope_msg_for({ spoiler_free_chat = true, _spoiler_free_active = false }):find("read the entire document", 1, true) ~= nil,
+        "session off overrides global on")
+    -- session box explicitly checked → clamp to current page
+    TestRunner:assertTrue(
+        scope_msg_for({ spoiler_free_chat = false, _spoiler_free_active = true }):find("Do not request or infer content after page", 1, true) ~= nil,
+        "session on clamps")
+end)
+
 TestRunner:test("shouldUse skips when _xray_chat_active is set", function()
     local cfg = {
         provider = "gemini",
