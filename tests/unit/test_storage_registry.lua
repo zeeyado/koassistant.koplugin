@@ -243,8 +243,15 @@ end)
 --------------------------------------------------------------------------------
 TestRunner:suite("Settings sub-key categories")
 
-TestRunner:test("SETTINGS_SUBKEYS has the three non-config buckets, non-empty", function()
-    for _, bucket in ipairs({ "credentials", "assets", "internal" }) do
+local function listContains(list, val)
+    for _, v in ipairs(list) do
+        if v == val then return true end
+    end
+    return false
+end
+
+TestRunner:test("SETTINGS_SUBKEYS has the five non-config buckets, non-empty", function()
+    for _, bucket in ipairs({ "credentials", "assets", "languages", "preferences", "internal" }) do
         local list = Registry.SETTINGS_SUBKEYS[bucket]
         TestRunner:assertTrue(type(list) == "table" and #list > 0,
             "SETTINGS_SUBKEYS." .. bucket .. " must be a non-empty list")
@@ -252,16 +259,82 @@ TestRunner:test("SETTINGS_SUBKEYS has the three non-config buckets, non-empty", 
 end)
 
 TestRunner:test("api_keys is classified as a credential sub-key", function()
-    local found = false
-    for _, k in ipairs(Registry.SETTINGS_SUBKEYS.credentials) do
-        if k == "api_keys" then found = true end
-    end
-    TestRunner:assertTrue(found, "api_keys must be in SETTINGS_SUBKEYS.credentials")
+    TestRunner:assertTrue(listContains(Registry.SETTINGS_SUBKEYS.credentials, "api_keys"),
+        "api_keys must be in SETTINGS_SUBKEYS.credentials")
+end)
+
+TestRunner:test("custom_domains is an asset (consistency with custom_behaviors)", function()
+    TestRunner:assertTrue(listContains(Registry.SETTINGS_SUBKEYS.assets, "custom_domains"),
+        "custom_domains must be an asset")
+    TestRunner:assertTrue(listContains(Registry.SETTINGS_SUBKEYS.assets, "custom_behaviors"),
+        "custom_behaviors must be an asset")
 end)
 
 TestRunner:test("unprefixed global keys are declared", function()
     TestRunner:assertTrue(#Registry.UNPREFIXED_GLOBAL_KEYS >= 2,
         "expected the two unprefixed chat_* keys")
+end)
+
+--------------------------------------------------------------------------------
+TestRunner:suite("Reset preserve-lists (behavior contract)")
+
+TestRunner:test("settingsResetPreserve keeps credentials/assets/languages/preferences/internal", function()
+    local p = Registry.settingsResetPreserve()
+    for _, key in ipairs({
+        "features.api_keys", "features.custom_behaviors", "features.custom_domains",
+        "features.primary_language",  -- languages preserved
+        "features.selected_behavior", "features.gesture_actions",  -- preferences preserved
+        "features._reasoning_v2_migrated",  -- bug fix: reasoning flags survive resets
+    }) do
+        TestRunner:assertTrue(listContains(p, key), "Reset Settings must preserve " .. key)
+    end
+end)
+
+TestRunner:test("settingsResetPreserve excludes top-level sub-keys", function()
+    local p = Registry.settingsResetPreserve()
+    -- custom_actions / setup_wizard_completed are top-level; applyDefaults only
+    -- touches the features table, so they must NOT appear as features.* paths.
+    TestRunner:assertTrue(not listContains(p, "features.custom_actions"),
+        "custom_actions is top-level, must not be a features.* preserve path")
+    TestRunner:assertTrue(not listContains(p, "features.setup_wizard_completed"),
+        "setup_wizard_completed is top-level, must not be a features.* preserve path")
+end)
+
+TestRunner:test("freshStartPreserve is clean-slate: wipes custom assets + preferences, keeps languages + flags", function()
+    local p = Registry.freshStartPreserve()
+    -- Clean-slate: custom assets and preferences are NOT preserved (wiped).
+    for _, key in ipairs({
+        "features.custom_behaviors", "features.custom_domains",
+        "features.custom_providers", "features.custom_models",
+        "features.selected_behavior", "features.gesture_actions",
+    }) do
+        TestRunner:assertTrue(not listContains(p, key), "Fresh Start must reset " .. key)
+    end
+    -- Kept: credentials, languages, and internal migration flags (reasoning bug fix).
+    TestRunner:assertTrue(listContains(p, "features.api_keys"), "Fresh Start keeps API keys")
+    TestRunner:assertTrue(listContains(p, "features.primary_language"), "Fresh Start keeps languages")
+    TestRunner:assertTrue(listContains(p, "features._reasoning_v2_migrated"),
+        "Fresh Start must preserve reasoning migration flags (bug fix)")
+end)
+
+TestRunner:test("resetEntries(fresh_start) clears only internal data-dir cruft", function()
+    local ids = {}
+    for _, e in ipairs(Registry.resetEntries("fresh_start")) do ids[e.id] = true end
+    TestRunner:assertTrue(ids["chats_v1_dir"], "fresh_start should clear v1 chats dir")
+    TestRunner:assertTrue(ids["chats_backup_dir"], "fresh_start should clear chats.backup dir")
+    -- Must NOT force-clear conversations/backups via this path.
+    TestRunner:assertTrue(not ids["general_chats"], "fresh_start must not force-clear chats")
+    TestRunner:assertTrue(not ids["backups_dir"], "fresh_start must never touch backups")
+end)
+
+TestRunner:test("resetEntries(wipe_all) includes content + settings but never backups", function()
+    local ids = {}
+    for _, e in ipairs(Registry.resetEntries("wipe_all")) do ids[e.id] = true end
+    TestRunner:assertTrue(ids["settings"], "wipe_all clears settings file")
+    TestRunner:assertTrue(ids["general_chats"], "wipe_all clears general chats")
+    TestRunner:assertTrue(ids["chat_index"], "wipe_all clears indexes")
+    TestRunner:assertTrue(not ids["backups_dir"], "wipe_all must never touch backups")
+    TestRunner:assertTrue(not ids["exports_dir"], "exports are opt-in, not force-cleared by wipe_all")
 end)
 
 return TestRunner:summary()

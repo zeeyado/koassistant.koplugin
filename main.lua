@@ -11098,30 +11098,12 @@ end
 function AskGPT:_resetFeatureSettingsInternal()
   local features = self.settings:readSetting("features") or {}
 
-  -- Apply defaults, preserving API keys, custom content, user customizations,
-  -- language/behavior/domain choices, and migration flags
-  local new_features = SettingsSchema.applyDefaults(features, {
-    "features.api_keys",
-    "features.custom_behaviors",
-    "features.custom_models",
-    "features.provider_default_models",
-    "features.custom_providers",
-    "features.gesture_actions",
-    -- User choices (not toggleable feature settings)
-    "features.selected_behavior",
-    "features.selected_domain",
-    "features.custom_domains",
-    "features.trusted_providers",
-    "features.translation_language",
-    "features.dictionary_language",
-    "features.interaction_languages",
-    "features.additional_languages",
-    "features.primary_language",
-    "features.markdown_font_size",
-    "features.export_custom_path",
-    -- Migration flags (prevent re-migration)
-    "features.languages_migrated",
-  })
+  -- Preserve list is registry-derived (Track 33): credentials + assets +
+  -- preferences + internal flags — only the plain feature toggles reset to default.
+  -- Fixes a latent bug: the old hardcoded list dropped _reasoning_v2_migrated /
+  -- _reasoning_hint_shown, silently re-triggering the reasoning-v2 migration (and
+  -- its one-time notice) on every reset.
+  local new_features = SettingsSchema.applyDefaults(features, StorageRegistry.settingsResetPreserve())
 
   self.settings:saveSetting("features", new_features)
   self.settings:flush()
@@ -11159,30 +11141,25 @@ end
 
 -- Quick reset: Fresh start (everything except API keys and chats)
 function AskGPT:quickResetFreshStart()
-  self:_resetFeatureSettingsInternal()
-  self:resetCustomActions(true)
-  self:resetActionEdits(true)
-  self:resetActionMenus(true)
-  self:resetCustomProvidersModels(true)
-  self:resetBehaviorsDomains()
-  -- QA/QS ordering keys (visibility flags already reset by _resetFeatureSettingsInternal)
+  local features = self.settings:readSetting("features") or {}
+  -- Clean-slate config reset (registry-driven). Preserve only credentials,
+  -- languages, and internal migration flags; everything else in the features
+  -- table resets — feature toggles, selections, gestures, fonts, AND custom
+  -- providers/models/behaviors/domains (no schema default -> dropped). This
+  -- folds in the old resetCustomProvidersModels/resetBehaviorsDomains calls and
+  -- the manual nil-block, and fixes the reasoning-flag drop (now in `internal`).
+  local new_features = SettingsSchema.applyDefaults(features, StorageRegistry.freshStartPreserve())
+  self.settings:saveSetting("features", new_features)
+
+  -- Top-level keys (applyDefaults only rebuilds the features table):
+  self:resetCustomActions(true)   -- custom_actions / custom_prompts
+  self:resetActionEdits(true)     -- builtin_action_overrides, disabled_actions
+  self:resetActionMenus(true)     -- highlight/dict/quick/general/file-browser/input menus
   self.settings:delSetting("qa_utilities_order")
   self.settings:delSetting("qs_items_order")
-
-  -- Fresh start: clear wizard flag so it re-runs on next launch
+  -- Fresh start: clear wizard flag so onboarding re-runs on next launch
   self.settings:delSetting("setup_wizard_completed")
 
-  -- Fresh start: also clear user choices preserved by _resetFeatureSettingsInternal
-  -- (keeps API keys and migration flags)
-  local features = self.settings:readSetting("features") or {}
-  features.selected_behavior = nil
-  features.selected_domain = nil
-  features.custom_domains = nil
-  features.trusted_providers = nil
-  features.gesture_actions = nil
-  features.markdown_font_size = nil
-  features.export_custom_path = nil
-  self.settings:saveSetting("features", features)
   self.settings:flush()
   self:updateConfigFromSettings()
 
