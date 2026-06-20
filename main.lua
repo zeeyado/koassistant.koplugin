@@ -5340,8 +5340,12 @@ end
 --- @param action table: The action definition
 --- @param action_id string: The action ID
 --- @param opts table: { on_execute = function(state), for_highlight = boolean }
----   state = { source = "full_text"|"summary"|"ai_knowledge", scope = "full"|"section",
+---   state = { source = "full_text"|"summary"|"ai_knowledge",
+---             scope = "full"|"section"|"read_so_far",
 ---             section_entry = table|nil, section_label = string|nil }
+---   scope "read_so_far" (whole-doc actions, mid-read) routes through _executeSectionAction as a
+---   synthetic page-1→current-page section; source is full_text (extract read text) or ai_knowledge
+---   (no text, spoiler boundary via the framing instruction — like recap); summary doesn't apply.
 function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local action_name = action.text or action_id
   local ActionCache = require("koassistant_action_cache")
@@ -5381,6 +5385,34 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     end
   end
 
+  -- "Up to current position" scope: only for whole-document actions (those whose "Full document"
+  -- extracts the ENTIRE book). Actions that extract to the reading position already
+  -- ({book_text_section}/{incremental_book_text_section}, e.g. recap/xray) get this for free via
+  -- their "Full document" option, so adding it there would be redundant. Detected from placeholders
+  -- so custom actions are covered too.
+  local prompt_text = action.prompt or ""
+  local is_whole_doc = (prompt_text:find("{full_document_section}", 1, true)
+        or prompt_text:find("{document_context_section}", 1, true))
+      and not (prompt_text:find("{book_text_section}", 1, true)
+        or prompt_text:find("{incremental_book_text_section}", 1, true))
+  local reading_progress
+  if self.ui and self.ui.document then
+    local ContextExtractor = require("koassistant_context_extractor")
+    reading_progress = ContextExtractor:new(self.ui):getReadingProgress()
+  end
+  -- Gate: whole-doc action + open book + book context (not highlight) + meaningfully mid-read
+  -- (at 0% nothing is read; near 100% it collapses to "Full document"). Visible whether or not text
+  -- extraction is on: with it, read-so-far uses the extracted text (hard spoiler boundary); without
+  -- it, it falls back to AI knowledge bounded by the spoiler instruction (soft boundary, like recap).
+  -- requires_book_text actions still need extraction (they're blocked otherwise).
+  local read_so_far_available = is_whole_doc and not opts.for_highlight
+      and self.ui and self.ui.document
+      and (text_extraction_enabled or not requires_book_text)
+      and reading_progress and reading_progress.decimal > 0 and reading_progress.decimal < 0.98
+      and true or false
+  -- Show the scope section even without a TOC when read-so-far is the reason (it needs no sections).
+  if read_so_far_available then show_scope = true end
+
   -- State (persists across rebuilds)
   local state = {
     scope = "full",
@@ -5391,6 +5423,10 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   }
 
   local current_dialog
+  -- Height of the first build, used to anchor the popup's top across rebuilds (see buildAndShow):
+  -- it opens centered, then later selections keep that top so the dialog grows downward instead of
+  -- re-centering (which moves content vertically and reads as a jarring jump).
+  local first_frame_h
 
   -- Returns: (has_any, timestamp, is_section_match, has_full_doc, full_doc_timestamp)
   -- When scope=section: checks both section and full doc summaries independently
@@ -5490,13 +5526,28 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     if show_scope then
       addLabel(_("Scope"))
 
-      local scope_table = RadioButtonTable:new{
-        radio_buttons = {
+      -- With read-so-far present, stack the three choices vertically; otherwise keep the original
+      -- two-column row (no layout churn for actions that don't get the new option).
+      local scope_radio_buttons
+      if read_so_far_available then
+        -- read_so_far can show the scope row without a TOC; keep "Pick section" explicitly disabled
+        -- (false, not nil) when there are no sections so the callback's `== false` guard catches it.
+        local pick_section_enabled = scope_sections_enabled and toc_available and true or false
+        scope_radio_buttons = {
+          { { text = _("Full document"), provider = "full", checked = state.scope == "full" } },
+          { { text = T(_("Up to current position (%1)"), reading_progress.formatted), provider = "read_so_far", checked = state.scope == "read_so_far" } },
+          { { text = _("Pick section…"), provider = "section", checked = state.scope == "section", enabled = pick_section_enabled } },
+        }
+      else
+        scope_radio_buttons = {
           {
             { text = _("Full document"), provider = "full", checked = state.scope == "full" },
             { text = _("Pick section…"), provider = "section", checked = state.scope == "section", enabled = scope_sections_enabled },
           },
-        },
+        }
+      end
+      local scope_table = RadioButtonTable:new{
+        radio_buttons = scope_radio_buttons,
         width = content_width,
         no_sep = true,
         sep_width = 0,
@@ -5521,6 +5572,16 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             elseif state.source == "summary" and not getSummaryAvailable() then
               state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
             end
+            buildAndShow()
+          elseif btn_entry.provider == "read_so_far" then
+            if state.scope == "read_so_far" then return end
+            UIManager:close(current_dialog)
+            state.scope = "read_so_far"
+            state.section_entry = nil
+            state.section_label = nil
+            -- Default to extracted text when available, else AI knowledge (summary never applies —
+            -- a whole-doc summary isn't chronological).
+            state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
             buildAndShow()
           elseif btn_entry.provider == "section" then
             UIManager:close(current_dialog)
@@ -5601,7 +5662,13 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     })
 
     -- Summary row(s): varies by scope and availability
-    if requires_book_text then
+    if state.scope == "read_so_far" then
+      -- A whole-document summary isn't chronological, so it can't be scoped to the reading position.
+      -- Plain disabled label (no parenthetical) keeps the row height stable across scope switches.
+      table.insert(source_radio_buttons, {
+        { text = _("Use summary"), provider = "summary", checked = false, enabled = false },
+      })
+    elseif requires_book_text then
       table.insert(source_radio_buttons, {
         { text = _("Use summary") .. "  (" .. _("this action requires text extraction") .. ")", provider = "summary", checked = false, enabled = false },
       })
@@ -5663,7 +5730,9 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       end
     end
 
-    -- AI knowledge row
+    -- AI knowledge row. For read-so-far this stays enabled (the framing line carries the "nothing
+    -- beyond this point" spoiler boundary, same mechanism recap/xray_simple use); only
+    -- requires_book_text actions disable it.
     local ai_knowledge_text, ai_knowledge_enabled
     if requires_book_text then
       ai_knowledge_text = _("AI knowledge only") .. "  (" .. _("this action requires text extraction") .. ")"
@@ -5709,6 +5778,18 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                 self_ref:_executeSectionAction(action, action_id, state.section_entry, state.section_label, {
                   source_mode = state.source == "section_summary" and "summary" or state.source,
                 })
+              elseif state.scope == "read_so_far" then
+                -- Synthetic section scope: page 1 → current page. Reuses the section path (same as
+                -- the auto chapter quiz); label/cache key carry the % so positions don't clobber.
+                -- source_mode follows the user's pick: "full_text" extracts the read text (hard
+                -- boundary); "ai_knowledge" sends no text and relies on the framing line's spoiler
+                -- instruction (soft boundary, like recap).
+                local current_page = (self_ref.ui.view and self_ref.ui.view.state
+                    and self_ref.ui.view.state.page) or 1
+                local rsf_label = T(_("Up to %1"), reading_progress.formatted)
+                self_ref:_executeSectionAction(action, action_id,
+                  { start_page = 1, end_page = current_page }, rsf_label,
+                  { source_mode = state.source, read_so_far = true })
               elseif state.scope == "full" and not opts.for_highlight then
                 -- Check for existing full-document cache and warn before replacing
                 -- Skip for incremental actions (update_prompt) — they handle update/redo downstream
@@ -5785,6 +5866,14 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       },
     }
     local movable = MovableContainer:new{ widget_frame }
+
+    -- Anchor the top: open centered (first build), then on rebuilds shift painting down by half the
+    -- height growth so the top stays put and the dialog extends downward — no vertical jump as rows
+    -- change between scope/source selections. CenterContainer still centers; MovableContainer's
+    -- offset (applied in its paintTo) pins us back to the original top.
+    local frame_h = widget_frame:getSize().h
+    if not first_frame_h then first_frame_h = frame_h end
+    movable:setMovedOffset({ x = 0, y = math.floor((frame_h - first_frame_h) / 2) })
 
     -- Build the dialog as an InputContainer with tap-outside-to-close
     local InputContainer = require("ui/widget/container/inputcontainer")
@@ -6699,9 +6788,22 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
 
   -- Inject section scope context into the prompt
   if section_action.prompt then
-    local scope_line = string.format(
-        'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your analysis on this section only.\n\n',
-        label, scope.page_summary)
+    local scope_line
+    if opts and opts.read_so_far then
+      -- Read-so-far framing: scope everything to the reader's current position and make the spoiler
+      -- boundary explicit. Phrased to hold in both modes — when text is extracted (it ends at this
+      -- point) and when the model works from its own knowledge (recap-style instruction boundary).
+      -- Position is the reading percentage only (like recap): a TOC-title pick is level-ambiguous
+      -- (deepest heading, or the parent on shared-start pages) and edition-dependent, so it's an
+      -- unreliable boundary signal; the percentage is sufficient and predictable.
+      scope_line = string.format(
+          'This concerns "{title}"{author_clause} only up to the reader\'s current position (%s).\nCover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n',
+          label)
+    else
+      scope_line = string.format(
+          'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your analysis on this section only.\n\n',
+          label, scope.page_summary)
+    end
     section_action.prompt = scope_line .. section_action.prompt
   end
 
@@ -7564,8 +7666,15 @@ function AskGPT:onPageUpdate(pageno)
     -- if we were actually in a chapter (prev_idx nil = opened mid-book or finished front matter).
     if prev_idx and (toc.toc[cur_idx].page or 0) > (toc.toc[prev_idx].page or 0)
        and self._last_quiz_offered_chapter ~= prev_idx then
-      self._last_quiz_offered_chapter = prev_idx
-      self:_offerChapterQuiz(prev_idx)
+      -- Only offer once we've actually crossed OUT of the finished chapter's content range. For
+      -- single-level modes a chapter's range ends right before the next chapter, so this is a no-op.
+      -- In "All TOC headings" mode it kills the parent-container misfire: entering a parent's first
+      -- child keeps pageno inside the parent's range, so no quiz fires for the parent on descent.
+      local _, prev_end = self:_chapterContentRange(prev_idx)
+      if prev_end and pageno > prev_end then
+        self._last_quiz_offered_chapter = prev_idx
+        self:_offerChapterQuiz(prev_idx)
+      end
     end
   end
 end
