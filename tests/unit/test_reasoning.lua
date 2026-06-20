@@ -156,6 +156,28 @@ TestRunner:test("no reasoning object when config absent", function()
     TestRunner:assertNil(result.reasoning, "reasoning should not be set")
 end)
 
+TestRunner:suite("Requesty reasoning injection")
+
+local RequestyHandler = require("requesty")
+
+TestRunner:test("adds reasoning object when config present", function()
+    local body = { model = "openai/gpt-5.5", messages = {} }
+    local config = {
+        api_params = { requesty_reasoning = { effort = "high" } },
+        features = {},
+    }
+    local result = RequestyHandler:customizeRequestBody(body, config)
+    TestRunner:assertNotNil(result.reasoning, "reasoning should be set")
+    TestRunner:assertEqual(result.reasoning.effort, "high", "effort level")
+end)
+
+TestRunner:test("no reasoning object when config absent", function()
+    local body = { model = "openai/gpt-5.5", messages = {} }
+    local config = { api_params = {}, features = {} }
+    local result = RequestyHandler:customizeRequestBody(body, config)
+    TestRunner:assertNil(result.reasoning, "reasoning should not be set")
+end)
+
 TestRunner:suite("Groq reasoning injection")
 
 local GroqHandler = require("groq")
@@ -613,7 +635,7 @@ TestRunner:test("xAI has low/medium/high effort options", function()
 end)
 
 TestRunner:test("all effort providers default to high", function()
-    local providers = { "openrouter", "groq", "together", "fireworks", "perplexity" }
+    local providers = { "openrouter", "requesty", "groq", "together", "fireworks", "perplexity" }
     for _idx, p in ipairs(providers) do
         TestRunner:assertEqual(ModelConstraints.reasoning_defaults[p].effort, "high",
             p .. " should default to high")
