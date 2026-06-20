@@ -21,6 +21,7 @@ local function getDefaultModel(provider)
         mistral = "mistral-large-latest",
         xai = "grok-4.3",
         openrouter = "anthropic/claude-sonnet-4.6",
+        requesty = "openai/gpt-4o-mini",
         qwen = "qwen3-max",
         kimi = "kimi-k2.6",
         together = "deepseek-ai/DeepSeek-V4-Pro",
@@ -130,6 +131,15 @@ local ProviderDefaults = {
         provider = "openrouter",
         model = getDefaultModel("openrouter"),
         base_url = "https://openrouter.ai/api/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 16384
+        }
+    },
+    requesty = {
+        provider = "requesty",
+        model = getDefaultModel("requesty"),
+        base_url = "https://router.requesty.ai/v1/chat/completions",
         additional_parameters = {
             temperature = 0.7,
             max_tokens = 16384
