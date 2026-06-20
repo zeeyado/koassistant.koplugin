@@ -380,6 +380,22 @@ local RESPONSE_TRANSFORMERS = {
         return false, "Unexpected response format"
     end,
 
+    requesty = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            local message = response.choices[1].message
+            local content = message.content
+
+            -- Requesty normalizes reasoning to message.reasoning (like OpenRouter);
+            -- fall back to reasoning_content used by some backends.
+            local reasoning = message.reasoning or message.reasoning_content
+            return true, content, reasoning
+        end
+        return false, "Unexpected response format"
+    end,
+
     qwen = function(response)
         if response.error then
             return false, response.error.message or response.error.type or "Unknown error"

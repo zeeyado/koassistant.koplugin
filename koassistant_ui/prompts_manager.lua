@@ -125,6 +125,7 @@ function PromptsManager:getReasoningDisplayText(obj)
             -- Effort-based providers
             local effort_providers = {
                 { key = "openrouter", label = "OR" }, { key = "groq", label = "GQ" },
+                { key = "requesty", label = "RQ" },
                 { key = "together", label = "TG" }, { key = "fireworks", label = "FW" },
                 { key = "xai", label = "X" }, { key = "perplexity", label = "PX" },
             }
@@ -2305,6 +2306,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             zai = nil,        -- nil = use global, false = off, true = on
             deepseek = nil,   -- nil = use global, false = off, true = on
             openrouter = nil, -- nil = use global, false = off, { effort = "..." } = on
+            requesty = nil,   -- nil = use global, false = off, { effort = "..." } = on
             groq = nil,
             together = nil,
             fireworks = nil,
@@ -2494,6 +2496,13 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
                 callback = function()
                     UIManager:close(self.per_provider_dialog)
                     showEffortConfig("openrouter", _("OpenRouter Reasoning"), rd.openrouter.effort_options)
+                end,
+            },
+            {
+                text = _("Requesty: ") .. getStatusText("requesty"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showEffortConfig("requesty", _("Requesty Reasoning"), rd.requesty.effort_options)
                 end,
             },
             {
