@@ -4,6 +4,7 @@ local ConfigHelper = require("koassistant_config_helper")
 local DebugUtils = require("koassistant_debug_utils")
 local ModelConstraints = require("model_constraints")
 local ToolWire = require("koassistant_api.tool_wire")
+local _ = require("koassistant_gettext")
 
 local GeminiToolRunner = {}
 
@@ -554,7 +555,7 @@ function GeminiToolRunner.run(params)
 
     local function requestFinal()
         local final_config = buildToolConfig(config, true, reading_scope)
-        final_config.features.loading_message = "Book tools\nPreparing answer..."
+        final_config.features.loading_message = _("Book tools\nPreparing answer...")
         table.insert(messages, {
             role = "user",
             content = "Answer the user's question using the gathered tool results. Do not call more tools.",
@@ -569,7 +570,7 @@ function GeminiToolRunner.run(params)
     step = function()
         if completed then return nil end
         if GeminiToolRunner._cancelled then
-            finish(false, nil, "Request cancelled by user.")
+            finish(false, nil, _("Request cancelled by user."))
             return nil
         end
         if tool_turns >= MAX_TOOL_TURNS or tool_calls >= MAX_TOOL_CALLS then
@@ -578,8 +579,8 @@ function GeminiToolRunner.run(params)
 
         local tool_config = buildToolConfig(config, false, reading_scope)
         tool_config.features.loading_message = tool_turns == 0
-            and "Book tools\nThinking..."
-            or "Book tools\nReading..."
+            and _("Book tools\nThinking...")
+            or _("Book tools\nReading...")
 
         return query_fn(messages, tool_config, function(success, answer, err, reasoning, web_search_used, usage)
             token_usage = mergeUsage(token_usage, usage)
@@ -595,7 +596,7 @@ function GeminiToolRunner.run(params)
 
             local calls = answer.calls or {}
             if #calls == 0 then
-                finish(false, nil, "Model returned an empty tool call")
+                finish(false, nil, _("Model returned an empty tool call"))
                 return
             end
 
