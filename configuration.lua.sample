@@ -18,7 +18,7 @@ local CONFIGURATION = {
     -- Once you pick a provider/model in the UI, the UI value wins.
     --
     -- Built-in providers: anthropic, openai, deepseek, gemini, ollama,
-    --   groq, mistral, xai, openrouter, qwen, kimi, together, fireworks,
+    --   groq, mistral, xai, openrouter, requesty, qwen, kimi, together, fireworks,
     --   sambanova, cohere, doubao, zai, perplexity
     --
     -- provider = "anthropic",

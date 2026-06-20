@@ -43,6 +43,10 @@ return {
     -- Get from: https://openrouter.ai/
     openrouter = "YOUR_OPENROUTER_API_KEY",
 
+    -- Requesty API key (OpenAI-compatible model router)
+    -- Get from: https://app.requesty.ai/api-keys
+    requesty = "YOUR_REQUESTY_API_KEY",
+
     -- Qwen/DashScope API key (Alibaba)
     -- Get from: https://dashscope.console.aliyun.com/
     qwen = "YOUR_QWEN_API_KEY",

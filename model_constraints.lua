@@ -108,6 +108,11 @@ ModelConstraints.capabilities = {
         -- OpenRouter auto-translates effort to each provider's native format
         -- No model list needed — controlled by whether reasoning param is sent
     },
+    requesty = {
+        -- Unified reasoning object works across routed backend models
+        -- Requesty forwards effort to each provider's native format
+        -- No model list needed — controlled by whether reasoning param is sent
+    },
     groq = {
         -- Models with reasoning_effort support
         reasoning = {
@@ -211,6 +216,10 @@ ModelConstraints.reasoning_defaults = {
     },
     -- Effort-based providers
     openrouter = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    requesty = {
         effort = "high",
         effort_options = { "low", "medium", "high" },
     },
@@ -352,6 +361,12 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
     },
     openrouter = {
+        -- Universal effort; "off" = don't request reasoning (backends may still reason).
+        { match = "", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+    },
+    requesty = {
         -- Universal effort; "off" = don't request reasoning (backends may still reason).
         { match = "", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
@@ -848,6 +863,8 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
         api_params.sambanova_thinking = on
     elseif provider == "openrouter" then
         if on then api_params.openrouter_reasoning = { effort = decision.effort } end
+    elseif provider == "requesty" then
+        if on then api_params.requesty_reasoning = { effort = decision.effort } end
     elseif provider == "groq" then
         if on then api_params.groq_reasoning = { effort = decision.effort } end
     elseif provider == "together" then

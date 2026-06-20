@@ -3205,6 +3205,7 @@ KOAssistant supports **18 AI providers**. Please test and give feedback -- fixes
 | **Mistral** | European provider, coding models | [console.mistral.ai](https://console.mistral.ai/) |
 | **xAI** | Grok models, up to 2M context | [console.x.ai](https://console.x.ai/) |
 | **OpenRouter** | Meta-provider, 500+ models | [openrouter.ai](https://openrouter.ai/) |
+| **Requesty** | OpenAI-compatible model router | [requesty.ai](https://requesty.ai/) |
 | **Cohere** | Command models | [dashboard.cohere.com](https://dashboard.cohere.com/) |
 | **Qwen** | Alibaba's Qwen models | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) |
 | **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
@@ -3337,6 +3338,7 @@ The provider will revert to using the system default.
 - **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models use `thinkingBudget` (0=off, -1=dynamic, 128-24576=specific), 3 models use `thinkingLevel`; streaming may arrive in larger chunks than other providers
 - **Ollama**: Local only; for remote instances, set the endpoint via Settings → Provider → Quick setup: Local provider, or in `configuration.lua`
 - **OpenRouter**: Requires HTTP-Referer header (handled automatically)
+- **Requesty**: OpenAI-compatible model router; uses `provider/model` naming (e.g. `openai/gpt-4o-mini`); sends optional HTTP-Referer/X-Title headers (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
 - **DeepSeek**: V4 supports a `thinking` toggle for both `deepseek-v4-pro` and `deepseek-v4-flash` (on by default); controlled by the reasoning stance / per-model override (see [Reasoning/Thinking](#reasoningthinking))
 
