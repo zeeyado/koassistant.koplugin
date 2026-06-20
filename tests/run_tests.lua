@@ -118,7 +118,7 @@ Examples:
 
 Providers:
   anthropic, openai, deepseek, gemini, ollama, groq, mistral,
-  xai, openrouter, qwen, kimi, together, fireworks, sambanova,
+  xai, openrouter, requesty, qwen, kimi, together, fireworks, sambanova,
   cohere, doubao, zai, perplexity
 
 Configuration:
