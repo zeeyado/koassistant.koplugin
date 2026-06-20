@@ -165,6 +165,19 @@ local function buildBookMetadata(title, authors, file, doc_props, document, doc_
     return require("koassistant_book_settings").applyMetadataOverride(metadata, ds)
 end
 
+--- The synthetic "book context" string for book-level actions (chat-header display, the
+--- {highlighted_text} fallback, and the [Context] fallback). Derived from the already-overridden
+--- book_metadata so it honors a custom AI title/author, and limited to title + author — the AI's
+--- actual book-identity comes from the Book-info-gated [Context] block, which never sends language.
+local function bookContextString(metadata)
+    if not metadata then return "" end
+    local s = string.format("Title: %s.", metadata.title or "Unknown")
+    if metadata.author and metadata.author ~= "" then
+        s = s .. string.format(" Author: %s.", metadata.author)
+    end
+    return s
+end
+
 local AskGPT = WidgetContainer:extend{
   name = "koassistant",
   is_doc_only = false,
@@ -855,23 +868,6 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   if authors and authors:find("\n") then
     authors = authors:gsub("\n", ", ")
   end
-  -- Create book context string (period-separated for clean single-line display)
-  local book_context = string.format("Title: %s.", title)
-  if authors and authors ~= "" then
-    book_context = book_context .. string.format(" Author: %s.", authors)
-  end
-  if book_props then
-    if book_props.series then
-      book_context = book_context .. string.format(" Series: %s.", book_props.series)
-    end
-    if book_props.language then
-      book_context = book_context .. string.format(" Language: %s.", book_props.language)
-    end
-    if book_props.year then
-      book_context = book_context .. string.format(" Year: %s.", book_props.year)
-    end
-  end
-
   -- Ensure features exists
   configuration.features = configuration.features or {}
 
@@ -891,16 +887,14 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   configuration.features.is_book_context = true
   configuration.features.is_library_context = nil
 
-  -- Store book metadata for use in prompts
-  if book_context and book_context ~= "" then
-    configuration.features.book_context = book_context
-  end
-
   -- Store the book metadata for template substitution
   -- Use raw doc_props (from DocSettings) for DOI extraction — includes identifiers field
   local raw_doc_props = getRawDocProps(file) or book_props
   configuration.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props,
       self.ui and self.ui.document, self.ui and self.ui.doc_settings)
+  -- Display/fallback book-context string, derived from the overridden metadata (title+author only).
+  local book_context = bookContextString(configuration.features.book_metadata)
+  configuration.features.book_context = book_context
 
   -- Add reading progress to book_metadata for spoiler-free mode
   -- Use live data from open book if it matches, otherwise load from DocSettings
@@ -7409,11 +7403,7 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
           configuration.features.is_book_context = true
           configuration.features.is_library_context = nil
           configuration.features.book_metadata = buildBookMetadata(bt, ba, file, getRawDocProps(file))
-          local book_ctx = string.format("Title: %s.", bt)
-          if ba ~= "" then
-            book_ctx = book_ctx .. string.format(" Author: %s.", ba)
-          end
-          configuration.features.book_context = book_ctx
+          configuration.features.book_context = bookContextString(configuration.features.book_metadata)
           NetworkMgr:runWhenConnected(function()
             self_ref2:ensureInitialized()
             self_ref2:updateConfigFromSettings()
@@ -8136,14 +8126,8 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   config_copy.features.book_metadata = buildBookMetadata(title, authors, doc_file, raw_doc_props,
       self.ui and self.ui.document, self.ui and self.ui.doc_settings)
 
-  -- Build book context string for display at top of chat viewer
-  local book_context = string.format("Title: %s.", title)
-  if authors ~= "" then
-    book_context = book_context .. string.format(" Author: %s.", authors)
-  end
-  if doc_props.language then
-    book_context = book_context .. string.format(" Language: %s.", doc_props.language)
-  end
+  -- Display/fallback book-context string, derived from the overridden metadata (title+author only).
+  local book_context = bookContextString(config_copy.features.book_metadata)
   config_copy.features.book_context = book_context
   -- Signal that highlighted_text is synthetic book metadata, not user-selected text
   -- (used by handlePredefinedPrompt to skip source_highlight for chat naming)
@@ -8180,16 +8164,8 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
   configuration.features.is_library_context = nil
   configuration.features.book_metadata = buildBookMetadata(title, authors, file, getRawDocProps(file) or book_props)
 
-  -- Build book context string for display at top of chat viewer
-  local book_context = string.format("Title: %s.", title)
-  if authors and authors ~= "" then
-    book_context = book_context .. string.format(" Author: %s.", authors)
-  end
-  if book_props then
-    if book_props.language then
-      book_context = book_context .. string.format(" Language: %s.", book_props.language)
-    end
-  end
+  -- Display/fallback book-context string, derived from the overridden metadata (title+author only).
+  local book_context = bookContextString(configuration.features.book_metadata)
   configuration.features.book_context = book_context
 
   NetworkMgr:runWhenConnected(function()

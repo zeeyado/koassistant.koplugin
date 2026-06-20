@@ -381,7 +381,7 @@ lua tests/inspect.lua --web
 # Then open http://localhost:8080 in a browser
 ```
 
-**Pro tip:** The web inspector reads from your actual KOAssistant settings (`koassistant_settings.lua`), so run KOReader on the same device/computer first to load your full configuration (languages, behavior, temperature, etc.).
+**Tip:** The web inspector reads from your actual KOAssistant settings (`koassistant_settings.lua`), so run KOReader on the same device/computer first to load your full configuration (languages, behavior, temperature, etc.).
 
 **Why use it:**
 - Test actions and prompts comfortably on a computer before deploying to your e-reader
