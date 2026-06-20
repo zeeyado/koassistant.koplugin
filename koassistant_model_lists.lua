@@ -164,6 +164,31 @@ local ModelLists = {
         "minimax/minimax-m2.1",
     },
 
+    requesty = {
+        -- Requesty is an OpenAI-compatible model router (https://requesty.ai).
+        -- Model naming uses provider/model-name, same convention as OpenRouter.
+        -- This is a small representative list; the full catalog is available at
+        -- https://router.requesty.ai/v1/models
+
+        -- OpenAI
+        "openai/gpt-4o-mini",           -- default (fast, low-cost)
+        "openai/gpt-5.5",
+        "openai/gpt-5.4",
+
+        -- Anthropic
+        "anthropic/claude-sonnet-4.6",
+        "anthropic/claude-haiku-4.5",
+
+        -- Google
+        "google/gemini-3.5-flash",
+
+        -- DeepSeek
+        "deepseek/deepseek-v4-pro",
+
+        -- xAI Grok
+        "x-ai/grok-4.3",
+    },
+
     qwen = {
         -- Qwen3 / Qwen3.5 (current)
         "qwen3-max",                    -- flagship (default)

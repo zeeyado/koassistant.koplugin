@@ -372,7 +372,7 @@ end)
 
 -- Test OpenAI-compatible providers
 local openai_compatible = {
-    "groq", "mistral", "xai", "openrouter", "qwen",
+    "groq", "mistral", "xai", "openrouter", "requesty", "qwen",
     "kimi", "together", "fireworks", "sambanova", "doubao"
 }
 
