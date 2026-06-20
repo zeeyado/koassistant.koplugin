@@ -811,7 +811,7 @@ end)
 -- Providers WITHOUT web search (toggle is a no-op there) — root cause of issue #81
 for _idx, p in ipairs({ "openai", "deepseek", "xai", "mistral", "groq",
                         "qwen", "kimi", "together", "fireworks", "sambanova",
-                        "cohere", "doubao", "zai", "ollama" }) do
+                        "cohere", "doubao", "zai", "ollama", "requesty" }) do
     TestRunner:test(p .. " does NOT support web search", function()
         TestRunner:assertFalse(
             ModelConstraints.supportsWebSearch(p, "any-model"),
