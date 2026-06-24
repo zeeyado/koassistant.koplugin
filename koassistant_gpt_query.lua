@@ -252,8 +252,10 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
                 if decode_ok and j then
                     local err = (j.error and j.error.message) or j.message
                     if err then
-                        finish(false, nil, ModelConstraints.maybeAppendGemini3GroundingHint(
-                            err, provider, config and config.model, config))
+                        finish(false, nil, ModelConstraints.maybeAppendContextLimitHint(
+                            ModelConstraints.maybeAppendGemini3GroundingHint(
+                                err, provider, config and config.model, config),
+                            provider, config and config.model, config))
                         return
                     end
                 end
@@ -263,8 +265,10 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
             if err_msg then
                 err_msg = err_msg:gsub("^%s*", ""):gsub("%s*$", "")  -- trim
             end
-            finish(false, nil, ModelConstraints.maybeAppendGemini3GroundingHint(
-                err_msg ~= "" and err_msg or "Request failed",
+            finish(false, nil, ModelConstraints.maybeAppendContextLimitHint(
+                ModelConstraints.maybeAppendGemini3GroundingHint(
+                    err_msg ~= "" and err_msg or "Request failed",
+                    provider, config and config.model, config),
                 provider, config and config.model, config))
             return
         end
@@ -502,8 +506,10 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
                 end
 
                 if not stream_success then
-                    local emsg = ModelConstraints.maybeAppendGemini3GroundingHint(
-                        err or "Unknown streaming error", provider, config.model, config)
+                    local emsg = ModelConstraints.maybeAppendContextLimitHint(
+                        ModelConstraints.maybeAppendGemini3GroundingHint(
+                            err or "Unknown streaming error", provider, config.model, config),
+                        provider, config.model, config)
                     if on_complete then on_complete(false, nil, emsg) end
                     return
                 end
