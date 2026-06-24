@@ -132,7 +132,7 @@ end
 
 local function copyMessages(messages)
     local copy = {}
-    for _, msg in ipairs(messages or {}) do
+    for _idx, msg in ipairs(messages or {}) do
         table.insert(copy, ConfigHelper:deepCopy(msg))
     end
     return copy
@@ -268,7 +268,7 @@ end
 local function appendTrace(answer, trace)
     if type(answer) ~= "string" or #trace == 0 then return answer end
     local lines = { "", "---", "**Lookups used:**" }
-    for _, item in ipairs(trace) do
+    for _idx, item in ipairs(trace) do
         appendListItem(lines, item)
     end
     return answer .. "\n" .. table.concat(lines, "\n")
@@ -325,7 +325,7 @@ local function formatToolResultText(name, result)
     elseif name == "read_around" then
         if result.results then
             local lines = { string.format("read_around: %d targets", result.target_count or #result.results) }
-            for _, item in ipairs(result.results) do
+            for _idx, item in ipairs(result.results) do
                 local range = item.range or {}
                 table.insert(lines, string.format("  [%s, pp. %s-%s] %s",
                     item.hit_id or ("p" .. tostring(item.page or "?")),
@@ -344,7 +344,7 @@ local function formatToolResultText(name, result)
     elseif name == "toc" then
         local lines = {}
         if result.entries then
-            for _, entry in ipairs(result.entries) do
+            for _idx, entry in ipairs(result.entries) do
                 local snippet = entry.snippet and #entry.snippet > 0 and (": " .. entry.snippet) or ""
                 table.insert(lines, string.format("  %s (pp. %d-%d)%s",
                     entry.title or "",
@@ -379,7 +379,7 @@ local function appendVerboseToolOutput(answer, tool_outputs)
     for i, output in ipairs(tool_outputs) do
         table.insert(lines, "")
         table.insert(lines, string.format("Turn %d:", i))
-        for _, item in ipairs(output.executed or {}) do
+        for _idx, item in ipairs(output.executed or {}) do
             local section = formatToolResultText(item.call.name, item.result)
             table.insert(lines, truncateSection(section, VERBOSE_SECTION_MAX_CHARS))
         end
@@ -400,7 +400,7 @@ local function mergeUsage(total, usage)
         "cache_creation",
         "reasoning_tokens",
     }
-    for _, field in ipairs(fields) do
+    for _idx, field in ipairs(fields) do
         if type(usage[field]) == "number" then
             total[field] = (total[field] or 0) + usage[field]
         end
@@ -603,7 +603,7 @@ function GeminiToolRunner.run(params)
             tool_turns = tool_turns + 1
 
             local executed = {}
-            for _, call in ipairs(calls) do
+            for _idx, call in ipairs(calls) do
                 -- Execute EVERY call in this turn: each tool_use must get a matching tool_result,
                 -- or strict providers (Anthropic) reject the next request (HTTP 400). MAX_TOOL_CALLS
                 -- caps further TURNS (checked at the top of step()), so a turn may slightly overrun.

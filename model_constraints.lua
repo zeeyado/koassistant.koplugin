@@ -172,6 +172,14 @@ ModelConstraints._max_output_tokens = {
         ["groq/compound"] = 8192,
         ["groq/compound-mini"] = 8192,
         ["meta-llama/llama-4-scout"] = 8192,
+        -- Production models: cap to each model's documented max completion tokens
+        -- so actions requesting a high max_tokens (e.g. X-Ray's 65536) don't get a
+        -- bare HTTP 400 from Groq. (issue #89)
+        ["llama-3.3-70b-versatile"] = 32768,   -- default Groq model
+        ["qwen/qwen3-32b"] = 40960,
+        ["openai/gpt-oss-120b"] = 65536,
+        ["openai/gpt-oss-20b"] = 65536,
+        -- llama-3.1-8b-instant allows 131072 output (no cap needed)
     },
     perplexity = {
         ["sonar-pro"] = 8192,
@@ -644,6 +652,48 @@ function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, mod
         "free-tier limit of 0 even with billing attached, when your project's paid tier isn't " ..
         "provisioned for it. Workarounds: use a Gemini 2.5 model for web search, switch to " ..
         "Anthropic/Perplexity/OpenRouter, or enable paid-tier quota for Gemini 3 in Google AI Studio."
+end
+
+--- Append an actionable tip when a request fails because the prompt (usually
+--- extracted book text) is too large for the model/tier. Covers HTTP 413
+--- ("request too large" / "payload too large") and HTTP 400 context_length_exceeded.
+--- Free tiers — notably Groq — measure a single request against a tokens-per-minute
+--- budget that is far smaller than the model's nominal context window, so this can
+--- fire long before the context window is full. Plain text (emoji don't render in
+--- MuPDF). Returns err_msg unchanged unless a size-limit signature matches. (issue #89)
+--- @param err_msg string: user-facing error message already built
+--- @param provider string|nil: provider id
+--- @param model string|nil: model id
+--- @param config table|nil: unified request config
+--- @return string
+function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, config)
+    if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
+    local lowered = err_msg:lower()
+    -- Match size/context signatures only — deliberately NOT a bare "400"/"413"
+    -- (too generic; the reason-phrase text below covers the real cases).
+    local is_size_error =
+        lowered:find("payload too large", 1, true)
+        or lowered:find("request entity too large", 1, true)
+        or lowered:find("request too large", 1, true)
+        or lowered:find("too large for model", 1, true)
+        or lowered:find("context_length_exceeded", 1, true)
+        or lowered:find("context length", 1, true)
+        or lowered:find("reduce your message size", 1, true)
+        or lowered:find("reduce the length of the messages", 1, true)
+        or lowered:find("tokens per minute", 1, true)
+    if not is_size_error then return err_msg end
+
+    local tip = "Tip: This request was too large for the selected model.\n" ..
+        "Actions like X-Ray and Recap send the book's text, which can exceed a model's input limit. Options:\n" ..
+        "- Choose \"AI knowledge only\" or a single section when the action offers a source choice.\n" ..
+        "- Lower \"Max Text Characters\" (Settings → Text Extraction).\n" ..
+        "- Switch to a model/provider with a larger context window."
+    if provider == "groq" then
+        tip = tip .. "\n\nNote: Groq's free tier limits tokens-per-minute (about 6K-12K) far below the " ..
+            "model's context window, so large book text is rejected even on 128K-window models. " ..
+            "A paid Groq tier or a larger-context provider avoids this."
+    end
+    return err_msg .. "\n\n" .. tip
 end
 
 --------------------------------------------------------------------------------
