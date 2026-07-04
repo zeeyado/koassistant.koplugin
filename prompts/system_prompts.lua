@@ -142,8 +142,9 @@ function SystemPrompts.resolveBehavior(config)
     if behavior then
         return behavior.text, "global"
     end
-    -- Final fallback to "full" built-in or FALLBACK
-    return (builtin.full and builtin.full.text) or FALLBACK_BEHAVIOR, "global"
+    -- Final fallback: the documented default ("standard"), so a dangling/renamed behavior
+    -- id degrades to the intended default rather than the heavy "full" behavior.
+    return (builtin.standard and builtin.standard.text) or (builtin.full and builtin.full.text) or FALLBACK_BEHAVIOR, "global"
 end
 
 -- Get combined cacheable content (behavior + domain)

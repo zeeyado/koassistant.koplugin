@@ -72,6 +72,12 @@ else
     end
 end
 
+-- Normalize the loaded config so a configuration.lua that lacks a `features` table — or isn't a
+-- table at all — can't nil-deref / crash initSettings later and silently disable the plugin
+-- (e.g. a config returning just `{provider="openai"}`, or a malformed non-table return).
+if type(configuration) ~= "table" then configuration = {} end
+configuration.features = configuration.features or {}
+
 -- Save configuration.lua values as a base layer before settings UI overrides them.
 -- These serve as fallbacks when the Settings UI hasn't set a value.
 local config_file_defaults = {
@@ -1301,9 +1307,11 @@ function AskGPT:initSettings()
   end
   
   if not self.settings:has("features") then
+    local hll = configuration.features.hide_long_highlights
+    if hll == nil then hll = true end  -- schema default true; `or true` would swallow an explicit false
     self.settings:saveSetting("features", {
       hide_highlighted_text = configuration.features.hide_highlighted_text or false,
-      hide_long_highlights = configuration.features.hide_long_highlights or true,
+      hide_long_highlights = hll,
       long_highlight_threshold = configuration.features.long_highlight_threshold or 280,
       translation_language = configuration.features.translation_language,
       debug = configuration.features.debug or false,
@@ -1384,7 +1392,7 @@ function AskGPT:initSettings()
         features.selected_behavior = "migrated_1"
         logger.info("KOAssistant: Migrated custom_ai_behavior to custom_behaviors array")
       elseif features.ai_behavior_variant == "minimal" then
-        features.selected_behavior = "minimal"
+        features.selected_behavior = "mini"  -- builtin was renamed "minimal" -> "mini" (23c0726)
       else
         features.selected_behavior = "full"
       end
@@ -2218,11 +2226,14 @@ function AskGPT:showAddCustomProviderDialog(preset)
             local base_url = fields[2]
             local default_model = fields[3]
 
+            local api_key_required = true
+            if preset and preset.api_key_required ~= nil then api_key_required = preset.api_key_required end
+
             local success, result = self_ref:saveCustomProvider({
               name = name,
               base_url = base_url,
               default_model = default_model,
-              api_key_required = preset and preset.api_key_required or true,
+              api_key_required = api_key_required,
             })
 
             if success then
