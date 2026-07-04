@@ -130,9 +130,20 @@ end
 --- @param results table Array to append file paths to
 --- @param seen table Hash of already-seen paths (dedup across folders)
 --- @param exclude_path string|nil Path to exclude (current book)
-local function scanFolder(folder_path, results, seen, exclude_path)
-    local iter, dir_obj = lfs.dir(folder_path)
-    if not iter then
+local MAX_SCAN_DEPTH = 12  -- cap recursion so a directory-symlink cycle can't loop forever
+
+local function scanFolder(folder_path, results, seen, exclude_path, depth)
+    depth = depth or 0
+    if depth > MAX_SCAN_DEPTH then
+        logger.warn("KOAssistant: LibraryScanner max scan depth reached, skipping:", folder_path)
+        return
+    end
+
+    -- lfs.dir RAISES (does not return nil) on a missing/unreadable folder — e.g. a removed
+    -- SD card or a bad scan folder — so it must be pcall'd or it crashes any use_library
+    -- action. KOReader core wraps this same call the same way (see util.findFiles).
+    local ok, iter, dir_obj = pcall(lfs.dir, folder_path)
+    if not ok or not iter then
         logger.warn("KOAssistant: LibraryScanner cannot read folder:", folder_path)
         return
     end
@@ -147,7 +158,7 @@ local function scanFolder(folder_path, results, seen, exclude_path)
 
         if attr then
             if attr.mode == "directory" then
-                scanFolder(full_path, results, seen, exclude_path)
+                scanFolder(full_path, results, seen, exclude_path, depth + 1)
             elseif attr.mode == "file" then
                 if not seen[full_path]
                    and full_path ~= exclude_path
