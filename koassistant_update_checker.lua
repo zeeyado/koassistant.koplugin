@@ -1100,6 +1100,9 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
         end
 
         ffi.C.close(child_write_fd)
+
+        -- #87: exit raw to skip __cxa_finalize (Adreno SIGSEGV on some Boox devices)
+        pcall(function() ffi.C._exit(0) end)
     end
 
     -- Set up absolute timeout watchdog - this kills the process no matter what
@@ -1364,6 +1367,9 @@ local function downloadFile(url, dest_path, callback)
         end
 
         ffi.C.close(child_write_fd)
+
+        -- #87: exit raw to skip __cxa_finalize (Adreno SIGSEGV on some Boox devices)
+        pcall(function() ffi.C._exit(0) end)
     end, true)
 
     if not pid then
