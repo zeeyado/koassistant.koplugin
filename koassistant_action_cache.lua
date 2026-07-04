@@ -193,6 +193,16 @@ local function loadCache(document_path)
 
     local ok, cache = pcall(dofile, path)
     if ok and type(cache) == "table" then
+        -- saveCache writes a guard "\n" before the long-string closer (so content
+        -- ending in "]==" can't fuse with it). Lua's long-string rule strips the
+        -- leading newline but keeps the guard, so strip exactly one trailing
+        -- newline to make the save/load round-trip lossless.
+        for _key, entry in pairs(cache) do
+            if type(entry) == "table" and type(entry.result) == "string"
+                and entry.result:sub(-1) == "\n" then
+                entry.result = entry.result:sub(1, -2)
+            end
+        end
         return cache
     else
         logger.warn("KOAssistant ActionCache: Failed to load cache:", path)
@@ -364,7 +374,7 @@ end
 --- @param action_id string The action ID (e.g., "xray", "recap")
 --- @param result string The AI response text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
---- @param metadata table Optional metadata: { model = "model-name", used_annotations = true/false, used_book_text = true/false, previous_progress_decimal = number }
+--- @param metadata table Optional metadata: { model = "model-name", used_highlights = true/false, used_annotations = true/false, used_book_text = true/false, previous_progress_decimal = number }
 --- @return boolean success Whether save succeeded
 function ActionCache.set(document_path, action_id, result, progress_decimal, metadata)
     if not document_path or not action_id or not result then
@@ -379,6 +389,7 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         result = result,
         version = CACHE_VERSION,
         -- Track permission state when cache was built
+        used_highlights = metadata and metadata.used_highlights,
         used_annotations = metadata and metadata.used_annotations,
         used_book_text = metadata and metadata.used_book_text,
         -- Track incremental update origin
@@ -635,8 +646,9 @@ end
 --- @param document_path string The document file path
 --- @param result string The X-Ray text
 --- @param progress_decimal number Progress as decimal (0.0-1.0)
---- @param metadata table Optional: { model = "model-name", used_annotations = true/false, used_book_text = true/false }
----   used_annotations: Track whether annotations were included when building this cache.
+--- @param metadata table Optional: { model = "model-name", used_highlights = true/false, used_annotations = true/false, used_book_text = true/false }
+---   used_highlights: Track whether highlights were included when building this cache.
+---   used_annotations: Track whether annotation notes were included when building this cache.
 ---   used_book_text: Track whether book text extraction was used. false = AI training data only.
 ---   When reading the cache, permissions are only required for data that was actually used.
 --- @return boolean success
