@@ -1,5 +1,6 @@
 local DataStorage = require("datastorage")
 local LuaSettings = require("luasettings")
+local SafeDocSettings = require("koassistant_doc_settings")
 local logger = require("logger")
 local util = require("util")
 local lfs = require("libs/libkoreader-lfs")
@@ -54,12 +55,10 @@ end
 -- Safely write chats to metadata.lua with validation and verification
 -- @param document_path: Full path to document
 -- @param chats: Table of chats keyed by chat_id
--- @param ui_instance: Optional ReaderUI object - if provided and document matches,
---                     uses its doc_settings to prevent race conditions with KOReader's flush
+-- @param ui_instance: Optional ReaderUI object (a hint only — the live instance
+--                     is resolved via SafeDocSettings even when this is nil/stale)
 -- @return true on success, false + error message on failure
 local function safeWriteToMetadata(document_path, chats, ui_instance)
-    local DocSettings = require("docsettings")
-
     -- Validate each chat
     for chat_id, chat in pairs(chats) do
         local valid, err = validateChatData(chat)
@@ -68,17 +67,14 @@ local function safeWriteToMetadata(document_path, chats, ui_instance)
         end
     end
 
-    -- Determine which DocSettings instance to use
-    -- If we have a UI instance with the same document open, use its doc_settings
-    -- to avoid race conditions with KOReader's own flush operations
-    local doc_settings
-    local using_ui_settings = false
-    if ui_instance and ui_instance.document and ui_instance.document.file == document_path and ui_instance.doc_settings then
-        doc_settings = ui_instance.doc_settings
-        using_ui_settings = true
-        logger.dbg("safeWriteToMetadata: Using UI's doc_settings for " .. document_path)
-    else
-        doc_settings = DocSettings:open(document_path)
+    -- Resolve the DocSettings instance: SafeDocSettings returns the live
+    -- ReaderUI doc_settings whenever this book is currently open (even when
+    -- the caller passed no/a stale ui, or an alias path) — a fresh
+    -- SafeDocSettings.resolve() of an open book creates a divergent second copy of
+    -- metadata.lua whose flush clobbers annotations and progress (issue #72)
+    local doc_settings, using_ui_settings = SafeDocSettings.resolve(document_path, ui_instance)
+    if using_ui_settings then
+        logger.dbg("safeWriteToMetadata: Using live doc_settings for " .. document_path)
     end
 
     -- Attempt atomic write with error handling
@@ -98,7 +94,7 @@ local function safeWriteToMetadata(document_path, chats, ui_instance)
         if using_ui_settings then
             verify_settings = doc_settings  -- Same instance, data is in memory
         else
-            verify_settings = DocSettings:open(document_path)
+            verify_settings = SafeDocSettings.resolve(document_path)
         end
         local read_back = verify_settings:readSetting("koassistant_chats")
         if not read_back then
@@ -503,8 +499,7 @@ function ChatHistoryManager:getChatById(document_path, chat_id)
         else
             -- Read chat from metadata.lua
             if lfs.attributes(document_path, "mode") then
-                local DocSettings = require("docsettings")
-                local doc_settings = DocSettings:open(document_path)
+                local doc_settings = SafeDocSettings.resolve(document_path)
                 local chats = doc_settings:readSetting("koassistant_chats", {})
                 return chats[chat_id]
             else
@@ -581,8 +576,7 @@ function ChatHistoryManager:deleteAllChatsForDocument(document_path)
         else
             -- Book chats: clear from metadata.lua
             if not lfs.attributes(document_path, "mode") then return 0 end
-            local DocSettings = require("docsettings")
-            local doc_settings = DocSettings:open(document_path)
+            local doc_settings = SafeDocSettings.resolve(document_path)
             local chats = doc_settings:readSetting("koassistant_chats", {})
             local count = 0
             for _ in pairs(chats) do count = count + 1 end
@@ -881,11 +875,10 @@ function ChatHistoryManager:getMostRecentChat()
 
         -- Scan all documents from chat index
         local index = self:getChatIndex()
-        local DocSettings = require("docsettings")
         for doc_path, info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
                 -- Read chats from metadata.lua for this document
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
                 -- Check each chat's timestamp
@@ -985,8 +978,7 @@ function ChatHistoryManager:getLastOpenedChat()
         else
             -- Read chat from metadata.lua for that document
             if lfs.attributes(last_opened.document_path, "mode") then
-                local DocSettings = require("docsettings")
-                local doc_settings = DocSettings:open(last_opened.document_path)
+                local doc_settings = SafeDocSettings.resolve(last_opened.document_path)
                 local chats = doc_settings:readSetting("koassistant_chats", {})
                 chat = chats[last_opened.chat_id]
             end
@@ -1013,7 +1005,6 @@ function ChatHistoryManager:getChatsByDomain()
 
     if self:useDocSettingsStorage() then
         -- v2: Scan metadata.lua files, general chats, and library chats
-        local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
         local general_chats = self:getGeneralChats()
@@ -1050,7 +1041,7 @@ function ChatHistoryManager:getChatsByDomain()
         for doc_path, info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
                 -- Read chats from metadata.lua for this document
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
                 for chat_id, chat in pairs(chats_table) do
@@ -1142,8 +1133,7 @@ function ChatHistoryManager:addTagToChat(document_path, chat_id, tag)
             chat = self:getLibraryChatById(chat_id)
         else
             if lfs.attributes(document_path, "mode") then
-                local DocSettings = require("docsettings")
-                local doc_settings = DocSettings:open(document_path)
+                local doc_settings = SafeDocSettings.resolve(document_path)
                 local chats = doc_settings:readSetting("koassistant_chats", {})
                 chat = chats[chat_id]
             end
@@ -1224,8 +1214,7 @@ function ChatHistoryManager:removeTagFromChat(document_path, chat_id, tag)
             chat = self:getLibraryChatById(chat_id)
         else
             if lfs.attributes(document_path, "mode") then
-                local DocSettings = require("docsettings")
-                local doc_settings = DocSettings:open(document_path)
+                local doc_settings = SafeDocSettings.resolve(document_path)
                 local chats = doc_settings:readSetting("koassistant_chats", {})
                 chat = chats[chat_id]
             end
@@ -1333,7 +1322,6 @@ function ChatHistoryManager:getAllTags()
 
     if self:useDocSettingsStorage() then
         -- v2: Scan metadata.lua files, general chats, and library chats
-        local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
         local general_chats = self:getGeneralChats()
@@ -1360,7 +1348,7 @@ function ChatHistoryManager:getAllTags()
         for doc_path, info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
                 -- Read chats from metadata.lua for this document
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
                 for chat_id, chat in pairs(chats_table) do
@@ -1417,7 +1405,6 @@ function ChatHistoryManager:getChatsByTag(tag)
 
     if self:useDocSettingsStorage() then
         -- v2: Scan metadata.lua files, general chats, and library chats
-        local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
         local general_chats = self:getGeneralChats()
@@ -1456,7 +1443,7 @@ function ChatHistoryManager:getChatsByTag(tag)
         for doc_path, info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
                 -- Read chats from metadata.lua for this document
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
                 for chat_id, chat in pairs(chats_table) do
@@ -1521,7 +1508,6 @@ function ChatHistoryManager:getTagChatCounts()
 
     if self:useDocSettingsStorage() then
         -- v2: Scan metadata.lua files, general chats, and library chats
-        local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
         local general_chats = self:getGeneralChats()
@@ -1548,7 +1534,7 @@ function ChatHistoryManager:getTagChatCounts()
         for doc_path, info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
                 -- Read chats from metadata.lua for this document
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
                 for chat_id, chat in pairs(chats_table) do
@@ -1652,7 +1638,6 @@ function ChatHistoryManager:getStarredChats()
     local starred = {}
 
     if self:useDocSettingsStorage() then
-        local DocSettings = require("docsettings")
 
         -- 1. Scan general chats
         local general_chats = self:getGeneralChats()
@@ -1680,7 +1665,7 @@ function ChatHistoryManager:getStarredChats()
         local index = self:getChatIndex()
         for doc_path, _info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
                 for _chat_id, chat in pairs(chats_table) do
                     if chat and chat.starred and chat.messages and #chat.messages > 0 then
@@ -1731,7 +1716,6 @@ function ChatHistoryManager:getStarredChatCount()
     local count = 0
 
     if self:useDocSettingsStorage() then
-        local DocSettings = require("docsettings")
 
         local general_chats = self:getGeneralChats()
         for _idx, chat in ipairs(general_chats) do
@@ -1750,7 +1734,7 @@ function ChatHistoryManager:getStarredChatCount()
         local index = self:getChatIndex()
         for doc_path, _info in pairs(index) do
             if doc_path ~= "__GENERAL_CHATS__" and lfs.attributes(doc_path, "mode") then
-                local doc_settings = DocSettings:open(doc_path)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 local chats_table = doc_settings:readSetting("koassistant_chats", {})
                 for _chat_id, chat in pairs(chats_table) do
                     if chat and chat.starred and chat.messages and #chat.messages > 0 then
@@ -1848,18 +1832,10 @@ function ChatHistoryManager:saveChatToDocSettings(ui, chat_data)
         return false
     end
 
-    -- Read existing chats - try to use UI's doc_settings if available to stay in sync
-    local DocSettings = require("docsettings")
-    local chats
-
-    if ui and ui.document and ui.document.file == chat_data.document_path and ui.doc_settings then
-        -- Use UI's doc_settings to read current state (may have unsaved changes)
-        chats = ui.doc_settings:readSetting("koassistant_chats", {})
-    else
-        -- Fallback to fresh instance from disk
-        local doc_settings = DocSettings:open(chat_data.document_path)
-        chats = doc_settings:readSetting("koassistant_chats", {})
-    end
+    -- Read existing chats — live doc_settings when the book is open (may have
+    -- unsaved changes), fresh instance from disk otherwise
+    local doc_settings = SafeDocSettings.resolve(chat_data.document_path, ui)
+    local chats = doc_settings:readSetting("koassistant_chats", {})
 
     -- Add or update this chat (keyed by ID)
     chats[chat_data.id] = chat_data
@@ -1904,8 +1880,7 @@ function ChatHistoryManager:getChatsFromDocSettings(ui)
     end
 
     -- Read chats from metadata.lua
-    local DocSettings = require("docsettings")
-    local doc_settings = DocSettings:open(document_path)
+    local doc_settings = SafeDocSettings.resolve(document_path)
     local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
     -- Convert table to sorted array
@@ -1951,8 +1926,7 @@ function ChatHistoryManager:getChatByIdFromDocSettings(ui, chat_id)
     end
 
     -- Read chats from metadata.lua
-    local DocSettings = require("docsettings")
-    local doc_settings = DocSettings:open(document_path)
+    local doc_settings = SafeDocSettings.resolve(document_path)
     local chats = doc_settings:readSetting("koassistant_chats", {})
 
     return chats[chat_id]
@@ -1986,15 +1960,9 @@ function ChatHistoryManager:deleteChatFromDocSettings(ui, chat_id, document_path
         return false
     end
 
-    -- Read chats from UI's doc_settings if available, otherwise from disk
-    local DocSettings = require("docsettings")
-    local chats
-    if ui and ui.document and ui.document.file == actual_doc_path and ui.doc_settings then
-        chats = ui.doc_settings:readSetting("koassistant_chats", {})
-    else
-        local doc_settings = DocSettings:open(actual_doc_path)
-        chats = doc_settings:readSetting("koassistant_chats", {})
-    end
+    -- Read chats — live doc_settings when the book is open, disk otherwise
+    local doc_settings = SafeDocSettings.resolve(actual_doc_path, ui)
+    local chats = doc_settings:readSetting("koassistant_chats", {})
 
     -- Check if chat exists
     if not chats[chat_id] then
@@ -2053,15 +2021,9 @@ function ChatHistoryManager:updateChatInDocSettings(ui, chat_id, updates, docume
         return false
     end
 
-    -- Read chats from UI's doc_settings if available, otherwise from disk
-    local DocSettings = require("docsettings")
-    local chats
-    if ui and ui.document and ui.document.file == actual_doc_path and ui.doc_settings then
-        chats = ui.doc_settings:readSetting("koassistant_chats", {})
-    else
-        local doc_settings = DocSettings:open(actual_doc_path)
-        chats = doc_settings:readSetting("koassistant_chats", {})
-    end
+    -- Read chats — live doc_settings when the book is open, disk otherwise
+    local doc_settings = SafeDocSettings.resolve(actual_doc_path, ui)
+    local chats = doc_settings:readSetting("koassistant_chats", {})
 
     -- Check if chat exists
     if not chats[chat_id] then
@@ -2482,7 +2444,6 @@ end
 function ChatHistoryManager:validateChatIndex()
     local index = G_reader_settings:readSetting("koassistant_chat_index", {})
     local needs_update = false
-    local DocSettings = require("docsettings")
 
     for doc_path, entry in pairs(index) do
         -- Check if document still exists
@@ -2492,7 +2453,7 @@ function ChatHistoryManager:validateChatIndex()
             needs_update = true
         else
             -- Verify chat count matches metadata.lua
-            local doc_settings = DocSettings:open(doc_path)
+            local doc_settings = SafeDocSettings.resolve(doc_path)
             local chats = doc_settings:readSetting("koassistant_chats", {})
 
             local actual_ids = {}
@@ -2697,7 +2658,6 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
     if self:useDocSettingsStorage() then
         -- v2/v3: Use chat index + general chats file
         local documents = {}
-        local DocSettings = require("docsettings")
 
         -- Helper to get max timestamp from a list of chats
         local function getMaxTimestamp(chats)
@@ -2742,7 +2702,7 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                 -- Indexes" in settings for intentional cleanup.
                 if lfs.attributes(doc_path, "mode") then
                     -- Try to get book metadata
-                    local doc_settings = DocSettings:open(doc_path)
+                    local doc_settings = SafeDocSettings.resolve(doc_path)
                     local doc_props = doc_settings:readSetting("doc_props")
 
                     local title = doc_props and doc_props.title or doc_path:match("([^/]+)$")
@@ -2793,14 +2753,13 @@ function ChatHistoryManager:getChatsUnified(ui, document_path)
             return self:getLibraryChats()
         else
             -- Need to read chats from metadata.lua for the document
-            local DocSettings = require("docsettings")
             if ui and ui.document and ui.document.file == document_path then
                 -- Current document is open - use getChatsFromDocSettings for efficiency
                 return self:getChatsFromDocSettings(ui)
             else
                 -- Different document or no document open - read from metadata.lua
                 if lfs.attributes(document_path, "mode") then
-                    local doc_settings = DocSettings:open(document_path)
+                    local doc_settings = SafeDocSettings.resolve(document_path)
                     local chats_table = doc_settings:readSetting("koassistant_chats", {})
 
                     -- Convert table to sorted array

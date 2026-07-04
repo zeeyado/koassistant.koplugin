@@ -12661,8 +12661,10 @@ function AskGPT:migrateChatsToDocSettings()
       else
         -- Check if document still exists
         if lfs.attributes(doc_path, "mode") then
-          -- Read existing chats from metadata.lua (if any)
-          local doc_settings = DocSettings:open(doc_path)
+          -- Read existing chats from metadata.lua (if any).
+          -- SafeDocSettings: use the live doc_settings if this book is open —
+          -- a fresh instance would clobber metadata.lua on flush (issue #72)
+          local doc_settings = require("koassistant_doc_settings").resolve(doc_path)
           local existing_chats = doc_settings:readSetting("koassistant_chats", {})
 
           -- Add all chats (keyed by ID)

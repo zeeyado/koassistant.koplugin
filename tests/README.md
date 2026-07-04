@@ -161,7 +161,13 @@ lua tests/inspect.lua --web --port 3000
 
 ### Unit Tests (no API calls)
 
-Located in `tests/unit/` (923 tests total across 17 files):
+Located in `tests/unit/` — **40 files, ~1,770 assertions** (run `lua tests/run_tests.lua --unit` for the live count; the per-file list below is a partial snapshot and undercounts newer suites: tool workflows, quiz, X-Ray, storage registry/modes/backup, book settings, dict buttons, DOI, sidecar gating, non-200 errors, stats reader, library scanner, chat persistence, and more).
+
+**Contract every test file must follow:** end with `return TestRunner.failed == 0` (or return a `runAll` table). ⚠ The harness treats a `nil` return as PASSING — a forgotten return line yields a false green. Read the printed per-file summaries, not just the exit code.
+
+**Running a single file:** there is no filter flag; run directly from the repo root: `lua tests/unit/test_xray_parser.lua`.
+
+Older snapshot (17 of the 39 files):
 - `test_action_service.lua` - ActionService integration, action execution flow (35 tests)
 - `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS (65 tests)
 - `test_auto_update.lua` - Auto-update helper functions: verify, preserve, restore (23 tests)

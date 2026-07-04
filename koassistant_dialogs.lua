@@ -15,6 +15,7 @@ local GeminiToolRunner = require("koassistant_gemini_tool_runner")
 local ConfigHelper = require("koassistant_config_helper")
 local MessageHistory = require("koassistant_message_history")
 local ChatHistoryManager = require("koassistant_chat_history_manager")
+local SafeDocSettings = require("koassistant_doc_settings")
 local MessageBuilder = require("message_builder")
 local ModelConstraints = require("model_constraints")
 local ReasoningPrefs = require("reasoning_prefs")
@@ -401,7 +402,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local lang_file = features.book_metadata and features.book_metadata.file
     if lang_file then
         lang_fields = require("koassistant_book_settings").applyResponseLanguageOverride(
-            lang_fields, require("docsettings"):open(lang_file))
+            lang_fields, SafeDocSettings.resolve(lang_file))
     end
 
     -- Build unified system prompt (works for all providers)
@@ -2255,12 +2256,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         or (ui and ui.document and ui.document.file)
     local per_book_ds = nil
     if per_book_file then
-        if ui and ui.doc_settings and ui.document and ui.document.file == per_book_file then
-            per_book_ds = ui.doc_settings
-        else
-            local DocSettings = require("docsettings")
-            per_book_ds = DocSettings:open(per_book_file)
-        end
+        per_book_ds = SafeDocSettings.resolve(per_book_file, ui)
     end
 
     -- Resolve effective translation + dictionary languages (uses SystemPrompts for
@@ -3571,15 +3567,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- not ui_instance.doc_settings (which is the currently open book — may differ)
     local doc_settings = nil
     if document_path then
-        if ui_instance and ui_instance.doc_settings
-                and ui_instance.document and ui_instance.document.file == document_path then
-            -- Currently open book — use in-memory settings
-            doc_settings = ui_instance.doc_settings
-        else
-            -- Different book (file browser, artifact) — load from disk
-            local DocSettings = require("docsettings")
-            doc_settings = DocSettings:open(document_path)
-        end
+        doc_settings = SafeDocSettings.resolve(document_path, ui_instance)
     end
     local book_domain_id = getBookDomain(doc_settings)
     local book_research_id = getBookResearchMode(doc_settings)
@@ -6111,11 +6099,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     if book_metadata then
         local override_ds
         if document_path then
-            if ui and ui.doc_settings and ui.document and ui.document.file == document_path then
-                override_ds = ui.doc_settings
-            else
-                override_ds = require("docsettings"):open(document_path)
-            end
+            override_ds = SafeDocSettings.resolve(document_path, ui)
         end
         book_metadata = require("koassistant_book_settings").applyMetadataOverride(book_metadata, override_ds)
     end
@@ -6582,13 +6566,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     -- Resolve research mode for artifact chat (no action override)
     local artifact_research = false
     if document_path then
-        local artifact_ds
-        if ui and ui.doc_settings and ui.document and ui.document.file == document_path then
-            artifact_ds = ui.doc_settings
-        else
-            local DocSettings = require("docsettings")
-            artifact_ds = DocSettings:open(document_path)
-        end
+        local artifact_ds = SafeDocSettings.resolve(document_path, ui)
         local book_research_setting = getBookResearchMode(artifact_ds)
         if book_research_setting == true then
             artifact_research = true

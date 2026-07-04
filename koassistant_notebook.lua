@@ -14,6 +14,7 @@ Handles:
 
 local _ = require("koassistant_gettext")
 local DocSettings = require("docsettings")
+local SafeDocSettings = require("koassistant_doc_settings")
 local lfs = require("libs/libkoreader-lfs")
 local logger = require("logger")
 
@@ -627,8 +628,10 @@ function Notebook.create(document_path)
     local features = getFeatures()
     local location = features.notebook_save_location or "sidecar"
 
-    -- Get metadata (shared for frontmatter, header, filename)
-    local doc_settings = DocSettings:open(document_path)
+    -- Get metadata (shared for frontmatter, header, filename).
+    -- Resolved via SafeDocSettings: this instance later WRITES the notebook ref,
+    -- and a fresh instance for an open book would clobber metadata.lua (issue #72)
+    local doc_settings = SafeDocSettings.resolve(document_path)
     local doc_props = doc_settings:readSetting("doc_props")
 
     local notebook_path, final_filename
@@ -798,7 +801,7 @@ function Notebook.migrateAll(from_location, to_location, features)
                     file:close()
                     ok = true
                     -- Remove DocSettings ref (no longer needed in sidecar mode)
-                    local ds = DocSettings:open(nb.doc_path)
+                    local ds = SafeDocSettings.resolve(nb.doc_path)
                     ds:delSetting("koassistant_notebook_ref")
                     ds:flush()
                 end
@@ -815,7 +818,7 @@ function Notebook.migrateAll(from_location, to_location, features)
 
             if base_dir then
                 util.makePath(base_dir)
-                local ds = DocSettings:open(nb.doc_path)
+                local ds = SafeDocSettings.resolve(nb.doc_path)
                 local doc_props = ds:readSetting("doc_props")
                 local filename = Notebook.generateFilename(nb.doc_path, doc_props)
                 new_path = base_dir .. "/" .. filename
