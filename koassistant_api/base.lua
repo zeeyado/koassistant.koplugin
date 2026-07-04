@@ -430,6 +430,11 @@ function BaseHandler:backgroundRequest(url, headers, body)
         end
 
         ffi.C.close(child_write_fd)
+
+        -- #87: exit raw to skip __cxa_finalize (SIGSEGV in the Adreno GL driver on some
+        -- Boox/Android devices). No-op where KOReader core already _exits. This single
+        -- child closure is forked for BOTH streaming and non-streaming requests.
+        pcall(function() ffi.C._exit(0) end)
     end
 end
 
