@@ -3250,7 +3250,17 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                                         captured_ui.search.last_search_text = term
                                         captured_ui.search.use_regex = true
                                         captured_ui.search.case_insensitive = true
-                                        captured_ui.search:onShowSearchDialog(term, 0, true, true)
+                                        -- KOReader master changed onShowSearchDialog's 3rd arg from a
+                                        -- boolean `regex` to a `search_type` table ({flags, regex}); the
+                                        -- master handler does `search_type.regex`, so a bare boolean
+                                        -- crashes ("attempt to index a boolean"). Detect the new API via
+                                        -- default_search_type and pass the matching shape.
+                                        local regex_arg = true
+                                        if type(captured_ui.search.default_search_type) == "table" then
+                                            regex_arg = { flags = 0x0001, regex = true }
+                                            captured_ui.search.current_search_type = regex_arg
+                                        end
+                                        captured_ui.search:onShowSearchDialog(term, 0, regex_arg, true)
                                     else
                                         captured_ui.search:searchCallback(0, term)
                                     end
