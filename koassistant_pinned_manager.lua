@@ -67,7 +67,9 @@ local function writeLongString(file, indent, field_name, value)
     local eq_str = string.rep("=", eq_count)
     file:write(string.format("%s%s = [%s[\n", indent, field_name, eq_str))
     file:write(text)
-    file:write(string.format("]%s],\n", eq_str))
+    -- Guard newline before the closer so content ending in "]==" can't fuse into a
+    -- premature "]==]" and corrupt the file. Mirrors koassistant_action_cache.lua saveCache.
+    file:write(string.format("\n]%s],\n", eq_str))
 end
 
 --- Get storage file path for a given context.
@@ -140,6 +142,19 @@ local function loadPinned(document_path)
 
     local ok, data = pcall(dofile, path)
     if ok and type(data) == "table" then
+        -- writeLongString writes a guard "\n" before each long-string closer. Lua strips the
+        -- leading newline after "[==[" but keeps the trailing guard, so strip exactly one
+        -- trailing newline from each long-string field to make the round-trip lossless.
+        for _idx, entry in ipairs(data) do
+            if type(entry) == "table" then
+                if type(entry.result) == "string" and entry.result:sub(-1) == "\n" then
+                    entry.result = entry.result:sub(1, -2)
+                end
+                if type(entry.user_prompt) == "string" and entry.user_prompt:sub(-1) == "\n" then
+                    entry.user_prompt = entry.user_prompt:sub(1, -2)
+                end
+            end
+        end
         return data
     else
         logger.warn("KOAssistant PinnedManager: Failed to load:", path)
