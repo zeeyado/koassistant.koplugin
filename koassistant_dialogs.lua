@@ -391,6 +391,16 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local features = config.features or {}
     local SystemPrompts = require("prompts.system_prompts")
 
+    -- Spoiler-free is a freeform-Send-only session flag; predefined actions (Summarize, X-Ray,
+    -- …) are excluded by design. It persists on the shared configuration (main.lua keeps
+    -- underscore keys across disk sync) and gets copied into temp_config, so a prior spoiler-free
+    -- chat would leak the nudge into the next predefined action. Clear it for any predefined
+    -- action (action ~= nil); freeform Send passes action=nil and keeps the flag it just set.
+    -- (audit v0.20.0 finding G6)
+    if action then
+        features._spoiler_free_active = nil
+    end
+
     -- Per-book MAIN response-language override (Book Settings ▸ Languages ▸ AI response
     -- language) — applies to every action's system prompt, distinct from translate/dictionary.
     -- Resolved from the book's sidecar; book/highlight only (general/library lack book_metadata).
@@ -2894,8 +2904,39 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- Use fresh prompt with updated {reading_progress} instead (pseudo-update like X-Ray Simple)
             local skip_incremental = source_mode == "ai_knowledge" and prompt.update_prompt
 
+            -- Cache permission re-check (audit v0.20.0 finding G5): the update path re-sends the
+            -- cached result verbatim, so re-apply the same dynamic gate the extractor uses on
+            -- cache-placeholder reads. A Recap/X-Ray cache built with text extraction / highlight
+            -- sharing ON must not be re-sent after the user revokes consent (Recap has no
+            -- `requires` field, so nothing else protects it). Trust is evaluated against the
+            -- effective dispatch provider (consistent with C4). If a needed permission is now off,
+            -- skip the cache and fall through to a fresh full generation.
+            local cache_trusted = false
+            if effective_provider and config.features and config.features.trusted_providers then
+                for _idx, tid in ipairs(config.features.trusted_providers) do
+                    if tid == effective_provider then
+                        cache_trusted = true
+                        break
+                    end
+                end
+            end
+            local cf = config.features or {}
+            local cache_requires_text = cached_entry.used_book_text ~= false
+            local cache_text_ok = not cache_requires_text
+                or cache_trusted or cf.enable_book_text_extraction == true
+            local cache_requires_highlights = cached_entry.used_highlights == true
+                or (cached_entry.used_highlights == nil and cached_entry.used_annotations == true)
+            local cache_highlights_ok = not cache_requires_highlights
+                or cache_trusted or cf.enable_highlights_sharing == true
+                or cf.enable_annotations_sharing == true
+            local cache_read_allowed = cache_text_ok and cache_highlights_ok
+            if not cache_read_allowed then
+                logger.info("KOAssistant: Cached", prompt.id,
+                    "result withheld from update - permission revoked since cache build")
+            end
+
             -- Use cache if we've progressed by at least 1% since last time
-            if not skip_legacy and not skip_incremental
+            if not skip_legacy and not skip_incremental and cache_read_allowed
                     and current_progress > cached_progress + 0.01 and prompt.update_prompt then
                 using_cache = true
                 cached_progress_display = math.floor(cached_progress * 100) .. "%"
@@ -2935,6 +2976,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
                         max_book_text_chars = prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars),
                         max_pdf_pages = config.features and config.features.max_pdf_pages,
+                        -- Pass trust context so this extractor matches its siblings (audit G5 rider).
+                        provider = effective_provider,
+                        trusted_providers = config.features and config.features.trusted_providers,
                     })
                     -- Use raw page numbers for extraction range
                     -- (flow-aware progress * total_pages gives wrong pages when hidden flows active)
@@ -6610,6 +6654,10 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     end
     configuration.features = configuration.features or {}
     configuration.features._research_mode_active = artifact_research or nil
+    -- Artifact chat is spoiler-free-excluded and passes action=nil, so the predefined-action
+    -- guard in buildUnifiedRequestConfig won't clear a leaked flag — clear it explicitly here so
+    -- a prior spoiler-free freeform chat can't inject the nudge into artifact chat. (audit G6)
+    configuration.features._spoiler_free_active = nil
 
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, nil, nil, plugin)
