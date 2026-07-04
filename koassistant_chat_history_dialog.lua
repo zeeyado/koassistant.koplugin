@@ -2570,18 +2570,18 @@ function ChatHistoryDialog:showStarredMenuOptions(ui, chat_history_manager, conf
             {{ text = _("Chat History"), align = "left", callback = function()
                 local mc = navClose()
                 safeClose(mc)
-                self_ref:showChatHistoryBrowser(ui, chat_history_manager, config)
+                self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
             end }},
             {{ text = _("Notebooks"), align = "left", callback = function()
                 local mc = navClose()
                 safeClose(mc)
-                local AskGPT = self_ref:getAskGPTInstance()
+                local AskGPT = ui and ui.koassistant
                 if AskGPT then AskGPT:showNotebookBrowser() end
             end }},
             {{ text = _("Artifacts"), align = "left", callback = function()
                 local mc = navClose()
                 safeClose(mc)
-                local AskGPT = self_ref:getAskGPTInstance()
+                local AskGPT = ui and ui.koassistant
                 if AskGPT then AskGPT:showArtifactBrowser() end
             end }},
         },
