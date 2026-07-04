@@ -232,21 +232,12 @@ function BookSettings.applyMetadataOverride(metadata, doc_settings)
 end
 
 --- Resolve the DocSettings instance for a per-book target.
--- Prefers the live in-memory instance when the target book is the open one
--- (avoids a stale-read/whole-file-flush clobber); otherwise opens from disk.
+-- Delegates to SafeDocSettings: always the live in-memory instance when the
+-- target book is the open one (avoids a stale-read/whole-file-flush clobber,
+-- issue #72); a fresh disk instance only when the book is not open.
 -- @return doc_settings|nil
 local function resolveDocSettings(ui, document_path)
-    if document_path then
-        if ui and ui.doc_settings and ui.document and ui.document.file == document_path then
-            return ui.doc_settings
-        end
-        local DocSettings = require("docsettings")
-        return DocSettings:open(document_path)
-    end
-    if ui and ui.document and ui.doc_settings then
-        return ui.doc_settings
-    end
-    return nil
+    return (require("koassistant_doc_settings").resolve(document_path, ui))
 end
 
 --- Build the Domain & Research picker button rows (pure — no I/O).

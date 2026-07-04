@@ -4,6 +4,7 @@ local logger = require("logger")
 local lfs = require("libs/libkoreader-lfs")
 local _ = require("koassistant_gettext")
 local DocSettings = require("docsettings")
+local SafeDocSettings = require("koassistant_doc_settings")
 local JSON = require("json")
 local StorageRegistry = require("koassistant_storage_registry")
 
@@ -762,7 +763,7 @@ function BackupManager:exportAllChatsToTable()
     for doc_path, index_info in pairs(chat_index) do
         -- Check if document still exists
         if lfs.attributes(doc_path, "mode") then
-            local success, doc_settings = pcall(DocSettings.open, doc_path)
+            local success, doc_settings = pcall(DocSettings.open, DocSettings, doc_path)
             if success and doc_settings then
                 local chats = doc_settings:readSetting("koassistant_chats", {})
 
@@ -1335,7 +1336,9 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
             -- Restore document-specific chats
             -- Check if document exists
             if lfs.attributes(doc_path, "mode") then
-                local doc_settings = DocSettings:open(doc_path)
+                -- SafeDocSettings: live doc_settings if this book is open — a fresh
+                -- instance would clobber metadata.lua on flush (issue #72)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
 
                 -- Get existing chats (for merge mode)
                 local existing_chats = merge_mode and doc_settings:readSetting("koassistant_chats", {}) or {}

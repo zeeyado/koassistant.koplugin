@@ -69,13 +69,20 @@ end
 --- @return string|nil The resolved DOI, or nil
 function DOIResolver.resolveDOI(file, doc_props, document, live_doc_settings)
     -- Get or open doc_settings for cache read/write
-    -- When book is open: use shared live_doc_settings (persists with KOReader's save)
-    -- When book not open: open standalone instance (safe since KOReader isn't using it)
+    -- When book is open: use the live doc_settings (persists with KOReader's save)
+    -- When book not open: standalone instance (safe since KOReader isn't using it).
+    -- SafeDocSettings resolves the live instance even when the caller passed nil
+    -- while the book is open — a standalone instance would then clobber
+    -- metadata.lua on flush (issue #72)
     local settings = live_doc_settings
+    local settings_is_live = live_doc_settings ~= nil
     if not settings and file then
-        local DocSettings = require("docsettings")
-        local ok, ds = pcall(DocSettings.open, DocSettings, file)
-        if ok then settings = ds end
+        local ok, ds, is_live = pcall(function()
+            return require("koassistant_doc_settings").resolve(file)
+        end)
+        if ok then
+            settings, settings_is_live = ds, is_live
+        end
     end
 
     -- 1. Check doc_settings cache (instant, avoids re-scanning)
@@ -90,8 +97,8 @@ function DOIResolver.resolveDOI(file, doc_props, document, live_doc_settings)
     if doi then
         if settings then
             settings:saveSetting("koassistant_doi", doi)
-            -- Only flush standalone instances; live_doc_settings persists with KOReader's save
-            if not live_doc_settings then settings:flush() end
+            -- Only flush standalone instances; a live instance persists with KOReader's save
+            if not settings_is_live then settings:flush() end
         end
         return doi
     end
@@ -102,7 +109,7 @@ function DOIResolver.resolveDOI(file, doc_props, document, live_doc_settings)
         -- Cache result: DOI string or false sentinel (scanned, not found)
         if settings then
             settings:saveSetting("koassistant_doi", doi or false)
-            if not live_doc_settings then settings:flush() end
+            if not settings_is_live then settings:flush() end
         end
         return doi
     end
