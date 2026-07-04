@@ -1700,6 +1700,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                         if document_path == "__GENERAL_CHATS__" then
                             save_ok = chat_history_manager:saveGeneralChat(chat_data)
+                        elseif document_path == "__LIBRARY_CHATS__" then
+                            -- saveChatToDocSettings rejects the library sentinel; without this
+                            -- branch every resumed-library-chat save was silently lost (audit C1)
+                            save_ok = chat_history_manager:saveLibraryChat(chat_data)
                         else
                             save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
                         end
@@ -1940,6 +1944,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                         if document_path == "__GENERAL_CHATS__" then
                             save_ok = chat_history_manager:saveGeneralChat(chat_data)
+                        elseif document_path == "__LIBRARY_CHATS__" then
+                            -- saveChatToDocSettings rejects the library sentinel; without this
+                            -- branch every resumed-library-chat save was silently lost (audit C1)
+                            save_ok = chat_history_manager:saveLibraryChat(chat_data)
                         else
                             save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
                         end

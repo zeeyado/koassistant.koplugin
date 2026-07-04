@@ -4832,9 +4832,11 @@ function AskGPT:_checkRequirements(action)
   local features = configuration and configuration.features or {}
   local hint = action.blocked_hint and ("\n\n" .. action.blocked_hint) or ""
 
-  -- Check if current provider is trusted (bypasses global privacy gates)
+  -- Check if the provider this action dispatches to is trusted (bypasses global privacy gates).
+  -- Must match the extraction gate: use the action's pinned provider when set, else the global —
+  -- otherwise pre-flight and extraction disagree on trust (audit v0.20.0 finding C4).
   local function isProviderTrusted()
-    local provider = features.provider
+    local provider = action.provider or features.provider
     if not provider then return false end
     for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
       if trusted_id == provider then return true end
@@ -5356,10 +5358,12 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local scope_sections_enabled = section_prefix ~= nil or opts.for_highlight == true
 
   -- Check text extraction availability
+  -- Trust against the effective dispatch provider (pinned action provider, else global) so this
+  -- popup agrees with the extraction gate (audit v0.20.0 finding C4).
   local features = configuration and configuration.features or {}
   local text_extraction_enabled = features.enable_book_text_extraction == true
   if not text_extraction_enabled and features.trusted_providers then
-    local provider = features.provider or ""
+    local provider = action.provider or features.provider or ""
     for _idx, tp in ipairs(features.trusted_providers) do
       if tp == provider then
         text_extraction_enabled = true

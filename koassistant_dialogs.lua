@@ -566,18 +566,25 @@ local function getAllPrompts(configuration, plugin)
 end
 
 local function createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlighted_text, ui, config)
-    -- Guard against missing document path - allow special case for general context
-    if not document_path and not is_general_context then
+    -- Library chats also have no document_path; treat them like general (audit C1 — the first
+    -- manual save of a library chat previously errored "Cannot save: no document context").
+    local is_library_context = config and config.features and config.features.is_library_context
+    -- Guard against missing document path - allow special case for general/library context
+    if not document_path and not is_general_context and not is_library_context then
         UIManager:show(InfoMessage:new{
             text = _("Cannot save: no document context"),
             timeout = 2,
         })
         return
     end
-    
-    -- Use special path for general context chats
-    if is_general_context and not document_path then
-        document_path = "__GENERAL_CHATS__"
+
+    -- Use special path for general/library context chats
+    if not document_path then
+        if is_library_context then
+            document_path = "__LIBRARY_CHATS__"
+        elseif is_general_context then
+            document_path = "__GENERAL_CHATS__"
+        end
     end
     
     -- Get a suggested title from the conversation
@@ -684,6 +691,8 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
 
                                 if document_path == "__GENERAL_CHATS__" then
                                     return chat_history_manager:saveGeneralChat(chat_data)
+                                elseif document_path == "__LIBRARY_CHATS__" then
+                                    return chat_history_manager:saveLibraryChat(chat_data)
                                 else
                                     return chat_history_manager:saveChatToDocSettings(ui, chat_data)
                                 end
@@ -1577,7 +1586,13 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 if highlightedText and highlightedText ~= "" then
                     metadata.original_highlighted_text = highlightedText
                 end
-                local save_path = document_path or "__GENERAL_CHATS__"
+                -- Library chats have no document_path; route them to the library store, not general
+                -- (audit C1: without this, Save duplicated the chat into general storage and
+                --  getChatById searched the wrong store, dropping tags/title continuity).
+                local is_library_context = temp_config and temp_config.features and temp_config.features.is_library_context
+                local save_path = document_path
+                    or (is_library_context and "__LIBRARY_CHATS__")
+                    or "__GENERAL_CHATS__"
                 -- Get config from viewer for system metadata
                 local viewer_config = viewer and viewer.configuration
                 local success, save_result = pcall(function()
@@ -1632,6 +1647,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                         if save_path == "__GENERAL_CHATS__" then
                             return chat_history_manager:saveGeneralChat(chat_data)
+                        elseif save_path == "__LIBRARY_CHATS__" then
+                            return chat_history_manager:saveLibraryChat(chat_data)
                         else
                             return chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                         end
@@ -2537,6 +2554,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Context extraction: auto-extract data when a document is open or path is available
+    -- Trust must be evaluated against the provider the request is ACTUALLY dispatched to.
+    -- queryChatGPT dispatches on temp_config.provider (= the action's pinned provider when set,
+    -- else the global). Evaluating trust against the global features.provider instead would let
+    -- an action pinned to an untrusted provider bypass every data-sharing gate via a trusted
+    -- global — data going to a provider the user never trusted. (audit v0.20.0 finding C4)
+    local effective_provider = (temp_config and temp_config.provider)
+        or (config.features and config.features.provider)
+
     -- Open book: full extraction (text, highlights, annotations, stats, etc.)
     -- File browser (sidecar): highlights, annotations, notebook, progress, caches from disk
     local cfg_metadata = config.features and config.features.book_metadata
@@ -2555,7 +2580,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 max_book_text_chars = prompt and prompt.max_book_text_chars or (config.features and config.features.max_book_text_chars),
                 max_pdf_pages = config.features and config.features.max_pdf_pages,
                 -- Privacy settings
-                provider = config.features and config.features.provider,
+                provider = effective_provider,
                 trusted_providers = config.features and config.features.trusted_providers,
                 enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
                 enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
@@ -2600,7 +2625,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 -- Text extraction (needed for cache permission checks)
                 enable_book_text_extraction = config.features and config.features.enable_book_text_extraction,
                 -- Privacy settings
-                provider = config.features and config.features.provider,
+                provider = effective_provider,
                 trusted_providers = config.features and config.features.trusted_providers,
                 enable_highlights_sharing = config.features and config.features.enable_highlights_sharing,
                 enable_annotations_sharing = config.features and config.features.enable_annotations_sharing,
@@ -2619,10 +2644,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- Global toggle is absolute gate; session folders bypass folder config only
         local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
         local lib_toggle = lib_features.enable_library_scanning == true
-        -- Check trusted provider
-        if not lib_toggle and lib_features.trusted_providers and config and config.provider then
+        -- Check trusted provider (against the effective dispatch provider — see C4 note above)
+        if not lib_toggle and lib_features.trusted_providers and effective_provider then
             for _idx, tp in ipairs(lib_features.trusted_providers) do
-                if tp == config.provider then lib_toggle = true; break end
+                if tp == effective_provider then lib_toggle = true; break end
             end
         end
         local scan_folders_to_use
@@ -2642,11 +2667,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 if scan_result and scan_result.books and #scan_result.books > 0 then
                     -- Stats enrichment: engagement labels + group placeholders
                     -- Gated: enable_advanced_stats (opt-in) + use_advanced_stats per-action (double-gated)
-                    local provider_trusted = lib_features.trusted_providers and config and config.provider
+                    local provider_trusted = lib_features.trusted_providers and effective_provider
                     if provider_trusted then
                         provider_trusted = false
                         for _idx, tp in ipairs(lib_features.trusted_providers) do
-                            if tp == config.provider then provider_trusted = true; break end
+                            if tp == effective_provider then provider_trusted = true; break end
                         end
                     end
                     local stats_gated = prompt.use_advanced_stats
@@ -2688,11 +2713,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         local extraction_ok, ContextExtractor = pcall(require, "koassistant_context_extractor")
         if extraction_ok and ContextExtractor then
             -- Privacy checks (same gates as single-book sidecar extraction)
+            -- Trust evaluated against the effective dispatch provider (see C4 note above)
             local provider_trusted = false
             local trusted_list = config.features and config.features.trusted_providers
-            if trusted_list and config.provider then
+            if trusted_list and effective_provider then
                 for _idx, tp in ipairs(trusted_list) do
-                    if tp == config.provider then provider_trusted = true; break end
+                    if tp == effective_provider then provider_trusted = true; break end
                 end
             end
             local features = config.features or {}
