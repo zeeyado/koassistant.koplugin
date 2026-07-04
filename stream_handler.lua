@@ -125,6 +125,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                  -- streamed before the PROTOCOL_NON_200 marker on non-macOS);
                                  -- kept OUT of result_buffer so fragments never reach the viewer
     local non200 = false
+    local stream_error = nil  -- set by SSE/NDJSON error events; finishStream owns the single error report
     local completed = false
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
     local in_web_search_phase = false  -- Track if web search tool is executing
@@ -259,6 +260,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
         if self.user_interrupted then
             if on_complete then on_complete(false, nil, _("Request cancelled by user.")) end
+            return
+        end
+
+        if stream_error then
+            -- An SSE/NDJSON error event set this; report it once, here, so error branches
+            -- don't call on_complete a second time (double-handling / stacked popups).
+            if on_complete then on_complete(false, nil, stream_error) end
             return
         end
 
@@ -780,8 +788,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 local err_message = event.error.message or event.error.type or json.encode(event.error)
                                 logger.warn("SSE error event received:", err_message)
                                 completed = true
+                                stream_error = err_message  -- finishStream reports it once
                                 finishStream()
-                                if on_complete then on_complete(false, nil, err_message) end
                                 return
                             end
 
@@ -929,8 +937,18 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
                             -- Check for error response
                             if event.error then
-                                local err_message = event.error.message or event.error
-                                table.insert(result_buffer, tostring(err_message))
+                                -- Route the NDJSON error to the error path (like the SSE branch);
+                                -- appending it to result_buffer would render it as the AI's answer
+                                -- and save it to chat history. Ollama's event.error is usually a
+                                -- plain string, but tolerate a table form (extract message/type).
+                                local err_message = event.error
+                                if type(err_message) == "table" then
+                                    err_message = err_message.message or err_message.type or json.encode(err_message)
+                                end
+                                completed = true
+                                stream_error = tostring(err_message)
+                                finishStream()
+                                return
                             -- Check for Ollama done signal
                             elseif event.done == true then
                                 completed = true
