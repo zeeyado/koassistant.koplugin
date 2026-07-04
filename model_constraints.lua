@@ -9,6 +9,7 @@ local ModelConstraints = {
         -- Models requiring temperature=1.0 (reject other values)
         -- Discovered via: lua tests/run_tests.lua --models openai
         ["gpt-5.5"] = { temperature = 1.0 },
+        ["gpt-5.4"] = { temperature = 1.0 },
         ["gpt-5.4-mini"] = { temperature = 1.0 },
         ["gpt-5.4-nano"] = { temperature = 1.0 },
     },
