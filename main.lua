@@ -218,19 +218,29 @@ function AskGPT:init()
   -- gracefully when offline without blocking the UI.
   local features = self.settings:readSetting("features") or {}
   if features.auto_check_updates ~= false then
-    UIManager:scheduleIn(1, function()
-      if not NetworkMgr:isWifiOn() then
-        logger.dbg("KOAssistant: Skipping auto update check (Wi-Fi not on)")
-        return
-      end
-      local ok, err = pcall(function()
-        local UpdateChecker = require("koassistant_update_checker")
-        UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+    -- 24h min-interval (timestamp written by the checker on SUCCESS only): skips the
+    -- fork + GitHub call + JSON parse — and even loading the checker module — on most
+    -- starts. Cheap G_reader_settings read; registered in the storage registry.
+    local last_check = G_reader_settings:readSetting("koassistant_last_update_check")
+    if type(last_check) == "number" and os.time() - last_check < 24 * 60 * 60 then
+      logger.dbg("KOAssistant: Skipping auto update check (checked within 24h)")
+    else
+      -- 20s defer (was 1s): keeps the subprocess fork out of the book-open/FM
+      -- rendering hot window on slow e-ink devices.
+      UIManager:scheduleIn(20, function()
+        if not NetworkMgr:isWifiOn() then
+          logger.dbg("KOAssistant: Skipping auto update check (Wi-Fi not on)")
+          return
+        end
+        local ok, err = pcall(function()
+          local UpdateChecker = require("koassistant_update_checker")
+          UpdateChecker.checkForUpdates(true) -- auto = true (silent background check)
+        end)
+        if not ok then
+          logger.warn("KOAssistant: Auto update check failed:", err)
+        end
       end)
-      if not ok then
-        logger.warn("KOAssistant: Auto update check failed:", err)
-      end
-    end)
+    end
   end
 
   -- Add to highlight dialog if highlight feature is available
@@ -8472,19 +8482,20 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
 end
 
 --- Quick Settings reasoning popup: the global stance dial plus a per-model control
---- (rendered dynamically from the selected provider/model's reasoning profile), and
---- a link to the full reasoning settings page. Rebuilds itself on each change so the
---- effective-state labels and checkmarks stay fresh. Sets a sticky preference.
-function AskGPT:showReasoningQuickPopup(on_close_callback)
+--- (rendered dynamically from the reasoning profile), and an "Other models…" browser
+--- for reaching every configurable model without leaving Quick Settings. Defaults to
+--- the active provider/model; pass provider_arg/model_arg to control another one.
+--- Rebuilds itself on each change so labels and checkmarks stay fresh.
+function AskGPT:showReasoningQuickPopup(on_close_callback, provider_arg, model_arg)
   local ButtonDialog = require("ui/widget/buttondialog")
   local ModelConstraints = require("model_constraints")
   local ReasoningPrefs = require("reasoning_prefs")
   local self_ref = self
 
   local features = self.settings:readSetting("features") or {}
-  local provider = features.provider or "anthropic"
+  local provider = provider_arg or features.provider or "anthropic"
   local provider_display = self:getProviderDisplayName(provider)
-  local model = self:getCurrentModel() or "default"
+  local model = model_arg or self:getCurrentModel() or "default"
   local profile = ModelConstraints.getReasoningProfile(provider, model)
   local stance = ReasoningPrefs.getStance(features)
 
@@ -8497,7 +8508,7 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
     self_ref:updateConfigFromSettings()
     UIManager:close(self_ref._reasoning_qs_dialog)
     self_ref._reasoning_qs_dialog = nil
-    self_ref:showReasoningQuickPopup(on_close_callback)
+    self_ref:showReasoningQuickPopup(on_close_callback, provider_arg, model_arg)
   end
 
   local buttons = {}
@@ -8512,7 +8523,7 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
   header(_("Global stance (all models)"))
   local STANCES = {
     { id = "minimal", label = _("Minimal (off where possible)") },
-    { id = "default", label = _("Default (model's normal behavior)") },
+    { id = "default", label = _("Default (let each model decide)") },
     { id = "maximum", label = _("Maximum (most reasoning)") },
   }
   for _idx, s in ipairs(STANCES) do
@@ -8552,8 +8563,16 @@ function AskGPT:showReasoningQuickPopup(on_close_callback)
     end
   end
 
-  -- Footer: close
+  -- Footer: other-models browser + close
   header("\u{2500}\u{2500}\u{2500}\u{2500}")
+  table.insert(buttons, {{
+    text = _("Other models\u{2026}"),
+    callback = function()
+      UIManager:close(self_ref._reasoning_qs_dialog)
+      self_ref._reasoning_qs_dialog = nil
+      self_ref:showReasoningModelBrowser(on_close_callback)
+    end,
+  }})
   table.insert(buttons, {{
     text = _("Close"),
     callback = function()
@@ -8595,6 +8614,13 @@ function AskGPT:_reasoningControlRows(profile, get_pref, effective_label, on_set
     checked_func = function() return get_pref() == nil end,
     callback = on_clear,
   }
+  rows[#rows + 1] = {
+    -- Explicit "API default" pin: send nothing on the wire regardless of the global
+    -- stance (differs from Follow global whenever stance is Minimal/Maximum).
+    text = _("Model API default (no override)"),
+    checked_func = function() local p = get_pref(); return p ~= nil and p.state == "default" end,
+    callback = function() on_set({ state = "default" }) end,
+  }
   if profile.can_disable then
     rows[#rows + 1] = {
       text = _("Off"),
@@ -8630,12 +8656,13 @@ end
 -- Short summary of a stored reasoning pref ({state,effort,budget} or nil).
 local function reasoningPrefSummary(pref)
   local ReasoningPrefs = require("reasoning_prefs")
-  if pref == nil then return _("Inherit") end
+  if pref == nil then return _("Follow global") end
+  if pref.state == "default" then return _("Model default") end
   if pref.state == "off" then return _("Off") end
   local opt = pref.effort or pref.budget
   if opt then return ReasoningPrefs.effortLabel(opt) end
   if pref.state == "on" then return _("On") end
-  return _("Inherit")
+  return _("Follow global")
 end
 
 -- Providers with at least one CONFIGURABLE reasoning model (axis ~= "none").
@@ -8657,6 +8684,69 @@ local function reasoningCapableProviders()
     end
   end
   return out
+end
+
+--- Reasoning model browser: provider list → configurable-model list (with effective
+--- state) → the same reasoning popup for that model. Lets the Quick Settings popup
+--- reach EVERY model, not just the active one.
+--- (Defined after reasoningCapableProviders — local function ordering matters.)
+function AskGPT:showReasoningModelBrowser(on_close_callback)
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local ModelConstraints = require("model_constraints")
+  local ReasoningPrefs = require("reasoning_prefs")
+  local ModelLists = require("koassistant_model_lists")
+  local self_ref = self
+
+  local function closeBrowser()
+    UIManager:close(self_ref._reasoning_browser_dialog)
+    self_ref._reasoning_browser_dialog = nil
+  end
+
+  local function showModels(provider)
+    local features = self_ref.settings:readSetting("features") or {}
+    local buttons = {}
+    for _idx, model in ipairs(ModelLists[provider] or {}) do
+      if ModelConstraints.getReasoningProfile(provider, model).axis ~= "none" then
+        local m = model
+        table.insert(buttons, {{
+          text = T(_("%1 \u{00B7} %2"), m, ReasoningPrefs.summaryLabel(features, provider, m)),
+          callback = function()
+            closeBrowser()
+            self_ref:showReasoningQuickPopup(on_close_callback, provider, m)
+          end,
+        }})
+      end
+    end
+    if #buttons == 0 then
+      table.insert(buttons, {{ text = _("No configurable models"), enabled = false }})
+    end
+    table.insert(buttons, {{ text = _("Close"), callback = closeBrowser }})
+    self_ref._reasoning_browser_dialog = ButtonDialog:new{
+      title = T(_("Reasoning \u{00B7} %1"), self_ref:getProviderDisplayName(provider)),
+      buttons = buttons,
+      tap_close_callback = function() self_ref._reasoning_browser_dialog = nil end,
+    }
+    UIManager:show(self_ref._reasoning_browser_dialog)
+  end
+
+  local buttons = {}
+  for _idx, provider in ipairs(reasoningCapableProviders()) do
+    local p = provider
+    table.insert(buttons, {{
+      text = self_ref:getProviderDisplayName(p),
+      callback = function()
+        closeBrowser()
+        showModels(p)
+      end,
+    }})
+  end
+  table.insert(buttons, {{ text = _("Close"), callback = closeBrowser }})
+  self._reasoning_browser_dialog = ButtonDialog:new{
+    title = _("Reasoning \u{00B7} pick a provider"),
+    buttons = buttons,
+    tap_close_callback = function() self_ref._reasoning_browser_dialog = nil end,
+  }
+  UIManager:show(self._reasoning_browser_dialog)
 end
 
 --- TouchMenu items: reasoning control (Follow global / Off / On / effort) for one
@@ -8744,7 +8834,13 @@ function AskGPT:buildReasoningModelListMenu(provider)
       items[#items + 1] = {
         text_func = function()
           local f = self_ref.settings:readSetting("features") or {}
-          return T(_("%1: %2"), m, reasoningPrefSummary(ReasoningPrefs.getModelPref(f, provider, m)))
+          local pref = ReasoningPrefs.getModelPref(f, provider, m)
+          if pref == nil then
+            -- No override: show what "Follow global" actually resolves to for this
+            -- model, so the list answers "what will it do?" without drilling in.
+            return T(_("%1: Follow global \u{2192} %2"), m, ReasoningPrefs.summaryLabel(f, provider, m))
+          end
+          return T(_("%1: %2"), m, reasoningPrefSummary(pref))
         end,
         sub_item_table_func = function()
           return self_ref:buildReasoningTargetMenu(provider, m)

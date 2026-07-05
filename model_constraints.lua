@@ -751,8 +751,13 @@ end
 
 -- Extract a {state, option} intent from a stored preference table, or nil if the
 -- pref carries no reasoning fields (so resolution falls through to the next layer).
+-- state="default" is the explicit "Model API default" sentinel: unlike nil (which
+-- falls through to the stance layer), it pins this model to send_nothing.
 local function prefDesired(pref)
     if not pref then return nil end
+    if pref.state == "default" then
+        return { api_default = true }
+    end
     if pref.state ~= nil or pref.effort ~= nil or pref.budget ~= nil then
         return { state = pref.state, option = pref.effort or pref.budget }
     end
@@ -796,7 +801,11 @@ function ModelConstraints.resolveReasoning(provider, model, layers)
         desired = { state = "on", option = ao.effort or ao.budget }
     else
         desired = prefDesired(layers.model_pref)
-        if not desired then
+        if desired and desired.api_default then
+            -- Explicit per-model "Model API default": resolve exactly like the
+            -- "default" stance (emit nothing), SUPPRESSING the stance layer.
+            desired = nil
+        elseif not desired then
             local stance = layers.global_stance or "default"
             if stance == "minimal" then
                 desired = profile.stance_map and profile.stance_map.minimal

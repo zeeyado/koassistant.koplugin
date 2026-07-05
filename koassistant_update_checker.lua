@@ -80,6 +80,7 @@ end
 -- Session flag to prevent multiple auto-checks per session
 -- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
 local _session_auto_check_done = false
+local _session_auto_check_inflight = false
 
 -- CSS for markdown rendering (matches chatgptviewer style)
 local RELEASE_NOTES_CSS = [[
@@ -1037,9 +1038,16 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
                             if recv_err then break end
                         end
                     end
-                    ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(status_code or "connection failed"))
+                    -- Include the (truncated) error body so GitHub's actual message
+                    -- (rate limit, etc.) reaches the parent log instead of being discarded
+                    local err_body = table.concat(err_chunks):gsub("%s+$", ""):sub(1, 300)
+                    ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:" .. tostring(status_code or "connection failed")
+                        .. (err_body ~= "" and (" - " .. err_body) or ""))
                 else
-                    -- Stream response body to pipe
+                    -- Stream response body to pipe; track bytes so a clean close with an
+                    -- empty body (RST after headers, captive portal, TLS oddity) reports a
+                    -- diagnosable error instead of the parent's generic "empty response"
+                    local body_bytes = 0
                     if is_chunked then
                         while true do
                             local size_line = ssl_sock:receive("*l")
@@ -1047,16 +1055,27 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
                             local chunk_size = tonumber(size_line:match("^%s*(%x+)"), 16)
                             if not chunk_size or chunk_size == 0 then break end
                             local chunk_data = ssl_sock:receive(chunk_size)
-                            if chunk_data then ffiutil.writeToFD(child_write_fd, chunk_data) end
+                            if chunk_data then
+                                ffiutil.writeToFD(child_write_fd, chunk_data)
+                                body_bytes = body_bytes + #chunk_data
+                            end
                             ssl_sock:receive("*l")
                         end
                     else
                         while true do
                             local chunk, recv_err, partial = ssl_sock:receive(8192)
-                            if chunk then ffiutil.writeToFD(child_write_fd, chunk)
-                            elseif partial and #partial > 0 then ffiutil.writeToFD(child_write_fd, partial) end
+                            if chunk then
+                                ffiutil.writeToFD(child_write_fd, chunk)
+                                body_bytes = body_bytes + #chunk
+                            elseif partial and #partial > 0 then
+                                ffiutil.writeToFD(child_write_fd, partial)
+                                body_bytes = body_bytes + #partial
+                            end
                             if recv_err then break end
                         end
+                    end
+                    if body_bytes == 0 then
+                        ffiutil.writeToFD(child_write_fd, "\n__UPDATE_CHECK_ERROR__:HTTP 200 but empty body (connection closed after headers)")
                     end
                 end
 
@@ -1731,14 +1750,16 @@ performUpdate = function(update_info)
 end
 
 function UpdateChecker.checkForUpdates(auto, include_prereleases)
-    -- Prevent duplicate auto-checks within same session
-    -- (NetworkMgr:runWhenOnline can fire multiple times if network state changes)
-    if auto and _session_auto_check_done then
+    -- Prevent duplicate/concurrent auto-checks within the same session. The DONE
+    -- flag is only set on a successful check (see the fetch callback) so a failed
+    -- check gets retried on the next plugin init; INFLIGHT guards concurrency
+    -- (FileManager and ReaderUI both init and may schedule a check).
+    if auto and (_session_auto_check_done or _session_auto_check_inflight) then
         logger.dbg("UpdateChecker: skipping duplicate auto-check this session")
         return
     end
     if auto then
-        _session_auto_check_done = true
+        _session_auto_check_inflight = true
     end
 
     -- Default to including prereleases since we're in alpha/beta
@@ -1782,6 +1803,7 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
     -- Use subprocess with absolute timeout
     fetchWithAbsoluteTimeout(Constants.GITHUB.API_URL, timeout, function(fetch_success, response_data)
         closeLoading()
+        _session_auto_check_inflight = false
 
         if not fetch_success then
             logger.err("Failed to check for updates:", response_data)
@@ -1834,6 +1856,14 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
             end
             return
         end
+
+        -- Check completed with a parseable payload: only now mark the session done
+        -- (failures above fall through so the next plugin init retries) and persist
+        -- the timestamp for the 24h min-interval gate in main.lua's auto trigger.
+        if auto then
+            _session_auto_check_done = true
+        end
+        G_reader_settings:saveSetting("koassistant_last_update_check", os.time())
 
         -- Find the latest release by comparing versions (don't rely on array order)
         local latest_release = nil

@@ -7,10 +7,12 @@
 -- Store shape (sparse — keys exist only when the user customizes):
 --   features.reasoning_prefs = {
 --       stance = "minimal" | "default" | "maximum",   -- absent => "default"
---       models = { ["provider/model"] = { state="on"|"off", effort=, budget= } },
+--       models = { ["provider/model"] = { state="on"|"off"|"default", effort=, budget= } },
 --   }
 -- A nil field means "inherit from the layer below". We always use state="off"
--- (string), never false, so nil cleanly means inherit.
+-- (string), never false, so nil cleanly means inherit. state="default" is the
+-- explicit "Model API default" sentinel: send nothing on the wire, and do NOT
+-- fall through to the global stance (unlike a nil pref).
 --
 -- Reads are pure. Mutators mutate the passed `features` table in place; callers
 -- persist via settings:saveSetting("features", f) + settings:flush(), matching
@@ -103,13 +105,15 @@ function ReasoningPrefs.effortLabel(opt)
 end
 
 --- Short label for the effective reasoning state of provider/model.
---- e.g. "Default", "Off", "High", "Dynamic", "Always on", "None".
+--- e.g. "Model default", "Off", "High", "Dynamic", "Always on", "None".
 function ReasoningPrefs.summaryLabel(features, provider, model)
     local d = ReasoningPrefs.resolve(features, provider, model)
     if d.axis == "none" then
         return (d.mode == "on") and _("Always on") or _("None")
     end
-    if d.send_nothing then return _("Default") end
+    -- send_nothing = the model runs at its own API default (via "default" stance
+    -- or the explicit per-model sentinel). "Model default", not the ambiguous "Default".
+    if d.send_nothing then return _("Model default") end
     if d.mode == "off" then return _("Off") end
     if d.option then return ReasoningPrefs.effortLabel(d.option) end
     return _("On")
