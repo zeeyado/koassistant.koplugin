@@ -906,16 +906,19 @@ end
 --- @param url string URL to fetch
 --- @param timeout number Absolute timeout in seconds
 --- @param callback function Called with (success, data_or_error)
---- @param skip_warmup boolean Skip TCP warmup (for silent auto-checks to avoid blocking UI)
-local function fetchWithAbsoluteTimeout(url, timeout, callback, skip_warmup)
+local function fetchWithAbsoluteTimeout(url, timeout, callback)
     local ltn12 = require("ltn12")
     local socket = require("socket")
 
-    -- Pre-resolve DNS in parent process (macOS only).
-    -- After fork(), getaddrinfo() hangs for ~75s due to invalid mDNSResponder Mach ports.
-    -- Skipped for silent auto-checks at startup to avoid blocking the UI thread.
+    -- Pre-resolve DNS in parent process (macOS only; the warmup was never used on
+    -- other platforms). After fork(), getaddrinfo() aborts or hangs the child under
+    -- macOS's post-fork restrictions, so skipping this guarantees a dead child and a
+    -- zero-byte pipe — auto-checks failed 100% on macOS as "empty response" while
+    -- manual checks (which warmed up) worked. Always resolve here: auto checks now
+    -- run ~20s after startup (off the render hot window), so the brief parent-side
+    -- resolve is acceptable.
     local resolved_ip
-    if not skip_warmup and IS_MACOS and url:sub(1, 8) == "https://" then
+    if IS_MACOS and url:sub(1, 8) == "https://" then
         local BaseHandler = require("koassistant_api.base")
         resolved_ip = BaseHandler.resolveForSubprocess(url)
     end
@@ -1973,7 +1976,7 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
                 })
             end
         end
-    end, auto)  -- skip_warmup for auto-checks (avoid blocking UI at startup)
+    end)
 end
 
 function UpdateChecker.getCurrentVersion()
