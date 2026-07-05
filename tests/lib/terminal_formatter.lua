@@ -90,7 +90,8 @@ function TerminalFormatter.wordWrap(text, width)
     if not text then return {} end
 
     local lines = {}
-    for line in text:gmatch("[^\n]+") do
+    for raw_line in text:gmatch("[^\n]+") do
+        local line = raw_line  -- mutable copy (Lua 5.5 makes for-loop vars const)
         while #line > width do
             local break_at = width
             -- Try to break at a space
