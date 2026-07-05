@@ -17,6 +17,17 @@ end
 
 local plugin_dir = getPluginDir()
 
+-- Unescape PO string escapes. Applied to BOTH msgid (the lookup key) and msgstr:
+-- the runtime key is the real Lua string _() passes, so a msgid containing \n or \"
+-- must be unescaped here or it can never match (translations for such strings would
+-- silently fall back to English). Single left-to-right pass so an escaped backslash
+-- (\\ in the .po) consumes the next char instead of re-triggering on it — e.g. "\\n"
+-- decodes to a literal backslash+n, not backslash+newline.
+local PO_ESCAPES = { n = "\n", t = "\t", ['"'] = '"', ["\\"] = "\\" }
+local function unescapePO(s)
+    return (s:gsub("\\(.)", function(c) return PO_ESCAPES[c] or ("\\" .. c) end))
+end
+
 -- Parse a PO file and return a table of msgid -> msgstr mappings
 local function parsePOFile(filepath)
     local file = io.open(filepath, "r")
@@ -32,7 +43,9 @@ local function parsePOFile(filepath)
 
     local function saveEntry()
         if current_msgid and current_msgstr and current_msgid ~= "" then
-            result[current_msgid] = current_msgstr
+            -- Unescape BOTH sides after continuation lines are concatenated: the key must
+            -- equal the real Lua string _() passes at runtime, not the escaped .po form.
+            result[unescapePO(current_msgid)] = unescapePO(current_msgstr)
         end
         current_msgid = nil
         current_msgstr = nil
@@ -73,15 +86,6 @@ local function parsePOFile(filepath)
     end
 
     file:close()
-
-    -- Process escape sequences
-    for k, v in pairs(result) do
-        v = v:gsub("\\n", "\n")
-        v = v:gsub("\\t", "\t")
-        v = v:gsub('\\"', '"')
-        v = v:gsub("\\\\", "\\")
-        result[k] = v
-    end
 
     return result
 end
@@ -204,6 +208,9 @@ setmetatable(KOAssistantGettext, {
 })
 
 KOAssistantGettext.gettext = translate
+
+-- Exposed for unit testing: parses + unescapes a .po into a msgid->msgstr table.
+KOAssistantGettext.parsePOFile = parsePOFile
 
 -- Reload translations (useful if language changes)
 KOAssistantGettext.reload = function()
