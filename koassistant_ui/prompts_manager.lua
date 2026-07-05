@@ -2702,8 +2702,8 @@ function PromptsManager:showAnthropicEffortSelector(state)
         local label = effort:sub(1,1):upper() .. effort:sub(2)
         if effort == defaults.effort then
             label = label .. _(" (default)")
-        elseif effort == "max" then
-            label = label .. _(" (Opus 4.6 only)")
+        elseif effort == "max" or effort == "xhigh" then
+            label = label .. _(" (top-tier models only)")
         end
         local is_current = (effort == current_effort)
         if is_current then
@@ -2739,7 +2739,7 @@ function PromptsManager:showAnthropicEffortSelector(state)
 
     self.anthropic_effort_dialog = ButtonDialog:new{
         title = _("Adaptive Thinking Effort"),
-        info_text = _("For Claude 4.6 models. Claude decides when and how much to think.\n\nLow = may skip thinking\nMedium = balanced\nHigh = almost always thinks\nMax = deepest thinking (Opus 4.6 only)"),
+        info_text = _("For Claude models with adaptive thinking. Claude decides when and how much to think.\n\nLow = may skip thinking\nMedium = balanced\nHigh = almost always thinks\nXHigh / Max = deepest thinking (top-tier models only)"),
         buttons = buttons,
     }
 

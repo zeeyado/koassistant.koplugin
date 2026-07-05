@@ -777,6 +777,45 @@ TestRunner:test("Maximum on Sonnet 4.6 -> high effort (no max), needs_temp_1", f
     TestRunner:assertFalse(d.needs_no_sampling, "sonnet keeps sampling params")
 end)
 
+TestRunner:test("Maximum on Sonnet 5 -> max effort, needs_no_sampling (NOT needs_temp_1)", function()
+    -- Sonnet 5 is a Sonnet that behaves like Opus 4.7/4.8 for sampling: rejects
+    -- temperature/top_p/top_k (needs_no_sampling), and supports the full effort ladder
+    -- incl. xhigh/max. It must NOT set needs_temp_1 (unlike Sonnet 4.6).
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.mode, "on", "on")
+    TestRunner:assertEqual(d.effort, "max", "max effort supported on Sonnet 5")
+    TestRunner:assertTrue(d.needs_no_sampling, "needs_no_sampling")
+    TestRunner:assertFalse(d.needs_temp_1, "must NOT force temp=1.0 (sampling is stripped)")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertEqual(params.thinking.type, "adaptive", "adaptive thinking")
+    TestRunner:assertEqual(params.output_config.effort, "max", "output_config effort")
+end)
+
+TestRunner:test("Default stance on Sonnet 5 -> send_nothing but natural state is ON", function()
+    -- Unlike the Opus family (default off), Sonnet 5's API default is adaptive-ON.
+    -- Default stance still sends nothing (model runs its own default), but the reported
+    -- mode is "on" so the UI truthfully shows it thinks by default.
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", { global_stance = "default" })
+    TestRunner:assertTrue(d.send_nothing, "default stance emits nothing")
+    TestRunner:assertEqual(d.mode, "on", "natural state reported as on")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertNil(params.thinking, "send_nothing -> no thinking param emitted")
+end)
+
+TestRunner:test("Minimal on Sonnet 5 -> explicit disable param (not omission)", function()
+    -- Because Sonnet 5 thinks by default, an off decision must emit thinking={type=disabled},
+    -- NOT rely on omission (which would still think). Distinct from the Opus family.
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", { global_stance = "minimal" })
+    TestRunner:assertEqual(d.mode, "off", "minimal disables")
+    TestRunner:assertFalse(d.send_nothing, "must emit an explicit disable")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertNotNil(params.thinking, "explicit disable param emitted")
+    TestRunner:assertEqual(params.thinking.type, "disabled", "thinking type disabled")
+end)
+
 TestRunner:test("Minimal on Gemini 2.5 -> thinking_budget 0", function()
     local d = ModelConstraints.resolveReasoning("gemini", "gemini-2.5-flash", { global_stance = "minimal" })
     TestRunner:assertEqual(d.mode, "off", "off")

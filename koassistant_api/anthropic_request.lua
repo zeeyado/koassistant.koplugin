@@ -179,18 +179,27 @@ function AnthropicRequest:build(config)
                 -- Pass through output_config (effort level) if provided
                 if params.output_config then
                     request_body.output_config = params.output_config
-                    -- Clamp "max" effort to "high" for non-Opus models (Opus keeps xhigh/max)
-                    if request_body.output_config.effort == "max" and not model:match("opus") then
-                        adjustments.effort = {
-                            from = "max",
-                            to = "high",
-                            reason = "max effort is Opus-only"
-                        }
-                        request_body.output_config.effort = "high"
+                    -- Clamp top-of-ladder effort to "high" for models whose reasoning
+                    -- profile doesn't list it. The UI offers the full Opus ladder
+                    -- (incl. xhigh/max) for every Anthropic model, so guard here: Opus 4.6+
+                    -- and Sonnet 5 support xhigh/max, Sonnet 4.6 does not.
+                    local eff = request_body.output_config.effort
+                    if eff == "max" or eff == "xhigh" then
+                        local profile = ModelConstraints.getReasoningProfile("anthropic", model)
+                        local allowed = {}
+                        for _idx, opt in ipairs(profile.options or {}) do allowed[opt] = true end
+                        if not allowed[eff] then
+                            adjustments.effort = {
+                                from = eff,
+                                to = "high",
+                                reason = eff .. " effort not supported by this model"
+                            }
+                            request_body.output_config.effort = "high"
+                        end
                     end
                 end
-                -- Adaptive thinking on 4.6 requires temperature=1.0. Opus 4.7/4.8 reject
-                -- sampling params entirely (stripped below), so skip the temp=1.0 step for them.
+                -- Adaptive thinking on 4.6 requires temperature=1.0. Opus 4.7/4.8 and Sonnet 5
+                -- reject sampling params entirely (stripped below), so skip the temp=1.0 step for them.
                 if not ModelConstraints.supportsCapability("anthropic", model, "no_sampling_params")
                         and request_body.temperature ~= 1.0 then
                     adjustments.temperature = {
@@ -205,6 +214,17 @@ function AnthropicRequest:build(config)
                 -- Model doesn't support adaptive thinking - skip it
                 adjustments.thinking_skipped = {
                     reason = "model " .. model .. " does not support adaptive thinking"
+                }
+            end
+        elseif params.thinking.type == "disabled" then
+            -- Explicit disable — needed for models that think by default (Sonnet 5), where
+            -- omitting `thinking` would still reason. Accepted on adaptive-capable models
+            -- (Opus 4.6+, Sonnet 5); skip on models without the thinking parameter.
+            if ModelConstraints.supportsCapability("anthropic", model, "adaptive_thinking") then
+                request_body.thinking = { type = "disabled" }
+            else
+                adjustments.thinking_skipped = {
+                    reason = "model " .. model .. " has no thinking parameter to disable"
                 }
             end
         else
@@ -247,14 +267,14 @@ function AnthropicRequest:build(config)
         end
     end
 
-    -- Strip sampling params for models that reject them (Opus 4.7/4.8 → HTTP 400).
+    -- Strip sampling params for models that reject them (Opus 4.7/4.8, Sonnet 5 → HTTP 400).
     -- Runs for both thinking and non-thinking requests (default temp would otherwise 400).
     if ModelConstraints.supportsCapability("anthropic", model, "no_sampling_params") then
         if request_body.temperature ~= nil then
             adjustments.temperature = {
                 from = request_body.temperature,
                 to = nil,
-                reason = "Opus 4.7/4.8 reject sampling params"
+                reason = "Opus 4.7/4.8 and Sonnet 5 reject sampling params"
             }
             request_body.temperature = nil
         end

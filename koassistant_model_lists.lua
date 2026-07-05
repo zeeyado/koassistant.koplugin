@@ -15,8 +15,9 @@ local ModelLists = {
     ---------------------------------------------------------------------------
 
     anthropic = {
-        -- Claude 4.x (current generation)
-        "claude-sonnet-4-6",            -- flagship (default), 1M context
+        -- Claude 5 / 4.x (current generation)
+        "claude-sonnet-5",              -- flagship (default); adaptive thinking on by default, rejects sampling params
+        "claude-sonnet-4-6",            -- previous flagship (kept available), 1M context
         "claude-opus-4-8",              -- reasoning (most capable, adaptive thinking only)
         "claude-haiku-4-5-20251001",    -- fast
     },
@@ -122,6 +123,7 @@ local ModelLists = {
 
         -- Anthropic
         "anthropic/claude-sonnet-4.6",  -- default (flagship)
+        "anthropic/claude-sonnet-5",    -- verify slug against openrouter.ai/models before making default
         "anthropic/claude-opus-4.8",
         "anthropic/claude-haiku-4.5",
 
@@ -177,6 +179,7 @@ local ModelLists = {
 
         -- Anthropic
         "anthropic/claude-sonnet-4.6",
+        "anthropic/claude-sonnet-5",    -- verify slug against router.requesty.ai catalog before making default
         "anthropic/claude-haiku-4.5",
 
         -- Google
@@ -317,7 +320,7 @@ local ModelLists = {
 
         -- Provider's most capable general-purpose model
         flagship = {
-            anthropic = "claude-sonnet-4-6",
+            anthropic = "claude-sonnet-5",
             openai = "gpt-5.5",
             deepseek = "deepseek-v4-pro",
             gemini = "gemini-3.5-flash",             -- Pro models are paid-only (Apr 2026); keep tier free-tier usable
@@ -340,7 +343,7 @@ local ModelLists = {
 
         -- Balanced performance and cost
         standard = {
-            anthropic = "claude-sonnet-4-6",
+            anthropic = "claude-sonnet-5",
             openai = "gpt-5.4-mini",
             deepseek = "deepseek-v4-flash",
             gemini = "gemini-3.5-flash",
