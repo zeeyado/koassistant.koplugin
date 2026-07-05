@@ -80,6 +80,10 @@ LANGUAGE_NAMES = {
     "cs": "Czech",
     "uk": "Ukrainian",
     "hi": "Hindi",
+    "fi": "Finnish",
+    "bn": "Bengali",
+    "ur": "Urdu",
+    "fa": "Persian (Farsi)",
 }
 
 # ============================================================================

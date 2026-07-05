@@ -67,7 +67,7 @@ echo ""
 
 # Step 2: Update each language
 echo "Step 2: Updating language files..."
-LANGUAGES="ar zh es pt pt_BR fr de it ru ja pl tr ko_KR vi id th nl_NL cs uk hi"
+LANGUAGES="ar zh es pt pt_BR fr de it ru ja pl tr ko_KR vi id th nl_NL cs uk hi fi bn ur fa"
 
 for lang in $LANGUAGES; do
     PO_FILE="locale/$lang/LC_MESSAGES/koassistant.po"
