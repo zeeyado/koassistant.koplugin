@@ -169,9 +169,10 @@ local ModelLists = {
 
     requesty = {
         -- Requesty is an OpenAI-compatible model router (https://requesty.ai).
-        -- Model naming uses provider/model-name, same convention as OpenRouter.
-        -- This is a small representative list; the full catalog is available at
-        -- https://router.requesty.ai/v1/models
+        -- Model naming: provider/model-name, but NOT the same convention as OpenRouter —
+        -- Requesty hyphenates Anthropic versions (claude-sonnet-4-6, not 4.6) and uses
+        -- "xai/" (not "x-ai/"). All ids below verified against the live catalog
+        -- (https://router.requesty.ai/v1/models, public, 2026-07-05).
 
         -- OpenAI
         "openai/gpt-4o-mini",           -- default (fast, low-cost)
@@ -179,18 +180,18 @@ local ModelLists = {
         "openai/gpt-5.4",
 
         -- Anthropic
-        "anthropic/claude-sonnet-4.6",
-        "anthropic/claude-sonnet-5",    -- requesty exposes vertex/claude-sonnet-5; anthropic/ route mirrors the 4.6 slug
-        "anthropic/claude-haiku-4.5",
+        "anthropic/claude-sonnet-5",
+        "anthropic/claude-sonnet-4-6",
+        "anthropic/claude-haiku-4-5",
 
         -- Google
-        "google/gemini-3.5-flash",
+        "google/gemini-2.5-flash",
 
         -- DeepSeek
         "deepseek/deepseek-v4-pro",
 
         -- xAI Grok
-        "x-ai/grok-4.3",
+        "xai/grok-4.3",
     },
 
     qwen = {
