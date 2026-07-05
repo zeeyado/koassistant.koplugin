@@ -266,13 +266,13 @@ function ModelValidation:testModel(provider, model, handler, api_key, verbose)
         local param_value = ""
 
         if constraint.type == "temperature" then
-            retry_config.temperature = constraint.allowed or 1.0
+            retry_config.temperature = constraint.value or 1.0
             param_name = "temp"
             param_value = tostring(retry_config.temperature)
         end
 
         if constraint.type == "max_tokens" then
-            retry_config.max_tokens = constraint.min_value or 16
+            retry_config.max_tokens = constraint.value or 16
             param_name = "max_tokens"
             param_value = tostring(retry_config.max_tokens)
         end
@@ -283,6 +283,13 @@ function ModelValidation:testModel(provider, model, handler, api_key, verbose)
         )
 
         if retry_success then
+            -- Record the value that actually worked so the summary is accurate even when
+            -- parseConstraintError couldn't extract a number from the error (fell back to 16/1.0).
+            if constraint.type == "temperature" then
+                constraint.value = retry_config.temperature
+            elseif constraint.type == "max_tokens" then
+                constraint.value = retry_config.max_tokens
+            end
             local constraint_msg = string.format(
                 "%s (default rejected, %s=%s works)",
                 constraint.type, param_name, param_value
@@ -486,10 +493,10 @@ function ModelValidation:printSummary()
             local constraint = c.constraint
             if constraint.type == "temperature" then
                 print(string.format("    %s/%s: requires temperature=%s",
-                    c.provider, c.model, tostring(constraint.allowed)))
+                    c.provider, c.model, tostring(constraint.value)))
             elseif constraint.type == "max_tokens" then
                 print(string.format("    %s/%s: requires max_tokens >= %s",
-                    c.provider, c.model, tostring(constraint.min_value)))
+                    c.provider, c.model, tostring(constraint.value)))
             elseif constraint.type == "multiple" then
                 print(string.format("    %s/%s: requires temp=%s + max_tokens >= %s",
                     c.provider, c.model,
