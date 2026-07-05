@@ -20,7 +20,7 @@ local function getDefaultModel(provider)
         groq = "llama-3.3-70b-versatile",
         mistral = "mistral-large-latest",
         xai = "grok-4.3",
-        openrouter = "anthropic/claude-sonnet-4.6",
+        openrouter = "anthropic/claude-sonnet-5",
         requesty = "openai/gpt-4o-mini",
         qwen = "qwen3-max",
         kimi = "kimi-k2.6",
@@ -29,7 +29,7 @@ local function getDefaultModel(provider)
         sambanova = "Llama-4-Maverick-17B-128E-Instruct",
         cohere = "command-a-plus-05-2026",
         doubao = "doubao-seed-2.0-pro-32k",
-        zai = "glm-5.1",
+        zai = "glm-5.2",
         perplexity = "sonar-pro",
     }
     return fallbacks[provider] or "unknown"

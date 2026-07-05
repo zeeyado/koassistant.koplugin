@@ -1,6 +1,6 @@
 -- Model lists for each provider
 -- SINGLE SOURCE OF TRUTH for all model data
--- Last updated: 2026-06-07
+-- Last updated: 2026-07-05
 --
 -- Structure:
 --   ModelLists[provider] = array of model IDs (for backward compat & dropdowns)
@@ -46,6 +46,8 @@ local ModelLists = {
         "gemini-3.1-flash-lite",        -- ultrafast, free tier
         -- Gemini 2.5 (kept for popularity)
         "gemini-2.5-flash",             -- still popular, free tier
+        "gemini-2.5-pro",               -- GA deep-reasoning (paid)
+        "gemini-2.5-flash-lite",        -- cheapest/fastest 2.5 (free tier)
     },
 
     ollama = {
@@ -104,7 +106,6 @@ local ModelLists = {
         "magistral-small-latest",       -- open-weight (Apache 2.0)
         -- Coding
         "codestral-latest",
-        "devstral-2512",                -- code agents (Devstral 2, Apache 2.0)
     },
 
     xai = {
@@ -122,8 +123,8 @@ local ModelLists = {
         -- Format: provider/model-name (no "-latest" suffixes, periods not dashes)
 
         -- Anthropic
-        "anthropic/claude-sonnet-4.6",  -- default (flagship)
-        "anthropic/claude-sonnet-5",    -- verify slug against openrouter.ai/models before making default
+        "anthropic/claude-sonnet-5",    -- default (flagship); slug confirmed on openrouter.ai
+        "anthropic/claude-sonnet-4.6",
         "anthropic/claude-opus-4.8",
         "anthropic/claude-haiku-4.5",
 
@@ -179,7 +180,7 @@ local ModelLists = {
 
         -- Anthropic
         "anthropic/claude-sonnet-4.6",
-        "anthropic/claude-sonnet-5",    -- verify slug against router.requesty.ai catalog before making default
+        "anthropic/claude-sonnet-5",    -- requesty exposes vertex/claude-sonnet-5; anthropic/ route mirrors the 4.6 slug
         "anthropic/claude-haiku-4.5",
 
         -- Google
@@ -280,7 +281,8 @@ local ModelLists = {
 
     zai = {
         -- GLM-5.x (200K context)
-        "glm-5.1",                      -- flagship (default), coding leader
+        "glm-5.2",                      -- flagship (default), released 2026-06-16
+        "glm-5.1",                      -- previous flagship (kept available), coding leader
         "glm-5",
         "glm-5-turbo",                  -- fast
         -- GLM-4.7 (200K context)
@@ -329,7 +331,7 @@ local ModelLists = {
             xai = "grok-4.3",
             cohere = "command-a-plus-05-2026",
             ollama = "llama4",
-            openrouter = "anthropic/claude-sonnet-4.6",
+            openrouter = "anthropic/claude-sonnet-5",
             requesty = "anthropic/claude-sonnet-4.6",
             together = "deepseek-ai/DeepSeek-V4-Pro",
             fireworks = "accounts/fireworks/models/deepseek-v4-pro",
@@ -337,7 +339,7 @@ local ModelLists = {
             qwen = "qwen3-max",
             kimi = "kimi-k2.6",
             doubao = "doubao-seed-2.0-pro-32k",
-            zai = "glm-5.1",
+            zai = "glm-5.2",
             perplexity = "sonar-pro",
         },
 

@@ -79,17 +79,17 @@ ModelConstraints.capabilities = {
         -- Gemini 3 models use thinkingLevel (minimal/low/medium/high)
         thinking = { "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite" },
         -- Gemini 2.5 models use thinkingBudget (0=off, -1=dynamic, 128-24576)
-        thinking_budget = { "gemini-2.5-flash" },
+        thinking_budget = { "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite" },
         -- Google Search grounding
         google_search = {
             "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
-            "gemini-2.5-flash",
+            "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
         },
         -- Function calling for the book-tool workflows (same models as google_search).
         -- The runner's shouldUse gates on this + a tool_wire.lua adapter being registered.
         tools = {
             "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
-            "gemini-2.5-flash",
+            "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
         },
     },
     -- Note: xAI web search requires Responses API (/v1/responses) which is
@@ -102,7 +102,7 @@ ModelConstraints.capabilities = {
         -- IMPORTANT: Z.AI requires temperature=1.0 when thinking is enabled
         -- (enforced in zai.lua handler, not here — thinking is togglable)
         thinking = {
-            "glm-5.1", "glm-5-turbo", "glm-5",
+            "glm-5.2", "glm-5.1", "glm-5-turbo", "glm-5",
             "glm-4.7", "glm-4.7-flash",
         },
     },
@@ -355,6 +355,17 @@ ModelConstraints.reasoning_profiles = {
           options = { "minimal", "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "minimal" }, maximum = { option = "high" } } },
         -- Gemini 2.5 (thinkingBudget): thinks by default (dynamic), can disable via 0.
+        -- flash-lite listed before flash so the more-specific id matches first.
+        { match = "gemini-2.5-flash-lite", axis = "budget", default_state = "on",
+          can_disable = true, can_enable = true,
+          options = { "dynamic", "low", "medium", "high", "max" }, default_option = "dynamic",
+          budget_map = { dynamic = -1, low = 1024, medium = 8192, high = 16384, max = 24576 },
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "gemini-2.5-pro", axis = "budget", default_state = "on",
+          can_disable = true, can_enable = true,
+          options = { "dynamic", "low", "medium", "high", "max" }, default_option = "dynamic",
+          budget_map = { dynamic = -1, low = 1024, medium = 8192, high = 16384, max = 24576 },
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
         { match = "gemini-2.5-flash", axis = "budget", default_state = "on",
           can_disable = true, can_enable = true,
           options = { "dynamic", "low", "medium", "high", "max" }, default_option = "dynamic",
@@ -363,6 +374,9 @@ ModelConstraints.reasoning_profiles = {
     },
     zai = {
         -- GLM-4.5+: thinking on by default, disableable; temp must be 1.0 when on.
+        -- glm-5.2 first so it wins over the generic "glm-5" prefix below.
+        { match = "glm-5.2", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         { match = "glm-5.1", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           needs_temp_1 = true, stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         { match = "glm-5-turbo", axis = "binary", default_state = "on", can_disable = true, can_enable = true,

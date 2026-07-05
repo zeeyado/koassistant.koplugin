@@ -1334,7 +1334,7 @@ return {
 **Per-provider reasoning config.** This is the top reasoning layer — it wins over your global stance and any per-model override (see [Reasoning/Thinking](#reasoningthinking)).
 ```lua
 reasoning_config = {
-    anthropic = { effort = "high" },    -- low/medium/high (+ xhigh/max on Opus)
+    anthropic = { effort = "high" },    -- low/medium/high (+ xhigh/max on Opus and Sonnet 5)
     openai = { effort = "medium" },     -- low/medium/high/xhigh
     gemini = { level = "high" },        -- minimal/low/medium/high (Gemini 3)
     deepseek = "off",                   -- binary providers: "on" / "off"
@@ -3071,7 +3071,7 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 | Provider | Context Window | Max English Text (~4 chars/token) |
 |----------|---------------|----------------------------------|
 | Gemini 2.5/3 (Pro & Flash) | 1M tokens | ~4M chars — handles any book |
-| Claude (Sonnet 4.6) | 1M tokens | ~4M chars — handles any book |
+| Claude (Sonnet 5, Sonnet 4.6) | 1M tokens | ~4M chars — handles any book |
 | Claude (Haiku 4.5) | 200k tokens | ~800k chars — most novels |
 | OpenAI (GPT-5.5, GPT-5.4) | 400k tokens | ~1.6M chars |
 | DeepSeek (V4) | 1M tokens | ~4M chars — handles any book |
@@ -3087,7 +3087,7 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 | DeepSeek V4 | $0.02 | $0.04 | $0.07 |
 | Claude Haiku 4.5 | $0.06 | $0.13 | exceeds context |
 | GPT-5.4-mini | $0.16 | $0.31 | $0.63 |
-| Claude Sonnet 4.6 | $0.19 | $0.38 | $0.75 |
+| Claude Sonnet 5 / 4.6 | $0.19 | $0.38 | $0.75 |
 | Gemini 2.5 Pro | $0.08 | $0.16 | $0.38 |
 | Claude Opus 4.8 | $0.31 | $0.63 | $1.25 |
 | GPT-5.5 | $0.63 | $1.25 | $2.50 |
@@ -3126,6 +3126,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 
 | Model family | Nature | Control |
 |---|---|---|
+| Claude Sonnet 5 | Adaptive, **on** by default | Off / effort (low…max, incl. xhigh) |
 | Claude Opus 4.8 / 4.7 / 4.6, Sonnet 4.6 | Adaptive, off by default | Off / effort (low…high; Opus adds xhigh, max) |
 | Claude Haiku 4.5 | Extended thinking, off by default | Off / budget level (low…max) |
 | Gemini 3 (3.5-flash, 3.1-pro, 3.1-flash-lite) | Thinks by default | Effort/depth (minimal…high); can't be fully disabled |
@@ -3137,7 +3138,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 | Perplexity Sonar, Groq, Together, Fireworks reasoning models | Always reason | Effort only (low/medium/high) |
 | Mistral Magistral | Always reasons, no control | — (thinking is extracted and viewable) |
 
-> Temperature is forced to 1.0 automatically where a model's reasoning requires it (Claude adaptive/extended, Z.AI thinking). Opus 4.7/4.8 reject sampling parameters entirely; the plugin strips them.
+> Temperature is forced to 1.0 automatically where a model's reasoning requires it (Claude adaptive/extended, Z.AI thinking). Opus 4.7/4.8 and Sonnet 5 reject sampling parameters entirely; the plugin strips them.
 
 **Viewing reasoning:** When a model returns its thinking (Anthropic, Gemini, DeepSeek, Z.AI, Mistral, and R1-style `<think>`-tag models on Groq/Together/Fireworks/SambaNova/Ollama/Perplexity), it's captured and viewable via the **Show Reasoning** button in the chat viewer gear menu. A "*[Reasoning was used]*" indicator appears in chat when enabled (Settings → Advanced → Reasoning → Show Indicator in Chat).
 
@@ -3336,7 +3337,7 @@ The provider will revert to using the system default.
 
 ### Provider Quirks
 
-- **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0; Opus 4.7/4.8 reject all sampling params (temperature is stripped entirely)
+- **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0; Opus 4.7/4.8 and Sonnet 5 reject all sampling params (temperature is stripped entirely)
 - **OpenAI**: Reasoning models (GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
 - **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models use `thinkingBudget` (0=off, -1=dynamic, 128-24576=specific), 3 models use `thinkingLevel`; streaming may arrive in larger chunks than other providers
 - **Ollama**: Local only; for remote instances, set the endpoint via Settings → Provider → Quick setup: Local provider, or in `configuration.lua`
