@@ -127,6 +127,19 @@ function TestConstraintUtils:runAll()
         self:assert(not supports, "claude-3-5-sonnet should NOT support extended thinking")
     end)
 
+    self:test("Sonnet 5: adaptive + no_sampling + tools, NOT extended_thinking", function()
+        -- Sonnet 5 uses adaptive thinking, rejects sampling params (like Opus 4.7/4.8),
+        -- supports tool workflows, but has no manual budget (extended) mode.
+        self:assert(ConstraintUtils.supportsCapability("anthropic", "claude-sonnet-5", "adaptive_thinking"),
+            "claude-sonnet-5 should support adaptive thinking")
+        self:assert(ConstraintUtils.supportsCapability("anthropic", "claude-sonnet-5", "no_sampling_params"),
+            "claude-sonnet-5 should reject sampling params")
+        self:assert(ConstraintUtils.supportsCapability("anthropic", "claude-sonnet-5", "tools"),
+            "claude-sonnet-5 should support tools (claude-sonnet-4 prefix does NOT cover it)")
+        self:assert(not ConstraintUtils.supportsCapability("anthropic", "claude-sonnet-5", "extended_thinking"),
+            "claude-sonnet-5 should NOT support extended (budget) thinking")
+    end)
+
     self:test("supportsCapability detects OpenAI reasoning", function()
         local supports = ConstraintUtils.supportsCapability(
             "openai", "gpt-5.5", "reasoning")

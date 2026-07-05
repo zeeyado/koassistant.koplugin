@@ -30,26 +30,28 @@ ModelConstraints.capabilities = {
         -- Models that support adaptive thinking (4.6+)
         -- New mode: thinking = {type = "adaptive"}, output_config = {effort = "..."}
         adaptive_thinking = {
+            "claude-sonnet-5",        -- 5 Sonnet
             "claude-opus-4-8",        -- 4.8 Opus
             "claude-opus-4-7",        -- 4.7 Opus (prefix-matched for safety)
             "claude-sonnet-4-6",      -- 4.6 Sonnet
             "claude-opus-4-6",        -- 4.6 Opus (prefix-matched for safety)
         },
         -- Models that REJECT sampling params (temperature/top_p/top_k → HTTP 400)
-        -- Opus 4.7+ removed sampling params entirely; the request builder strips them.
+        -- Opus 4.7+ and Sonnet 5 removed sampling params entirely; the builder strips them.
         no_sampling_params = {
+            "claude-sonnet-5",
             "claude-opus-4-8",
             "claude-opus-4-7",
         },
         -- Models that support extended thinking (manual budget_tokens mode)
-        -- Deprecated in favor of adaptive; NOTE: NOT supported on Opus 4.7/4.8 (would 400).
+        -- Deprecated in favor of adaptive; NOTE: NOT supported on Opus 4.7/4.8 or Sonnet 5 (would 400).
         extended_thinking = {
             "claude-sonnet-4-6",      -- 4.6 Sonnet (also adaptive; budget mode still works)
             "claude-haiku-4-5",       -- 4.5 Haiku
         },
         -- Function calling for the book-tool workflows (universal on Claude; list families).
         tools = {
-            "claude-opus-4", "claude-sonnet-4", "claude-haiku-4",
+            "claude-opus-4", "claude-sonnet-4", "claude-sonnet-5", "claude-haiku-4",
         },
     },
     openai = {
@@ -164,6 +166,7 @@ ModelConstraints.capabilities = {
 -- Models with known output token ceilings (prevents API 400 errors)
 ModelConstraints._max_output_tokens = {
     anthropic = {
+        ["claude-sonnet-5"] = 128000,    -- 128K max output
         ["claude-opus-4-8"] = 128000,    -- 128K max output
         ["claude-sonnet-4-6"] = 64000,
         ["claude-haiku-4-5"] = 64000,
@@ -295,6 +298,14 @@ ModelConstraints.reasoning_profiles = {
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
           needs_temp_1 = true },
+        -- Sonnet 5: adaptive-only, rejects sampling params, full effort ladder incl.
+        -- xhigh/max. Unlike the Opus family, adaptive thinking is ON at the API default
+        -- (omitting `thinking` runs adaptive) → default_state = "on"; disable is accepted.
+        { match = "claude-sonnet-5", axis = "adaptive_effort", default_state = "on",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_no_sampling = true },
         -- Sonnet 4.6: adaptive (preferred over legacy budget mode), low/medium/high.
         { match = "claude-sonnet-4-6", axis = "adaptive_effort", default_state = "off",
           can_disable = true, can_enable = true,
@@ -896,8 +907,13 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
                     budget_tokens = math.max(decision.budget or 32000, 1024),
                 }
             end
+        elseif decision.profile and decision.profile.default_state == "on" then
+            -- Model thinks by DEFAULT (e.g. Sonnet 5: omitting `thinking` runs adaptive).
+            -- Omission would still think, so emit an explicit disable to honor the off decision.
+            api_params.thinking = { type = "disabled" }
         end
-        -- off: emit nothing (Anthropic reasons only when `thinking` is present)
+        -- else (off + default-off, e.g. Opus/Sonnet 4.6): emit nothing (Anthropic reasons
+        -- only when `thinking` is present).
     elseif provider == "openai" then
         if on then api_params.reasoning = { effort = decision.effort } end
     elseif provider == "gemini" then
