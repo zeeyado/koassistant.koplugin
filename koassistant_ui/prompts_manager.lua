@@ -2279,9 +2279,9 @@ function PromptsManager:showThinkingSelector(state, refresh_callback)
         title = _("Reasoning/Thinking"),
         info_text = _([[Reasoning enables complex thinking for supported models.
 
-• Global: Follow per-provider settings in Settings menu
-• Force OFF: Never use thinking for this action
-• Configure: Set per-provider reasoning (Anthropic budget, OpenAI effort, Gemini level)
+• Global: no action override — uses your per-model preferences and global stance (Settings → Advanced → Reasoning)
+• Force OFF: never use reasoning for this action
+• Configure: set a per-provider override just for this action (effort/budget level)
 
 May force temperature to 1.0 for some models.]]),
         buttons = buttons,

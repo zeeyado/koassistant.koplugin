@@ -905,6 +905,73 @@ TestRunner:test("action force-on at effort beats global Minimal", function()
     TestRunner:assertEqual(d.effort, "high", "forced effort")
 end)
 
+TestRunner:suite("resolveReasoning: 'Model API default' sentinel ({state='default'})")
+
+TestRunner:test("sentinel suppresses Maximum stance (send_nothing, no params)", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", {
+        global_stance = "maximum",
+        model_pref = { state = "default" },
+    })
+    TestRunner:assertTrue(d.send_nothing, "sentinel -> send_nothing despite Maximum stance")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertNil(params.thinking, "no thinking param")
+    TestRunner:assertNil(params.output_config, "no output_config")
+end)
+
+TestRunner:test("sentinel suppresses Minimal stance on binary axis (no disable param)", function()
+    local d = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", {
+        global_stance = "minimal",           -- would emit an explicit disable
+        model_pref = { state = "default" },  -- sentinel: emit nothing instead
+    })
+    TestRunner:assertTrue(d.send_nothing, "send_nothing")
+    local params = {}
+    ModelConstraints.applyReasoningParams("deepseek", params, d)
+    TestRunner:assertNil(next(params), "no params emitted")
+end)
+
+TestRunner:test("sentinel on budget axis emits nothing", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-haiku-4-5", {
+        global_stance = "maximum",
+        model_pref = { state = "default" },
+    })
+    TestRunner:assertTrue(d.send_nothing, "send_nothing on budget axis")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertNil(params.thinking, "no thinking param")
+end)
+
+TestRunner:test("sentinel reports the model's natural state as mode", function()
+    -- Sonnet 5 default_state=on, Haiku 4.5 default_state=off: mode mirrors reality
+    local d5 = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", {
+        global_stance = "minimal", model_pref = { state = "default" },
+    })
+    TestRunner:assertEqual(d5.mode, "on", "sonnet-5 naturally on")
+    local dh = ModelConstraints.resolveReasoning("anthropic", "claude-haiku-4-5", {
+        global_stance = "maximum", model_pref = { state = "default" },
+    })
+    TestRunner:assertEqual(dh.mode, "off", "haiku naturally off")
+end)
+
+TestRunner:test("action override still beats the sentinel", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", {
+        global_stance = "default",
+        model_pref = { state = "default" },
+        action_override = { force = "on", effort = "max" },
+    })
+    TestRunner:assertFalse(d.send_nothing, "action override wins")
+    TestRunner:assertEqual(d.effort, "max", "forced effort applied")
+end)
+
+TestRunner:test("summaryLabel for sentinel says Model default", function()
+    local ReasoningPrefs = require("reasoning_prefs")
+    local f = { reasoning_prefs = { stance = "maximum", models = {
+        ["deepseek/deepseek-v4-pro"] = { state = "default" },
+    } } }
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"),
+        _("Model default"), "sentinel label")
+end)
+
 TestRunner:suite("parseActionReasoning")
 
 TestRunner:test("string 'off' -> force off", function()
@@ -1010,8 +1077,8 @@ end)
 
 TestRunner:test("summaryLabel reflects effective state", function()
     local f = {}
-    -- default stance, deepseek thinks naturally -> "Default"
-    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Default"), "default")
+    -- default stance, deepseek thinks naturally -> "Model default" (send_nothing label)
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Model default"), "default")
     ReasoningPrefs.setStance(f, "minimal")
     TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Off"), "minimal -> off")
     -- Opus at maximum shows the effort level

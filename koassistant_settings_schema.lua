@@ -1806,7 +1806,7 @@ local SettingsSchema = {
                             default = "default",
                             options = {
                                 { value = "minimal", text = _("Minimal (off where possible)") },
-                                { value = "default", text = _("Default (model's normal behavior)") },
+                                { value = "default", text = _("Default (let each model decide)") },
                                 { value = "maximum", text = _("Maximum (most reasoning)") },
                             },
                             separator = true,
