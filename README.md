@@ -440,7 +440,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - **Permanent Scan Folders**: Folders always scanned for library actions. You can also pick folders on the fly in the input dialog
 - The global toggle is an absolute gate: all library scanning (including on-the-fly folders picked in the input dialog) requires it to be enabled. Per-action `use_library` flag provides the second gate
 
-**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction AND the library scanning toggle. When the active provider is trusted, all data types (highlights, annotations, notebook, reading progress, book text, and library catalog) are available without toggling individual settings. Trusted providers still require at least one folder (permanent or on-the-fly) for library scanning.
+**Trusted Providers:** Mark providers you fully trust (e.g., local Ollama) to bypass all data sharing controls AND text extraction AND the library scanning toggle. Trust is evaluated against the provider a request actually goes to — your active provider, or an action's own pinned provider if it has one — so pinning an action to a different provider never inherits trust it shouldn't. When that provider is trusted, all data types (highlights, annotations, notebook, reading progress, book text, and library catalog) are available without toggling individual settings. Trusted providers still require at least one folder (permanent or on-the-fly) for library scanning.
 
 **Graceful degradation:** When you disable a data type, actions adapt automatically. Section placeholders like `{highlights_section}` simply disappear from prompts, so you don't need to modify your actions. For text extraction, most actions fall back to AI training knowledge; see [Text Extraction and Double-gating](#text-extraction-and-double-gating) for details.
 
@@ -2249,7 +2249,7 @@ Two complementary features for making important content easily available:
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
 
 #### Other
-- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or 20+ other translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
+- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or one of 24 translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 - **Panel Alignment**: Left-align (instead of center) the button text in the Quick Settings and Quick Actions panels (default: on; also reachable from each panel's gear menu).
 
 ### Chat & Export Settings
@@ -2617,10 +2617,10 @@ KOAssistant includes both automatic and manual update checking to keep you infor
 
 ### Automatic Update Check
 
-By default, KOAssistant automatically checks for updates **once per session** shortly after KOReader starts (only when Wi-Fi is on).
+By default, KOAssistant automatically checks for updates **at most once a day**, about 20 seconds after KOReader starts (only when Wi-Fi is on) — deferred so it never competes with opening your book.
 
 **How it works:**
-1. Shortly after KOReader starts, KOAssistant checks for updates silently in the background (no notification for auto-checks)
+1. Shortly after KOReader starts, KOAssistant checks for updates silently in the background (no notification for auto-checks); if a check succeeded within the last 24 hours, it's skipped entirely
 2. The check runs in the background without blocking your workflow (8 second timeout)
 3. If a new version is available, a dialog appears with:
    - Current version and latest version
@@ -2634,7 +2634,7 @@ By default, KOAssistant automatically checks for updates **once per session** sh
 - Compares your installed version against GitHub releases
 - Includes both stable releases and pre-releases (alpha/beta)
 - Uses semantic versioning (handles version strings like "0.6.0-beta")
-- Only checks once per session to avoid repeated notifications
+- Checks at most once a day (and once per session); a failed check is retried on the next start
 
 **To disable automatic checking:**
 - Go to **Settings → About → Auto-check for updates on startup** and toggle it off
@@ -3116,9 +3116,9 @@ Reasoning is controlled **per model**, not by a single global switch. Every mode
 
 Because the stance respects each model's capability, "Minimal" genuinely turns reasoning *off* on models that support it (DeepSeek V4, Gemini 2.5, Claude, GPT-5.4, …) and dials always-on models (Perplexity, GPT-5.5, Grok) down to their lowest effort. It never claims a model is off when it isn't.
 
-**2. Per-model overrides** (Settings → Advanced → Reasoning → Per-model reasoning). Pick a provider, then a model, then set its reasoning explicitly: **Follow global** (the default — defer to the stance), **Off** (where supported), or a specific level (effort/depth/budget, depending on the model). Only models you can actually configure are listed.
+**2. Per-model overrides** (Settings → Advanced → Reasoning → Per-model reasoning). Pick a provider, then a model, then set its reasoning explicitly: **Follow global** (the default — defer to the stance), **Model API default** (pin this model to its own natural behavior, regardless of the stance), **Off** (where supported), or a specific level (effort/depth/budget, depending on the model). Only models you can actually configure are listed, and each row shows both your setting and what it resolves to (e.g. `Follow global → High`).
 
-The Reasoning chip in the Quick Settings panel shows the **effective** state for your current model (e.g. "Default", "Off", "High") and opens a popup with the global stance plus a control for the model in front of you.
+The Reasoning chip in the Quick Settings panel shows the **effective** state for your current model (e.g. "Model default", "Off", "High") and opens a popup with the global stance plus a control for the model in front of you — plus an **"Other models…"** browser to reach any configurable model without leaving the panel.
 
 **Precedence** (highest wins): per-action setting → per-model override → global stance → the model's natural default.
 
@@ -3712,11 +3712,12 @@ KOAssistant supports localization with translations managed via Weblate.
 
 **[Contribute translations on Weblate](https://hosted.weblate.org/engage/koassistant/)**
 
-**Current languages (20):**
-- **Western European:** French, German, Italian, Spanish, Portuguese, Brazilian Portuguese, Dutch
+**Current languages (24):**
+- **Western & Northern European:** French, German, Italian, Spanish, Portuguese, Brazilian Portuguese, Dutch, Finnish
 - **Eastern European:** Russian, Polish, Czech, Ukrainian
-- **Asian:** Chinese, Japanese, Korean, Vietnamese, Indonesian, Thai, Hindi
-- **Middle Eastern:** Arabic, Turkish
+- **Asian:** Chinese, Japanese, Korean, Vietnamese, Indonesian, Thai
+- **South Asian:** Hindi, Bengali, Urdu
+- **Middle Eastern:** Arabic, Persian (Farsi), Turkish
 
 **Important:** Most translations are AI-generated and marked as "needs review" (fuzzy). They may contain inaccuracies or awkward phrasing. Human review and corrections are very welcome!
 

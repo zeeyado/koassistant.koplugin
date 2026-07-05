@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: KOAssistant 0.18.0-dev\n"
 "Report-Msgid-Bugs-To: https://github.com/zeeyado/koassistant.koplugin/"
 "issues\n"
-"POT-Creation-Date: 2026-07-05 13:12+0200\n"
+"POT-Creation-Date: 2026-07-05 14:11+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -600,8 +600,8 @@ msgstr ""
 #: koassistant_book_settings.lua:512 koassistant_book_settings.lua:516
 #: koassistant_book_settings.lua:619 koassistant_book_settings.lua:638
 #: koassistant_book_settings.lua:650 koassistant_dialogs.lua:3748
-#: koassistant_dialogs.lua:3752 koassistant_settings_schema.lua:452
-#: koassistant_settings_schema.lua:890 main.lua:3758 main.lua:9080
+#: koassistant_dialogs.lua:3752 koassistant_settings_schema.lua:456
+#: koassistant_settings_schema.lua:894 main.lua:3758 main.lua:9080
 #: main.lua:9082 reasoning_prefs.lua:112 koassistant_ui/prompts_manager.lua:55
 #: koassistant_ui/prompts_manager.lua:815
 #: koassistant_ui/prompts_manager.lua:1704
@@ -695,12 +695,12 @@ msgid "Follow global"
 msgstr ""
 
 #: koassistant_book_settings.lua:620 koassistant_book_settings.lua:640
-#: koassistant_settings_schema.lua:454
+#: koassistant_settings_schema.lua:458
 msgid "Title, author & position"
 msgstr ""
 
 #: koassistant_book_settings.lua:621 koassistant_book_settings.lua:639
-#: koassistant_settings_schema.lua:453
+#: koassistant_settings_schema.lua:457
 msgid "Title & author"
 msgstr ""
 
@@ -795,42 +795,42 @@ msgid "Book Settings"
 msgstr ""
 
 #: koassistant_book_settings.lua:735 koassistant_book_settings.lua:888
-#: koassistant_settings_schema.lua:668
+#: koassistant_settings_schema.lua:672
 msgid "Easy"
 msgstr ""
 
 #: koassistant_book_settings.lua:736 koassistant_book_settings.lua:890
-#: koassistant_settings_schema.lua:670
+#: koassistant_settings_schema.lua:674
 msgid "Hard"
 msgstr ""
 
 #: koassistant_book_settings.lua:737 koassistant_book_settings.lua:889
-#: koassistant_settings_schema.lua:669 reasoning_prefs.lua:31
+#: koassistant_settings_schema.lua:673 reasoning_prefs.lua:31
 msgid "Medium"
 msgstr ""
 
 #: koassistant_book_settings.lua:740 koassistant_book_settings.lua:909
-#: koassistant_settings_schema.lua:614
+#: koassistant_settings_schema.lua:618
 msgid "Auto-detect"
 msgstr ""
 
 #: koassistant_book_settings.lua:741 koassistant_book_settings.lua:910
-#: koassistant_settings_schema.lua:615
+#: koassistant_settings_schema.lua:619
 msgid "Top level (Level 1)"
 msgstr ""
 
 #: koassistant_book_settings.lua:742 koassistant_book_settings.lua:745
-#: koassistant_book_settings.lua:911 koassistant_settings_schema.lua:616
+#: koassistant_book_settings.lua:911 koassistant_settings_schema.lua:620
 msgid "Level 2"
 msgstr ""
 
 #: koassistant_book_settings.lua:743 koassistant_book_settings.lua:912
-#: koassistant_settings_schema.lua:617
+#: koassistant_settings_schema.lua:621
 msgid "Level 3"
 msgstr ""
 
 #: koassistant_book_settings.lua:744 koassistant_book_settings.lua:913
-#: koassistant_settings_schema.lua:618
+#: koassistant_settings_schema.lua:622
 msgid "All TOC headings"
 msgstr ""
 
@@ -1320,44 +1320,44 @@ msgstr ""
 
 #: koassistant_chat_history_dialog.lua:1988
 #: koassistant_chat_history_dialog.lua:2307 koassistant_chatgptviewer.lua:524
-#: koassistant_dialogs.lua:1741 koassistant_settings_schema.lua:485
-#: koassistant_settings_schema.lua:500 koassistant_settings_schema.lua:516
-#: koassistant_settings_schema.lua:532 koassistant_settings_schema.lua:928
-#: koassistant_settings_schema.lua:944 koassistant_settings_schema.lua:1081
-#: koassistant_settings_schema.lua:1097
+#: koassistant_dialogs.lua:1741 koassistant_settings_schema.lua:489
+#: koassistant_settings_schema.lua:504 koassistant_settings_schema.lua:520
+#: koassistant_settings_schema.lua:536 koassistant_settings_schema.lua:932
+#: koassistant_settings_schema.lua:948 koassistant_settings_schema.lua:1085
+#: koassistant_settings_schema.lua:1101
 msgid "Full (metadata + chat)"
 msgstr ""
 
 #: koassistant_chat_history_dialog.lua:1989
 #: koassistant_chat_history_dialog.lua:2308 koassistant_chatgptviewer.lua:525
-#: koassistant_dialogs.lua:1742 koassistant_settings_schema.lua:486
-#: koassistant_settings_schema.lua:501 koassistant_settings_schema.lua:517
-#: koassistant_settings_schema.lua:533 koassistant_settings_schema.lua:929
-#: koassistant_settings_schema.lua:945 koassistant_settings_schema.lua:1082
-#: koassistant_settings_schema.lua:1098
+#: koassistant_dialogs.lua:1742 koassistant_settings_schema.lua:490
+#: koassistant_settings_schema.lua:505 koassistant_settings_schema.lua:521
+#: koassistant_settings_schema.lua:537 koassistant_settings_schema.lua:933
+#: koassistant_settings_schema.lua:949 koassistant_settings_schema.lua:1086
+#: koassistant_settings_schema.lua:1102
 msgid "Question + Response"
 msgstr ""
 
 #: koassistant_chat_history_dialog.lua:1990
 #: koassistant_chat_history_dialog.lua:2309 koassistant_chatgptviewer.lua:526
-#: koassistant_dialogs.lua:1743 koassistant_settings_schema.lua:1261
+#: koassistant_dialogs.lua:1743 koassistant_settings_schema.lua:1265
 msgid "Response only"
 msgstr ""
 
 #: koassistant_chat_history_dialog.lua:1991
 #: koassistant_chat_history_dialog.lua:2310 koassistant_chatgptviewer.lua:527
-#: koassistant_dialogs.lua:1744 koassistant_settings_schema.lua:488
-#: koassistant_settings_schema.lua:503 koassistant_settings_schema.lua:519
-#: koassistant_settings_schema.lua:535 koassistant_settings_schema.lua:931
-#: koassistant_settings_schema.lua:947 koassistant_settings_schema.lua:1084
-#: koassistant_settings_schema.lua:1100
+#: koassistant_dialogs.lua:1744 koassistant_settings_schema.lua:492
+#: koassistant_settings_schema.lua:507 koassistant_settings_schema.lua:523
+#: koassistant_settings_schema.lua:539 koassistant_settings_schema.lua:935
+#: koassistant_settings_schema.lua:951 koassistant_settings_schema.lua:1088
+#: koassistant_settings_schema.lua:1104
 msgid "Everything (debug)"
 msgstr ""
 
 #: koassistant_chat_history_dialog.lua:2016 koassistant_chatgptviewer.lua:1146
 #: koassistant_chatgptviewer.lua:1553 koassistant_chatgptviewer.lua:1981
-#: koassistant_dialogs.lua:1769 koassistant_settings_schema.lua:480
-#: koassistant_settings_schema.lua:922 koassistant_settings_schema.lua:1075
+#: koassistant_dialogs.lua:1769 koassistant_settings_schema.lua:484
+#: koassistant_settings_schema.lua:926 koassistant_settings_schema.lua:1079
 msgid "Copy Content"
 msgstr ""
 
@@ -1427,7 +1427,7 @@ msgstr ""
 msgid "General"
 msgstr ""
 
-#: koassistant_chat_history_dialog.lua:2478 koassistant_settings_schema.lua:743
+#: koassistant_chat_history_dialog.lua:2478 koassistant_settings_schema.lua:747
 #: koassistant_ui/prompts_manager.lua:1358
 #: koassistant_ui/prompts_manager.lua:1490
 #: koassistant_ui/prompts_manager.lua:4992
@@ -1483,8 +1483,8 @@ msgid ""
 "%1"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:526 koassistant_settings_schema.lua:1083
-#: koassistant_settings_schema.lua:1099
+#: koassistant_chatgptviewer.lua:526 koassistant_settings_schema.lua:1087
+#: koassistant_settings_schema.lua:1103
 msgid "Translation only"
 msgstr ""
 
@@ -1872,8 +1872,8 @@ msgstr ""
 msgid "Failed to create highlight"
 msgstr ""
 
-#: koassistant_chatgptviewer.lua:3821 koassistant_settings_schema.lua:495
-#: koassistant_settings_schema.lua:938 koassistant_settings_schema.lua:1091
+#: koassistant_chatgptviewer.lua:3821 koassistant_settings_schema.lua:499
+#: koassistant_settings_schema.lua:942 koassistant_settings_schema.lua:1095
 msgid "Note Content"
 msgstr ""
 
@@ -2108,12 +2108,12 @@ msgstr ""
 msgid "Temperature"
 msgstr ""
 
-#: koassistant_constants.lua:178 koassistant_settings_schema.lua:1792
+#: koassistant_constants.lua:178 koassistant_settings_schema.lua:1796
 #: koassistant_ui/prompts_manager.lua:851
 msgid "Reasoning"
 msgstr ""
 
-#: koassistant_constants.lua:179 koassistant_settings_schema.lua:1838
+#: koassistant_constants.lua:179 koassistant_settings_schema.lua:1842
 #: koassistant_ui/prompts_manager.lua:846
 #: koassistant_ui/prompts_manager.lua:2212
 msgid "Web Search"
@@ -2152,7 +2152,7 @@ msgstr ""
 msgid "Library Chat/Action"
 msgstr ""
 
-#: koassistant_constants.lua:193 koassistant_settings_schema.lua:1212
+#: koassistant_constants.lua:193 koassistant_settings_schema.lua:1216
 #: main.lua:9391 koassistant_ui/prompts_manager.lua:522
 #: koassistant_ui/prompts_manager.lua:571
 #: koassistant_ui/prompts_manager.lua:738
@@ -2971,11 +2971,11 @@ msgstr ""
 msgid "View Mode"
 msgstr ""
 
-#: koassistant_settings_schema.lua:136 koassistant_settings_schema.lua:472
+#: koassistant_settings_schema.lua:136 koassistant_settings_schema.lua:476
 msgid "Markdown"
 msgstr ""
 
-#: koassistant_settings_schema.lua:137 koassistant_settings_schema.lua:473
+#: koassistant_settings_schema.lua:137 koassistant_settings_schema.lua:477
 msgid "Plain Text"
 msgstr ""
 
@@ -3131,107 +3131,107 @@ msgstr ""
 msgid "Match KOReader"
 msgstr ""
 
-#: koassistant_settings_schema.lua:322
+#: koassistant_settings_schema.lua:326
 msgid "Please restart KOReader for the language change to take effect."
 msgstr ""
 
-#: koassistant_settings_schema.lua:333
+#: koassistant_settings_schema.lua:337
 msgid "Chat & Export Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:339
+#: koassistant_settings_schema.lua:343
 msgid "Auto-save All Chats"
 msgstr ""
 
-#: koassistant_settings_schema.lua:346
+#: koassistant_settings_schema.lua:350
 msgid "Auto-save Continued Chats"
 msgstr ""
 
-#: koassistant_settings_schema.lua:356
+#: koassistant_settings_schema.lua:360
 msgid "Streaming"
 msgstr ""
 
-#: koassistant_settings_schema.lua:361 koassistant_settings_schema.lua:954
-#: koassistant_settings_schema.lua:1067
+#: koassistant_settings_schema.lua:365 koassistant_settings_schema.lua:958
+#: koassistant_settings_schema.lua:1071
 msgid "Enable Streaming"
 msgstr ""
 
-#: koassistant_settings_schema.lua:368
+#: koassistant_settings_schema.lua:372
 msgid "Auto-scroll Streaming"
 msgstr ""
 
-#: koassistant_settings_schema.lua:376
+#: koassistant_settings_schema.lua:380
 msgid "Page-based Scroll (e-ink)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:383
+#: koassistant_settings_schema.lua:387
 msgid ""
 "Stream text into empty page space instead of scrolling from the bottom. "
 "Reduces full-screen refreshes on e-ink. Disable for continuous bottom-"
 "scrolling."
 msgstr ""
 
-#: koassistant_settings_schema.lua:388
+#: koassistant_settings_schema.lua:392
 msgid "Large Stream Dialog"
 msgstr ""
 
-#: koassistant_settings_schema.lua:396
+#: koassistant_settings_schema.lua:400
 msgid "Stream Poll Interval (ms)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:403
+#: koassistant_settings_schema.lua:407
 msgid ""
 "How often to check for new stream data.\n"
 "Lower = snappier but uses more battery."
 msgstr ""
 
-#: koassistant_settings_schema.lua:409
+#: koassistant_settings_schema.lua:413
 msgid "Display Refresh Interval (ms)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:416
+#: koassistant_settings_schema.lua:420
 msgid ""
 "How often to refresh the display during streaming.\n"
 "Higher = better performance on slower devices."
 msgstr ""
 
-#: koassistant_settings_schema.lua:424
+#: koassistant_settings_schema.lua:428
 msgid "Scroll to Last Message (Experimental)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:427
+#: koassistant_settings_schema.lua:431
 msgid ""
 "When resuming or replying to a chat, try to scroll so your last question is "
 "visible. When off, shows top for new chats and bottom for replies."
 msgstr ""
 
-#: koassistant_settings_schema.lua:432
+#: koassistant_settings_schema.lua:436
 msgid "Spoiler-free Chat"
 msgstr ""
 
-#: koassistant_settings_schema.lua:435
+#: koassistant_settings_schema.lua:439
 msgid ""
 "When enabled, instructs the AI not to reveal events beyond your current "
 "reading position in book and highlight chats. Custom actions can use the "
 "{spoiler_free_nudge} placeholder."
 msgstr ""
 
-#: koassistant_settings_schema.lua:440
+#: koassistant_settings_schema.lua:444
 msgid "Show Spoiler-free Chat Checkbox"
 msgstr ""
 
-#: koassistant_settings_schema.lua:443
+#: koassistant_settings_schema.lua:447
 msgid ""
 "Show a session checkbox in the book/highlight input dialog to toggle spoiler-"
 "free chat on the fly. When the global setting above is on, the checkbox "
 "starts checked but can be unchecked per session."
 msgstr ""
 
-#: koassistant_settings_schema.lua:448
+#: koassistant_settings_schema.lua:452
 msgid "Book Info in Chat"
 msgstr ""
 
-#: koassistant_settings_schema.lua:456
+#: koassistant_settings_schema.lua:460
 msgid ""
 "Default book context sent with freeform chats and book-aware actions "
 "(Explain, etc.). 'None' sends no book line; 'Title & author' is the default; "
@@ -3240,75 +3240,75 @@ msgid ""
 "that don't request book info (e.g. Translate) are unaffected."
 msgstr ""
 
-#: koassistant_settings_schema.lua:463 koassistant_settings_schema.lua:1257
+#: koassistant_settings_schema.lua:467 koassistant_settings_schema.lua:1261
 msgid "Content Format"
 msgstr ""
 
-#: koassistant_settings_schema.lua:468
+#: koassistant_settings_schema.lua:472
 msgid "Export Style"
 msgstr ""
 
-#: koassistant_settings_schema.lua:475
+#: koassistant_settings_schema.lua:479
 msgid ""
 "Markdown uses # headers and **bold**. Plain text uses simple formatting."
 msgstr ""
 
-#: koassistant_settings_schema.lua:484 koassistant_settings_schema.lua:499
-#: koassistant_settings_schema.lua:515 koassistant_settings_schema.lua:531
-#: koassistant_settings_schema.lua:551 koassistant_settings_schema.lua:927
-#: koassistant_settings_schema.lua:943 koassistant_settings_schema.lua:1080
-#: koassistant_settings_schema.lua:1096
+#: koassistant_settings_schema.lua:488 koassistant_settings_schema.lua:503
+#: koassistant_settings_schema.lua:519 koassistant_settings_schema.lua:535
+#: koassistant_settings_schema.lua:555 koassistant_settings_schema.lua:931
+#: koassistant_settings_schema.lua:947 koassistant_settings_schema.lua:1084
+#: koassistant_settings_schema.lua:1100
 msgid "Ask every time"
 msgstr ""
 
-#: koassistant_settings_schema.lua:487 koassistant_settings_schema.lua:502
-#: koassistant_settings_schema.lua:518 koassistant_settings_schema.lua:534
+#: koassistant_settings_schema.lua:491 koassistant_settings_schema.lua:506
+#: koassistant_settings_schema.lua:522 koassistant_settings_schema.lua:538
 msgid "Last response only"
 msgstr ""
 
-#: koassistant_settings_schema.lua:490
+#: koassistant_settings_schema.lua:494
 msgid "What to include when copying chat to clipboard."
 msgstr ""
 
-#: koassistant_settings_schema.lua:505
+#: koassistant_settings_schema.lua:509
 msgid "What to include when saving to note."
 msgstr ""
 
-#: koassistant_settings_schema.lua:510
+#: koassistant_settings_schema.lua:514
 msgid "Save to File Content"
 msgstr ""
 
-#: koassistant_settings_schema.lua:514 koassistant_settings_schema.lua:530
+#: koassistant_settings_schema.lua:518 koassistant_settings_schema.lua:534
 msgid "Follow Copy Content"
 msgstr ""
 
-#: koassistant_settings_schema.lua:521
+#: koassistant_settings_schema.lua:525
 msgid ""
 "What to include when saving chat to file. 'Follow Copy Content' uses your "
 "Copy Content setting."
 msgstr ""
 
-#: koassistant_settings_schema.lua:526
+#: koassistant_settings_schema.lua:530
 msgid "Chat History Export"
 msgstr ""
 
-#: koassistant_settings_schema.lua:537
+#: koassistant_settings_schema.lua:541
 msgid "What to include when exporting from Chat History."
 msgstr ""
 
-#: koassistant_settings_schema.lua:545 koassistant_settings_schema.lua:1284
+#: koassistant_settings_schema.lua:549 koassistant_settings_schema.lua:1288
 msgid "Save Location"
 msgstr ""
 
-#: koassistant_settings_schema.lua:549
+#: koassistant_settings_schema.lua:553
 msgid "KOAssistant exports folder"
 msgstr ""
 
-#: koassistant_settings_schema.lua:550 koassistant_settings_schema.lua:1290
+#: koassistant_settings_schema.lua:554 koassistant_settings_schema.lua:1294
 msgid "Custom folder"
 msgstr ""
 
-#: koassistant_settings_schema.lua:559
+#: koassistant_settings_schema.lua:563
 msgid ""
 "Where to save exported chat files. Creates subfolders for book/general/multi-"
 "book chats.\n"
@@ -3320,7 +3320,7 @@ msgid ""
 "%2"
 msgstr ""
 
-#: koassistant_settings_schema.lua:561
+#: koassistant_settings_schema.lua:565
 msgid ""
 "Where to save exported chat files. Creates subfolders for book/general/multi-"
 "book chats.\n"
@@ -3329,39 +3329,39 @@ msgid ""
 "%1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:577
+#: koassistant_settings_schema.lua:581
 msgid "Save book chats alongside books"
 msgstr ""
 
-#: koassistant_settings_schema.lua:580
+#: koassistant_settings_schema.lua:584
 msgid ""
 "When enabled, book chats are saved to a 'chats' subfolder next to the book "
 "file instead of the central location."
 msgstr ""
 
-#: koassistant_settings_schema.lua:590
+#: koassistant_settings_schema.lua:594
 msgid "Reading & Library"
 msgstr ""
 
-#: koassistant_settings_schema.lua:597
+#: koassistant_settings_schema.lua:601
 msgid "Chapter Quiz"
 msgstr ""
 
-#: koassistant_settings_schema.lua:602
+#: koassistant_settings_schema.lua:606
 msgid "Quiz on Chapter End"
 msgstr ""
 
-#: koassistant_settings_schema.lua:605
+#: koassistant_settings_schema.lua:609
 msgid ""
 "Offer a comprehension quiz when you finish reading a chapter. Requires a "
 "book with a table of contents."
 msgstr ""
 
-#: koassistant_settings_schema.lua:610
+#: koassistant_settings_schema.lua:614
 msgid "Quiz Chapter Level"
 msgstr ""
 
-#: koassistant_settings_schema.lua:620
+#: koassistant_settings_schema.lua:624
 msgid ""
 "Which TOC level counts as a 'chapter' for end-of-chapter quizzes. A fixed "
 "level falls back to the deepest level the book actually has. 'Auto-detect' "
@@ -3370,22 +3370,22 @@ msgid ""
 "skimmed chapters are skipped by the length setting below."
 msgstr ""
 
-#: koassistant_settings_schema.lua:626
+#: koassistant_settings_schema.lua:630
 msgid "Minimum Chapter Length (pages)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:633
+#: koassistant_settings_schema.lua:637
 msgid ""
 "Skip the chapter-end quiz for chapters shorter than this many pages (0 = no "
 "minimum). Also sets the threshold 'Auto-detect' uses to pick the chapter "
 "level. Can be overridden per book in Book Settings."
 msgstr ""
 
-#: koassistant_settings_schema.lua:639
+#: koassistant_settings_schema.lua:643
 msgid "Minimum Reading Time (minutes)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:646
+#: koassistant_settings_schema.lua:650
 msgid ""
 "Skip the chapter-end quiz unless you spent at least this many minutes "
 "reading the chapter (0 = no minimum). Catches flipping quickly through a "
@@ -3393,84 +3393,84 @@ msgid ""
 "the quiz is still offered. Can be overridden per book in Book Settings."
 msgstr ""
 
-#: koassistant_settings_schema.lua:652
+#: koassistant_settings_schema.lua:656
 msgid "Question Count"
 msgstr ""
 
-#: koassistant_settings_schema.lua:659
+#: koassistant_settings_schema.lua:663
 msgid "Total number of questions to generate per quiz."
 msgstr ""
 
-#: koassistant_settings_schema.lua:664
+#: koassistant_settings_schema.lua:668
 msgid "Difficulty"
 msgstr ""
 
-#: koassistant_settings_schema.lua:672
+#: koassistant_settings_schema.lua:676
 msgid ""
 "Easy: straightforward recall. Medium: comprehension and application. Hard: "
 "analysis and synthesis."
 msgstr ""
 
-#: koassistant_settings_schema.lua:677
+#: koassistant_settings_schema.lua:681
 msgid "Include Multiple Choice"
 msgstr ""
 
-#: koassistant_settings_schema.lua:684
+#: koassistant_settings_schema.lua:688
 msgid "Include Short Answer"
 msgstr ""
 
-#: koassistant_settings_schema.lua:691
+#: koassistant_settings_schema.lua:695
 msgid "Include Discussion"
 msgstr ""
 
-#: koassistant_settings_schema.lua:700
+#: koassistant_settings_schema.lua:704
 msgid "Recap Reminder"
 msgstr ""
 
-#: koassistant_settings_schema.lua:705
+#: koassistant_settings_schema.lua:709
 msgid "Remind to Recap on Book Open"
 msgstr ""
 
-#: koassistant_settings_schema.lua:708
+#: koassistant_settings_schema.lua:712
 msgid ""
 "Show a reminder to run Recap when you open a book you haven't read in a "
 "while."
 msgstr ""
 
-#: koassistant_settings_schema.lua:713
+#: koassistant_settings_schema.lua:717
 msgid "Days Before Reminder"
 msgstr ""
 
-#: koassistant_settings_schema.lua:720
+#: koassistant_settings_schema.lua:724
 msgid "Number of days since last reading before the reminder appears."
 msgstr ""
 
-#: koassistant_settings_schema.lua:728
+#: koassistant_settings_schema.lua:732
 msgid "End of Book"
 msgstr ""
 
-#: koassistant_settings_schema.lua:733
+#: koassistant_settings_schema.lua:737
 msgid "Suggest Next Read on Finish"
 msgstr ""
 
-#: koassistant_settings_schema.lua:736
+#: koassistant_settings_schema.lua:740
 msgid ""
 "When you reach the end of a book, offer to suggest what to read next from "
 "your library. Requires library scanning to be enabled with at least one "
 "folder configured."
 msgstr ""
 
-#: koassistant_settings_schema.lua:748 koassistant_settings_schema.lua:1449
+#: koassistant_settings_schema.lua:752 koassistant_settings_schema.lua:1453
 msgid "Allow Library Scanning"
 msgstr ""
 
-#: koassistant_settings_schema.lua:751
+#: koassistant_settings_schema.lua:755
 msgid ""
 "Enables library actions that analyze your book collection. Add permanent "
 "scan folders below, or pick folders on the fly in the input dialog."
 msgstr ""
 
-#: koassistant_settings_schema.lua:757
+#: koassistant_settings_schema.lua:761
 msgid ""
 "Enables library actions that analyze your book collection.\n"
 "\n"
@@ -3478,359 +3478,359 @@ msgid ""
 "dialog."
 msgstr ""
 
-#: koassistant_settings_schema.lua:769
+#: koassistant_settings_schema.lua:773
 msgid "Permanent Scan Folders: None"
 msgstr ""
 
-#: koassistant_settings_schema.lua:771
+#: koassistant_settings_schema.lua:775
 msgid "Permanent Scan Folders: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:775
+#: koassistant_settings_schema.lua:779
 msgid ""
 "Folders always scanned for library actions. You can also pick folders on the "
 "fly in the input dialog."
 msgstr ""
 
-#: koassistant_settings_schema.lua:785
+#: koassistant_settings_schema.lua:789
 msgid "AI Language Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:802
+#: koassistant_settings_schema.lua:806
 msgid "Your Languages: %1 (auto)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:804
+#: koassistant_settings_schema.lua:808
 msgid "Your Languages: (not set)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:806 koassistant_settings_schema.lua:813
+#: koassistant_settings_schema.lua:810 koassistant_settings_schema.lua:817
 msgid "Your Languages: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:823
+#: koassistant_settings_schema.lua:827
 msgid "Primary Language: (not set)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:825
+#: koassistant_settings_schema.lua:829
 msgid "Primary Language: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:836
+#: koassistant_settings_schema.lua:840
 msgid "Additional Languages: (none)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:843
+#: koassistant_settings_schema.lua:847
 msgid "Additional Languages: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:854
+#: koassistant_settings_schema.lua:858
 msgid "Dictionary Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:860
+#: koassistant_settings_schema.lua:864
 msgid "AI Buttons in Dictionary Popup"
 msgstr ""
 
-#: koassistant_settings_schema.lua:863
+#: koassistant_settings_schema.lua:867
 msgid "Show AI Dictionary button when tapping on a word"
 msgstr ""
 
-#: koassistant_settings_schema.lua:872
+#: koassistant_settings_schema.lua:876
 msgid "Response Language: (Follow Translation)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:874
+#: koassistant_settings_schema.lua:878
 msgid "Response Language: (Follow Primary)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:876
+#: koassistant_settings_schema.lua:880
 msgid "Response Language: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:887 main.lua:3755
+#: koassistant_settings_schema.lua:891 main.lua:3755
 msgid "Sentence"
 msgstr ""
 
-#: koassistant_settings_schema.lua:888 main.lua:3756
+#: koassistant_settings_schema.lua:892 main.lua:3756
 msgid "Paragraph"
 msgstr ""
 
-#: koassistant_settings_schema.lua:889 main.lua:3757
+#: koassistant_settings_schema.lua:893 main.lua:3757
 msgid "Characters"
 msgstr ""
 
-#: koassistant_settings_schema.lua:892
+#: koassistant_settings_schema.lua:896
 msgid "Context Mode: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:899
+#: koassistant_settings_schema.lua:903
 msgid "Context Characters"
 msgstr ""
 
-#: koassistant_settings_schema.lua:905
+#: koassistant_settings_schema.lua:909
 msgid ""
 "Number of characters to include before/after the word when Context Mode is "
 "'Characters'"
 msgstr ""
 
-#: koassistant_settings_schema.lua:914
+#: koassistant_settings_schema.lua:918
 msgid "Disable Auto-save for Dictionary"
 msgstr ""
 
-#: koassistant_settings_schema.lua:917
+#: koassistant_settings_schema.lua:921
 msgid ""
 "When enabled, dictionary lookups are not auto-saved. When disabled, "
 "dictionary chats follow your general chat saving settings. You can always "
 "save manually from an expanded view."
 msgstr ""
 
-#: koassistant_settings_schema.lua:926 koassistant_settings_schema.lua:942
-#: koassistant_settings_schema.lua:1079 koassistant_settings_schema.lua:1095
+#: koassistant_settings_schema.lua:930 koassistant_settings_schema.lua:946
+#: koassistant_settings_schema.lua:1083 koassistant_settings_schema.lua:1099
 msgid "Follow global setting"
 msgstr ""
 
-#: koassistant_settings_schema.lua:930 koassistant_settings_schema.lua:946
+#: koassistant_settings_schema.lua:934 koassistant_settings_schema.lua:950
 msgid "Definition only (Recommended)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:933
+#: koassistant_settings_schema.lua:937
 msgid "What to include when copying in dictionary view."
 msgstr ""
 
-#: koassistant_settings_schema.lua:949
+#: koassistant_settings_schema.lua:953
 msgid "What to include when saving dictionary results to a note."
 msgstr ""
 
-#: koassistant_settings_schema.lua:957
+#: koassistant_settings_schema.lua:961
 msgid ""
 "Stream dictionary responses in real-time. Disable to wait for complete "
 "response."
 msgstr ""
 
-#: koassistant_settings_schema.lua:962
+#: koassistant_settings_schema.lua:966
 msgid "Dictionary Popup Actions"
 msgstr ""
 
-#: koassistant_settings_schema.lua:964
+#: koassistant_settings_schema.lua:968
 msgid "Configure which actions appear in the dictionary popup"
 msgstr ""
 
-#: koassistant_settings_schema.lua:969
+#: koassistant_settings_schema.lua:973
 msgid "Bypass KOReader Dictionary"
 msgstr ""
 
-#: koassistant_settings_schema.lua:972
+#: koassistant_settings_schema.lua:976
 msgid ""
 "Skip KOReader's dictionary and go directly to AI when tapping words. Can "
 "also be toggled via gesture."
 msgstr ""
 
-#: koassistant_settings_schema.lua:993 koassistant_settings_schema.lua:997
-#: koassistant_settings_schema.lua:999 koassistant_settings_schema.lua:1181
-#: koassistant_settings_schema.lua:1185 koassistant_settings_schema.lua:1187
+#: koassistant_settings_schema.lua:997 koassistant_settings_schema.lua:1001
+#: koassistant_settings_schema.lua:1003 koassistant_settings_schema.lua:1185
+#: koassistant_settings_schema.lua:1189 koassistant_settings_schema.lua:1191
 msgid "Bypass Action: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1002
+#: koassistant_settings_schema.lua:1006
 msgid "Action to trigger when dictionary bypass is enabled"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1007
+#: koassistant_settings_schema.lua:1011
 msgid "Bypass: Follow Vocab Builder Auto-add"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1010
+#: koassistant_settings_schema.lua:1014
 msgid ""
 "When enabled, dictionary bypass follows KOReader's Vocabulary Builder auto-"
 "add setting. Disable if you use bypass for analysis of words you already "
 "know and don't want them added."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1019
+#: koassistant_settings_schema.lua:1023
 msgid "Translate Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1026
+#: koassistant_settings_schema.lua:1030
 msgid "Translate to Primary Language"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1029
+#: koassistant_settings_schema.lua:1033
 msgid ""
 "Use your primary language as the translation target. Disable to choose a "
 "different target."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1049
+#: koassistant_settings_schema.lua:1053
 msgid "Translation Target: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1059
+#: koassistant_settings_schema.lua:1063
 msgid "Disable Auto-Save for Translate"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1062
+#: koassistant_settings_schema.lua:1066
 msgid "Translations are not auto-saved. Save manually via → Chat button."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1070
+#: koassistant_settings_schema.lua:1074
 msgid "Stream translation responses in real-time."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1086
+#: koassistant_settings_schema.lua:1090
 msgid "What to include when copying in translate view."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1102
+#: koassistant_settings_schema.lua:1106
 msgid "What to include when saving to note in translate view."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1114
+#: koassistant_settings_schema.lua:1118
 msgid "Follow Global"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1115 koassistant_settings_schema.lua:1125
+#: koassistant_settings_schema.lua:1119 koassistant_settings_schema.lua:1129
 msgid "Always Hide"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1116
+#: koassistant_settings_schema.lua:1120
 msgid "Hide Long"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1117 koassistant_settings_schema.lua:1127
+#: koassistant_settings_schema.lua:1121 koassistant_settings_schema.lua:1131
 msgid "Never Hide"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1119
+#: koassistant_settings_schema.lua:1123
 msgid "Original Text: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1124
+#: koassistant_settings_schema.lua:1128
 msgid "Follow Global (Display Settings)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1126
+#: koassistant_settings_schema.lua:1130
 msgid "Hide Long (by character count)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1133
+#: koassistant_settings_schema.lua:1137
 msgid "Long Text Threshold"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1139
+#: koassistant_settings_schema.lua:1143
 msgid ""
 "Character count above which text is considered 'long'. Used when Original "
 "Text is set to 'Hide Long'."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1148
+#: koassistant_settings_schema.lua:1152
 msgid "Hide for Full Page Translate"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1151
+#: koassistant_settings_schema.lua:1155
 msgid ""
 "Always hide original text for full page translations. Overrides all other "
 "visibility settings when enabled. Disable to use your normal Original Text "
 "setting above."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1160
+#: koassistant_settings_schema.lua:1164
 msgid "Highlight Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1166
+#: koassistant_settings_schema.lua:1170
 msgid "Enable Highlight Bypass"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1169
+#: koassistant_settings_schema.lua:1173
 msgid ""
 "Immediately trigger an action when text is selected, skipping the highlight "
 "menu. Can also be toggled via gesture."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1190
+#: koassistant_settings_schema.lua:1194
 msgid "Action to trigger when highlight bypass is enabled"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1195
+#: koassistant_settings_schema.lua:1199
 msgid "Highlight Menu Actions"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1197
+#: koassistant_settings_schema.lua:1201
 msgid "Choose which actions appear in the highlight menu (requires restart)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1206 main.lua:13300
+#: koassistant_settings_schema.lua:1210 main.lua:13300
 msgid "Actions & Prompts"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1225
+#: koassistant_settings_schema.lua:1229
 msgid "Manage Behaviors (%1)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1228
+#: koassistant_settings_schema.lua:1232
 msgid ""
 "Select or create AI behavior styles that define how the AI communicates."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1233
+#: koassistant_settings_schema.lua:1237
 msgid "Manage Domains..."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1235
+#: koassistant_settings_schema.lua:1239
 msgid "Manage knowledge domains. Domains are selected per-chat."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1244
+#: koassistant_settings_schema.lua:1248
 msgid "Notebook Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1250
+#: koassistant_settings_schema.lua:1254
 msgid "Browse Notebooks..."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1262
+#: koassistant_settings_schema.lua:1266
 msgid "Q&A"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1263
+#: koassistant_settings_schema.lua:1267
 msgid "Full Q&A (recommended)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1265
+#: koassistant_settings_schema.lua:1269
 msgid ""
 "What to include when saving to notebook.\n"
 "Full Q&A includes all context messages + highlighted text + question + "
 "response."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1270
+#: koassistant_settings_schema.lua:1274
 msgid "Viewer Mode"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1274
+#: koassistant_settings_schema.lua:1278
 msgid "Chat Viewer"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1275
+#: koassistant_settings_schema.lua:1279
 msgid "KOReader"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1277
+#: koassistant_settings_schema.lua:1281
 msgid ""
 "Chat Viewer shows notebook with editing and export buttons. KOReader opens "
 "as a full document with navigation."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1288
+#: koassistant_settings_schema.lua:1292
 msgid "Alongside book"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1289
+#: koassistant_settings_schema.lua:1293
 msgid "KOAssistant notebooks folder"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1298
+#: koassistant_settings_schema.lua:1302
 msgid ""
 "Where to save notebook files.\n"
 "\n"
@@ -3843,7 +3843,7 @@ msgid ""
 "%2"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1300
+#: koassistant_settings_schema.lua:1304
 msgid ""
 "Where to save notebook files.\n"
 "\n"
@@ -3855,37 +3855,37 @@ msgid ""
 "Custom folder: choose your own location (e.g. an Obsidian vault)."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1328
+#: koassistant_settings_schema.lua:1332
 msgid "Show in file browser menu"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1331
+#: koassistant_settings_schema.lua:1335
 msgid "Show 'Notebook' button when long-pressing books in the file browser."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1336
+#: koassistant_settings_schema.lua:1340
 msgid "Only for books with notebooks"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1340
+#: koassistant_settings_schema.lua:1344
 msgid ""
 "Only show button if notebook already exists. Disable to allow creating new "
 "notebooks from file browser."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1351 main.lua:13298
+#: koassistant_settings_schema.lua:1355 main.lua:13298
 msgid "Privacy & Data"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1362 main.lua:11545
+#: koassistant_settings_schema.lua:1366 main.lua:11545
 msgid "Trusted Providers: None"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1364 main.lua:11547
+#: koassistant_settings_schema.lua:1368 main.lua:11547
 msgid "Trusted Providers: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1367
+#: koassistant_settings_schema.lua:1371
 msgid ""
 "Providers you trust bypass all data sharing controls below AND text "
 "extraction. All data types (highlights, annotations, notebook, book text) "
@@ -3893,86 +3893,86 @@ msgid ""
 "instances or providers you fully trust."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1375
+#: koassistant_settings_schema.lua:1379
 msgid "Preset: Default"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1376
+#: koassistant_settings_schema.lua:1380
 msgid ""
 "Recommended balance. Share reading progress and chapter info for context-"
 "aware features. Personal content (highlights, annotations, notebook) stays "
 "private."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1383
+#: koassistant_settings_schema.lua:1387
 msgid "Preset: Minimal"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1384
+#: koassistant_settings_schema.lua:1388
 msgid ""
 "Maximum privacy. Disable all extended data sharing including progress and "
 "chapter info. Only your question and book metadata are sent."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1391
+#: koassistant_settings_schema.lua:1395
 msgid "Preset: Full"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1392
+#: koassistant_settings_schema.lua:1396
 msgid ""
 "Enable all data sharing for full functionality. Does not enable text "
 "extraction (see Text Extraction submenu)."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1401
+#: koassistant_settings_schema.lua:1405
 msgid "Allow Annotation Notes"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1404
+#: koassistant_settings_schema.lua:1408
 msgid ""
 "Share your personal notes attached to highlights with the AI. Automatically "
 "enables highlight sharing. Used by Analyze Notes, Connect with Notes, and "
 "actions with {annotations} placeholders."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1420
+#: koassistant_settings_schema.lua:1424
 msgid "Allow Highlights"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1423
+#: koassistant_settings_schema.lua:1427
 msgid ""
 "Share your highlighted text passages with the AI. Used by X-Ray, Recap, and "
 "actions with {highlights} placeholders. Does not include personal notes."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1433
+#: koassistant_settings_schema.lua:1437
 msgid "Allow Notebook"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1436
+#: koassistant_settings_schema.lua:1440
 msgid ""
 "Send notebook entries to AI. Used by Connect with Notes and actions with "
 "{notebook} placeholder."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1441
+#: koassistant_settings_schema.lua:1445
 msgid "Allow Basic Stats"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1444
+#: koassistant_settings_schema.lua:1448
 msgid ""
 "Send reading progress (percentage), current chapter title, chapters read "
 "count, and time since last opened. Used by X-Ray, Recap."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1452
+#: koassistant_settings_schema.lua:1456
 msgid ""
 "Enables library actions that analyze your book collection. Configure "
 "permanent scan folders in Library Settings, or pick folders on the fly in "
 "the input dialog."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1458
+#: koassistant_settings_schema.lua:1462
 msgid ""
 "Enables library actions that analyze your book collection.\n"
 "\n"
@@ -3980,30 +3980,30 @@ msgid ""
 "fly in the input dialog."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1466
+#: koassistant_settings_schema.lua:1470
 msgid "Allow Advanced Stats"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1469
+#: koassistant_settings_schema.lua:1473
 msgid ""
 "Share reading engagement data with AI. Includes curated groups based on "
 "reading time and completion patterns (e.g. books read extensively, stalled "
 "reads, briefly started)."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1479
+#: koassistant_settings_schema.lua:1483
 msgid "Text Extraction (enabled)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1481
+#: koassistant_settings_schema.lua:1485
 msgid "Text Extraction (disabled)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1488
+#: koassistant_settings_schema.lua:1492
 msgid "Allow Text Extraction"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1491
+#: koassistant_settings_schema.lua:1495
 msgid ""
 "When enabled, actions can extract and send book text to the AI. Used by X-"
 "Ray, Recap, and actions with text placeholders.\n"
@@ -4012,7 +4012,7 @@ msgid ""
 "focus actions on a specific section to extract only a chapter or part."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1504
+#: koassistant_settings_schema.lua:1508
 msgid ""
 "Text extraction sends actual book content to the AI. This uses tokens "
 "(increases API costs) and processing time. Features like X-Ray and Recap use "
@@ -4022,11 +4022,11 @@ msgid ""
 "focus actions on a specific section to extract only a chapter or part."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1512
+#: koassistant_settings_schema.lua:1516
 msgid "Max Text Characters"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1519
+#: koassistant_settings_schema.lua:1523
 msgid ""
 "Maximum characters to extract (100,000-10,000,000). Higher = more context "
 "but more tokens. Default: 4,000,000 (~1M tokens). The API will reject "
@@ -4036,11 +4036,11 @@ msgid ""
 "section instead of the full document."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1525
+#: koassistant_settings_schema.lua:1529
 msgid "Max Pages (PDF, DJVU, CBZ…)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1532
+#: koassistant_settings_schema.lua:1536
 msgid ""
 "Maximum pages to extract from page-based formats like PDF, DJVU, and CBZ "
 "(100-5,000). Higher = more context but slower. Default: 2,000.\n"
@@ -4049,11 +4049,11 @@ msgid ""
 "section instead of the full document."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1538
+#: koassistant_settings_schema.lua:1542
 msgid "Don't warn about truncated extractions"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1541
+#: koassistant_settings_schema.lua:1545
 msgid ""
 "When unchecked, a blocking warning is shown before sending requests when "
 "extracted text was truncated to fit the character limit. Shows coverage "
@@ -4062,11 +4062,11 @@ msgid ""
 "Check this if you don't need the reminder."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1547
+#: koassistant_settings_schema.lua:1551
 msgid "Don't warn about large extractions"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1550
+#: koassistant_settings_schema.lua:1554
 msgid ""
 "When unchecked, a warning is shown before sending requests with large text "
 "extractions (over 500K characters / ~125K tokens). Most models have smaller "
@@ -4075,70 +4075,70 @@ msgid ""
 "Check this if you know your model's limits and don't need the reminder."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1556 main.lua:9771
+#: koassistant_settings_schema.lua:1560 main.lua:9771
 msgid "Clear Action Cache"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1557
+#: koassistant_settings_schema.lua:1561
 msgid ""
 "Clear cached X-Ray and Recap responses for the current book. Use to "
 "regenerate from scratch."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1570
+#: koassistant_settings_schema.lua:1574
 msgid "KOReader Integration"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1576
+#: koassistant_settings_schema.lua:1580
 msgid "Control where KOAssistant appears in KOReader"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1581
+#: koassistant_settings_schema.lua:1585
 msgid "Show in File Browser"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1584
+#: koassistant_settings_schema.lua:1588
 msgid ""
 "Add KOAssistant buttons to file browser context menus. Requires restart."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1589 koassistant_settings_schema.lua:1604
-#: koassistant_settings_schema.lua:1619 koassistant_settings_schema.lua:1642
-#: koassistant_settings_schema.lua:1657
+#: koassistant_settings_schema.lua:1593 koassistant_settings_schema.lua:1608
+#: koassistant_settings_schema.lua:1623 koassistant_settings_schema.lua:1646
+#: koassistant_settings_schema.lua:1661
 msgid "Please restart KOReader for this change to take effect."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1596
+#: koassistant_settings_schema.lua:1600
 msgid "Show in Highlight Menu"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1599
+#: koassistant_settings_schema.lua:1603
 msgid "Add main 'Chat/Action' button to highlight menu. Requires restart."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1611
+#: koassistant_settings_schema.lua:1615
 msgid "Show Highlight Quick Actions"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1614
+#: koassistant_settings_schema.lua:1618
 msgid ""
 "Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires "
 "restart."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1626
+#: koassistant_settings_schema.lua:1630
 msgid "Show in Dictionary Popup"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1629
+#: koassistant_settings_schema.lua:1633
 msgid "Add AI buttons to KOReader's dictionary popup."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1634
+#: koassistant_settings_schema.lua:1638
 msgid "Enhance Text Selection"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1637
+#: koassistant_settings_schema.lua:1641
 msgid ""
 "Add dictionary lookup and action popup to text selection in KOReader viewers "
 "(Dictionary, TextViewer, etc.). Single word → dictionary, long press single "
@@ -4146,53 +4146,53 @@ msgid ""
 "restart."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1649
+#: koassistant_settings_schema.lua:1653
 msgid "Show in Gesture Menu"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1652
+#: koassistant_settings_schema.lua:1656
 msgid ""
 "Register KOAssistant actions in KOReader's gesture dispatcher. Requires "
 "restart."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1669
+#: koassistant_settings_schema.lua:1673
 msgid "Backup & Reset"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1675 main.lua:12000
+#: koassistant_settings_schema.lua:1679 main.lua:12000
 msgid "Create Backup"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1676
+#: koassistant_settings_schema.lua:1680
 msgid "Create a backup of your settings, API keys, and custom content."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1682
+#: koassistant_settings_schema.lua:1686
 msgid "Restore from Backup"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1683
+#: koassistant_settings_schema.lua:1687
 msgid "Restore settings from a previous backup."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1689
+#: koassistant_settings_schema.lua:1693
 msgid "View Backups"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1690
+#: koassistant_settings_schema.lua:1694
 msgid "View and manage existing backups."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1697
+#: koassistant_settings_schema.lua:1701
 msgid "Backups are stored in: koassistant_backups/"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1704
+#: koassistant_settings_schema.lua:1708
 msgid "Validate Data Indexes"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1705
+#: koassistant_settings_schema.lua:1709
 msgid ""
 "Checks chat history, artifact, notebook, and pinned indexes for stale "
 "entries (books that were moved or deleted outside KOReader) and fixes count "
@@ -4202,25 +4202,25 @@ msgid ""
 "run a full validation here if needed."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1713
+#: koassistant_settings_schema.lua:1717
 msgid "Reset Settings..."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1719
+#: koassistant_settings_schema.lua:1723
 msgid "Re-run Setup Wizard"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1720
+#: koassistant_settings_schema.lua:1724
 msgid ""
 "Run the initial setup wizard again to reconfigure language, emoji settings, "
 "and gesture assignments."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1728
+#: koassistant_settings_schema.lua:1732
 msgid "Quick: Settings only"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1729
+#: koassistant_settings_schema.lua:1733
 msgid ""
 "Resets ALL settings in this menu to defaults:\n"
 "• Provider, model, temperature\n"
@@ -4233,7 +4233,7 @@ msgid ""
 "models, gesture registrations, chat history."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1731
+#: koassistant_settings_schema.lua:1735
 msgid ""
 "Reset all settings to defaults?\n"
 "\n"
@@ -4248,11 +4248,11 @@ msgid ""
 "models, gesture registrations, chat history."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1738
+#: koassistant_settings_schema.lua:1742
 msgid "Quick: Actions only"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1739
+#: koassistant_settings_schema.lua:1743
 msgid ""
 "Resets all action-related settings:\n"
 "• Custom actions you created\n"
@@ -4265,7 +4265,7 @@ msgid ""
 "models, gesture registrations, chat history."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1741
+#: koassistant_settings_schema.lua:1745
 msgid ""
 "Reset all action settings?\n"
 "\n"
@@ -4280,11 +4280,11 @@ msgid ""
 "models, gesture registrations, chat history."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1748
+#: koassistant_settings_schema.lua:1752
 msgid "Quick: Fresh start"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1749
+#: koassistant_settings_schema.lua:1753
 msgid ""
 "Resets everything except API keys and chat history:\n"
 "• All settings (provider, model, temperature, all toggles)\n"
@@ -4295,7 +4295,7 @@ msgid ""
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1751
+#: koassistant_settings_schema.lua:1755
 msgid ""
 "Fresh start?\n"
 "\n"
@@ -4308,11 +4308,11 @@ msgid ""
 "Keeps: API keys, gesture registrations, chat history only."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1759
+#: koassistant_settings_schema.lua:1763
 msgid "Custom reset..."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1760
+#: koassistant_settings_schema.lua:1764
 msgid ""
 "Opens a checklist to choose exactly what to reset:\n"
 "• Settings (all toggles and preferences)\n"
@@ -4324,15 +4324,15 @@ msgid ""
 "• API keys (with warning)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1768
+#: koassistant_settings_schema.lua:1772
 msgid "Clear all chat history"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1769
+#: koassistant_settings_schema.lua:1773
 msgid "Deletes all saved conversations across all books."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1771
+#: koassistant_settings_schema.lua:1775
 msgid ""
 "Delete all chat history?\n"
 "\n"
@@ -4341,54 +4341,54 @@ msgid ""
 "This cannot be undone."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1783
+#: koassistant_settings_schema.lua:1787
 msgid "Advanced"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1801 koassistant_settings_schema.lua:1968
+#: koassistant_settings_schema.lua:1805 koassistant_settings_schema.lua:1972
 #: reasoning_prefs.lua:29
 msgid "Minimal"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1801 main.lua:9097
+#: koassistant_settings_schema.lua:1805 main.lua:9097
 msgid "Default"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1801
+#: koassistant_settings_schema.lua:1805
 msgid "Maximum"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1802
+#: koassistant_settings_schema.lua:1806
 msgid "Global stance: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1804
+#: koassistant_settings_schema.lua:1808
 msgid ""
 "How much reasoning across all models, as far as each model allows. Override "
 "individual models below."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1808 main.lua:8525
+#: koassistant_settings_schema.lua:1812 main.lua:8525
 msgid "Minimal (off where possible)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1809 main.lua:8526
+#: koassistant_settings_schema.lua:1813 main.lua:8526
 msgid "Default (let each model decide)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1810 main.lua:8527
+#: koassistant_settings_schema.lua:1814 main.lua:8527
 msgid "Maximum (most reasoning)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1818
+#: koassistant_settings_schema.lua:1822
 msgid "Per-model reasoning"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1826 koassistant_settings_schema.lua:1871
+#: koassistant_settings_schema.lua:1830 koassistant_settings_schema.lua:1875
 msgid "Show Indicator in Chat"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1827
+#: koassistant_settings_schema.lua:1831
 msgid ""
 "Show '*[Reasoning was used]*' indicator in chat when reasoning is requested "
 "or used.\n"
@@ -4396,15 +4396,15 @@ msgid ""
 "Full reasoning content is always viewable via 'Show Reasoning' button."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1842
+#: koassistant_settings_schema.lua:1846
 msgid "Supported: %1 (other providers currently ignore this)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1848
+#: koassistant_settings_schema.lua:1852
 msgid "Enable Web Search"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1849
+#: koassistant_settings_schema.lua:1853
 msgid ""
 "Allow AI to search the web for current information.\n"
 "\n"
@@ -4422,41 +4422,41 @@ msgid ""
 "Increases token usage/cost."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1857
+#: koassistant_settings_schema.lua:1861
 msgid "Max Searches per Query"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1858
+#: koassistant_settings_schema.lua:1862
 msgid ""
 "Maximum number of web searches per query (1-10).\n"
 "Applies to Anthropic only.\n"
 "Gemini decides search count automatically."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1872
+#: koassistant_settings_schema.lua:1876
 msgid ""
 "Show '*[Web search was used]*' indicator in chat when web search is used.\n"
 "\n"
 "Streaming indicator ('Searching the web...') is always shown."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1882
+#: koassistant_settings_schema.lua:1886
 msgid "Provider Settings"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1891 koassistant_settings_schema.lua:1911
+#: koassistant_settings_schema.lua:1895 koassistant_settings_schema.lua:1915
 msgid "International"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1892 koassistant_settings_schema.lua:1912
+#: koassistant_settings_schema.lua:1896 koassistant_settings_schema.lua:1916
 msgid "China"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1894
+#: koassistant_settings_schema.lua:1898
 msgid "Z.AI Region: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1896
+#: koassistant_settings_schema.lua:1900
 msgid ""
 "Select the Z.AI API endpoint.\n"
 "\n"
@@ -4465,23 +4465,23 @@ msgid ""
 "- China: open.bigmodel.cn"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1900
+#: koassistant_settings_schema.lua:1904
 msgid "International (api.z.ai)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1901
+#: koassistant_settings_schema.lua:1905
 msgid "China (open.bigmodel.cn)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1913
+#: koassistant_settings_schema.lua:1917
 msgid "US"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1915
+#: koassistant_settings_schema.lua:1919
 msgid "Qwen Region: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1917
+#: koassistant_settings_schema.lua:1921
 msgid ""
 "Select your Alibaba Cloud region.\n"
 "\n"
@@ -4491,23 +4491,23 @@ msgid ""
 "- US: Virginia (dashscope-us)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1921
+#: koassistant_settings_schema.lua:1925
 msgid "International (Singapore)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1922
+#: koassistant_settings_schema.lua:1926
 msgid "China (Beijing)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1923
+#: koassistant_settings_schema.lua:1927
 msgid "US (Virginia)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1931
+#: koassistant_settings_schema.lua:1935
 msgid "AI Book Tools (Experimental)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1934
+#: koassistant_settings_schema.lua:1938
 msgid ""
 "EXPERIMENTAL — Gemini and Claude (Anthropic). When enabled, chatting about "
 "an open book lets the AI call local tools to search the text, read specific "
@@ -4518,80 +4518,80 @@ msgid ""
 "looking things up. Work in progress; behavior may change."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1939
+#: koassistant_settings_schema.lua:1943
 msgid "AI Book Tools: Show Lookups (debug)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1942
+#: koassistant_settings_schema.lua:1946
 msgid ""
 "Append the tool lookups, raw tool results, and token usage to each answer "
 "when AI Book Tools run. For debugging the experimental tools — leave off for "
 "clean answers. Note: the raw tool results can include book-text snippets."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1949
+#: koassistant_settings_schema.lua:1953
 msgid "Console Debug"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1950
+#: koassistant_settings_schema.lua:1954
 msgid "Enable console/terminal debug logging (for developers)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1957
+#: koassistant_settings_schema.lua:1961
 msgid "Show Debug in Chat"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1958
+#: koassistant_settings_schema.lua:1962
 msgid "Display debug information in chat viewer"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1968
+#: koassistant_settings_schema.lua:1972
 msgid "Names"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1968
+#: koassistant_settings_schema.lua:1972
 msgid "Full"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1969
+#: koassistant_settings_schema.lua:1973
 msgid "Debug Detail Level: %1"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1976
+#: koassistant_settings_schema.lua:1980
 msgid "Minimal (user input only)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1977
+#: koassistant_settings_schema.lua:1981
 msgid "Names (config summary)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1978
+#: koassistant_settings_schema.lua:1982
 msgid "Full (system blocks)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1984
+#: koassistant_settings_schema.lua:1988
 msgid "Truncate Large Content (debug)"
 msgstr ""
 
-#: koassistant_settings_schema.lua:1985
+#: koassistant_settings_schema.lua:1989
 msgid ""
 "Truncate long content (book text, cached responses) in debug output. Shows "
 "first and last ~1500 characters with truncation notice."
 msgstr ""
 
-#: koassistant_settings_schema.lua:1994
+#: koassistant_settings_schema.lua:1998
 msgid "Test Connection"
 msgstr ""
 
-#: koassistant_settings_schema.lua:2004
+#: koassistant_settings_schema.lua:2008
 msgid "About KOAssistant"
 msgstr ""
 
-#: koassistant_settings_schema.lua:2010
+#: koassistant_settings_schema.lua:2014
 msgid "Auto-check for updates on startup"
 msgstr ""
 
-#: koassistant_settings_schema.lua:2017
+#: koassistant_settings_schema.lua:2021
 msgid "Check for Updates"
 msgstr ""
 
