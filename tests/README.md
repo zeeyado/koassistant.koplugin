@@ -465,6 +465,24 @@ sudo luarocks install luasec OPENSSL_DIR=/usr  # Linux
 luarocks install dkjson
 ```
 
+### Live tests all FAIL with "mocked - no network" (models show `? FAIL`)
+
+The rocks are installed but not on Lua's module path, so `require("socket")`/`require("ssl.https")`
+fail and `mock_koreader` falls back to a no-network stub (every model "fails" without a real call).
+Fix by exporting the LuaRocks paths for your Lua version before running — **no reinstall needed**:
+
+```bash
+eval "$(luarocks --lua-version 5.5 path)"   # match your `lua -v`; also 5.4/5.3
+lua tests/run_tests.lua --models
+```
+
+Add that `eval` to your shell profile to make it permanent. Verify with
+`lua -e "print(pcall(require,'ssl.https'))"` — it should print `true`.
+
+> **Lua 5.5 note:** 5.5 makes `for`-loop control variables `const`. Test tooling that reassigns a
+> loop variable errors at runtime (fixed in `terminal_formatter.lua`; if you hit another, copy the
+> loop var into a `local` first). The plugin runtime (LuaJIT 5.1) is unaffected.
+
 ### Web UI won't start
 
 Check if port is in use:
