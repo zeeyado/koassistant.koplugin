@@ -29,7 +29,8 @@ print(string.rep("=", 50))
 TestRunner:test("hasAdapter recognizes registered providers only", function()
     TestRunner:assertTrue(ToolWire.hasAdapter("gemini"), "gemini")
     TestRunner:assertTrue(ToolWire.hasAdapter("anthropic"), "anthropic")
-    TestRunner:assertFalse(ToolWire.hasAdapter("openai"), "openai (no adapter yet)")
+    TestRunner:assertTrue(ToolWire.hasAdapter("openai"), "openai")
+    TestRunner:assertFalse(ToolWire.hasAdapter("mistral"), "mistral (no adapter)")
     TestRunner:assertFalse(ToolWire.hasAdapter(nil), "nil provider")
 end)
 
@@ -70,9 +71,44 @@ TestRunner:test("anthropic adapter echoes content and appends tool_result blocks
     TestRunner:assertTrue(type(messages[3].content[1].content) == "string", "result stringified")
 end)
 
+TestRunner:test("openai adapter echoes tool_calls turn and appends role=tool messages", function()
+    local messages = { { role = "user", content = "hi" } }
+    local raw = { role = "assistant", content = nil, tool_calls = {
+        { id = "c1", type = "function", ["function"] = { name = "search_book", arguments = '{"query":"x"}' } },
+        { id = "c2", type = "function", ["function"] = { name = "toc", arguments = "{}" } },
+    } }
+    local executed = {
+        { call = { name = "search_book", id = "c1" }, result = { ok = true, total_hits = 2 } },
+        { call = { name = "toc", id = "c2" }, result = { ok = true } },
+    }
+    ToolWire.appendToolTurn("openai", messages, raw, executed)
+    TestRunner:assertEqual(#messages, 4, "echo + one tool message per result")
+    TestRunner:assertEqual(messages[2].role, "assistant", "assistant echo role")
+    TestRunner:assertTrue(messages[2].tool_calls ~= nil, "echo keeps tool_calls")
+    TestRunner:assertEqual(messages[3].role, "tool", "first result role")
+    TestRunner:assertEqual(messages[3].tool_call_id, "c1", "first result keyed by tool_call_id")
+    TestRunner:assertTrue(type(messages[3].content) == "string", "result stringified")
+    TestRunner:assertEqual(messages[4].tool_call_id, "c2", "second result keyed by tool_call_id")
+end)
+
+TestRunner:test("openai adapter stubs unanswered echoed tool_call ids and keeps reasoning_details", function()
+    local messages = {}
+    local raw = { role = "assistant", tool_calls = {
+        { id = "c1", type = "function", ["function"] = { name = "search_book", arguments = "{}" } },
+        { id = "c2", type = "function", ["function"] = { name = "web_search", arguments = "{}" } },
+    }, reasoning_details = { { type = "reasoning.text", text = "..." } } }
+    -- only c1 was executed; c2 was filtered upstream
+    local executed = { { call = { name = "search_book", id = "c1" }, result = { ok = true } } }
+    ToolWire.appendToolTurn("openai", messages, raw, executed)
+    TestRunner:assertEqual(#messages, 3, "echo + real result + stub for the unanswered id")
+    TestRunner:assertTrue(messages[1].reasoning_details ~= nil, "echo keeps reasoning_details")
+    TestRunner:assertEqual(messages[3].tool_call_id, "c2", "stub answers the filtered call")
+    TestRunner:assertTrue(messages[3].content:find("not handled", 1, true) ~= nil, "stub is an error result")
+end)
+
 TestRunner:test("appendToolTurn is a no-op for an unknown provider", function()
     local messages = { { role = "user", content = "hi" } }
-    ToolWire.appendToolTurn("openai", messages, { content = {} }, { { call = { name = "x" }, result = {} } })
+    ToolWire.appendToolTurn("mistral", messages, { content = {} }, { { call = { name = "x" }, result = {} } })
     TestRunner:assertEqual(#messages, 1, "no messages appended")
 end)
 

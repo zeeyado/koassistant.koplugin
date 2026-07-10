@@ -1964,7 +1964,8 @@ local INPUT_CONTEXTS = {
         has_open_book = true,
         -- Curated defaults: conversational actions for asking about a book
         default_ids = {"book_info", "xray_simple", "similar_books", "key_arguments",
-            "extract_insights", "discussion_questions", "explain_author", "book_reviews"},
+            "counterarguments", "extract_insights", "discussion_questions", "explain_author",
+            "book_reviews"},
     },
     book_filebrowser = {
         settings_key = "input_book_fb_actions",
@@ -1982,7 +1983,7 @@ local INPUT_CONTEXTS = {
         has_open_book = true,
         -- Curated defaults: core highlight actions without heavy data requirements
         default_ids = {"translate", "explain", "eli5", "elaborate", "summarize",
-            "connect", "fact_check", "explain_in_context"},
+            "connect", "fact_check", "counterpoint", "explain_in_context"},
     },
     xray_chat = {
         settings_key = "input_xray_chat_actions",
@@ -2001,7 +2002,7 @@ local INPUT_CONTEXTS = {
         has_open_book = false,
         -- All library actions as defaults: scan-based first, then selection-based
         default_ids = {"next_from_library", "discover_books", "analyze_library",
-            "compare_books", "common_themes", "collection_summary",
+            "challenge_my_taste", "compare_books", "common_themes", "collection_summary",
             "quick_summaries", "reading_order", "recommend_books",
             "cross_book_notes"},
     },

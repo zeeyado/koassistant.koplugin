@@ -444,6 +444,36 @@ If multiple claims are present, address each separately. If the passage is opini
         },
         builtin = true,
     },
+    counterpoint = {
+        id = "counterpoint",
+        -- enable_web_search omitted: follows the global setting (published critiques help when on)
+        text = _("Counterpoint"),
+        description = _("Argues against the selected passage: the strongest objections to its claim, reasoning, and framing, and who would disagree. Fact Check verifies accuracy; Counterpoint challenges the argument."),
+        context = "highlight",
+        include_book_context = true,
+        in_highlight_menu = 11,
+        -- No skip_domain: domain expertise sharpens the critique
+        prompt = [[Argue against this passage:
+
+"{highlighted_text}"
+
+Present the strongest counterpoint, in good faith and at full strength:
+
+**The objection:** The best case against this passage's claim or reasoning — not a weakened version of it.
+
+**The framing:** What the passage takes for granted, what it emphasizes, and what it conveniently leaves out.
+
+**Who disagrees:** Which thinkers, schools, or traditions would push back, and what they would say.
+
+If the passage is descriptive rather than argumentative, challenge its framing and emphasis instead. If it is genuinely hard to dispute, say so honestly and name the narrow grounds a critic might still raise.
+
+{conciseness_nudge} {hallucination_nudge}]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
     current_context = {
         id = "current_context",
         enable_web_search = true,  -- Force web search even if global setting is off
@@ -1452,6 +1482,53 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         builtin = true,
         in_quick_actions = 7,
     },
+    -- Counterarguments: the adversarial sibling of Key Arguments — prosecutes instead of maps
+    counterarguments = {
+        id = "counterarguments",
+        -- enable_web_search omitted: follows the global setting (published critiques help when on)
+        doi_web_override = true,
+        text = _("Counterarguments"),
+        description = _("Prosecutes the case against the work: steelmanned opposing positions, the argument's weakest links, what would falsify it, and who disagrees and why. Key Arguments maps the argument; this one argues back. Can target a specific section. Result is saved as an artifact."),
+        context = "book",
+        use_book_text = true,  -- Permission gate for text extraction
+        use_summary_cache = true,
+        source_selection = true,  -- Show source selection popup
+        use_response_caching = true,
+        storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
+        -- No skip_domain: domain expertise sharpens the critique
+        prompt = [[Make the strongest case against "{title}"{author_clause}.{doi_clause}
+{document_context_section}
+
+You are not summarizing this work — you are prosecuting it. Argue in good faith and at full strength:
+
+## Steelmanned Opposition
+The strongest opposing positions to the work's central claims, each presented as its best defenders would make it — not weakened versions.
+
+## Weakest Links
+Where the argument is most vulnerable: unsupported leaps, contested premises, evidence that does not carry the weight placed on it.
+
+## What Would Falsify It
+What evidence or developments would undermine the central claims — and whether any of it exists.
+
+## Who Disagrees and Why
+The thinkers, schools, or traditions that push back against this work or its approach, and their case. Draw on real published critiques where you know them; do not invent critics.
+
+## A Skeptic's Verdict
+What a well-informed skeptic would conclude this work gets wrong, overstates, or misses.
+
+Adapt to the work's nature:
+- Fiction: prosecute the themes and worldview instead — what the work assumes, romanticizes, or ignores, and what its critics would say
+- Academic: emphasize methodological critiques, limitations, and competing interpretations in the literature
+
+{conciseness_nudge} {hallucination_nudge}
+
+{text_fallback_nudge}]],
+        api_params = {
+            temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
     -- Discussion Questions: Book club and classroom prompts
     discussion_questions = {
         id = "discussion_questions",
@@ -1877,6 +1954,24 @@ Actions.library = {
         template = "analyze_library",
         api_params = {
             temperature = 0.6,
+            max_tokens = 4096,
+        },
+        builtin = true,
+    },
+    -- Challenge My Taste: critiques the reading pattern instead of celebrating it
+    challenge_my_taste = {
+        id = "challenge_my_taste",
+        text = _("Challenge My Taste"),
+        description = _("Critiques your reading pattern rather than celebrating it: where your library is one-sided, which voices are missing, and what a sharp critic of your shelf would say — ending with a few books that would argue with it. When advanced stats are enabled, includes engagement patterns."),
+        context = "library",
+        skip_domain = true,
+        use_library = true,
+        use_advanced_stats = true,
+        requires = {"library"},
+        blocked_hint = _("Enable library scanning in Settings → Privacy & Data to use this action."),
+        template = "challenge_my_taste",
+        api_params = {
+            temperature = 0.7,
             max_tokens = 4096,
         },
         builtin = true,

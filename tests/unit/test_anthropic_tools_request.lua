@@ -66,6 +66,25 @@ TestRunner:test("handler threads config.tools into the request (input_schema) an
     TestRunner:assertEqual(body.messages[2].content[1].type, "tool_result", "tool_result block preserved")
 end)
 
+TestRunner:test("final pass (mode NONE) keeps declarations and sets tool_choice none", function()
+    local result = AnthropicHandler:buildRequestBody({
+        { role = "assistant", content = {
+            { type = "tool_use", id = "tu1", name = "search_book", input = { query = "Daisy" } },
+        } },
+        { role = "user", content = {
+            { type = "tool_result", tool_use_id = "tu1", content = "{\"ok\":true}" },
+        } },
+    }, {
+        api_key = "test",
+        model = "claude-sonnet-4-6",
+        tools = { specs = SPECS, mode = "NONE" },
+    })
+    local body = result.body
+    TestRunner:assertTrue(body.tools ~= nil, "declarations stay (tool turns are replayed)")
+    TestRunner:assertTrue(body.tool_choice ~= nil and body.tool_choice.type == "none",
+        "tool_choice type none forbids further calls")
+end)
+
 TestRunner:test("book tools coexist with web search in the tools array", function()
     local result = AnthropicHandler:buildRequestBody({
         { role = "user", content = "hi" },

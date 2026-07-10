@@ -212,6 +212,43 @@ TestRunner:test("runner serializes tool turns with the provider's adapter (anthr
     TestRunner:assertTrue(found_tool_result, "anthropic tool_result turn appended via adapter")
 end)
 
+TestRunner:test("runner serializes tool turns with the provider's adapter (openai)", function()
+    local captured_messages
+    local calls = 0
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, {
+                _tool_calls = true,
+                calls = { { id = "c1", name = "search_book", args = { query = "Daisy" } } },
+                raw_assistant_turn = { role = "assistant", content = nil, tool_calls = {
+                    { id = "c1", type = "function",
+                      ["function"] = { name = "search_book", arguments = "{\"query\":\"Daisy\"}" } },
+                } },
+            })
+        else
+            captured_messages = messages
+            callback(true, "answer")
+        end
+    end
+    GeminiToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "where is daisy?" } },
+        config = { provider = "openai", model = "gpt-5.5", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    local found_echo, found_result = false, false
+    for _, m in ipairs(captured_messages or {}) do
+        if m.role == "assistant" and m.tool_calls then found_echo = true end
+        if m.role == "tool" and m.tool_call_id == "c1" and type(m.content) == "string" then
+            found_result = true
+        end
+    end
+    TestRunner:assertTrue(found_echo, "assistant echo keeps tool_calls")
+    TestRunner:assertTrue(found_result, "openai role=tool result turn appended via adapter")
+end)
+
 TestRunner:test("every tool call in a turn is answered (no mid-turn drop past the cap)", function()
     local captured_messages
     local calls_made = 0
@@ -303,9 +340,13 @@ TestRunner:test("shouldUse requires a tools-capable provider/model with an adapt
     TestRunner:assertTrue(GeminiToolRunner.shouldUse(
         { provider = "anthropic", model = "claude-sonnet-4-6", features = base }, makeUi()),
         "anthropic tools-capable model is eligible")
+    -- openai (Phase 3) + a tools-capable model → eligible
+    TestRunner:assertTrue(GeminiToolRunner.shouldUse(
+        { provider = "openai", model = "gpt-5.5", features = base }, makeUi()),
+        "openai tools-capable model is eligible")
     -- provider with no tools capability / adapter → gated off (falls through to normal path)
     TestRunner:assertFalse(GeminiToolRunner.shouldUse(
-        { provider = "openai", model = "gpt-5.5", features = base }, makeUi()),
+        { provider = "mistral", model = "mistral-large-2", features = base }, makeUi()),
         "provider without tools capability/adapter is gated off")
     -- gemini but a model lacking the tools capability → gated off
     TestRunner:assertFalse(GeminiToolRunner.shouldUse(
@@ -350,7 +391,7 @@ TestRunner:test("queryWith delegates to query_fn when shouldUse is false", funct
         callback(true, "direct answer")
     end
     local cfg = {
-        provider = "openai", -- not gemini → shouldUse returns false (even with opt-in + consent)
+        provider = "mistral", -- no tools capability/adapter → shouldUse returns false (even with opt-in + consent)
         features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true },
     }
     local final

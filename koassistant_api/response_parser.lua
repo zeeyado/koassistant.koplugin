@@ -1,3 +1,5 @@
+local json = require("json")
+
 local ResponseParser = {}
 
 -- Truncation notice appended to responses that hit max tokens
@@ -133,6 +135,10 @@ local RESPONSE_TRANSFORMERS = {
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
             local content = message.content
+            -- Tool-call messages carry content:null, which KOReader's luajson decodes to a
+            -- truthy FUNCTION sentinel — normalize so the truncation concat below can't crash
+            -- and the sentinel can't escape as the answer.
+            if type(content) ~= "string" then content = nil end
             -- Check for truncation (finish_reason: "length" means max tokens hit)
             local finish_reason = response.choices[1].finish_reason
             if content and content ~= "" and finish_reason == "length" then
@@ -140,14 +146,39 @@ local RESPONSE_TRANSFORMERS = {
             end
 
             -- Check for web search tool usage in tool_calls
+            -- (type check, not truthiness: an explicit tool_calls:null is the luajson sentinel)
             local web_search_used = nil
-            if message.tool_calls then
+            if type(message.tool_calls) == "table" then
                 for _, tool_call in ipairs(message.tool_calls) do
                     if tool_call.type == "web_search" or
                        (tool_call["function"] and tool_call["function"].name == "web_search") then
                         web_search_used = true
                         break
                     end
+                end
+            end
+
+            -- Book-tool function calls → neutral shape for the tool runner.
+            -- OpenAI's function.arguments is a JSON STRING (Gemini/Anthropic give tables).
+            if type(message.tool_calls) == "table" then
+                local calls = {}
+                for _, tool_call in ipairs(message.tool_calls) do
+                    local fn = tool_call["function"]
+                    if fn and fn.name and fn.name ~= "web_search" then
+                        local ok, decoded = pcall(json.decode, fn.arguments or "{}")
+                        table.insert(calls, {
+                            id = tool_call.id,
+                            name = fn.name,
+                            args = (ok and type(decoded) == "table") and decoded or {},
+                        })
+                    end
+                end
+                if #calls > 0 then
+                    return true, {
+                        _tool_calls = true,
+                        calls = calls,
+                        raw_assistant_turn = message,
+                    }, nil, web_search_used
                 end
             end
 
@@ -360,6 +391,8 @@ local RESPONSE_TRANSFORMERS = {
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
             local content = message.content
+            -- content:null on tool-call messages decodes to luajson's truthy function sentinel
+            if type(content) ~= "string" then content = nil end
 
             -- Check for web search usage via annotations (OpenRouter uses Exa search)
             -- When :online suffix is used, response includes annotations with url_citation type
@@ -375,6 +408,31 @@ local RESPONSE_TRANSFORMERS = {
 
             -- OpenRouter normalizes reasoning to message.reasoning field
             local reasoning = message.reasoning
+
+            -- Book-tool function calls → neutral shape (OpenAI wire: arguments is a JSON string;
+            -- type check, not truthiness: an explicit tool_calls:null is the luajson sentinel)
+            if type(message.tool_calls) == "table" then
+                local calls = {}
+                for _, tool_call in ipairs(message.tool_calls) do
+                    local fn = tool_call["function"]
+                    if fn and fn.name and fn.name ~= "web_search" then
+                        local ok, decoded = pcall(json.decode, fn.arguments or "{}")
+                        table.insert(calls, {
+                            id = tool_call.id,
+                            name = fn.name,
+                            args = (ok and type(decoded) == "table") and decoded or {},
+                        })
+                    end
+                end
+                if #calls > 0 then
+                    return true, {
+                        _tool_calls = true,
+                        calls = calls,
+                        raw_assistant_turn = message,
+                    }, reasoning, web_search_used
+                end
+            end
+
             return true, content, reasoning, web_search_used
         end
         return false, "Unexpected response format"
@@ -558,7 +616,6 @@ function ResponseParser:parseResponse(response, provider)
     local success, result, reasoning, web_search_used = transform(response)
     if not success and result == "Unexpected response format" then
         -- Provide more details about what was received (show full response for debugging)
-        local json = require("json")
         local response_str = "Unable to encode response"
         pcall(function() response_str = json.encode(response) end)
         return false, string.format("Unexpected response format from %s. Response: %s",

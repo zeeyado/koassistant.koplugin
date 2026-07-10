@@ -140,9 +140,25 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
         })
     end
 
-    -- Add conversation messages (filter out system role and empty content)
+    -- Add conversation messages (filter out system role and empty content).
+    -- Tool turns must survive intact: an assistant tool-call turn keeps tool_calls (its content
+    -- may legitimately be nil), and a tool-result turn keeps role="tool" + tool_call_id.
     for _, msg in ipairs(message_history) do
-        if msg.role ~= "system" and hasContent(msg) then
+        if msg.role == "tool" and msg.tool_call_id then
+            table.insert(request_body.messages, {
+                role = "tool",
+                tool_call_id = msg.tool_call_id,
+                content = msg.content,
+            })
+        elseif msg.role == "assistant" and msg.tool_calls then
+            table.insert(request_body.messages, {
+                role = "assistant",
+                content = msg.content,
+                tool_calls = msg.tool_calls,
+                -- OpenRouter reasoning backends need this back verbatim on replay
+                reasoning_details = msg.reasoning_details,
+            })
+        elseif msg.role ~= "system" and hasContent(msg) then
             table.insert(request_body.messages, {
                 role = msg.role == "assistant" and "assistant" or "user",
                 content = msg.content,
@@ -157,6 +173,26 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
     request_body.temperature = api_params.temperature or default_params.temperature or 0.7
     request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
     request_body.max_tokens = ModelConstraints.clampMaxTokens(self:getProviderKey(), model, request_body.max_tokens)
+
+    -- Book-tool declarations from the neutral config.tools (set by the tool runner).
+    -- Only reachable for providers with a `tools` capability in model_constraints.lua —
+    -- some OpenAI-compatible backends silently ignore the tools param, so the capability
+    -- list expands per provider only after live verification.
+    if config.tools and config.tools.specs then
+        request_body.tools = {}
+        for _, spec in ipairs(config.tools.specs) do
+            table.insert(request_body.tools, {
+                type = "function",
+                ["function"] = {
+                    name = spec.name,
+                    description = spec.description,
+                    parameters = spec.parameters,
+                },
+            })
+        end
+        -- mode NONE = the runner's final pass: declarations stay, no further calls
+        request_body.tool_choice = (config.tools.mode == "NONE") and "none" or "auto"
+    end
 
     -- Hook: Allow child classes to customize request body
     request_body = self:customizeRequestBody(request_body, config)

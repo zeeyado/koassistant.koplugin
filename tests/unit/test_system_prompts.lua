@@ -98,14 +98,22 @@ local BehaviorLoader = require("behavior_loader")
 -- Load actual behaviors dynamically (same as plugin does)
 local BUILTIN_BEHAVIORS = BehaviorLoader.loadBuiltin()
 
--- Get a sample behavior for testing (first available)
+-- Get a sample behavior for testing. Deterministic (sorted, not next()) and skips ids
+-- shadowed by a user behaviors/ file in the real plugin dir — the loader reads the real
+-- filesystem, so e.g. behaviors/concise.md overrides builtin "concise" and flips its
+-- source to "folder", making a next()-picked id fail source assertions hash-order-flakily.
+local USER_BEHAVIORS = BehaviorLoader.load()
 local function getFirstBehaviorId()
-    local id = next(BUILTIN_BEHAVIORS)
-    return id
+    local ids = {}
+    for id in pairs(BUILTIN_BEHAVIORS) do
+        if not USER_BEHAVIORS[id] then table.insert(ids, id) end
+    end
+    table.sort(ids)
+    return ids[1] or next(BUILTIN_BEHAVIORS)
 end
 
 local function getFirstBehaviorText()
-    local id = next(BUILTIN_BEHAVIORS)
+    local id = getFirstBehaviorId()
     return id and BUILTIN_BEHAVIORS[id].text or nil
 end
 
