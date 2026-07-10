@@ -2277,10 +2277,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Resolve per-book DocSettings once here. Shared by the per-book language overrides
     -- (just below), the quiz overrides, the AI title/author override, the book-info level,
-    -- and research-mode resolution further down. Prefer book_metadata.file (file browser/
-    -- artifact target) over ui.document.file (open book).
-    local per_book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
-        or (ui and ui.document and ui.document.file)
+    -- and research-mode resolution further down.
+    -- A highlight always belongs to the open book, so ui.document.file wins there:
+    -- book_metadata on the shared configuration can be stale from an earlier file-browser/
+    -- book-level action on a DIFFERENT book (quick actions and the dictionary popup don't
+    -- repopulate it), which would resolve every per-book setting against the wrong book's
+    -- sidecar. Other contexts keep preferring book_metadata.file (file browser/artifact
+    -- target); book-level entries repopulate it for their target before reaching here.
+    local per_book_file
+    if context == "highlight" and ui and ui.document and ui.document.file then
+        per_book_file = ui.document.file
+    else
+        per_book_file = (config.features and config.features.book_metadata and config.features.book_metadata.file)
+            or (ui and ui.document and ui.document.file)
+    end
     local per_book_ds = nil
     if per_book_file then
         per_book_ds = SafeDocSettings.resolve(per_book_file, ui)
