@@ -731,7 +731,9 @@ function ContextExtractor:getPageRangeText(start_page, end_page, options)
     options = options or {}
     local max_chars = options.max_chars or self.settings.max_book_text_chars or Constants.EXTRACTION_DEFAULTS.MAX_BOOK_TEXT_CHARS
 
-    logger.info("ContextExtractor:getPageRangeText called, pages", start_page, "-", end_page)
+    -- dbg, not info: the book-tools search scans page-by-page, so this fires once per page
+    -- of the book per search (~1500 log lines on a 750-page book at info level)
+    logger.dbg("ContextExtractor:getPageRangeText called, pages", start_page, "-", end_page)
 
     local result = {
         text = "",
@@ -841,7 +843,7 @@ function ContextExtractor:getPageRangeText(start_page, end_page, options)
     result.text = book_text
     result.char_count = #book_text
 
-    logger.info("ContextExtractor:getPageRangeText - extracted", result.char_count, "chars from pages", start_page, "-", end_page)
+    logger.dbg("ContextExtractor:getPageRangeText - extracted", result.char_count, "chars from pages", start_page, "-", end_page)
     return result
 end
 
