@@ -176,7 +176,14 @@ local function buildToolConfig(config, final_only, reading_scope)
             mode = "AUTO",
         }
     else
-        tool_config.tools = nil
+        -- Final pass: the message history still contains tool turns, and providers reject
+        -- tool_use/tool_result replay when no tools are declared (Anthropic 400s, including
+        -- via OpenRouter backends). Keep the declarations and forbid further calls via mode
+        -- NONE — handlers render it as tool_choice "none" / functionCallingConfig NONE.
+        tool_config.tools = {
+            specs = FUNCTION_DECLARATIONS,
+            mode = "NONE",
+        }
     end
 
     -- Append the spoiler-scope clause so the instructions match the structural clamp in BookTools.

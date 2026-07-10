@@ -350,6 +350,30 @@ Analyze my reading patterns based on this collection. Consider:
 - Any progression or evolution visible in my reading
 
 Be specific to what you see, not generic. Use the actual titles and authors to illustrate patterns. Do not use emojis. {hallucination_nudge}]],
+
+    challenge_my_taste = [[Here is my library:
+
+{library}
+
+{deep_reads_section}
+
+{stalled_section}
+
+{briefly_started_section}
+
+Do not celebrate this collection — challenge it. Be the sharpest fair-minded critic of this shelf:
+
+**The monoculture check:** Where is this library one-sided? The genres, traditions, eras, or viewpoints that dominate — and what that dominance costs me.
+
+**The missing voices:** What perspectives, disciplines, or opposing schools are conspicuously absent? What positions do my books argue FOR that nothing on my shelf argues AGAINST?
+
+**What my patterns suggest:** If engagement data is provided above, what do my deep reads and abandoned books say about what I avoid, and what I only think I want to read?
+
+**What a critic would say:** If a well-read critic examined this shelf, what would they say it flatters in me? Where am I reading to confirm rather than to be challenged?
+
+**Books that would argue with this shelf** (3-5): Works that push directly against the dominant viewpoints here. For each, name which of my books it argues with and why I should let it. Do not recommend books I already own.
+
+Ground every observation in the actual titles and authors. Be pointed but fair — this is a critique, not an insult. Do not use emojis. {hallucination_nudge}]],
 }
 
 -- Special templates (reserved for future use)

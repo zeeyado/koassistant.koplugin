@@ -68,6 +68,10 @@ ModelConstraints.capabilities = {
         },
         -- Note: OpenAI Chat Completions API does NOT have native web search.
         -- Web search requires Responses API or function calling with external tools.
+        -- Function calling for the book-tool workflows (prefix match covers -mini/-nano).
+        tools = {
+            "gpt-5.5", "gpt-5.4",
+        },
     },
     deepseek = {
         -- V4: both models support thinking toggle (type: enabled/disabled), ON by default
@@ -110,6 +114,12 @@ ModelConstraints.capabilities = {
         -- Unified reasoning object works for all backend models
         -- OpenRouter auto-translates effort to each provider's native format
         -- No model list needed — controlled by whether reasoning param is sent
+        -- Function calling for the book-tool workflows. OpenRouter normalizes the OpenAI
+        -- tools format across backends; seeded with frontier families whose function
+        -- calling is universal — expand only after live verification per family.
+        tools = {
+            "anthropic/claude", "openai/gpt-5", "google/gemini-3", "google/gemini-2.5",
+        },
     },
     requesty = {
         -- Unified reasoning object works across routed backend models

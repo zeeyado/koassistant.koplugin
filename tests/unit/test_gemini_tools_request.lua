@@ -83,4 +83,20 @@ TestRunner:test("preserves raw Gemini parts and adds function declarations", fun
     TestRunner:assertEqual(body.toolConfig.functionCallingConfig.mode, "AUTO", "tool mode")
 end)
 
+TestRunner:test("final pass (mode NONE) keeps declarations and forbids calls", function()
+    local result = GeminiHandler:buildRequestBody({
+        { role = "user", content = "where is daisy?" },
+    }, {
+        api_key = "test",
+        model = "gemini-2.5-flash",
+        tools = {
+            specs = { { name = "search_book", description = "Search.", parameters = { type = "object" } } },
+            mode = "NONE",
+        },
+    })
+    local body = result.body
+    TestRunner:assertTrue(body.tools ~= nil, "declarations stay on the final pass")
+    TestRunner:assertEqual(body.toolConfig.functionCallingConfig.mode, "NONE", "mode NONE forbids further calls")
+end)
+
 return TestRunner:summary()

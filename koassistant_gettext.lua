@@ -152,8 +152,17 @@ local function getCurrentLanguage()
     return getKOReaderLanguage()
 end
 
--- Load translations for the current language
+-- Load translations for the current language.
+-- The resolved language is cached in current_lang: resolving it hits the settings file on
+-- disk (stat + full parse), and _() runs hundreds of times per screen render on e-ink.
+-- reload() nils current_lang, which is the only invalidation path (called from the
+-- ui_language setting's on_change; the module is process-shared, so one call covers both
+-- the FileManager and ReaderUI plugin instances).
 local function loadTranslations()
+    if current_lang and translations[current_lang] then
+        return
+    end
+
     local lang = getCurrentLanguage()
 
     if lang == current_lang and translations[lang] then

@@ -45,6 +45,11 @@ function OpenRouterHandler:customizeRequestBody(body, config)
         if not body.model:match(":online$") then
             body.model = body.model .. ":online"
         end
+    elseif not enable_web_search and body.model then
+        -- Strip a baked-in :online (e.g. saved in a custom model id) when web search is
+        -- off — the tool runner forces it off during tool turns, and a lingering suffix
+        -- would keep paid Exa search active on every turn.
+        body.model = body.model:gsub(":online$", "")
     end
 
     -- Add reasoning object (OpenRouter auto-translates to backend provider format)

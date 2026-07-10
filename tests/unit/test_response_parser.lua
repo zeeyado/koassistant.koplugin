@@ -175,6 +175,93 @@ TestRunner:test("handles error with only type", function()
     TestRunner:assertEqual(result, "rate_limit_error", "error type")
 end)
 
+TestRunner:test("openai tool_calls → neutral shape (arguments JSON string decoded)", function()
+    local message = {
+        role = "assistant",
+        content = nil,
+        tool_calls = {
+            { id = "c1", type = "function",
+              ["function"] = { name = "search_book", arguments = "{\"query\":\"Daisy\"}" } },
+        },
+    }
+    local response = { choices = { { message = message, finish_reason = "tool_calls" } } }
+    local success, result = ResponseParser:parseResponse(response, "openai")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "neutral tool-call marker")
+    TestRunner:assertEqual(result.calls[1].id, "c1", "call id")
+    TestRunner:assertEqual(result.calls[1].name, "search_book", "call name")
+    TestRunner:assertEqual(result.calls[1].args.query, "Daisy", "arguments string decoded to table")
+    TestRunner:assertTrue(result.raw_assistant_turn == message, "raw_assistant_turn is the message")
+end)
+
+TestRunner:test("openrouter tool_calls → neutral shape", function()
+    local message = {
+        role = "assistant",
+        tool_calls = {
+            { id = "or1", type = "function",
+              ["function"] = { name = "read_around", arguments = "{\"page\":42}" } },
+        },
+    }
+    local response = { choices = { { message = message } } }
+    local success, result = ResponseParser:parseResponse(response, "openrouter")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "neutral tool-call marker")
+    TestRunner:assertEqual(result.calls[1].id, "or1", "call id")
+    TestRunner:assertEqual(result.calls[1].args.page, 42, "arguments decoded")
+end)
+
+TestRunner:test("openai content:null sentinel does not crash truncation or escape as answer", function()
+    -- KOReader's luajson decodes JSON null to a truthy FUNCTION sentinel; a tool-call
+    -- message truncated mid-arguments hits both content:null and finish_reason=length.
+    local sentinel = function() end
+    local response = { choices = { { message = {
+        role = "assistant",
+        content = sentinel,
+        tool_calls = {
+            { id = "c1", type = "function",
+              ["function"] = { name = "search_book", arguments = "{\"query\":" } },
+        },
+    }, finish_reason = "length" } } }
+    local success, result = ResponseParser:parseResponse(response, "openai")
+    TestRunner:assertTrue(success, "no crash")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "tool call still detected")
+end)
+
+TestRunner:test("openai tool_calls:null sentinel is ignored, content returned", function()
+    local sentinel = function() end
+    local response = { choices = { { message = {
+        role = "assistant", content = "plain answer", tool_calls = sentinel,
+    } } } }
+    local success, result = ResponseParser:parseResponse(response, "openai")
+    TestRunner:assertTrue(success, "no crash on non-table tool_calls")
+    TestRunner:assertEqual(result, "plain answer", "content returned")
+end)
+
+TestRunner:test("openrouter tool_calls:null sentinel is ignored, content returned", function()
+    local sentinel = function() end
+    local response = { choices = { { message = {
+        role = "assistant", content = "plain answer", tool_calls = sentinel,
+    } } } }
+    local success, result = ResponseParser:parseResponse(response, "openrouter")
+    TestRunner:assertTrue(success, "no crash on non-table tool_calls")
+    TestRunner:assertEqual(result, "plain answer", "content returned")
+end)
+
+TestRunner:test("openai malformed tool arguments fall back to empty args", function()
+    local response = { choices = { { message = {
+        role = "assistant",
+        tool_calls = {
+            { id = "c1", type = "function",
+              ["function"] = { name = "toc", arguments = "{not json" } },
+        },
+    } } } }
+    local success, result = ResponseParser:parseResponse(response, "openai")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(result._tool_calls, "still a tool call")
+    TestRunner:assertTrue(type(result.calls[1].args) == "table", "args is a table")
+    TestRunner:assertTrue(next(result.calls[1].args) == nil, "args empty on decode failure")
+end)
+
 -- Test Gemini format
 TestRunner:suite("Gemini")
 

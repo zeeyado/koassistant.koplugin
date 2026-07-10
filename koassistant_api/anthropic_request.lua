@@ -149,6 +149,12 @@ function AnthropicRequest:build(config)
                 input_schema = spec.parameters,
             })
         end
+        -- mode NONE = the runner's final pass: tool turns are replayed in the history, so
+        -- the declarations must stay (Anthropic 400s on tool_use/tool_result without tools),
+        -- but no further calls are allowed.
+        if config.tools.mode == "NONE" then
+            request_body.tool_choice = { type = "none" }
+        end
     end
 
     if #tools > 0 then

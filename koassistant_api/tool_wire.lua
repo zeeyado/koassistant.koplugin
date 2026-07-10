@@ -77,6 +77,53 @@ ToolWire.adapters.anthropic = {
     end,
 }
 
+-- OpenAI: the assistant echo is the whole message object (carries tool_calls; content may be
+-- nil/empty — buildRequestBody must preserve such turns), then one {role="tool"} message per
+-- result, keyed by tool_call_id, with string content. reasoning_details rides along on the
+-- echo: OpenRouter's reasoning backends (Anthropic thinking, Gemini thought signatures)
+-- require it back verbatim on replayed tool-call turns.
+ToolWire.adapters.openai = {
+    appendToolTurn = function(messages, raw_assistant_turn, executed)
+        local echoed_calls = nil
+        if raw_assistant_turn and raw_assistant_turn.tool_calls then
+            echoed_calls = raw_assistant_turn.tool_calls
+            table.insert(messages, {
+                role = raw_assistant_turn.role or "assistant",
+                content = type(raw_assistant_turn.content) == "string"
+                    and raw_assistant_turn.content or nil,
+                tool_calls = echoed_calls,
+                reasoning_details = raw_assistant_turn.reasoning_details,
+            })
+        end
+        local answered = {}
+        for _, item in ipairs(executed or {}) do
+            table.insert(messages, {
+                role = "tool",
+                tool_call_id = item.call.id,
+                content = ToolWire.stringifyResult(item.call.name, item.result),
+            })
+            if item.call.id then answered[item.call.id] = true end
+        end
+        -- Every echoed tool_call_id must receive a tool message (OpenAI rejects the request
+        -- otherwise). Calls filtered upstream (e.g. web_search sentinels, malformed entries)
+        -- get a stub result.
+        if type(echoed_calls) == "table" then
+            for _, tc in ipairs(echoed_calls) do
+                if tc.id and not answered[tc.id] then
+                    table.insert(messages, {
+                        role = "tool",
+                        tool_call_id = tc.id,
+                        content = "{\"ok\":false,\"error\":\"tool call not handled\"}",
+                    })
+                end
+            end
+        end
+    end,
+}
+
+-- OpenRouter speaks the OpenAI tool wire format verbatim (it normalizes across backends).
+ToolWire.adapters.openrouter = ToolWire.adapters.openai
+
 --- Whether a provider can wire tool turns (membership gate for the runner's shouldUse).
 function ToolWire.hasAdapter(provider)
     return provider ~= nil and ToolWire.adapters[provider] ~= nil
