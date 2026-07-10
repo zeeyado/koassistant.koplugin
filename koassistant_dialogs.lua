@@ -3609,6 +3609,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         logger.info("KOAssistant: No metadata available in either context")
     end
 
+    -- AI-facing copy of the book identity: apply the per-book AI title/author override
+    -- (Book Settings ▸ AI title/author). The freeform-Send [Context] block embeds this in
+    -- the request, so it must honor the override; book_metadata itself stays raw for local
+    -- bookkeeping (chat save metadata, artifact viewer titles). Predefined actions apply
+    -- the override themselves in handlePredefinedPrompt.
+    local ai_book_metadata = book_metadata
+    if book_metadata and document_path then
+        ai_book_metadata = require("koassistant_book_settings").applyMetadataOverride(
+            book_metadata, SafeDocSettings.resolve(document_path, ui_instance))
+    end
+
     -- Determine input context for per-context action ordering
     local has_open_book = ui_instance and ui_instance.document ~= nil
     local input_context
@@ -4857,10 +4868,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             .resolveBookInfoLevel(doc_settings, configuration.features)
                         if book_info_level ~= "none" then
                             table.insert(parts, "[Context]")
-                            if book_metadata then
+                            if ai_book_metadata then
                                 table.insert(parts, string.format('Book: "%s"%s',
-                                    book_metadata.title or "Unknown",
-                                    (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+                                    ai_book_metadata.title or "Unknown",
+                                    (ai_book_metadata.author and ai_book_metadata.author ~= "") and (" by " .. ai_book_metadata.author) or ""))
                             elseif highlighted_text then
                                 -- Fallback to highlighted_text if it contains formatted book info
                                 table.insert(parts, highlighted_text)
@@ -4877,10 +4888,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local book_info_level = require("koassistant_book_settings")
                             .resolveBookInfoLevel(doc_settings, configuration.features)
                         table.insert(parts, "[Context]")
-                        if book_metadata and book_metadata.title and book_info_level ~= "none" then
+                        if ai_book_metadata and ai_book_metadata.title and book_info_level ~= "none" then
                             table.insert(parts, string.format('From "%s"%s',
-                                book_metadata.title,
-                                (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+                                ai_book_metadata.title,
+                                (ai_book_metadata.author and ai_book_metadata.author ~= "") and (" by " .. ai_book_metadata.author) or ""))
                             if book_info_level == "full" then appendSendPosition() end
                             table.insert(parts, "")
                         end
@@ -6633,10 +6644,15 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     local document_path = book_metadata and book_metadata.file
     local title = (artifact_type_name or _("Artifact")) .. ": " .. _("Chat")
 
-    -- Resolve research mode for artifact chat (no action override)
+    -- Resolve research mode for artifact chat (no action override). The same DocSettings
+    -- also carries the per-book AI title/author override, applied to the AI-facing copy of
+    -- the identity below (callers pass raw doc_props/cache metadata); book_metadata itself
+    -- stays raw for local bookkeeping (chat save metadata).
     local artifact_research = false
+    local ai_book_metadata = book_metadata
     if document_path then
         local artifact_ds = SafeDocSettings.resolve(document_path, ui)
+        ai_book_metadata = require("koassistant_book_settings").applyMetadataOverride(book_metadata, artifact_ds)
         local book_research_setting = getBookResearchMode(artifact_ds)
         if book_research_setting == true then
             artifact_research = true
@@ -6671,10 +6687,10 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     local parts = {}
 
     table.insert(parts, "[Context]")
-    if book_metadata and book_metadata.title then
+    if ai_book_metadata and ai_book_metadata.title then
         table.insert(parts, string.format('From "%s"%s',
-            book_metadata.title,
-            (book_metadata.author and book_metadata.author ~= "") and (" by " .. book_metadata.author) or ""))
+            ai_book_metadata.title,
+            (ai_book_metadata.author and ai_book_metadata.author ~= "") and (" by " .. ai_book_metadata.author) or ""))
         table.insert(parts, "")
     end
 
