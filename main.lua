@@ -5447,10 +5447,29 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   -- Show the scope section even without a TOC when read-so-far is the reason (it needs no sections).
   if read_so_far_available then show_scope = true end
 
+  -- Smart retrieval (D3 — tools_ux_plan.md §4): 4th source for pilot actions
+  -- (action.smart_retrieval), highlight path only — the gather-before-action wiring
+  -- lives in the input-dialog dispatch (runActionWithSource); book-level dispatch has
+  -- no gather step. The row always shows for those actions; ineligible sessions get it
+  -- grayed with the reason (maintainer 2026-07-11 — matches the Extract text row's
+  -- pattern). Eligibility is fixed for the popup's lifetime, so compute it once here —
+  -- it also drives the default pick below.
+  local smart_row_shown = action.smart_retrieval == true
+      and opts.for_highlight == true and not requires_book_text
+  local smart_eligible, smart_block_reason
+  if smart_row_shown then
+    smart_eligible, smart_block_reason =
+        require("koassistant_book_tool_runner").sessionEligible(configuration, self.ui)
+  end
+
   -- State (persists across rebuilds)
+  -- Default source: smart retrieval when offered and eligible (maintainer 2026-07-11 —
+  -- targeted passages beat a full-text dump for highlight-anchored questions; full text
+  -- stays one tap away), else the pre-D3 rule.
   local state = {
     scope = "full",
-    source = requires_book_text and "full_text"
+    source = (requires_book_text and "full_text")
+        or (smart_row_shown and smart_eligible and "smart_retrieval")
         or (text_extraction_enabled and "full_text" or "ai_knowledge"),
     section_entry = nil,
     section_label = nil,
@@ -5683,17 +5702,8 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     -- === Source section ===
     addLabel(_("Source"))
 
-    -- Smart retrieval (D3 — tools_ux_plan.md §4): offered only for pilot actions
-    -- (action.smart_retrieval) in tools-capable sessions (capability + adapter +
-    -- extraction consent + open book) — hidden otherwise, per design. Highlight path
-    -- only: the gather-before-action wiring lives in the input-dialog dispatch
-    -- (runActionWithSource); book-level dispatch has no gather step. Needs the
-    -- full-document scope: a section scope bounds EXTRACTION, not the tool search,
-    -- so the combination would mislead.
-    local smart_retrieval_available = action.smart_retrieval == true
-        and opts.for_highlight == true
-        and not requires_book_text
-        and require("koassistant_book_tool_runner").sessionEligible(configuration, self_ref.ui)
+    -- Smart retrieval needs the full-document scope: a section scope bounds EXTRACTION,
+    -- not the tool search, so the combination would mislead.
     if state.source == "smart_retrieval" and state.scope ~= "full" then
       -- Scope switched away from full while smart retrieval was selected — fall back
       state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
@@ -5781,12 +5791,23 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     end
 
     -- Smart retrieval row (between summary and AI knowledge: decreasing text volume).
-    -- Disabled (not hidden) on non-full scopes so the popup height stays stable.
-    if smart_retrieval_available then
-      local sr_enabled = state.scope == "full"
-      local sr_text = sr_enabled
-          and _("Smart retrieval (AI searches the book)")
-          or (_("Smart retrieval (AI searches the book)") .. "  (" .. _("full scope only") .. ")")
+    -- Always shown for pilot actions; disabled (not hidden) with the reason when the
+    -- session can't use it or the scope isn't full — stable popup height, discoverable.
+    if smart_row_shown then
+      local sr_label = _("Smart retrieval (AI searches the book)")
+      local sr_enabled = smart_eligible == true and state.scope == "full"
+      local sr_text
+      if not smart_eligible then
+        if smart_block_reason == "consent" then
+          sr_text = sr_label .. "  (" .. _("enable in Settings → Privacy") .. ")"
+        else
+          sr_text = sr_label .. "  (" .. _("not supported by this provider") .. ")"
+        end
+      elseif state.scope ~= "full" then
+        sr_text = sr_label .. "  (" .. _("full scope only") .. ")"
+      else
+        sr_text = sr_label
+      end
       table.insert(source_radio_buttons, {
         { text = sr_text, provider = "smart_retrieval", checked = state.source == "smart_retrieval", enabled = sr_enabled },
       })

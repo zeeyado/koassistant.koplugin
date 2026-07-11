@@ -588,6 +588,10 @@ end
 -- (global flag / session checkbox) and the context flags. Used by the input dialog to
 -- decide whether the per-chat "Book tools" checkbox is worth showing at all (it gates
 -- context itself); capability + adapter + extraction consent + open document.
+-- Returns eligible:boolean and, when false, a reason: "provider" (no tools capability /
+-- wire adapter), "consent" (no text-extraction consent), or "no_book". The reason lets
+-- UI callers (the smart-retrieval popup row) explain a grayed option; boolean-only
+-- callers are unaffected.
 function BookToolRunner.sessionEligible(config, ui)
     local features = config and config.features or {}
     local provider = config and (config.provider or config.default_provider)
@@ -595,13 +599,16 @@ function BookToolRunner.sessionEligible(config, ui)
     -- fall through to the normal (whole-context) path. Generalizes the old gemini-only gate.
     local model = config and ConfigHelper:getModelInfo(config)
     if not (ModelConstraints.supportsCapability(provider, model, "tools") and ToolWire.hasAdapter(provider)) then
-        return false
+        return false, "provider"
     end
     -- Tools are a form of book-text extraction → respect the consent gate (trusted bypass).
     if features.enable_book_text_extraction ~= true and not isProviderTrusted(provider, features) then
-        return false
+        return false, "consent"
     end
-    return ui ~= nil and ui.document ~= nil
+    if ui == nil or ui.document == nil then
+        return false, "no_book"
+    end
+    return true
 end
 
 function BookToolRunner.shouldUse(config, ui)
