@@ -54,6 +54,30 @@ function BookSettings.resolveSpoilerFree(doc_settings, features)
     return (features and features.spoiler_free_chat) == true
 end
 
+-- Per-book AI Book Tools posture ("off" | "manual" | "auto" | nil = follow global).
+BookSettings.KEY_TOOLS = "koassistant_book_tools"
+
+--- Resolve the effective AI Book Tools posture for a book: per-book override > global
+-- tools_posture > "manual". Pure. Unknown stored values fall through to the global so a
+-- future/corrupt sidecar value can't wedge the checkbox.
+-- @return "off" | "manual" | "auto"
+function BookSettings.resolveToolsPosture(doc_settings, features)
+    local valid = { off = true, manual = true, auto = true }
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOLS)
+    if valid[per_book] then return per_book end
+    local global = features and features.tools_posture
+    if valid[global] then return global end
+    return "manual"
+end
+
+--- Translated label for a tools-posture value (shared by the Book Settings row, the
+-- posture picker, and the Quick Settings chip).
+function BookSettings.toolsPostureLabel(v)
+    if v == "off" then return _("Off")
+    elseif v == "auto" then return _("Auto") end
+    return _("Manual")
+end
+
 --- Resolve effective quiz settings for a book: per-book field > global > built-in default.
 -- Pure (no I/O beyond the one sidecar read). The quiz-instruction builder consumes the
 -- count/difficulty/mc/sa/essay/chapter_depth fields; the chapter-end trigger consumes
@@ -180,6 +204,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_TRANSLATION_LANG,
     BookSettings.KEY_DICTIONARY_LANG,
     BookSettings.KEY_RESPONSE_LANG,
+    BookSettings.KEY_TOOLS,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -466,6 +491,115 @@ function BookSettings.showDomainResearch(opts)
     UIManager:show(dialog)
 end
 
+--- Quick AI Book Tools posture picker with a For-this-book ↔ Global target toggle
+-- (tools_ux_plan.md §3) — mirrors the Domain & Research picker. Shared entry point for
+-- the Quick Settings chip; the Book Settings screen has its own per-book-only row.
+-- Book target: Follow global / Off / Manual / Auto (KEY_TOOLS sidecar key).
+-- Global target: Off / Manual / Auto (features.tools_posture).
+-- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showToolsPosture(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+    local document_path = opts.document_path
+
+    local doc_settings = resolveDocSettings(ui, document_path)
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOLS) or nil
+    local global_val = features.tools_posture or "manual"
+
+    -- Default to "book" only when the book already has an override, else "global".
+    local target = opts.target_override
+        or (doc_settings and book_val ~= nil and "book")
+        or "global"
+    local is_book_target = doc_settings ~= nil and target == "book"
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function commit()
+        closeDialog()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        if on_close then on_close() end
+    end
+    local function pickBook(val)
+        doc_settings:saveSetting(BookSettings.KEY_TOOLS, val)
+        doc_settings:flush()
+        commit()
+    end
+    local function pickGlobal(val)
+        local f = plugin.settings:readSetting("features") or {}
+        f.tools_posture = val
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        commit()
+    end
+    local function setTarget(new_target)
+        closeDialog()
+        BookSettings.showToolsPosture({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target,
+        })
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    local buttons = {}
+    -- Target toggle row: [For this book] [Global] — only when a book is in scope
+    if doc_settings then
+        table.insert(buttons, {
+            {
+                text = dot(is_book_target) .. _("For this book"),
+                callback = function()
+                    if not is_book_target then setTarget("book") end
+                end,
+            },
+            {
+                text = dot(not is_book_target) .. _("Global"),
+                callback = function()
+                    if is_book_target then setTarget("global") end
+                end,
+            },
+        })
+    end
+
+    local postures = {
+        { value = "off", label = _("Off (never offered)") },
+        { value = "manual", label = _("Manual (checkbox, off by default)") },
+        { value = "auto", label = _("Auto (checkbox, on by default)") },
+    }
+    if is_book_target then
+        table.insert(buttons, {{
+            text = dot(book_val == nil) .. T(_("Follow global (%1)"), BookSettings.toolsPostureLabel(global_val)),
+            callback = function() pickBook(nil) end,
+        }})
+        for _idx, p in ipairs(postures) do
+            table.insert(buttons, {{
+                text = dot(book_val == p.value) .. p.label,
+                callback = function() pickBook(p.value) end,
+            }})
+        end
+    else
+        for _idx, p in ipairs(postures) do
+            table.insert(buttons, {{
+                text = dot(global_val == p.value) .. p.label,
+                callback = function() pickGlobal(p.value) end,
+            }})
+        end
+    end
+    table.insert(buttons, {{
+        text = _("Close"), id = "close",
+        callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end,
+    }})
+
+    dialog = ButtonDialog:new{ title = _("AI Book Tools"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
 --- Per-book "Book Settings" — a dedicated per-book configuration screen. Every row is
 -- about THIS book (no For-this-book/Global toggle); each setting offers "Follow global"
 -- plus per-book overrides. Compact rows that open small sub-pickers, so the screen scales
@@ -645,6 +779,39 @@ function BookSettings.show(opts)
         UIManager:show(picker)
     end
 
+    -- AI Book Tools posture: label + sub-picker (Follow global / Off / Manual / Auto)
+    local function toolsRowLabel(v)
+        if v == nil then return _("Follow global") end
+        return BookSettings.toolsPostureLabel(v)
+    end
+    local function showToolsSubPicker()
+        closeDialog()
+        local cur = doc_settings:readSetting(BookSettings.KEY_TOOLS)  -- nil | "off" | "manual" | "auto"
+        local picker
+        local function setVal(val)
+            doc_settings:saveSetting(BookSettings.KEY_TOOLS, val)
+            doc_settings:flush()
+            syncConfig()
+            UIManager:close(picker)
+            BookSettings.show(opts)
+        end
+        local global_label = BookSettings.toolsPostureLabel(features.tools_posture or "manual")
+        local rows = {
+            {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), global_label),
+                callback = function() setVal(nil) end }},
+            {{ text = dot(cur == "off") .. _("Off (never offered)"),
+                callback = function() setVal("off") end }},
+            {{ text = dot(cur == "manual") .. _("Manual (checkbox, off by default)"),
+                callback = function() setVal("manual") end }},
+            {{ text = dot(cur == "auto") .. _("Auto (checkbox, on by default)"),
+                callback = function() setVal("auto") end }},
+            {{ text = _("Cancel"), id = "close",
+                callback = function() UIManager:close(picker); BookSettings.show(opts) end }},
+        }
+        picker = ButtonDialog:new{ title = _("AI Book Tools (this book)"), buttons = rows }
+        UIManager:show(picker)
+    end
+
     local book_domain = doc_settings:readSetting("koassistant_book_domain")
     local domain_label
     if book_domain == "_none" then domain_label = _("None")
@@ -676,6 +843,8 @@ function BookSettings.show(opts)
             end }},
         {{ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
             callback = showBookInfoSubPicker }},
+        {{ text = T(_("AI Book Tools: %1"), toolsRowLabel(doc_settings:readSetting(BookSettings.KEY_TOOLS))),
+            callback = showToolsSubPicker }},
         {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
             callback = function()
                 showOverrideSubPicker(BookSettings.KEY_AI_TITLE,

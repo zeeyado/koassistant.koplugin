@@ -289,28 +289,58 @@ TestRunner:test("shouldUse skips when _xray_chat_active is set", function()
         provider = "gemini",
         features = { is_book_context = true, _xray_chat_active = true,
             -- opt-in + consent satisfied so _xray_chat_active is the isolated cause
-            enable_tool_workflows = true, enable_book_text_extraction = true },
+            tools_posture = "auto", enable_book_text_extraction = true },
     }
     TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "x-ray chat session must skip book tools")
 end)
 
-TestRunner:test("shouldUse requires the experimental enable_tool_workflows flag", function()
+TestRunner:test("shouldUse follows the tools posture when no session choice exists", function()
     local cfg = {
         provider = "gemini",
         features = { is_book_context = true, enable_book_text_extraction = true },
     }
     TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
-        "tools stay off until enable_tool_workflows is set")
-    cfg.features.enable_tool_workflows = true
+        "default posture (manual) does not auto-activate tools")
+    cfg.features.tools_posture = "manual"
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
+        "manual posture does not auto-activate tools")
+    cfg.features.tools_posture = "off"
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
+        "off posture does not activate tools")
+    cfg.features.tools_posture = "auto"
     TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
-        "tools enabled once the flag and extraction consent are set")
+        "auto posture activates tools when consent + capability are satisfied")
+end)
+
+TestRunner:test("shouldUse honours a per-book posture override via ui.doc_settings", function()
+    local cfg = {
+        provider = "gemini",
+        features = { is_book_context = true, enable_book_text_extraction = true,
+            tools_posture = "manual" },
+    }
+    local ui = makeUi()
+    ui.doc_settings = {
+        readSetting = function(_self, key)
+            if key == "koassistant_book_tools" then return "auto" end
+        end,
+    }
+    TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, ui),
+        "per-book auto override wins over global manual")
+    ui.doc_settings = {
+        readSetting = function(_self, key)
+            if key == "koassistant_book_tools" then return "off" end
+        end,
+    }
+    cfg.features.tools_posture = "auto"
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, ui),
+        "per-book off override wins over global auto")
 end)
 
 TestRunner:test("shouldUse respects the text-extraction consent gate", function()
     local cfg = {
         provider = "gemini",
-        features = { is_book_context = true, enable_tool_workflows = true },
+        features = { is_book_context = true, tools_posture = "auto" },
     }
     TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "no tools when book-text extraction is not allowed")
@@ -324,7 +354,7 @@ TestRunner:test("shouldUse lets a trusted provider bypass the extraction gate", 
         provider = "gemini",
         features = {
             is_book_context = true,
-            enable_tool_workflows = true,
+            tools_posture = "auto",
             -- extraction OFF, but the provider is trusted
             trusted_providers = { "gemini" },
         },
@@ -334,7 +364,7 @@ TestRunner:test("shouldUse lets a trusted provider bypass the extraction gate", 
 end)
 
 TestRunner:test("shouldUse requires a tools-capable provider/model with an adapter", function()
-    local base = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true }
+    local base = { is_book_context = true, tools_posture = "auto", enable_book_text_extraction = true }
     -- gemini + a tools-capable model → eligible
     TestRunner:assertTrue(BookToolRunner.shouldUse(
         { provider = "gemini", model = "gemini-3.5-flash", features = base }, makeUi()),
@@ -395,7 +425,7 @@ TestRunner:test("queryWith delegates to query_fn when shouldUse is false", funct
     end
     local cfg = {
         provider = "mistral", -- no tools capability/adapter → shouldUse returns false (even with opt-in + consent)
-        features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true },
+        features = { is_book_context = true, tools_posture = "auto", enable_book_text_extraction = true },
     }
     local final
     BookToolRunner.queryWith(query_fn, { { role = "user", content = "hi" } }, cfg,
@@ -427,7 +457,7 @@ TestRunner:test("queryWith routes through tool runner when shouldUse is true", f
     end
     local cfg = {
         provider = "gemini",
-        features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true,
+        features = { is_book_context = true, tools_posture = "auto", enable_book_text_extraction = true,
             tool_mode = "interactive" },
     }
     local final
@@ -705,19 +735,19 @@ end)
 -- Per-chat activation (D1) — _tools_active override
 -- ============================================================
 
-TestRunner:test("shouldUse: session checkbox overrides the global flag both ways", function()
-    -- global ON, session explicitly unchecked → off
+TestRunner:test("shouldUse: session checkbox overrides the posture both ways", function()
+    -- posture auto, session explicitly unchecked → off
     local cfg = { provider = "gemini", features = {
         is_book_context = true, enable_book_text_extraction = true,
-        enable_tool_workflows = true, _tools_active = false } }
+        tools_posture = "auto", _tools_active = false } }
     TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
-        "explicit session false wins over global true")
-    -- global OFF, session explicitly checked → on
+        "explicit session false wins over posture auto")
+    -- posture manual (unchecked default), session explicitly checked → on
     cfg = { provider = "gemini", features = {
         is_book_context = true, enable_book_text_extraction = true,
-        enable_tool_workflows = false, _tools_active = true } }
+        tools_posture = "manual", _tools_active = true } }
     TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
-        "explicit session true wins over global false")
+        "explicit session true wins over posture manual")
     -- session true still can't bypass capability/consent gates
     cfg = { provider = "mistral", model = "mistral-large-2", features = {
         is_book_context = true, enable_book_text_extraction = true, _tools_active = true } }
@@ -726,13 +756,13 @@ TestRunner:test("shouldUse: session checkbox overrides the global flag both ways
 end)
 
 TestRunner:test("sessionEligible: capability+consent+document, independent of activation", function()
-    -- eligible despite global flag off (that's the point — the checkbox needs to render)
+    -- eligible despite posture manual (that's the point — the checkbox needs to render)
     local cfg = { provider = "gemini", features = {
-        enable_tool_workflows = false, enable_book_text_extraction = true } }
+        tools_posture = "manual", enable_book_text_extraction = true } }
     TestRunner:assertTrue(BookToolRunner.sessionEligible(cfg, makeUi()),
-        "eligible with consent + capable provider even when globally off")
+        "eligible with consent + capable provider even when posture is manual")
     -- not eligible without extraction consent
-    cfg = { provider = "gemini", features = { enable_tool_workflows = true } }
+    cfg = { provider = "gemini", features = { tools_posture = "auto" } }
     TestRunner:assertFalse(BookToolRunner.sessionEligible(cfg, makeUi()),
         "not eligible without extraction consent")
     -- not eligible without an open document
@@ -757,6 +787,143 @@ TestRunner:test("cancel method sets cancelled flag", function()
         on_complete = function() end,
     })
     TestRunner:assertFalse(BookToolRunner._cancelled, "run resets cancelled flag")
+end)
+
+-- ============================================================
+-- Lookup-effort budgets (tools_ux_plan.md §2)
+-- ============================================================
+
+TestRunner:test("budgetFor maps the effort dial; unknown/missing fall back to standard", function()
+    local q = BookToolRunner.budgetFor({ tool_lookup_effort = "quick" })
+    TestRunner:assertEqual(q.turns, 2, "quick turns")
+    TestRunner:assertEqual(q.calls, 4, "quick calls")
+    TestRunner:assertEqual(q.bundle_chars, 32000, "quick bundle")
+    local st = BookToolRunner.budgetFor({})
+    TestRunner:assertEqual(st.turns, 4, "standard turns (default)")
+    TestRunner:assertEqual(st.calls, 8, "standard calls (default)")
+    TestRunner:assertEqual(st.bundle_chars, 32000, "standard bundle")
+    local th = BookToolRunner.budgetFor({ tool_lookup_effort = "thorough" })
+    TestRunner:assertEqual(th.turns, 6, "thorough turns")
+    TestRunner:assertEqual(th.calls, 16, "thorough calls")
+    TestRunner:assertEqual(th.bundle_chars, 48000, "thorough bundle")
+    local bogus = BookToolRunner.budgetFor({ tool_lookup_effort = "extreme" })
+    TestRunner:assertEqual(bogus.calls, 8, "unknown effort value falls back to standard")
+    TestRunner:assertEqual(BookToolRunner.budgetFor(nil).calls, 8, "nil features falls back to standard")
+end)
+
+TestRunner:test("gather instructions state the total lookup budget", function()
+    local first_config
+    local function query_fn(_messages, config, callback)
+        if not first_config then
+            first_config = config
+            callback(true, {
+                _tool_calls = true,
+                calls = { { name = "done", args = {} } },
+                raw_assistant_turn = { role = "model", parts = {} },
+            })
+        else
+            callback(true, "answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertTrue(
+        first_config.system.text:find("You may use at most 8 lookups in total.", 1, true) ~= nil,
+        "standard budget stated in the gather instructions")
+
+    first_config = nil
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = { provider = "gemini",
+            features = { is_book_context = true, tool_lookup_effort = "quick" } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertTrue(
+        first_config.system.text:find("You may use at most 4 lookups in total.", 1, true) ~= nil,
+        "quick budget stated in the gather instructions")
+end)
+
+TestRunner:test("the round's last tool result carries the remaining lookup budget", function()
+    local calls = 0
+    local second_round_messages
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, {
+                _tool_calls = true,
+                calls = { { name = "search_book", args = { query = "Daisy" } } },
+                raw_assistant_turn = { role = "model", parts = {
+                    { functionCall = { name = "search_book", args = { query = "Daisy" } } } } },
+            })
+        elseif calls == 2 then
+            second_round_messages = messages
+            callback(true, {
+                _tool_calls = true,
+                calls = { { name = "done", args = {} } },
+                raw_assistant_turn = { role = "model", parts = {} },
+            })
+        else
+            callback(true, "answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "Where is Daisy?" } },
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    local budget_note
+    for _idx, m in ipairs(second_round_messages or {}) do
+        if m.role == "tool" and m.parts then
+            for _jdx, part in ipairs(m.parts) do
+                local resp = part.functionResponse and part.functionResponse.response
+                if type(resp) == "table" and resp.lookup_budget then
+                    budget_note = resp.lookup_budget
+                end
+            end
+        end
+    end
+    TestRunner:assertEqual(budget_note, "7 of 8 lookups remaining",
+        "remaining budget rides the round's last tool result")
+end)
+
+TestRunner:test("quick effort caps the gather loop at 2 turns", function()
+    local calls = 0
+    local final_answer
+    local function query_fn(_messages, _config, callback)
+        calls = calls + 1
+        if calls <= 2 then
+            -- never call done: only the budget can end the gather phase
+            callback(true, {
+                _tool_calls = true,
+                calls = { { name = "search_book", args = { query = "rabbit" } } },
+                raw_assistant_turn = { role = "model", parts = {
+                    { functionCall = { name = "search_book", args = { query = "rabbit" } } } } },
+            })
+        else
+            callback(true, "capped answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = { provider = "gemini",
+            features = { is_book_context = true, tool_lookup_effort = "quick" } },
+        ui = makeUi(),
+        on_complete = function(_success, answer) final_answer = answer end,
+    })
+    TestRunner:assertEqual(calls, 3, "2 gather rounds + 1 generate call under the quick budget")
+    TestRunner:assertTrue(final_answer:find("capped answer", 1, true) ~= nil, "answer from phase 2")
+    TestRunner:assertTrue(final_answer:find("2 lookups", 1, true) ~= nil,
+        "lookups note reflects the capped session")
 end)
 
 return TestRunner:summary()
