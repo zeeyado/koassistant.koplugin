@@ -300,8 +300,8 @@ TestRunner:test("shouldUse follows the tools posture when no session choice exis
         provider = "gemini",
         features = { is_book_context = true, enable_book_text_extraction = true },
     }
-    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
-        "default posture (manual) does not auto-activate tools")
+    TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
+        "default posture (auto, schema default) activates tools when consent+capability hold")
     cfg.features.tools_posture = "manual"
     TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "manual posture does not auto-activate tools")
@@ -1046,7 +1046,7 @@ TestRunner:test("smartRetrievalAllowed: posture off is the master switch", funct
     local base = { provider = "gemini",
         features = { enable_book_text_extraction = true } }
     local ok, why = BookToolRunner.smartRetrievalAllowed(base, makeUi())
-    TestRunner:assertTrue(ok, "eligible session with default (manual) posture allowed")
+    TestRunner:assertTrue(ok, "eligible session with default (auto) posture allowed")
     base.features.tools_posture = "manual"
     TestRunner:assertTrue(BookToolRunner.smartRetrievalAllowed(base, makeUi()),
         "manual posture allows per-action smart retrieval")

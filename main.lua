@@ -1522,8 +1522,11 @@ function AskGPT:initSettings()
     -- ONE-TIME migration (tools posture): the enable_tool_workflows bool became the
     -- 3-state tools_posture (off/manual/auto). Since the per-chat checkbox shipped, the
     -- bool only set the checkbox default — so false/nil maps to "manual" (checkbox shown,
-    -- unchecked; today's behavior) and true to "auto" (checkbox pre-checked). "off"
-    -- (checkbox hidden) is new and never assigned by migration.
+    -- unchecked; their pre-upgrade behavior) and true to "auto" (checkbox pre-checked).
+    -- DELIBERATE: existing users get behavior-preserving "manual" even though the schema
+    -- default is now "auto" (fresh installs only) — silently pre-ticking the checkbox for
+    -- users who never enabled the experimental bool would be a surprise on update. "off"
+    -- (no tools anywhere) is new and never assigned by migration.
     if not features._tools_posture_migrated then
       if features.tools_posture == nil then
         features.tools_posture = (features.enable_tool_workflows == true) and "auto" or "manual"

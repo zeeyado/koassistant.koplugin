@@ -969,7 +969,7 @@ function BookToolRunner.run(params)
                         large_stream_dialog = features.large_stream_dialog,
                         response_font_size = features.markdown_font_size,
                     },
-                    initial_text = _("Searching the book…"),
+                    initial_text = _("Consulting book tools…"),
                     on_stop = function()
                         BookToolRunner._cancelled = true
                         if cancel_slot.cancel then
@@ -1139,7 +1139,7 @@ function BookToolRunner.gatherForAction(params)
                     large_stream_dialog = features.large_stream_dialog,
                     response_font_size = features.markdown_font_size,
                 },
-                initial_text = _("Searching the book…"),
+                initial_text = _("Consulting book tools…"),
                 on_stop = function()
                     BookToolRunner._cancelled = true
                     if cancel_slot.cancel then

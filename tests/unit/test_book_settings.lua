@@ -666,9 +666,9 @@ local function fakeDocSettings(values)
     return { readSetting = function(_self, key) return values[key] end }
 end
 
-TestRunner:test("resolveToolsPosture: per-book override > global > manual", function()
-    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, nil), "manual",
-        "no book, no features → manual")
+TestRunner:test("resolveToolsPosture: per-book override > global > auto (schema default)", function()
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, nil), "auto",
+        "no book, no features → auto (must match the schema default)")
     TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, { tools_posture = "auto" }), "auto",
         "global auto, no book override")
     local ds = fakeDocSettings({ koassistant_book_tools = "off" })
@@ -683,8 +683,8 @@ TestRunner:test("resolveToolsPosture: unknown values fall through, never wedge",
     local ds = fakeDocSettings({ koassistant_book_tools = "banana" })
     TestRunner:assertEqual(BookSettings.resolveToolsPosture(ds, { tools_posture = "auto" }), "auto",
         "corrupt sidecar value falls through to the global")
-    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, { tools_posture = true }), "manual",
-        "legacy boolean-ish global falls through to manual")
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, { tools_posture = true }), "auto",
+        "legacy boolean-ish global falls through to the default")
 end)
 
 TestRunner:test("toolsPostureLabel maps all three values (manual is the fallback)", function()

@@ -1939,7 +1939,7 @@ local SettingsSchema = {
                     type = "radio",
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
-                        local posture = f.tools_posture or "manual"
+                        local posture = f.tools_posture or "auto"
                         local labels = {
                             off = _("Off"),
                             manual = _("Manual"),
@@ -1947,9 +1947,9 @@ local SettingsSchema = {
                         }
                         return T(_("AI Book Tools: %1"), labels[posture] or posture)
                     end,
-                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). Book tools let the AI search the open book's text, read specific pages, and view the table of contents, so it can ground answers in the actual book instead of guessing. Requires \"Allow Text Extraction\".\n\nOff: never offered — no checkbox in the chat dialog.\nManual: a \"Book tools\" checkbox appears in book chats, unchecked by default — one tap to use.\nAuto: the checkbox starts checked; the AI decides per question whether to actually search.\n\nOverride per book in Book Settings. Work in progress; behavior may change."),
+                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). Book tools let the AI search the open book's text, read specific pages, and view the table of contents, so it can ground answers in the actual book instead of guessing. Requires \"Allow Text Extraction\".\n\nOff: no tool use anywhere — no chat checkbox, and actions can't use smart retrieval.\nManual: a \"Book tools\" checkbox appears in book chats, unchecked by default — one tap to use.\nAuto (default): the checkbox starts checked; the AI decides per question whether to actually search. Predefined actions are unaffected — they never use tools unless they explicitly offer smart retrieval.\n\nOverride per book in Book Settings. Work in progress; behavior may change."),
                     path = "features.tools_posture",
-                    default = "manual",
+                    default = "auto",
                     options = {
                         { value = "off", text = _("Off (never offered)") },
                         { value = "manual", text = _("Manual (checkbox, off by default)") },
