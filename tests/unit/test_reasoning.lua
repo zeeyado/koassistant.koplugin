@@ -969,7 +969,7 @@ TestRunner:test("summaryLabel for sentinel says Model default", function()
         ["deepseek/deepseek-v4-pro"] = { state = "default" },
     } } }
     TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"),
-        _("Model default"), "sentinel label")
+        _("Default"), "sentinel label")
 end)
 
 TestRunner:suite("parseActionReasoning")
@@ -1077,8 +1077,8 @@ end)
 
 TestRunner:test("summaryLabel reflects effective state", function()
     local f = {}
-    -- default stance, deepseek thinks naturally -> "Model default" (send_nothing label)
-    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Model default"), "default")
+    -- default stance, deepseek thinks naturally -> "Default" (send_nothing label)
+    TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Default"), "default")
     ReasoningPrefs.setStance(f, "minimal")
     TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "deepseek", "deepseek-v4-pro"), _("Off"), "minimal -> off")
     -- Opus at maximum shows the effort level

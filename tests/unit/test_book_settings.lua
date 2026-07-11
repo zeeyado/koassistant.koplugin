@@ -702,6 +702,30 @@ TestRunner:test("KEY_TOOLS is registered in SIDECAR_KEYS (reset/count coverage)"
     TestRunner:assertEqual(found, true, "koassistant_book_tools missing from SIDECAR_KEYS")
 end)
 
+TestRunner:suite("D3 smart retrieval — {document_context_section} (tools_ux_plan.md §4)")
+
+TestRunner:test("smart_retrieval mode labels the bundle as retrieved passages", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "Q\n\n{document_context_section}\n\n{text_fallback_nudge}" },
+        context = "highlight",
+        data = { _source_mode = "smart_retrieval", full_document = "PASSAGE-A\n\nPASSAGE-B" },
+    })
+    TestRunner:assertContains(result, "Passages retrieved from the book", "bundle label present")
+    TestRunner:assertContains(result, "PASSAGE-A", "bundle content present")
+    TestRunner:assertNotContains(result, "Full document:", "not mislabeled as full text")
+    TestRunner:assertNotContains(result, "No document text was provided", "fallback nudge absent")
+end)
+
+TestRunner:test("zero-gather smart retrieval resolves empty and fires the fallback nudge", function()
+    local result = MessageBuilder.build({
+        prompt = { prompt = "Q\n\n{document_context_section}\n\n{text_fallback_nudge}" },
+        context = "highlight",
+        data = { _source_mode = "smart_retrieval" },
+    })
+    TestRunner:assertNotContains(result, "Passages retrieved", "no bundle label without a bundle")
+    TestRunner:assertContains(result, "No document text was provided", "fallback nudge fires")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

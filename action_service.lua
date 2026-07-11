@@ -1479,19 +1479,23 @@ function ActionService:getQsItemsOrder()
         return copy
     end
     local processed = processOrderedList(saved, Constants.QS_ITEMS_DEFAULT_ORDER)
-    -- Migration: insert text_extraction before chat_history for existing users
-    -- (processOrderedList appends new items at end; relocate if needed)
-    local te_idx, ch_idx
+    -- Normalization: text_extraction lives right after dictionary_language (maintainer
+    -- 2026-07-11 QS layout; replaces the old before-chat_history relocation, whose
+    -- append-at-end case this subsumes). Fires only when text_extraction sits before
+    -- dictionary_language (pre-move saved orders) or after chat_history (the old
+    -- appended-at-end placement) — a manual position between the two survives.
+    local te_idx, dl_idx, ch_idx
     for i, id in ipairs(processed) do
         if id == "text_extraction" then te_idx = i end
+        if id == "dictionary_language" then dl_idx = i end
         if id == "chat_history" then ch_idx = i end
     end
-    if te_idx and ch_idx and te_idx > ch_idx then
+    if te_idx and dl_idx and (te_idx < dl_idx or (ch_idx and te_idx > ch_idx)) then
         table.remove(processed, te_idx)
-        -- Re-find chat_history after removal (index may have shifted)
+        -- Re-find dictionary_language after removal (index may have shifted)
         for i, id in ipairs(processed) do
-            if id == "chat_history" then
-                table.insert(processed, i, "text_extraction")
+            if id == "dictionary_language" then
+                table.insert(processed, i + 1, "text_extraction")
                 break
             end
         end

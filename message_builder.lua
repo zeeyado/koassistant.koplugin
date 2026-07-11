@@ -294,8 +294,15 @@ function MessageBuilder.build(params)
     elseif source_mode == "summary" and data.summary_cache and data.summary_cache ~= "" then
         document_context_section = "Document summary:\n" .. data.summary_cache
             .. "\n\nNote: The summary may be in a different language than your response language. Translate or adapt as needed."
+    elseif source_mode == "smart_retrieval" and data.full_document and data.full_document ~= "" then
+        -- D3 smart retrieval (tools_ux_plan.md §4): data.full_document carries the gather
+        -- bundle injected by handlePredefinedPrompt, not extracted text. Label it honestly
+        -- so the model knows it has targeted excerpts, not the whole document.
+        document_context_section = "Passages retrieved from the book (targeted lookups, not the full text):\n"
+            .. data.full_document
     end
-    -- "ai_knowledge" or missing data: remains empty (text_fallback_nudge will fill in)
+    -- "ai_knowledge" or missing data (incl. a zero-gather smart retrieval): remains empty
+    -- (text_fallback_nudge will fill in)
     user_prompt = replace_placeholder(user_prompt, "{document_context_section}", document_context_section)
 
     -- {text_fallback_nudge} - conditional: appears only when document text is empty
