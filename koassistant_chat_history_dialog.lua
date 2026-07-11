@@ -1587,6 +1587,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     -- reading scope (history resume is spoiler-excluded by design — audit G6 family).
     config.features._tools_active = nil
     config.features._spoiler_free_active = nil
+    config.features._web_search_active = nil
 
     -- Restore system prompt metadata for debug display (if available from saved chat)
     if chat.system_metadata then

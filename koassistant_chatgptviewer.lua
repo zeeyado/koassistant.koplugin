@@ -1210,8 +1210,13 @@ function ChatGPTViewer:init()
     if self.session_web_search_override ~= nil then
       return self.session_web_search_override
     end
-    -- Check global setting from configuration
     local cfg = self.configuration
+    -- Baked per-request override (action flag / per-chat toggle / per-book override),
+    -- set by buildUnifiedRequestConfig — reflects what this chat actually uses
+    if cfg and cfg.enable_web_search ~= nil then
+      return cfg.enable_web_search == true
+    end
+    -- Fall through to the global setting
     if cfg and cfg.features and cfg.features.enable_web_search then
       return true
     end

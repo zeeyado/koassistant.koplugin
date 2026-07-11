@@ -9130,9 +9130,8 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Reasoning chip reflects the EFFECTIVE state for the active provider/model
   -- (resolved from the global stance + per-provider/per-model prefs).
   local reasoning_chip = ReasoningPrefs.summaryLabel(features, provider, model)
-  local web_search = features.enable_web_search == true  -- Default false
   -- Whether the *currently active* provider/model can actually use web search.
-  -- The toggle stays usable (it sets the global default); we just annotate when N/A.
+  -- The picker stays usable (it sets the defaults); we just annotate when N/A.
   local ModelConstraints = require("model_constraints")
   local web_search_supported = ModelConstraints.supportsWebSearch(provider, model)
   local text_extraction = features.enable_book_text_extraction == true  -- Default false
@@ -9146,7 +9145,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Show effective domain: book domain takes priority over global
   -- "_none" sentinel = explicit no-domain override for this book
   local book_domain_id = self.ui and self.ui.document and self.ui.doc_settings
-      and self.ui.doc_settings:readSetting("koassistant_book_domain") or nil
+      and self.ui.doc_settings:readSetting(require("koassistant_book_settings").KEY_DOMAIN) or nil
   local domain_display = _("None")
   if book_domain_id == "_none" then
     domain_display = _("None") .. _(" (book)")
@@ -9317,29 +9316,25 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
 
   button_defs["web_search"] = {
     text = (function()
-      local base = web_search and _("Web Search: ON") or _("Web Search: OFF")
+      -- Effective state for the open book; "(book)" marks a per-book override
+      -- (same convention as the domain and book-tools chips).
+      local BookSettings = require("koassistant_book_settings")
+      local doc_settings = has_document and self.ui.doc_settings or nil
+      local label = BookSettings.resolveWebSearch(doc_settings, features) and _("On") or _("Off")
+      if doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH) ~= nil then
+        label = label .. _(" (book)")
+      end
+      local base = T(_("Web Search: %1"), label)
       if not web_search_supported then
-        -- Provider can't search — annotate but keep the global default toggle usable
+        -- Provider can't search — annotate but keep the default picker usable
         base = base .. " \u{00B7} " .. T(_("N/A for %1"), provider_display)
       end
       return E("\u{1F50D}", base)
     end)(),
     callback = function()
-      local f = self_ref.settings:readSetting("features") or {}
-      f.enable_web_search = not f.enable_web_search
-      self_ref.settings:saveSetting("features", f)
-      self_ref.settings:flush()
-      self_ref:updateConfigFromSettings()
-      if not web_search_supported then
-        UIManager:show(Notification:new{
-          text = T(_("Saved as default. %1 can't use web search — switch to: %2."),
-            provider_display, ModelConstraints.getWebSearchProvidersLabel()),
-          timeout = 3,
-        })
-      end
       opening_subdialog = true
       UIManager:close(dialog)
-      reopenQuickSettings()
+      self_ref:showWebSearchPopup(reopenQuickSettings)
     end,
   }
 
@@ -9950,6 +9945,25 @@ function AskGPT:showToolsPosturePopup(on_close_callback, target_override)
     on_close = on_close_callback,
     target_override = target_override,
   })
+end
+
+--- Web-search picker (QS chip entry; book_scoped_controls_plan.md §5)
+function AskGPT:showWebSearchPopup(on_close_callback, target_override)
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.showWebSearch({
+    plugin = self,
+    ui = self.ui,
+    on_close = on_close_callback,
+    target_override = target_override,
+  })
+end
+
+--- "Default Domain & Research" settings entry (Actions & Prompts submenu) — the shared
+-- scope-aware picker, opened targeting the GLOBAL default (a book target stays one tap
+-- away when a book is open). The settings renderer passes touchmenu_instance as the
+-- second arg; ignore it (it is not an on_close callback).
+function AskGPT:showDomainSettingsEntry()
+  self:showDomainPopup(nil, "global")
 end
 
 -- Dictionary Popup Manager gesture handler

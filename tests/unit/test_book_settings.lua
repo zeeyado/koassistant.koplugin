@@ -702,6 +702,45 @@ TestRunner:test("KEY_TOOLS is registered in SIDECAR_KEYS (reset/count coverage)"
     TestRunner:assertEqual(found, true, "koassistant_book_tools missing from SIDECAR_KEYS")
 end)
 
+TestRunner:suite("Web search per-book layer (book_scoped_controls_plan.md §5)")
+
+TestRunner:test("webSearchOverride: tri-state raw override", function()
+    TestRunner:assertNil(BookSettings.webSearchOverride(nil), "no book → nil")
+    TestRunner:assertNil(BookSettings.webSearchOverride(fakeDocSettings({})), "no override → nil")
+    TestRunner:assertEqual(BookSettings.webSearchOverride(
+        fakeDocSettings({ koassistant_book_web_search = true })), true, "explicit on")
+    TestRunner:assertEqual(BookSettings.webSearchOverride(
+        fakeDocSettings({ koassistant_book_web_search = false })), false, "explicit off")
+end)
+
+TestRunner:test("resolveWebSearch: per-book override > global (opt-in, default false)", function()
+    TestRunner:assertEqual(BookSettings.resolveWebSearch(nil, nil), false,
+        "no book, no features → false (matches schema default)")
+    TestRunner:assertEqual(BookSettings.resolveWebSearch(nil, { enable_web_search = true }), true,
+        "global on, no book")
+    local ds = fakeDocSettings({ koassistant_book_web_search = false })
+    TestRunner:assertEqual(BookSettings.resolveWebSearch(ds, { enable_web_search = true }), false,
+        "per-book off wins over global on")
+    ds = fakeDocSettings({ koassistant_book_web_search = true })
+    TestRunner:assertEqual(BookSettings.resolveWebSearch(ds, { enable_web_search = false }), true,
+        "per-book on wins over global off")
+    ds = fakeDocSettings({})
+    TestRunner:assertEqual(BookSettings.resolveWebSearch(ds, {}), false,
+        "no layers set → off")
+end)
+
+TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS", function()
+    local found = {}
+    for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do found[key] = true end
+    TestRunner:assertEqual(found[BookSettings.KEY_WEB_SEARCH] == true, true,
+        "koassistant_book_web_search missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(found["koassistant_book_domain"] == true, true,
+        "KEY_DOMAIN constant must keep the original key string")
+    TestRunner:assertEqual(found["koassistant_book_research_mode"] == true, true,
+        "KEY_RESEARCH constant must keep the original key string")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 12, "12 per-book keys expected")
+end)
+
 TestRunner:suite("D3 smart retrieval — {document_context_section} (tools_ux_plan.md §4)")
 
 TestRunner:test("smart_retrieval mode labels the bundle as retrieved passages", function()
