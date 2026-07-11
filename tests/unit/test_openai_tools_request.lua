@@ -140,4 +140,17 @@ TestRunner:test("openrouter (compatible family): declaration + tool turns surviv
     TestRunner:assertEqual(body.messages[3].tool_call_id, "c1", "tool_call_id preserved")
 end)
 
+TestRunner:test("gather pass (mode ANY) sets tool_choice required", function()
+    local result = OpenAIHandler:buildRequestBody({
+        { role = "user", content = "q" },
+    }, {
+        model = "gpt-5.5",
+        api_key = "test",
+        tools = { specs = SPECS, mode = "ANY" },
+        features = {},
+    })
+    TestRunner:assertEqual(result.body.tool_choice, "required",
+        "mode ANY renders tool_choice required (gather rounds force a tool call)")
+end)
+
 return TestRunner:summary()

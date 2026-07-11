@@ -693,7 +693,8 @@ TestRunner:test("gather: gather rounds declare the done tool; instructions injec
         if spec.name == "done" then has_done = true end
     end
     TestRunner:assertTrue(has_done, "gather declarations include the done tool")
-    TestRunner:assertEqual(gather_config.tools.mode, "AUTO", "gather rounds use tool mode AUTO")
+    TestRunner:assertEqual(gather_config.tools.mode, "ANY",
+        "gather rounds force a tool call (mode ANY) so prose can't bypass streamed phase 2")
     TestRunner:assertEqual(gather_config.features.enable_streaming, false,
         "gather rounds are non-streaming")
     TestRunner:assertTrue(gather_config.system.text:find("GATHER PHASE", 1, true) ~= nil,

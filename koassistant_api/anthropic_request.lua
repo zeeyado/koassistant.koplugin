@@ -151,9 +151,13 @@ function AnthropicRequest:build(config)
         end
         -- mode NONE = the runner's final pass: tool turns are replayed in the history, so
         -- the declarations must stay (Anthropic 400s on tool_use/tool_result without tools),
-        -- but no further calls are allowed.
+        -- but no further calls are allowed. mode ANY = gather rounds: force a tool call
+        -- (search or done) so the model can never answer in prose on the non-streamed
+        -- gather path (live-verified: Claude otherwise emits text+done in one turn).
         if config.tools.mode == "NONE" then
             request_body.tool_choice = { type = "none" }
+        elseif config.tools.mode == "ANY" then
+            request_body.tool_choice = { type = "any" }
         end
     end
 
@@ -270,6 +274,23 @@ function AnthropicRequest:build(config)
                     reason = "model " .. model .. " does not support extended thinking"
                 }
             end
+        end
+    else
+        -- No thinking param (the reasoning resolver's send_nothing / "Model API default").
+        -- Carve-out to the send-nothing contract (2026-07-11, display-only params allowed):
+        -- models whose adaptive thinking is ON at the API default (Sonnet 5) think SILENTLY
+        -- — Anthropic streams no reasoning unless display="summarized" is requested, so the
+        -- user stares at a blank wait before the first token. Sending adaptive+summarized
+        -- is behaviorally identical to the API default (adaptive IS the default) but makes
+        -- the thinking visible. Excludes default-OFF adaptive models (Opus/Sonnet 4.6 —
+        -- enabling thinking there WOULD change behavior) via profile.default_state.
+        local profile = ModelConstraints.getReasoningProfile("anthropic", model)
+        if profile.axis == "adaptive_effort" and profile.default_state == "on"
+            and ModelConstraints.supportsCapability("anthropic", model, "adaptive_thinking") then
+            request_body.thinking = { type = "adaptive", display = "summarized" }
+            adjustments.thinking_display = {
+                reason = "adaptive is this model's API default; summarized display makes it visible"
+            }
         end
     end
 
