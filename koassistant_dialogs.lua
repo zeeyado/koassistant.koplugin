@@ -2511,9 +2511,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Capture and clear transient flags to prevent leaking across invocations
     local source_mode = config.features and config.features._source_mode
     local highlight_section = config.features and config.features._highlight_section_scope
+    local forced_document_context = config.features and config.features._forced_document_context
     if config.features then
         config.features._source_mode = nil
         config.features._highlight_section_scope = nil
+        config.features._forced_document_context = nil
     end
 
     -- Source mode: skip extraction for non-selected sources
@@ -2549,6 +2551,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- web search becomes useful for verification)
         if source_mode == "ai_knowledge" and prompt.enable_web_search == false then
             prompt.enable_web_search = nil
+        end
+        -- Smart retrieval (D3 — tools_ux_plan.md §4): the pre-gathered bundle stands in
+        -- for extracted text; {document_context_section} resolves it via the
+        -- "smart_retrieval" branch in message_builder. Mirrors _forced_surrounding_context.
+        -- Safe from overwrite: use_book_text was forced false above, so the extractor's
+        -- full_document block never runs. An empty bundle (zero-gather) is NOT injected —
+        -- the section resolves empty and {text_fallback_nudge} fires (honest degradation).
+        if source_mode == "smart_retrieval" and forced_document_context
+                and forced_document_context ~= "" then
+            message_data.full_document = forced_document_context
         end
     end
 
@@ -3920,6 +3932,66 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end)
         end
 
+        -- Shared dispatch for the unified popup's on_execute (all three popup call sites
+        -- below): records the source/scope transients, and for smart retrieval (D3 —
+        -- tools_ux_plan.md §4) runs the gather phase FIRST, stashes the bundle as
+        -- _forced_document_context, then runs the action normally — its own prompt and
+        -- placeholders consume the bundle in place of extracted text.
+        local function runActionWithSource(popup_state, is_hl)
+            configuration.features = configuration.features or {}
+            configuration.features._source_mode = popup_state.source
+            if is_hl and popup_state.scope == "section" and popup_state.section_entry then
+                configuration.features._highlight_section_scope = {
+                    start_page = popup_state.section_entry.start_page,
+                    end_page = popup_state.section_entry.end_page,
+                }
+            end
+            if popup_state.source == "smart_retrieval" then
+                BookToolRunner.gatherForAction({
+                    -- Model-facing gather question (untranslated, like GATHER_INSTRUCTIONS)
+                    question = "Task: " .. (action.text or action_id)
+                        .. "\n\nSelected passage:\n" .. (highlighted_text or ""),
+                    query_fn = queryChatGPT,
+                    config = configuration,
+                    ui = ui_instance,
+                    settings = plugin and plugin.settings,
+                    on_complete = function(bundle, info)
+                        if bundle == nil then
+                            -- Gather failed: don't silently run the action with a
+                            -- different source than the user chose. Cancel shows nothing.
+                            configuration.features._source_mode = nil
+                            configuration.features._highlight_section_scope = nil
+                            if not (info and info.cancelled) then
+                                UIManager:show(InfoMessage:new{
+                                    text = _("Book search failed: ")
+                                        .. tostring(info and info.error or _("Unknown error")),
+                                    timeout = 3,
+                                })
+                            end
+                            return
+                        end
+                        configuration.features._forced_document_context = bundle
+                        local n = info and info.tool_calls or 0
+                        local Notification = require("ui/widget/notification")
+                        local note
+                        if n == 0 then
+                            -- Model decided no lookups were needed (zero-gather): the
+                            -- action proceeds on AI knowledge with the fallback nudge.
+                            note = _("No book lookups needed")
+                        elseif n == 1 then
+                            note = _("Searched the book — 1 lookup")
+                        else
+                            note = T(_("Searched the book — %1 lookups"), n)
+                        end
+                        UIManager:show(Notification:new{ text = note, timeout = 2 })
+                        runAction()
+                    end,
+                })
+                return
+            end
+            runAction()
+        end
+
         -- Pre-flight: cache actions with source_selection use View/Sections/New popup
         if action.use_response_caching and action.source_selection and plugin then
             local ActionCache = require("koassistant_action_cache")
@@ -4049,15 +4121,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         plugin:_showUnifiedActionPopup(action, action_id, {
                             for_highlight = is_hl or nil,
                             on_execute = function(popup_state)
-                                configuration.features = configuration.features or {}
-                                configuration.features._source_mode = popup_state.source
-                                if is_hl and popup_state.scope == "section" and popup_state.section_entry then
-                                    configuration.features._highlight_section_scope = {
-                                        start_page = popup_state.section_entry.start_page,
-                                        end_page = popup_state.section_entry.end_page,
-                                    }
-                                end
-                                runAction()
+                                runActionWithSource(popup_state, is_hl)
                             end,
                         })
                     end,
@@ -4098,15 +4162,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         plugin:_showUnifiedActionPopup(action, action_id, {
                             for_highlight = is_hl or nil,
                             on_execute = function(popup_state)
-                                configuration.features = configuration.features or {}
-                                configuration.features._source_mode = popup_state.source
-                                if is_hl and popup_state.scope == "section" and popup_state.section_entry then
-                                    configuration.features._highlight_section_scope = {
-                                        start_page = popup_state.section_entry.start_page,
-                                        end_page = popup_state.section_entry.end_page,
-                                    }
-                                end
-                                runAction()
+                                runActionWithSource(popup_state, is_hl)
                             end,
                         })
                     end,
@@ -4150,16 +4206,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             plugin:_showUnifiedActionPopup(action, action_id, {
                 for_highlight = is_highlight or nil,
                 on_execute = function(popup_state)
-                    configuration.features = configuration.features or {}
-                    configuration.features._source_mode = popup_state.source
-                    -- Highlight actions: set _highlight_section_scope for text extraction range
-                    if is_highlight and popup_state.scope == "section" and popup_state.section_entry then
-                        configuration.features._highlight_section_scope = {
-                            start_page = popup_state.section_entry.start_page,
-                            end_page = popup_state.section_entry.end_page,
-                        }
-                    end
-                    runAction()
+                    runActionWithSource(popup_state, is_highlight)
                 end,
             })
             return

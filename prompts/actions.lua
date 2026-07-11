@@ -32,6 +32,10 @@ local Constants = require("koassistant_constants")
 --                      nil/unset: Default (current document, or __GENERAL_CHATS__ for general context)
 --                      "__SKIP__": Don't save this chat at all
 --                      Custom string: Save to that pseudo-document
+--   smart_retrieval  - Offer "Smart retrieval" as a 4th source in the source popup: the AI
+--                      gathers relevant passages via the local book tools and they replace
+--                      full-text extraction (D3, tools_ux_plan.md §4). Only meaningful with
+--                      source_selection; only rendered in tools-capable sessions (optional)
 
 local _ = require("koassistant_gettext")
 
@@ -309,6 +313,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
         use_summary_cache = true,
         include_book_context = true,
         source_selection = true,  -- Show source selection popup
+        smart_retrieval = true,   -- D3 pilot: offer "Smart retrieval" source (tools_ux_plan.md §4)
         prompt = [[Explain this passage in context:
 
 "{highlighted_text}"
@@ -344,6 +349,7 @@ Focus on comprehension — help me grasp what I'm reading, not evaluate it. {con
         use_notebook = true,
         include_book_context = true,
         source_selection = true,  -- Show source selection popup
+        smart_retrieval = true,   -- D3 pilot: offer "Smart retrieval" source (tools_ux_plan.md §4)
         prompt = [[Analyze this passage through the lens of my reading:
 
 "{highlighted_text}"

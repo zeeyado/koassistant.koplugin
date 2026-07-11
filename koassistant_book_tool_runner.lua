@@ -968,6 +968,172 @@ function BookToolRunner.run(params)
     return step()
 end
 
+-- Standalone gather (D3 smart retrieval — tools_ux_plan.md §4): phase 1 ONLY, for
+-- predefined actions. Runs the done-terminated tool loop against a synthetic question
+-- and hands back the assembled bundle instead of dispatching a generate phase — the
+-- caller injects it into the action's own (streamed) request in place of extracted
+-- text. No chat history is involved; activation is the popup's explicit source choice,
+-- so posture/_tools_active play no role here (only sessionEligible, checked by the
+-- popup before offering the option).
+-- params: { question, query_fn, config, ui, settings,
+--           on_complete(bundle|nil, info) } — bundle is a string ("" = zero-gather);
+--           nil bundle means the gather failed, with info = { cancelled = true } or
+--           { error = msg }. On success info = { tool_calls = N }.
+function BookToolRunner.gatherForAction(params)
+    params = params or {}
+    local on_complete = params.on_complete or function() end
+    local query_fn = params.query_fn
+    local config = params.config or {}
+    local features = config.features or {}
+    if not query_fn then
+        on_complete(nil, { error = "Book tool runner missing query function" })
+        return nil
+    end
+    BookToolRunner._cancelled = false
+    local provider = config.provider or config.default_provider
+    local reading_scope = resolveReadingScope(config, params.ui)
+    local tools = BookTools:new(params.ui, buildToolSettings(features, reading_scope))
+    local budget = budgetFor(features)
+    local messages = { { role = "user", content = params.question or "" } }
+    appendScopeMessage(messages, tools:getScope())
+    local trace = {}
+    local tool_outputs = {}
+    local tool_turns = 0
+    local tool_calls = 0
+    local completed = false
+    local cancel_slot = {}
+    local status_handle
+
+    local function closeStatus()
+        if status_handle then
+            status_handle.close()
+            status_handle = nil
+        end
+    end
+
+    local function updateStatus()
+        if not status_handle then return end
+        local counter = tool_calls == 1 and _("1 lookup so far")
+            or T(_("%1 lookups so far"), tool_calls)
+        local lines = { _("Searching the book…"), counter, "" }
+        for _idx, item in ipairs(trace) do
+            table.insert(lines, "• " .. item)
+        end
+        status_handle.setText(table.concat(lines, "\n"))
+    end
+
+    local function finish(bundle, info)
+        if completed then return end
+        completed = true
+        closeStatus()
+        on_complete(bundle, info)
+    end
+
+    local function deliver()
+        finish(buildGatherBundle(tool_outputs, budget.bundle_chars), { tool_calls = tool_calls })
+    end
+
+    local step
+    step = function()
+        if completed then return nil end
+        if BookToolRunner._cancelled then
+            return finish(nil, { cancelled = true })
+        end
+        if tool_turns >= budget.turns or tool_calls >= budget.calls then
+            return deliver()
+        end
+
+        local tool_config = buildToolConfig(config, "gather", reading_scope)
+        tool_config.features.loading_message = tool_turns == 0
+            and _("Book tools\nThinking...")
+            or _("Book tools\nReading...")
+        if status_handle then
+            tool_config.features._suppress_loading_dialog = true
+        end
+        tool_config._register_cancel = function(cancel_fn)
+            cancel_slot.cancel = cancel_fn
+        end
+
+        return query_fn(messages, tool_config, function(success, answer, err)
+            cancel_slot.cancel = nil
+            if completed then return end
+            if not success then
+                return finish(nil, BookToolRunner._cancelled
+                    and { cancelled = true } or { error = err })
+            end
+            if type(answer) ~= "table" or answer._tool_calls ~= true then
+                -- Provider ignored the gather protocol (prose despite mode ANY):
+                -- there is no chat to accept it into — deliver what was gathered.
+                return deliver()
+            end
+            local calls = answer.calls or {}
+            if #calls == 0 then
+                return deliver()
+            end
+
+            tool_turns = tool_turns + 1
+            local saw_done = false
+            local executed = {}
+            for _idx, call in ipairs(calls) do
+                if call.name == "done" then
+                    saw_done = true
+                else
+                    tool_calls = tool_calls + 1
+                    local result = tools:execute(call.name, call.args or {})
+                    table.insert(trace, summarizeToolCall(call, result))
+                    table.insert(executed, { call = call, result = result })
+                end
+            end
+            if #executed > 0 then
+                table.insert(tool_outputs, { executed = executed })
+            end
+
+            if saw_done then
+                return deliver()
+            end
+
+            if #executed > 0 then
+                -- Budget-aware prompt: see the step_gather counterpart in run().
+                local last_result = executed[#executed].result
+                if type(last_result) == "table" then
+                    last_result.lookup_budget = string.format("%d of %d lookups remaining",
+                        math.max(0, budget.calls - tool_calls), budget.calls)
+                end
+                ToolWire.appendToolTurn(provider, messages, answer.raw_assistant_turn, executed)
+            end
+            updateStatus()
+            return step()
+        end, params.settings)
+    end
+
+    -- Status window (same degradation pattern as run()'s gather mode): streamed sessions
+    -- get the ticking dialog; otherwise the per-round loading InfoMessages remain the UI.
+    if features.enable_streaming ~= false then
+        local ok, StreamHandler = pcall(require, "stream_handler")
+        if ok and StreamHandler and StreamHandler.showToolStatusDialog then
+            local ok2, handle = pcall(StreamHandler.showToolStatusDialog, {
+                settings = {
+                    large_stream_dialog = features.large_stream_dialog,
+                    response_font_size = features.markdown_font_size,
+                },
+                initial_text = _("Searching the book…"),
+                on_stop = function()
+                    BookToolRunner._cancelled = true
+                    if cancel_slot.cancel then
+                        local cancel = cancel_slot.cancel
+                        cancel_slot.cancel = nil
+                        pcall(cancel)
+                    else
+                        finish(nil, { cancelled = true })
+                    end
+                end,
+            })
+            if ok2 and type(handle) == "table" then status_handle = handle end
+        end
+    end
+    return step()
+end
+
 BookToolRunner.function_declarations = FUNCTION_DECLARATIONS
 
 function BookToolRunner.cancel()

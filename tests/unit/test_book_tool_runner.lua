@@ -926,4 +926,108 @@ TestRunner:test("quick effort caps the gather loop at 2 turns", function()
         "lookups note reflects the capped session")
 end)
 
+-- ============================================================
+-- gatherForAction (D3 smart retrieval — tools_ux_plan.md §4)
+-- ============================================================
+
+TestRunner:test("gatherForAction: search then done returns the bundle and call count", function()
+    local calls = 0
+    local first_config
+    local function query_fn(_messages, config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            first_config = config
+            callback(true, {
+                _tool_calls = true,
+                calls = { { name = "search_book", args = { query = "Daisy" } } },
+                raw_assistant_turn = { role = "model", parts = {
+                    { functionCall = { name = "search_book", args = { query = "Daisy" } } } } },
+            })
+        else
+            callback(true, {
+                _tool_calls = true,
+                calls = { { name = "done", args = {} } },
+                raw_assistant_turn = { role = "model", parts = {} },
+            })
+        end
+    end
+    local got_bundle, got_info
+    BookToolRunner.gatherForAction({
+        question = "Task: Explain in Context\n\nSelected passage:\nDaisy",
+        query_fn = query_fn,
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function(bundle, info) got_bundle, got_info = bundle, info end,
+    })
+    TestRunner:assertEqual(calls, 2, "two gather rounds, no generate phase")
+    TestRunner:assertTrue(type(got_bundle) == "string" and #got_bundle > 0, "bundle returned")
+    TestRunner:assertTrue(got_bundle:find("Daisy", 1, true) ~= nil, "bundle carries the hit")
+    TestRunner:assertEqual(got_info.tool_calls, 1, "lookup count reported")
+    TestRunner:assertTrue(first_config.system.text:find("GATHER PHASE", 1, true) ~= nil,
+        "gather instructions used")
+    TestRunner:assertEqual(first_config.tools.mode, "ANY", "gather rounds force a tool call")
+end)
+
+TestRunner:test("gatherForAction: immediate done returns an empty bundle (zero-gather)", function()
+    local function query_fn(_messages, _config, callback)
+        callback(true, {
+            _tool_calls = true,
+            calls = { { name = "done", args = {} } },
+            raw_assistant_turn = { role = "model", parts = {} },
+        })
+    end
+    local got_bundle, got_info
+    BookToolRunner.gatherForAction({
+        question = "q",
+        query_fn = query_fn,
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function(bundle, info) got_bundle, got_info = bundle, info end,
+    })
+    TestRunner:assertEqual(got_bundle, "", "zero-gather yields empty string, not nil")
+    TestRunner:assertEqual(got_info.tool_calls, 0, "no lookups")
+end)
+
+TestRunner:test("gatherForAction: request failure reports error, nil bundle", function()
+    local function query_fn(_messages, _config, callback)
+        callback(false, nil, "boom")
+    end
+    local got_bundle, got_info
+    BookToolRunner.gatherForAction({
+        question = "q",
+        query_fn = query_fn,
+        config = { provider = "gemini", features = { is_book_context = true } },
+        ui = makeUi(),
+        on_complete = function(bundle, info) got_bundle, got_info = bundle, info end,
+    })
+    TestRunner:assertEqual(got_bundle, nil, "nil bundle on failure")
+    TestRunner:assertEqual(got_info.error, "boom", "error message surfaced")
+end)
+
+TestRunner:test("gatherForAction: budget caps the loop and delivers what was gathered", function()
+    local calls = 0
+    local function query_fn(_messages, _config, callback)
+        calls = calls + 1
+        -- never call done: only the budget can end the loop
+        callback(true, {
+            _tool_calls = true,
+            calls = { { name = "search_book", args = { query = "rabbit" } } },
+            raw_assistant_turn = { role = "model", parts = {
+                { functionCall = { name = "search_book", args = { query = "rabbit" } } } } },
+        })
+    end
+    local got_bundle, got_info
+    BookToolRunner.gatherForAction({
+        question = "q",
+        query_fn = query_fn,
+        config = { provider = "gemini",
+            features = { is_book_context = true, tool_lookup_effort = "quick" } },
+        ui = makeUi(),
+        on_complete = function(bundle, info) got_bundle, got_info = bundle, info end,
+    })
+    TestRunner:assertEqual(calls, 2, "quick budget stops after 2 rounds — no extra request")
+    TestRunner:assertTrue(type(got_bundle) == "string" and #got_bundle > 0, "partial bundle delivered")
+    TestRunner:assertEqual(got_info.tool_calls, 2, "both lookups counted")
+end)
+
 return TestRunner:summary()

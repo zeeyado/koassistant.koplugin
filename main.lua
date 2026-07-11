@@ -5683,6 +5683,22 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     -- === Source section ===
     addLabel(_("Source"))
 
+    -- Smart retrieval (D3 — tools_ux_plan.md §4): offered only for pilot actions
+    -- (action.smart_retrieval) in tools-capable sessions (capability + adapter +
+    -- extraction consent + open book) — hidden otherwise, per design. Highlight path
+    -- only: the gather-before-action wiring lives in the input-dialog dispatch
+    -- (runActionWithSource); book-level dispatch has no gather step. Needs the
+    -- full-document scope: a section scope bounds EXTRACTION, not the tool search,
+    -- so the combination would mislead.
+    local smart_retrieval_available = action.smart_retrieval == true
+        and opts.for_highlight == true
+        and not requires_book_text
+        and require("koassistant_book_tool_runner").sessionEligible(configuration, self_ref.ui)
+    if state.source == "smart_retrieval" and state.scope ~= "full" then
+      -- Scope switched away from full while smart retrieval was selected — fall back
+      state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+    end
+
     -- Build source radio buttons dynamically (section scope may add extra summary rows)
     local extract_text = text_extraction_enabled
         and _("Extract text")
@@ -5762,6 +5778,18 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
           { text = _("Use summary") .. "  (" .. _("enable text extraction first") .. ")", provider = "summary", checked = false, enabled = false },
         })
       end
+    end
+
+    -- Smart retrieval row (between summary and AI knowledge: decreasing text volume).
+    -- Disabled (not hidden) on non-full scopes so the popup height stays stable.
+    if smart_retrieval_available then
+      local sr_enabled = state.scope == "full"
+      local sr_text = sr_enabled
+          and _("Smart retrieval (AI searches the book)")
+          or (_("Smart retrieval (AI searches the book)") .. "  (" .. _("full scope only") .. ")")
+      table.insert(source_radio_buttons, {
+        { text = sr_text, provider = "smart_retrieval", checked = state.source == "smart_retrieval", enabled = sr_enabled },
+      })
     end
 
     -- AI knowledge row. For read-so-far this stays enabled (the framing line carries the "nothing
