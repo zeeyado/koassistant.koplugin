@@ -1519,6 +1519,21 @@ function AskGPT:initSettings()
       logger.info("KOAssistant: Migrated reasoning settings to per-model system (v2)")
     end
 
+    -- ONE-TIME migration (tools posture): the enable_tool_workflows bool became the
+    -- 3-state tools_posture (off/manual/auto). Since the per-chat checkbox shipped, the
+    -- bool only set the checkbox default — so false/nil maps to "manual" (checkbox shown,
+    -- unchecked; today's behavior) and true to "auto" (checkbox pre-checked). "off"
+    -- (checkbox hidden) is new and never assigned by migration.
+    if not features._tools_posture_migrated then
+      if features.tools_posture == nil then
+        features.tools_posture = (features.enable_tool_workflows == true) and "auto" or "manual"
+      end
+      features.enable_tool_workflows = nil
+      features._tools_posture_migrated = true
+      needs_save = true
+      logger.info("KOAssistant: Migrated enable_tool_workflows to tools_posture")
+    end
+
     if needs_save then
       self.settings:saveSetting("features", features)
       logger.info("KOAssistant: Migrated settings")
@@ -9225,6 +9240,26 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     end,
   }
 
+  button_defs["book_tools"] = {
+    text = (function()
+      -- Effective posture for the open book; "(book)" marks a per-book override
+      -- (same convention as the domain chip above).
+      local BookSettings = require("koassistant_book_settings")
+      local doc_settings = has_document and self.ui.doc_settings or nil
+      local label = BookSettings.toolsPostureLabel(
+        BookSettings.resolveToolsPosture(doc_settings, features))
+      if doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOLS) ~= nil then
+        label = label .. _(" (book)")
+      end
+      return E("\u{1F4D6}", T(_("Book Tools: %1"), label))
+    end)(),
+    callback = function()
+      opening_subdialog = true
+      UIManager:close(dialog)
+      self_ref:showToolsPosturePopup(reopenQuickSettings)
+    end,
+  }
+
   button_defs["web_search"] = {
     text = (function()
       local base = web_search and _("Web Search: ON") or _("Web Search: OFF")
@@ -9844,6 +9879,17 @@ end
 function AskGPT:showDomainPopup(on_close_callback, target_override)
   local BookSettings = require("koassistant_book_settings")
   BookSettings.showDomainResearch({
+    plugin = self,
+    ui = self.ui,
+    on_close = on_close_callback,
+    target_override = target_override,
+  })
+end
+
+--- AI Book Tools posture picker (QS chip entry; tools_ux_plan.md §3)
+function AskGPT:showToolsPosturePopup(on_close_callback, target_override)
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.showToolsPosture({
     plugin = self,
     ui = self.ui,
     on_close = on_close_callback,

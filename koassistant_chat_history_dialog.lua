@@ -1582,7 +1582,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config.document_path = document_path  -- Needed for notebook save
     -- Resumed chats follow the GLOBAL flags: clear per-chat Send transients that persist
     -- on the shared module-level configuration (underscore keys survive disk sync). A
-    -- stale _tools_active would silently override enable_tool_workflows both ways here;
+    -- stale _tools_active would silently override the tools posture both ways here;
     -- a stale _spoiler_free_active would leak the nudge AND clamp/unclamp the tool
     -- reading scope (history resume is spoiler-excluded by design — audit G6 family).
     config.features._tools_active = nil

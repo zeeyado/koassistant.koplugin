@@ -1935,12 +1935,26 @@ local SettingsSchema = {
                     },
                 },
                 {
-                    id = "enable_tool_workflows",
-                    type = "toggle",
-                    text = _("AI Book Tools (Experimental)"),
-                    path = "features.enable_tool_workflows",
-                    default = false,
-                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). When enabled, chatting about an open book lets the AI call local tools to search the text, read specific pages, and view the table of contents, so it can ground answers in what you've actually read instead of guessing.\n\nRequires \"Allow Text Extraction\". This sets the default for the per-chat \"Book tools\" checkbox in the chat input dialog — you can flip it per conversation either way. Work in progress; behavior may change."),
+                    id = "tools_posture",
+                    type = "radio",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local posture = f.tools_posture or "manual"
+                        local labels = {
+                            off = _("Off"),
+                            manual = _("Manual"),
+                            auto = _("Auto"),
+                        }
+                        return T(_("AI Book Tools: %1"), labels[posture] or posture)
+                    end,
+                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). Book tools let the AI search the open book's text, read specific pages, and view the table of contents, so it can ground answers in the actual book instead of guessing. Requires \"Allow Text Extraction\".\n\nOff: never offered — no checkbox in the chat dialog.\nManual: a \"Book tools\" checkbox appears in book chats, unchecked by default — one tap to use.\nAuto: the checkbox starts checked; the AI decides per question whether to actually search.\n\nOverride per book in Book Settings. Work in progress; behavior may change."),
+                    path = "features.tools_posture",
+                    default = "manual",
+                    options = {
+                        { value = "off", text = _("Off (never offered)") },
+                        { value = "manual", text = _("Manual (checkbox, off by default)") },
+                        { value = "auto", text = _("Auto (checkbox, on by default)") },
+                    },
                 },
                 {
                     id = "tool_mode",
@@ -1963,13 +1977,34 @@ local SettingsSchema = {
                     },
                 },
                 {
+                    id = "tool_lookup_effort",
+                    type = "radio",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local effort = f.tool_lookup_effort or "standard"
+                        local labels = {
+                            quick = _("Quick"),
+                            standard = _("Standard"),
+                            thorough = _("Thorough"),
+                        }
+                        return T(_("Book Tools Lookup Effort: %1"), labels[effort] or effort)
+                    end,
+                    help_text = _("How much searching AI Book Tools may do per question.\n\nQuick: up to 4 lookups in 2 rounds — fastest, for simple factual questions.\nStandard: up to 8 lookups in 4 rounds — good balance.\nThorough: up to 16 lookups in 6 rounds, with a larger passage budget — slower and costlier, for questions that need evidence from many places in the book."),
+                    path = "features.tool_lookup_effort",
+                    default = "standard",
+                    options = {
+                        { value = "quick", text = _("Quick (up to 4 lookups)") },
+                        { value = "standard", text = _("Standard (up to 8 lookups)") },
+                        { value = "thorough", text = _("Thorough (up to 16 lookups)") },
+                    },
+                },
+                {
                     id = "tool_workflow_diagnostics",
                     type = "toggle",
                     text = _("AI Book Tools: Show Lookups (debug)"),
                     path = "features.tool_workflow_diagnostics",
                     default = false,
                     help_text = _("Append the tool lookups, raw tool results, and token usage to each answer when AI Book Tools run. For debugging the experimental tools — leave off for clean answers. Note: the raw tool results can include book-text snippets."),
-                    depends_on = { id = "enable_tool_workflows", value = true },
                     separator = true,
                 },
                 {

@@ -660,6 +660,48 @@ TestRunner:test("no stats DB available → nil (caller fails open)", function()
     TestRunner:assertNil(StatsReader.getReadingTimeInRange(1, 1, 5))
 end)
 
+TestRunner:suite("AI Book Tools posture (tools_ux_plan.md §1)")
+
+local function fakeDocSettings(values)
+    return { readSetting = function(_self, key) return values[key] end }
+end
+
+TestRunner:test("resolveToolsPosture: per-book override > global > manual", function()
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, nil), "manual",
+        "no book, no features → manual")
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, { tools_posture = "auto" }), "auto",
+        "global auto, no book override")
+    local ds = fakeDocSettings({ koassistant_book_tools = "off" })
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(ds, { tools_posture = "auto" }), "off",
+        "per-book off wins over global auto")
+    ds = fakeDocSettings({})
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(ds, { tools_posture = "off" }), "off",
+        "no book override → global off")
+end)
+
+TestRunner:test("resolveToolsPosture: unknown values fall through, never wedge", function()
+    local ds = fakeDocSettings({ koassistant_book_tools = "banana" })
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(ds, { tools_posture = "auto" }), "auto",
+        "corrupt sidecar value falls through to the global")
+    TestRunner:assertEqual(BookSettings.resolveToolsPosture(nil, { tools_posture = true }), "manual",
+        "legacy boolean-ish global falls through to manual")
+end)
+
+TestRunner:test("toolsPostureLabel maps all three values (manual is the fallback)", function()
+    TestRunner:assertEqual(BookSettings.toolsPostureLabel("off"), "Off", "off label")
+    TestRunner:assertEqual(BookSettings.toolsPostureLabel("auto"), "Auto", "auto label")
+    TestRunner:assertEqual(BookSettings.toolsPostureLabel("manual"), "Manual", "manual label")
+    TestRunner:assertEqual(BookSettings.toolsPostureLabel(nil), "Manual", "nil falls back to Manual")
+end)
+
+TestRunner:test("KEY_TOOLS is registered in SIDECAR_KEYS (reset/count coverage)", function()
+    local found = false
+    for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do
+        if key == BookSettings.KEY_TOOLS then found = true end
+    end
+    TestRunner:assertEqual(found, true, "koassistant_book_tools missing from SIDECAR_KEYS")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

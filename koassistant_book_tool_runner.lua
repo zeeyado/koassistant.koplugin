@@ -9,12 +9,20 @@ local T = require("ffi/util").template
 
 local BookToolRunner = {}
 
-local MAX_TOOL_TURNS = 4
-local MAX_TOOL_CALLS = 8
--- Gather mode: cap on the phase-2 context bundle assembled from tool results. Individual
--- tool caps (8K/read target, 180-char snippets) bound each call, but nothing bounds the
--- session total — this does.
-local MAX_GATHER_BUNDLE_CHARS = 32000
+-- Lookup-effort dial (tools_ux_plan.md §2): features.tool_lookup_effort scales how much
+-- searching a session may do. turns/calls cap the loop (both modes); bundle_chars caps
+-- the phase-2 context bundle (gather only — individual tool caps of 8K/read target and
+-- 180-char snippets bound each call, but nothing else bounds the session total).
+-- "standard" = the former hard constants; unknown/missing values fall back to it.
+local EFFORT_BUDGETS = {
+    quick    = { turns = 2, calls = 4,  bundle_chars = 32000 },
+    standard = { turns = 4, calls = 8,  bundle_chars = 32000 },
+    thorough = { turns = 6, calls = 16, bundle_chars = 48000 },
+}
+local function budgetFor(features)
+    return EFFORT_BUDGETS[(features or {}).tool_lookup_effort] or EFFORT_BUDGETS.standard
+end
+BookToolRunner.budgetFor = budgetFor  -- exposed for unit tests
 -- Diagnostic blocks (lookups trace, raw tool-result dump, token usage) are emitted only
 -- when features.tool_workflow_diagnostics is on (gated in finish()); off by default. The dump
 -- can contain raw book-text snippets, so it must never ship on for ordinary users.
@@ -237,6 +245,14 @@ local function buildToolConfig(config, mode, reading_scope)
     else
         instructions = TOOL_INSTRUCTIONS .. (spoiler_safe and SCOPE_NOTE_CURRENT or SCOPE_NOTE_FULL)
     end
+    -- Budget-aware prompt (tools_ux_plan.md §2): tell the model its total lookup budget
+    -- up front so it plans (broad → narrow, deliberate done) instead of being cut off by
+    -- an invisible cap. Skipped for "final" (no further calls allowed there anyway).
+    if mode ~= "final" then
+        local budget = budgetFor(tool_config.features)
+        instructions = instructions
+            .. string.format(" You may use at most %d lookups in total.", budget.calls)
+    end
     tool_config.system = tool_config.system or {}
     tool_config.system.text = (tool_config.system.text or "") .. instructions
     return tool_config
@@ -428,11 +444,11 @@ end
 -- Chronological; identical formatted sections deduplicate (repeated identical lookups
 -- collapse); FAILED calls (ok == false) are skipped entirely — plan §4: keep the partial
 -- bundle, and an all-failures session leaves the bundle empty so the honest "no relevant
--- passages" note fires instead. Capped to MAX_GATHER_BUNDLE_CHARS: an overflowing section
--- is truncated into the remaining budget (a single batched read_around can exceed the
--- whole cap — dropping it whole could empty the bundle), later ones get an omission note
--- so truncation never reads as full coverage.
-local function buildGatherBundle(tool_outputs)
+-- passages" note fires instead. Capped to bundle_chars (from the lookup-effort budget):
+-- an overflowing section is truncated into the remaining budget (a single batched
+-- read_around can exceed the whole cap — dropping it whole could empty the bundle),
+-- later ones get an omission note so truncation never reads as full coverage.
+local function buildGatherBundle(tool_outputs, bundle_chars)
     local sections = {}
     local seen = {}
     local total = 0
@@ -446,13 +462,13 @@ local function buildGatherBundle(tool_outputs)
                 local section = formatToolResultText(item.call.name, item.result)
                 if type(section) == "string" and #section > 0 and not seen[section] then
                     seen[section] = true
-                    local remaining = MAX_GATHER_BUNDLE_CHARS - total
+                    local remaining = bundle_chars - total
                     if #section <= remaining then
                         table.insert(sections, section)
                         total = total + #section
                     elseif remaining > 500 then
                         table.insert(sections, truncateSection(section, remaining))
-                        total = MAX_GATHER_BUNDLE_CHARS
+                        total = bundle_chars
                     else
                         omitted = omitted + 1
                     end
@@ -597,7 +613,13 @@ function BookToolRunner.shouldUse(config, ui)
     if features._tools_active ~= nil then
         active = features._tools_active == true
     else
-        active = features.enable_tool_workflows == true
+        -- Non-dialog paths (e.g. resumed chats, whose Send transients are cleared):
+        -- follow the effective posture default — the same derivation as the checkbox's
+        -- initial state, so the two never disagree. ui.doc_settings is the OPEN book's
+        -- live instance (read-only here); tools only ever run against the open book
+        -- (sessionEligible requires ui.document).
+        local posture = BookSettings.resolveToolsPosture(ui and ui.doc_settings, features)
+        active = posture == "auto"
     end
     if not active then return false end
     if not BookToolRunner.sessionEligible(config, ui) then return false end
@@ -645,6 +667,7 @@ function BookToolRunner.run(params)
     local token_usage = nil
     local tool_turns = 0
     local tool_calls = 0
+    local budget = budgetFor(features)
     local completed = false
     local gather_mode = (features.tool_mode or "gather") == "gather"
 
@@ -716,7 +739,7 @@ function BookToolRunner.run(params)
     local function startGenerate()
         closeStatus()
         local gen_messages = copyMessages(params.messages)
-        local bundle = buildGatherBundle(tool_outputs)
+        local bundle = buildGatherBundle(tool_outputs, budget.bundle_chars)
         local context_text
         if bundle and #bundle > 0 then
             context_text = "[Passages retrieved from the book for this question]\n" .. bundle
@@ -763,7 +786,7 @@ function BookToolRunner.run(params)
             finish(false, nil, _("Request cancelled by user."))
             return nil
         end
-        if tool_turns >= MAX_TOOL_TURNS or tool_calls >= MAX_TOOL_CALLS then
+        if tool_turns >= budget.turns or tool_calls >= budget.calls then
             -- Budget exhausted = gathered enough; generate from what we have.
             return startGenerate()
         end
@@ -829,6 +852,15 @@ function BookToolRunner.run(params)
             end
 
             if #executed > 0 then
+                -- Budget-aware prompt (tools_ux_plan.md §2): the round's last result table
+                -- carries the remaining budget — stringifyResult JSON-encodes the table
+                -- verbatim, so this reaches the model on every provider. The bundle and
+                -- diagnostics formatters read named fields, so it never leaks to the user.
+                local last_result = executed[#executed].result
+                if type(last_result) == "table" then
+                    last_result.lookup_budget = string.format("%d of %d lookups remaining",
+                        math.max(0, budget.calls - tool_calls), budget.calls)
+                end
                 -- Keep the gather conversation going in the provider's native wire shape.
                 ToolWire.appendToolTurn(provider, messages, answer.raw_assistant_turn, executed)
             end
@@ -844,7 +876,7 @@ function BookToolRunner.run(params)
             finish(false, nil, _("Request cancelled by user."))
             return nil
         end
-        if tool_turns >= MAX_TOOL_TURNS or tool_calls >= MAX_TOOL_CALLS then
+        if tool_turns >= budget.turns or tool_calls >= budget.calls then
             return requestFinal()
         end
 
@@ -887,6 +919,12 @@ function BookToolRunner.run(params)
 
             if #executed > 0 then
                 table.insert(tool_outputs, { executed = executed })
+                -- Budget-aware prompt: see the step_gather counterpart above.
+                local last_result = executed[#executed].result
+                if type(last_result) == "table" then
+                    last_result.lookup_budget = string.format("%d of %d lookups remaining",
+                        math.max(0, budget.calls - tool_calls), budget.calls)
+                end
                 -- Serialize the model echo + tool results in the provider's native shape.
                 ToolWire.appendToolTurn(provider, messages, answer.raw_assistant_turn, executed)
             end

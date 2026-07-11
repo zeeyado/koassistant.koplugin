@@ -3679,11 +3679,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     end
 
-    -- Initialize the session "Book tools" toggle (D1): global default, per-session flip.
-    -- Skipped when restored from a refresh (the user's session choice is preserved).
+    -- Initialize the session "Book tools" toggle (D1): effective posture sets the default
+    -- (per-book koassistant_book_tools > global tools_posture; "auto" = checked), the user
+    -- flips it per session. Skipped when restored from a refresh (session choice preserved).
+    -- "off" additionally hides the checkbox at the render site below.
+    local effective_tools_posture = require("koassistant_book_settings").resolveToolsPosture(
+        doc_settings, configuration and configuration.features)
     if session_book_tools == nil then
-        session_book_tools = configuration and configuration.features
-            and configuration.features.enable_tool_workflows == true
+        session_book_tools = effective_tools_posture == "auto"
     end
 
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
@@ -5605,13 +5608,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         })
     end
 
-    -- "Book tools" session checkbox (D1 — gather_then_generate_plan.md): per-chat tool
-    -- activation, sibling to the spoiler toggle. Shown only when this session could
-    -- actually run tools (open book, not X-Ray chat, capable provider + adapter, extraction
-    -- consent) — the global enable_tool_workflows flag only sets the DEFAULT state, so one
-    -- tap activates tools for a chat without a settings trip (and vice versa).
+    -- "Book tools" session checkbox (D1 — gather_then_generate_plan.md, posture in
+    -- tools_ux_plan.md §1): per-chat tool activation, sibling to the spoiler toggle.
+    -- Shown only when this session could actually run tools (open book, not X-Ray chat,
+    -- capable provider + adapter, extraction consent) AND the effective posture isn't
+    -- "off". Posture only sets visibility + the DEFAULT state — one tap activates tools
+    -- for a chat without a settings trip (and vice versa).
     local tools_checkbox
     if is_book_or_highlight and has_open_book and not is_xray_chat
+        and effective_tools_posture ~= "off"
         and BookToolRunner.sessionEligible(configuration, ui_instance) then
         local CheckButton = require("ui/widget/checkbutton")
         local Size = require("ui/size")
