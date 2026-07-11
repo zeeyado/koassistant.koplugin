@@ -396,11 +396,16 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- underscore keys across disk sync) and gets copied into temp_config, so a prior spoiler-free
     -- chat would leak the nudge into the next predefined action. Clear it for any predefined
     -- action (action ~= nil); freeform Send passes action=nil and keeps the flag it just set.
-    -- (audit v0.20.0 finding G6) The per-chat tools checkbox (_tools_active) is chat-only for
-    -- the same reason: actions follow the global flag, not a leaked session choice.
+    -- (audit v0.20.0 finding G6) The per-chat tools checkbox (_tools_active) is cleared for
+    -- the same reason — and set to EXPLICIT false, not nil (2026-07-11, with the auto
+    -- posture default): this config rides into the action's chat viewer and its replies
+    -- (addMessage → queryWith), and a nil would fall through to the posture there, so an
+    -- "auto" posture would fire gather rounds on replies to translate/X-Ray/etc. chats.
+    -- Actions engage tools ONLY via their explicit smart-retrieval source; their chats
+    -- stay tools-free. Freeform Send passes action=nil and keeps the flag it just set.
     if action then
         features._spoiler_free_active = nil
-        features._tools_active = nil
+        features._tools_active = false
     end
 
     -- Per-book MAIN response-language override (Book Settings ▸ Languages ▸ AI response

@@ -58,8 +58,10 @@ end
 BookSettings.KEY_TOOLS = "koassistant_book_tools"
 
 --- Resolve the effective AI Book Tools posture for a book: per-book override > global
--- tools_posture > "manual". Pure. Unknown stored values fall through to the global so a
--- future/corrupt sidecar value can't wedge the checkbox.
+-- tools_posture > "auto" (the schema default — the fallback MUST match it, per the
+-- check-pattern rule; existing pre-posture users get an explicit "manual"/"auto" from
+-- the migration, so nil only means fresh install or post-reset). Pure. Unknown stored
+-- values fall through so a future/corrupt sidecar value can't wedge the checkbox.
 -- @return "off" | "manual" | "auto"
 function BookSettings.resolveToolsPosture(doc_settings, features)
     local valid = { off = true, manual = true, auto = true }
@@ -67,7 +69,7 @@ function BookSettings.resolveToolsPosture(doc_settings, features)
     if valid[per_book] then return per_book end
     local global = features and features.tools_posture
     if valid[global] then return global end
-    return "manual"
+    return "auto"
 end
 
 --- Translated label for a tools-posture value (shared by the Book Settings row, the
