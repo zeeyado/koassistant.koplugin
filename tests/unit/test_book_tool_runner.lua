@@ -761,6 +761,18 @@ TestRunner:test("sessionEligible: capability+consent+document, independent of ac
         tools_posture = "manual", enable_book_text_extraction = true } }
     TestRunner:assertTrue(BookToolRunner.sessionEligible(cfg, makeUi()),
         "eligible with consent + capable provider even when posture is manual")
+    -- reason returns (drive the smart-retrieval row's grayed-out labels)
+    local ok_r, why = BookToolRunner.sessionEligible(
+        { provider = "mistral", model = "mistral-large-2",
+          features = { enable_book_text_extraction = true } }, makeUi())
+    TestRunner:assertFalse(ok_r, "incapable provider ineligible")
+    TestRunner:assertEqual(why, "provider", "provider reason reported")
+    ok_r, why = BookToolRunner.sessionEligible(
+        { provider = "gemini", features = {} }, makeUi())
+    TestRunner:assertEqual(why, "consent", "consent reason reported")
+    ok_r, why = BookToolRunner.sessionEligible(
+        { provider = "gemini", features = { enable_book_text_extraction = true } }, nil)
+    TestRunner:assertEqual(why, "no_book", "no-book reason reported")
     -- not eligible without extraction consent
     cfg = { provider = "gemini", features = { tools_posture = "auto" } }
     TestRunner:assertFalse(BookToolRunner.sessionEligible(cfg, makeUi()),
