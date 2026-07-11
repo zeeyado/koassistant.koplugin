@@ -12,7 +12,7 @@ local MessageHistory = require("koassistant_message_history")
 local GptQuery = require("koassistant_gpt_query")
 local queryChatGPT = GptQuery.query
 local isStreamingInProgress = GptQuery.isStreamingInProgress
-local GeminiToolRunner = require("koassistant_gemini_tool_runner")
+local BookToolRunner = require("koassistant_book_tool_runner")
 local ConfigHelper = require("koassistant_config_helper")
 local Constants = require("koassistant_constants")
 local logger = require("logger")
@@ -1580,6 +1580,13 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config = config or {}
     config.features = config.features or {}
     config.document_path = document_path  -- Needed for notebook save
+    -- Resumed chats follow the GLOBAL flags: clear per-chat Send transients that persist
+    -- on the shared module-level configuration (underscore keys survive disk sync). A
+    -- stale _tools_active would silently override enable_tool_workflows both ways here;
+    -- a stale _spoiler_free_active would leak the nudge AND clamp/unclamp the tool
+    -- reading scope (history resume is spoiler-excluded by design — audit G6 family).
+    config.features._tools_active = nil
+    config.features._spoiler_free_active = nil
 
     -- Restore system prompt metadata for debug display (if available from saved chat)
     if chat.system_metadata then
@@ -1648,7 +1655,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         -- Only enable book tools when the currently open document matches this chat's book.
         -- A continued chat opened from the file browser may run against a different (or no) ui.document.
         local tool_ui = (ui and ui.document and ui.document.file == document_path) and ui or nil
-        local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), config, function(success, answer, err, reasoning, web_search_used)
+        local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), config, function(success, answer, err, reasoning, web_search_used)
             logger.info("KOAssistant: queryChatGPT callback - success: " .. tostring(success) .. ", answer length: " .. tostring(answer and #answer or 0) .. ", err: " .. tostring(err))
             -- Only save if we got a non-empty answer
             if success and answer and answer ~= "" then

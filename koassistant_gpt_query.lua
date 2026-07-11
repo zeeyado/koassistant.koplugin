@@ -207,17 +207,31 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         loading_text = base_text .. _("Loading...")
     end
 
-    -- Create loading dialog with cancel button
-    loading_dialog = InfoMessage:new{
-        text = loading_text,
-        dismissable = true,
-    }
-    loading_dialog.dismiss_callback = function()
-        user_cancelled = true
-        finish(false, nil, _("Request cancelled by user."))
+    -- Create loading dialog with cancel button. The tool runner's gather phase suppresses
+    -- it (its own status window is up) and registers a cancel handle instead — without the
+    -- dialog, the dismiss_callback below would be the only path to terminateSubProcess.
+    local suppress_loading = config and config.features
+        and config.features._suppress_loading_dialog == true
+    if not suppress_loading then
+        loading_dialog = InfoMessage:new{
+            text = loading_text,
+            dismissable = true,
+        }
+        loading_dialog.dismiss_callback = function()
+            user_cancelled = true
+            finish(false, nil, _("Request cancelled by user."))
+        end
+        UIManager:show(loading_dialog)
+        UIManager:forceRePaint()
     end
-    UIManager:show(loading_dialog)
-    UIManager:forceRePaint()
+    -- Expose a cancel handle to the caller (a function survives ConfigHelper's table
+    -- deep-copies by reference, unlike a table field).
+    if type(config._register_cancel) == "function" then
+        config._register_cancel(function()
+            user_cancelled = true
+            finish(false, nil, _("Request cancelled by user."))
+        end)
+    end
 
     -- Start subprocess
     pid, parent_read_fd = ffiutil.runInSubProcess(background_fn, true)

@@ -101,6 +101,76 @@ function StreamHandler:createWaitingAnimation()
     }
 end
 
+--- Lightweight status dialog for the gather phase of tool workflows: same geometry and
+--- look as the streaming dialog, but with externally-pushed text (no subprocess of its
+--- own). The tool runner updates it per lookup round, closes it, and the phase-2 streamed
+--- request then opens the real stream dialog in the same place.
+--- @param opts table: { settings = {large_stream_dialog, response_font_size},
+---                      initial_text = string, on_stop = function }
+--- @return table handle: { setText = fn(text), close = fn() } (close is idempotent)
+function StreamHandler.showToolStatusDialog(opts)
+    opts = opts or {}
+    local settings = opts.settings or {}
+
+    -- Mirror the stream dialog's sizing (chrome: title bar + 1 button row + padding)
+    local chrome_height = Screen:scaleBySize(120)
+    local large_dialog = settings.large_stream_dialog ~= false
+    local width = UIConstants.CHAT_WIDTH()
+    local text_height = (large_dialog and UIConstants.CHAT_HEIGHT()
+        or UIConstants.COMPACT_DIALOG_HEIGHT()) - chrome_height
+    local font_size = settings.response_font_size or 20
+
+    local closed = false
+    local dialog
+    local function stop()
+        if opts.on_stop then opts.on_stop() end
+    end
+    dialog = InputDialog:new{
+        title = _("AI is responding"),
+        inputtext_class = StreamText,
+        input_face = Font:getFace("infofont", font_size),
+        width = width,
+        text_height = text_height,
+        is_movable = not large_dialog,
+        readonly = true,
+        fullscreen = false,
+        allow_newline = true,
+        add_nav_bar = false,
+        cursor_at_end = false,
+        add_scroll_buttons = true,
+        condensed = true,
+        auto_para_direction = true,
+        scroll_by_pan = true,
+        buttons = {
+            {
+                {
+                    text = _("Stop"),
+                    id = "close",
+                    callback = stop,
+                },
+            },
+        },
+    }
+    dialog.title_bar.close_callback = stop
+    dialog.title_bar:init()
+    UIManager:show(dialog)
+
+    local handle = {}
+    function handle.setText(text)
+        if closed then return end
+        if dialog and dialog._input_widget then
+            dialog._input_widget:setText(text or "", true)
+        end
+    end
+    function handle.close()
+        if closed then return end
+        closed = true
+        UIManager:close(dialog)
+    end
+    handle.setText(opts.initial_text or "")
+    return handle
+end
+
 --- Show streaming dialog and process the stream using polling
 --- This function returns immediately; use the callback to get results
 --- @param backgroundQueryFunc function: The background request function from handler

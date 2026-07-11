@@ -48,10 +48,12 @@ package.loaded["ffi/util"] = {
     getNonBlockingReadSize = function() return 0 end,
     readAllFromFD = function() return "" end,
     writeToFD = function() end,
-    template = function(str, table)
-        -- Simple template substitution
+    template = function(str, ...)
+        -- Simple template substitution. Varargs like the real ffi/util template —
+        -- T(str, v1, v2, ...) — NOT a table second arg.
+        local args = { ... }
         return (str:gsub("%%(%d+)", function(i)
-            return tostring(table[tonumber(i)] or "")
+            return tostring(args[tonumber(i)] or "")
         end))
     end,
 }

@@ -11,7 +11,7 @@ local T = require("ffi/util").template
 local GptQuery = require("koassistant_gpt_query")
 local queryChatGPT = GptQuery.query
 local isStreamingInProgress = GptQuery.isStreamingInProgress
-local GeminiToolRunner = require("koassistant_gemini_tool_runner")
+local BookToolRunner = require("koassistant_book_tool_runner")
 local ConfigHelper = require("koassistant_config_helper")
 local MessageHistory = require("koassistant_message_history")
 local ChatHistoryManager = require("koassistant_chat_history_manager")
@@ -396,9 +396,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- underscore keys across disk sync) and gets copied into temp_config, so a prior spoiler-free
     -- chat would leak the nudge into the next predefined action. Clear it for any predefined
     -- action (action ~= nil); freeform Send passes action=nil and keeps the flag it just set.
-    -- (audit v0.20.0 finding G6)
+    -- (audit v0.20.0 finding G6) The per-chat tools checkbox (_tools_active) is chat-only for
+    -- the same reason: actions follow the global flag, not a leaked session choice.
     if action then
         features._spoiler_free_active = nil
+        features._tools_active = nil
     end
 
     -- Per-book MAIN response-language override (Book Settings ▸ Languages ▸ AI response
@@ -1388,7 +1390,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- IMPORTANT: Use viewer's cfg for the query, not the closure-captured temp_config
             -- This ensures expanded views use large_stream_dialog=true
             history:addUserMessage(question, false)
-            GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), cfg, function(success, answer, err, reasoning, web_search_used)
+            BookToolRunner.queryWith(queryChatGPT, history:getMessages(), cfg, function(success, answer, err, reasoning, web_search_used)
                 if success and answer and answer ~= "" then
                     history:addAssistantMessage(answer, ConfigHelper:getModelInfo(cfg), reasoning, ConfigHelper:buildDebugInfo(cfg), web_search_used)
 
@@ -3516,6 +3518,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local xray_context_prefix = ((configuration or {}).features or {})._xray_context_prefix
     local show_all_actions = ((configuration or {}).features or {})._show_all_actions or false
     local session_spoiler_free = ((configuration or {}).features or {})._session_spoiler_free
+    local session_book_tools = ((configuration or {}).features or {})._session_book_tools
     if configuration and configuration.features then
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
@@ -3523,6 +3526,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         configuration.features._xray_context_prefix = nil
         configuration.features._show_all_actions = nil
         configuration.features._session_spoiler_free = nil
+        configuration.features._session_book_tools = nil
     end
 
     -- session_spoiler_free is initialized further below, once the book's DocSettings is
@@ -3673,6 +3677,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             session_spoiler_free = configuration and configuration.features
                 and configuration.features.spoiler_free_chat == true
         end
+    end
+
+    -- Initialize the session "Book tools" toggle (D1): global default, per-session flip.
+    -- Skipped when restored from a refresh (the user's session choice is preserved).
+    if session_book_tools == nil then
+        session_book_tools = configuration and configuration.features
+            and configuration.features.enable_tool_workflows == true
     end
 
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
@@ -3837,7 +3848,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local temp_config = temp_config_or_error
                         local function addMessage(message, is_context, on_complete)
                             history:addUserMessage(message, is_context)
-                            local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                            local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                                 if success and answer then
                                     history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
                                 end
@@ -4942,9 +4953,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     if not is_general_context and not is_library_context then
                         configuration.features = configuration.features or {}
                         configuration.features._spoiler_free_active = session_spoiler_free == true
+                        -- Per-chat tools activation (D1): explicit true/false so an unchecked
+                        -- box overrides a globally-enabled flag, and a checked box activates
+                        -- tools even when the global flag is off. Read by shouldUse; inherits
+                        -- across replies via viewer.configuration like the spoiler flag.
+                        configuration.features._tools_active = session_book_tools == true
                     else
                         if configuration.features then
                             configuration.features._spoiler_free_active = nil
+                            configuration.features._tools_active = nil
                         end
                     end
 
@@ -4969,7 +4986,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     configuration.features = configuration.features or {}
                     configuration.features._research_mode_active = freeform_research or nil
                     -- Persist x-ray flag for the chat session so reply paths can skip book tools
-                    -- (GeminiToolRunner.shouldUse reads features._xray_chat_active).
+                    -- (BookToolRunner.shouldUse reads features._xray_chat_active).
                     configuration.features._xray_chat_active = is_xray_chat or nil
 
                     -- Build unified request config for ALL providers
@@ -4987,7 +5004,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                             local function addMessage(message, is_context, on_complete)
                                 history:addUserMessage(message, is_context)
-                                local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
+                                local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                                     if msg_success and msg_answer then
                                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
                                     end
@@ -5011,7 +5028,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end
 
                     -- Get initial response with callback
-                    local result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui_instance)
+                    local result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui_instance)
                     -- If not streaming, callback was already invoked
                 end)
             end,
@@ -5417,6 +5434,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if xray_context_prefix then configuration.features._xray_context_prefix = xray_context_prefix end
             if show_all_actions then configuration.features._show_all_actions = true end
             if session_spoiler_free then configuration.features._session_spoiler_free = true end
+            -- Preserve false too (unlike spoiler): an explicit uncheck must survive the
+            -- refresh even when the global tools flag would re-default it to checked.
+            if session_book_tools ~= nil then configuration.features._session_book_tools = session_book_tools end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
@@ -5582,6 +5602,35 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         table.insert(vgroup, 2, HorizontalGroup:new{
             HorizontalSpan:new{ width = Size.padding.large },
             spoiler_checkbox,
+        })
+    end
+
+    -- "Book tools" session checkbox (D1 — gather_then_generate_plan.md): per-chat tool
+    -- activation, sibling to the spoiler toggle. Shown only when this session could
+    -- actually run tools (open book, not X-Ray chat, capable provider + adapter, extraction
+    -- consent) — the global enable_tool_workflows flag only sets the DEFAULT state, so one
+    -- tap activates tools for a chat without a settings trip (and vice versa).
+    local tools_checkbox
+    if is_book_or_highlight and has_open_book and not is_xray_chat
+        and BookToolRunner.sessionEligible(configuration, ui_instance) then
+        local CheckButton = require("ui/widget/checkbutton")
+        local Size = require("ui/size")
+        local HorizontalGroup = require("ui/widget/horizontalgroup")
+        local HorizontalSpan = require("ui/widget/horizontalspan")
+        local cb_Font = require("ui/font")
+        tools_checkbox = CheckButton:new{
+            face = cb_Font:getFace("xx_smallinfofont"),
+            text = _("Book tools (AI can search this book)"),
+            checked = session_book_tools,
+            parent = input_dialog,
+            callback = function()
+                session_book_tools = tools_checkbox.checked
+            end,
+        }
+        local vgroup = input_dialog.dialog_frame[1]
+        table.insert(vgroup, spoiler_checkbox and 3 or 2, HorizontalGroup:new{
+            HorizontalSpan:new{ width = Size.padding.large },
+            tools_checkbox,
         })
     end
 
@@ -6438,7 +6487,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
 
             local function addMessage(message, is_context, on_complete_msg)
                 history:addUserMessage(message, is_context)
-                local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
+                local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                     if success and answer then
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
                     end
@@ -6683,7 +6732,9 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     -- Artifact chat is spoiler-free-excluded and passes action=nil, so the predefined-action
     -- guard in buildUnifiedRequestConfig won't clear a leaked flag — clear it explicitly here so
     -- a prior spoiler-free freeform chat can't inject the nudge into artifact chat. (audit G6)
+    -- Same for the per-chat tools checkbox: artifact chat follows the global flag only.
     configuration.features._spoiler_free_active = nil
+    configuration.features._tools_active = nil
 
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, nil, nil, plugin)
@@ -6728,7 +6779,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
 
             local function addMessage(message, is_context, on_complete)
                 history:addUserMessage(message, is_context)
-                local answer_result = GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
+                local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                     if msg_success and msg_answer then
                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
                     end
@@ -6749,7 +6800,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
         end
     end
 
-    GeminiToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui)
+    BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui)
 end
 
 return {
