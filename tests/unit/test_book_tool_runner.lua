@@ -1,4 +1,4 @@
--- Unit tests for Gemini tool runner diagnostics
+-- Unit tests for the book tool runner (interactive loop + gather mode)
 
 local function setupPaths()
     local info = debug.getinfo(1, "S")
@@ -18,7 +18,7 @@ end
 setupPaths()
 require("mock_koreader")
 
-local GeminiToolRunner = require("koassistant_gemini_tool_runner")
+local BookToolRunner = require("koassistant_book_tool_runner")
 local TestRunner = require("test_runner"):new()
 
 local function makeUi()
@@ -46,7 +46,7 @@ end
 
 print("")
 print(string.rep("=", 50))
-print("  Unit Tests: Gemini Tool Runner")
+print("  Unit Tests: Book Tool Runner")
 print(string.rep("=", 50))
 
 TestRunner:test("formats tool results as plain text and appends token usage", function()
@@ -90,7 +90,7 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
         end
     end
 
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = {
             { role = "user", content = "Where is Daisy?" },
@@ -99,6 +99,7 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
             provider = "gemini",
             features = {
                 is_book_context = true,
+                tool_mode = "interactive",  -- exercises the interactive loop explicitly
                 -- diagnostics are gated behind their own opt-in; this test asserts they appear
                 tool_workflow_diagnostics = true,
                 -- spoiler-free keeps the current-page scope wording asserted below
@@ -119,7 +120,7 @@ TestRunner:test("formats tool results as plain text and appends token usage", fu
     TestRunner:assertTrue(final_answer:find("search_book: 1 query, 1 total hit", 1, true) ~= nil, "search result summary")
     TestRunner:assertTrue(final_answer:find("Daisy was mentioned in a letter", 1, true) ~= nil, "tool result text")
     TestRunner:assertTrue(final_answer:find("38 total tokens", 1, true) ~= nil, "total token usage")
-    TestRunner:assertTrue(final_answer:find("across 2 Gemini API calls", 1, true) ~= nil, "call count")
+    TestRunner:assertTrue(final_answer:find("across 2 API calls", 1, true) ~= nil, "call count")
 end)
 
 TestRunner:test("spoiler-free off → tools get full-document reading scope", function()
@@ -128,7 +129,7 @@ TestRunner:test("spoiler-free off → tools get full-document reading scope", fu
         scope_message = messages[#messages].content
         callback(true, "ok")
     end
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "hi" } },
         config = { provider = "gemini", features = { is_book_context = true } }, -- no spoiler-free → full
@@ -145,7 +146,7 @@ TestRunner:test("spoiler-free on → tools are clamped to the current page", fun
         scope_message = messages[#messages].content
         callback(true, "ok")
     end
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "hi" } },
         config = { provider = "gemini", features = { is_book_context = true, spoiler_free_chat = true } },
@@ -159,7 +160,7 @@ end)
 TestRunner:test("session spoiler checkbox overrides global for tool scope", function()
     local function scope_msg_for(features)
         local captured
-        GeminiToolRunner.run({
+        BookToolRunner.run({
             query_fn = function(messages, _c, cb) captured = messages[#messages].content; cb(true, "ok") end,
             messages = { { role = "user", content = "hi" } },
             config = { provider = "gemini", features = features },
@@ -196,10 +197,11 @@ TestRunner:test("runner serializes tool turns with the provider's adapter (anthr
             callback(true, "answer")
         end
     end
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "where is daisy?" } },
-        config = { provider = "anthropic", model = "claude-sonnet-4-6", features = { is_book_context = true } },
+        config = { provider = "anthropic", model = "claude-sonnet-4-6",
+            features = { is_book_context = true, tool_mode = "interactive" } },
         ui = makeUi(),
         on_complete = function() end,
     })
@@ -231,10 +233,11 @@ TestRunner:test("runner serializes tool turns with the provider's adapter (opena
             callback(true, "answer")
         end
     end
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "where is daisy?" } },
-        config = { provider = "openai", model = "gpt-5.5", features = { is_book_context = true } },
+        config = { provider = "openai", model = "gpt-5.5",
+            features = { is_book_context = true, tool_mode = "interactive" } },
         ui = makeUi(),
         on_complete = function() end,
     })
@@ -267,10 +270,10 @@ TestRunner:test("every tool call in a turn is answered (no mid-turn drop past th
             callback(true, "answer")
         end
     end
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "hi" } },
-        config = { provider = "gemini", features = { is_book_context = true } },
+        config = { provider = "gemini", features = { is_book_context = true, tool_mode = "interactive" } },
         ui = makeUi(),
         on_complete = function() end,
     })
@@ -288,7 +291,7 @@ TestRunner:test("shouldUse skips when _xray_chat_active is set", function()
             -- opt-in + consent satisfied so _xray_chat_active is the isolated cause
             enable_tool_workflows = true, enable_book_text_extraction = true },
     }
-    TestRunner:assertFalse(GeminiToolRunner.shouldUse(cfg, makeUi()),
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "x-ray chat session must skip book tools")
 end)
 
@@ -297,10 +300,10 @@ TestRunner:test("shouldUse requires the experimental enable_tool_workflows flag"
         provider = "gemini",
         features = { is_book_context = true, enable_book_text_extraction = true },
     }
-    TestRunner:assertFalse(GeminiToolRunner.shouldUse(cfg, makeUi()),
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "tools stay off until enable_tool_workflows is set")
     cfg.features.enable_tool_workflows = true
-    TestRunner:assertTrue(GeminiToolRunner.shouldUse(cfg, makeUi()),
+    TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
         "tools enabled once the flag and extraction consent are set")
 end)
 
@@ -309,10 +312,10 @@ TestRunner:test("shouldUse respects the text-extraction consent gate", function(
         provider = "gemini",
         features = { is_book_context = true, enable_tool_workflows = true },
     }
-    TestRunner:assertFalse(GeminiToolRunner.shouldUse(cfg, makeUi()),
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "no tools when book-text extraction is not allowed")
     cfg.features.enable_book_text_extraction = true
-    TestRunner:assertTrue(GeminiToolRunner.shouldUse(cfg, makeUi()),
+    TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
         "tools allowed once extraction consent is granted")
 end)
 
@@ -326,30 +329,30 @@ TestRunner:test("shouldUse lets a trusted provider bypass the extraction gate", 
             trusted_providers = { "gemini" },
         },
     }
-    TestRunner:assertTrue(GeminiToolRunner.shouldUse(cfg, makeUi()),
+    TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
         "trusted provider bypasses the extraction-consent gate")
 end)
 
 TestRunner:test("shouldUse requires a tools-capable provider/model with an adapter", function()
     local base = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true }
     -- gemini + a tools-capable model → eligible
-    TestRunner:assertTrue(GeminiToolRunner.shouldUse(
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
         { provider = "gemini", model = "gemini-3.5-flash", features = base }, makeUi()),
         "gemini tools-capable model is eligible")
     -- anthropic (Phase 2) + a tools-capable model → eligible
-    TestRunner:assertTrue(GeminiToolRunner.shouldUse(
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
         { provider = "anthropic", model = "claude-sonnet-4-6", features = base }, makeUi()),
         "anthropic tools-capable model is eligible")
     -- openai (Phase 3) + a tools-capable model → eligible
-    TestRunner:assertTrue(GeminiToolRunner.shouldUse(
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
         { provider = "openai", model = "gpt-5.5", features = base }, makeUi()),
         "openai tools-capable model is eligible")
     -- provider with no tools capability / adapter → gated off (falls through to normal path)
-    TestRunner:assertFalse(GeminiToolRunner.shouldUse(
+    TestRunner:assertFalse(BookToolRunner.shouldUse(
         { provider = "mistral", model = "mistral-large-2", features = base }, makeUi()),
         "provider without tools capability/adapter is gated off")
     -- gemini but a model lacking the tools capability → gated off
-    TestRunner:assertFalse(GeminiToolRunner.shouldUse(
+    TestRunner:assertFalse(BookToolRunner.shouldUse(
         { provider = "gemini", model = "gemini-1.0-ancient", features = base }, makeUi()),
         "gemini non-tools model is gated off")
 end)
@@ -371,10 +374,10 @@ TestRunner:test("diagnostics are suppressed unless tool_workflow_diagnostics is 
         end
     end
     local final_answer
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "Where is Daisy?" } },
-        config = { provider = "gemini", features = { is_book_context = true } }, -- no show_debug_in_chat
+        config = { provider = "gemini", features = { is_book_context = true, tool_mode = "interactive" } }, -- no show_debug_in_chat
         ui = makeUi(),
         on_complete = function(_success, answer) final_answer = answer end,
     })
@@ -395,7 +398,7 @@ TestRunner:test("queryWith delegates to query_fn when shouldUse is false", funct
         features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true },
     }
     local final
-    GeminiToolRunner.queryWith(query_fn, { { role = "user", content = "hi" } }, cfg,
+    BookToolRunner.queryWith(query_fn, { { role = "user", content = "hi" } }, cfg,
         function(success, answer) final = { success = success, answer = answer } end,
         { settings = "settings-handle" }, makeUi())
     TestRunner:assertEqual(captured.cfg, cfg, "query_fn received the original config")
@@ -424,10 +427,11 @@ TestRunner:test("queryWith routes through tool runner when shouldUse is true", f
     end
     local cfg = {
         provider = "gemini",
-        features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true },
+        features = { is_book_context = true, enable_tool_workflows = true, enable_book_text_extraction = true,
+            tool_mode = "interactive" },
     }
     local final
-    GeminiToolRunner.queryWith(query_fn, { { role = "user", content = "Who is Alice?" } }, cfg,
+    BookToolRunner.queryWith(query_fn, { { role = "user", content = "Who is Alice?" } }, cfg,
         function(success, answer) final = { success = success, answer = answer } end,
         nil, makeUi())
     TestRunner:assertEqual(query_calls, 2, "tool runner issued initial + final calls")
@@ -436,22 +440,322 @@ TestRunner:test("queryWith routes through tool runner when shouldUse is true", f
         "tool runner final answer reaches callback")
 end)
 
+-- ============================================================
+-- Gather mode (D2 — gather_then_generate_plan.md)
+-- ============================================================
+
+-- Shared helper: gather-mode config. enable_streaming=false keeps the status window
+-- out of unit tests (the dialog path is UI-only); gather is also the schema default,
+-- set explicitly here for clarity.
+local function gatherConfig(extra)
+    local features = {
+        is_book_context = true,
+        tool_mode = "gather",
+        enable_streaming = false,
+    }
+    for k, v in pairs(extra or {}) do features[k] = v end
+    return { provider = "gemini", features = features }
+end
+
+local function searchCallAnswer(query)
+    return {
+        _tool_calls = true,
+        calls = { { name = "search_book", args = { query = query } } },
+        raw_assistant_turn = { role = "model", parts = {
+            { functionCall = { name = "search_book", args = { query = query } } } } },
+    }
+end
+
+local function doneAnswer()
+    return {
+        _tool_calls = true,
+        calls = { { name = "done", args = {} } },
+        raw_assistant_turn = { role = "model", parts = {
+            { functionCall = { name = "done", args = {} } } } },
+    }
+end
+
+TestRunner:test("gather: done triggers a fresh generate call with bundle, no tools", function()
+    local calls = 0
+    local gen_messages, gen_config
+    local final
+    local function query_fn(messages, config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, searchCallAnswer("Daisy"))
+        elseif calls == 2 then
+            callback(true, doneAnswer())
+        else
+            gen_messages, gen_config = messages, config
+            callback(true, "The generated answer.")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "Where is Daisy?" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function(success, answer) final = { success = success, answer = answer } end,
+    })
+    TestRunner:assertEqual(calls, 3, "two gather rounds + one generate")
+    TestRunner:assertTrue(gen_config.tools == nil, "generate request declares no tools")
+    TestRunner:assertEqual(gen_config.features.enable_streaming, false,
+        "generate keeps the user's streaming setting (not force-disabled)")
+    -- Fresh history: no provider-native tool turns
+    local has_tool_turn = false
+    local bundle_idx, question_idx
+    for i, m in ipairs(gen_messages) do
+        if m.role == "tool" or (m.parts ~= nil) then has_tool_turn = true end
+        if m.is_context and type(m.content) == "string"
+            and m.content:find("Passages retrieved from the book", 1, true) then
+            bundle_idx = i
+        end
+        if m.role == "user" and not m.is_context then question_idx = i end
+    end
+    TestRunner:assertFalse(has_tool_turn, "generate history contains no tool turns")
+    TestRunner:assertTrue(bundle_idx ~= nil, "bundle context message present")
+    TestRunner:assertTrue(question_idx ~= nil and bundle_idx < question_idx,
+        "bundle inserted before the user question")
+    TestRunner:assertTrue(final.success, "gather flow completes successfully")
+    TestRunner:assertTrue(final.answer:find("Searched the book — 1 lookup", 1, true) ~= nil,
+        "lookup indicator line appended")
+end)
+
+TestRunner:test("gather: immediate done (zero lookups) → plain generate, no bundle/indicator", function()
+    local calls = 0
+    local gen_messages
+    local final
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, doneAnswer())
+        else
+            gen_messages = messages
+            callback(true, "Plain answer.")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "What do you think of the title?" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function(_s, answer) final = answer end,
+    })
+    TestRunner:assertEqual(calls, 2, "one gather probe + one generate")
+    for _i, m in ipairs(gen_messages) do
+        TestRunner:assertFalse(type(m.content) == "string"
+            and m.content:find("Passages retrieved", 1, true) ~= nil,
+            "no bundle message for a zero-lookup question")
+    end
+    TestRunner:assertEqual(final, "Plain answer.", "no indicator line when nothing was searched")
+end)
+
+TestRunner:test("gather: done alongside lookups in one turn executes the lookups first", function()
+    local calls = 0
+    local gen_messages
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            callback(true, {
+                _tool_calls = true,
+                calls = {
+                    { name = "search_book", args = { query = "Daisy" } },
+                    { name = "done", args = {} },
+                },
+                raw_assistant_turn = { role = "model", parts = {} },
+            })
+        else
+            gen_messages = messages
+            callback(true, "answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "Where is Daisy?" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertEqual(calls, 2, "mixed done turn goes straight to generate")
+    local has_bundle = false
+    for _i, m in ipairs(gen_messages) do
+        if type(m.content) == "string" and m.content:find("Passages retrieved", 1, true) then
+            has_bundle = true
+        end
+    end
+    TestRunner:assertTrue(has_bundle, "the non-done lookups in the done turn reach the bundle")
+end)
+
+TestRunner:test("gather: budget exhaustion generates from what was gathered", function()
+    local calls = 0
+    local gen_messages
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls <= 4 then  -- MAX_TOOL_TURNS rounds, never calls done
+            callback(true, searchCallAnswer("q" .. calls))
+        else
+            gen_messages = messages
+            callback(true, "capped answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "everything about everything" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    TestRunner:assertEqual(calls, 5, "4 gather rounds (MAX_TOOL_TURNS) + generate")
+    local has_bundle, has_tool_turn = false, false
+    for _i, m in ipairs(gen_messages) do
+        if type(m.content) == "string" and m.content:find("Passages retrieved", 1, true) then
+            has_bundle = true
+        end
+        if m.role == "tool" or m.parts ~= nil then has_tool_turn = true end
+    end
+    TestRunner:assertTrue(has_bundle, "bundle built from pre-cap lookups")
+    TestRunner:assertFalse(has_tool_turn, "no tool-turn replay in generate history")
+end)
+
+TestRunner:test("gather: duplicate lookups deduplicate in the bundle", function()
+    local calls = 0
+    local gen_messages
+    local function query_fn(messages, _config, callback)
+        calls = calls + 1
+        if calls <= 2 then
+            -- Same query twice → identical formatted sections → one bundle section
+            callback(true, searchCallAnswer("Daisy"))
+        elseif calls == 3 then
+            callback(true, doneAnswer())
+        else
+            gen_messages = messages
+            callback(true, "answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "Where is Daisy?" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    local bundle
+    for _i, m in ipairs(gen_messages) do
+        if type(m.content) == "string" and m.content:find("Passages retrieved", 1, true) then
+            bundle = m.content
+        end
+    end
+    local _count_str, section_count = bundle:gsub("search_book: 1 query", "")
+    TestRunner:assertEqual(section_count, 1, "identical sections appear once in the bundle")
+end)
+
+TestRunner:test("gather: prose response in gather phase is accepted as the answer", function()
+    local calls = 0
+    local final
+    local function query_fn(_messages, _config, callback)
+        calls = calls + 1
+        callback(true, "I ignored the gather protocol and just answered.")
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function(success, answer) final = { success = success, answer = answer } end,
+    })
+    TestRunner:assertEqual(calls, 1, "no extra generate round for a prose answer")
+    TestRunner:assertTrue(final.success, "prose answer accepted")
+    TestRunner:assertEqual(final.answer, "I ignored the gather protocol and just answered.",
+        "answer passed through unchanged (no indicator — no lookups ran)")
+end)
+
+TestRunner:test("gather: gather rounds declare the done tool; instructions injected", function()
+    local calls = 0
+    local gather_config
+    local function query_fn(_messages, config, callback)
+        calls = calls + 1
+        if calls == 1 then
+            gather_config = config
+            callback(true, doneAnswer())
+        else
+            callback(true, "answer")
+        end
+    end
+    BookToolRunner.run({
+        query_fn = query_fn,
+        messages = { { role = "user", content = "hi" } },
+        config = gatherConfig(),
+        ui = makeUi(),
+        on_complete = function() end,
+    })
+    local has_done = false
+    for _i, spec in ipairs(gather_config.tools.specs) do
+        if spec.name == "done" then has_done = true end
+    end
+    TestRunner:assertTrue(has_done, "gather declarations include the done tool")
+    TestRunner:assertEqual(gather_config.tools.mode, "AUTO", "gather rounds use tool mode AUTO")
+    TestRunner:assertEqual(gather_config.features.enable_streaming, false,
+        "gather rounds are non-streaming")
+    TestRunner:assertTrue(gather_config.system.text:find("GATHER PHASE", 1, true) ~= nil,
+        "gather instructions injected")
+end)
+
+-- ============================================================
+-- Per-chat activation (D1) — _tools_active override
+-- ============================================================
+
+TestRunner:test("shouldUse: session checkbox overrides the global flag both ways", function()
+    -- global ON, session explicitly unchecked → off
+    local cfg = { provider = "gemini", features = {
+        is_book_context = true, enable_book_text_extraction = true,
+        enable_tool_workflows = true, _tools_active = false } }
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
+        "explicit session false wins over global true")
+    -- global OFF, session explicitly checked → on
+    cfg = { provider = "gemini", features = {
+        is_book_context = true, enable_book_text_extraction = true,
+        enable_tool_workflows = false, _tools_active = true } }
+    TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
+        "explicit session true wins over global false")
+    -- session true still can't bypass capability/consent gates
+    cfg = { provider = "mistral", model = "mistral-large-2", features = {
+        is_book_context = true, enable_book_text_extraction = true, _tools_active = true } }
+    TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
+        "session checkbox never bypasses capability gates")
+end)
+
+TestRunner:test("sessionEligible: capability+consent+document, independent of activation", function()
+    -- eligible despite global flag off (that's the point — the checkbox needs to render)
+    local cfg = { provider = "gemini", features = {
+        enable_tool_workflows = false, enable_book_text_extraction = true } }
+    TestRunner:assertTrue(BookToolRunner.sessionEligible(cfg, makeUi()),
+        "eligible with consent + capable provider even when globally off")
+    -- not eligible without extraction consent
+    cfg = { provider = "gemini", features = { enable_tool_workflows = true } }
+    TestRunner:assertFalse(BookToolRunner.sessionEligible(cfg, makeUi()),
+        "not eligible without extraction consent")
+    -- not eligible without an open document
+    cfg = { provider = "gemini", features = { enable_book_text_extraction = true } }
+    TestRunner:assertFalse(BookToolRunner.sessionEligible(cfg, nil),
+        "not eligible without a ui/document")
+end)
+
 TestRunner:test("cancel method sets cancelled flag", function()
-    GeminiToolRunner._cancelled = false
-    GeminiToolRunner.cancel()
-    TestRunner:assertTrue(GeminiToolRunner._cancelled, "cancel sets the flag")
+    BookToolRunner._cancelled = false
+    BookToolRunner.cancel()
+    TestRunner:assertTrue(BookToolRunner._cancelled, "cancel sets the flag")
     -- run() resets the flag
     local function query_fn(_messages, _config, callback)
         callback(true, "ok")
     end
-    GeminiToolRunner.run({
+    BookToolRunner.run({
         query_fn = query_fn,
         messages = { { role = "user", content = "test" } },
-        config = { provider = "gemini", features = { is_book_context = true } },
+        config = { provider = "gemini", features = { is_book_context = true, tool_mode = "interactive" } },
         ui = makeUi(),
         on_complete = function() end,
     })
-    TestRunner:assertFalse(GeminiToolRunner._cancelled, "run resets cancelled flag")
+    TestRunner:assertFalse(BookToolRunner._cancelled, "run resets cancelled flag")
 end)
 
 return TestRunner:summary()

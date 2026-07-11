@@ -174,8 +174,26 @@ function GeminiHandler:buildRequestBody(message_history, config)
     if config.tools
        and type(config.tools.specs) == "table"
        and #config.tools.specs > 0 then
+        -- Gemini rejects OBJECT schemas with empty properties ("parameters.properties:
+        -- should be non-empty for OBJECT type") — gather mode's no-arg `done` tool has
+        -- exactly that shape. Omit `parameters` for such specs (Google's documented
+        -- no-arg pattern); other specs pass through verbatim. Anthropic/OpenAI keep the
+        -- empty object (Anthropic requires input_schema; OpenAI documents it).
+        local declarations = {}
+        for _idx, spec in ipairs(config.tools.specs) do
+            local params = spec.parameters
+            if type(params) == "table" and type(params.properties) == "table"
+                and next(params.properties) == nil then
+                declarations[#declarations + 1] = {
+                    name = spec.name,
+                    description = spec.description,
+                }
+            else
+                declarations[#declarations + 1] = spec
+            end
+        end
         table.insert(tools, {
-            functionDeclarations = config.tools.specs,
+            functionDeclarations = declarations,
         })
         request_body.toolConfig = {
             functionCallingConfig = {

@@ -5,11 +5,16 @@ local DebugUtils = require("koassistant_debug_utils")
 local ModelConstraints = require("model_constraints")
 local ToolWire = require("koassistant_api.tool_wire")
 local _ = require("koassistant_gettext")
+local T = require("ffi/util").template
 
-local GeminiToolRunner = {}
+local BookToolRunner = {}
 
 local MAX_TOOL_TURNS = 4
 local MAX_TOOL_CALLS = 8
+-- Gather mode: cap on the phase-2 context bundle assembled from tool results. Individual
+-- tool caps (8K/read target, 180-char snippets) bound each call, but nothing bounds the
+-- session total — this does.
+local MAX_GATHER_BUNDLE_CHARS = 32000
 -- Diagnostic blocks (lookups trace, raw tool-result dump, token usage) are emitted only
 -- when features.tool_workflow_diagnostics is on (gated in finish()); off by default. The dump
 -- can contain raw book-text snippets, so it must never ship on for ordinary users.
@@ -31,6 +36,13 @@ local FINAL_INSTRUCTIONS = [[
 Use the gathered local book tool results to answer the user's question.]]
 
 local FINAL_NOTE_CURRENT = " Do not use or reveal any information about events or plot developments beyond the user's current reading position."
+
+-- Gather mode (gather_then_generate_plan.md D2): phase 1 collects passages only; the
+-- model signals completion via the `done` tool, then phase 2 answers as a normal
+-- (streamed, web-search-capable) request with the gathered passages injected.
+local GATHER_INSTRUCTIONS = [[
+
+GATHER PHASE: Do not answer the user's question yet. Use the book tools (search_book, read_around, toc) to collect the passages needed to answer it; batch related lookups in one call. When you have gathered enough evidence — or if the question needs no book lookups — call the done tool. In this phase respond only with tool calls, never with prose.]]
 
 local FUNCTION_DECLARATIONS = {
     {
@@ -124,6 +136,23 @@ local FUNCTION_DECLARATIONS = {
     },
 }
 
+-- Gather-phase terminator: deterministic loop exit (no answer prose to throw away).
+-- Only declared in gather mode; the interactive loop keeps its detect-text termination.
+local DONE_DECLARATION = {
+    name = "done",
+    description = "Call when you have gathered enough passages to answer the user's question, or when the question needs no book lookups.",
+    parameters = {
+        type = "object",
+        properties = {},
+    },
+}
+
+local GATHER_DECLARATIONS = {}
+for _idx, spec in ipairs(FUNCTION_DECLARATIONS) do
+    table.insert(GATHER_DECLARATIONS, spec)
+end
+table.insert(GATHER_DECLARATIONS, DONE_DECLARATION)
+
 local function appendListItem(items, text)
     if text and text ~= "" then
         table.insert(items, "- " .. text)
@@ -162,20 +191,16 @@ local function appendScopeMessage(messages, scope)
     })
 end
 
-local function buildToolConfig(config, final_only, reading_scope)
+-- mode: "tools" (interactive loop turn), "gather" (gather-phase turn), "final"
+-- (interactive final pass — history replays tool turns, so declarations must stay).
+local function buildToolConfig(config, mode, reading_scope)
     local tool_config = ConfigHelper:deepCopy(config or {})
     tool_config.features = tool_config.features or {}
     tool_config.features.enable_streaming = false
     tool_config.features.enable_web_search = false
     tool_config.enable_web_search = false
 
-    if not final_only then
-        -- Provider-neutral tool declaration; each provider's buildRequestBody renders its format.
-        tool_config.tools = {
-            specs = FUNCTION_DECLARATIONS,
-            mode = "AUTO",
-        }
-    else
+    if mode == "final" then
         -- Final pass: the message history still contains tool turns, and providers reject
         -- tool_use/tool_result replay when no tools are declared (Anthropic 400s, including
         -- via OpenRouter backends). Keep the declarations and forbid further calls via mode
@@ -184,13 +209,26 @@ local function buildToolConfig(config, final_only, reading_scope)
             specs = FUNCTION_DECLARATIONS,
             mode = "NONE",
         }
+    elseif mode == "gather" then
+        tool_config.tools = {
+            specs = GATHER_DECLARATIONS,
+            mode = "AUTO",
+        }
+    else
+        -- Provider-neutral tool declaration; each provider's buildRequestBody renders its format.
+        tool_config.tools = {
+            specs = FUNCTION_DECLARATIONS,
+            mode = "AUTO",
+        }
     end
 
     -- Append the spoiler-scope clause so the instructions match the structural clamp in BookTools.
     local spoiler_safe = reading_scope ~= "full"
     local instructions
-    if final_only then
+    if mode == "final" then
         instructions = FINAL_INSTRUCTIONS .. (spoiler_safe and FINAL_NOTE_CURRENT or "")
+    elseif mode == "gather" then
+        instructions = GATHER_INSTRUCTIONS .. (spoiler_safe and SCOPE_NOTE_CURRENT or SCOPE_NOTE_FULL)
     else
         instructions = TOOL_INSTRUCTIONS .. (spoiler_safe and SCOPE_NOTE_CURRENT or SCOPE_NOTE_FULL)
     end
@@ -202,7 +240,7 @@ end
 local function buildToolSettings(features, reading_scope)
     features = features or {}
     return {
-        -- Consent is enforced upstream in GeminiToolRunner.shouldUse (requires
+        -- Consent is enforced upstream in BookToolRunner.shouldUse (requires
         -- enable_book_text_extraction, or a trusted provider) before the runner ever
         -- builds tools, so the extractor is enabled here unconditionally — this also
         -- covers the trusted-provider bypass case (extraction setting may be off).
@@ -283,6 +321,11 @@ end
 
 local function formatToolResultText(name, result)
     result = result or {}  -- defensive, mirrors summarizeToolCall (BookTools:execute always returns a table)
+    if result.ok == false then
+        -- A failed call must never render as a legitimate zero-hit result — "0 hits"
+        -- reads as evidence of absence to the model, not as tool failure.
+        return string.format("%s: lookup failed — %s", name, tostring(result.error or "unknown error"))
+    end
     if name == "search_book" then
         local query_count = result.query_count or (result.queries and #result.queries) or 0
         local lines = {}
@@ -376,6 +419,48 @@ local function truncateSection(text, max_chars)
     return text:sub(1, max_chars - 3) .. "..."
 end
 
+-- Gather mode: assemble the phase-2 context bundle from the session's tool results.
+-- Chronological; identical formatted sections deduplicate (repeated identical lookups
+-- collapse); FAILED calls (ok == false) are skipped entirely — plan §4: keep the partial
+-- bundle, and an all-failures session leaves the bundle empty so the honest "no relevant
+-- passages" note fires instead. Capped to MAX_GATHER_BUNDLE_CHARS: an overflowing section
+-- is truncated into the remaining budget (a single batched read_around can exceed the
+-- whole cap — dropping it whole could empty the bundle), later ones get an omission note
+-- so truncation never reads as full coverage.
+local function buildGatherBundle(tool_outputs)
+    local sections = {}
+    local seen = {}
+    local total = 0
+    local omitted = 0
+    for _idx, output in ipairs(tool_outputs or {}) do
+        for _jdx, item in ipairs(output.executed or {}) do
+            if type(item.result) == "table" and item.result.ok == false then
+                -- skip failed calls (the error text still reaches diagnostics via
+                -- formatToolResultText's error branch in appendVerboseToolOutput)
+            else
+                local section = formatToolResultText(item.call.name, item.result)
+                if type(section) == "string" and #section > 0 and not seen[section] then
+                    seen[section] = true
+                    local remaining = MAX_GATHER_BUNDLE_CHARS - total
+                    if #section <= remaining then
+                        table.insert(sections, section)
+                        total = total + #section
+                    elseif remaining > 500 then
+                        table.insert(sections, truncateSection(section, remaining))
+                        total = MAX_GATHER_BUNDLE_CHARS
+                    else
+                        omitted = omitted + 1
+                    end
+                end
+            end
+        end
+    end
+    if omitted > 0 then
+        table.insert(sections, string.format("(%d further tool result(s) omitted — bundle size limit)", omitted))
+    end
+    return table.concat(sections, "\n\n")
+end
+
 local function appendVerboseToolOutput(answer, tool_outputs)
     if not VERBOSE_TOOL_OUTPUT or type(answer) ~= "string" or #tool_outputs == 0 then
         return answer
@@ -455,7 +540,7 @@ local function formatTurnUsage(usage)
     end
 
     if usage._call_count and usage._call_count > 0 then
-        local call_label = usage._call_count == 1 and "Gemini API call" or "Gemini API calls"
+        local call_label = usage._call_count == 1 and "API call" or "API calls"
         text = text .. string.format(" across %d %s", usage._call_count, call_label)
     end
     return text
@@ -478,10 +563,12 @@ local function isProviderTrusted(provider, features)
     return false
 end
 
-function GeminiToolRunner.shouldUse(config, ui)
+-- Session-level eligibility: everything shouldUse checks EXCEPT the activation decision
+-- (global flag / session checkbox) and the context flags. Used by the input dialog to
+-- decide whether the per-chat "Book tools" checkbox is worth showing at all (it gates
+-- context itself); capability + adapter + extraction consent + open document.
+function BookToolRunner.sessionEligible(config, ui)
     local features = config and config.features or {}
-    -- Experimental opt-in (default off): the whole feature is gated behind this flag.
-    if features.enable_tool_workflows ~= true then return false end
     local provider = config and (config.provider or config.default_provider)
     -- Provider/model must support function calling AND have a tool_wire adapter; otherwise
     -- fall through to the normal (whole-context) path. Generalizes the old gemini-only gate.
@@ -493,19 +580,33 @@ function GeminiToolRunner.shouldUse(config, ui)
     if features.enable_book_text_extraction ~= true and not isProviderTrusted(provider, features) then
         return false
     end
+    return ui ~= nil and ui.document ~= nil
+end
+
+function BookToolRunner.shouldUse(config, ui)
+    local features = config and config.features or {}
+    -- Activation: the per-chat checkbox (features._tools_active, explicit true/false set at
+    -- Send) wins when present; otherwise the global experimental flag is the default.
+    -- (D1 — gather_then_generate_plan.md)
+    local active
+    if features._tools_active ~= nil then
+        active = features._tools_active == true
+    else
+        active = features.enable_tool_workflows == true
+    end
+    if not active then return false end
+    if not BookToolRunner.sessionEligible(config, ui) then return false end
     return features.is_library_context ~= true
         and features.is_general_context ~= true
         and features._xray_chat_active ~= true
-        and ui ~= nil
-        and ui.document ~= nil
 end
 
--- Convenience wrapper: route through GeminiToolRunner.run when shouldUse is true,
+-- Convenience wrapper: route through BookToolRunner.run when shouldUse is true,
 -- otherwise call query_fn directly. Lets all chat reply paths share one call site
 -- without each caller knowing about the runner.
-function GeminiToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
-    if GeminiToolRunner.shouldUse(cfg, ui) then
-        return GeminiToolRunner.run({
+function BookToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
+    if BookToolRunner.shouldUse(cfg, ui) then
+        return BookToolRunner.run({
             query_fn = query_fn,
             messages = messages,
             config = cfg,
@@ -517,13 +618,13 @@ function GeminiToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, u
     return query_fn(messages, cfg, callback, plugin and plugin.settings)
 end
 
-function GeminiToolRunner.run(params)
+function BookToolRunner.run(params)
     params = params or {}
-    GeminiToolRunner._cancelled = false
+    BookToolRunner._cancelled = false
     local query_fn = params.query_fn
     local on_complete = params.on_complete
     if not query_fn then
-        if on_complete then on_complete(false, nil, "Gemini tool runner missing query function") end
+        if on_complete then on_complete(false, nil, "Book tool runner missing query function") end
         return nil
     end
 
@@ -540,10 +641,41 @@ function GeminiToolRunner.run(params)
     local tool_turns = 0
     local tool_calls = 0
     local completed = false
+    local gather_mode = (features.tool_mode or "gather") == "gather"
+
+    -- Gather-phase status window (streamed sessions only): one dialog that ticks per
+    -- lookup round; closed before phase 2, whose normal stream dialog takes its place.
+    local status_handle
+    -- Cancel handle for the in-flight non-streaming request while its loading dialog is
+    -- suppressed (the status window replaces it). Filled by handleNonStreamingBackground
+    -- via config._register_cancel; consumed by the status window's Stop.
+    local cancel_slot = {}
+
+    local function closeStatus()
+        if status_handle then
+            status_handle.close()
+            status_handle = nil
+        end
+    end
+
+    local function updateStatus()
+        if not status_handle then return end
+        -- Header + counter are translated; the per-lookup trace lines below are raw
+        -- summarizeToolCall output (tool names + numbers — treated as technical content,
+        -- same exemption as debug strings).
+        local counter = tool_calls == 1 and _("1 lookup so far")
+            or T(_("%1 lookups so far"), tool_calls)
+        local lines = { _("Searching the book…"), counter, "" }
+        for _idx, item in ipairs(trace) do
+            table.insert(lines, "• " .. item)
+        end
+        status_handle.setText(table.concat(lines, "\n"))
+    end
 
     local function finish(success, answer, err, reasoning, web_search_used)
         if completed then return end
         completed = true
+        closeStatus()
         if success and type(answer) == "string" then
             -- The lookups trace, the raw tool-result dump (may contain book-text snippets),
             -- and the token-usage footer are developer diagnostics for the experimental tools:
@@ -561,7 +693,7 @@ function GeminiToolRunner.run(params)
     end
 
     local function requestFinal()
-        local final_config = buildToolConfig(config, true, reading_scope)
+        local final_config = buildToolConfig(config, "final", reading_scope)
         final_config.features.loading_message = _("Book tools\nPreparing answer...")
         table.insert(messages, {
             role = "user",
@@ -573,10 +705,137 @@ function GeminiToolRunner.run(params)
         end, params.settings)
     end
 
+    -- Gather phase 2: a NORMAL request (streaming and web search per the user's settings)
+    -- built from the ORIGINAL history — no tool turns to replay, so no tools declaration —
+    -- with the gathered passages injected as a context block before the user's question.
+    local function startGenerate()
+        closeStatus()
+        local gen_messages = copyMessages(params.messages)
+        local bundle = buildGatherBundle(tool_outputs)
+        local context_text
+        if bundle and #bundle > 0 then
+            context_text = "[Passages retrieved from the book for this question]\n" .. bundle
+        elseif tool_calls > 0 then
+            -- Lookups ran but returned nothing usable: say so honestly instead of letting
+            -- the model imply it read the text (same spirit as {text_fallback_nudge}).
+            context_text = "[Book lookup note]\nBook lookups found no relevant passages for this question. Answer from the conversation and general knowledge, and say so when the book text would have been needed."
+        end
+        if context_text then
+            local insert_at = #gen_messages + 1
+            for i = #gen_messages, 1, -1 do
+                local msg = gen_messages[i]
+                if msg.role == "user" and not msg.is_context then
+                    insert_at = i
+                    break
+                end
+            end
+            table.insert(gen_messages, insert_at, {
+                role = "user",
+                content = context_text,
+                is_context = true,
+            })
+        end
+        local gen_config = ConfigHelper:deepCopy(config)
+        gen_config.tools = nil
+        return query_fn(gen_messages, gen_config, function(success, answer, err, reasoning, web_search_used, usage)
+            if completed then return end
+            token_usage = mergeUsage(token_usage, usage)
+            if success and type(answer) == "string" and tool_calls > 0 then
+                -- Trust signal (always on in gather mode, unlike the diagnostics trace):
+                -- same inline style as the web-search indicator.
+                local note = tool_calls == 1 and _("Searched the book — 1 lookup")
+                    or T(_("Searched the book — %1 lookups"), tool_calls)
+                answer = answer .. "\n\n*[" .. note .. "]*"
+            end
+            finish(success, answer, err, reasoning, web_search_used)
+        end, params.settings)
+    end
+
+    local step_gather
+    step_gather = function()
+        if completed then return nil end
+        if BookToolRunner._cancelled then
+            finish(false, nil, _("Request cancelled by user."))
+            return nil
+        end
+        if tool_turns >= MAX_TOOL_TURNS or tool_calls >= MAX_TOOL_CALLS then
+            -- Budget exhausted = gathered enough; generate from what we have.
+            return startGenerate()
+        end
+
+        local tool_config = buildToolConfig(config, "gather", reading_scope)
+        tool_config.features.loading_message = tool_turns == 0
+            and _("Book tools\nThinking...")
+            or _("Book tools\nReading...")
+        if status_handle then
+            tool_config.features._suppress_loading_dialog = true
+        end
+        tool_config._register_cancel = function(cancel_fn)
+            cancel_slot.cancel = cancel_fn
+        end
+
+        return query_fn(messages, tool_config, function(success, answer, err, reasoning, web_search_used, usage)
+            cancel_slot.cancel = nil
+            -- A round parked behind NetworkMgr:runWhenConnected can fire AFTER Stop
+            -- already finished the run — bail before doing any work with its result.
+            if completed then return end
+            token_usage = mergeUsage(token_usage, usage)
+            if not success then
+                finish(false, nil, err, reasoning, web_search_used)
+                return
+            end
+
+            if type(answer) ~= "table" or answer._tool_calls ~= true then
+                -- The model answered as prose instead of gathering (provider ignored the
+                -- gather protocol). Accept it — same outcome as interactive mode; discarding
+                -- and regenerating would double-bill the turn.
+                finish(true, answer, nil, reasoning, web_search_used)
+                return
+            end
+
+            local calls = answer.calls or {}
+            if #calls == 0 then
+                finish(false, nil, _("Model returned an empty tool call"))
+                return
+            end
+
+            tool_turns = tool_turns + 1
+
+            local saw_done = false
+            local executed = {}
+            for _idx, call in ipairs(calls) do
+                if call.name == "done" then
+                    saw_done = true
+                else
+                    tool_calls = tool_calls + 1
+                    local result = tools:execute(call.name, call.args or {})
+                    table.insert(trace, summarizeToolCall(call, result))
+                    table.insert(executed, { call = call, result = result })
+                end
+            end
+            if #executed > 0 then
+                table.insert(tool_outputs, { executed = executed })
+            end
+
+            if saw_done then
+                -- done terminates the phase; this turn is never replayed (phase 2 starts
+                -- from the original history), so unanswered echoed calls can't 400.
+                return startGenerate()
+            end
+
+            if #executed > 0 then
+                -- Keep the gather conversation going in the provider's native wire shape.
+                ToolWire.appendToolTurn(provider, messages, answer.raw_assistant_turn, executed)
+            end
+            updateStatus()
+            return step_gather()
+        end, params.settings)
+    end
+
     local step
     step = function()
         if completed then return nil end
-        if GeminiToolRunner._cancelled then
+        if BookToolRunner._cancelled then
             finish(false, nil, _("Request cancelled by user."))
             return nil
         end
@@ -584,12 +843,13 @@ function GeminiToolRunner.run(params)
             return requestFinal()
         end
 
-        local tool_config = buildToolConfig(config, false, reading_scope)
+        local tool_config = buildToolConfig(config, "tools", reading_scope)
         tool_config.features.loading_message = tool_turns == 0
             and _("Book tools\nThinking...")
             or _("Book tools\nReading...")
 
         return query_fn(messages, tool_config, function(success, answer, err, reasoning, web_search_used, usage)
+            if completed then return end
             token_usage = mergeUsage(token_usage, usage)
             if not success then
                 finish(false, nil, err, reasoning, web_search_used)
@@ -630,13 +890,45 @@ function GeminiToolRunner.run(params)
         end, params.settings)
     end
 
+    if gather_mode then
+        -- Status window only for streamed sessions; with streaming off, the per-round
+        -- loading InfoMessages (and phase 2's own) remain the UI, exactly as interactive.
+        if features.enable_streaming ~= false then
+            local ok, StreamHandler = pcall(require, "stream_handler")
+            if ok and StreamHandler and StreamHandler.showToolStatusDialog then
+                -- pcall the construction too: a failed dialog must degrade to the
+                -- per-round loading InfoMessages, never kill the request.
+                local ok2, handle = pcall(StreamHandler.showToolStatusDialog, {
+                    settings = {
+                        large_stream_dialog = features.large_stream_dialog,
+                        response_font_size = features.markdown_font_size,
+                    },
+                    initial_text = _("Searching the book…"),
+                    on_stop = function()
+                        BookToolRunner._cancelled = true
+                        if cancel_slot.cancel then
+                            -- Kills the in-flight subprocess; its callback lands in
+                            -- step_gather's not-success branch → finish(cancelled).
+                            local cancel = cancel_slot.cancel
+                            cancel_slot.cancel = nil
+                            pcall(cancel)
+                        else
+                            finish(false, nil, _("Request cancelled by user."))
+                        end
+                    end,
+                })
+                if ok2 and type(handle) == "table" then status_handle = handle end
+            end
+        end
+        return step_gather()
+    end
     return step()
 end
 
-GeminiToolRunner.function_declarations = FUNCTION_DECLARATIONS
+BookToolRunner.function_declarations = FUNCTION_DECLARATIONS
 
-function GeminiToolRunner.cancel()
-    GeminiToolRunner._cancelled = true
+function BookToolRunner.cancel()
+    BookToolRunner._cancelled = true
 end
 
-return GeminiToolRunner
+return BookToolRunner

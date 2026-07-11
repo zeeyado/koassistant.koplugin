@@ -1,6 +1,6 @@
 -- Provider-neutral tool-call wiring for the book-tool runner.
 --
--- The runner (koassistant_gemini_tool_runner.lua) is provider-agnostic: it executes tools and
+-- The runner (koassistant_book_tool_runner.lua) is provider-agnostic: it executes tools and
 -- drives the agentic loop, but it must NOT know each provider's wire format. This registry holds,
 -- per provider, how to serialize one completed tool turn back into the message history — i.e. echo
 -- the model's tool-call turn, then append the tool results in the provider's native shape so the

@@ -1940,7 +1940,27 @@ local SettingsSchema = {
                     text = _("AI Book Tools (Experimental)"),
                     path = "features.enable_tool_workflows",
                     default = false,
-                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). When enabled, chatting about an open book lets the AI call local tools to search the text, read specific pages, and view the table of contents, so it can ground answers in what you've actually read instead of guessing.\n\nRequires \"Allow Text Extraction\". Responses do not stream while the AI is looking things up. Work in progress; behavior may change."),
+                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). When enabled, chatting about an open book lets the AI call local tools to search the text, read specific pages, and view the table of contents, so it can ground answers in what you've actually read instead of guessing.\n\nRequires \"Allow Text Extraction\". This sets the default for the per-chat \"Book tools\" checkbox in the chat input dialog — you can flip it per conversation either way. Work in progress; behavior may change."),
+                },
+                {
+                    id = "tool_mode",
+                    type = "radio",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local mode = f.tool_mode or "gather"
+                        local labels = {
+                            gather = _("Gather then answer"),
+                            interactive = _("Interactive"),
+                        }
+                        return T(_("Book Tools Mode: %1"), labels[mode] or mode)
+                    end,
+                    help_text = _("How AI Book Tools answer.\n\nGather then answer: the AI quietly collects passages from the book first, then answers as a normal request — the answer streams and web search stays available.\n\nInteractive: the original agentic loop — the AI narrates its way through lookups; no streaming or web search while tools run."),
+                    path = "features.tool_mode",
+                    default = "gather",
+                    options = {
+                        { value = "gather", text = _("Gather then answer (streams; recommended)") },
+                        { value = "interactive", text = _("Interactive agentic loop") },
+                    },
                 },
                 {
                     id = "tool_workflow_diagnostics",
