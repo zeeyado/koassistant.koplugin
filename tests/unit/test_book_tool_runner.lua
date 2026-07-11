@@ -1042,4 +1042,33 @@ TestRunner:test("gatherForAction: budget caps the loop and delivers what was gat
     TestRunner:assertEqual(got_info.tool_calls, 2, "both lookups counted")
 end)
 
+TestRunner:test("smartRetrievalAllowed: posture off is the master switch", function()
+    local base = { provider = "gemini",
+        features = { enable_book_text_extraction = true } }
+    local ok, why = BookToolRunner.smartRetrievalAllowed(base, makeUi())
+    TestRunner:assertTrue(ok, "eligible session with default (manual) posture allowed")
+    base.features.tools_posture = "manual"
+    TestRunner:assertTrue(BookToolRunner.smartRetrievalAllowed(base, makeUi()),
+        "manual posture allows per-action smart retrieval")
+    base.features.tools_posture = "off"
+    ok, why = BookToolRunner.smartRetrievalAllowed(base, makeUi())
+    TestRunner:assertFalse(ok, "posture off gates smart retrieval")
+    TestRunner:assertEqual(why, "posture_off", "posture reason reported")
+    -- per-book off wins over global manual
+    base.features.tools_posture = "manual"
+    local ui = makeUi()
+    ui.doc_settings = {
+        readSetting = function(_self, key)
+            if key == "koassistant_book_tools" then return "off" end
+        end,
+    }
+    ok, why = BookToolRunner.smartRetrievalAllowed(base, ui)
+    TestRunner:assertFalse(ok, "per-book off gates smart retrieval")
+    TestRunner:assertEqual(why, "posture_off", "per-book posture reason reported")
+    -- ineligibility reasons pass through unchanged
+    ok, why = BookToolRunner.smartRetrievalAllowed(
+        { provider = "gemini", features = {} }, makeUi())
+    TestRunner:assertEqual(why, "consent", "sessionEligible reasons pass through")
+end)
+
 return TestRunner:summary()

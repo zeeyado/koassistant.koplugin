@@ -5458,8 +5458,9 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       and opts.for_highlight == true and not requires_book_text
   local smart_eligible, smart_block_reason
   if smart_row_shown then
+    -- Master switch (2026-07-11): posture "off" gates ALL tool use, incl. this row.
     smart_eligible, smart_block_reason =
-        require("koassistant_book_tool_runner").sessionEligible(configuration, self.ui)
+        require("koassistant_book_tool_runner").smartRetrievalAllowed(configuration, self.ui)
   end
 
   -- State (persists across rebuilds)
@@ -5800,6 +5801,8 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       if not smart_eligible then
         if smart_block_reason == "consent" then
           sr_text = sr_label .. "  (" .. _("enable in Settings → Privacy") .. ")"
+        elseif smart_block_reason == "posture_off" then
+          sr_text = sr_label .. "  (" .. _("AI Book Tools are off") .. ")"
         else
           sr_text = sr_label .. "  (" .. _("not supported by this provider") .. ")"
         end
