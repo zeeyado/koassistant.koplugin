@@ -213,6 +213,19 @@ local function getBookResearchMode(doc_settings)
     return doc_settings:readSetting(BookSettings.KEY_RESEARCH)
 end
 
+-- Session chips shown above the input field (book_scoped_controls_plan.md §4). Canonical
+-- order is fixed; membership is user-configurable via the input dialog's gear menu
+-- ("Chat Buttons…"), stored as an ordered array in features.session_chips. nil = the
+-- default set (the one-time migration in main.lua seeds it, folding the old
+-- show_spoiler_toggle bool into "spoiler" membership).
+local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "spoiler" }
+local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools" }
+local function getSessionChips(features)
+    local chips = features and features.session_chips
+    if type(chips) ~= "table" then return SESSION_CHIPS_DEFAULT end
+    return chips
+end
+
 -- Extract surrounding context for dictionary lookups
 -- Uses KOReader's highlight API to get text before/after selection
 -- @param ui: KOReader UI instance with highlight module
@@ -4820,44 +4833,103 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local has_more_actions = false  -- Set by buildInputDialogButtons, read by gear menu
     local buildInputDialogButtons
     buildInputDialogButtons = function()
-        -- Top row: [Web toggle] [Domain] [Send]
-        local top_row = {
-            -- 1. Web search toggle (session-only — the seed is per-book override >
-            --    global; lasting defaults live in Quick Settings / Book Settings)
-            {
-                text = getWebToggleText(),
-                callback = function()
-                    -- Gate: unsupported providers can't search — explain instead of toggling
-                    if not ConfigHelper:supportsWebSearch(configuration) then
-                        UIManager:show(InfoMessage:new{
-                            text = T(_("Web search isn't currently available for %1.\n\nSupported providers: %2."),
-                                configuration.provider or _("this provider"),
-                                ConfigHelper:getWebSearchProvidersLabel()),
+        -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Spoiler]
+        -- by membership (gear menu → "Chat Buttons…"), replacing the old checkbox pile +
+        -- top-row Web/Domain buttons. Binary chips toggle their SESSION value on tap and
+        -- open the scope-aware defaults picker (For this book / Global) on hold. Rows of
+        -- up to 3 chips; Send joins the last row when there's room.
+        local chips_book_or_highlight = not is_general_context and not is_library_context
+        local chip_defs = {
+            domain = function()
+                return {
+                    text = _("Domain: ") .. getDomainDisplayName(),
+                    callback = function()
+                        showDomainSelector()
+                    end,
+                }
+            end,
+            web_search = function()
+                return {
+                    text = getWebToggleText(),
+                    callback = function()
+                        -- Gate: unsupported providers can't search — explain instead of toggling
+                        if not ConfigHelper:supportsWebSearch(configuration) then
+                            UIManager:show(InfoMessage:new{
+                                text = T(_("Web search isn't currently available for %1.\n\nSupported providers: %2."),
+                                    configuration.provider or _("this provider"),
+                                    ConfigHelper:getWebSearchProvidersLabel()),
+                            })
+                            return
+                        end
+                        session_web_search = not session_web_search
+                        refreshInputDialog()
+                    end,
+                    hold_callback = function()
+                        BookSettings.showWebSearch({
+                            plugin = plugin, ui = ui_instance, document_path = document_path,
+                            on_close = function() refreshInputDialog() end,
                         })
-                        return
+                    end,
+                }
+            end,
+            book_tools = function()
+                -- Same visibility as the old checkbox: open book, not X-Ray chat, capable
+                -- session, posture not "off" (the master switch).
+                if not (chips_book_or_highlight and has_open_book and not is_xray_chat
+                    and effective_tools_posture ~= "off"
+                    and BookToolRunner.sessionEligible(configuration, ui_instance)) then
+                    return nil
+                end
+                return {
+                    text = session_book_tools and _("Tools ON") or _("Tools OFF"),
+                    callback = function()
+                        session_book_tools = not session_book_tools
+                        refreshInputDialog()
+                    end,
+                    hold_callback = function()
+                        BookSettings.showToolsPosture({
+                            plugin = plugin, ui = ui_instance, document_path = document_path,
+                            on_close = function() refreshInputDialog() end,
+                        })
+                    end,
+                }
+            end,
+            spoiler = function()
+                if not chips_book_or_highlight then return nil end
+                return {
+                    text = session_spoiler_free and _("Spoiler ON") or _("Spoiler OFF"),
+                    callback = function()
+                        session_spoiler_free = not session_spoiler_free
+                        refreshInputDialog()
+                    end,
+                    hold_callback = function()
+                        BookSettings.showSpoilerFree({
+                            plugin = plugin, ui = ui_instance, document_path = document_path,
+                            on_close = function() refreshInputDialog() end,
+                        })
+                    end,
+                }
+            end,
+        }
+        local chip_rows = {}
+        do
+            local current = {}
+            for _idx, chip_id in ipairs(getSessionChips(configuration and configuration.features)) do
+                local build = chip_defs[chip_id]
+                local def = build and build()
+                if def then
+                    table.insert(current, def)
+                    if #current == 3 then
+                        table.insert(chip_rows, current)
+                        current = {}
                     end
-                    session_web_search = not session_web_search
-                    refreshInputDialog()
-                end,
-                hold_callback = function()
-                    local msg = ConfigHelper:supportsWebSearch(configuration)
-                        and _("Toggle web search for this chat only. Change the lasting default in Quick Settings or Book Settings.")
-                        or _("Web search isn't available for this provider")
-                    UIManager:show(InfoMessage:new{
-                        text = msg,
-                        timeout = 3,
-                    })
-                end,
-            },
-            -- 2. Domain selector
-            {
-                text = _("Domain: ") .. getDomainDisplayName(),
-                callback = function()
-                    showDomainSelector()
-                end,
-            },
-            -- 3. Send (freeform chat with context)
-            {
+                end
+            end
+            table.insert(chip_rows, current)  -- possibly empty; Send lands here below
+        end
+
+        -- Send (freeform chat with context)
+        local send_button = {
                 text = enable_emoji and (_("Send") .. " ➤") or _("Send"),
                 -- In library context, disable Send when there's nothing to chat about
                 enabled = not (configuration.features.is_library_context
@@ -5143,7 +5215,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 })
             end,
         }
-    }
+        -- Send joins the last chips row when there's room, else gets its own
+        -- full-width row (a big target for the most-used button).
+        local last_chip_row = chip_rows[#chip_rows]
+        if #last_chip_row < 3 then
+            table.insert(last_chip_row, send_button)
+        else
+            table.insert(chip_rows, { send_button })
+        end
 
         -- Action buttons (collected separately, then arranged in rows of 2)
         local action_buttons = {}
@@ -5404,8 +5483,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         end
 
-        -- Organize into rows: top row (3 buttons), then action rows of 2
-        local button_rows = { top_row }
+        -- Organize into rows: chip/control rows first, then action rows of 2
+        local button_rows = {}
+        local control_row_set = {}
+        for _idx, row in ipairs(chip_rows) do
+            table.insert(button_rows, row)
+            control_row_set[row] = true
+        end
 
         -- Library context: split actions into scan-based and selection-based zones
         if input_context == "library" then
@@ -5499,7 +5583,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             -- Artifact pairing: pair with last action if odd count, else solo row
             if artifact_button then
                 local last_row = button_rows[#button_rows]
-                if last_row and #last_row == 1 and last_row ~= top_row then
+                if last_row and #last_row == 1 and not control_row_set[last_row] then
                     -- Odd action count: pair last action with artifact
                     table.insert(last_row, artifact_button)
                 else
@@ -5539,6 +5623,52 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if session_web_search ~= nil then configuration.features._session_web_search = session_web_search end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
+    end
+
+    -- "Chat Buttons…" manager (gear menu): toggle which session chips appear above the
+    -- input field. Membership persists in features.session_chips; the canonical order is
+    -- fixed (SESSION_CHIP_IDS) — only membership is configurable.
+    local function showSessionChipsManager()
+        local labels = {
+            domain = _("Domain"),
+            web_search = _("Web search"),
+            book_tools = _("Book tools"),
+            spoiler = _("Spoiler-free chat"),
+        }
+        local enabled = {}
+        for _idx, id in ipairs(getSessionChips(configuration and configuration.features)) do
+            enabled[id] = true
+        end
+        local manager
+        local rows = {}
+        for _idx, id in ipairs(SESSION_CHIP_IDS) do
+            table.insert(rows, {{
+                text = (enabled[id] and "● " or "○ ") .. labels[id],
+                callback = function()
+                    if enabled[id] then enabled[id] = nil else enabled[id] = true end
+                    local new_list = {}
+                    for _j, cid in ipairs(SESSION_CHIP_IDS) do
+                        if enabled[cid] then table.insert(new_list, cid) end
+                    end
+                    if configuration and configuration.features then
+                        configuration.features.session_chips = new_list
+                    end
+                    if plugin and plugin.settings then
+                        local f = plugin.settings:readSetting("features") or {}
+                        f.session_chips = new_list
+                        plugin.settings:saveSetting("features", f)
+                        plugin.settings:flush()
+                    end
+                    UIManager:close(manager)
+                    refreshInputDialog()
+                end,
+            }})
+        end
+        table.insert(rows, {{ text = _("Close"), id = "close", callback = function()
+            UIManager:close(manager)
+        end }})
+        manager = ButtonDialog:new{ title = _("Chat buttons"), buttons = rows }
+        UIManager:show(manager)
     end
 
     -- Show the dialog with the button rows
@@ -5637,6 +5767,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     refreshInputDialog()
                 end }},
             }
+            -- Chat buttons manager: which session chips appear above the input field
+            table.insert(gear_buttons, {{ text = _("Chat Buttons…"), callback = function()
+                UIManager:close(gear_menu)
+                showSessionChipsManager()
+            end }})
             -- Book Settings entry — only when a book is in scope (book/highlight contexts)
             if document_path then
                 table.insert(gear_buttons, {{ text = _("Book Settings"), callback = function()
@@ -5676,64 +5811,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end,
     }
 
-    -- Add spoiler-free checkbox for book/highlight contexts (when show_spoiler_toggle enabled)
-    -- Session toggle: initial state follows global spoiler_free_chat, user can flip per-session
-    local spoiler_checkbox
-    local is_book_or_highlight = not is_general_context and not is_library_context
-    local show_spoiler_toggle = configuration and configuration.features
-        and configuration.features.show_spoiler_toggle == true
-    if is_book_or_highlight and show_spoiler_toggle then
-        local CheckButton = require("ui/widget/checkbutton")
-        local Size = require("ui/size")
-        local HorizontalGroup = require("ui/widget/horizontalgroup")
-        local HorizontalSpan = require("ui/widget/horizontalspan")
-        local cb_Font = require("ui/font")
-        spoiler_checkbox = CheckButton:new{
-            face = cb_Font:getFace("xx_smallinfofont"),
-            text = _("Spoiler-free chat"),
-            checked = session_spoiler_free,
-            parent = input_dialog,
-            callback = function()
-                session_spoiler_free = spoiler_checkbox.checked
-            end,
-        }
-        local vgroup = input_dialog.dialog_frame[1]
-        table.insert(vgroup, 2, HorizontalGroup:new{
-            HorizontalSpan:new{ width = Size.padding.large },
-            spoiler_checkbox,
-        })
-    end
-
-    -- "Book tools" session checkbox (D1 — gather_then_generate_plan.md, posture in
-    -- tools_ux_plan.md §1): per-chat tool activation, sibling to the spoiler toggle.
-    -- Shown only when this session could actually run tools (open book, not X-Ray chat,
-    -- capable provider + adapter, extraction consent) AND the effective posture isn't
-    -- "off". Posture only sets visibility + the DEFAULT state — one tap activates tools
-    -- for a chat without a settings trip (and vice versa).
-    local tools_checkbox
-    if is_book_or_highlight and has_open_book and not is_xray_chat
-        and effective_tools_posture ~= "off"
-        and BookToolRunner.sessionEligible(configuration, ui_instance) then
-        local CheckButton = require("ui/widget/checkbutton")
-        local Size = require("ui/size")
-        local HorizontalGroup = require("ui/widget/horizontalgroup")
-        local HorizontalSpan = require("ui/widget/horizontalspan")
-        local cb_Font = require("ui/font")
-        tools_checkbox = CheckButton:new{
-            face = cb_Font:getFace("xx_smallinfofont"),
-            text = _("Book tools (AI can search this book)"),
-            checked = session_book_tools,
-            parent = input_dialog,
-            callback = function()
-                session_book_tools = tools_checkbox.checked
-            end,
-        }
-        local vgroup = input_dialog.dialog_frame[1]
-        table.insert(vgroup, spoiler_checkbox and 3 or 2, HorizontalGroup:new{
-            HorizontalSpan:new{ width = Size.padding.large },
-            tools_checkbox,
-        })
-    end
+    -- (The old spoiler-free / book-tools checkboxes were replaced by the session chips
+    -- row built in buildInputDialogButtons — book_scoped_controls_plan.md §4.)
 
     -- Add close X to title bar (InputDialog doesn't natively pass close_callback to TitleBar)
     -- Also use regular weight font for title (default x_smalltfont is NotoSans-Bold)

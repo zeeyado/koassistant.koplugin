@@ -739,6 +739,113 @@ function BookSettings.showWebSearch(opts)
     UIManager:show(dialog)
 end
 
+--- Quick spoiler-free picker with a For-this-book ↔ Global target toggle — the hold
+-- target of the input dialog's Spoiler chip (same shape as showWebSearch). Book target:
+-- Follow global / On / Off (KEY_SPOILER_FREE). Global target: On / Off
+-- (features.spoiler_free_chat).
+-- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showSpoilerFree(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+    local document_path = opts.document_path
+
+    local doc_settings = resolveDocSettings(ui, document_path)
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_SPOILER_FREE)
+    local global_on = features.spoiler_free_chat == true
+
+    -- Default to "book" only when the book already has an override, else "global".
+    local target = opts.target_override
+        or (doc_settings and book_val ~= nil and "book")
+        or "global"
+    local is_book_target = doc_settings ~= nil and target == "book"
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function commit()
+        closeDialog()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        if on_close then on_close() end
+    end
+    local function pickBook(val)
+        doc_settings:saveSetting(BookSettings.KEY_SPOILER_FREE, val)
+        doc_settings:flush()
+        commit()
+    end
+    local function pickGlobal(val)
+        local f = plugin.settings:readSetting("features") or {}
+        f.spoiler_free_chat = val
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        commit()
+    end
+    local function setTarget(new_target)
+        closeDialog()
+        BookSettings.showSpoilerFree({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target,
+        })
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    local buttons = {}
+    -- Target toggle row: [For this book] [Global] — only when a book is in scope
+    if doc_settings then
+        table.insert(buttons, {
+            {
+                text = dot(is_book_target) .. _("For this book"),
+                callback = function()
+                    if not is_book_target then setTarget("book") end
+                end,
+            },
+            {
+                text = dot(not is_book_target) .. _("Global"),
+                callback = function()
+                    if is_book_target then setTarget("global") end
+                end,
+            },
+        })
+    end
+
+    if is_book_target then
+        table.insert(buttons, {{
+            text = dot(book_val == nil) .. T(_("Follow global (%1)"), global_on and _("On") or _("Off")),
+            callback = function() pickBook(nil) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(book_val == true) .. _("On"),
+            callback = function() pickBook(true) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(book_val == false) .. _("Off"),
+            callback = function() pickBook(false) end,
+        }})
+    else
+        table.insert(buttons, {{
+            text = dot(global_on) .. _("On"),
+            callback = function() pickGlobal(true) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(not global_on) .. _("Off"),
+            callback = function() pickGlobal(false) end,
+        }})
+    end
+    table.insert(buttons, {{
+        text = _("Close"), id = "close",
+        callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end,
+    }})
+
+    dialog = ButtonDialog:new{ title = _("Spoiler-Free Chat"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
 --- Per-book "Book Settings" — a dedicated per-book configuration screen. Every row is
 -- about THIS book (no For-this-book/Global toggle); each setting offers "Follow global"
 -- plus per-book overrides. Compact rows that open small sub-pickers, so the screen scales
@@ -968,7 +1075,13 @@ function BookSettings.show(opts)
     end
     local title_ov, author_ov = BookSettings.getMetadataOverride(doc_settings)
 
+    -- Grouped sections (book_scoped_controls_plan.md §7): disabled rows as headers.
+    -- Order mirrors the input dialog's chips row where the controls overlap.
+    local function header(text)
+        return {{ text = "—  " .. text .. "  —", enabled = false }}
+    end
     local buttons = {
+        header(_("AI behavior")),
         {{ text = T(_("Domain: %1"), domain_label), callback = showDomainSubPicker }},
         {{ text = T(_("Research mode: %1"), research_label),
             callback = function()
@@ -980,8 +1093,6 @@ function BookSettings.show(opts)
                 showBoolSubPicker(BookSettings.KEY_SPOILER_FREE,
                     _("Spoiler-free chat (this book)"), features.spoiler_free_chat == true)
             end }},
-        {{ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
-            callback = showBookInfoSubPicker }},
         {{ text = T(_("AI Book Tools: %1"), toolsRowLabel(doc_settings:readSetting(BookSettings.KEY_TOOLS))),
             callback = showToolsSubPicker }},
         {{ text = T(_("Web search: %1"), boolLabel(doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH))),
@@ -989,6 +1100,9 @@ function BookSettings.show(opts)
                 showBoolSubPicker(BookSettings.KEY_WEB_SEARCH,
                     _("Web search (this book)"), features.enable_web_search == true)
             end }},
+        {{ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
+            callback = showBookInfoSubPicker }},
+        header(_("Identity")),
         {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
             callback = function()
                 showOverrideSubPicker(BookSettings.KEY_AI_TITLE,
@@ -999,6 +1113,7 @@ function BookSettings.show(opts)
                 showOverrideSubPicker(BookSettings.KEY_AI_AUTHOR,
                     _("AI author (this book)"), _("Custom AI author"))
             end }},
+        header(_("More")),
         {{ text = _("Quiz settings ▸"), callback = function()
             closeDialog()
             BookSettings.showQuizConfig({

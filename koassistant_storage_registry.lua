@@ -98,11 +98,12 @@ Registry.SETTINGS_SUBKEYS = {
     preferences = {
         "selected_behavior", "selected_domain", "trusted_providers",
         "gesture_actions", "markdown_font_size", "export_custom_path",
+        "session_chips",
     },
     internal = {
         "languages_migrated", "behavior_migrated", "prompts_migrated_v2",
         "_reasoning_v2_migrated", "_reasoning_hint_shown",
-        "_tools_posture_migrated",
+        "_tools_posture_migrated", "_session_chips_migrated",
         "setup_wizard_completed",                            -- top-level (see TOPLEVEL_SUBKEYS)
     },
 }
