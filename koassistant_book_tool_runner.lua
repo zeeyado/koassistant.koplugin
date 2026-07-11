@@ -611,6 +611,22 @@ function BookToolRunner.sessionEligible(config, ui)
     return true
 end
 
+-- D3 smart retrieval gate (tools_ux_plan.md §4 + master-switch decision 2026-07-11):
+-- the per-action source is allowed when the session could run tools AND the effective
+-- tools posture (per-book > global) isn't "off" — posture is THE master switch for all
+-- tool use; manual vs auto only affects the chat checkbox's default state.
+-- Returns allowed:boolean and, when false, a reason:
+-- "provider" | "consent" | "no_book" | "posture_off".
+function BookToolRunner.smartRetrievalAllowed(config, ui)
+    local ok, reason = BookToolRunner.sessionEligible(config, ui)
+    if not ok then return false, reason end
+    local features = config and config.features or {}
+    if BookSettings.resolveToolsPosture(ui and ui.doc_settings, features) == "off" then
+        return false, "posture_off"
+    end
+    return true
+end
+
 function BookToolRunner.shouldUse(config, ui)
     local features = config and config.features or {}
     -- Activation: the per-chat checkbox (features._tools_active, explicit true/false set at

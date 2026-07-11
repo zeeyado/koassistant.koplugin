@@ -3511,6 +3511,55 @@ local function formatArtifactDisplayText(cache)
     return cache.name
 end
 
+-- Smart-retrieval pre-flight (D3 — tools_ux_plan.md §4), shared by the popup dispatch
+-- (explicit source choice on the input-dialog path) and direct entry points (silent
+-- default — maintainer 2026-07-11): runs the gather phase, stashes the bundle + source
+-- transients on config.features, then proceed()s into the normal action flow (which
+-- consumes them in handlePredefinedPrompt). On gather failure the action does NOT run
+-- with a different source than intended (error popup; silent on user cancel).
+local function runSmartRetrieval(action, action_id, highlighted_text, ui_instance, config, plugin, proceed)
+    config.features = config.features or {}
+    config.features._source_mode = "smart_retrieval"
+    BookToolRunner.gatherForAction({
+        -- Model-facing gather question (untranslated, like GATHER_INSTRUCTIONS)
+        question = "Task: " .. (action.text or action_id)
+            .. "\n\nSelected passage:\n" .. (highlighted_text or ""),
+        query_fn = queryChatGPT,
+        config = config,
+        ui = ui_instance,
+        settings = plugin and plugin.settings,
+        on_complete = function(bundle, info)
+            if bundle == nil then
+                config.features._source_mode = nil
+                config.features._highlight_section_scope = nil
+                if not (info and info.cancelled) then
+                    UIManager:show(InfoMessage:new{
+                        text = _("Book search failed: ")
+                            .. tostring(info and info.error or _("Unknown error")),
+                        timeout = 3,
+                    })
+                end
+                return
+            end
+            config.features._forced_document_context = bundle
+            local n = info and info.tool_calls or 0
+            local Notification = require("ui/widget/notification")
+            local note
+            if n == 0 then
+                -- Model decided no lookups were needed (zero-gather): the action
+                -- proceeds on AI knowledge with the fallback nudge.
+                note = _("No book lookups needed")
+            elseif n == 1 then
+                note = _("Searched the book — 1 lookup")
+            else
+                note = T(_("Searched the book — %1 lookups"), n)
+            end
+            UIManager:show(Notification:new{ text = note, timeout = 2 })
+            proceed()
+        end,
+    })
+end
+
 local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
     -- Use the passed configuration or fall back to the global CONFIGURATION
     local configuration = config or CONFIGURATION
@@ -3947,46 +3996,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 }
             end
             if popup_state.source == "smart_retrieval" then
-                BookToolRunner.gatherForAction({
-                    -- Model-facing gather question (untranslated, like GATHER_INSTRUCTIONS)
-                    question = "Task: " .. (action.text or action_id)
-                        .. "\n\nSelected passage:\n" .. (highlighted_text or ""),
-                    query_fn = queryChatGPT,
-                    config = configuration,
-                    ui = ui_instance,
-                    settings = plugin and plugin.settings,
-                    on_complete = function(bundle, info)
-                        if bundle == nil then
-                            -- Gather failed: don't silently run the action with a
-                            -- different source than the user chose. Cancel shows nothing.
-                            configuration.features._source_mode = nil
-                            configuration.features._highlight_section_scope = nil
-                            if not (info and info.cancelled) then
-                                UIManager:show(InfoMessage:new{
-                                    text = _("Book search failed: ")
-                                        .. tostring(info and info.error or _("Unknown error")),
-                                    timeout = 3,
-                                })
-                            end
-                            return
-                        end
-                        configuration.features._forced_document_context = bundle
-                        local n = info and info.tool_calls or 0
-                        local Notification = require("ui/widget/notification")
-                        local note
-                        if n == 0 then
-                            -- Model decided no lookups were needed (zero-gather): the
-                            -- action proceeds on AI knowledge with the fallback nudge.
-                            note = _("No book lookups needed")
-                        elseif n == 1 then
-                            note = _("Searched the book — 1 lookup")
-                        else
-                            note = T(_("Searched the book — %1 lookups"), n)
-                        end
-                        UIManager:show(Notification:new{ text = note, timeout = 2 })
-                        runAction()
-                    end,
-                })
+                runSmartRetrieval(action, action_id, highlighted_text, ui_instance,
+                    configuration, plugin, runAction)
                 return
             end
             runAction()
@@ -6631,6 +6642,20 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                         timeout = 3,
                     })
                 end
+            end)
+        return
+    end
+
+    -- Silent smart-retrieval default on direct entries (maintainer 2026-07-11): flagged
+    -- actions gather first when the session allows it — the same default the popup gives
+    -- on the input-dialog path, without adding a tap. Posture "off" or an ineligible
+    -- session falls through to the action's normal flags (full extraction).
+    if action.smart_retrieval == true
+            and BookToolRunner.smartRetrievalAllowed(configuration, ui) then
+        runSmartRetrieval(action, action.id or (action.text or "action"), highlighted_text,
+            ui, configuration, plugin, function()
+                handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil,
+                    plugin, nil, onComplete, book_metadata)
             end)
         return
     end
