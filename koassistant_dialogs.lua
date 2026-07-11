@@ -16,6 +16,7 @@ local ConfigHelper = require("koassistant_config_helper")
 local MessageHistory = require("koassistant_message_history")
 local ChatHistoryManager = require("koassistant_chat_history_manager")
 local SafeDocSettings = require("koassistant_doc_settings")
+local BookSettings = require("koassistant_book_settings")
 local MessageBuilder = require("message_builder")
 local ModelConstraints = require("model_constraints")
 local ReasoningPrefs = require("reasoning_prefs")
@@ -189,27 +190,27 @@ end
 -- Helper to persist per-book domain selection to DocSettings
 local function persistBookDomain(doc_settings, domain_id)
     if not doc_settings then return end
-    doc_settings:saveSetting("koassistant_book_domain", domain_id)
+    doc_settings:saveSetting(BookSettings.KEY_DOMAIN, domain_id)
     doc_settings:flush()
 end
 
 -- Helper to read per-book domain from DocSettings
 local function getBookDomain(doc_settings)
     if not doc_settings then return nil end
-    return doc_settings:readSetting("koassistant_book_domain")
+    return doc_settings:readSetting(BookSettings.KEY_DOMAIN)
 end
 
 -- Helper to persist per-book research mode to DocSettings
 local function persistBookResearchMode(doc_settings, value)
     if not doc_settings then return end
-    doc_settings:saveSetting("koassistant_book_research_mode", value)
+    doc_settings:saveSetting(BookSettings.KEY_RESEARCH, value)
     doc_settings:flush()
 end
 
 -- Helper to read per-book research mode from DocSettings
 local function getBookResearchMode(doc_settings)
     if not doc_settings then return nil end
-    return doc_settings:readSetting("koassistant_book_research_mode")
+    return doc_settings:readSetting(BookSettings.KEY_RESEARCH)
 end
 
 -- Extract surrounding context for dictionary lookups
@@ -380,6 +381,15 @@ end
 -- so indicator won't show. This is intentional - we only indicate when
 -- reasoning was actually USED, not just when it was requested.
 
+-- Per-book web-search override (true/false, or nil = follow global). Resolved from the
+-- book's sidecar via book_metadata — the same route as the response-language override in
+-- buildUnifiedRequestConfig; general/library chats carry no book_metadata and fall through.
+local function bookWebSearchOverride(features)
+    local file = features and features.book_metadata and features.book_metadata.file
+    if not file then return nil end
+    return BookSettings.webSearchOverride(SafeDocSettings.resolve(file))
+end
+
 -- @param config: Configuration to modify (modified in-place)
 -- @param domain_context: Optional domain context string
 -- @param action: Optional action definition with behavior/api_params
@@ -406,6 +416,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     if action then
         features._spoiler_free_active = nil
         features._tools_active = false
+        -- The per-chat web toggle is likewise freeform-only: a predefined action follows
+        -- its own enable_web_search flag, else the per-book/global defaults (baked below).
+        features._web_search_active = nil
     end
 
     -- Per-book MAIN response-language override (Book Settings ▸ Languages ▸ AI response
@@ -492,12 +505,21 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     config.api_params._reasoning = reasoning_decision
     ModelConstraints.applyReasoningParams(provider, config.api_params, reasoning_decision)
 
-    -- Web search support (per-action override)
-    -- Global setting is in features.enable_web_search, per-action is action.enable_web_search
-    -- nil = follow global, true = force on, false = force off
+    -- Web search: layered override baked into config.enable_web_search — handlers read it
+    -- override-first, else features.enable_web_search (the global default).
+    -- Priority: action flag (true = force on, false = force off, nil = follow) >
+    -- per-chat toggle (freeform dialog; cleared above for actions) > per-book override >
+    -- nil = follow global at the wire layer. Always assigned, so a stale value on a
+    -- shared/reused config can't leak into this request; the per-chat flag is consumed
+    -- once baked (replies read the baked value off the viewer's configuration).
     if action and action.enable_web_search ~= nil then
         config.enable_web_search = action.enable_web_search
+    elseif features._web_search_active ~= nil then
+        config.enable_web_search = features._web_search_active
+    else
+        config.enable_web_search = bookWebSearchOverride(features)
     end
+    features._web_search_active = nil
 
     -- Set action name for loading dialog display (used by non-streaming loading dialog)
     if action and action.text then
@@ -2351,7 +2373,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Build dynamic quiz instructions from settings (for interactive quiz actions).
     -- Per-book quiz overrides (Book Settings ▸ Quiz) take precedence over the globals.
     if prompt and prompt.interactive_quiz then
-        local BookSettings = require("koassistant_book_settings")
         local quiz = BookSettings.resolveQuiz(per_book_ds, config.features)
         message_data.quiz_instructions = require("koassistant_quiz_prompt").build(quiz)
     end
@@ -2438,7 +2459,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Covers the highlight path (book_title/book_author read straight from doc_props) and any
     -- book_metadata built from the doc_props fallback above.
     do
-        local BookSettings = require("koassistant_book_settings")
         local ai_title, ai_author = BookSettings.getMetadataOverride(per_book_ds)
         -- nil = no override; "" = send empty; string = custom (so test ~= nil, not truthiness)
         if ai_title ~= nil or ai_author ~= nil then
@@ -3034,9 +3054,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Determine if web search will be active for this request
-    -- Per-action override takes priority, otherwise follow global setting
+    -- Per-action override > per-book override > global setting (the per-chat toggle
+    -- doesn't apply — this is the predefined-action path, where it's cleared)
     -- Used by MessageBuilder to select web-aware hallucination nudge
     local action_ws = prompt and prompt.enable_web_search
+    if action_ws == nil then
+        action_ws = bookWebSearchOverride(config.features)
+    end
     if action_ws ~= nil then
         message_data.web_search_active = action_ws
     else
@@ -3585,6 +3609,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local show_all_actions = ((configuration or {}).features or {})._show_all_actions or false
     local session_spoiler_free = ((configuration or {}).features or {})._session_spoiler_free
     local session_book_tools = ((configuration or {}).features or {})._session_book_tools
+    local session_web_search = ((configuration or {}).features or {})._session_web_search
     if configuration and configuration.features then
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
@@ -3593,6 +3618,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         configuration.features._show_all_actions = nil
         configuration.features._session_spoiler_free = nil
         configuration.features._session_book_tools = nil
+        configuration.features._session_web_search = nil
     end
 
     -- session_spoiler_free is initialized further below, once the book's DocSettings is
@@ -3755,6 +3781,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         session_book_tools = effective_tools_posture == "auto"
     end
 
+    -- Initialize the session web-search toggle: per-book override > global default.
+    -- Skipped when restored from a refresh (session choice preserved). Session-only —
+    -- the top-row Web button no longer writes the global setting (lasting defaults
+    -- live in Quick Settings and Book Settings).
+    if session_web_search == nil then
+        session_web_search = BookSettings.resolveWebSearch(
+            doc_settings, configuration and configuration.features)
+    end
+
     -- Forward declaration (showDomainSelector uses refreshInputDialog, defined later)
     local refreshInputDialog
 
@@ -3830,7 +3865,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end,
         }
 
-        local BookSettings = require("koassistant_book_settings")
         local buttons = BookSettings.buildDomainResearchButtons(state, cb)
 
         local ButtonDialog = require("ui/widget/buttondialog")
@@ -3875,9 +3909,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if not ConfigHelper:supportsWebSearch(configuration) then
             return Constants.getEmojiText("🔍", _("Web N/A"), enable_emoji)
         end
-        local web_on = configuration and configuration.features
-            and configuration.features.enable_web_search
-        local label = web_on and _("Web ON") or _("Web OFF")
+        local label = session_web_search and _("Web ON") or _("Web OFF")
         return Constants.getEmojiText("🔍", label, enable_emoji)
     end
 
@@ -4790,7 +4822,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     buildInputDialogButtons = function()
         -- Top row: [Web toggle] [Domain] [Send]
         local top_row = {
-            -- 1. Web search toggle (persistent — writes to actual setting)
+            -- 1. Web search toggle (session-only — the seed is per-book override >
+            --    global; lasting defaults live in Quick Settings / Book Settings)
             {
                 text = getWebToggleText(),
                 callback = function()
@@ -4803,24 +4836,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         })
                         return
                     end
-                    configuration.features = configuration.features or {}
-                    configuration.features.enable_web_search = not configuration.features.enable_web_search
-                    -- Persist to settings
-                    if plugin and plugin.settings then
-                        local features = plugin.settings:readSetting("features") or {}
-                        features.enable_web_search = configuration.features.enable_web_search
-                        plugin.settings:saveSetting("features", features)
-                        plugin.settings:flush()
-                    end
+                    session_web_search = not session_web_search
                     refreshInputDialog()
                 end,
                 hold_callback = function()
                     local msg = ConfigHelper:supportsWebSearch(configuration)
-                        and _("Toggle web search for AI requests")
+                        and _("Toggle web search for this chat only. Change the lasting default in Quick Settings or Book Settings.")
                         or _("Web search isn't available for this provider")
                     UIManager:show(InfoMessage:new{
                         text = msg,
-                        timeout = 2,
+                        timeout = 3,
                     })
                 end,
             },
@@ -5030,6 +5055,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             configuration.features._tools_active = nil
                         end
                     end
+
+                    -- Per-chat web-search toggle: applies in EVERY context (general and
+                    -- library chats can search too). Explicit true/false, mirroring the
+                    -- tools flag; baked into config.enable_web_search — and consumed —
+                    -- by buildUnifiedRequestConfig below.
+                    configuration.features = configuration.features or {}
+                    configuration.features._web_search_active = session_web_search == true
 
                     -- Resolve research mode for freeform chat (no action override)
                     -- Priority: per-book setting > DOI auto-detection > global setting
@@ -5503,6 +5535,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             -- Preserve false too (unlike spoiler): an explicit uncheck must survive the
             -- refresh even when the global tools flag would re-default it to checked.
             if session_book_tools ~= nil then configuration.features._session_book_tools = session_book_tools end
+            -- Web: same explicit-false preservation as tools.
+            if session_web_search ~= nil then configuration.features._session_web_search = session_web_search end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
@@ -5607,7 +5641,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if document_path then
                 table.insert(gear_buttons, {{ text = _("Book Settings"), callback = function()
                     UIManager:close(gear_menu)
-                    local BookSettings = require("koassistant_book_settings")
                     BookSettings.show({
                         plugin = plugin,
                         ui = ui_instance,
@@ -6815,8 +6848,10 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     -- guard in buildUnifiedRequestConfig won't clear a leaked flag — clear it explicitly here so
     -- a prior spoiler-free freeform chat can't inject the nudge into artifact chat. (audit G6)
     -- Same for the per-chat tools checkbox: artifact chat follows the global flag only.
+    -- And the per-chat web toggle: artifact chat follows the per-book/global defaults.
     configuration.features._spoiler_free_active = nil
     configuration.features._tools_active = nil
+    configuration.features._web_search_active = nil
 
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, nil, nil, plugin)

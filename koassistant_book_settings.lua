@@ -80,6 +80,35 @@ function BookSettings.toolsPostureLabel(v)
     return _("Manual")
 end
 
+-- Per-book domain ("<domain id>" | "_none" = explicitly no domain | nil = follow global)
+-- and research mode (true | false | nil = follow global). Constants only — resolution
+-- stays with the callers (the domain chain layers action > book > global and handles
+-- the "_none" sentinel in place).
+BookSettings.KEY_DOMAIN = "koassistant_book_domain"
+BookSettings.KEY_RESEARCH = "koassistant_book_research_mode"
+
+-- Per-book web-search override (true | false | nil = follow global).
+BookSettings.KEY_WEB_SEARCH = "koassistant_book_web_search"
+
+--- Raw per-book web-search override (tri-state). Callers layer this between the
+-- per-chat toggle and the global default.
+-- @return true | false | nil
+function BookSettings.webSearchOverride(doc_settings)
+    local v = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH)
+    if v == nil then return nil end
+    return v == true
+end
+
+--- Resolve effective web-search state for a book: per-book override > global
+-- enable_web_search (opt-in, schema default false — check pattern matches). The
+-- per-chat toggle is the caller's concern (mirrors resolveSpoilerFree).
+-- @return boolean
+function BookSettings.resolveWebSearch(doc_settings, features)
+    local per_book = BookSettings.webSearchOverride(doc_settings)
+    if per_book ~= nil then return per_book end
+    return (features and features.enable_web_search) == true
+end
+
 --- Resolve effective quiz settings for a book: per-book field > global > built-in default.
 -- Pure (no I/O beyond the one sidecar read). The quiz-instruction builder consumes the
 -- count/difficulty/mc/sa/essay/chapter_depth fields; the chapter-end trigger consumes
@@ -196,8 +225,8 @@ end
 -- "reset book settings" action, the customized-count indicator, and (later) Track 33's
 -- storage registry. Keep in sync when adding a per-book setting.
 BookSettings.SIDECAR_KEYS = {
-    "koassistant_book_domain",
-    "koassistant_book_research_mode",
+    BookSettings.KEY_DOMAIN,
+    BookSettings.KEY_RESEARCH,
     BookSettings.KEY_SPOILER_FREE,
     BookSettings.KEY_BOOK_INFO,
     BookSettings.KEY_AI_TITLE,
@@ -207,6 +236,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_DICTIONARY_LANG,
     BookSettings.KEY_RESPONSE_LANG,
     BookSettings.KEY_TOOLS,
+    BookSettings.KEY_WEB_SEARCH,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -419,8 +449,8 @@ function BookSettings.showDomainResearch(opts)
     local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
     local all_domains = DomainLoader.getSortedDomains(features.custom_domains or {})
 
-    local book_domain = doc_settings and doc_settings:readSetting("koassistant_book_domain") or nil
-    local book_research = doc_settings and doc_settings:readSetting("koassistant_book_research_mode") or nil
+    local book_domain = doc_settings and doc_settings:readSetting(BookSettings.KEY_DOMAIN) or nil
+    local book_research = doc_settings and doc_settings:readSetting(BookSettings.KEY_RESEARCH) or nil
 
     -- Default to "book" only when the book already has an override, else "global".
     local domain_target = opts.target_override
@@ -463,7 +493,7 @@ function BookSettings.showDomainResearch(opts)
             })
         end,
         pick_book_domain = function(val)
-            doc_settings:saveSetting("koassistant_book_domain", val)
+            doc_settings:saveSetting(BookSettings.KEY_DOMAIN, val)
             doc_settings:flush()
             commit()
         end,
@@ -472,7 +502,7 @@ function BookSettings.showDomainResearch(opts)
             commit()
         end,
         set_book_research = function(val)
-            doc_settings:saveSetting("koassistant_book_research_mode", val)
+            doc_settings:saveSetting(BookSettings.KEY_RESEARCH, val)
             doc_settings:flush()
             commit()
         end,
@@ -602,6 +632,113 @@ function BookSettings.showToolsPosture(opts)
     UIManager:show(dialog)
 end
 
+--- Quick web-search picker with a For-this-book ↔ Global target toggle — mirrors the
+-- AI Book Tools picker. Shared entry point for the Quick Settings chip; the Book
+-- Settings screen has its own per-book-only row. Book target: Follow global / On / Off
+-- (KEY_WEB_SEARCH sidecar key). Global target: On / Off (features.enable_web_search).
+-- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showWebSearch(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+    local document_path = opts.document_path
+
+    local doc_settings = resolveDocSettings(ui, document_path)
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH)
+    local global_on = features.enable_web_search == true
+
+    -- Default to "book" only when the book already has an override, else "global".
+    local target = opts.target_override
+        or (doc_settings and book_val ~= nil and "book")
+        or "global"
+    local is_book_target = doc_settings ~= nil and target == "book"
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function commit()
+        closeDialog()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        if on_close then on_close() end
+    end
+    local function pickBook(val)
+        doc_settings:saveSetting(BookSettings.KEY_WEB_SEARCH, val)
+        doc_settings:flush()
+        commit()
+    end
+    local function pickGlobal(val)
+        local f = plugin.settings:readSetting("features") or {}
+        f.enable_web_search = val
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        commit()
+    end
+    local function setTarget(new_target)
+        closeDialog()
+        BookSettings.showWebSearch({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target,
+        })
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    local buttons = {}
+    -- Target toggle row: [For this book] [Global] — only when a book is in scope
+    if doc_settings then
+        table.insert(buttons, {
+            {
+                text = dot(is_book_target) .. _("For this book"),
+                callback = function()
+                    if not is_book_target then setTarget("book") end
+                end,
+            },
+            {
+                text = dot(not is_book_target) .. _("Global"),
+                callback = function()
+                    if is_book_target then setTarget("global") end
+                end,
+            },
+        })
+    end
+
+    if is_book_target then
+        table.insert(buttons, {{
+            text = dot(book_val == nil) .. T(_("Follow global (%1)"), global_on and _("On") or _("Off")),
+            callback = function() pickBook(nil) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(book_val == true) .. _("On"),
+            callback = function() pickBook(true) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(book_val == false) .. _("Off"),
+            callback = function() pickBook(false) end,
+        }})
+    else
+        table.insert(buttons, {{
+            text = dot(global_on) .. _("On"),
+            callback = function() pickGlobal(true) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(not global_on) .. _("Off"),
+            callback = function() pickGlobal(false) end,
+        }})
+    end
+    table.insert(buttons, {{
+        text = _("Close"), id = "close",
+        callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end,
+    }})
+
+    dialog = ButtonDialog:new{ title = _("Web Search"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
 --- Per-book "Book Settings" — a dedicated per-book configuration screen. Every row is
 -- about THIS book (no For-this-book/Global toggle); each setting offers "Follow global"
 -- plus per-book overrides. Compact rows that open small sub-pickers, so the screen scales
@@ -636,10 +773,10 @@ function BookSettings.show(opts)
     local function showDomainSubPicker()
         closeDialog()
         local sorted = DomainLoader.getSortedDomains(features.custom_domains or {})
-        local cur = doc_settings:readSetting("koassistant_book_domain")  -- id | "_none" | nil
+        local cur = doc_settings:readSetting(BookSettings.KEY_DOMAIN)  -- id | "_none" | nil
         local picker
         local function pick(val)
-            doc_settings:saveSetting("koassistant_book_domain", val)
+            doc_settings:saveSetting(BookSettings.KEY_DOMAIN, val)
             doc_settings:flush()
             syncConfig()
             UIManager:close(picker)
@@ -814,13 +951,13 @@ function BookSettings.show(opts)
         UIManager:show(picker)
     end
 
-    local book_domain = doc_settings:readSetting("koassistant_book_domain")
+    local book_domain = doc_settings:readSetting(BookSettings.KEY_DOMAIN)
     local domain_label
     if book_domain == "_none" then domain_label = _("None")
     elseif book_domain == nil then domain_label = _("Follow global")
     else domain_label = domainDisplayName(book_domain, features) or book_domain end
 
-    local research_label = boolLabel(doc_settings:readSetting("koassistant_book_research_mode"))
+    local research_label = boolLabel(doc_settings:readSetting(BookSettings.KEY_RESEARCH))
     local spoiler_label = boolLabel(doc_settings:readSetting(BookSettings.KEY_SPOILER_FREE))
 
     -- AI title/author tri-state label: nil = real metadata, "" = empty/suppressed, string = custom
@@ -835,7 +972,7 @@ function BookSettings.show(opts)
         {{ text = T(_("Domain: %1"), domain_label), callback = showDomainSubPicker }},
         {{ text = T(_("Research mode: %1"), research_label),
             callback = function()
-                showBoolSubPicker("koassistant_book_research_mode",
+                showBoolSubPicker(BookSettings.KEY_RESEARCH,
                     _("Research mode (this book)"), features.research_mode == true)
             end }},
         {{ text = T(_("Spoiler-free chat: %1"), spoiler_label),
@@ -847,6 +984,11 @@ function BookSettings.show(opts)
             callback = showBookInfoSubPicker }},
         {{ text = T(_("AI Book Tools: %1"), toolsRowLabel(doc_settings:readSetting(BookSettings.KEY_TOOLS))),
             callback = showToolsSubPicker }},
+        {{ text = T(_("Web search: %1"), boolLabel(doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH))),
+            callback = function()
+                showBoolSubPicker(BookSettings.KEY_WEB_SEARCH,
+                    _("Web search (this book)"), features.enable_web_search == true)
+            end }},
         {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
             callback = function()
                 showOverrideSubPicker(BookSettings.KEY_AI_TITLE,

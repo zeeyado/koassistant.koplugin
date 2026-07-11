@@ -1243,6 +1243,22 @@ local SettingsSchema = {
                     callback = "showDomainManager",
                     info_text = _("Manage knowledge domains. Domains are selected per-chat."),
                 },
+                {
+                    id = "default_domain_research",
+                    type = "action",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local name = _("None")
+                        if f.selected_domain then
+                            local DomainLoader = require("domain_loader")
+                            local d = DomainLoader.getDomainById(f.selected_domain, f.custom_domains or {})
+                            name = d and (d.display_name or d.name) or f.selected_domain
+                        end
+                        return T(_("Default Domain & Research (%1)"), name)
+                    end,
+                    callback = "showDomainSettingsEntry",
+                    info_text = _("The default domain and research mode for AI requests. Individual books can override both in Book Settings."),
+                },
             },
         },
 
