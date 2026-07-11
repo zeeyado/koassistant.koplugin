@@ -191,7 +191,15 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
             })
         end
         -- mode NONE = the runner's final pass: declarations stay, no further calls
-        request_body.tool_choice = (config.tools.mode == "NONE") and "none" or "auto"
+        if config.tools.mode == "NONE" then
+            request_body.tool_choice = "none"
+        elseif config.tools.mode == "ANY" then
+            -- Gather rounds force a tool call (search or done) so the model can never
+            -- answer in prose on the non-streamed gather path.
+            request_body.tool_choice = "required"
+        else
+            request_body.tool_choice = "auto"
+        end
     end
 
     -- Hook: Allow child classes to customize request body

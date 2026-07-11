@@ -210,9 +210,14 @@ local function buildToolConfig(config, mode, reading_scope)
             mode = "NONE",
         }
     elseif mode == "gather" then
+        -- ANY forces a tool call every gather round (search_book/... or done): the model
+        -- can never answer in prose on the non-streamed gather path, so the final answer
+        -- always comes from the streamed phase 2. Handlers render it as tool_choice
+        -- any/required/functionCallingConfig ANY; prose acceptance in step_gather stays
+        -- as a fallback for providers that ignore it.
         tool_config.tools = {
             specs = GATHER_DECLARATIONS,
-            mode = "AUTO",
+            mode = "ANY",
         }
     else
         -- Provider-neutral tool declaration; each provider's buildRequestBody renders its format.

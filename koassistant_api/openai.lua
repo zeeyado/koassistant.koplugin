@@ -123,7 +123,15 @@ function OpenAIHandler:buildRequestBody(message_history, config)
                 },
             })
         end
-        request_body.tool_choice = (config.tools.mode == "NONE") and "none" or "auto"
+        if config.tools.mode == "NONE" then
+            request_body.tool_choice = "none"
+        elseif config.tools.mode == "ANY" then
+            -- Gather rounds force a tool call (search or done) so the model can never
+            -- answer in prose on the non-streamed gather path.
+            request_body.tool_choice = "required"
+        else
+            request_body.tool_choice = "auto"
+        end
     end
 
     local headers = {

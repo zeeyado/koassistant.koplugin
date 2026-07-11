@@ -104,4 +104,57 @@ TestRunner:test("book tools coexist with web search in the tools array", functio
     TestRunner:assertTrue(has_book, "book tool present alongside web search")
 end)
 
+TestRunner:test("gather pass (mode ANY) sets tool_choice any", function()
+    local result = AnthropicHandler:buildRequestBody({
+        { role = "user", content = "q" },
+    }, {
+        model = "claude-sonnet-5",
+        api_key = "test",
+        tools = { specs = SPECS, mode = "ANY" },
+        features = {},
+    })
+    TestRunner:assertEqual(result.body.tool_choice and result.body.tool_choice.type, "any",
+        "mode ANY renders tool_choice {type=any} (gather rounds force a tool call)")
+end)
+
+TestRunner:test("Sonnet 5 default (no thinking param) gets visible summarized thinking", function()
+    -- send_nothing carve-out: adaptive is Sonnet 5's API default and it thinks silently;
+    -- display=summarized is behaviorally identical but streams the reasoning.
+    local result = AnthropicHandler:buildRequestBody({
+        { role = "user", content = "q" },
+    }, {
+        model = "claude-sonnet-5",
+        api_key = "test",
+        features = {},
+    })
+    local thinking = result.body.thinking
+    TestRunner:assertEqual(thinking and thinking.type, "adaptive", "adaptive thinking set")
+    TestRunner:assertEqual(thinking and thinking.display, "summarized", "summarized display set")
+end)
+
+TestRunner:test("carve-out excludes default-OFF adaptive models (Sonnet 4.6)", function()
+    -- Enabling thinking on a default-off model WOULD change behavior — must stay untouched.
+    local result = AnthropicHandler:buildRequestBody({
+        { role = "user", content = "q" },
+    }, {
+        model = "claude-sonnet-4-6",
+        api_key = "test",
+        features = {},
+    })
+    TestRunner:assertEqual(result.body.thinking, nil, "no thinking param for Sonnet 4.6 default")
+end)
+
+TestRunner:test("explicit disabled thinking survives the carve-out (Sonnet 5)", function()
+    local result = AnthropicHandler:buildRequestBody({
+        { role = "user", content = "q" },
+    }, {
+        model = "claude-sonnet-5",
+        api_key = "test",
+        api_params = { thinking = { type = "disabled" } },
+        features = {},
+    })
+    TestRunner:assertEqual(result.body.thinking and result.body.thinking.type, "disabled",
+        "explicit off stays off — carve-out only fires when NO thinking param exists")
+end)
+
 return TestRunner:summary()
