@@ -219,7 +219,7 @@ end
 -- default set (the one-time migration in main.lua seeds it, folding the old
 -- show_spoiler_toggle bool into "spoiler" membership).
 local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "spoiler" }
-local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools" }
+local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "spoiler" }
 local function getSessionChips(features)
     local chips = features and features.session_chips
     if type(chips) ~= "table" then return SESSION_CHIPS_DEFAULT end
@@ -1103,6 +1103,10 @@ local function showTagsMenu(document_path, chat_id, chat_history_manager)
     UIManager:show(current_tags_dialog)
 end
 
+-- NOTE (review 2026-07-12): the addMessage parameter is currently DEAD — no code in this
+-- function invokes it; every caller's replies run through the internal onAskQuestion below,
+-- which does its own addUserMessage/queryWith (and failure rollback). The callers' closures
+-- keep the rollback logic anyway so they are correct if ever wired up.
 local function showResponseDialog(title, history, highlightedText, addMessage, temp_config, document_path, plugin, book_metadata, launch_context, ui_instance)
     -- For compact view (dictionary lookups), force debug OFF regardless of global setting
     -- Create a config copy for createResultText with debug disabled
@@ -1127,10 +1131,24 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     -- Initialize chat history manager
     local chat_history_manager = ChatHistoryManager:new()
 
-    -- Close existing chat viewer if any
+    -- Utility views (translate/compact/dictionary popups) STACK on top of an open chat
+    -- viewer instead of replacing it — translating text selected inside a chat must not
+    -- close the chat underneath (maintainer repro 2026-07-12; only affected viewers
+    -- registered as ActiveChatViewer, which is why resumed chats appeared immune). They
+    -- still take the ActiveChatViewer slot while open (their reply/update machinery
+    -- checks it) and hand it back in close_callback below.
+    local view_features = temp_config and temp_config.features or {}
+    local is_utility_view = view_features.compact_view or view_features.dictionary_view
+        or view_features.translate_view
+    local restore_active_viewer = nil
     if _G.ActiveChatViewer then
-        UIManager:close(_G.ActiveChatViewer)
-        _G.ActiveChatViewer = nil
+        if is_utility_view then
+            restore_active_viewer = _G.ActiveChatViewer
+        else
+            -- Full chat viewers replace the previous one (single-chat model)
+            UIManager:close(_G.ActiveChatViewer)
+            _G.ActiveChatViewer = nil
+        end
     end
 
     -- Forward declare for mutual reference
@@ -1140,11 +1158,10 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     -- Recreate function for rotation handling
     -- Takes state captured by ChatGPTViewer:captureState() and recreates the viewer
     recreate_func = function(state)
-        -- Close existing viewer if any
-        if _G.ActiveChatViewer then
-            UIManager:close(_G.ActiveChatViewer)
-            _G.ActiveChatViewer = nil
-        end
+        -- Do NOT close _G.ActiveChatViewer here: _handleScreenChange already closed the
+        -- viewer being recreated (and cleared its own slot). With stacked utility views,
+        -- two viewers can rotate at once — the slot may hold the OTHER viewer's fresh
+        -- recreation, and closing it would destroy it (review finding 2026-07-12).
 
         -- Create new viewer with captured state but new dimensions
         local new_viewer = ChatGPTViewer:new {
@@ -1175,10 +1192,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- Pass recreate function for subsequent rotations
             _recreate_func = recreate_func,
         }
-        -- Set close_callback after creation so new_viewer is defined
+        -- Set close_callback after creation so new_viewer is defined.
+        -- Inherits the stacked-view restore duty (see showResponseDialog's close_callback).
         new_viewer.close_callback = function()
-            if _G.ActiveChatViewer == new_viewer then
-                _G.ActiveChatViewer = nil
+            if _G.ActiveChatViewer == new_viewer or _G.ActiveChatViewer == nil then
+                _G.ActiveChatViewer = restore_active_viewer
             end
         end
 
@@ -1411,10 +1429,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         selection_data = viewer.selection_data,  -- Preserve for "Save to Note" feature
                         session_web_search_override = viewer.session_web_search_override,  -- Preserve session override
                     }
-                    -- Set close_callback after creation so new_viewer is defined
+                    -- Set close_callback after creation so new_viewer is defined.
+                    -- Inherits the stacked-view restore duty (see the outer close_callback).
                     new_viewer.close_callback = function()
-                        if _G.ActiveChatViewer == new_viewer then
-                            _G.ActiveChatViewer = nil
+                        if _G.ActiveChatViewer == new_viewer or _G.ActiveChatViewer == nil then
+                            _G.ActiveChatViewer = restore_active_viewer
                         end
                     end
 
@@ -1599,6 +1618,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         end
                     end
                 else
+                    -- Roll the unanswered question back out of the history so it can't
+                    -- silently ride into the next request (cancelled/failed replies).
+                    history:removeLastUserMessage()
                     closeLoadingDialog()
                     UIManager:show(InfoMessage:new{
                         text = _("Failed to get response: ") .. (err or "Unknown error"),
@@ -1979,12 +2001,16 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             end
         end,
         close_callback = function()
-            if _G.ActiveChatViewer == chatgpt_viewer then
-                _G.ActiveChatViewer = nil
+            -- Hand the slot back to the chat viewer a utility view stacked over (nil in
+            -- the normal, non-stacked case). Also fills an EMPTY slot: the expand-view
+            -- wrappers (chatgptviewer expandToFullView/expandToDictionaryView) nil the
+            -- slot before delegating here, so equality alone could never restore.
+            if _G.ActiveChatViewer == chatgpt_viewer or _G.ActiveChatViewer == nil then
+                _G.ActiveChatViewer = restore_active_viewer
             end
         end
     }
-    
+
     -- Set global reference
     _G.ActiveChatViewer = chatgpt_viewer
     
@@ -3918,12 +3944,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         and configuration.features.enable_emoji_icons == true
 
     local function getWebToggleText()
-        -- Unsupported provider/model: show N/A (tap explains, doesn't toggle)
+        -- Emoji SWAPS the word (globe = web) to keep the chip narrow; the state suffix
+        -- stays. Unsupported provider/model: N/A (tap explains, doesn't toggle).
         if not ConfigHelper:supportsWebSearch(configuration) then
-            return Constants.getEmojiText("🔍", _("Web N/A"), enable_emoji)
+            return enable_emoji and ("\u{1F310} " .. _("N/A")) or _("Web N/A")
         end
-        local label = session_web_search and _("Web ON") or _("Web OFF")
-        return Constants.getEmojiText("🔍", label, enable_emoji)
+        if enable_emoji then
+            return "\u{1F310} " .. (session_web_search and _("ON") or _("OFF"))
+        end
+        return session_web_search and _("Web ON") or _("Web OFF")
     end
 
     -- Shared action execution for grid buttons, More Actions, and expanded in-grid buttons.
@@ -3965,6 +3994,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                                 if success and answer then
                                     history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+                                else
+                                    -- Cancelled/failed: roll the unanswered question back out
+                                    -- so it can't ride into the next request.
+                                    history:removeLastUserMessage()
                                 end
                                 if on_complete then on_complete(success, answer, err, reasoning, web_search_used) end
                             end, plugin, ui_instance)
@@ -4836,13 +4869,23 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Spoiler]
         -- by membership (gear menu → "Chat Buttons…"), replacing the old checkbox pile +
         -- top-row Web/Domain buttons. Binary chips toggle their SESSION value on tap and
-        -- open the scope-aware defaults picker (For this book / Global) on hold. Rows of
-        -- up to 3 chips; Send joins the last row when there's room.
+        -- open the scope-aware defaults picker (For this book / Global) on hold. Chips
+        -- render compact (smaller font); Send always anchors the end of the top row.
         local chips_book_or_highlight = not is_general_context and not is_library_context
         local chip_defs = {
             domain = function()
+                -- Just the active domain name (the emoji or the word "Domain" replaces
+                -- the old "Domain: X" prefix — maintainer 2026-07-12). 🏛️ matches the
+                -- Quick Settings domain chip.
+                local has_domain = (book_domain_id or selected_domain) and book_domain_id ~= "_none"
+                local label
+                if enable_emoji then
+                    label = "\u{1F3DB}\u{FE0F} " .. getDomainDisplayName()
+                else
+                    label = has_domain and getDomainDisplayName() or _("Domain")
+                end
                 return {
-                    text = _("Domain: ") .. getDomainDisplayName(),
+                    text = label,
                     callback = function()
                         showDomainSelector()
                     end,
@@ -4881,7 +4924,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     return nil
                 end
                 return {
-                    text = session_book_tools and _("Tools ON") or _("Tools OFF"),
+                    text = enable_emoji
+                        and ("\u{1F50D} " .. (session_book_tools and _("ON") or _("OFF")))
+                        or (session_book_tools and _("Tools ON") or _("Tools OFF")),
                     callback = function()
                         session_book_tools = not session_book_tools
                         refreshInputDialog()
@@ -4897,7 +4942,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             spoiler = function()
                 if not chips_book_or_highlight then return nil end
                 return {
-                    text = session_spoiler_free and _("Spoiler ON") or _("Spoiler OFF"),
+                    text = session_spoiler_free and _("Spoiler-free ON") or _("Spoiler-free OFF"),
                     callback = function()
                         session_spoiler_free = not session_spoiler_free
                         refreshInputDialog()
@@ -4911,21 +4956,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 }
             end,
         }
-        local chip_rows = {}
-        do
-            local current = {}
-            for _idx, chip_id in ipairs(getSessionChips(configuration and configuration.features)) do
-                local build = chip_defs[chip_id]
-                local def = build and build()
-                if def then
-                    table.insert(current, def)
-                    if #current == 3 then
-                        table.insert(chip_rows, current)
-                        current = {}
-                    end
-                end
+        local session_chips = {}
+        for _idx, chip_id in ipairs(getSessionChips(configuration and configuration.features)) do
+            local build = chip_defs[chip_id]
+            local def = build and build()
+            if def then
+                table.insert(session_chips, def)
             end
-            table.insert(chip_rows, current)  -- possibly empty; Send lands here below
         end
 
         -- Send (freeform chat with context)
@@ -5053,9 +5090,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         if book_info_level ~= "none" then
                             table.insert(parts, "[Context]")
                             if ai_book_metadata then
+                                local show_author = book_info_level ~= "title"
+                                    and ai_book_metadata.author and ai_book_metadata.author ~= ""
                                 table.insert(parts, string.format('Book: "%s"%s',
                                     ai_book_metadata.title or "Unknown",
-                                    (ai_book_metadata.author and ai_book_metadata.author ~= "") and (" by " .. ai_book_metadata.author) or ""))
+                                    show_author and (" by " .. ai_book_metadata.author) or ""))
                             elseif highlighted_text then
                                 -- Fallback to highlighted_text if it contains formatted book info
                                 table.insert(parts, highlighted_text)
@@ -5073,9 +5112,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             .resolveBookInfoLevel(doc_settings, configuration.features)
                         table.insert(parts, "[Context]")
                         if ai_book_metadata and ai_book_metadata.title and book_info_level ~= "none" then
+                            local show_author = book_info_level ~= "title"
+                                and ai_book_metadata.author and ai_book_metadata.author ~= ""
                             table.insert(parts, string.format('From "%s"%s',
                                 ai_book_metadata.title,
-                                (ai_book_metadata.author and ai_book_metadata.author ~= "") and (" by " .. ai_book_metadata.author) or ""))
+                                show_author and (" by " .. ai_book_metadata.author) or ""))
                             if book_info_level == "full" then appendSendPosition() end
                             table.insert(parts, "")
                         end
@@ -5177,6 +5218,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                                     if msg_success and msg_answer then
                                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
+                                    else
+                                        -- Cancelled/failed: roll the unanswered question back out
+                                        history:removeLastUserMessage()
                                     end
                                     if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used) end
                                 end, plugin, ui_instance)
@@ -5215,14 +5259,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 })
             end,
         }
-        -- Send joins the last chips row when there's room, else gets its own
-        -- full-width row (a big target for the most-used button).
-        local last_chip_row = chip_rows[#chip_rows]
-        if #last_chip_row < 3 then
-            table.insert(last_chip_row, send_button)
-        else
-            table.insert(chip_rows, { send_button })
+        -- Chips + Send fill the TOP ROW ONLY, shrinking with count (maintainer
+        -- 2026-07-12): all chips + Send share one row; font size steps down as the row
+        -- fills. Current max is 4 chips + Send; if the chip set ever grows past that,
+        -- revisit (noted alternative in the plan: a gear-anchored controls menu).
+        local top_chip_row = {}
+        for _idx, chip in ipairs(session_chips) do
+            table.insert(top_chip_row, chip)
         end
+        table.insert(top_chip_row, send_button)
+        local n_controls = #top_chip_row
+        local control_font = (n_controls <= 3 and 18) or (n_controls == 4 and 16) or 14
+        for _idx, btn in ipairs(top_chip_row) do
+            btn.font_size = control_font
+        end
+        local chip_rows = { top_chip_row }
 
         -- Action buttons (collected separately, then arranged in rows of 2)
         local action_buttons = {}
@@ -6670,6 +6721,9 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
                     if success and answer then
                         history:addAssistantMessage(answer, ConfigHelper:getModelInfo(temp_config), reasoning, ConfigHelper:buildDebugInfo(temp_config), web_search_used)
+                    else
+                        -- Cancelled/failed: roll the unanswered question back out
+                        history:removeLastUserMessage()
                     end
                     if on_complete_msg then on_complete_msg(success, answer, err, reasoning, web_search_used) end
                 end, plugin, ui)
@@ -6978,6 +7032,9 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
                 local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, function(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used)
                     if msg_success and msg_answer then
                         history:addAssistantMessage(msg_answer, ConfigHelper:getModelInfo(configuration), msg_reasoning, ConfigHelper:buildDebugInfo(configuration), msg_web_search_used)
+                    else
+                        -- Cancelled/failed: roll the unanswered question back out
+                        history:removeLastUserMessage()
                     end
                     if on_complete then on_complete(msg_success, msg_answer, msg_err, msg_reasoning, msg_web_search_used) end
                 end, plugin, ui)

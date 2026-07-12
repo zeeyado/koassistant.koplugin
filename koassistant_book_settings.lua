@@ -597,9 +597,9 @@ function BookSettings.showToolsPosture(opts)
     end
 
     local postures = {
-        { value = "off", label = _("Off (never offered)") },
-        { value = "manual", label = _("Manual (checkbox, off by default)") },
-        { value = "auto", label = _("Auto (checkbox, on by default)") },
+        { value = "off", label = _("Off (no tool use at all)") },
+        { value = "manual", label = _("Manual (Tools chip starts OFF)") },
+        { value = "auto", label = _("Auto (Tools chip starts ON)") },
     }
     if is_book_target then
         table.insert(buttons, {{
@@ -997,6 +997,7 @@ function BookSettings.show(opts)
     -- Book-info level: label + sub-picker (None / Title & author / +position)
     local function bookInfoLabel(v)
         if v == "none" then return _("None")
+        elseif v == "title" then return _("Title only")
         elseif v == "full" then return _("Title, author & position")
         elseif v == "basic" then return _("Title & author") end
         return _("Follow global")
@@ -1016,6 +1017,7 @@ function BookSettings.show(opts)
             {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), bookInfoLabel(features.book_info_in_chat or "basic")),
                 callback = function() setVal(nil) end }},
             {{ text = dot(cur == "none") .. _("None"), callback = function() setVal("none") end }},
+            {{ text = dot(cur == "title") .. _("Title only"), callback = function() setVal("title") end }},
             {{ text = dot(cur == "basic") .. _("Title & author"), callback = function() setVal("basic") end }},
             {{ text = dot(cur == "full") .. _("Title, author & position"), callback = function() setVal("full") end }},
             {{ text = _("Cancel"), id = "close",
@@ -1045,11 +1047,11 @@ function BookSettings.show(opts)
         local rows = {
             {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), global_label),
                 callback = function() setVal(nil) end }},
-            {{ text = dot(cur == "off") .. _("Off (never offered)"),
+            {{ text = dot(cur == "off") .. _("Off (no tool use at all)"),
                 callback = function() setVal("off") end }},
-            {{ text = dot(cur == "manual") .. _("Manual (checkbox, off by default)"),
+            {{ text = dot(cur == "manual") .. _("Manual (Tools chip starts OFF)"),
                 callback = function() setVal("manual") end }},
-            {{ text = dot(cur == "auto") .. _("Auto (checkbox, on by default)"),
+            {{ text = dot(cur == "auto") .. _("Auto (Tools chip starts ON)"),
                 callback = function() setVal("auto") end }},
             {{ text = _("Cancel"), id = "close",
                 callback = function() UIManager:close(picker); BookSettings.show(opts) end }},

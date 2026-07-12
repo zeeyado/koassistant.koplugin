@@ -78,6 +78,20 @@ function MessageHistory:addAssistantMessage(content, model, reasoning, debug_inf
     return #self.messages
 end
 
+--- Remove the most recent message if it is a user turn. Reply seams call this to roll a
+-- just-sent question back OUT of the history when the request fails or is cancelled —
+-- otherwise the unanswered question silently rides into the NEXT request (bug: reply,
+-- cancel mid-stream, reply again → the model answers both questions at once).
+-- @return boolean true if a user message was removed
+function MessageHistory:removeLastUserMessage()
+    local last = self.messages[#self.messages]
+    if last and last.role == self.ROLES.USER then
+        table.remove(self.messages)
+        return true
+    end
+    return false
+end
+
 function MessageHistory:getMessages()
     return self.messages
 end
