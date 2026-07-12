@@ -1076,6 +1076,122 @@ TestRunner:test("tolerates luajson null sentinels and junk shapes", function()
 end)
 
 --------------------------------------------------------------------------------
+-- Test: Pre-search prose assembly (report 3(b) — segments + inline marker)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Anthropic assembly: pre-search prose segments")
+
+local MARKER = ResponseParser.WEB_SEARCH_MARKER
+local LONG_PROSE = "Fanon is first mentioned on page 28, in the introductory chapter, "
+    .. "where Said lists him among the pivotal anticolonial thinkers."
+
+TestRunner:test("substantive pre-search prose is kept behind the marker", function()
+    local response = {
+        content = {
+            { type = "text", text = LONG_PROSE },
+            { type = "server_tool_use", name = "web_search", input = { query = "fanon parents" } },
+            { type = "web_search_tool_result", content = {
+                { type = "web_search_result", url = "https://w.example", title = "W" } } },
+            { type = "text", text = "His father was Félix Casimir Fanon." },
+        },
+    }
+    local success, content = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertTrue(success, "parse succeeds")
+    TestRunner:assertContains(content, LONG_PROSE)
+    TestRunner:assertContains(content, MARKER)
+    TestRunner:assertContains(content, "Félix Casimir Fanon")
+    TestRunner:assertTrue(content:find(LONG_PROSE, 1, true) < content:find(MARKER, 1, true),
+        "pre-search prose comes before the marker")
+end)
+
+TestRunner:test("short pre-search filler is dropped, no marker", function()
+    local response = {
+        content = {
+            { type = "text", text = "Let me search the web." },
+            { type = "server_tool_use", name = "web_search" },
+            { type = "web_search_tool_result", content = {} },
+            { type = "text", text = "The answer is 42." },
+        },
+    }
+    local _s, content = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertEqual(content, "The answer is 42.", "filler dropped, clean answer")
+end)
+
+TestRunner:test("search before any prose leaves no leading marker", function()
+    local response = {
+        content = {
+            { type = "server_tool_use", name = "web_search" },
+            { type = "web_search_tool_result", content = {} },
+            { type = "text", text = "Straight answer after searching." },
+        },
+    }
+    local _s, content = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertEqual(content, "Straight answer after searching.")
+end)
+
+TestRunner:test("prose between two searches is preserved with two markers", function()
+    local response = {
+        content = {
+            { type = "text", text = LONG_PROSE },
+            { type = "server_tool_use", name = "web_search" },
+            { type = "web_search_tool_result", content = {} },
+            { type = "text", text = LONG_PROSE .. " (second angle, still substantive prose here)" },
+            { type = "server_tool_use", name = "web_search" },
+            { type = "web_search_tool_result", content = {} },
+            { type = "text", text = "Final synthesis." },
+        },
+    }
+    local _s, content = ResponseParser:parseResponse(response, "anthropic")
+    local _, marker_count = content:gsub(MARKER:gsub("%p", "%%%0"), "")
+    TestRunner:assertEqual(marker_count, 2, "one marker per search burst")
+    TestRunner:assertContains(content, "Final synthesis.")
+end)
+
+TestRunner:test("trailing search without prose leaves no dangling marker", function()
+    local response = {
+        content = {
+            { type = "text", text = LONG_PROSE },
+            { type = "server_tool_use", name = "web_search" },
+            { type = "web_search_tool_result", content = {} },
+        },
+    }
+    local _s, content = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertEqual(content, LONG_PROSE, "no trailing marker")
+end)
+
+TestRunner:suite("Streaming: closeWebSearchSegment")
+
+TestRunner:test("substantive buffer gets the marker appended", function()
+    local buffer = { LONG_PROSE:sub(1, 60), LONG_PROSE:sub(61) }
+    local next_start = StreamHandler.closeWebSearchSegment(buffer, 1)
+    TestRunner:assertEqual(#buffer, 3, "marker appended as new entry")
+    TestRunner:assertContains(buffer[3], MARKER)
+    TestRunner:assertEqual(next_start, 4, "next segment starts after the marker")
+end)
+
+TestRunner:test("filler buffer is truncated back, no marker", function()
+    local buffer = { "Let me ", "search the web." }
+    local next_start = StreamHandler.closeWebSearchSegment(buffer, 1)
+    TestRunner:assertEqual(#buffer, 0, "filler removed")
+    TestRunner:assertEqual(next_start, 1, "segment start reset")
+end)
+
+TestRunner:test("only the current segment is considered", function()
+    local buffer = { LONG_PROSE, "\n\n" .. MARKER .. "\n\n", "Short tail." }
+    local next_start = StreamHandler.closeWebSearchSegment(buffer, 3)
+    TestRunner:assertEqual(#buffer, 2, "only the short tail segment dropped")
+    TestRunner:assertEqual(buffer[1], LONG_PROSE, "earlier kept segment untouched")
+    TestRunner:assertEqual(next_start, 3)
+end)
+
+TestRunner:test("empty buffer is a no-op", function()
+    local buffer = {}
+    local next_start = StreamHandler.closeWebSearchSegment(buffer, 1)
+    TestRunner:assertEqual(#buffer, 0)
+    TestRunner:assertEqual(next_start, 1)
+end)
+
+--------------------------------------------------------------------------------
 -- Summary
 --------------------------------------------------------------------------------
 

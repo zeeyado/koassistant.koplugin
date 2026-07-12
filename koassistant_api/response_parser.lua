@@ -6,6 +6,16 @@ local ResponseParser = {}
 -- This marker is checked by caching logic to avoid caching incomplete responses
 ResponseParser.TRUNCATION_NOTICE = "\n\n---\n⚠ *Response truncated: output token limit reached*"
 
+-- Inline marker inserted where a web search ran mid-answer (report 3(b) decision,
+-- 2026-07-12): prose the model wrote BEFORE searching is kept — it is a completed
+-- text block the model composed knowing it stays visible (there is no overwrite
+-- semantic in any provider API; post-search text often references it). Only short
+-- pre-search filler ("Let me search the web.") is dropped. Positional, so it lives
+-- in the answer text — unlike the per-message indicators.
+ResponseParser.WEB_SEARCH_MARKER = "*[Searched the web]*"
+-- Pre-search prose segments shorter than this (trimmed) are treated as filler
+ResponseParser.WEB_PRESEARCH_FILLER_CHARS = 80
+
 -- Helper to extract <think> tags from content (used by inference providers hosting R1)
 local function extractThinkTags(content)
     if not content or type(content) ~= "string" then
@@ -118,13 +128,19 @@ local RESPONSE_TRANSFORMERS = {
             local thinking_content = nil
             local web_prov = nil
 
-            -- Look for thinking and text blocks (ignore tool_use blocks)
-            local seen_search_tool = false
+            -- Look for thinking and text blocks (ignore tool_use blocks).
+            -- Prose interleaved with web searches is assembled as SEGMENTS: each
+            -- search closes the current segment — substantive prose is kept behind
+            -- an inline WEB_SEARCH_MARKER, short filler ("Let me search...") is
+            -- dropped. Nothing substantive is ever discarded (report 3(b) decision).
+            local segment_start = 1
+            local last_was_search = false
             for _, block in ipairs(response.content) do
                 if block.type == "thinking" and block.thinking then
                     thinking_content = block.thinking
                 elseif block.type == "text" and block.text then
                     table.insert(text_blocks, block.text)
+                    last_was_search = false
                 elseif block.type == "server_tool_use" or block.type == "web_search_tool_result" then
                     web_prov = web_prov or {}
                     -- Provenance: search queries ride server_tool_use input, result
@@ -138,16 +154,28 @@ local RESPONSE_TRANSFORMERS = {
                             end
                         end
                     end
-                    -- Only discard pre-search thinking text ("Let me search...")
-                    -- on the first search tool encounter. Subsequent searches must
-                    -- not wipe answer content from earlier searches.
-                    if not seen_search_tool then
-                        text_blocks = {}
-                        seen_search_tool = true
+                    -- Close the current prose segment on the first search block of a
+                    -- burst (server_tool_use + its web_search_tool_result = one burst)
+                    if not last_was_search then
+                        local segment = table.concat(text_blocks, "\n\n", segment_start, #text_blocks)
+                        local trimmed = segment:gsub("^%s+", ""):gsub("%s+$", "")
+                        if #trimmed < ResponseParser.WEB_PRESEARCH_FILLER_CHARS then
+                            -- Filler (or nothing): drop the segment, no marker
+                            while #text_blocks >= segment_start do
+                                table.remove(text_blocks)
+                            end
+                        else
+                            table.insert(text_blocks, ResponseParser.WEB_SEARCH_MARKER)
+                        end
+                        segment_start = #text_blocks + 1
+                        last_was_search = true
                     end
                 end
                 -- Other blocks (tool_use) are silently ignored
-                -- Web search results are integrated into the text blocks by Anthropic
+            end
+            -- A search with no prose after it leaves a dangling trailing marker
+            if text_blocks[#text_blocks] == ResponseParser.WEB_SEARCH_MARKER then
+                table.remove(text_blocks)
             end
             local web_search_used = web_prov and finishProv(web_prov) or nil
 
