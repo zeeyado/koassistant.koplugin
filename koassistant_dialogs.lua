@@ -3930,9 +3930,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Get domain display name for button
     -- Shows effective domain: book domain takes priority over global
     -- "_none" sentinel = explicit no-domain override for this book
-    local function getDomainDisplayName()
+    -- @param plain: true = bare name, no " (book)" override marker (the toolbar chip
+    -- shows just the domain — maintainer 2026-07-12; pickers keep the marker)
+    local function getDomainDisplayName(plain)
         if book_domain_id == "_none" then
-            return _("None") .. _(" (book)")
+            return plain and _("None") or (_("None") .. _(" (book)"))
         end
         local effective_id = book_domain_id or selected_domain
         if not effective_id then
@@ -3944,7 +3946,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local custom_domains = features.custom_domains or {}
         local domain = DomainLoader.getDomainById(effective_id, custom_domains)
         if domain then
-            if book_domain_id then
+            if book_domain_id and not plain then
                 return domain.display_name .. _(" (book)")
             end
             return domain.display_name
@@ -4920,9 +4922,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 local has_domain = (book_domain_id or selected_domain) and book_domain_id ~= "_none"
                 local label
                 if enable_emoji then
-                    label = "\u{1F3DB}\u{FE0F} " .. getDomainDisplayName()
+                    label = "\u{1F3DB}\u{FE0F} " .. getDomainDisplayName(true)
                 else
-                    label = has_domain and getDomainDisplayName() or _("Domain")
+                    label = has_domain and getDomainDisplayName(true) or _("Domain")
                 end
                 return {
                     text = label,
@@ -5014,10 +5016,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             spoiler = function()
                 if not chips_book_or_highlight then return nil end
                 -- State labels name the OUTCOME ("ON/OFF" over a negated feature read
-                -- backwards — maintainer 2026-07-12).
+                -- backwards — maintainer 2026-07-12). No emoji variant: the words carry
+                -- the state, an icon would just add width.
                 local spoiler_state = session_spoiler_free and _("No spoilers") or _("Spoilers OK")
                 return {
-                    text = enable_emoji and ("\u{1F648} " .. spoiler_state) or spoiler_state,
+                    text = spoiler_state,
                     callback = function()
                         session_spoiler_free = not session_spoiler_free
                         refreshInputDialog()
@@ -5751,10 +5754,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
 
-    -- "Chat Buttons…" manager (gear menu): toggle which session chips appear above the
-    -- input field. Membership persists in features.session_chips; the canonical order is
-    -- fixed (SESSION_CHIP_IDS) — only membership is configurable.
-    local function showSessionChipsManager()
+    -- "Toolbar Buttons…" manager (gear menu): toggle which session chips appear above
+    -- the input field. Membership persists in features.session_chips; the canonical
+    -- order is fixed (SESSION_CHIP_IDS) — only membership is configurable. Stays open
+    -- for multiple toggles; the input dialog refreshes once, when the manager closes.
+    local showSessionChipsManager
+    showSessionChipsManager = function(changed)
         local labels = {
             domain = _("Domain"),
             web_search = _("Web search"),
@@ -5785,15 +5790,24 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         plugin.settings:saveSetting("features", f)
                         plugin.settings:flush()
                     end
+                    -- Stay open: reopen with fresh ●/○ marks, defer the dialog refresh
                     UIManager:close(manager)
-                    refreshInputDialog()
+                    showSessionChipsManager(true)
                 end,
             }})
         end
         table.insert(rows, {{ text = _("Close"), id = "close", callback = function()
             UIManager:close(manager)
+            if changed then refreshInputDialog() end
         end }})
-        manager = ButtonDialog:new{ title = _("Chat buttons"), buttons = rows }
+        manager = ButtonDialog:new{
+            title = _("Toolbar buttons"),
+            buttons = rows,
+            tap_close_callback = function()
+                -- Tap-outside dismiss counts as Close
+                if changed then refreshInputDialog() end
+            end,
+        }
         UIManager:show(manager)
     end
 
@@ -5893,8 +5907,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     refreshInputDialog()
                 end }},
             }
-            -- Chat buttons manager: which session chips appear above the input field
-            table.insert(gear_buttons, {{ text = _("Chat Buttons…"), callback = function()
+            -- Toolbar buttons manager: which session chips appear above the input field
+            table.insert(gear_buttons, {{ text = _("Toolbar Buttons…"), callback = function()
                 UIManager:close(gear_menu)
                 showSessionChipsManager()
             end }})

@@ -441,7 +441,7 @@ local SettingsSchema = {
                     text = _("Spoiler-free Chat"),
                     path = "features.spoiler_free_chat",
                     default = false,
-                    help_text = _("When enabled, instructs the AI not to reveal events beyond your current reading position in book and highlight chats. Custom actions can use the {spoiler_free_nudge} placeholder.\n\nFor a per-chat toggle, enable the Spoiler chip via the chat input's gear menu → Chat Buttons."),
+                    help_text = _("When enabled, instructs the AI not to reveal events beyond your current reading position in book and highlight chats. Custom actions can use the {spoiler_free_nudge} placeholder.\n\nFor a per-chat toggle, enable the Spoiler chip via the chat input's gear menu → Toolbar Buttons."),
                 },
                 {
                     id = "book_info_in_chat",
