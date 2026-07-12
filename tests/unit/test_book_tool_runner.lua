@@ -595,6 +595,58 @@ TestRunner:test("gather: immediate done (zero lookups) → plain generate, no bu
         "no provenance when nothing was searched")
 end)
 
+TestRunner:test("gather: empty bundle note mentions web search when available", function()
+    -- All lookups fail (unknown tool → ok=false → skipped by the bundle) so the
+    -- honest "[Book lookup note]" fires; with web search on it must not read as an
+    -- instruction to skip searching.
+    local function run(features_extra)
+        local calls = 0
+        local gen_messages
+        local function query_fn(messages, _config, callback)
+            calls = calls + 1
+            if calls == 1 then
+                callback(true, {
+                    _tool_calls = true,
+                    calls = { { name = "bogus", args = {} } },
+                    raw_assistant_turn = { role = "model", parts = {} },
+                })
+            elseif calls == 2 then
+                callback(true, doneAnswer())
+            else
+                gen_messages = messages
+                callback(true, "answer")
+            end
+        end
+        local features = { is_book_context = true, tool_mode = "gather",
+            enable_streaming = false }
+        for k, v in pairs(features_extra or {}) do features[k] = v end
+        BookToolRunner.run({
+            query_fn = query_fn,
+            messages = { { role = "user", content = "who were his parents?" } },
+            config = { provider = "anthropic", features = features },
+            ui = makeUi(),
+            on_complete = function() end,
+        })
+        for _i, m in ipairs(gen_messages or {}) do
+            if m.is_context and type(m.content) == "string"
+                and m.content:find("Book lookup note", 1, true) then
+                return m.content
+            end
+        end
+        return nil
+    end
+
+    local with_web = run({ enable_web_search = true })
+    TestRunner:assertTrue(with_web ~= nil, "note present with web on")
+    TestRunner:assertTrue(with_web:find("Search the web", 1, true) ~= nil,
+        "web-aware wording when web search is available")
+
+    local without_web = run({ enable_web_search = false })
+    TestRunner:assertTrue(without_web ~= nil, "note present with web off")
+    TestRunner:assertTrue(without_web:find("Search the web", 1, true) == nil,
+        "no web mention when web search is off")
+end)
+
 TestRunner:test("gather: done alongside lookups in one turn executes the lookups first", function()
     local calls = 0
     local gen_messages
