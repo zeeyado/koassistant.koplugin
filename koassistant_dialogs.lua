@@ -3993,6 +3993,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
         end
 
+        -- The CURRENT spoiler chip governs this launch's smart-retrieval reading scope
+        -- (resolveReadingScope reads the flag; without this, a stale value from an
+        -- earlier chat's Send would apply). The system-prompt nudge stays action-free —
+        -- G6 clears the flag on the action's temp config.
+        configuration.features = configuration.features or {}
+        configuration.features._spoiler_free_active = session_spoiler_free == true
+
         local additional_input = input_dialog:getInputText()
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
@@ -4235,6 +4242,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local is_hl = action.context == "highlight" or action.context == "both"
                         plugin:_showUnifiedActionPopup(action, action_id, {
                             for_highlight = is_hl or nil,
+                            session_tools = session_book_tools == true,
                             on_execute = function(popup_state)
                                 runActionWithSource(popup_state, is_hl)
                             end,
@@ -4276,6 +4284,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         local is_hl = action.context == "highlight" or action.context == "both"
                         plugin:_showUnifiedActionPopup(action, action_id, {
                             for_highlight = is_hl or nil,
+                            session_tools = session_book_tools == true,
                             on_execute = function(popup_state)
                                 runActionWithSource(popup_state, is_hl)
                             end,
@@ -4320,6 +4329,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local is_highlight = action.context == "highlight" or action.context == "both"
             plugin:_showUnifiedActionPopup(action, action_id, {
                 for_highlight = is_highlight or nil,
+                session_tools = session_book_tools == true,
                 on_execute = function(popup_state)
                     runActionWithSource(popup_state, is_highlight)
                 end,
@@ -4889,10 +4899,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     buildInputDialogButtons = function()
         -- Data-access indicator context: the 🌐 follows-default indicator tracks the
         -- SESSION Web chip (which dialog-launched nil-flag actions follow), and (🔍)
-        -- marks smart-retrieval actions when tools could actually run this session.
+        -- marks smart-retrieval actions when tools could actually run this session AND
+        -- the session Tools chip is on (the chip governs the popup's default pick).
         local indicator_opts = {
             effective_web_search = session_web_search == true,
-            tools_allowed = (BookToolRunner.smartRetrievalAllowed(configuration, ui_instance)) == true,
+            tools_allowed = session_book_tools == true
+                and (BookToolRunner.smartRetrievalAllowed(configuration, ui_instance)) == true,
         }
         -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Spoiler]
         -- by membership (gear menu → "Chat Buttons…"), replacing the old checkbox pile +
@@ -4944,12 +4956,49 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 }
             end,
             book_tools = function()
-                -- Same visibility as the old checkbox: open book, not X-Ray chat, capable
-                -- session, posture not "off" (the master switch).
-                if not (chips_book_or_highlight and has_open_book and not is_xray_chat
-                    and effective_tools_posture ~= "off"
-                    and BookToolRunner.sessionEligible(configuration, ui_instance)) then
+                -- Book contexts only (needs an open book); X-Ray chat stays excluded
+                -- (tools are off there by design). Otherwise ALWAYS visible like the Web
+                -- chip (maintainer 2026-07-12): "N/A" when the session can't run tools
+                -- (tap explains why), a locked OFF when the posture master switch is off
+                -- (tap points at the hold picker).
+                if not (chips_book_or_highlight and has_open_book and not is_xray_chat) then
                     return nil
+                end
+                local eligible, reason = BookToolRunner.sessionEligible(configuration, ui_instance)
+                local posture_off = effective_tools_posture == "off"
+                local function holdPicker()
+                    BookSettings.showToolsPosture({
+                        plugin = plugin, ui = ui_instance, document_path = document_path,
+                        on_close = function() refreshInputDialog() end,
+                    })
+                end
+                if not eligible then
+                    return {
+                        text = enable_emoji and ("\u{1F50D} " .. _("N/A")) or _("Tools N/A"),
+                        callback = function()
+                            local msg
+                            if reason == "consent" then
+                                msg = _("Book tools need \"Allow Text Extraction\" (Settings → Privacy & Data).")
+                            else
+                                msg = T(_("Book tools aren't available for %1.\n\nSupported providers: Gemini, Claude (Anthropic), OpenAI, OpenRouter."),
+                                    configuration.provider or _("this provider"))
+                            end
+                            UIManager:show(InfoMessage:new{ text = msg })
+                        end,
+                        hold_callback = holdPicker,
+                    }
+                end
+                if posture_off then
+                    return {
+                        text = enable_emoji and ("\u{1F50D} " .. _("OFF")) or _("Tools OFF"),
+                        callback = function()
+                            UIManager:show(InfoMessage:new{
+                                text = _("AI Book Tools are turned off. Long-press to turn them on for this book or globally."),
+                                timeout = 3,
+                            })
+                        end,
+                        hold_callback = holdPicker,
+                    }
                 end
                 return {
                     text = enable_emoji
@@ -4959,20 +5008,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         session_book_tools = not session_book_tools
                         refreshInputDialog()
                     end,
-                    hold_callback = function()
-                        BookSettings.showToolsPosture({
-                            plugin = plugin, ui = ui_instance, document_path = document_path,
-                            on_close = function() refreshInputDialog() end,
-                        })
-                    end,
+                    hold_callback = holdPicker,
                 }
             end,
             spoiler = function()
                 if not chips_book_or_highlight then return nil end
+                -- State labels name the OUTCOME ("ON/OFF" over a negated feature read
+                -- backwards — maintainer 2026-07-12).
+                local spoiler_state = session_spoiler_free and _("No spoilers") or _("Spoilers OK")
                 return {
-                    text = enable_emoji
-                        and ("\u{1F648} " .. (session_spoiler_free and _("ON") or _("OFF")))
-                        or (session_spoiler_free and _("Spoiler-free ON") or _("Spoiler-free OFF")),
+                    text = enable_emoji and ("\u{1F648} " .. spoiler_state) or spoiler_state,
                     callback = function()
                         session_spoiler_free = not session_spoiler_free
                         refreshInputDialog()

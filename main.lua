@@ -5487,7 +5487,9 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local state = {
     scope = "full",
     source = (requires_book_text and "full_text")
-        or (smart_row_shown and smart_eligible and "smart_retrieval")
+        -- Dialog launches pass session_tools (the session Tools chip); false skips the
+        -- smart-retrieval DEFAULT (row stays selectable). Direct entries pass nothing.
+        or (smart_row_shown and smart_eligible and opts.session_tools ~= false and "smart_retrieval")
         or (text_extraction_enabled and "full_text" or "ai_knowledge"),
     section_entry = nil,
     section_label = nil,
