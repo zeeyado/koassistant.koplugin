@@ -738,8 +738,18 @@ function BookToolRunner.run(params)
                 answer = appendTurnTokenUsage(answer, token_usage)
             end
         end
+        -- Fold book-tool lookups into the provenance slot (5th arg): the per-message
+        -- "Searched the book" indicator + the "Show Sources" viewer read it from the
+        -- saved message, replacing the old note baked into the answer text.
+        local provenance = web_search_used
+        if success and tool_calls > 0 then
+            if type(provenance) ~= "table" then
+                provenance = provenance and { web_search = true } or {}
+            end
+            provenance.book_tools = { lookups = tool_calls, trace = trace }
+        end
         if on_complete then
-            on_complete(success, answer, err, reasoning, web_search_used)
+            on_complete(success, answer, err, reasoning, provenance)
         end
     end
 
@@ -791,13 +801,10 @@ function BookToolRunner.run(params)
         return query_fn(gen_messages, gen_config, function(success, answer, err, reasoning, web_search_used, usage)
             if completed then return end
             token_usage = mergeUsage(token_usage, usage)
-            if success and type(answer) == "string" and tool_calls > 0 then
-                -- Trust signal (always on in gather mode, unlike the diagnostics trace):
-                -- same inline style as the web-search indicator.
-                local note = tool_calls == 1 and _("Searched the book — 1 lookup")
-                    or T(_("Searched the book — %1 lookups"), tool_calls)
-                answer = answer .. "\n\n*[" .. note .. "]*"
-            end
+            -- The "Searched the book — N lookups" trust signal is no longer appended to
+            -- the answer text: finish() folds the lookups into the provenance slot and
+            -- the chat view renders it as a per-message indicator (keeps saved answers
+            -- and exports clean).
             finish(success, answer, err, reasoning, web_search_used)
         end, params.settings)
     end
@@ -1001,7 +1008,8 @@ end
 -- params: { question, query_fn, config, ui, settings,
 --           on_complete(bundle|nil, info) } — bundle is a string ("" = zero-gather);
 --           nil bundle means the gather failed, with info = { cancelled = true } or
---           { error = msg }. On success info = { tool_calls = N }.
+--           { error = msg }. On success info = { tool_calls = N, trace = {...} }
+--           (trace = per-lookup summary lines for the provenance surface).
 function BookToolRunner.gatherForAction(params)
     params = params or {}
     local on_complete = params.on_complete or function() end
@@ -1053,7 +1061,8 @@ function BookToolRunner.gatherForAction(params)
     end
 
     local function deliver()
-        finish(buildGatherBundle(tool_outputs, budget.bundle_chars), { tool_calls = tool_calls })
+        finish(buildGatherBundle(tool_outputs, budget.bundle_chars),
+            { tool_calls = tool_calls, trace = trace })
     end
 
     local step

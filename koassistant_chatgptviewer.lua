@@ -4515,6 +4515,85 @@ function ChatGPTViewer:showReasoningViewer()
   UIManager:show(viewer)
 end
 
+-- Check if there's any response provenance (web sources / book lookups) to view
+function ChatGPTViewer:hasProvenanceContent()
+  if not self.original_history or not self.original_history.getProvenanceEntries then
+    return false
+  end
+
+  local entries = self.original_history:getProvenanceEntries()
+  return entries and #entries > 0
+end
+
+-- Show response provenance (web-search sources/queries + book-tool lookups) in a
+-- viewer — the "one surface" counterpart to Show Reasoning
+function ChatGPTViewer:showProvenanceViewer()
+  if not self.original_history or not self.original_history.getProvenanceEntries then
+    UIManager:show(Notification:new{
+      text = _("No conversation history available"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local entries = self.original_history:getProvenanceEntries()
+  if not entries or #entries == 0 then
+    UIManager:show(Notification:new{
+      text = _("No sources or lookups recorded"),
+      timeout = 2,
+    })
+    return
+  end
+
+  local content_parts = {}
+  for _idx, entry in ipairs(entries) do
+    table.insert(content_parts, string.format("--- Response #%d ---\n", entry.msg_num))
+
+    if entry.web_search_used then
+      if entry.queries and #entry.queries > 0 then
+        table.insert(content_parts, _("Web search queries:") .. "\n")
+        for _q, query in ipairs(entry.queries) do
+          table.insert(content_parts, "  • " .. query .. "\n")
+        end
+      end
+      if entry.sources and #entry.sources > 0 then
+        table.insert(content_parts, _("Web sources:") .. "\n")
+        for i, source in ipairs(entry.sources) do
+          if source.title then
+            table.insert(content_parts, string.format("  %d. %s\n     %s\n", i, source.title, source.url))
+          else
+            table.insert(content_parts, string.format("  %d. %s\n", i, source.url))
+          end
+        end
+      end
+      if (not entry.sources or #entry.sources == 0) and (not entry.queries or #entry.queries == 0) then
+        table.insert(content_parts, _("Web search was used, but this provider/response did not report sources.") .. "\n")
+      end
+    end
+
+    if entry.book_tools_used then
+      local n = tonumber(entry.lookups) or 0
+      table.insert(content_parts, T(_("Book lookups: %1"), n) .. "\n")
+      if entry.trace and #entry.trace > 0 then
+        for _t, line in ipairs(entry.trace) do
+          table.insert(content_parts, "  • " .. line .. "\n")
+        end
+      end
+    end
+
+    table.insert(content_parts, "\n")
+  end
+
+  local viewer = TextViewer:new{
+    title = _("Sources & Lookups"),
+    text = table.concat(content_parts),
+    width = self.width,
+    height = self.height,
+  }
+
+  UIManager:show(viewer)
+end
+
 -- Internal function to handle rotation/resize recreation
 -- Called by both onSetRotationMode and onScreenResize
 function ChatGPTViewer:_handleScreenChange()
@@ -4691,6 +4770,18 @@ function ChatGPTViewer:showViewerSettings()
           callback = function()
             UIManager:close(dialog)
             self:showReasoningViewer()
+          end,
+        },
+      },
+      {
+        {
+          text = _("Show Sources"),
+          enabled_func = function()
+            return self:hasProvenanceContent()
+          end,
+          callback = function()
+            UIManager:close(dialog)
+            self:showProvenanceViewer()
           end,
         },
       },

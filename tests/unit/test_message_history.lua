@@ -603,6 +603,96 @@ local function runCreateResultTextTests()
 end
 
 -- =============================================================================
+-- Provenance Tests (web-search sources + book-tool lookups)
+-- =============================================================================
+
+local function runProvenanceTests()
+    print("\n--- Provenance (sources & lookups) ---")
+
+    TestRunner:test("legacy boolean still sets web_search_used only", function()
+        local h = MessageHistory:new()
+        h:addAssistantMessage("text", nil, nil, nil, true)
+        TestRunner:assertEqual(h.messages[1].web_search_used, true)
+        TestRunner:assertNil(h.messages[1].web_search_sources)
+        TestRunner:assertNil(h.messages[1].book_tools_used)
+    end)
+
+    TestRunner:test("provenance table stores web sources and queries", function()
+        local h = MessageHistory:new()
+        h:addAssistantMessage("text", nil, nil, nil, {
+            web_search = true,
+            sources = { { url = "https://a.example", title = "A" } },
+            queries = { "q1" },
+        })
+        local msg = h.messages[1]
+        TestRunner:assertEqual(msg.web_search_used, true)
+        TestRunner:assertEqual(msg.web_search_sources[1].url, "https://a.example")
+        TestRunner:assertEqual(msg.web_search_queries[1], "q1")
+        TestRunner:assertNil(msg.book_tools_used)
+    end)
+
+    TestRunner:test("book_tools provenance stores lookups without web flag", function()
+        local h = MessageHistory:new()
+        h:addAssistantMessage("text", nil, nil, nil, {
+            book_tools = { lookups = 3, trace = { "search_book: 1 query", "toc: 12 entries" } },
+        })
+        local msg = h.messages[1]
+        TestRunner:assertNil(msg.web_search_used)
+        TestRunner:assertEqual(msg.book_tools_used, true)
+        TestRunner:assertEqual(msg.book_lookups, 3)
+        TestRunner:assertEqual(#msg.book_tools_trace, 2)
+    end)
+
+    TestRunner:test("getProvenanceEntries returns messages with any provenance", function()
+        local h = MessageHistory:new("system")
+        h:addUserMessage("q1")
+        h:addAssistantMessage("plain", nil)
+        h:addUserMessage("q2")
+        h:addAssistantMessage("searched", nil, nil, nil, {
+            web_search = true,
+            sources = { { url = "https://a.example" } },
+            book_tools = { lookups = 2, trace = { "t1" } },
+        })
+        local entries = h:getProvenanceEntries()
+        TestRunner:assertEqual(#entries, 1)
+        TestRunner:assertEqual(entries[1].msg_num, 2)
+        TestRunner:assertEqual(entries[1].sources[1].url, "https://a.example")
+        TestRunner:assertEqual(entries[1].lookups, 2)
+    end)
+
+    TestRunner:test("createResultText shows book-tools lookup indicator", function()
+        local h = MessageHistory:new("system")
+        h:addUserMessage("question")
+        h:addAssistantMessage("answer", nil, nil, nil, {
+            book_tools = { lookups = 4 },
+        })
+        local text = h:createResultText(nil, { features = {} })
+        TestRunner:assertContains(text, "*[Searched the book — 4 lookups]*")
+    end)
+
+    TestRunner:test("book-tools indicator respects show_book_tools_indicator=false", function()
+        local h = MessageHistory:new("system")
+        h:addUserMessage("question")
+        h:addAssistantMessage("answer", nil, nil, nil, {
+            book_tools = { lookups = 4 },
+        })
+        local text = h:createResultText(nil, { features = { show_book_tools_indicator = false } })
+        TestRunner:assertEqual(text:find("Searched the book", 1, true), nil)
+    end)
+
+    TestRunner:test("web indicator still shows for provenance tables", function()
+        local h = MessageHistory:new("system")
+        h:addUserMessage("question")
+        h:addAssistantMessage("answer", nil, nil, nil, {
+            web_search = true,
+            sources = { { url = "https://a.example" } },
+        })
+        local text = h:createResultText(nil, { features = {} })
+        TestRunner:assertContains(text, "*[Web search was used]*")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -617,6 +707,7 @@ local function runAll()
     runFromSavedMessagesTests()
     runGetSuggestedTitleTests()
     runCreateResultTextTests()
+    runProvenanceTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0

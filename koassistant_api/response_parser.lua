@@ -23,6 +23,42 @@ local function extractThinkTags(content)
     return content, nil
 end
 
+-- Web-search provenance helpers. Transformers that can see source data return a
+-- provenance TABLE in the web_search slot (4th return) instead of bare `true`:
+--   { web_search = true, sources = { {url, title}, ... }, queries = { "...", ... } }
+-- All existing consumers only test truthiness, so `true` and the table are
+-- interchangeable; detailed fields feed the "Show Sources" viewer.
+local function addProvSource(prov, url, title)
+    if type(url) ~= "string" or url == "" then return end
+    prov._seen = prov._seen or {}
+    if prov._seen[url] then return end
+    prov._seen[url] = true
+    prov.sources = prov.sources or {}
+    table.insert(prov.sources, {
+        url = url,
+        title = (type(title) == "string" and title ~= "") and title or nil,
+    })
+end
+
+local function addProvQuery(prov, query)
+    if type(query) ~= "string" or query == "" then return end
+    for _idx, existing in ipairs(prov.queries or {}) do
+        if existing == query then return end
+    end
+    prov.queries = prov.queries or {}
+    table.insert(prov.queries, query)
+end
+
+-- Collapse a provenance accumulator: table when details were captured, else `true`.
+local function finishProv(prov)
+    prov._seen = nil
+    if (prov.sources and #prov.sources > 0) or (prov.queries and #prov.queries > 0) then
+        prov.web_search = true
+        return prov
+    end
+    return true
+end
+
 -- Format Perplexity citations as clickable footnotes
 -- @param citations table: Array of URL strings from Perplexity response
 -- @return string: Formatted sources section (or empty string if no citations)
@@ -80,7 +116,7 @@ local RESPONSE_TRANSFORMERS = {
 
             local text_blocks = {}
             local thinking_content = nil
-            local web_search_used = nil
+            local web_prov = nil
 
             -- Look for thinking and text blocks (ignore tool_use blocks)
             local seen_search_tool = false
@@ -90,7 +126,18 @@ local RESPONSE_TRANSFORMERS = {
                 elseif block.type == "text" and block.text then
                     table.insert(text_blocks, block.text)
                 elseif block.type == "server_tool_use" or block.type == "web_search_tool_result" then
-                    web_search_used = true
+                    web_prov = web_prov or {}
+                    -- Provenance: search queries ride server_tool_use input, result
+                    -- URLs ride web_search_tool_result content items
+                    if block.type == "server_tool_use" and type(block.input) == "table" then
+                        addProvQuery(web_prov, block.input.query)
+                    elseif type(block.content) == "table" then
+                        for _idx, item in ipairs(block.content) do
+                            if type(item) == "table" then
+                                addProvSource(web_prov, item.url, item.title)
+                            end
+                        end
+                    end
                     -- Only discard pre-search thinking text ("Let me search...")
                     -- on the first search tool encounter. Subsequent searches must
                     -- not wipe answer content from earlier searches.
@@ -102,6 +149,7 @@ local RESPONSE_TRANSFORMERS = {
                 -- Other blocks (tool_use) are silently ignored
                 -- Web search results are integrated into the text blocks by Anthropic
             end
+            local web_search_used = web_prov and finishProv(web_prov) or nil
 
             -- Concatenate all text blocks (web search may produce multiple)
             local text_content = nil
@@ -216,7 +264,21 @@ local RESPONSE_TRANSFORMERS = {
                 if (gm.webSearchQueries and #gm.webSearchQueries > 0) or
                    (gm.groundingChunks and #gm.groundingChunks > 0) or
                    (gm.groundingSupports and #gm.groundingSupports > 0) then
-                    web_search_used = true
+                    local web_prov = {}
+                    if type(gm.webSearchQueries) == "table" then
+                        for _idx, q in ipairs(gm.webSearchQueries) do
+                            addProvQuery(web_prov, q)
+                        end
+                    end
+                    if type(gm.groundingChunks) == "table" then
+                        for _idx, chunk in ipairs(gm.groundingChunks) do
+                            local web = type(chunk) == "table" and type(chunk.web) == "table" and chunk.web
+                            if web then
+                                addProvSource(web_prov, web.uri, web.title)
+                            end
+                        end
+                    end
+                    web_search_used = finishProv(web_prov)
                 end
             end
 
@@ -397,13 +459,17 @@ local RESPONSE_TRANSFORMERS = {
             -- Check for web search usage via annotations (OpenRouter uses Exa search)
             -- When :online suffix is used, response includes annotations with url_citation type
             local web_search_used = nil
-            if message.annotations then
+            if type(message.annotations) == "table" then
+                local web_prov
                 for _, annotation in ipairs(message.annotations) do
-                    if annotation.type == "url_citation" then
-                        web_search_used = true
-                        break
+                    if type(annotation) == "table" and annotation.type == "url_citation" then
+                        web_prov = web_prov or {}
+                        if type(annotation.url_citation) == "table" then
+                            addProvSource(web_prov, annotation.url_citation.url, annotation.url_citation.title)
+                        end
                     end
                 end
+                web_search_used = web_prov and finishProv(web_prov) or nil
             end
 
             -- OpenRouter normalizes reasoning to message.reasoning field
@@ -564,8 +630,14 @@ local RESPONSE_TRANSFORMERS = {
             end
             -- Check for web search usage (top-level array in Z.AI responses)
             local web_search_used = nil
-            if response.web_search and #response.web_search > 0 then
-                web_search_used = true
+            if type(response.web_search) == "table" and #response.web_search > 0 then
+                local web_prov = {}
+                for _idx, item in ipairs(response.web_search) do
+                    if type(item) == "table" then
+                        addProvSource(web_prov, item.link or item.url, item.title)
+                    end
+                end
+                web_search_used = finishProv(web_prov)
             end
             return true, content, reasoning, web_search_used
         end
@@ -592,8 +664,22 @@ local RESPONSE_TRANSFORMERS = {
             if content and response.citations then
                 content = content .. formatCitations(response.citations)
             end
+            -- Provenance: prefer search_results (title+url) over bare citation URLs
+            local web_prov = {}
+            if type(response.search_results) == "table" then
+                for _idx, item in ipairs(response.search_results) do
+                    if type(item) == "table" then
+                        addProvSource(web_prov, item.url, item.title)
+                    end
+                end
+            end
+            if not web_prov.sources and type(response.citations) == "table" then
+                for _idx, url in ipairs(response.citations) do
+                    addProvSource(web_prov, url)
+                end
+            end
             -- Perplexity always searches the web — every response is web-grounded
-            return true, content, reasoning, true
+            return true, content, reasoning, finishProv(web_prov)
         end
         return false, "Unexpected response format"
     end
@@ -605,7 +691,9 @@ local RESPONSE_TRANSFORMERS = {
 --- @return boolean: Success flag
 --- @return string: Content (main response text) or error message
 --- @return string|nil: Reasoning content (thinking/reasoning if available, nil otherwise)
---- @return boolean|nil: Web search used (true if web search was used, nil otherwise)
+--- @return boolean|table|nil: Web search used — nil (not used), true (used, no details),
+---         or { web_search = true, sources = {{url,title},...}, queries = {...} }.
+---         Consumers testing truthiness need no change; details feed "Show Sources".
 function ResponseParser:parseResponse(response, provider)
     local transform = RESPONSE_TRANSFORMERS[provider]
     if not transform then

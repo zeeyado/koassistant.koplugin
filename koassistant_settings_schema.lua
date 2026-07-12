@@ -2061,6 +2061,14 @@ local SettingsSchema = {
                     },
                 },
                 {
+                    id = "show_book_tools_indicator",
+                    type = "toggle",
+                    text = _("AI Book Tools: Show Indicator in Chat"),
+                    help_text = _("Show '*[Searched the book — N lookups]*' indicator in chat when AI Book Tools ran for a response.\n\nThe individual lookups are always viewable via the chat menu's 'Show Sources' entry."),
+                    path = "features.show_book_tools_indicator",
+                    default = true,
+                },
+                {
                     id = "tool_workflow_diagnostics",
                     type = "toggle",
                     text = _("AI Book Tools: Show Lookups (debug)"),
