@@ -39,13 +39,86 @@ local function extractApiError(text)
     return nil
 end
 
+--- Harvest web-search source URLs/queries from a streaming event into `prov`
+--- ({ sources = {}, queries = {}, seen = {} }). Feeds the "Show Sources" viewer;
+--- passive — the web_search_used flag logic in the poll loop is unchanged.
+--- Everything is type-checked: luajson decodes JSON null to a truthy sentinel.
+local function harvestWebSources(event, prov)
+    local function addSource(url, title)
+        if type(url) ~= "string" or url == "" or prov.seen[url] then return end
+        prov.seen[url] = true
+        table.insert(prov.sources, {
+            url = url,
+            title = (type(title) == "string" and title ~= "") and title or nil,
+        })
+    end
+    local function addQuery(q)
+        if type(q) ~= "string" or q == "" or prov.seen["q:" .. q] then return end
+        prov.seen["q:" .. q] = true
+        table.insert(prov.queries, q)
+    end
+
+    -- Anthropic: web_search_tool_result blocks arrive complete in content_block_start
+    -- (search queries stream as partial input_json deltas and are not captured here)
+    if event.type == "content_block_start" and type(event.content_block) == "table"
+        and event.content_block.type == "web_search_tool_result"
+        and type(event.content_block.content) == "table" then
+        for _idx, item in ipairs(event.content_block.content) do
+            if type(item) == "table" then
+                addSource(item.url, item.title)
+            end
+        end
+    end
+
+    -- Gemini: groundingMetadata carries queries + grounding chunks with web URIs
+    local gm = event.candidates and event.candidates[1]
+        and event.candidates[1].groundingMetadata
+    if type(gm) == "table" then
+        if type(gm.webSearchQueries) == "table" then
+            for _idx, q in ipairs(gm.webSearchQueries) do
+                addQuery(q)
+            end
+        end
+        if type(gm.groundingChunks) == "table" then
+            for _idx, chunk in ipairs(gm.groundingChunks) do
+                local web = type(chunk) == "table" and type(chunk.web) == "table" and chunk.web
+                if web then
+                    addSource(web.uri, web.title)
+                end
+            end
+        end
+    end
+
+    -- OpenRouter: url_citation annotations ride choices[1].delta.annotations
+    local delta = event.choices and event.choices[1] and event.choices[1].delta
+    if type(delta) == "table" and type(delta.annotations) == "table" then
+        for _idx, annotation in ipairs(delta.annotations) do
+            if type(annotation) == "table" and annotation.type == "url_citation"
+                and type(annotation.url_citation) == "table" then
+                addSource(annotation.url_citation.url, annotation.url_citation.title)
+            end
+        end
+    end
+
+    -- Perplexity: search_results (title+url; preferred over the bare citations array,
+    -- which the poll loop captures separately as the legacy footnote source)
+    if type(event.search_results) == "table" then
+        for _idx, item in ipairs(event.search_results) do
+            if type(item) == "table" then
+                addSource(item.url, item.title)
+            end
+        end
+    end
+end
+
 local StreamHandler = {
     interrupt_stream = nil,      -- function to interrupt the stream query
     user_interrupted = false,    -- flag to indicate if the stream was interrupted
 }
 
--- Exposed for unit testing (the local above is the canonical implementation).
+-- Exposed for unit testing (the locals above are the canonical implementations).
 StreamHandler.extractApiError = extractApiError
+StreamHandler.harvestWebSources = harvestWebSources
 
 function StreamHandler:new(o)
     o = o or {}
@@ -202,6 +275,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local web_search_used = false  -- Track if web search was ever used during this stream
     local has_post_search_content = false  -- Track if real answer content arrived after a search
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
+    local web_prov = { sources = {}, queries = {}, seen = {} }  -- Web-search provenance ("Show Sources")
     local was_truncated = false  -- Track if response was truncated (max tokens)
     -- Hidden streaming: accumulate data but show placeholder (for quiz etc.)
     local hidden_streaming = settings and settings.hidden_streaming
@@ -448,7 +522,29 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
 
         -- Pass reasoning content as 4th arg, web_search_used as 5th, usage as 6th.
         local reasoning_content = #reasoning_buffer > 0 and table.concat(reasoning_buffer) or nil
-        local search_used = web_search_used and true or nil
+        -- Web-search slot: provenance table when source details were captured, else
+        -- plain true (legacy shape). Bare Perplexity citation URLs are folded in only
+        -- when no titled search_results arrived for the same response.
+        local search_used = nil
+        if web_search_used then
+            if #web_prov.sources == 0 and perplexity_citations then
+                for _idx, url in ipairs(perplexity_citations) do
+                    if type(url) == "string" and url ~= "" and not web_prov.seen[url] then
+                        web_prov.seen[url] = true
+                        table.insert(web_prov.sources, { url = url })
+                    end
+                end
+            end
+            if #web_prov.sources > 0 or #web_prov.queries > 0 then
+                search_used = {
+                    web_search = true,
+                    sources = #web_prov.sources > 0 and web_prov.sources or nil,
+                    queries = #web_prov.queries > 0 and web_prov.queries or nil,
+                }
+            else
+                search_used = true
+            end
+        end
         if on_complete then on_complete(true, result, nil, reasoning_content, search_used, usage_data) end
 
         -- Show any pending update popup (deferred during streaming)
@@ -903,6 +999,9 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 perplexity_citations = event.citations
                                 web_search_used = true
                             end
+
+                            -- Capture web-search source details for "Show Sources"
+                            harvestWebSources(event, web_prov)
 
                             -- Handle reasoning content (displayed with header, saved separately)
                             if type(reasoning) == "string" and #reasoning > 0 then

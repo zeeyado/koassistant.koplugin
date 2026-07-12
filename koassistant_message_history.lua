@@ -63,8 +63,30 @@ function MessageHistory:addAssistantMessage(content, model, reasoning, debug_inf
     if reasoning then
         message.reasoning = reasoning
     end
-    -- Store web search indicator if search was used
-    if web_search_used then
+    -- Store response provenance. The 5th arg is either the legacy boolean (web search
+    -- used, no details) or a provenance table:
+    --   { web_search = true|nil, sources = {{url,title},...}, queries = {...},
+    --     book_tools = { lookups = N, trace = {...} } }
+    -- Detail fields persist with the chat and feed the "Show Sources" viewer.
+    if type(web_search_used) == "table" then
+        local prov = web_search_used
+        if prov.web_search then
+            message.web_search_used = true
+            if type(prov.sources) == "table" and #prov.sources > 0 then
+                message.web_search_sources = prov.sources
+            end
+            if type(prov.queries) == "table" and #prov.queries > 0 then
+                message.web_search_queries = prov.queries
+            end
+        end
+        if type(prov.book_tools) == "table" then
+            message.book_tools_used = true
+            message.book_lookups = prov.book_tools.lookups
+            if type(prov.book_tools.trace) == "table" and #prov.book_tools.trace > 0 then
+                message.book_tools_trace = prov.book_tools.trace
+            end
+        end
+    elseif web_search_used then
         message.web_search_used = true
     end
     -- Store debug info for accurate historical display (NOT exported with chat)
@@ -170,6 +192,34 @@ function MessageHistory:getReasoningEntries()
                     entry.effort = msg.reasoning.effort
                 end
                 table.insert(entries, entry)
+            end
+        end
+    end
+
+    return entries
+end
+
+-- Get response provenance from assistant messages (for the "Show Sources" viewer).
+-- Returns array of { index, msg_num, web_search_used, sources, queries,
+-- book_tools_used, lookups, trace } for messages with any provenance.
+function MessageHistory:getProvenanceEntries()
+    local entries = {}
+    local msg_num = 0
+
+    for i, msg in ipairs(self.messages) do
+        if msg.role == self.ROLES.ASSISTANT and not msg.is_context then
+            msg_num = msg_num + 1
+            if msg.web_search_used or msg.book_tools_used then
+                table.insert(entries, {
+                    index = i,
+                    msg_num = msg_num,
+                    web_search_used = msg.web_search_used,
+                    sources = msg.web_search_sources,
+                    queries = msg.web_search_queries,
+                    book_tools_used = msg.book_tools_used,
+                    lookups = msg.book_lookups,
+                    trace = msg.book_tools_trace,
+                })
             end
         end
     end
@@ -633,6 +683,11 @@ function MessageHistory:createResultText(highlightedText, config)
     local show_web_search_indicator = config and config.features and config.features.show_web_search_indicator
     if show_web_search_indicator == nil then show_web_search_indicator = true end  -- Default to showing indicator
 
+    -- Check if book tools indicator should be shown in chat
+    -- Controlled by show_book_tools_indicator setting (default: true)
+    local show_book_tools_indicator = config and config.features and config.features.show_book_tools_indicator
+    if show_book_tools_indicator == nil then show_book_tools_indicator = true end  -- Default to showing indicator
+
     -- Show conversation (non-context messages)
     -- In compact mode (dictionary lookups), hide prefixes for cleaner display
     local hide_prefixes = config and config.features and (config.features.compact_view or config.features.dictionary_view)
@@ -673,6 +728,19 @@ function MessageHistory:createResultText(highlightedText, config)
             -- If this is an assistant message with web search used, show indicator
             if show_web_search_indicator and msg.role == self.ROLES.ASSISTANT and msg.web_search_used then
                 table.insert(result, "*[Web search was used]*\n\n")
+            end
+
+            -- If book tools ran for this response, show the lookup count (was formerly
+            -- baked into the answer text by the tool runner; now a proper indicator)
+            if show_book_tools_indicator and msg.role == self.ROLES.ASSISTANT and msg.book_tools_used then
+                local n = tonumber(msg.book_lookups) or 0
+                if n == 1 then
+                    table.insert(result, "*[Searched the book — 1 lookup]*\n\n")
+                elseif n > 1 then
+                    table.insert(result, string.format("*[Searched the book — %d lookups]*\n\n", n))
+                else
+                    table.insert(result, "*[Book tools were used]*\n\n")
+                end
             end
 
             table.insert(result, prefix .. msg.content .. "\n\n")

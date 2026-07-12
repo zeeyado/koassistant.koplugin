@@ -525,7 +525,9 @@ TestRunner:test("gather: done triggers a fresh generate call with bundle, no too
         messages = { { role = "user", content = "Where is Daisy?" } },
         config = gatherConfig(),
         ui = makeUi(),
-        on_complete = function(success, answer) final = { success = success, answer = answer } end,
+        on_complete = function(success, answer, _err, _reasoning, provenance)
+            final = { success = success, answer = answer, provenance = provenance }
+        end,
     })
     TestRunner:assertEqual(calls, 3, "two gather rounds + one generate")
     TestRunner:assertTrue(gen_config.tools == nil, "generate request declares no tools")
@@ -547,8 +549,17 @@ TestRunner:test("gather: done triggers a fresh generate call with bundle, no too
     TestRunner:assertTrue(question_idx ~= nil and bundle_idx < question_idx,
         "bundle inserted before the user question")
     TestRunner:assertTrue(final.success, "gather flow completes successfully")
-    TestRunner:assertTrue(final.answer:find("Searched the book — 1 lookup", 1, true) ~= nil,
-        "lookup indicator line appended")
+    TestRunner:assertEqual(final.answer, "The generated answer.",
+        "answer text stays clean (no baked-in lookup note)")
+    TestRunner:assertTrue(type(final.provenance) == "table"
+        and type(final.provenance.book_tools) == "table"
+        and final.provenance.book_tools.lookups == 1,
+        "lookup count rides the provenance slot (5th arg)")
+    TestRunner:assertTrue(type(final.provenance.book_tools.trace) == "table"
+        and #final.provenance.book_tools.trace == 1,
+        "per-lookup trace rides the provenance slot")
+    TestRunner:assertTrue(final.provenance.web_search == nil,
+        "tool-only provenance does not claim web search")
 end)
 
 TestRunner:test("gather: immediate done (zero lookups) → plain generate, no bundle/indicator", function()
@@ -569,7 +580,9 @@ TestRunner:test("gather: immediate done (zero lookups) → plain generate, no bu
         messages = { { role = "user", content = "What do you think of the title?" } },
         config = gatherConfig(),
         ui = makeUi(),
-        on_complete = function(_s, answer) final = answer end,
+        on_complete = function(_s, answer, _err, _reasoning, provenance)
+            final = { answer = answer, provenance = provenance }
+        end,
     })
     TestRunner:assertEqual(calls, 2, "one gather probe + one generate")
     for _i, m in ipairs(gen_messages) do
@@ -577,7 +590,9 @@ TestRunner:test("gather: immediate done (zero lookups) → plain generate, no bu
             and m.content:find("Passages retrieved", 1, true) ~= nil,
             "no bundle message for a zero-lookup question")
     end
-    TestRunner:assertEqual(final, "Plain answer.", "no indicator line when nothing was searched")
+    TestRunner:assertEqual(final.answer, "Plain answer.", "answer text unchanged")
+    TestRunner:assertTrue(final.provenance == nil,
+        "no provenance when nothing was searched")
 end)
 
 TestRunner:test("gather: done alongside lookups in one turn executes the lookups first", function()
@@ -909,7 +924,7 @@ end)
 
 TestRunner:test("quick effort caps the gather loop at 2 turns", function()
     local calls = 0
-    local final_answer
+    local final_answer, final_provenance
     local function query_fn(_messages, _config, callback)
         calls = calls + 1
         if calls <= 2 then
@@ -930,12 +945,16 @@ TestRunner:test("quick effort caps the gather loop at 2 turns", function()
         config = { provider = "gemini",
             features = { is_book_context = true, tool_lookup_effort = "quick" } },
         ui = makeUi(),
-        on_complete = function(_success, answer) final_answer = answer end,
+        on_complete = function(_success, answer, _err, _reasoning, provenance)
+            final_answer = answer
+            final_provenance = provenance
+        end,
     })
     TestRunner:assertEqual(calls, 3, "2 gather rounds + 1 generate call under the quick budget")
-    TestRunner:assertTrue(final_answer:find("capped answer", 1, true) ~= nil, "answer from phase 2")
-    TestRunner:assertTrue(final_answer:find("2 lookups", 1, true) ~= nil,
-        "lookups note reflects the capped session")
+    TestRunner:assertEqual(final_answer, "capped answer", "clean answer from phase 2 (no baked note)")
+    TestRunner:assertTrue(type(final_provenance) == "table"
+        and final_provenance.book_tools and final_provenance.book_tools.lookups == 2,
+        "provenance lookups reflect the capped session")
 end)
 
 -- ============================================================

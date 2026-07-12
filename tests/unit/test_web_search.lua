@@ -884,6 +884,198 @@ TestRunner:test("Gemini skips grounding for unsupported model", function()
 end)
 
 --------------------------------------------------------------------------------
+-- Test: Web-search provenance (sources/queries in the web_search slot)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Response Parser: web-search provenance (sources/queries)")
+
+TestRunner:test("Anthropic captures queries and result URLs", function()
+    local response = {
+        content = {
+            { type = "server_tool_use", name = "web_search", input = { query = "moby dick reviews" } },
+            { type = "web_search_tool_result", content = {
+                { type = "web_search_result", url = "https://example.com/a", title = "Review A" },
+                { type = "web_search_result", url = "https://example.com/b", title = "Review B" },
+                { type = "web_search_result", url = "https://example.com/a", title = "Dup" },
+            } },
+            { type = "text", text = "The reviews say..." },
+        },
+    }
+    local success, content, _r, prov = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertTrue(success, "parse succeeds")
+    TestRunner:assertEqual(content, "The reviews say...", "content extracted")
+    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
+    TestRunner:assertTrue(prov.web_search, "web_search flag set")
+    TestRunner:assertEqual(#prov.sources, 2, "sources deduped by URL")
+    TestRunner:assertEqual(prov.sources[1].title, "Review A", "title captured")
+    TestRunner:assertEqual(prov.queries[1], "moby dick reviews", "query captured")
+end)
+
+TestRunner:test("Anthropic search without result details collapses to true", function()
+    local response = {
+        content = {
+            { type = "server_tool_use", name = "web_search" },
+            { type = "text", text = "Answer." },
+        },
+    }
+    local _s, _c, _r, prov = ResponseParser:parseResponse(response, "anthropic")
+    TestRunner:assertEqual(prov, true, "bare true when no sources/queries captured")
+end)
+
+TestRunner:test("Gemini captures grounding chunks and queries", function()
+    local response = {
+        candidates = { {
+            content = { parts = { { text = "Grounded answer" } } },
+            groundingMetadata = {
+                webSearchQueries = { "whale symbolism" },
+                groundingChunks = {
+                    { web = { uri = "https://g.example/1", title = "site-one.com" } },
+                    { web = { uri = "https://g.example/2", title = "site-two.com" } },
+                },
+            },
+        } },
+    }
+    local success, _c, _r, prov = ResponseParser:parseResponse(response, "gemini")
+    TestRunner:assertTrue(success, "parse succeeds")
+    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
+    TestRunner:assertEqual(#prov.sources, 2, "grounding chunks become sources")
+    TestRunner:assertEqual(prov.sources[2].url, "https://g.example/2", "uri mapped to url")
+    TestRunner:assertEqual(prov.queries[1], "whale symbolism", "search query captured")
+end)
+
+TestRunner:test("OpenRouter captures url_citation annotations", function()
+    local response = {
+        choices = { { message = {
+            content = "Cited answer",
+            annotations = {
+                { type = "url_citation", url_citation = { url = "https://exa.example/x", title = "Exa X" } },
+            },
+        } } },
+    }
+    local success, _c, _r, prov = ResponseParser:parseResponse(response, "openrouter")
+    TestRunner:assertTrue(success, "parse succeeds")
+    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
+    TestRunner:assertEqual(prov.sources[1].url, "https://exa.example/x", "annotation url captured")
+    TestRunner:assertEqual(prov.sources[1].title, "Exa X", "annotation title captured")
+end)
+
+TestRunner:test("Perplexity prefers search_results over bare citations", function()
+    local response = {
+        choices = { { message = { content = "Sonar answer" } } },
+        citations = { "https://p.example/1", "https://p.example/2" },
+        search_results = {
+            { url = "https://p.example/1", title = "Titled One" },
+        },
+    }
+    local success, _c, _r, prov = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertTrue(success, "parse succeeds")
+    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
+    TestRunner:assertEqual(#prov.sources, 1, "search_results win over citations")
+    TestRunner:assertEqual(prov.sources[1].title, "Titled One", "title captured")
+end)
+
+TestRunner:test("Perplexity falls back to citation URLs", function()
+    local response = {
+        choices = { { message = { content = "Sonar answer" } } },
+        citations = { "https://p.example/1", "https://p.example/2" },
+    }
+    local _s, _c, _r, prov = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
+    TestRunner:assertEqual(#prov.sources, 2, "citation URLs become sources")
+    TestRunner:assertNil(prov.sources[1].title, "no title on bare citation")
+end)
+
+TestRunner:test("Perplexity without any source data stays true", function()
+    local response = {
+        choices = { { message = { content = "Sonar answer" } } },
+    }
+    local _s, _c, _r, prov = ResponseParser:parseResponse(response, "perplexity")
+    TestRunner:assertEqual(prov, true, "always-on web search collapses to true")
+end)
+
+TestRunner:test("Z.AI captures web_search result links", function()
+    local response = {
+        choices = { { message = { content = "GLM answer" } } },
+        web_search = {
+            { title = "Zhipu Result", link = "https://z.example/1" },
+        },
+    }
+    local _s, _c, _r, prov = ResponseParser:parseResponse(response, "zai")
+    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
+    TestRunner:assertEqual(prov.sources[1].url, "https://z.example/1", "link mapped to url")
+end)
+
+--------------------------------------------------------------------------------
+-- Test: Streaming source harvest (StreamHandler.harvestWebSources)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Streaming: web source harvest")
+
+local function newProv()
+    return { sources = {}, queries = {}, seen = {} }
+end
+
+TestRunner:test("harvests Anthropic web_search_tool_result blocks", function()
+    local prov = newProv()
+    StreamHandler.harvestWebSources({
+        type = "content_block_start",
+        content_block = { type = "web_search_tool_result", content = {
+            { type = "web_search_result", url = "https://a.example", title = "A" },
+        } },
+    }, prov)
+    TestRunner:assertEqual(#prov.sources, 1, "source harvested")
+    TestRunner:assertEqual(prov.sources[1].title, "A", "title harvested")
+end)
+
+TestRunner:test("harvests Gemini grounding metadata and dedupes across events", function()
+    local prov = newProv()
+    local event = {
+        candidates = { {
+            groundingMetadata = {
+                webSearchQueries = { "q1" },
+                groundingChunks = { { web = { uri = "https://g.example", title = "G" } } },
+            },
+        } },
+    }
+    StreamHandler.harvestWebSources(event, prov)
+    StreamHandler.harvestWebSources(event, prov)  -- repeated chunk in later event
+    TestRunner:assertEqual(#prov.sources, 1, "sources deduped across events")
+    TestRunner:assertEqual(#prov.queries, 1, "queries deduped across events")
+end)
+
+TestRunner:test("harvests OpenRouter delta annotations", function()
+    local prov = newProv()
+    StreamHandler.harvestWebSources({
+        choices = { { delta = { annotations = {
+            { type = "url_citation", url_citation = { url = "https://o.example", title = "O" } },
+        } } } },
+    }, prov)
+    TestRunner:assertEqual(#prov.sources, 1, "annotation source harvested")
+end)
+
+TestRunner:test("harvests Perplexity search_results", function()
+    local prov = newProv()
+    StreamHandler.harvestWebSources({
+        search_results = { { url = "https://p.example", title = "P" } },
+    }, prov)
+    TestRunner:assertEqual(#prov.sources, 1, "search_results harvested")
+end)
+
+TestRunner:test("tolerates luajson null sentinels and junk shapes", function()
+    local prov = newProv()
+    local sentinel = function() end  -- luajson decodes JSON null to a truthy function
+    StreamHandler.harvestWebSources({
+        type = "content_block_start",
+        content_block = { type = "web_search_tool_result", content = sentinel },
+        candidates = { { groundingMetadata = sentinel } },
+        choices = { { delta = sentinel } },
+        search_results = { sentinel, { url = 42, title = "bad" } },
+    }, prov)
+    TestRunner:assertEqual(#prov.sources, 0, "no sources from junk")
+    TestRunner:assertEqual(#prov.queries, 0, "no queries from junk")
+end)
+
+--------------------------------------------------------------------------------
 -- Summary
 --------------------------------------------------------------------------------
 

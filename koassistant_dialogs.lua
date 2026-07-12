@@ -2503,10 +2503,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     local source_mode = config.features and config.features._source_mode
     local highlight_section = config.features and config.features._highlight_section_scope
     local forced_document_context = config.features and config.features._forced_document_context
+    local smart_retrieval_lookups = config.features and config.features._smart_retrieval_lookups
     if config.features then
         config.features._source_mode = nil
         config.features._highlight_section_scope = nil
         config.features._forced_document_context = nil
+        config.features._smart_retrieval_lookups = nil
+    end
+    -- Smart retrieval (D3): thread the standalone gather's lookup info to handleResponse
+    -- via this invocation's message_data (folded into the response provenance there)
+    if smart_retrieval_lookups then
+        message_data._smart_retrieval_lookups = smart_retrieval_lookups
     end
 
     -- Source mode: skip extraction for non-selected sources
@@ -3062,6 +3069,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err, reasoning, web_search_used)
+        -- Smart retrieval (D3): the gather ran standalone before this request — fold its
+        -- lookups into this response's provenance (per-message indicator + Show Sources)
+        if success and message_data._smart_retrieval_lookups then
+            if type(web_search_used) ~= "table" then
+                web_search_used = web_search_used and { web_search = true } or {}
+            end
+            web_search_used.book_tools = web_search_used.book_tools
+                or message_data._smart_retrieval_lookups
+        end
+        -- Plain boolean for cache metadata: a provenance TABLE means web search only
+        -- when its web_search field says so (it may carry only book_tools)
+        local web_search_flag = type(web_search_used) == "table"
+            and (web_search_used.web_search == true)
+            or (web_search_used == true)
         if success and answer and answer ~= "" then
             -- For X-Ray: parse structured JSON response and prepare display/cache versions
             -- display_answer = rendered markdown for chat history (human-readable)
@@ -3153,7 +3174,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
                       used_highlights = highlights_were_provided,
                       used_reasoning = (reasoning ~= nil and reasoning ~= ""),
-                      web_search_used = web_search_used or false,
+                      web_search_used = web_search_flag,
                       used_research_mode = research_mode_active or nil,
                       previous_progress_decimal = message_data.cached_progress_decimal,
                       flow_visible_pages = message_data.flow_visible_pages,
@@ -3191,7 +3212,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_highlights = used_highlights,
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
-                        web_search_used = web_search_used or false,
+                        web_search_used = web_search_flag,
                         used_research_mode = research_mode_active or nil,
                         previous_progress_decimal = message_data.cached_progress_decimal,
                         flow_visible_pages = message_data.flow_visible_pages,
@@ -3214,7 +3235,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_book_text = book_text_was_provided,
                         used_highlights = (message_data.highlights and message_data.highlights ~= "") or false,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
-                        web_search_used = web_search_used or false,
+                        web_search_used = web_search_flag,
                         full_document = true,
                         source_mode = source_mode,
                         scope_label = section_scope.label,
@@ -3236,7 +3257,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         model = model_name,
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
-                        web_search_used = web_search_used or false,
+                        web_search_used = web_search_flag,
                         flow_visible_pages = message_data.flow_visible_pages,
                         unavailable_data_text = unavailable_text,
                     }
@@ -3253,7 +3274,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         language = temp_config.features and temp_config.features.translation_language or "English",
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
-                        web_search_used = web_search_used or false,
+                        web_search_used = web_search_flag,
                         flow_visible_pages = message_data.flow_visible_pages,
                         unavailable_data_text = unavailable_text,
                     }
