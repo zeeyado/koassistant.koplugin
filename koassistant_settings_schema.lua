@@ -451,10 +451,11 @@ local SettingsSchema = {
                     default = "basic",
                     options = {
                         { value = "none", label = _("None") },
+                        { value = "title", label = _("Title only") },
                         { value = "basic", label = _("Title & author") },
                         { value = "full", label = _("Title, author & position") },
                     },
-                    help_text = _("Default book context sent with freeform chats and book-aware actions (Explain, etc.). 'None' sends no book line; 'Title & author' is the default; 'Title, author & position' also adds reading progress, chapter, and page (when basic stats are enabled). Override per book in Book Settings. Actions that don't request book info (e.g. Translate) are unaffected."),
+                    help_text = _("Default book context sent with freeform chats and book-aware actions (Explain, etc.). 'None' sends no book line; 'Title only' omits the author; 'Title & author' is the default; 'Title, author & position' also adds reading progress, chapter, and page (when basic stats are enabled). Override per book in Book Settings. Actions that don't request book info (e.g. Translate) are unaffected."),
                     separator = true,
                 },
                 -- Content Format submenu
@@ -1955,13 +1956,13 @@ local SettingsSchema = {
                         }
                         return T(_("AI Book Tools: %1"), labels[posture] or posture)
                     end,
-                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). Book tools let the AI search the open book's text, read specific pages, and view the table of contents, so it can ground answers in the actual book instead of guessing. Requires \"Allow Text Extraction\".\n\nOff: no tool use anywhere — no chat checkbox, and actions can't use smart retrieval.\nManual: a \"Book tools\" checkbox appears in book chats, unchecked by default — one tap to use.\nAuto (default): the checkbox starts checked; the AI decides per question whether to actually search. Predefined actions are unaffected — they never use tools unless they explicitly offer smart retrieval.\n\nOverride per book in Book Settings. Work in progress; behavior may change."),
+                    help_text = _("EXPERIMENTAL — Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models). Book tools let the AI search the open book's text, read specific pages, and view the table of contents, so it can ground answers in the actual book instead of guessing. Requires \"Allow Text Extraction\".\n\nOff: no tool use anywhere — the Tools chip disappears from chats, and actions can't use smart retrieval.\nManual: the Tools chip in book chats starts OFF — tap it to allow tools for that chat.\nAuto (default): the Tools chip starts ON; the AI still decides per question whether to actually search. Manual and Auto only set the chip's starting position.\n\nPredefined actions are unaffected either way — they never use tools unless they explicitly offer smart retrieval. Override per book in Book Settings. Work in progress; behavior may change."),
                     path = "features.tools_posture",
                     default = "auto",
                     options = {
-                        { value = "off", text = _("Off (never offered)") },
-                        { value = "manual", text = _("Manual (checkbox, off by default)") },
-                        { value = "auto", text = _("Auto (checkbox, on by default)") },
+                        { value = "off", text = _("Off (no tool use at all)") },
+                        { value = "manual", text = _("Manual (Tools chip starts OFF)") },
+                        { value = "auto", text = _("Auto (Tools chip starts ON)") },
                     },
                 },
                 {

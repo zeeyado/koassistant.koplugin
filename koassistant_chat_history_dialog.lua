@@ -1730,6 +1730,11 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 success = false
                 err = err or _("No response received from AI")
             end
+            if not success then
+                -- Cancelled/failed: roll the unanswered question back out of the
+                -- history so it can't ride into the next request.
+                history:removeLastUserMessage()
+            end
             -- Call the completion callback
             if on_complete then on_complete(success, answer, err) end
         end, plugin, tool_ui)

@@ -1538,16 +1538,12 @@ function AskGPT:initSettings()
     end
 
     -- Session-chips membership (book_scoped_controls_plan.md §4/§8): the chips row
-    -- replaces the input dialog's checkbox pile + top-row Web/Domain buttons. The old
-    -- show_spoiler_toggle bool becomes membership of the "spoiler" chip (users who had
-    -- the checkbox visible keep the chip; everyone else gets the default set).
+    -- replaces the input dialog's checkbox pile + top-row Web/Domain buttons. All four
+    -- chips on by default (maintainer 2026-07-12); the old show_spoiler_toggle bool is
+    -- retired (spoiler visibility now lives in chip membership).
     if not features._session_chips_migrated then
       if features.session_chips == nil then
-        local chips = { "domain", "web_search", "book_tools" }
-        if features.show_spoiler_toggle == true then
-          table.insert(chips, "spoiler")
-        end
-        features.session_chips = chips
+        features.session_chips = { "domain", "web_search", "book_tools", "spoiler" }
       end
       features.show_spoiler_toggle = nil
       features._session_chips_migrated = true

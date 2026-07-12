@@ -558,7 +558,7 @@ function MessageBuilder.build(params)
                 -- Add book context so AI knows which book we're discussing
                 table.insert(parts, "[Context]")
                 local book_info = string.format('Book: "%s"', metadata.title or "Unknown")
-                if metadata.author and metadata.author ~= "" then
+                if book_info_level ~= "title" and metadata.author and metadata.author ~= "" then
                     book_info = book_info .. " by " .. metadata.author
                 end
                 table.insert(parts, book_info)
@@ -604,9 +604,11 @@ function MessageBuilder.build(params)
 
             -- Add book info if available (controlled by include_book_context flag + book-info level)
             if show_book_line then
+                local show_author = (data._book_info_level or "basic") ~= "title"
+                    and data.book_author and data.book_author ~= ""
                 table.insert(parts, string.format('From "%s"%s',
                     data.book_title,
-                    (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or ""))
+                    show_author and (" by " .. data.book_author) or ""))
                 if (data._book_info_level or "basic") == "full" then appendPositionLines(parts, data) end
             end
 
