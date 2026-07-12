@@ -1153,81 +1153,100 @@ function BookSettings.show(opts)
     end
     local title_ov, author_ov = BookSettings.getMetadataOverride(doc_settings)
 
-    -- Grouped sections (book_scoped_controls_plan.md §7): disabled rows as headers.
+    -- Grouped sections (book_scoped_controls_plan.md §7): disabled rows as headers,
+    -- setting buttons paired two per row (maintainer 2026-07-12 — the screen got long);
+    -- an odd leftover before a header/full-width row takes the whole row.
     -- Order mirrors the input dialog's chips row where the controls overlap.
-    local function header(text)
-        return {{ text = "—  " .. text .. "  —", enabled = false }}
+    local buttons = {}
+    local pending  -- unpaired setting button waiting for a row partner
+    local function flushPair()
+        if pending then
+            table.insert(buttons, { pending })
+            pending = nil
+        end
     end
-    local buttons = {
-        header(_("AI behavior")),
-        {{ text = T(_("Domain: %1"), domain_label), callback = showDomainSubPicker }},
-        {{ text = T(_("Research mode: %1"), research_label),
-            callback = function()
-                showBoolSubPicker(BookSettings.KEY_RESEARCH,
-                    _("Research mode (this book)"), features.research_mode == true)
-            end }},
-        {{ text = T(_("Spoiler-free chat: %1"), spoiler_label),
-            callback = function()
-                showBoolSubPicker(BookSettings.KEY_SPOILER_FREE,
-                    _("Spoiler-free chat (this book)"), features.spoiler_free_chat == true)
-            end }},
-        {{ text = T(_("AI Book Tools: %1"), toolsRowLabel(doc_settings:readSetting(BookSettings.KEY_TOOLS))),
-            callback = showToolsSubPicker }},
-        {{ text = T(_("Web search: %1"), boolLabel(doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH))),
-            callback = function()
-                showBoolSubPicker(BookSettings.KEY_WEB_SEARCH,
-                    _("Web search (this book)"), features.enable_web_search == true)
-            end }},
-        {{ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
-            callback = showBookInfoSubPicker }},
-        {{ text = T(_("Highlight context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT))),
-            callback = function()
-                showContextModeSubPicker(BookSettings.KEY_HIGHLIGHT_CONTEXT,
-                    _("Highlight context (this book)"), features.highlight_context_mode or "none")
-            end }},
-        {{ text = T(_("Dictionary context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_DICTIONARY_CONTEXT))),
-            callback = function()
-                showContextModeSubPicker(BookSettings.KEY_DICTIONARY_CONTEXT,
-                    _("Dictionary context (this book)"), features.dictionary_context_mode or "none")
-            end }},
-        header(_("Identity")),
-        {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
-            callback = function()
-                showOverrideSubPicker(BookSettings.KEY_AI_TITLE,
-                    _("AI title (this book)"), _("Custom AI title"))
-            end }},
-        {{ text = T(_("AI author: %1"), overrideLabel(author_ov)),
-            callback = function()
-                showOverrideSubPicker(BookSettings.KEY_AI_AUTHOR,
-                    _("AI author (this book)"), _("Custom AI author"))
-            end }},
-        header(_("More")),
-        {{ text = _("Quiz settings ▸"), callback = function()
-            closeDialog()
-            BookSettings.showQuizConfig({
-                plugin = plugin, ui = ui, document_path = opts.document_path,
-                on_close = function() BookSettings.show(opts) end,
-            })
-        end }},
-        {{ text = _("Languages ▸"), callback = function()
-            closeDialog()
-            BookSettings.showLanguageConfig({
-                plugin = plugin, ui = ui, document_path = opts.document_path,
-                on_close = function() BookSettings.show(opts) end,
-            })
-        end }},
-        {{ text = _("Close"), id = "close", callback = function()
-            closeDialog()
-            if on_close then on_close() end
-        end }},
-    }
+    local function addHeader(text)
+        flushPair()
+        table.insert(buttons, {{ text = "—  " .. text .. "  —", enabled = false }})
+    end
+    local function addButton(btn)
+        if pending then
+            table.insert(buttons, { pending, btn })
+            pending = nil
+        else
+            pending = btn
+        end
+    end
+    local function addFullRow(btn)
+        flushPair()
+        table.insert(buttons, { btn })
+    end
+
+    addHeader(_("AI behavior"))
+    addButton({ text = T(_("Domain: %1"), domain_label), callback = showDomainSubPicker })
+    addButton({ text = T(_("Research mode: %1"), research_label),
+        callback = function()
+            showBoolSubPicker(BookSettings.KEY_RESEARCH,
+                _("Research mode (this book)"), features.research_mode == true)
+        end })
+    addButton({ text = T(_("Spoiler-free chat: %1"), spoiler_label),
+        callback = function()
+            showBoolSubPicker(BookSettings.KEY_SPOILER_FREE,
+                _("Spoiler-free chat (this book)"), features.spoiler_free_chat == true)
+        end })
+    addButton({ text = T(_("AI Book Tools: %1"), toolsRowLabel(doc_settings:readSetting(BookSettings.KEY_TOOLS))),
+        callback = showToolsSubPicker })
+    addButton({ text = T(_("Web search: %1"), boolLabel(doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH))),
+        callback = function()
+            showBoolSubPicker(BookSettings.KEY_WEB_SEARCH,
+                _("Web search (this book)"), features.enable_web_search == true)
+        end })
+    addButton({ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
+        callback = showBookInfoSubPicker })
+    addButton({ text = T(_("Highlight context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT))),
+        callback = function()
+            showContextModeSubPicker(BookSettings.KEY_HIGHLIGHT_CONTEXT,
+                _("Highlight context (this book)"), features.highlight_context_mode or "none")
+        end })
+    addButton({ text = T(_("Dictionary context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_DICTIONARY_CONTEXT))),
+        callback = function()
+            showContextModeSubPicker(BookSettings.KEY_DICTIONARY_CONTEXT,
+                _("Dictionary context (this book)"), features.dictionary_context_mode or "none")
+        end })
+    addHeader(_("Identity"))
+    addButton({ text = T(_("AI title: %1"), overrideLabel(title_ov)),
+        callback = function()
+            showOverrideSubPicker(BookSettings.KEY_AI_TITLE,
+                _("AI title (this book)"), _("Custom AI title"))
+        end })
+    addButton({ text = T(_("AI author: %1"), overrideLabel(author_ov)),
+        callback = function()
+            showOverrideSubPicker(BookSettings.KEY_AI_AUTHOR,
+                _("AI author (this book)"), _("Custom AI author"))
+        end })
+    addHeader(_("More"))
+    addButton({ text = _("Quiz settings ▸"), callback = function()
+        closeDialog()
+        BookSettings.showQuizConfig({
+            plugin = plugin, ui = ui, document_path = opts.document_path,
+            on_close = function() BookSettings.show(opts) end,
+        })
+    end })
+    addButton({ text = _("Languages ▸"), callback = function()
+        closeDialog()
+        BookSettings.showLanguageConfig({
+            plugin = plugin, ui = ui, document_path = opts.document_path,
+            on_close = function() BookSettings.show(opts) end,
+        })
+    end })
+    flushPair()
 
     -- Surface customizations: count deviations from global, offer a one-tap reset.
     -- Without this, sticky per-book overrides are easy to forget (and then global changes
     -- appear not to take effect for this book).
     local n_custom = BookSettings.countCustomized(doc_settings)
     if n_custom > 0 then
-        table.insert(buttons, #buttons, {{ text = _("Reset book settings"), callback = function()
+        addFullRow({ text = _("Reset book settings"), callback = function()
             local ConfirmBox = require("ui/widget/confirmbox")
             UIManager:show(ConfirmBox:new{
                 text = _("Reset all KOAssistant settings for this book to follow the global defaults?"),
@@ -1238,8 +1257,12 @@ function BookSettings.show(opts)
                     reopen()
                 end,
             })
-        end }})
+        end })
     end
+    addFullRow({ text = _("Close"), id = "close", callback = function()
+        closeDialog()
+        if on_close then on_close() end
+    end })
 
     local title = (n_custom > 0) and T(_("Book Settings (%1 customized)"), n_custom) or _("Book Settings")
     dialog = ButtonDialog:new{ title = title, buttons = buttons }

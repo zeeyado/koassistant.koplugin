@@ -3579,12 +3579,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local session_spoiler_free = ((configuration or {}).features or {})._session_spoiler_free
     local session_book_tools = ((configuration or {}).features or {})._session_book_tools
     local session_web_search = ((configuration or {}).features or {})._session_web_search
-    -- Selection context window: pre-extracted by the entry point before the selection
-    -- died with the highlight overlay. Captured to a dialog-local (and cleared from the
-    -- shared config) so it can't leak across dialogs; re-set just-in-time at dispatch.
-    local selection_context_window = ((configuration or {}).features or {})._selection_context_window
+    -- NOTE: the _selection_context_window transient (pre-extracted selection window,
+    -- surrounding context) deliberately STAYS on configuration.features — no dialog
+    -- local. It is consumed at its two read points (handlePredefinedPrompt + freeform
+    -- Send), every highlight entry sets-or-clears it, and the {prev,next,text}
+    -- fingerprint makes a stale value self-discarding. A dialog-local here would add
+    -- upvalues to closures already at LuaJIT's 60-upvalue cap.
     if configuration and configuration.features then
-        configuration.features._selection_context_window = nil
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
         configuration.features._xray_chat_context = nil
@@ -4014,9 +4015,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 -- right after copying, so it can't go stale on the shared table.
                 configuration.features = configuration.features or {}
                 configuration.features._web_search_active = session_web_search == true
-                -- Same just-in-time pattern for the pre-extracted selection window
-                -- (surrounding context): consumed by handlePredefinedPrompt.
-                configuration.features._selection_context_window = selection_context_window
+                -- (The pre-extracted selection window already rides
+                -- configuration.features._selection_context_window from the entry
+                -- point; handlePredefinedPrompt consumes it.)
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
@@ -5136,22 +5137,26 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, "")
                         -- Ambient surrounding context (surrounding_context_plan.md): freeform
                         -- Send follows the per-book > global mode. The window was pre-extracted
-                        -- at the entry point (the live selection is long gone); the fingerprint
-                        -- check discards a window from a different selection, and X-Ray chat
-                        -- (item-name pseudo-selection) is excluded outright.
-                        if selection_context_window and selection_context_window.text == highlighted_text
+                        -- at the entry point (the live selection is long gone) and consumed
+                        -- here; the fingerprint check discards a window from a different
+                        -- selection, and X-Ray chat (item-name pseudo-selection) is excluded.
+                        -- NOTE: inline requires on purpose — a file-local reference here would
+                        -- add upvalues to a closure at LuaJIT's 60-upvalue cap.
+                        local sc_window = configuration.features._selection_context_window
+                        configuration.features._selection_context_window = nil
+                        if sc_window and sc_window.text == highlighted_text
                             and not xray_context_prefix then
-                            local sc_mode = BookSettings.resolveHighlightContext(doc_settings, configuration.features)
+                            local sc_mode = require("koassistant_book_settings")
+                                .resolveHighlightContext(doc_settings, configuration.features)
                             if sc_mode ~= "none" then
-                                local sc_text = ScopeResolver.trimContext(
-                                    selection_context_window.prev, selection_context_window.next,
+                                local sc_text = require("koassistant_scope_resolver").trimContext(
+                                    sc_window.prev, sc_window.next,
                                     highlighted_text, sc_mode, {
                                         char_count = configuration.features.highlight_context_chars or 100,
                                         paragraphs = configuration.features.highlight_context_paragraphs or 1,
                                     })
                                 if sc_text ~= "" then
-                                    local SendTemplates = require("prompts.templates")
-                                    table.insert(parts, SendTemplates.SURROUNDING_CONTEXT_LABEL)
+                                    table.insert(parts, require("prompts.templates").SURROUNDING_CONTEXT_LABEL)
                                     table.insert(parts, sc_text)
                                     table.insert(parts, "")
                                 end
@@ -5701,9 +5706,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if session_book_tools ~= nil then configuration.features._session_book_tools = session_book_tools end
             -- Web: same explicit-false preservation as tools.
             if session_web_search ~= nil then configuration.features._session_web_search = session_web_search end
-            -- The pre-extracted selection window must survive the reopen too (the
-            -- selection itself is long gone and can't be re-fetched).
-            if selection_context_window then configuration.features._selection_context_window = selection_context_window end
+            -- (The pre-extracted selection window survives the reopen by itself — it
+            -- lives on configuration.features until consumed at dispatch/Send.)
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
