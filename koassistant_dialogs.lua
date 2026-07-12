@@ -22,6 +22,8 @@ local ModelConstraints = require("model_constraints")
 local ReasoningPrefs = require("reasoning_prefs")
 local Defaults = require("koassistant_api.defaults")
 local Constants = require("koassistant_constants")
+local ScopeResolver = require("koassistant_scope_resolver")
+local PromptsActions = require("prompts.actions")
 local logger = require("logger")
 
 -- ActionService module (for static methods like getActionDisplayText)
@@ -226,159 +228,49 @@ local function getSessionChips(features)
     return chips
 end
 
--- Extract surrounding context for dictionary lookups
--- Uses KOReader's highlight API to get text before/after selection
--- @param ui: KOReader UI instance with highlight module
--- @param highlighted_text: The selected text
--- @param mode: "sentence" (default), "paragraph", or "characters"
--- @param char_count: Number of characters for "characters" mode (default 100)
--- @return string: Formatted context or empty string if unavailable
---
--- Hard cap: 2000 chars maximum to prevent use as book text extraction bypass.
--- This is context for disambiguation, not document extraction.
-local SURROUNDING_CONTEXT_MAX_CHARS = 2000
+-- Surrounding-context extraction for highlight/dictionary requests.
+-- Trimming is pure and lives in koassistant_scope_resolver.lua (hard 2000-char cap
+-- included); this file provides the live-selection fetch. IMPORTANT: the selection
+-- dies when the highlight overlay / dictionary popup closes (ReaderHighlight:
+-- onClose → clear), so entry points must fetch the window BEFORE closing and ride
+-- it into handlePredefinedPrompt / the input dialog via the
+-- features._selection_context_window transient ({ prev, next, text }; `text`
+-- fingerprints the selection so a stale window can never attach to a different
+-- selection).
 
--- string.sub operates on bytes, splitting multibyte UTF-8 chars
-local UTF8_CHAR_PATTERN = '[%z\1-\127\194-\253][\128-\191]*'
+-- Words fetched per side. Generous enough for every trim mode's per-side cap
+-- (1000 chars); the trim decides what is actually sent.
+local CONTEXT_WINDOW_WORDS = 200
 
-local function utf8_first(str, n)
-    local count = 0
-    local byte_end = 0
-    for uchar in str:gmatch(UTF8_CHAR_PATTERN) do
-        count = count + 1
-        if count > n then
-            return str:sub(1, byte_end), true
+--- Fetch the raw text window around the live selection. Call while the selection
+-- still exists (works for hold-select, not single word taps).
+-- @return table { prev, next, text } or nil when unavailable
+local function fetchSelectionContextWindow(ui, highlighted_text)
+    if ui and ui.highlight and ui.highlight.getSelectedWordContext then
+        local prev_context, next_context = ui.highlight:getSelectedWordContext(CONTEXT_WINDOW_WORDS)
+        if prev_context or next_context then
+            return { prev = prev_context or "", next = next_context or "", text = highlighted_text }
         end
-        byte_end = byte_end + #uchar
     end
-    return str:sub(1, byte_end), false
+    return nil
 end
 
-local function utf8_last(str, n)
-    local offsets = {}
-    local count = 0
-    local pos = 1
-    for uchar in str:gmatch(UTF8_CHAR_PATTERN) do
-        count = count + 1
-        offsets[count] = pos
-        pos = pos + #uchar
-    end
-    if count <= n then
-        return str, false
-    end
-    return str:sub(offsets[count - n + 1]), true
-end
-
-local function extractSurroundingContext(ui, highlighted_text, mode, char_count)
+--- Extract surrounding context from the live selection (fetch + trim in one step).
+-- @param mode: "sentence" (default), "paragraph", "characters", or "none"
+-- @param char_count: chars per side for "characters" mode (default 100)
+-- @param paragraph_count: paragraphs per side for "paragraph" mode (default 1)
+-- @return string: marked context or "" when unavailable
+local function extractSurroundingContext(ui, highlighted_text, mode, char_count, paragraph_count)
     mode = mode or "sentence"
-
-    -- "none" mode: don't extract any context, just return empty string
     if mode == "none" then
         return ""
     end
-
-    char_count = char_count or 100
-    -- Enforce hard cap: char_count per side, so halve the max for characters mode
-    local max_per_side = math.floor(SURROUNDING_CONTEXT_MAX_CHARS / 2)
-    if char_count > max_per_side then
-        char_count = max_per_side
+    local window = fetchSelectionContextWindow(ui, highlighted_text)
+    if not window then
+        return ""
     end
-
-    local prev_context, next_context = nil, nil
-
-    -- Try to get context from KOReader's highlight module
-    -- Note: This works for text that was selected (hold-select), but NOT for
-    -- single word taps (dictionary popup). For word taps, no selection exists.
-    if ui and ui.highlight and ui.highlight.getSelectedWordContext then
-        -- Get plenty of words to cover our needs (50 words should be enough)
-        prev_context, next_context = ui.highlight:getSelectedWordContext(50)
-    end
-
-    if not prev_context and not next_context then
-        return ""  -- No context available
-    end
-
-    prev_context = prev_context or ""
-    next_context = next_context or ""
-
-    -- Mark the highlighted word with >>> <<< markers
-    local word_marker = ">>>" .. (highlighted_text or "") .. "<<<"
-
-    if mode == "characters" then
-        -- Return fixed character count before/after
-        local before, before_truncated = utf8_last(prev_context, char_count)
-        local after, after_truncated = utf8_first(next_context, char_count)
-        -- Add ellipsis if text was truncated
-        if before_truncated then
-            before = "..." .. before
-        end
-        if after_truncated then
-            after = after .. "..."
-        end
-        return before .. " " .. word_marker .. " " .. after
-
-    elseif mode == "paragraph" then
-        -- Return full context with word marked, but enforce hard cap
-        local before = prev_context
-        local after = next_context
-        -- Truncate each side to half the max
-        before = utf8_last(before, max_per_side)
-        after = utf8_first(after, max_per_side)
-        -- Add ellipsis to indicate this is an excerpt
-        if #before > 0 then
-            before = "..." .. before
-        end
-        if #after > 0 then
-            after = after .. "..."
-        end
-        return before .. " " .. word_marker .. " " .. after
-
-    else  -- "sentence" mode (default)
-        -- Try to find sentence boundaries
-        -- Look for sentence-ending punctuation followed by space or end of string
-        local function findSentenceStart(text)
-            -- Search backwards for sentence end (.!?) followed by space
-            local last_end = text:match(".*[%.!%?]%s+()") or 1
-            return text:sub(last_end)
-        end
-
-        local function findSentenceEnd(text)
-            -- Search forwards for sentence end (.!?)
-            local end_pos = text:find("[%.!%?]%s") or text:find("[%.!%?]$")
-            if end_pos then
-                return text:sub(1, end_pos)
-            end
-            return text
-        end
-
-        local sentence_before = findSentenceStart(prev_context)
-        local sentence_after = findSentenceEnd(next_context)
-
-        -- If sentence parsing results in very little text, fall back to characters mode
-        local result = sentence_before .. " " .. word_marker .. " " .. sentence_after
-        if #result < 30 then  -- Adjusted threshold to account for marker
-            -- Fall back to characters mode
-            return extractSurroundingContext(ui, highlighted_text, "characters", char_count)
-        end
-
-        -- Add leading ellipsis if we trimmed the start
-        if #sentence_before < #prev_context then
-            result = "..." .. result
-        end
-        -- Add trailing ellipsis if we trimmed the end
-        if #sentence_after < #next_context then
-            result = result .. "..."
-        end
-
-        -- Enforce hard cap on sentence mode result
-        local _truncated
-        result, _truncated = utf8_first(result, SURROUNDING_CONTEXT_MAX_CHARS)
-        if _truncated then
-            result = result .. "..."
-        end
-
-        return result
-    end
+    return ScopeResolver.trimContext(window.prev, window.next, highlighted_text, mode,
+        { char_count = char_count, paragraphs = paragraph_count })
 end
 
 -- Build unified request config for ALL providers (v0.5.2+)
@@ -2410,7 +2302,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         dictionary_language = effective_dictionary_language,
         -- Context from dictionary hook (surrounding text)
         context = config.features.dictionary_context or "",
-        dictionary_context_mode = config.features.dictionary_context_mode,
+        -- Mode: dict-popup/bypass launches mark their config copies with
+        -- _dictionary_context_explicit — their mode is authoritative (the popup wrote
+        -- the already-resolved value, and the compact viewer's CTX+ toggle re-runs
+        -- inherit the marker so its session mode beats a per-book override). Every
+        -- other path resolves per-book > global, matching what its entry extracted with.
+        dictionary_context_mode = (config.features._dictionary_context_explicit
+                and config.features.dictionary_context_mode)
+            or BookSettings.resolveDictionaryContext(per_book_ds, config.features),
         -- X-Ray context prefix (injected before action prompt in message builder)
         request_prefix = xray_prefix,
     }
@@ -2463,19 +2362,40 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- Check both string ID and action object ID
         local action_id = type(prompt_type_or_action) == "table" and prompt_type_or_action.id or prompt_type_or_action
         if action_id == "dictionary" and (not message_data.context or message_data.context == "") then
-            local context_mode = config.features.dictionary_context_mode or "sentence"
+            -- Resolved per-book > global mode; "none" extracts nothing
             local context_chars = config.features.dictionary_context_chars or 100
-            message_data.context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
+            message_data.context = extractSurroundingContext(ui, highlightedText,
+                message_data.dictionary_context_mode, context_chars)
         end
 
-        -- Extract surrounding context for any action with use_surrounding_context flag
-        if prompt.use_surrounding_context then
-            if config.features._forced_surrounding_context then
+        -- Surrounding context (surrounding_context_plan.md): per-action tri-state over
+        -- the ambient per-book/global mode. Entry points pre-extract the raw window into
+        -- the _selection_context_window transient before the selection dies with the
+        -- overlay; it is trimmed to the resolved mode here. The fingerprint check
+        -- (window.text) makes a stale window from another selection self-discarding.
+        -- X-Ray's forced context (wiki disambiguation) keeps its flag-gated priority,
+        -- and X-Ray chat launches (xray_prefix) never get ambient context.
+        local sc_window = config.features._selection_context_window
+        config.features._selection_context_window = nil  -- consume: one launch per entry
+        local sc_mode = PromptsActions.effectiveSurroundingContextMode(
+            prompt, config.features, BookSettings.resolveHighlightContext(per_book_ds, config.features))
+        if config.features._forced_surrounding_context then
+            if prompt.use_surrounding_context then
                 message_data.surrounding_context = config.features._forced_surrounding_context
+            end
+        elseif sc_mode and not xray_prefix then
+            local sc_chars = prompt.context_chars or config.features.highlight_context_chars or 100
+            local sc_paragraphs = config.features.highlight_context_paragraphs or 1
+            local sc_text
+            if sc_window and sc_window.text == highlightedText then
+                sc_text = ScopeResolver.trimContext(sc_window.prev, sc_window.next, highlightedText,
+                    sc_mode, { char_count = sc_chars, paragraphs = sc_paragraphs })
             else
-                local context_mode = prompt.context_mode or config.features.dictionary_context_mode or "sentence"
-                local context_chars = prompt.context_chars or config.features.dictionary_context_chars or 100
-                message_data.surrounding_context = extractSurroundingContext(ui, highlightedText, context_mode, context_chars)
+                -- Surfaces that didn't pre-extract: try the live selection (may be gone)
+                sc_text = extractSurroundingContext(ui, highlightedText, sc_mode, sc_chars, sc_paragraphs)
+            end
+            if sc_text and sc_text ~= "" then
+                message_data.surrounding_context = sc_text
             end
         end
     end
@@ -3659,7 +3579,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local session_spoiler_free = ((configuration or {}).features or {})._session_spoiler_free
     local session_book_tools = ((configuration or {}).features or {})._session_book_tools
     local session_web_search = ((configuration or {}).features or {})._session_web_search
+    -- Selection context window: pre-extracted by the entry point before the selection
+    -- died with the highlight overlay. Captured to a dialog-local (and cleared from the
+    -- shared config) so it can't leak across dialogs; re-set just-in-time at dispatch.
+    local selection_context_window = ((configuration or {}).features or {})._selection_context_window
     if configuration and configuration.features then
+        configuration.features._selection_context_window = nil
         configuration.features._hide_artifacts = nil
         configuration.features._exclude_action_flags = nil
         configuration.features._xray_chat_context = nil
@@ -4089,6 +4014,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 -- right after copying, so it can't go stale on the shared table.
                 configuration.features = configuration.features or {}
                 configuration.features._web_search_active = session_web_search == true
+                -- Same just-in-time pattern for the pre-extracted selection window
+                -- (surrounding context): consumed by handlePredefinedPrompt.
+                configuration.features._selection_context_window = selection_context_window
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
@@ -5206,6 +5134,29 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         table.insert(parts, "Selected text:")
                         table.insert(parts, '"' .. highlighted_text .. '"')
                         table.insert(parts, "")
+                        -- Ambient surrounding context (surrounding_context_plan.md): freeform
+                        -- Send follows the per-book > global mode. The window was pre-extracted
+                        -- at the entry point (the live selection is long gone); the fingerprint
+                        -- check discards a window from a different selection, and X-Ray chat
+                        -- (item-name pseudo-selection) is excluded outright.
+                        if selection_context_window and selection_context_window.text == highlighted_text
+                            and not xray_context_prefix then
+                            local sc_mode = BookSettings.resolveHighlightContext(doc_settings, configuration.features)
+                            if sc_mode ~= "none" then
+                                local sc_text = ScopeResolver.trimContext(
+                                    selection_context_window.prev, selection_context_window.next,
+                                    highlighted_text, sc_mode, {
+                                        char_count = configuration.features.highlight_context_chars or 100,
+                                        paragraphs = configuration.features.highlight_context_paragraphs or 1,
+                                    })
+                                if sc_text ~= "" then
+                                    local SendTemplates = require("prompts.templates")
+                                    table.insert(parts, SendTemplates.SURROUNDING_CONTEXT_LABEL)
+                                    table.insert(parts, sc_text)
+                                    table.insert(parts, "")
+                                end
+                            end
+                        end
                     end
 
                     -- Get user's typed question
@@ -5750,6 +5701,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if session_book_tools ~= nil then configuration.features._session_book_tools = session_book_tools end
             -- Web: same explicit-false preservation as tools.
             if session_web_search ~= nil then configuration.features._session_web_search = session_web_search end
+            -- The pre-extracted selection window must survive the reopen too (the
+            -- selection itself is long gone and can't be re-fetched).
+            if selection_context_window then configuration.features._selection_context_window = selection_context_window end
         end
         showChatGPTDialog(ui_instance, highlighted_text, configuration, nil, plugin, book_metadata, current_text)
     end
@@ -7151,5 +7105,6 @@ return {
     executeActionForResult = executeActionForResult,
     generateSummaryCache = generateSummaryCache,
     extractSurroundingContext = extractSurroundingContext,
+    fetchSelectionContextWindow = fetchSelectionContextWindow,
     launchArtifactChat = launchArtifactChat,
 }

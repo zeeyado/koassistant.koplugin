@@ -81,6 +81,12 @@ Templates.SPOILER_FREE_NUDGE = "The reader is currently at {reading_progress} of
 -- Variant without reading progress (file browser with unknown progress, etc.)
 Templates.SPOILER_FREE_NUDGE_NO_PROGRESS = "The reader has not finished this book. Do not reveal plot twists, endings, character deaths, or major surprises. Keep discussion focused on what has been established so far."
 
+-- Surrounding-context label - heads the ambient context block for highlight requests
+-- Used by MessageBuilder for {surrounding_context_section} and the ambient append,
+-- and by the freeform Send path in dialogs. Self-describing so transformation
+-- actions (e.g. translate) keep responding about the highlighted passage only.
+Templates.SURROUNDING_CONTEXT_LABEL = "Surrounding context from the book (the highlighted passage is marked with >>> <<<). Use it only to inform your response; respond about the highlighted passage:"
+
 -- Highlight analysis nudge - appears only when highlights are provided
 -- Available as {highlight_analysis_nudge} conditional placeholder in X-Ray prompts
 Templates.HIGHLIGHT_ANALYSIS_NUDGE = [[If highlights are provided, add a "reader_engagement" section to the JSON:

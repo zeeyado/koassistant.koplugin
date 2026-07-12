@@ -104,6 +104,7 @@ Registry.SETTINGS_SUBKEYS = {
         "languages_migrated", "behavior_migrated", "prompts_migrated_v2",
         "_reasoning_v2_migrated", "_reasoning_hint_shown",
         "_tools_posture_migrated", "_session_chips_migrated",
+        "_highlight_context_migrated",
         "setup_wizard_completed",                            -- top-level (see TOPLEVEL_SUBKEYS)
     },
 }
@@ -261,7 +262,7 @@ Registry.entries = {
         location = "sidecar_dockey",
         ref = function() return require("koassistant_book_settings").SIDECAR_KEYS end,
         category = "config", backup = false,
-        notes = "12 per-book override keys; SIDECAR_KEYS is the owner's source of truth (no dedicated index; per-book DocSettings).",
+        notes = "14 per-book override keys; SIDECAR_KEYS is the owner's source of truth (no dedicated index; per-book DocSettings).",
     },
     {
         id = "dockey_chats", label = "Per-book chats",

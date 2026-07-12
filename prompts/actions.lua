@@ -169,6 +169,55 @@ Actions.DOUBLE_GATED_FLAGS = {
     "use_summary_cache",
 }
 
+--- Ambient surrounding-context decision (surrounding_context_plan.md §1). Pure.
+-- Central tri-state over the resolved ambient mode:
+--   flag false → never include (dictionary family: their {context_section} channel
+--     already carries the passage — ambient would double-provide);
+--   flag true  → always include: action's own context_mode > ambient mode > sentence
+--     (explicit-true actions like AI Wiki need disambiguation context even when the
+--     ambient mode is off);
+--   flag nil   → follow the ambient mode, with structural skips: local (no-AI)
+--     actions, source_selection actions (they provide their own scope), and prompts
+--     that already carry a context channel ({surrounding_context*}, {context},
+--     {context_section}, {document_context_section}).
+-- Translate is special-cased on the translate_use_context setting (opt-in; its
+-- action deliberately opts out of everything else) and never applies to full-page
+-- translation (the input IS the page).
+-- @param action table|nil action definition (nil = freeform Send: just the ambient mode)
+-- @param features table config.features (translate_use_context, is_full_page_translate)
+-- @param ambient_mode string|nil resolved per-book/global mode ("none"/nil = ambient off)
+-- @return string|nil mode to extract with, or nil = do not include
+function Actions.effectiveSurroundingContextMode(action, features, ambient_mode)
+    features = features or {}
+    local ambient = (ambient_mode and ambient_mode ~= "none") and ambient_mode or nil
+    if not action then return ambient end
+    if action.local_handler then return nil end
+    local flag = action.use_surrounding_context
+    if flag == false then return nil end
+    if action.id == "translate" then
+        if features.translate_use_context ~= true then return nil end
+        if features.is_full_page_translate then return nil end
+        return action.context_mode or ambient or "sentence"
+    end
+    if flag == true then
+        return action.context_mode or ambient or "sentence"
+    end
+    -- nil flag: ambient path with structural skips
+    if not ambient then return nil end
+    if action.source_selection then return nil end
+    -- NOTE: template-based actions (action.template, no action.prompt) are invisible
+    -- to these placeholder scans. Benign today — no highlight template carries a
+    -- context channel — but read the resolved template here if one ever does.
+    local prompt_text = action.prompt or ""
+    if prompt_text:find("{surrounding_context", 1, true)
+        or prompt_text:find("{context}", 1, true)
+        or prompt_text:find("{context_section}", 1, true)
+        or prompt_text:find("{document_context_section}", 1, true) then
+        return nil
+    end
+    return ambient
+end
+
 -- Built-in actions for highlight context
 -- These use global behavior setting (no behavior_variant override)
 Actions.highlight = {
@@ -2041,6 +2090,7 @@ Actions.special = {
         description = _("A brief, one-line dictionary definition of the selected word in your dictionary language."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
+        use_surrounding_context = false,  -- {context_section} channel already carries the passage
         in_dictionary_popup = 2,  -- Default order in dictionary popup
         prompt = [[Define "{highlighted_text}"
 
@@ -2071,6 +2121,7 @@ One line only. No etymology, no synonyms. No headers.]],
         description = _("Full dictionary entry with pronunciation, definitions, etymology, and synonyms."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
+        use_surrounding_context = false,  -- {context_section} channel already carries the passage
         in_dictionary_popup = 1,  -- Default order in dictionary popup
         prompt = [[Dictionary entry for "{highlighted_text}"
 
@@ -2103,6 +2154,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         description = _("Deep linguistic analysis covering morphology, word family, etymology, cognates, and cross-language borrowings. Adapts to the word's language family (Semitic roots, Indo-European stems, etc.)."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "dictionary_detailed",  -- Use built-in detailed dictionary behavior
+        use_surrounding_context = false,  -- {context_section} channel already carries the passage
         dictionary_view = true,  -- Full-size dictionary view (more room for detailed analysis)
         minimal_buttons = true,  -- Dictionary button set
         in_dictionary_popup = 3,  -- Default order in dictionary popup

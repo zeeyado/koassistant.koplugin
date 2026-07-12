@@ -273,6 +273,10 @@ function AskGPT:init()
               }
             end
 
+            -- Pre-extract the surrounding-context window while the selection is alive
+            -- (onClose clears it; the dialog trims/sends per the resolved mode later)
+            local sc_window = Dialogs.fetchSelectionContextWindow(self.ui, selected_text)
+
             reader_highlight_instance:onClose()
             self:ensureInitialized()
             -- Make sure we're using the latest configuration
@@ -286,6 +290,7 @@ function AskGPT:init()
             configuration.features.books_info = nil
             -- Store selection data for "Save to Note" feature
             configuration.features.selection_data = selection_data
+            configuration.features._selection_context_window = sc_window
             showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
           end,
         }
@@ -1549,6 +1554,25 @@ function AskGPT:initSettings()
       features._session_chips_migrated = true
       needs_save = true
       logger.info("KOAssistant: Migrated show_spoiler_toggle to session_chips")
+    end
+
+    -- ONE-TIME seed (surrounding_context_plan.md): highlight actions' surrounding
+    -- context used to fall back to the DICTIONARY context settings. Copy a tuned
+    -- dictionary mode into the new highlight_context_mode so flag-true actions keep
+    -- their behavior after the decouple. Everyone else stays at the "none" default —
+    -- ambient context is opt-in and must not start flowing after an update.
+    if not features._highlight_context_migrated then
+      if features.highlight_context_mode == nil
+          and features.dictionary_context_mode ~= nil
+          and features.dictionary_context_mode ~= "none" then
+        features.highlight_context_mode = features.dictionary_context_mode
+        if features.highlight_context_chars == nil and features.dictionary_context_chars ~= nil then
+          features.highlight_context_chars = features.dictionary_context_chars
+        end
+        logger.info("KOAssistant: Seeded highlight context mode from dictionary settings")
+      end
+      features._highlight_context_migrated = true
+      needs_save = true
     end
 
     if needs_save then
@@ -3940,9 +3964,11 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
   -- Non-reader lookups (ChatGPT viewer, nested dictionary) have no meaningful
   -- book context to extract — the word came from AI-generated or dictionary text.
   local context = ""
-  local context_mode = features.dictionary_context_mode or "none"
+  local context_mode = require("koassistant_book_settings")
+    .resolveDictionaryContext(self.ui and self.ui.doc_settings, features)
   local context_chars = features.dictionary_context_chars or 100
   local extraction_mode = (context_mode == "none") and "sentence" or context_mode
+  local sc_window = nil
 
   if not non_reader_lookup then
     if self.ui and self.ui.highlight and self.ui.highlight.getSelectedWordContext then
@@ -3952,6 +3978,9 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
         extraction_mode,
         context_chars
       )
+      -- Pre-extract the surrounding-context window while the selection is alive
+      -- (the popup close clears it; handlePredefinedPrompt trims per resolved mode)
+      sc_window = Dialogs.fetchSelectionContextWindow(self.ui, word)
     end
 
     if context ~= "" then
@@ -4017,7 +4046,14 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
         dict_config.features._original_context_mode = extraction_mode
       end
       dict_config.features.dictionary_language = dict_language
-      dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
+      dict_config.features.dictionary_context_mode = context_mode
+      -- Mark the mode authoritative on this copy: handlePredefinedPrompt must not
+      -- re-resolve it (the CTX+ toggle's re-run configs inherit this marker, and its
+      -- session mode has to beat a per-book override)
+      dict_config.features._dictionary_context_explicit = true
+      -- Pre-extracted selection window (set-or-clear; a features copy could
+      -- otherwise carry a stale one from an earlier launch)
+      dict_config.features._selection_context_window = sc_window
       -- Store selection_data for "Save to Note" feature (word position only)
       dict_config.features.selection_data = selection_data
 
@@ -10241,6 +10277,9 @@ function AskGPT:translateCurrentPage()
   -- Clear selection_data - there's no actual user highlight for page translation,
   -- so the "Save to Note" button should be disabled (prevents using stale data from prior highlights)
   config_copy.features.selection_data = nil
+  -- Same hygiene for the surrounding-context window: no selection here, and the
+  -- features copy above could carry a stale one from an earlier highlight
+  config_copy.features._selection_context_window = nil
 
   -- Execute translation
   logger.info("KOAssistant: translateCurrentPage calling executeDirectAction with page_text:", page_text and #page_text or "nil/empty")
@@ -10527,7 +10566,8 @@ function AskGPT:registerHighlightMenuActions()
           -- Check if highlight module has the getSelectedWordContext method
           -- Note: Method is on self.ui.highlight, not reader_highlight_instance
           if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
-            local context_mode = cur_features.dictionary_context_mode or "none"
+            local context_mode = require("koassistant_book_settings")
+              .resolveDictionaryContext(self.ui and self.ui.doc_settings, cur_features)
             -- Skip context extraction if mode is "none"
             if context_mode ~= "none" then
               local context_chars = cur_features.dictionary_context_chars or 100
@@ -10539,6 +10579,9 @@ function AskGPT:registerHighlightMenuActions()
               )
             end
           end
+          -- Pre-extract the surrounding-context window while the selection is alive
+          -- (onClose clears it; handlePredefinedPrompt trims per the resolved mode)
+          local sc_window = Dialogs.fetchSelectionContextWindow(self.ui, selected_text)
 
           -- Capture full selection data for "Save to Note" feature (before onClose clears it)
           local selection_data = nil
@@ -10562,12 +10605,12 @@ function AskGPT:registerHighlightMenuActions()
           if fresh_action.local_handler then
             -- Local actions don't need network
             self:updateConfigFromSettings()
-            self:executeQuickAction(fresh_action, selected_text, context, selection_data)
+            self:executeQuickAction(fresh_action, selected_text, context, selection_data, sc_window)
           else
             NetworkMgr:runWhenConnected(function()
               self:updateConfigFromSettings()
               -- Pass extracted context and selection data to executeQuickAction
-              self:executeQuickAction(fresh_action, selected_text, context, selection_data)
+              self:executeQuickAction(fresh_action, selected_text, context, selection_data, sc_window)
             end)
           end
         end,
@@ -10644,10 +10687,12 @@ function AskGPT:syncDictionaryBypass()
       -- Once cleared, getSelectedWordContext() will return nil.
       -- Always extract regardless of mode, so compact view toggle can enable context later.
       local context = ""
-      local context_mode = features.dictionary_context_mode or "none"
+      local context_mode = require("koassistant_book_settings")
+        .resolveDictionaryContext(self_ref.ui and self_ref.ui.doc_settings, features)
       local context_chars = features.dictionary_context_chars or 100
       -- Use "sentence" as extraction mode when setting is "none" (for toggle availability)
       local extraction_mode = (context_mode == "none") and "sentence" or context_mode
+      local sc_window = nil
       if not non_reader_lookup and self_ref.ui and self_ref.ui.highlight then
         context = Dialogs.extractSurroundingContext(
           self_ref.ui,
@@ -10655,6 +10700,9 @@ function AskGPT:syncDictionaryBypass()
           extraction_mode,
           context_chars
         )
+        -- Pre-extract the surrounding-context window while the selection is alive
+        -- (highlight:clear() below kills it; handlePredefinedPrompt trims per mode)
+        sc_window = Dialogs.fetchSelectionContextWindow(self_ref.ui, word)
         if context and context ~= "" then
           logger.info("KOAssistant BYPASS: Got context (" .. #context .. " chars)")
         else
@@ -10741,7 +10789,13 @@ function AskGPT:syncDictionaryBypass()
             dict_config.features._original_context_mode = extraction_mode
           end
           dict_config.features.dictionary_language = dict_language
-          dict_config.features.dictionary_context_mode = features.dictionary_context_mode or "none"
+          dict_config.features.dictionary_context_mode = context_mode
+          -- Mark the mode authoritative on this copy (see executeDictAction): the
+          -- CTX+ toggle's re-run configs inherit it via the features copy
+          dict_config.features._dictionary_context_explicit = true
+          -- Pre-extracted selection window (set-or-clear; a features copy could
+          -- otherwise carry a stale one from an earlier launch)
+          dict_config.features._selection_context_window = sc_window
           -- Store selection_data for "Save to Note" feature (word position only)
           dict_config.features.selection_data = selection_data
 
@@ -10999,18 +11053,21 @@ end
 -- @param highlighted_text: The selected text
 -- @param context: Optional surrounding context (for dictionary actions)
 -- @param selection_data: Optional selection position data (for "Save to Note" feature)
-function AskGPT:executeQuickAction(action, highlighted_text, context, selection_data)
+function AskGPT:executeQuickAction(action, highlighted_text, context, selection_data, sc_window)
   -- Clear context flags for highlight context (default context)
   configuration.features = configuration.features or {}
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = nil
   configuration.features.is_library_context = nil
-  -- Pass surrounding context if provided (for dictionary actions)
-  if context and context ~= "" then
-    configuration.features.dictionary_context = context
-  end
+  -- Pass surrounding context if provided (for dictionary actions). Set-or-clear:
+  -- a stale value from an earlier launch must not attach to this one.
+  configuration.features.dictionary_context = (context and context ~= "") and context or nil
   -- Store selection data for "Save to Note" feature
   configuration.features.selection_data = selection_data
+  -- Pre-extracted selection window (set-or-clear: a stale window must not survive
+  -- this entry; handlePredefinedPrompt consumes it — which local actions never
+  -- reach, so don't leave it on the shared config for them)
+  configuration.features._selection_context_window = (not action.local_handler) and sc_window or nil
   -- Block actions when declared requirements are unmet
   if self:_checkRequirements(action) then
     return
