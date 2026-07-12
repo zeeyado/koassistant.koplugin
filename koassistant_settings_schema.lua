@@ -1923,16 +1923,26 @@ local SettingsSchema = {
                             default = false,
                         },
                         {
-                            id = "web_search_max_uses",
-                            type = "spinner",
-                            text = _("Max Searches per Query"),
-                            help_text = _("Maximum number of web searches per query (1-10).\nApplies to Anthropic only.\nGemini decides search count automatically."),
-                            path = "features.web_search_max_uses",
-                            default = 5,
-                            min = 1,
-                            max = 10,
-                            step = 1,
-                            precision = "%d",
+                            id = "web_search_effort",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local effort = f.web_search_effort or "standard"
+                                local labels = {
+                                    light = _("Light"),
+                                    standard = _("Standard"),
+                                    thorough = _("Thorough"),
+                                }
+                                return T(_("Web Search Effort: %1"), labels[effort] or effort)
+                            end,
+                            help_text = _("How much web searching the AI may do per question.\n\nLight: fewest searches — fastest and cheapest.\nStandard: balanced (provider defaults).\nThorough: most searches and context — slower and costlier.\n\nApplies where the provider offers control: Anthropic (up to 2/5/10 searches), Perplexity (search context size), OpenRouter (3/5/10 results). Gemini decides automatically."),
+                            path = "features.web_search_effort",
+                            default = "standard",
+                            options = {
+                                { value = "light", text = _("Light (fewest searches)") },
+                                { value = "standard", text = _("Standard") },
+                                { value = "thorough", text = _("Thorough (most searches)") },
+                            },
                             depends_on = { id = "enable_web_search", value = true },
                             separator = true,
                         },

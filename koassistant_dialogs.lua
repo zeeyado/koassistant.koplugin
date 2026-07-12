@@ -342,6 +342,34 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             lang_fields, SafeDocSettings.resolve(lang_file))
     end
 
+    -- Web search: layered override baked into config.enable_web_search — handlers read it
+    -- override-first, else features.enable_web_search (the global default).
+    -- Priority: action flag (true = force on, false = force off, nil = follow) >
+    -- per-chat toggle (freeform Send AND dialog-launched actions) > per-book override >
+    -- nil = follow global at the wire layer. Always assigned, so a stale value on a
+    -- shared/reused config can't leak into this request; the per-chat flag is consumed
+    -- once baked (replies read the baked value off the viewer's configuration).
+    -- Baked BEFORE the system prompt so the prose nudge below can see the decision.
+    if action and action.enable_web_search ~= nil then
+        config.enable_web_search = action.enable_web_search
+    elseif features._web_search_active ~= nil then
+        config.enable_web_search = features._web_search_active
+    else
+        config.enable_web_search = bookWebSearchOverride(features)
+    end
+    features._web_search_active = nil
+    -- Effective boolean for the system-prompt nudge (mirrors the handlers' read:
+    -- override-first, else global; Perplexity searches unconditionally)
+    local web_search_effective
+    if config.enable_web_search ~= nil then
+        web_search_effective = config.enable_web_search == true
+    else
+        web_search_effective = features.enable_web_search == true
+    end
+    if (config.provider or config.default_provider) == "perplexity" then
+        web_search_effective = true
+    end
+
     -- Build unified system prompt (works for all providers)
     local system_config = SystemPrompts.buildUnifiedSystem({
         -- Behavior resolution (priority: action override > action variant > global)
@@ -366,6 +394,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         -- Spoiler-free mode: inject nudge into system prompt for freeform chat
         spoiler_free = features._spoiler_free_active,
         reading_progress = features.book_metadata and features.book_metadata.reading_progress,
+        -- Web search active → prose nudge (pre-search text is reader-visible)
+        web_search = web_search_effective,
     })
 
     config.system = system_config
@@ -412,21 +442,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     config.api_params._reasoning = reasoning_decision
     ModelConstraints.applyReasoningParams(provider, config.api_params, reasoning_decision)
 
-    -- Web search: layered override baked into config.enable_web_search — handlers read it
-    -- override-first, else features.enable_web_search (the global default).
-    -- Priority: action flag (true = force on, false = force off, nil = follow) >
-    -- per-chat toggle (freeform Send AND dialog-launched actions) > per-book override >
-    -- nil = follow global at the wire layer. Always assigned, so a stale value on a
-    -- shared/reused config can't leak into this request; the per-chat flag is consumed
-    -- once baked (replies read the baked value off the viewer's configuration).
-    if action and action.enable_web_search ~= nil then
-        config.enable_web_search = action.enable_web_search
-    elseif features._web_search_active ~= nil then
-        config.enable_web_search = features._web_search_active
-    else
-        config.enable_web_search = bookWebSearchOverride(features)
-    end
-    features._web_search_active = nil
+    -- (Web search baking moved above the system-prompt build — see the block before
+    -- buildUnifiedSystem.)
 
     -- Set action name for loading dialog display (used by non-streaming loading dialog)
     if action and action.text then

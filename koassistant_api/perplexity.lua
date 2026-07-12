@@ -60,6 +60,16 @@ function PerplexityHandler:customizeRequestBody(body, config)
         end
     end
 
+    -- Web search effort dial → search_context_size; standard sends nothing (API
+    -- default), matching pre-dial behavior. Search is always-on for Perplexity, so
+    -- no enable_web_search gate here.
+    local effort = ModelConstraints.webSearchEffort(config.features)
+    if effort ~= "standard" then
+        body.web_search_options = {
+            search_context_size = effort == "light" and "low" or "high",
+        }
+    end
+
     return body
 end
 

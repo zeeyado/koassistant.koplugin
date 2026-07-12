@@ -884,6 +884,97 @@ TestRunner:test("Gemini skips grounding for unsupported model", function()
 end)
 
 --------------------------------------------------------------------------------
+-- Test: Web search effort dial (report 3(a)) — per-provider wire mappings
+--------------------------------------------------------------------------------
+
+TestRunner:suite("Effort dial: Anthropic max_uses")
+
+local AnthropicRequestDial = require("anthropic_request")
+
+local function anthropicTools(features)
+    local body = AnthropicRequestDial:build({
+        model = "claude-sonnet-4-6",
+        messages = { { role = "user", content = "hi" } },
+        features = features,
+    })
+    return body.tools and body.tools[1]
+end
+
+TestRunner:test("default (standard) maps to max_uses 5", function()
+    local tool = anthropicTools({ enable_web_search = true })
+    TestRunner:assertEqual(tool.max_uses, 5)
+end)
+
+TestRunner:test("light maps to max_uses 2", function()
+    local tool = anthropicTools({ enable_web_search = true, web_search_effort = "light" })
+    TestRunner:assertEqual(tool.max_uses, 2)
+end)
+
+TestRunner:test("thorough maps to max_uses 10", function()
+    local tool = anthropicTools({ enable_web_search = true, web_search_effort = "thorough" })
+    TestRunner:assertEqual(tool.max_uses, 10)
+end)
+
+TestRunner:test("legacy web_search_max_uses wins over the dial", function()
+    local tool = anthropicTools({ enable_web_search = true,
+        web_search_effort = "light", web_search_max_uses = 7 })
+    TestRunner:assertEqual(tool.max_uses, 7, "configuration.lua power-user value respected")
+end)
+
+TestRunner:suite("Effort dial: OpenRouter web plugin")
+
+TestRunner:test("standard keeps the plain :online suffix, no plugins", function()
+    local result = OpenRouterHandler:customizeRequestBody({ model = "openai/gpt-4" },
+        { features = { enable_web_search = true, web_search_effort = "standard" } })
+    TestRunner:assertEqual(result.model, "openai/gpt-4:online")
+    TestRunner:assertNil(result.plugins)
+end)
+
+TestRunner:test("light uses the web plugin with max_results 3, no suffix", function()
+    local result = OpenRouterHandler:customizeRequestBody({ model = "openai/gpt-4" },
+        { features = { enable_web_search = true, web_search_effort = "light" } })
+    TestRunner:assertEqual(result.model, "openai/gpt-4", "no :online when plugin used")
+    TestRunner:assertEqual(result.plugins[1].id, "web")
+    TestRunner:assertEqual(result.plugins[1].max_results, 3)
+end)
+
+TestRunner:test("thorough uses max_results 10 and strips a baked-in suffix", function()
+    local result = OpenRouterHandler:customizeRequestBody({ model = "openai/gpt-4:online" },
+        { features = { enable_web_search = true, web_search_effort = "thorough" } })
+    TestRunner:assertEqual(result.model, "openai/gpt-4", "baked :online stripped")
+    TestRunner:assertEqual(result.plugins[1].max_results, 10)
+end)
+
+TestRunner:test("web search off emits no plugins regardless of dial", function()
+    local result = OpenRouterHandler:customizeRequestBody({ model = "openai/gpt-4" },
+        { features = { enable_web_search = false, web_search_effort = "thorough" } })
+    TestRunner:assertEqual(result.model, "openai/gpt-4")
+    TestRunner:assertNil(result.plugins)
+end)
+
+TestRunner:suite("Effort dial: Perplexity search_context_size")
+
+local PerplexityHandler = require("perplexity")
+
+TestRunner:test("standard sends no web_search_options (API default)", function()
+    local result = PerplexityHandler:customizeRequestBody({ model = "sonar-pro" },
+        { features = { web_search_effort = "standard" } })
+    TestRunner:assertNil(result.web_search_options)
+end)
+
+TestRunner:test("light sends search_context_size low", function()
+    local result = PerplexityHandler:customizeRequestBody({ model = "sonar-pro" },
+        { features = { web_search_effort = "light" } })
+    TestRunner:assertEqual(result.web_search_options.search_context_size, "low")
+end)
+
+TestRunner:test("thorough sends search_context_size high", function()
+    local result = PerplexityHandler:customizeRequestBody({ model = "sonar-pro" },
+        { features = { web_search_effort = "thorough" } })
+    TestRunner:assertEqual(result.web_search_options.search_context_size, "high")
+end)
+
+--------------------------------------------------------------------------------
 -- Test: Web-search provenance (sources/queries in the web_search slot)
 --------------------------------------------------------------------------------
 

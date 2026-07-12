@@ -8,6 +8,7 @@ OpenAI-compatible handler with custom headers required by OpenRouter.
 
 local OpenAICompatibleHandler = require("koassistant_api.openai_compatible")
 local Constants = require("koassistant_constants")
+local ModelConstraints = require("model_constraints")
 
 local OpenRouterHandler = OpenAICompatibleHandler:new()
 
@@ -41,8 +42,18 @@ function OpenRouterHandler:customizeRequestBody(body, config)
     -- Append :online suffix to model name
     -- Only if model looks valid (OpenRouter models contain "/" like "anthropic/claude-3")
     if enable_web_search and body.model and body.model:find("/") then
-        -- Avoid double-appending if already has :online
-        if not body.model:match(":online$") then
+        local effort = ModelConstraints.webSearchEffort(config.features)
+        if effort ~= "standard" then
+            -- Non-default effort: use the explicit web plugin (the :online suffix is
+            -- shorthand for it with defaults and takes no options) so max_results
+            -- applies; strip a baked-in suffix to avoid double activation
+            body.model = body.model:gsub(":online$", "")
+            body.plugins = { {
+                id = "web",
+                max_results = effort == "light" and 3 or 10,
+            } }
+        elseif not body.model:match(":online$") then
+            -- Avoid double-appending if already has :online
             body.model = body.model .. ":online"
         end
     elseif not enable_web_search and body.model then

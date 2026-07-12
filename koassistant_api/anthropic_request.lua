@@ -127,11 +127,12 @@ function AnthropicRequest:build(config)
     local tools = {}
 
     if enable_web_search then
-        -- Get max_uses from settings (default 5)
-        local max_uses = 5
-        if config.features and config.features.web_search_max_uses then
-            max_uses = config.features.web_search_max_uses
-        end
+        -- Search cap from the effort dial; a legacy/power-user web_search_max_uses
+        -- (configuration.lua) still wins when explicitly set
+        local EFFORT_MAX_USES = { light = 2, standard = 5, thorough = 10 }
+        local effort = ModelConstraints.webSearchEffort(config.features)
+        local max_uses = (config.features and tonumber(config.features.web_search_max_uses))
+            or EFFORT_MAX_USES[effort]
         table.insert(tools, {
             type = "web_search_20250305",
             name = "web_search",

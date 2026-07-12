@@ -1556,6 +1556,26 @@ function AskGPT:initSettings()
       logger.info("KOAssistant: Migrated show_spoiler_toggle to session_chips")
     end
 
+    -- ONE-TIME migration (report 3(a)): the raw web_search_max_uses spinner
+    -- (Anthropic-only, 1-10) became the 3-level web_search_effort dial. Map a tuned
+    -- value to the nearest level and retire the old key from GUI settings (a
+    -- configuration.lua web_search_max_uses still wins in anthropic_request.lua).
+    if not features._web_search_effort_migrated then
+      local old_uses = tonumber(features.web_search_max_uses)
+      if features.web_search_effort == nil and old_uses ~= nil then
+        if old_uses <= 3 then
+          features.web_search_effort = "light"
+        elseif old_uses >= 8 then
+          features.web_search_effort = "thorough"
+        end
+        -- 4-7 → standard = nil default, nothing to write
+      end
+      features.web_search_max_uses = nil
+      features._web_search_effort_migrated = true
+      needs_save = true
+      logger.info("KOAssistant: Migrated web_search_max_uses to web_search_effort")
+    end
+
     -- ONE-TIME seed (surrounding_context_plan.md): highlight actions' surrounding
     -- context used to fall back to the DICTIONARY context settings. Copy a tuned
     -- dictionary mode into the new highlight_context_mode so flag-true actions keep
