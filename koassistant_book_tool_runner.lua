@@ -779,7 +779,21 @@ function BookToolRunner.run(params)
         elseif tool_calls > 0 then
             -- Lookups ran but returned nothing usable: say so honestly instead of letting
             -- the model imply it read the text (same spirit as {text_fallback_nudge}).
-            context_text = "[Book lookup note]\nBook lookups found no relevant passages for this question. Answer from the conversation and general knowledge, and say so when the book text would have been needed."
+            -- When phase 2 has web search available, say so — "answer from general
+            -- knowledge" alone reads as an instruction NOT to search.
+            local web_available
+            if config.enable_web_search ~= nil then
+                web_available = config.enable_web_search == true
+            else
+                web_available = features.enable_web_search == true
+            end
+            web_available = web_available
+                and ModelConstraints.supportsWebSearch(provider, config.model)
+            if web_available then
+                context_text = "[Book lookup note]\nBook lookups found no relevant passages for this question. Search the web if that would help answer it; otherwise answer from the conversation and general knowledge, and say so when the book text would have been needed."
+            else
+                context_text = "[Book lookup note]\nBook lookups found no relevant passages for this question. Answer from the conversation and general knowledge, and say so when the book text would have been needed."
+            end
         end
         if context_text then
             local insert_at = #gen_messages + 1

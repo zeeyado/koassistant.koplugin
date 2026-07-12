@@ -4559,7 +4559,15 @@ function ChatGPTViewer:showProvenanceViewer()
       if entry.sources and #entry.sources > 0 then
         table.insert(content_parts, _("Web sources:") .. "\n")
         for i, source in ipairs(entry.sources) do
-          if source.title then
+          -- Gemini grounding returns opaque, expiring Google redirect URLs — the
+          -- domain title is the only human-usable part, so don't print the blob
+          -- (the full URL stays stored on the message; this is display-only)
+          local is_google_redirect = type(source.url) == "string"
+            and source.url:find("^https://vertexaisearch%.cloud%.google%.com/") ~= nil
+          if is_google_redirect then
+            table.insert(content_parts, string.format("  %d. %s\n", i,
+              source.title or _("(Google search result)")))
+          elseif source.title then
             table.insert(content_parts, string.format("  %d. %s\n     %s\n", i, source.title, source.url))
           else
             table.insert(content_parts, string.format("  %d. %s\n", i, source.url))
