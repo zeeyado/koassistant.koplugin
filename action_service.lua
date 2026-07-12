@@ -1902,11 +1902,16 @@ end
 --   📓 = notebook (use_notebook)
 --   📚 = library (use_library)
 --   📊 = advanced stats / engagement groups (use_advanced_stats)
---   🌐 = web search active (per-action force-on, or follows global when global is on)
+--   🌐 = web search active (per-action force-on; parenthesized when following the
+--        effective default — the input dialog passes its session Web chip state via opts)
+--   (🔍) = smart retrieval available (action.smart_retrieval + opts.tools_allowed —
+--        the AI may search the book for targeted passages)
 -- @param action: Action definition table (needs flag fields)
 -- @param features: Features settings table (needs enable_data_access_indicators, enable_web_search)
+-- @param opts: optional { effective_web_search = bool (overrides the global for the
+--        follows-default 🌐 case), tools_allowed = bool (gates the (🔍) indicator) }
 -- @return string: Display text with optional emoji suffix
-function ActionService.getActionDisplayText(action, features)
+function ActionService.getActionDisplayText(action, features, opts)
     local text = action.text or action.id
     if not features or features.enable_data_access_indicators ~= true then
         return text
@@ -1938,13 +1943,24 @@ function ActionService.getActionDisplayText(action, features)
     if action.use_advanced_stats then
         table.insert(indicators, "📊")
     end
-    -- Web search: show when effectively enabled (per-action override or global setting)
+    -- Web search: show when effectively enabled (per-action override, else the
+    -- caller-supplied effective value — session chip in the input dialog — else global)
+    local effective_web = features.enable_web_search == true
+    if opts and opts.effective_web_search ~= nil then
+        effective_web = opts.effective_web_search == true
+    end
     if action.enable_web_search == true then
         -- Forced on: solid icon
         table.insert(indicators, "🌐")
-    elseif action.enable_web_search == nil and features.enable_web_search == true then
-        -- Follows global (currently on): parenthesized to distinguish from forced
+    elseif action.enable_web_search == nil and effective_web then
+        -- Follows the effective default (currently on): parenthesized
         table.insert(indicators, "(🌐)")
+    end
+    -- Smart retrieval: the action may search the book via tools (parenthesized — the
+    -- source popup / silent gather decides per run). Only when the caller says tools
+    -- could actually run (posture, provider, consent — see smartRetrievalAllowed).
+    if action.smart_retrieval == true and opts and opts.tools_allowed then
+        table.insert(indicators, "(🔍)")
     end
 
     if #indicators > 0 then

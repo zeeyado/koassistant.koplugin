@@ -429,9 +429,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     if action then
         features._spoiler_free_active = nil
         features._tools_active = false
-        -- The per-chat web toggle is likewise freeform-only: a predefined action follows
-        -- its own enable_web_search flag, else the per-book/global defaults (baked below).
-        features._web_search_active = nil
+        -- (The per-chat web toggle is NOT cleared here: unlike spoiler/tools, it applies
+        -- to nil-flag actions launched from the dialog too — maintainer 2026-07-12, the
+        -- action buttons' 🌐 indicator follows the chip. Forced action flags still win
+        -- in the chain below; the dialog sets it just-in-time and this function's bake
+        -- consumes it, so other entry points never see a stale value.)
     end
 
     -- Per-book MAIN response-language override (Book Settings ▸ Languages ▸ AI response
@@ -521,7 +523,7 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- Web search: layered override baked into config.enable_web_search — handlers read it
     -- override-first, else features.enable_web_search (the global default).
     -- Priority: action flag (true = force on, false = force off, nil = follow) >
-    -- per-chat toggle (freeform dialog; cleared above for actions) > per-book override >
+    -- per-chat toggle (freeform Send AND dialog-launched actions) > per-book override >
     -- nil = follow global at the wire layer. Always assigned, so a stale value on a
     -- shared/reused config can't leak into this request; the per-chat flag is consumed
     -- once baked (replies read the baked value off the viewer's configuration).
@@ -2215,6 +2217,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Create a temporary configuration using the passed config as base
     local temp_config = createTempConfig(prompt, config)
+    -- The per-chat Web value (if any) rode into temp_config with the features copy;
+    -- consume it from the SOURCE config so it can't go stale on the shared table.
+    if config and config.features then
+        config.features._web_search_active = nil
+    end
     if prompt.provider then
         if not temp_config.provider_settings[prompt.provider] then
             temp_config.provider_settings[prompt.provider] = {}
@@ -3093,10 +3100,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     end
 
     -- Determine if web search will be active for this request
-    -- Per-action override > per-book override > global setting (the per-chat toggle
-    -- doesn't apply — this is the predefined-action path, where it's cleared)
+    -- Per-action override > per-chat toggle (dialog-launched actions) > per-book
+    -- override > global setting
     -- Used by MessageBuilder to select web-aware hallucination nudge
     local action_ws = prompt and prompt.enable_web_search
+    if action_ws == nil and config.features then
+        action_ws = config.features._web_search_active
+    end
     if action_ws == nil then
         action_ws = bookWebSearchOverride(config.features)
     end
@@ -3658,6 +3668,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         configuration.features._session_spoiler_free = nil
         configuration.features._session_book_tools = nil
         configuration.features._session_web_search = nil
+        -- Stale-request hygiene: a per-chat web value from an earlier session must not
+        -- outlive its dialog (it is normally consumed at bake/dispatch).
+        configuration.features._web_search_active = nil
     end
 
     -- session_spoiler_free is initialized further below, once the book's DocSettings is
@@ -4059,6 +4072,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     configuration.features = configuration.features or {}
                     configuration.features._xray_context_prefix = xray_context_prefix
                 end
+
+                -- Thread the session Web chip into this action dispatch: actions with
+                -- enable_web_search = nil follow the chip (as they used to follow the
+                -- then-persisted global); forced true/false flags still win. Set
+                -- just-in-time — handlePredefinedPrompt consumes it from this config
+                -- right after copying, so it can't go stale on the shared table.
+                configuration.features = configuration.features or {}
+                configuration.features._web_search_active = session_web_search == true
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
@@ -4866,6 +4887,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local has_more_actions = false  -- Set by buildInputDialogButtons, read by gear menu
     local buildInputDialogButtons
     buildInputDialogButtons = function()
+        -- Data-access indicator context: the 🌐 follows-default indicator tracks the
+        -- SESSION Web chip (which dialog-launched nil-flag actions follow), and (🔍)
+        -- marks smart-retrieval actions when tools could actually run this session.
+        local indicator_opts = {
+            effective_web_search = session_web_search == true,
+            tools_allowed = (BookToolRunner.smartRetrievalAllowed(configuration, ui_instance)) == true,
+        }
         -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Spoiler]
         -- by membership (gear menu → "Chat Buttons…"), replacing the old checkbox pile +
         -- top-row Web/Domain buttons. Binary chips toggle their SESSION value on tap and
@@ -4942,7 +4970,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             spoiler = function()
                 if not chips_book_or_highlight then return nil end
                 return {
-                    text = session_spoiler_free and _("Spoiler-free ON") or _("Spoiler-free OFF"),
+                    text = enable_emoji
+                        and ("\u{1F648} " .. (session_spoiler_free and _("ON") or _("OFF")))
+                        or (session_spoiler_free and _("Spoiler-free ON") or _("Spoiler-free OFF")),
                     callback = function()
                         session_spoiler_free = not session_spoiler_free
                         refreshInputDialog()
@@ -5337,7 +5367,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 logger.info("Adding button for prompt: " .. custom_prompt_type .. " with text: " .. prompt.text)
                 local available = isActionAvailable(prompt)
                 table.insert(action_buttons, {
-                    text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features),
+                    text = ActionServiceModule.getActionDisplayText(prompt, (configuration or {}).features, indicator_opts),
                     prompt_type = custom_prompt_type,
                     enabled = available,
                     allow_hold_when_disabled = true,
@@ -5399,7 +5429,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             for _idx2, action in ipairs(more_actions) do
                 local available = isActionAvailable(action)
                 table.insert(action_buttons, {
-                    text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features),
+                    text = ActionServiceModule.getActionDisplayText(action, (configuration or {}).features, indicator_opts),
                     prompt_type = action.id,
                     enabled = available,
                     allow_hold_when_disabled = true,
