@@ -72,6 +72,13 @@ Templates.TEXT_FALLBACK_NUDGE = 'Note: No document text was provided. Use your k
 -- Injected by system_prompts.lua buildUnifiedSystem(), not a user prompt placeholder
 Templates.RESEARCH_NUDGE = [[This is an academic/research paper. Ground your analysis primarily in the provided text. If web search is available, use it to verify technical claims, understand the paper's position within its field, look up referenced works or foundational concepts, and search for the DOI directly for citation context and related work. Use relevant academic sources as you see fit — adapt to the discipline and field.]]
 
+-- Web-search prose nudge - added to the system prompt when web search is active for
+-- the request (report 3(b) follow-up). Pre-search prose stays visible in the
+-- assembled answer (segments + inline marker), so steer the model away from
+-- third-person planning narration ("The user is asking...") and from restating
+-- pre-search content after the search returns.
+Templates.WEB_SEARCH_PROSE_NUDGE = [[Anything you write before running a web search remains visible to the reader as part of your answer: address the reader directly, never narrate your process or plan in the third person, and after searching continue your answer without repeating what you already wrote.]]
+
 -- Spoiler-free nudge - used when spoiler-free mode is active
 -- Available as {spoiler_free_nudge} placeholder in custom action prompts
 -- Injected into system prompt for freeform chat when global or session toggle is on

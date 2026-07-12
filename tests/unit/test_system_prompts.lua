@@ -916,6 +916,24 @@ TestRunner:test("spoiler nudge coexists with domain and research", function()
     TestRunner:assertContains(result.text, "60%", "spoiler in text")
 end)
 
+TestRunner:suite("buildUnifiedSystem() web-search prose nudge")
+
+TestRunner:test("web_search=true injects the prose nudge", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        global_variant = "standard",
+        web_search = true,
+    })
+    TestRunner:assertNotNil(result.components.web_search, "has web_search component")
+    TestRunner:assertContains(result.text, "before running a web search", "nudge in text")
+end)
+
+TestRunner:test("no web_search flag → no nudge", function()
+    local result = SystemPrompts.buildUnifiedSystem({
+        global_variant = "standard",
+    })
+    TestRunner:assertNil(result.components.web_search, "no web_search component")
+end)
+
 -- Summary
 local success = TestRunner:summary()
 return success

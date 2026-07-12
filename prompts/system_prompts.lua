@@ -378,6 +378,21 @@ function SystemPrompts.buildUnifiedSystem(config)
         end
     end
 
+    -- Append web-search prose nudge when web search is active for this request:
+    -- pre-search text stays visible in the assembled answer (segments + inline
+    -- marker, report 3(b)) — steer the model away from third-person planning
+    -- narration and post-search restating.
+    local web_search_nudge = nil
+    if config.web_search
+            and Templates and Templates.WEB_SEARCH_PROSE_NUDGE then
+        web_search_nudge = Templates.WEB_SEARCH_PROSE_NUDGE
+        if content then
+            content = content .. "\n\n" .. web_search_nudge
+        else
+            content = web_search_nudge
+        end
+    end
+
     -- Append spoiler-free nudge when enabled (for freeform chat in book context)
     local spoiler_nudge = nil
     if config.spoiler_free and Templates then
@@ -406,6 +421,7 @@ function SystemPrompts.buildUnifiedSystem(config)
             domain = config.domain_context,
             language = language_instruction,
             research = research_nudge,
+            web_search = web_search_nudge,
             spoiler = spoiler_nudge,
         },
     }

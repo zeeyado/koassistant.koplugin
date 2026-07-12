@@ -513,6 +513,21 @@ function ModelConstraints.supportsWebSearch(provider, model)
     return false
 end
 
+--- Web search effort dial (report 3(a), 2026-07-12): one 3-level setting mapped to
+--- provider-specific wire params by each request builder — Anthropic max_uses
+--- (2/5/10), Perplexity search_context_size (low/–/high; standard sends nothing =
+--- API default), OpenRouter web-plugin max_results (3/–/10; standard keeps the
+--- plain :online suffix). Gemini has no count control (dial ignored).
+--- @param features table|nil plugin features
+--- @return string "light" | "standard" | "thorough" (nil/unknown → "standard")
+function ModelConstraints.webSearchEffort(features)
+    local effort = features and features.web_search_effort
+    if effort == "light" or effort == "thorough" then
+        return effort
+    end
+    return "standard"
+end
+
 --- Friendly, comma-joined list of providers that support web search.
 --- Derived from _web_search_providers so UI strings stay in sync on expansion.
 --- @return string e.g. "Anthropic, Gemini, Perplexity, OpenRouter"
