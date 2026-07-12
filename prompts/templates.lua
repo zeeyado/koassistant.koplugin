@@ -85,7 +85,7 @@ Templates.SPOILER_FREE_NUDGE_NO_PROGRESS = "The reader has not finished this boo
 -- Used by MessageBuilder for {surrounding_context_section} and the ambient append,
 -- and by the freeform Send path in dialogs. Self-describing so transformation
 -- actions (e.g. translate) keep responding about the highlighted passage only.
-Templates.SURROUNDING_CONTEXT_LABEL = "Surrounding context from the book (the highlighted passage is marked with >>> <<<). Use it only to inform your response; respond about the highlighted passage:"
+Templates.SURROUNDING_CONTEXT_LABEL = "Surrounding context from the document (the highlighted passage is marked with >>> <<<). Use it only to inform your response; respond about the highlighted passage:"
 
 -- Highlight analysis nudge - appears only when highlights are provided
 -- Available as {highlight_analysis_nudge} conditional placeholder in X-Ray prompts
