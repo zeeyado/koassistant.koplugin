@@ -111,6 +111,28 @@ local function harvestWebSources(event, prov)
     end
 end
 
+--- Close the current prose segment when a web search starts (report 3(b) decision,
+--- 2026-07-12): substantive prose the model wrote before searching is KEPT behind an
+--- inline marker (it is a completed text block the model composed knowing it stays
+--- visible — post-search text often references it); only short filler ("Let me
+--- search the web.") is dropped. Mirrors the non-streaming Anthropic assembly.
+--- Mutates `buffer` (entries from segment_start on are the current segment) and
+--- returns the next segment's start index.
+local function closeWebSearchSegment(buffer, segment_start)
+    local ResponseParser = require("koassistant_api.response_parser")
+    local segment = table.concat(buffer, "", segment_start, #buffer)
+    local trimmed = segment:gsub("^%s+", ""):gsub("%s+$", "")
+    if #trimmed < ResponseParser.WEB_PRESEARCH_FILLER_CHARS then
+        -- Filler (or nothing): drop the segment, no marker
+        while #buffer >= segment_start do
+            table.remove(buffer)
+        end
+    else
+        table.insert(buffer, "\n\n" .. ResponseParser.WEB_SEARCH_MARKER .. "\n\n")
+    end
+    return #buffer + 1
+end
+
 local StreamHandler = {
     interrupt_stream = nil,      -- function to interrupt the stream query
     user_interrupted = false,    -- flag to indicate if the stream was interrupted
@@ -119,6 +141,7 @@ local StreamHandler = {
 -- Exposed for unit testing (the locals above are the canonical implementations).
 StreamHandler.extractApiError = extractApiError
 StreamHandler.harvestWebSources = harvestWebSources
+StreamHandler.closeWebSearchSegment = closeWebSearchSegment
 
 function StreamHandler:new(o)
     o = o or {}
@@ -273,7 +296,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
     local in_web_search_phase = false  -- Track if web search tool is executing
     local web_search_used = false  -- Track if web search was ever used during this stream
-    local has_post_search_content = false  -- Track if real answer content arrived after a search
+    local segment_start_idx = 1  -- First result_buffer index of the current prose segment
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
     local web_prov = { sources = {}, queries = {}, seen = {} }  -- Web-search provenance ("Show Sources")
     local was_truncated = false  -- Track if response was truncated (max tokens)
@@ -401,6 +424,13 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         end
 
         local result = table.concat(result_buffer):match("^%s*(.-)%s*$") or "" -- trim
+        -- A search with no prose after it leaves a dangling trailing marker
+        do
+            local marker = require("koassistant_api.response_parser").WEB_SEARCH_MARKER
+            if #result >= #marker and result:sub(-#marker) == marker then
+                result = result:sub(1, #result - #marker):match("^%s*(.-)%s*$") or ""
+            end
+        end
 
         if self.user_interrupted then
             if on_complete then on_complete(false, nil, _("Request cancelled by user.")) end
@@ -1026,14 +1056,14 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             if type(content) == "string" and #content > 0 then
                                 -- Check for web search marker
                                 if content == "__WEB_SEARCH_START__" then
+                                    if not in_web_search_phase then
+                                        -- Close the current prose segment: substantive
+                                        -- pre-search text is kept behind an inline marker,
+                                        -- short filler dropped (see closeWebSearchSegment)
+                                        segment_start_idx = closeWebSearchSegment(result_buffer, segment_start_idx)
+                                    end
                                     in_web_search_phase = true
                                     web_search_used = true
-                                    -- Only discard pre-search thinking text ("Let me search...")
-                                    -- on the FIRST search. Subsequent searches must not wipe
-                                    -- accumulated answer content from earlier searches.
-                                    if not has_post_search_content then
-                                        result_buffer = {}
-                                    end
                                     if not first_content_received then
                                         first_content_received = true
                                         if animation_task then
@@ -1048,7 +1078,6 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     -- If transitioning from web search or reasoning to answer, clear display
                                     if in_web_search_phase then
                                         in_web_search_phase = false
-                                        has_post_search_content = true
                                         streamDialog._input_widget:setText("", true)
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
