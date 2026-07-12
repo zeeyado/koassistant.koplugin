@@ -248,7 +248,7 @@ local function runMessageBuilderTests()
             context = "general",
             data = { surrounding_context = "The text around the highlight." },
         })
-        TestRunner:assertContains(result, "Surrounding text:")
+        TestRunner:assertContains(result, "Surrounding context from the book")
         TestRunner:assertContains(result, "The text around the highlight.")
     end)
 
@@ -2042,7 +2042,7 @@ local function runSurroundingContextTests()
                 surrounding_context = "Previous sentence. Key term appears here. Next sentence.",
             },
         })
-        TestRunner:assertContains(result, "Surrounding text:")
+        TestRunner:assertContains(result, "Surrounding context from the book")
         TestRunner:assertContains(result, "Key term appears here")
     end)
 
@@ -2055,7 +2055,7 @@ local function runSurroundingContextTests()
                 surrounding_context = "",
             },
         })
-        TestRunner:assertNotContains(result, "Surrounding text:")
+        TestRunner:assertNotContains(result, "Surrounding context from the book")
         TestRunner:assertContains(result, "Analyze.")
     end)
 
@@ -2335,7 +2335,7 @@ local function runSubstituteVariablesTests()
         local result = MessageBuilder.substituteVariables("{surrounding_context_section}", {
             surrounding_context = "nearby text",
         })
-        TestRunner:assertContains(result, "Surrounding text:")
+        TestRunner:assertContains(result, "Surrounding context from the book")
         TestRunner:assertContains(result, "nearby text")
     end)
 

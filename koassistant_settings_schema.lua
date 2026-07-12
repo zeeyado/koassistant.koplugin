@@ -1072,6 +1072,14 @@ local SettingsSchema = {
                     help_text = _("Stream translation responses in real-time."),
                 },
                 {
+                    id = "translate_use_context",
+                    type = "toggle",
+                    text = _("Include Surrounding Context"),
+                    path = "features.translate_use_context",
+                    default = false,
+                    help_text = _("Send the text around the highlight along with translations, so the AI can resolve pronouns, tone, and ambiguous words. Uses the Surrounding Context mode from Highlight Settings (sentence when that is off). Never applies to full-page translation."),
+                },
+                {
                     id = "translate_copy_content",
                     type = "dropdown",
                     text = _("Copy Content"),
@@ -1162,6 +1170,51 @@ local SettingsSchema = {
             text = _("Highlight Settings"),
             emoji = "✏️",
             items = {
+                {
+                    id = "highlight_context_mode",
+                    type = "dropdown",
+                    text = _("Surrounding Context"),
+                    path = "features.highlight_context_mode",
+                    default = "none",
+                    options = {
+                        { value = "none", label = _("None (off)") },
+                        { value = "sentence", label = _("Sentence") },
+                        { value = "paragraph", label = _("Paragraph(s)") },
+                        { value = "characters", label = _("Characters") },
+                    },
+                    help_text = _("Automatically send the text around a highlight with highlight questions and actions, so the AI sees the passage in context. Capped at 2000 characters. Dictionary lookups and actions with their own scope selection are unaffected. Can be overridden per book in Book Settings."),
+                },
+                {
+                    id = "highlight_context_paragraphs",
+                    type = "spinner",
+                    text = _("Context Paragraphs"),
+                    path = "features.highlight_context_paragraphs",
+                    default = 1,
+                    min = 1,
+                    max = 5,
+                    step = 1,
+                    help_text = _("Number of paragraphs to include on each side of the highlight when Surrounding Context is 'Paragraph(s)'. 1 = the paragraph containing the highlight."),
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.highlight_context_mode == "paragraph"
+                    end,
+                },
+                {
+                    id = "highlight_context_chars",
+                    type = "spinner",
+                    text = _("Context Characters"),
+                    path = "features.highlight_context_chars",
+                    default = 100,
+                    min = 20,
+                    max = 1000,
+                    step = 10,
+                    help_text = _("Number of characters to include before/after the highlight when Surrounding Context is 'Characters'."),
+                    enabled_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        return f.highlight_context_mode == "characters"
+                    end,
+                    separator = true,
+                },
                 {
                     id = "highlight_bypass_enabled",
                     type = "toggle",

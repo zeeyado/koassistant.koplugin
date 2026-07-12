@@ -345,14 +345,21 @@ function MessageBuilder.build(params)
     user_prompt = replace_placeholder(user_prompt, "{context_section}", context_section)
 
     -- {surrounding_context_section} - text around highlight, for any highlight action
+    -- Placeholder present → resolve in place; absent (ambient inclusion) → the labeled
+    -- section is appended after the prompt below. Never both (surrounding_context_plan.md §6).
+    local sc_label = (Templates and Templates.SURROUNDING_CONTEXT_LABEL) or "Surrounding text:"
     local surrounding_context_section = ""
     if data.surrounding_context and data.surrounding_context ~= "" then
-        surrounding_context_section = "Surrounding text:\n" .. data.surrounding_context
+        surrounding_context_section = sc_label .. "\n" .. data.surrounding_context
     end
+    local had_sc_placeholder = user_prompt:find("{surrounding_context", 1, true) ~= nil
     user_prompt = replace_placeholder(user_prompt, "{surrounding_context_section}", surrounding_context_section)
     -- Raw placeholder
     if data.surrounding_context then
         user_prompt = replace_placeholder(user_prompt, "{surrounding_context}", data.surrounding_context)
+    end
+    if surrounding_context_section ~= "" and not had_sc_placeholder then
+        user_prompt = user_prompt .. "\n\n" .. surrounding_context_section
     end
 
     -- {page_text_section} - current visible page text, with label
@@ -774,7 +781,8 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     -- {surrounding_context_section}
     local surrounding_context_section = ""
     if data.surrounding_context and data.surrounding_context ~= "" then
-        surrounding_context_section = "Surrounding text:\n" .. data.surrounding_context
+        local sc_label = (Templates and Templates.SURROUNDING_CONTEXT_LABEL) or "Surrounding text:"
+        surrounding_context_section = sc_label .. "\n" .. data.surrounding_context
     end
     result = replace_placeholder(result, "{surrounding_context_section}", surrounding_context_section)
     if data.surrounding_context then

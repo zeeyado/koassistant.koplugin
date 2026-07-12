@@ -738,7 +738,43 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "KEY_DOMAIN constant must keep the original key string")
     TestRunner:assertEqual(found["koassistant_book_research_mode"] == true, true,
         "KEY_RESEARCH constant must keep the original key string")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 12, "12 per-book keys expected")
+    TestRunner:assertEqual(found[BookSettings.KEY_HIGHLIGHT_CONTEXT] == true, true,
+        "koassistant_book_highlight_context missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(found[BookSettings.KEY_DICTIONARY_CONTEXT] == true, true,
+        "koassistant_book_dictionary_context missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 14, "14 per-book keys expected")
+end)
+
+TestRunner:suite("Surrounding-context per-book layer (surrounding_context_plan.md §2)")
+
+TestRunner:test("resolveHighlightContext: per-book override > global > none", function()
+    local ds = fakeDocSettings({ [BookSettings.KEY_HIGHLIGHT_CONTEXT] = "paragraph" })
+    TestRunner:assertEqual(BookSettings.resolveHighlightContext(ds, { highlight_context_mode = "sentence" }),
+        "paragraph", "per-book wins over global")
+    ds = fakeDocSettings({ [BookSettings.KEY_HIGHLIGHT_CONTEXT] = "none" })
+    TestRunner:assertEqual(BookSettings.resolveHighlightContext(ds, { highlight_context_mode = "sentence" }),
+        "none", "per-book none silences a global mode")
+    ds = fakeDocSettings({})
+    TestRunner:assertEqual(BookSettings.resolveHighlightContext(ds, { highlight_context_mode = "sentence" }),
+        "sentence", "no override → global")
+    TestRunner:assertEqual(BookSettings.resolveHighlightContext(ds, {}),
+        "none", "nothing set → none (ambient is opt-in)")
+    TestRunner:assertEqual(BookSettings.resolveHighlightContext(nil, nil),
+        "none", "nil-safe")
+    ds = fakeDocSettings({ [BookSettings.KEY_HIGHLIGHT_CONTEXT] = "bogus" })
+    TestRunner:assertEqual(BookSettings.resolveHighlightContext(ds, { highlight_context_mode = "sentence" }),
+        "sentence", "unknown stored value falls through to global")
+end)
+
+TestRunner:test("resolveDictionaryContext: per-book override > global > none", function()
+    local ds = fakeDocSettings({ [BookSettings.KEY_DICTIONARY_CONTEXT] = "characters" })
+    TestRunner:assertEqual(BookSettings.resolveDictionaryContext(ds, { dictionary_context_mode = "none" }),
+        "characters", "per-book wins over global")
+    ds = fakeDocSettings({})
+    TestRunner:assertEqual(BookSettings.resolveDictionaryContext(ds, { dictionary_context_mode = "paragraph" }),
+        "paragraph", "no override → global")
+    TestRunner:assertEqual(BookSettings.resolveDictionaryContext(ds, {}),
+        "none", "nothing set → none (matches schema default)")
 end)
 
 TestRunner:suite("D3 smart retrieval — {document_context_section} (tools_ux_plan.md §4)")

@@ -109,6 +109,49 @@ function BookSettings.resolveWebSearch(doc_settings, features)
     return (features and features.enable_web_search) == true
 end
 
+-- Per-book surrounding-context overrides (surrounding_context_plan.md §2): a mode
+-- string ("none" | "sentence" | "paragraph" | "characters") or nil = follow global.
+-- "none" = explicitly off for this book. Sizes (chars/paragraphs) stay global.
+-- Two parallel channels: highlight requests (ambient) and dictionary lookups.
+BookSettings.KEY_HIGHLIGHT_CONTEXT = "koassistant_book_highlight_context"
+BookSettings.KEY_DICTIONARY_CONTEXT = "koassistant_book_dictionary_context"
+
+local VALID_CONTEXT_MODES = { none = true, sentence = true, paragraph = true, characters = true }
+
+--- Resolve the effective ambient surrounding-context mode for highlight requests:
+-- per-book override > global highlight_context_mode > "none" (the schema default —
+-- ambient is opt-in; matches the check-pattern rule). Pure. Unknown stored values
+-- fall through so a corrupt sidecar value can't wedge the feature.
+-- @return "none" | "sentence" | "paragraph" | "characters"
+function BookSettings.resolveHighlightContext(doc_settings, features)
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT)
+    if VALID_CONTEXT_MODES[per_book] then return per_book end
+    local global = features and features.highlight_context_mode
+    if VALID_CONTEXT_MODES[global] then return global end
+    return "none"
+end
+
+--- Resolve the effective dictionary-context mode (the {context_section} channel):
+-- per-book override > global dictionary_context_mode > "none" (matches the schema
+-- default). Pure.
+-- @return "none" | "sentence" | "paragraph" | "characters"
+function BookSettings.resolveDictionaryContext(doc_settings, features)
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_DICTIONARY_CONTEXT)
+    if VALID_CONTEXT_MODES[per_book] then return per_book end
+    local global = features and features.dictionary_context_mode
+    if VALID_CONTEXT_MODES[global] then return global end
+    return "none"
+end
+
+--- Translated label for a context-mode value (Book Settings rows + pickers).
+function BookSettings.contextModeLabel(v)
+    if v == "none" then return _("None")
+    elseif v == "sentence" then return _("Sentence")
+    elseif v == "paragraph" then return _("Paragraph(s)")
+    elseif v == "characters" then return _("Characters") end
+    return _("Follow global")
+end
+
 --- Resolve effective quiz settings for a book: per-book field > global > built-in default.
 -- Pure (no I/O beyond the one sidecar read). The quiz-instruction builder consumes the
 -- count/difficulty/mc/sa/essay/chapter_depth fields; the chapter-end trigger consumes
@@ -237,6 +280,8 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_RESPONSE_LANG,
     BookSettings.KEY_TOOLS,
     BookSettings.KEY_WEB_SEARCH,
+    BookSettings.KEY_HIGHLIGHT_CONTEXT,
+    BookSettings.KEY_DICTIONARY_CONTEXT,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -1027,6 +1072,37 @@ function BookSettings.show(opts)
         UIManager:show(picker)
     end
 
+    -- Surrounding-context mode: shared sub-picker for the highlight/dictionary channels
+    -- (Follow global / None / Sentence / Paragraph(s) / Characters)
+    local function showContextModeSubPicker(key, dialog_title, global_mode)
+        closeDialog()
+        local cur = doc_settings:readSetting(key)  -- nil | "none" | "sentence" | "paragraph" | "characters"
+        local picker
+        local function setVal(val)
+            doc_settings:saveSetting(key, val)
+            doc_settings:flush()
+            syncConfig()
+            UIManager:close(picker)
+            BookSettings.show(opts)
+        end
+        local rows = {
+            {{ text = dot(cur == nil) .. T(_("Follow global (%1)"), BookSettings.contextModeLabel(global_mode)),
+                callback = function() setVal(nil) end }},
+            {{ text = dot(cur == "none") .. _("None"), callback = function() setVal("none") end }},
+            {{ text = dot(cur == "sentence") .. _("Sentence"), callback = function() setVal("sentence") end }},
+            {{ text = dot(cur == "paragraph") .. _("Paragraph(s)"), callback = function() setVal("paragraph") end }},
+            {{ text = dot(cur == "characters") .. _("Characters"), callback = function() setVal("characters") end }},
+            {{ text = _("Cancel"), id = "close",
+                callback = function() UIManager:close(picker); BookSettings.show(opts) end }},
+        }
+        picker = ButtonDialog:new{ title = dialog_title, buttons = rows }
+        UIManager:show(picker)
+    end
+    local function contextRowLabel(v)
+        if v == nil then return _("Follow global") end
+        return BookSettings.contextModeLabel(v)
+    end
+
     -- AI Book Tools posture: label + sub-picker (Follow global / Off / Manual / Auto)
     local function toolsRowLabel(v)
         if v == nil then return _("Follow global") end
@@ -1104,6 +1180,16 @@ function BookSettings.show(opts)
             end }},
         {{ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
             callback = showBookInfoSubPicker }},
+        {{ text = T(_("Highlight context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT))),
+            callback = function()
+                showContextModeSubPicker(BookSettings.KEY_HIGHLIGHT_CONTEXT,
+                    _("Highlight context (this book)"), features.highlight_context_mode or "none")
+            end }},
+        {{ text = T(_("Dictionary context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_DICTIONARY_CONTEXT))),
+            callback = function()
+                showContextModeSubPicker(BookSettings.KEY_DICTIONARY_CONTEXT,
+                    _("Dictionary context (this book)"), features.dictionary_context_mode or "none")
+            end }},
         header(_("Identity")),
         {{ text = T(_("AI title: %1"), overrideLabel(title_ov)),
             callback = function()
