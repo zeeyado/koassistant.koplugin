@@ -619,6 +619,46 @@ function Notebook.getStats(document_path)
     return stats
 end
 
+--- Refresh the notebook index entry for one document (sidecar mode).
+--- Read-driven heal (issue #92): used by heal-on-open and the index rebuilder;
+--- writes the index only when the entry changed (the regular index writers are
+--- not change-detected and would flush settings on every book open).
+--- Vault/custom modes are a per-book no-op (covered by scanAndRebuildIndex).
+--- @param document_path string The document file path
+--- @param opts table|nil { no_flush = true } to skip G_reader_settings:flush()
+function Notebook.refreshIndexEntry(document_path, opts)
+    if not document_path
+        or document_path == "__GENERAL_CHATS__"
+        or document_path == "__LIBRARY_CHATS__" then
+        return
+    end
+    local features = getFeatures()
+    if (features.notebook_save_location or "sidecar") ~= "sidecar" then
+        return
+    end
+
+    local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+    local prev = index[document_path]
+
+    -- exists() also performs the lazy cross-mode sidecar migration
+    if Notebook.exists(document_path) then
+        local stats = Notebook.getStats(document_path)
+        if not stats then return end
+        if prev and prev.modified == stats.modified and prev.size == stats.size then
+            return
+        end
+        index[document_path] = stats
+    else
+        if not prev then return end
+        index[document_path] = nil
+    end
+
+    G_reader_settings:saveSetting("koassistant_notebook_index", index)
+    if not (opts and opts.no_flush) then
+        G_reader_settings:flush()
+    end
+end
+
 --- Create empty notebook with header (and frontmatter in vault mode)
 --- In vault mode: generates filename with collision handling, stores DocSettings ref
 --- @param document_path string The document file path

@@ -1775,6 +1775,36 @@ local SettingsSchema = {
                     text = _("Validate Data Indexes"),
                     help_text = _("Checks chat history, artifact, notebook, and pinned indexes for stale entries (books that were moved or deleted outside KOReader) and fixes count mismatches.\n\nThis runs automatically for individual entries when browsing, but you can run a full validation here if needed."),
                     callback = "validateAllIndexes",
+                },
+                {
+                    id = "rebuild_indexes",
+                    type = "action",
+                    text = _("Rebuild Data Indexes"),
+                    help_text = _("Finds books whose KOAssistant data (artifacts, chats, notebooks, pinned) exists on disk but doesn't show in this device's browsers — e.g. after syncing sidecar files from another device, restoring a backup, or migrating devices.\n\nChecks your reading history, KOReader's sidecar locations, and the scan folders configured below, then removes stale entries. Books on unmounted storage get pruned; run again with the storage mounted to re-add them.\n\nMay take a while on large libraries."),
+                    callback = "rebuildAllIndexes",
+                },
+                {
+                    id = "index_scan_folders",
+                    type = "submenu",
+                    text_func = function(plugin)
+                        local f = plugin.settings:readSetting("features") or {}
+                        local folders = f.index_scan_folders or {}
+                        if #folders == 0 then
+                            return _("Index Scan Folders: None")
+                        else
+                            return T(_("Index Scan Folders: %1"), #folders)
+                        end
+                    end,
+                    help_text = _("Folders to scan during index rebuild — point this at your synced book folders. Only these folders are ever scanned, and only when a rebuild runs. Folders that don't exist on this device are skipped.\n\nNote: a settings reset clears this list."),
+                    callback = "getIndexScanFoldersMenuItems",
+                },
+                {
+                    id = "index_rebuild_on_start",
+                    type = "toggle",
+                    text = _("Auto-Rebuild on Startup"),
+                    path = "features.index_rebuild_on_start",
+                    default = false,
+                    help_text = _("Also run the index rebuild automatically after KOReader starts: at most once per day, only when scan folders are configured, quietly in the background."),
                     separator = true,
                 },
                 -- Reset Settings submenu

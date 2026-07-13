@@ -361,6 +361,28 @@ function AskGPT:init()
     self._quiz_chapter_indices = nil
     self._quiz_level = nil
     self._quiz_setting = nil
+    -- Heal KOAssistant data indexes for this book (issue #92): synced or
+    -- restored sidecar data becomes visible in the global browsers through
+    -- normal use. Deferred off the book-open path; each refresh writes
+    -- settings only when its index entry actually changed. Snapshot the path
+    -- and ui now — the user may close/switch books before the timer fires
+    -- (SafeDocSettings degrades to a fresh read-only open in that case).
+    local heal_file = self.ui and self.ui.document and self.ui.document.file
+    if heal_file then
+      local heal_ui = self.ui
+      local UIManager = require("ui/uimanager")
+      UIManager:scheduleIn(2, function()
+        local ok, err = pcall(function()
+          require("koassistant_action_cache").refreshIndex(heal_file)
+          require("koassistant_chat_history_manager"):refreshChatIndexEntry(heal_file, heal_ui)
+          require("koassistant_notebook").refreshIndexEntry(heal_file)
+          require("koassistant_pinned_manager").refreshIndex(heal_file)
+        end)
+        if not ok then
+          logger.warn("KOAssistant: index heal-on-open failed:", err)
+        end
+      end)
+    end
   end
   
   -- Register file dialog buttons with delays to ensure they appear at the bottom
@@ -387,6 +409,28 @@ function AskGPT:init()
 
   -- Patch FileManager for multi-select support
   self:patchFileManagerForMultiSelect()
+
+  -- Opt-in startup index rebuild (issue #92): quiet, throttled to once per
+  -- 24h, and only meaningful when scan folders are configured (heal-on-open
+  -- already converges local knowledge without it).
+  do
+    local feats = self.settings:readSetting("features") or {}
+    if feats.index_rebuild_on_start == true
+       and type(feats.index_scan_folders) == "table" and #feats.index_scan_folders > 0 then
+      local last = tonumber(feats._last_auto_index_rebuild) or 0
+      local now = os.time()
+      if now - last >= 24 * 60 * 60 then
+        -- Stamp before running so the second plugin instance created in the
+        -- same session (FileManager vs ReaderUI) doesn't run it again.
+        feats._last_auto_index_rebuild = now
+        self.settings:saveSetting("features", feats)
+        self.settings:flush()
+        UIManager:scheduleIn(15, function()
+          self:rebuildAllIndexes({ quiet = true })
+        end)
+      end
+    end
+  end
 end
 
 -- Split flat button list into rows of max N, equally distributed
@@ -12051,49 +12095,17 @@ end
 -- Validate all data indexes: prune stale entries for moved/deleted books
 function AskGPT:validateAllIndexes()
   local InfoMessage = require("ui/widget/infomessage")
-  -- Note: lfs is already required at file scope
-
-  local SPECIAL_KEYS = {
-    ["__GENERAL_CHATS__"] = true,
-    ["__LIBRARY_CHATS__"] = true,
-  }
-
-  local total_pruned = 0
-
-  -- Helper: prune stale doc_path entries from an index
-  local function pruneIndex(setting_key)
-    local index = G_reader_settings:readSetting(setting_key, {})
-    local pruned = 0
-    for doc_path in pairs(index) do
-      if not SPECIAL_KEYS[doc_path] and not lfs.attributes(doc_path, "mode") then
-        logger.info("KOAssistant: Pruning stale entry from " .. setting_key .. ": " .. doc_path)
-        index[doc_path] = nil
-        pruned = pruned + 1
-      end
-    end
-    if pruned > 0 then
-      G_reader_settings:saveSetting(setting_key, index)
-    end
-    return pruned
-  end
 
   -- Validate chat index (also checks count mismatches via existing function)
   local ChatHistoryManager = require("koassistant_chat_history_manager")
   local chat_manager = ChatHistoryManager:new{}
   chat_manager:validateChatIndex()
 
-  -- Prune stale entries from all other indexes
-  total_pruned = total_pruned + pruneIndex("koassistant_artifact_index")
-  total_pruned = total_pruned + pruneIndex("koassistant_notebook_index")
-  total_pruned = total_pruned + pruneIndex("koassistant_pinned_index")
-
-  -- Count chat index stale entries (validateChatIndex already pruned them, count for reporting)
-  -- Re-read to see if validateChatIndex made changes
-  local chat_pruned = pruneIndex("koassistant_chat_index")
-  total_pruned = total_pruned + chat_pruned
+  -- Prune stale entries from all indexes (shared with the index rebuilder)
+  local IndexRebuilder = require("koassistant_index_rebuilder")
+  local total_pruned = IndexRebuilder.pruneAllIndexes()
 
   if total_pruned > 0 then
-    G_reader_settings:flush()
     UIManager:show(InfoMessage:new{
       text = T(_("Validation complete. Removed %1 stale entries."), total_pruned),
     })
@@ -12103,6 +12115,157 @@ function AskGPT:validateAllIndexes()
       timeout = 3,
     })
   end
+end
+
+-- Rebuild all data indexes (issue #92): merge-discover books from reading
+-- history, central sidecar locations, and user-designated scan folders, heal
+-- their index entries, then prune stale ones. Never wipes an index.
+-- @param opts table|nil { quiet = true } for the throttled startup auto-run
+function AskGPT:rebuildAllIndexes(opts)
+  local IndexRebuilder = require("koassistant_index_rebuilder")
+  local features = self.settings:readSetting("features") or {}
+
+  if opts and opts.quiet then
+    local ok, err = pcall(IndexRebuilder.run, self.ui, features)
+    if not ok then
+      logger.warn("KOAssistant: startup index rebuild failed:", err)
+    end
+    return
+  end
+
+  local info = InfoMessage:new{ text = _("Rebuilding data indexes…") }
+  UIManager:show(info)
+  UIManager:forceRePaint()
+  UIManager:scheduleIn(0.1, function()
+    local ok, report = pcall(IndexRebuilder.run, self.ui, features)
+    UIManager:close(info)
+    if not ok then
+      logger.warn("KOAssistant: index rebuild failed:", report)
+      UIManager:show(InfoMessage:new{
+        text = _("Index rebuild failed. Check the log for details."),
+      })
+      return
+    end
+    local checked = report.candidates.a + report.candidates.b + report.candidates.c
+    local msg_lines = {
+      _("Index rebuild complete."),
+      T(_("Checked %1 books — %2 with KOAssistant data."), checked, report.with_data),
+      T(_("Indexed books: artifacts %1, chats %2, notebooks %3, pinned %4."),
+        report.totals["koassistant_artifact_index"],
+        report.totals["koassistant_chat_index"],
+        report.totals["koassistant_notebook_index"],
+        report.totals["koassistant_pinned_index"]),
+      T(_("Removed %1 stale entries."), report.pruned),
+    }
+    if report.unmapped_sidecars > 0 then
+      table.insert(msg_lines,
+        T(_("%1 synced sidecars couldn't be matched to local books."), report.unmapped_sidecars))
+    end
+    UIManager:show(InfoMessage:new{ text = table.concat(msg_lines, "\n") })
+  end)
+end
+
+-- Menu items for the index scan folders manager (issue #92). Deliberately
+-- separate from library_scan_folders: that one belongs to the privacy-gated
+-- library feature (data goes to a provider); this scan is purely local.
+function AskGPT:getIndexScanFoldersMenuItems()
+  local items = {}
+  local self_ref = self
+
+  local f = self.settings:readSetting("features") or {}
+  local folders = f.index_scan_folders or {}
+
+  -- Show each configured folder
+  for _idx, folder_path in ipairs(folders) do
+    local display = folder_path:match("([^/]+)$") or folder_path
+    table.insert(items, {
+      text = display,
+      keep_menu_open = true,
+      help_text = folder_path,
+      callback = function()
+        UIManager:show(InfoMessage:new{
+          text = folder_path,
+          timeout = 5,
+        })
+      end,
+      hold_callback = function(touchmenu_instance)
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+          text = T(_("Remove this folder from index scanning?\n\n%1"), folder_path),
+          ok_callback = function()
+            local feat = self_ref.settings:readSetting("features") or {}
+            local fldrs = feat.index_scan_folders or {}
+            for i = #fldrs, 1, -1 do
+              if fldrs[i] == folder_path then
+                table.remove(fldrs, i)
+                break
+              end
+            end
+            feat.index_scan_folders = fldrs
+            self_ref.settings:saveSetting("features", feat)
+            self_ref.settings:flush()
+            self_ref:updateConfigFromSettings()
+            if touchmenu_instance then
+              touchmenu_instance:updateItems()
+            end
+          end,
+        })
+      end,
+    })
+  end
+
+  -- Separator before "Add folder" if there are existing folders
+  if #items > 0 then
+    items[#items].separator = true
+  end
+
+  -- "Add folder" item
+  table.insert(items, {
+    text = _("Add folder"),
+    keep_menu_open = true,
+    callback = function(touchmenu_instance)
+      local PathChooser = require("ui/widget/pathchooser")
+      local start_path = G_reader_settings:readSetting("home_dir") or Device.home_dir or DataStorage:getDataDir()
+      local path_chooser = PathChooser:new{
+        title = _("Select Folder to Scan"),
+        path = start_path,
+        select_directory = true,
+        select_file = false,
+        onConfirm = function(selected_path)
+          local feat = self_ref.settings:readSetting("features") or {}
+          local fldrs = feat.index_scan_folders or {}
+          for _fidx, existing in ipairs(fldrs) do
+            if existing == selected_path then
+              UIManager:show(InfoMessage:new{
+                text = T(_("Folder already added:\n%1"), selected_path),
+                timeout = 3,
+              })
+              return
+            end
+          end
+          table.insert(fldrs, selected_path)
+          table.sort(fldrs)
+          feat.index_scan_folders = fldrs
+          self_ref.settings:saveSetting("features", feat)
+          self_ref.settings:flush()
+          self_ref:updateConfigFromSettings()
+          if touchmenu_instance then
+            touchmenu_instance:updateItems()
+          end
+        end,
+      }
+      UIManager:show(path_chooser)
+    end,
+  })
+
+  if #folders == 0 then
+    table.insert(items, 1, {
+      text = _("No folders configured"),
+      enabled_func = function() return false end,
+    })
+  end
+
+  return items
 end
 
 -- Show create backup dialog
