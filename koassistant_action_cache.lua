@@ -75,7 +75,8 @@ local ARTIFACT_KEYS = { "_xray_cache", "_summary_cache", "_analyze_cache", "reca
 --- Scans the in-memory cache table for known artifact keys and updates the index entry.
 --- @param document_path string The document file path
 --- @param cache table|nil The current cache table (nil = removed)
-local function updateArtifactIndex(document_path, cache)
+--- @param opts table|nil { no_flush = true } to skip G_reader_settings:flush()
+local function updateArtifactIndex(document_path, cache, opts)
     if not document_path
         or document_path == "__GENERAL_CHATS__"
         or document_path == "__LIBRARY_CHATS__" then
@@ -89,7 +90,9 @@ local function updateArtifactIndex(document_path, cache)
         if index[document_path] then
             index[document_path] = nil
             G_reader_settings:saveSetting("koassistant_artifact_index", index)
-            G_reader_settings:flush()
+            if not (opts and opts.no_flush) then
+                G_reader_settings:flush()
+            end
         end
         return
     end
@@ -142,7 +145,9 @@ local function updateArtifactIndex(document_path, cache)
 
     if changed then
         G_reader_settings:saveSetting("koassistant_artifact_index", index)
-        G_reader_settings:flush()
+        if not (opts and opts.no_flush) then
+            G_reader_settings:flush()
+        end
     end
 end
 
@@ -474,11 +479,13 @@ function ActionCache.exists(document_path, action_id)
 end
 
 --- Refresh the artifact index for a document by loading its cache.
---- Call this when artifacts are discovered through read-only paths (e.g., viewCache).
+--- Call this when artifacts are discovered through read-only paths (e.g., viewCache,
+--- heal-on-open, index rebuild).
 --- @param document_path string The document file path
-function ActionCache.refreshIndex(document_path)
+--- @param opts table|nil { no_flush = true } to skip G_reader_settings:flush()
+function ActionCache.refreshIndex(document_path, opts)
     local cache = loadCache(document_path)
-    updateArtifactIndex(document_path, next(cache) and cache or nil)
+    updateArtifactIndex(document_path, next(cache) and cache or nil, opts)
 end
 
 -- =============================================================================

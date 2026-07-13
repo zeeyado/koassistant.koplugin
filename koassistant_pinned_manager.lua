@@ -223,7 +223,8 @@ end
 --- Tracks count and last modified timestamp per document.
 --- @param document_path string Document path or special key
 --- @param pinned table|nil Array of pinned entries (nil = removed)
-local function updatePinnedIndex(document_path, pinned)
+--- @param opts table|nil { no_flush = true } to skip G_reader_settings:flush()
+local function updatePinnedIndex(document_path, pinned, opts)
     local index = G_reader_settings:readSetting("koassistant_pinned_index", {})
 
     local changed = false
@@ -247,8 +248,20 @@ local function updatePinnedIndex(document_path, pinned)
 
     if changed then
         G_reader_settings:saveSetting("koassistant_pinned_index", index)
-        G_reader_settings:flush()
+        if not (opts and opts.no_flush) then
+            G_reader_settings:flush()
+        end
     end
+end
+
+--- Refresh the pinned index entry for one document by loading its pinned file.
+--- Read-driven heal (issue #92): used by heal-on-open and the index rebuilder;
+--- updatePinnedIndex only writes on change.
+--- @param document_path string The document file path
+--- @param opts table|nil { no_flush = true } to skip G_reader_settings:flush()
+function PinnedManager.refreshIndex(document_path, opts)
+    if not document_path then return end
+    updatePinnedIndex(document_path, loadPinned(document_path), opts)
 end
 
 --- Invalidate file browser dialog row cache so pin changes are reflected.

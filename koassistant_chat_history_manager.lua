@@ -2357,7 +2357,21 @@ end
 -- @param operation: "save" or "delete"
 -- @param chat_id: Chat ID being saved/deleted
 -- @param chats_table: Current chats table (for counting)
-function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, chats_table)
+-- Compare two chat-id arrays as sets. Both the stored and freshly-computed
+-- arrays are built via pairs() (nondeterministic order), so element-wise
+-- comparison would spuriously report a change on every call.
+local function sameChatIdSet(a, b)
+    a, b = a or {}, b or {}
+    if #a ~= #b then return false end
+    local set = {}
+    for _idx, id in ipairs(a) do set[id] = true end
+    for _idx, id in ipairs(b) do
+        if not set[id] then return false end
+    end
+    return true
+end
+
+function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, chats_table, opts)
     if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__LIBRARY_CHATS__" then
         return
     end
@@ -2407,6 +2421,17 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
             timestamp = os.time()
         end
 
+        -- Refresh is a read-driven heal (book open / index rebuild): skip the
+        -- write entirely when the stored entry already matches. Scoped to
+        -- "refresh" only — save must always bump last_modified.
+        if operation == "refresh" then
+            local prev = index[document_path]
+            if prev and prev.count == count and sameChatIdSet(prev.chat_ids, chat_ids) then
+                index_operation_pending = false
+                return
+            end
+        end
+
         -- Document has chats, update index entry
         index[document_path] = {
             count = count,
@@ -2417,17 +2442,42 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
         logger.dbg("Chat index update: operation=" .. operation .. ", timestamp=" ..
                    (operation == "save" and "NEW" or "PRESERVED"))
     else
+        if operation == "refresh" and index[document_path] == nil then
+            -- Nothing stored and nothing found — no-op
+            index_operation_pending = false
+            return
+        end
         -- No chats left, remove from index
         index[document_path] = nil
     end
 
     G_reader_settings:saveSetting("koassistant_chat_index", index)
-    G_reader_settings:flush()
+    if not (opts and opts.no_flush) then
+        G_reader_settings:flush()
+    end
 
     -- Clear mutex flag
     index_operation_pending = false
 
     logger.info("Updated chat index for: " .. document_path .. " (operation: " .. operation .. ", count: " .. count .. ")")
+end
+
+-- Refresh the chat index entry for one document by reading its sidecar.
+-- Read-driven heal (issue #92): used by heal-on-open and the index rebuilder.
+-- Never flushes the book's DocSettings; writes the index only on change
+-- (see the "refresh" no-op branch in updateChatIndex).
+-- @param document_path string The document file path
+-- @param ui table|nil ReaderUI/FileManager instance for live DocSettings resolution
+-- @param opts table|nil { no_flush = true } to skip G_reader_settings:flush()
+function ChatHistoryManager:refreshChatIndexEntry(document_path, ui, opts)
+    if not document_path
+        or document_path == "__GENERAL_CHATS__"
+        or document_path == "__LIBRARY_CHATS__" then
+        return
+    end
+    local doc_settings = SafeDocSettings.resolve(document_path, ui)
+    local chats = doc_settings:readSetting("koassistant_chats", {})
+    self:updateChatIndex(document_path, "refresh", nil, chats, opts)
 end
 
 -- Get the chat index
@@ -2564,7 +2614,9 @@ end
 --- Scan centralized docsettings directory for .sdr folders (dir storage mode)
 -- Reconstructs book paths by stripping the docsettings prefix and finding the
 -- file extension from metadata.{ext}.lua inside each .sdr folder.
-function ChatHistoryManager:_scanDirModeSdr(indexDocument)
+-- @param indexDocument function(book_path, sdr_path) called per mapped sidecar
+-- @param on_unmapped function|nil (sdr_path) called when no book path can be derived
+function ChatHistoryManager:_scanDirModeSdr(indexDocument, on_unmapped)
     local docsettings_dir = DataStorage:getDocSettingsDir()
 
     local function scan(dir, depth)
@@ -2580,16 +2632,21 @@ function ChatHistoryManager:_scanDirModeSdr(indexDocument)
                         -- Reconstruct book path: strip docsettings prefix + .sdr suffix
                         local relative = path:sub(#docsettings_dir + 1):gsub("%.sdr$", "")
                         -- Find extension from metadata file inside
+                        local mapped = false
                         local meta_ok, meta_iter = pcall(lfs.dir, path)
                         if meta_ok then
                             for meta_entry in meta_iter do
                                 local ext = meta_entry:match("^metadata%.(.+)%.lua$")
                                 if ext then
                                     local book_path = relative .. "." .. ext
-                                    indexDocument(book_path)
+                                    indexDocument(book_path, path)
+                                    mapped = true
                                     break
                                 end
                             end
+                        end
+                        if not mapped and on_unmapped then
+                            on_unmapped(path)
                         end
                     else
                         scan(path, depth + 1)
@@ -2606,7 +2663,9 @@ end
 --- Scan hash-based docsettings directory for .sdr folders (hash storage mode)
 -- Structure: {hash_dir}/{2char_prefix}/{full_hash}.sdr/metadata.{ext}.lua
 -- Reads metadata files to extract the original doc_path.
-function ChatHistoryManager:_scanHashModeSdr(indexDocument)
+-- @param indexDocument function(book_path, sdr_path) called per mapped sidecar
+-- @param on_unmapped function|nil (sdr_path) called when no book path can be derived
+function ChatHistoryManager:_scanHashModeSdr(indexDocument, on_unmapped)
     local DocSettings = require("docsettings")
     local hash_dir = DataStorage:getDocSettingsHashDir()
     if not lfs.attributes(hash_dir, "mode") then return end
@@ -2624,6 +2683,7 @@ function ChatHistoryManager:_scanHashModeSdr(indexDocument)
                     if entry:match("%.sdr$") then
                         local sdr_path = prefix_dir .. "/" .. entry
                         -- Find metadata file and read doc_path from it
+                        local mapped = false
                         local ok_sdr, sdr_iter = pcall(lfs.dir, sdr_path)
                         if ok_sdr then
                             for meta_entry in sdr_iter do
@@ -2631,16 +2691,34 @@ function ChatHistoryManager:_scanHashModeSdr(indexDocument)
                                     local meta_path = sdr_path .. "/" .. meta_entry
                                     local settings = DocSettings.openSettingsFile(meta_path)
                                     if settings and settings.data and settings.data.doc_path then
-                                        indexDocument(settings.data.doc_path)
+                                        indexDocument(settings.data.doc_path, sdr_path)
+                                        mapped = true
                                     end
                                     break
                                 end
                             end
                         end
+                        if not mapped and on_unmapped then
+                            on_unmapped(sdr_path)
+                        end
                     end
                 end
             end
         end
+    end
+end
+
+--- Public wrapper over the central-sidecar scanners for external discovery
+-- (index rebuilder, issue #92). Only scans in dir/hash storage modes; doc
+-- mode has no central location (books can live anywhere).
+-- @param callback function(book_path, sdr_path) per mapped sidecar
+-- @param on_unmapped function|nil (sdr_path) per sidecar with no derivable book path
+function ChatHistoryManager:scanCentralSdrPaths(callback, on_unmapped)
+    local location = G_reader_settings:readSetting("document_metadata_folder", "doc")
+    if location == "dir" then
+        self:_scanDirModeSdr(callback, on_unmapped)
+    elseif location == "hash" then
+        self:_scanHashModeSdr(callback, on_unmapped)
     end
 end
 

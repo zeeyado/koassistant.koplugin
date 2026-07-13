@@ -173,6 +173,11 @@ local function scanFolder(folder_path, results, seen, exclude_path, depth)
     end
 end
 
+-- Exposed for the index rebuilder (issue #92): plain recursive document walk
+-- (pcall'd lfs.dir, depth cap, hasProvider filter) without the library
+-- feature's metadata extraction, grouping, or budgets.
+LibraryScanner.scanFolder = scanFolder
+
 --- Scan all configured folders and return structured library data
 --- No fallback: if library_scan_folders is empty/nil, returns empty results.
 --- Folders must be explicitly configured by the user.
