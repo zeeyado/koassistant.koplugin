@@ -1306,10 +1306,10 @@ function StreamHandler:extractContentFromSSE(event)
             return nil, nil
         end
         local delta = choice.delta
-        if delta then
+        if type(delta) == "table" then
             -- Check for web search tool calls (OpenAI/xAI)
             -- xAI uses "live_search" type
-            if delta.tool_calls then
+            if type(delta.tool_calls) == "table" then
                 for _idx, tool_call in ipairs(delta.tool_calls) do
                     if tool_call.type == "web_search" or tool_call.type == "live_search" or
                        (tool_call["function"] and (tool_call["function"].name == "web_search" or tool_call["function"].name == "live_search")) then
@@ -1320,7 +1320,7 @@ function StreamHandler:extractContentFromSSE(event)
 
             -- Check for OpenRouter web search annotations (url_citation)
             -- OpenRouter uses Exa search via :online suffix, annotations appear in delta
-            if delta.annotations then
+            if type(delta.annotations) == "table" then
                 for _idx, annotation in ipairs(delta.annotations) do
                     if annotation.type == "url_citation" then
                         return "__WEB_SEARCH_START__", nil
@@ -1331,6 +1331,10 @@ function StreamHandler:extractContentFromSSE(event)
             -- DeepSeek/OpenRouter: reasoning_content or reasoning comes alongside regular content
             local reasoning = delta.reasoning_content or delta.reasoning
             local content = delta.content
+            -- llama.cpp streams "content": null in its role-priming chunk; luajson
+            -- decodes JSON null to a truthy function sentinel (issue #93)
+            if type(reasoning) ~= "string" then reasoning = nil end
+            if type(content) ~= "string" and type(content) ~= "table" then content = nil end
 
             -- Handle structured content blocks (Mistral Magistral)
             if type(content) == "table" then

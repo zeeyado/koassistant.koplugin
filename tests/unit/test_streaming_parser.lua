@@ -293,6 +293,43 @@ TestRunner:test("numeric finish_reason is ignored", function()
     TestRunner:assertEqual(extractContentFromSSE(event), "Hello", "numeric finish_reason")
 end)
 
+-- Issue #93: luajson decodes JSON null to a truthy function sentinel.
+-- llama.cpp streams "content": null in its role-priming chunk; the sentinel
+-- must not escape as content (downstream #content crashed KOReader).
+local null_sentinel = function() end
+
+TestRunner:test("null content sentinel returns nil (issue #93)", function()
+    local event = {
+        choices = { { delta = { role = "assistant", content = null_sentinel } } }
+    }
+    local content, reasoning = extractContentFromSSE(event)
+    TestRunner:assertNil(content, "sentinel content dropped")
+    TestRunner:assertNil(reasoning, "no reasoning")
+end)
+
+TestRunner:test("null reasoning sentinel dropped, content kept", function()
+    local event = {
+        choices = { { delta = { content = "Answer", reasoning_content = null_sentinel } } }
+    }
+    local content, reasoning = extractContentFromSSE(event)
+    TestRunner:assertEqual(content, "Answer", "content survives sentinel reasoning")
+    TestRunner:assertNil(reasoning, "sentinel reasoning dropped")
+end)
+
+TestRunner:test("null tool_calls/annotations sentinels don't crash", function()
+    local event = {
+        choices = { { delta = { content = "Hello", tool_calls = null_sentinel, annotations = null_sentinel } } }
+    }
+    TestRunner:assertEqual(extractContentFromSSE(event), "Hello", "content extracted past sentinels")
+end)
+
+TestRunner:test("null delta sentinel returns nil", function()
+    local event = {
+        choices = { { delta = null_sentinel } }
+    }
+    TestRunner:assertNil(extractContentFromSSE(event), "sentinel delta ignored")
+end)
+
 -- Summary
 local success = TestRunner:summary()
 return success
