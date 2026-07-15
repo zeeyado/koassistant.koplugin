@@ -268,8 +268,8 @@ function AskGPT:init()
                 sboxes = st.sboxes,
                 pboxes = st.pboxes,
                 ext = st.ext,
-                drawer = st.drawer or "lighten",
-                color = st.color or "yellow",
+                drawer = st.drawer,
+                color = st.color,
               }
             end
 
@@ -4017,8 +4017,8 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
       sboxes = st.sboxes,
       pboxes = st.pboxes,
       ext = st.ext,
-      drawer = st.drawer or "lighten",
-      color = st.color or "yellow",
+      drawer = st.drawer,
+      color = st.color,
     }
   end
 
@@ -10658,8 +10658,8 @@ function AskGPT:registerHighlightMenuActions()
               sboxes = st.sboxes,
               pboxes = st.pboxes,
               ext = st.ext,
-              drawer = st.drawer or "lighten",
-              color = st.color or "yellow",
+              drawer = st.drawer,
+              color = st.color,
             }
           end
 
@@ -10785,8 +10785,8 @@ function AskGPT:syncDictionaryBypass()
           sboxes = st.sboxes,
           pboxes = st.pboxes,
           ext = st.ext,
-          drawer = st.drawer or "lighten",
-          color = st.color or "yellow",
+          drawer = st.drawer,
+          color = st.color,
         }
       end
 
