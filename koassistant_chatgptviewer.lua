@@ -4478,6 +4478,77 @@ function ChatGPTViewer:hasReasoningContent()
   return entries and #entries > 0
 end
 
+-- Build a read-only TextViewer for the Reasoning / Sources viewers, adding what a bare
+-- TextViewer lacks (#94 report): a text-selection popup (Copy selection / Dictionary /
+-- Translate) plus a Copy-whole-content + Export button row above the default Find/Close row.
+function ChatGPTViewer:showToolTextViewer(title, text, export_basename)
+  local viewer
+  local function clear_highlight()
+    if viewer and viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
+      local tw = viewer.scroll_text_w.text_widget
+      if tw.clearHighlight and tw:clearHighlight() then
+        tw:redrawHighlight()
+      end
+    end
+  end
+
+  local copy_button = {
+    text = _("Copy"),
+    callback = function()
+      if Device:hasClipboard() then
+        Device.input.setClipboardText(text)
+        UIManager:show(Notification:new{ text = _("Copied to clipboard.") })
+      end
+    end,
+  }
+
+  local export_button = {
+    text = _("Export"),
+    callback = function()
+      local PathChooser = require("ui/widget/pathchooser")
+      local Export = require("koassistant_export")
+      local DataStorage = require("datastorage")
+      local features = self.configuration and self.configuration.features or {}
+      local book_title = features.book_metadata and features.book_metadata.title or nil
+      UIManager:show(PathChooser:new{
+        title = _("Select export folder"),
+        path = DataStorage:getDataDir(),
+        show_hidden = false,
+        select_directory = true,
+        select_file = false,
+        onConfirm = function(selected_path)
+          local filename = Export.getFilename(book_title, export_basename, nil, "txt")
+          local filepath = selected_path .. "/" .. filename
+          local success, err = Export.saveToFile(text, filepath)
+          if success then
+            UIManager:show(Notification:new{ text = T(_("Saved to %1"), filename), timeout = 3 })
+          else
+            UIManager:show(InfoMessage:new{ text = T(_("Export failed: %1"), err or "unknown error") })
+          end
+        end,
+      })
+    end,
+  }
+
+  viewer = TextViewer:new{
+    title = title,
+    text = text,
+    width = self.width,
+    height = self.height,
+    add_default_buttons = true,
+    buttons_table = { { copy_button, export_button } },
+    text_selection_callback = function(sel_text, _hold_duration)
+      ChatGPTViewer.buildTextSelectionPopup(sel_text, {
+        ui = self._ui,
+        plugin = self._plugin,
+        configuration = self.configuration,
+        clear_highlight = clear_highlight,
+      })
+    end,
+  }
+  UIManager:show(viewer)
+end
+
 -- Show reasoning content in a viewer
 function ChatGPTViewer:showReasoningViewer()
   if not self.original_history then
@@ -4522,14 +4593,7 @@ function ChatGPTViewer:showReasoningViewer()
 
   local title = has_viewable_content and _("AI Reasoning") or _("Reasoning Status")
 
-  local viewer = TextViewer:new{
-    title = title,
-    text = table.concat(content_parts),
-    width = self.width,
-    height = self.height,
-  }
-
-  UIManager:show(viewer)
+  self:showToolTextViewer(title, table.concat(content_parts), _("reasoning"))
 end
 
 -- Check if there's any response provenance (web sources / book lookups) to view
@@ -4609,14 +4673,7 @@ function ChatGPTViewer:showProvenanceViewer()
     table.insert(content_parts, "\n")
   end
 
-  local viewer = TextViewer:new{
-    title = _("Sources & Lookups"),
-    text = table.concat(content_parts),
-    width = self.width,
-    height = self.height,
-  }
-
-  UIManager:show(viewer)
+  self:showToolTextViewer(_("Sources & Lookups"), table.concat(content_parts), _("sources"))
 end
 
 -- Internal function to handle rotation/resize recreation
