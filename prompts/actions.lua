@@ -1645,6 +1645,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         use_response_caching = true,  -- Cached as artifact
         storage_key = "__SKIP__",     -- Result lives in artifact cache, not chat history
         interactive_quiz = true,  -- Route to quiz viewer instead of chat viewer
+        reasoning_config = "off",  -- Quiz needs deterministic JSON; on adaptive-thinking-default models the thinking tokens bill against max_tokens and truncate the JSON
         in_quick_actions = 9,
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
 
