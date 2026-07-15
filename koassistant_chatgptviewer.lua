@@ -4786,6 +4786,27 @@ local function getAlignmentDisplayName(align)
   end
 end
 
+-- Persist a features.* viewer setting so it survives across viewer opens.
+-- Mirrors koassistant_dialogs.lua's settings_callback, but also handles the many
+-- artifact/cache/X-Ray viewer construction sites that never wire a settings_callback
+-- (they DO pass _plugin) — otherwise the gear-cycled value only lived in memory (#94).
+function ChatGPTViewer:persistFeatureSetting(feature_key, value)
+  if self.configuration and self.configuration.features then
+    self.configuration.features[feature_key] = value
+  end
+  if self.settings_callback then
+    self.settings_callback("features." .. feature_key, value)
+  elseif self._plugin and self._plugin.settings then
+    local features = self._plugin.settings:readSetting("features") or {}
+    features[feature_key] = value
+    self._plugin.settings:saveSetting("features", features)
+    self._plugin.settings:flush()
+    if self._plugin.updateConfigFromSettings then
+      self._plugin:updateConfigFromSettings()
+    end
+  end
+end
+
 -- Show viewer settings dialog (font size, text alignment)
 function ChatGPTViewer:showViewerSettings()
   local dialog
@@ -4817,12 +4838,7 @@ function ChatGPTViewer:showViewerSettings()
             end
             local next_align = order[(idx % #order) + 1]
             self.text_align = next_align
-            if self.configuration and self.configuration.features then
-              self.configuration.features.text_align = next_align
-            end
-            if self.settings_callback then
-              self.settings_callback("features.text_align", next_align)
-            end
+            self:persistFeatureSetting("text_align", next_align)
             self:refreshMarkdownDisplay()
             UIManager:show(Notification:new{
               text = T(_("Alignment: %1"), getAlignmentDisplayName(next_align)),
@@ -4896,13 +4912,9 @@ function ChatGPTViewer:showFontSizeSpinner()
     callback = function(spin)
       self.markdown_font_size = spin.value
 
-      -- Save to configuration and persist
-      if self.configuration.features then
-        self.configuration.features.markdown_font_size = spin.value
-      end
-      if self.settings_callback then
-        self.settings_callback("features.markdown_font_size", spin.value)
-      end
+      -- Save to configuration and persist (via _plugin fallback too, so it sticks on
+      -- artifact/X-Ray viewers that carry no settings_callback — #94)
+      self:persistFeatureSetting("markdown_font_size", spin.value)
 
       -- Refresh display
       self:refreshMarkdownDisplay()
@@ -4921,15 +4933,10 @@ function ChatGPTViewer:resetViewerSettings()
   self.markdown_font_size = 20
   self.text_align = "justify"
 
-  -- Save to configuration and persist
-  if self.configuration.features then
-    self.configuration.features.markdown_font_size = 20
-    self.configuration.features.text_align = "justify"
-  end
-  if self.settings_callback then
-    self.settings_callback("features.markdown_font_size", 20)
-    self.settings_callback("features.text_align", "justify")
-  end
+  -- Save to configuration and persist (via _plugin fallback too, so Reset sticks on
+  -- artifact/X-Ray viewers that carry no settings_callback — #94)
+  self:persistFeatureSetting("markdown_font_size", 20)
+  self:persistFeatureSetting("text_align", "justify")
 
   -- Refresh display
   self:refreshMarkdownDisplay()
