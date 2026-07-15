@@ -3417,7 +3417,24 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
         local Dialogs = require("koassistant_dialogs")
         local action = Actions.getById("translate")
         if action then
-          Dialogs.executeDirectAction(ui, action, text, opts.configuration, plugin)
+          -- This selection came from an in-plugin viewer / dictionary popup, never the
+          -- open document. Mark it (on a private copy — never mutate the shared config)
+          -- so handlePredefinedPrompt won't pull the open book's surrounding context or
+          -- identity into the translation (B3).
+          local base_cfg = opts.configuration or (plugin and plugin.configuration)
+          local cfg = {}
+          for k, v in pairs(base_cfg or {}) do cfg[k] = v end
+          cfg.features = {}
+          for k, v in pairs((base_cfg or {}).features or {}) do cfg.features[k] = v end
+          cfg.features._non_document_selection = true
+          -- Force highlight context (like executeDictAction does for dictionary): a
+          -- selection translate must not inherit a book/library/general context from the
+          -- originating chat, or it would resolve in the wrong branch and re-pull book
+          -- identity, sidestepping the guard above (B3).
+          cfg.features.is_book_context = nil
+          cfg.features.is_library_context = nil
+          cfg.features.is_general_context = nil
+          Dialogs.executeDirectAction(ui, action, text, cfg, plugin)
         end
       end,
     })

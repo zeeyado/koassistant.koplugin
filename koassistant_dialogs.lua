@@ -2344,6 +2344,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- 2. The prompt uses template variables that require book info
     -- Try to get from ui.document first, then fall back to passed book_metadata
     if context == "highlight" then
+        -- Non-document selection (in-plugin viewer / dictionary popup / DQL origin): the
+        -- selection is not the open book, so the request must not pull the open book's
+        -- identity or surrounding context (B3 — tafsir/Quran leak). Consume once.
+        local non_document_selection = config.features._non_document_selection
+        config.features._non_document_selection = nil
+
         local should_include_book = prompt.include_book_context
 
         -- Also include if prompt uses book-related placeholders
@@ -2354,7 +2360,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                                   prompt_text:find("{author_clause}")
         end
 
-        if should_include_book then
+        -- Skipped entirely for non-document selections: BOTH ui.doc_props AND the passed
+        -- book_metadata (which executeDirectAction derives from the still-open document,
+        -- unaware of this flag) are the OPEN book's identity — unrelated to the viewer/popup
+        -- text. Injecting either is the identity leak (B3 — tafsir/Quran case).
+        if should_include_book and not non_document_selection then
             -- Try KOReader's merged props first (includes user edits from Book Info dialog)
             if ui and ui.doc_props then
                 message_data.book_title = ui.doc_props.display_title or ui.doc_props.title
@@ -2378,7 +2388,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- Extract surrounding context for dictionary action if not already provided
         -- Check both string ID and action object ID
         local action_id = type(prompt_type_or_action) == "table" and prompt_type_or_action.id or prompt_type_or_action
-        if action_id == "dictionary" and (not message_data.context or message_data.context == "") then
+        -- non_document_selection guard: a dictionary lookup launched from a viewer/popup
+        -- already had its context deliberately cleared — don't re-extract from the open
+        -- book's live selection (B3).
+        if action_id == "dictionary" and not non_document_selection
+                and (not message_data.context or message_data.context == "") then
             -- Resolved per-book > global mode; "none" extracts nothing
             local context_chars = config.features.dictionary_context_chars or 100
             message_data.context = extractSurroundingContext(ui, highlightedText,
@@ -2407,8 +2421,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             if sc_window and sc_window.text == highlightedText then
                 sc_text = ScopeResolver.trimContext(sc_window.prev, sc_window.next, highlightedText,
                     sc_mode, { char_count = sc_chars, paragraphs = sc_paragraphs })
-            else
-                -- Surfaces that didn't pre-extract: try the live selection (may be gone)
+            elseif not non_document_selection then
+                -- Surfaces that didn't pre-extract: try the live selection (may be gone).
+                -- Skipped for non-document selections: the live selection is the open
+                -- book's, unrelated to the viewer/popup text (B3).
                 sc_text = extractSurroundingContext(ui, highlightedText, sc_mode, sc_chars, sc_paragraphs)
             end
             if sc_text and sc_text ~= "" then
