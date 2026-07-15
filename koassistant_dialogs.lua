@@ -1074,10 +1074,25 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         -- two viewers can rotate at once — the slot may hold the OTHER viewer's fresh
         -- recreation, and closing it would destroy it (review finding 2026-07-12).
 
+        -- Re-derive the text from the live history rather than the captured snapshot:
+        -- a reply that completed during the ~0.2s rotation gap was appended to history but
+        -- not to state.text, so using the snapshot would drop it (the narrow B5 race).
+        -- ONLY for the default chat view: translate/compact/dictionary views format their
+        -- text differently (createTranslateViewText, debug-suppressed) and re-deriving would
+        -- corrupt them — keep their captured snapshot verbatim.
+        local recreated_text = state.text
+        local sf = state.configuration and state.configuration.features
+        local is_special_view = sf and (sf.translate_view or sf.compact_view
+            or sf.dictionary_view or sf.simple_view)
+        if not is_special_view and state.original_history and state.original_history.createResultText then
+            recreated_text = state.original_history:createResultText(
+                state.original_highlighted_text, state.configuration) or state.text
+        end
+
         -- Create new viewer with captured state but new dimensions
         local new_viewer = ChatGPTViewer:new {
             title = state.title,
-            text = state.text,
+            text = recreated_text,
             configuration = state.configuration,
             render_markdown = state.render_markdown,
             show_debug_in_chat = state.show_debug_in_chat,
@@ -1353,6 +1368,29 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
                     -- Show the new viewer
                     UIManager:show(new_viewer)
+                else
+                    -- The active-viewer slot diverged while this reply was in flight
+                    -- (screen rotation recreated the viewer via recreate_func, or a utility
+                    -- view stacked on top). History and disk are updated below regardless;
+                    -- without this branch the reply is silently never rendered and only
+                    -- close/reopen recovers it (B5).
+                    local target
+                    if _G.ActiveChatViewer and _G.ActiveChatViewer.original_history == history then
+                        -- Rotation recreated the viewer for THIS chat — render the live slot.
+                        target = _G.ActiveChatViewer
+                    elseif viewer and viewer.original_history == history then
+                        -- A different viewer holds the slot (e.g. a stacked utility view);
+                        -- the original reply viewer is still alive underneath — re-render it
+                        -- so the reply is present when the stacked view is dismissed.
+                        target = viewer
+                    end
+                    if target and target.update then
+                        logger.info("KOAssistant: onAskQuestion fallback render — ActiveChatViewer slot changed under an in-flight reply")
+                        local viewer_cfg = target.configuration or temp_config or CONFIGURATION
+                        target:update(history:createResultText(highlightedText, viewer_cfg), true)
+                    else
+                        logger.warn("KOAssistant: onAskQuestion could not render the reply into a live viewer for this chat")
+                    end
                 end
             end
 
