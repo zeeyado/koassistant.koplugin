@@ -1088,5 +1088,28 @@ TestRunner:test("summaryLabel reflects effective state", function()
     TestRunner:assertEqual(ReasoningPrefs.summaryLabel(f, "mistral", "magistral-medium"), _("Always on"), "mistral")
 end)
 
+TestRunner:suite("B4: quiz reasoning disabled on adaptive-default-ON models")
+
+TestRunner:test("quiz action reasoning_config='off' emits thinking disabled on sonnet-5", function()
+    local Actions = require("prompts.actions")
+    local quiz = Actions.getById("quiz")
+    TestRunner:assertNotNil(quiz, "quiz action exists")
+    TestRunner:assertEqual(quiz.reasoning_config, "off", "quiz pins reasoning off")
+
+    -- claude-sonnet-5 is adaptive-thinking default ON; without the pin its thinking tokens
+    -- bill against the quiz's 4096 max_tokens and truncate the JSON (broken quiz viewer).
+    local ao = ModelConstraints.parseActionReasoning(quiz, "anthropic")
+    local dec = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5",
+        { action_override = ao, global_stance = "default" })
+    TestRunner:assertEqual(dec.mode, "off", "decision off")
+    TestRunner:assertFalse(dec.send_nothing, "must actively disable, not send nothing")
+
+    local api = {}
+    ModelConstraints.applyReasoningParams("anthropic", api, dec)
+    TestRunner:assertNotNil(api.thinking, "thinking param present")
+    TestRunner:assertEqual(api.thinking.type, "disabled",
+        "thinking disabled so it can't consume the quiz max_tokens budget")
+end)
+
 -- Summary
 return TestRunner:summary()
