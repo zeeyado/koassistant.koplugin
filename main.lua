@@ -4102,6 +4102,9 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup)
         dict_config.features.dictionary_context = ""
         dict_config.features._original_context = ""
         dict_config.features._no_context_available = true
+        -- Unified flag consumed by handlePredefinedPrompt: the selection is NOT the open
+        -- document, so it must not re-extract the book's surrounding context/identity (B3)
+        dict_config.features._non_document_selection = true
       else
         -- Only include context in the request if mode is not "none"
         dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
@@ -10845,6 +10848,9 @@ function AskGPT:syncDictionaryBypass()
             dict_config.features.dictionary_context = ""
             dict_config.features._original_context = ""
             dict_config.features._no_context_available = true
+            -- Unified flag consumed by handlePredefinedPrompt: the selection is NOT the
+            -- open document, so it must not re-extract the book's context/identity (B3)
+            dict_config.features._non_document_selection = true
           else
             -- Only include context in the request if mode is not "none"
             dict_config.features.dictionary_context = (context_mode ~= "none") and context or ""
@@ -13809,8 +13815,15 @@ function AskGPT:patchTextSelectionHandlers()
           end
         end
 
-        -- Single word + short hold: original dictionary/Wikipedia behavior
+        -- Single word + short hold: original dictionary/Wikipedia behavior.
+        -- The word came from inside a dictionary popup, not the book — mark it so that
+        -- if the resulting lookup's KOAssistant action runs, it won't pull the open
+        -- book's surrounding context/identity into the request (B3).
         if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
+          local reader_ui = ReaderUI.instance
+          if reader_ui and reader_ui.dictionary then
+            reader_ui.dictionary._koassistant_non_reader_lookup = true
+          end
           orig_args(text, hold_duration)
           return
         end
