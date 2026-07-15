@@ -2581,6 +2581,82 @@ local function runMultiBookSidecarTests()
 end
 
 -- =============================================================================
+-- {highlighted_text} resolves in every context (B2 regression)
+-- A viewer selection inherits the originating chat's context, so a Translate
+-- action launched from a book/library/general chat must still resolve the
+-- {highlighted_text} placeholder — previously only the highlight branch did.
+-- =============================================================================
+
+local function runHighlightedTextContextTests()
+    print("\n--- MessageBuilder: {highlighted_text} in all contexts (B2) ---")
+
+    TestRunner:test("{highlighted_text} resolves in book context (viewer selection from book chat)", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Translate to English: {highlighted_text}" },
+            context = "book",
+            data = {
+                book_metadata = { title = "Notre-Dame de Paris", author = "Victor Hugo" },
+                highlighted_text = "l'univers",
+            },
+        })
+        TestRunner:assertNotContains(result, "{highlighted_text}")
+        TestRunner:assertContains(result, "l'univers")
+    end)
+
+    TestRunner:test("{highlighted_text} resolves in general context", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Define: {highlighted_text}" },
+            context = "general",
+            data = { highlighted_text = "serendipity" },
+        })
+        TestRunner:assertNotContains(result, "{highlighted_text}")
+        TestRunner:assertContains(result, "serendipity")
+    end)
+
+    TestRunner:test("{highlighted_text} resolves in library context", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Translate: {highlighted_text}" },
+            context = "library",
+            data = { highlighted_text = "der Weltgeist" },
+        })
+        TestRunner:assertNotContains(result, "{highlighted_text}")
+        TestRunner:assertContains(result, "der Weltgeist")
+    end)
+
+    TestRunner:test("highlight context: {highlighted_text} substituted inline, NOT duplicated in [Context]", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Translate: {highlighted_text}" },
+            context = "highlight",
+            data = {
+                book_title = "Notre-Dame de Paris",
+                book_author = "Victor Hugo",
+                highlighted_text = "UNIQUESELECTIONXYZ",
+            },
+        })
+        TestRunner:assertNotContains(result, "{highlighted_text}")
+        -- Selection must appear exactly once (inline in the request, not also echoed in [Context])
+        local first = result:find("UNIQUESELECTIONXYZ", 1, true)
+        TestRunner:assert(first ~= nil, "selection should appear")
+        local second = result:find("UNIQUESELECTIONXYZ", first + 1, true)
+        TestRunner:assert(second == nil, "selection should NOT be duplicated when the prompt carries {highlighted_text}")
+    end)
+
+    TestRunner:test("highlight context without placeholder: selection still added to [Context]", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Explain this passage." },
+            context = "highlight",
+            data = {
+                book_title = "Notre-Dame de Paris",
+                book_author = "Victor Hugo",
+                highlighted_text = "the flying buttresses",
+            },
+        })
+        TestRunner:assertContains(result, "[Context]")
+        TestRunner:assertContains(result, "the flying buttresses")
+    end)
+end
+
+-- =============================================================================
 -- Run All Tests
 -- =============================================================================
 
@@ -2601,6 +2677,7 @@ local function runAll()
     runAdditionalInputTests()
     runSubstituteVariablesTests()
     runMultiBookSidecarTests()
+    runHighlightedTextContextTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
