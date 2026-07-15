@@ -484,6 +484,17 @@ function MessageBuilder.build(params)
         user_prompt = replace_placeholder(user_prompt, "{summary_cache}", data.summary_cache)
     end
 
+    -- {highlighted_text} applies to all contexts (resolve before the context switch).
+    -- A viewer selection inherits the originating chat's context (e.g. a Summarize
+    -- chat is is_book_context), so the placeholder must resolve in the library/book/
+    -- general branches too, not only the highlight else-branch below.
+    -- Capture whether the ORIGINAL prompt carried the placeholder first: the highlight
+    -- branch below uses this to avoid duplicating the selection into its [Context] block.
+    local prompt_had_highlight_var = user_prompt:find("{highlighted_text}", 1, true) ~= nil
+    if data.highlighted_text then
+        user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text)
+    end
+
     -- Handle different contexts
     if logger then
         logger.info("MessageBuilder: Entering context switch, context=", context)
@@ -595,8 +606,9 @@ function MessageBuilder.build(params)
         table.insert(parts, user_prompt)
 
     else  -- highlight context
-        -- Check if prompt already includes {highlighted_text} - if so, don't duplicate in context
-        local prompt_has_highlight_var = user_prompt:find("{highlighted_text}", 1, true) ~= nil
+        -- Check if prompt already includes {highlighted_text} - if so, don't duplicate in context.
+        -- Read from the pre-substitution capture: the placeholder was already resolved above.
+        local prompt_has_highlight_var = prompt_had_highlight_var
 
         -- Build context section
         -- Only include highlighted_text in context if the prompt doesn't already have the variable
