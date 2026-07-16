@@ -334,15 +334,18 @@ function AskGPT:init()
         end,
       }
     end)
-    -- "Generate Image" button — shown only when the active provider supports image generation
+    -- "Generate Image" button — shown only when enabled and the active provider
+    -- supports image generation
     self.ui.highlight:addToHighlightDialog("koassistant_generate_image", function(reader_highlight_instance)
       return {
-        text = _("Generate Image (KOA)"),
+        text = _("Generate Image") .. " (KOA)",
         show_in_highlight_dialog_func = function()
           local feats = self.settings:readSetting("features") or {}
+          if feats.show_image_gen_in_highlight == false then return false end
+          -- Same provider fallback chain as updateConfigFromSettings()
           local active_provider = feats.provider
               or (config_file_defaults and config_file_defaults.provider)
-              or "openai"
+              or "anthropic"
           local ImageGenerator = require("koassistant_image_generator")
           return ImageGenerator.isSupported(active_provider)
         end,
@@ -4354,9 +4357,13 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   end
 
   -- Get configured actions for dictionary popup
+  -- Filter out actions requiring open book if no book is open (should always be true for dictionary)
   local has_open_book = self.ui and self.ui.document ~= nil
   local document_path = has_open_book and self.ui.document.file
   local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book, document_path)
+  if #popup_actions == 0 then
+    return  -- No actions configured
+  end
 
   -- Helper function to create a button for an action
   local function createActionButton(action)
@@ -4374,10 +4381,6 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   for _i, action in ipairs(popup_actions) do
     table.insert(buttons, createActionButton(action))
   end
-
-  -- Only insert rows if we have at least one button
-  if #buttons == 0 then return end
-
   local plugin_rows = require("koassistant_dict_buttons").splitRows(buttons)
 
   -- Insert all rows at position 2 (after the first row of standard buttons)
