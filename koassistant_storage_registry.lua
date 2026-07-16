@@ -105,6 +105,7 @@ Registry.SETTINGS_SUBKEYS = {
         "_reasoning_v2_migrated", "_reasoning_hint_shown",
         "_tools_posture_migrated", "_session_chips_migrated",
         "_highlight_context_migrated", "_web_search_effort_migrated",
+        "_quiz_chapter_level_reset", "_language_prompt_shown",
         "setup_wizard_completed",                            -- top-level (see TOPLEVEL_SUBKEYS)
     },
 }
