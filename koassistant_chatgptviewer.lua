@@ -2626,6 +2626,8 @@ function ChatGPTViewer:init()
   local buttons = self.buttons_table or {}
   if self.add_default_buttons or not self.buttons_table then
     -- Use minimal buttons in minimal mode, translate buttons in translate mode, simple view in simple mode, otherwise full default buttons
+    -- Mode flags here mirror ReplyQuote.eligible (koassistant_reply_quote.lua):
+    -- a new view mode added to this chain needs excluding there too
     if self.minimal_buttons then
       table.insert(buttons, minimal_button_row1)
       table.insert(buttons, minimal_button_row2)
@@ -2854,6 +2856,13 @@ function ChatGPTViewer:askAnotherQuestion()
   input_dialog._input_widget._frame_textwidget.color = Blitbuffer.COLOR_GRAY
   UIManager:show(input_dialog)
   input_dialog:onShowKeyboard()
+end
+
+--- Open the Reply input with the selection appended to the draft as a quote block.
+function ChatGPTViewer:addSelectionToReply(selected_text)
+  local ReplyQuote = require("koassistant_reply_quote")
+  self.reply_draft = ReplyQuote.append(self.reply_draft, selected_text)
+  self:askAnotherQuestion()
 end
 
 function ChatGPTViewer:onCloseWidget()
@@ -3322,6 +3331,7 @@ function ChatGPTViewer:showTextSelectionPopup(text)
   local plugin = self._plugin
   local self_ref = self
 
+  local ReplyQuote = require("koassistant_reply_quote")
   ChatGPTViewer.buildTextSelectionPopup(text, {
     ui = ui,
     plugin = plugin,
@@ -3330,6 +3340,9 @@ function ChatGPTViewer:showTextSelectionPopup(text)
     append_to_notebook = function(selected_text)
       self_ref:appendSelectionToNotebook(selected_text)
     end,
+    add_to_reply = ReplyQuote.eligible(self) and function(selected_text)
+      self_ref:addSelectionToReply(selected_text)
+    end or nil,
     clear_highlight = function()
       self_ref:clearTextHighlight()
     end,
@@ -3364,7 +3377,7 @@ end
 
 --- Shared text selection popup builder. Used by ChatGPTViewer and X-Ray browser.
 --- @param text string Selected text
---- @param opts table Options: ui, plugin, document_path, configuration, append_to_notebook, clear_highlight
+--- @param opts table Options: ui, plugin, document_path, configuration, append_to_notebook, add_to_reply, clear_highlight
 function ChatGPTViewer.buildTextSelectionPopup(text, opts)
   local ui = opts.ui
   local plugin = opts.plugin
@@ -3454,6 +3467,18 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
         end,
       })
     end
+  end
+
+  -- Add to reply (full chat viewer only — the caller passes the seam when a live
+  -- Reply input exists; gating logic in koassistant_reply_quote.lua)
+  if opts.add_to_reply then
+    table.insert(flat_buttons, {
+      text = _("Add to reply"),
+      callback = function()
+        close_and_clear()
+        opts.add_to_reply(text)
+      end,
+    })
   end
 
   -- Arrange in 2-column grid
