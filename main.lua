@@ -243,16 +243,21 @@ function AskGPT:init()
     end
   end
 
-  -- Add to highlight dialog if highlight feature is available
+  -- Add to highlight dialog if highlight feature is available.
+  -- All KOAssistant buttons register UNCONDITIONALLY; visibility is decided per
+  -- menu-open via show_in_highlight_dialog_func (KOReader rebuilds the button table
+  -- on every onShowHighlightMenu), so toggle/ordering changes apply the next time
+  -- the menu opens — no restart or book reopen needed.
   if self.ui and self.ui.highlight then
-    local highlight_features = self.settings:readSetting("features") or {}
-
     -- Main KOAssistant button (controlled separately from quick actions)
-    if highlight_features.show_koassistant_in_highlight ~= false then
-      self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
+    self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
         return {
           text = _("Chat/Action") .. " (KOA)",
           enabled = Device:hasClipboard(),
+          show_in_highlight_dialog_func = function()
+            local feats = self.settings:readSetting("features") or {}
+            return feats.show_koassistant_in_highlight ~= false
+          end,
           callback = function()
             -- Capture text and close highlight overlay to prevent darkening on saved highlights
             local selected_text = reader_highlight_instance.selected_text.text
@@ -294,13 +299,44 @@ function AskGPT:init()
             showChatGPTDialog(self.ui, selected_text, configuration, nil, self)
           end,
         }
-      end)
-      logger.info("Added KOAssistant to highlight dialog")
-    else
-      logger.info("KOAssistant: Main highlight button disabled")
-    end
+    end)
 
-    -- Register quick actions for highlight menu (has its own toggle check)
+    -- "Add to notebook" utility button — saves the selection straight to this book's
+    -- notebook, no AI involved. Registration id sorts just before "koassistant_dialog"
+    -- under orderedPairs, placing it second-to-last (maintainer decision 2026-07-15).
+    self.ui.highlight:addToHighlightDialog("koassistant_add_notebook", function(reader_highlight_instance)
+      return {
+        text = _("Add to notebook") .. " (KOA)",
+        show_in_highlight_dialog_func = function()
+          local feats = self.settings:readSetting("features") or {}
+          return feats.show_notebook_in_highlight ~= false
+        end,
+        hold_callback = function()
+          UIManager:show(InfoMessage:new{
+            text = _("Save the selected text to this book's notebook (creates the notebook if needed)."),
+          })
+        end,
+        callback = function()
+          -- Capture before onClose clears the selection
+          local selected_text = reader_highlight_instance.selected_text
+            and reader_highlight_instance.selected_text.text
+          reader_highlight_instance:onClose()
+          if not selected_text or selected_text == "" then return end
+          local doc_path = self.ui and self.ui.document and self.ui.document.file
+          if not doc_path then return end
+          local Notebook = require("koassistant_notebook")
+          local ChatGPTViewer = require("koassistant_chatgptviewer")
+          ChatGPTViewer.appendSnippetToNotebook(doc_path, selected_text, {
+            page_info = Notebook.getPageInfo(self.ui),
+            book_title = self.ui.doc_props
+              and (self.ui.doc_props.display_title or self.ui.doc_props.title),
+          })
+        end,
+      }
+    end)
+    logger.info("KOAssistant: highlight-menu buttons registered (visibility resolved per menu open)")
+
+    -- Register quick-action shortcut slots (own toggle; resolved per menu open)
     self:registerHighlightMenuActions()
   else
     logger.warn("Highlight feature not available, skipping highlight dialog integration")
@@ -10581,48 +10617,60 @@ function AskGPT:showNotebookPathPicker(revert_to)
   UIManager:show(path_chooser)
 end
 
--- Register quick actions for highlight menu
--- Called during init to add user-configured actions directly to the highlight popup
+-- Register quick-action shortcut SLOTS for the highlight menu.
+-- Called once during init. A fixed set of stable slot ids is always registered; each
+-- slot resolves "the i-th entry of the CURRENT ordered highlight-menu action list"
+-- freshly at menu-open time (KOReader calls every factory on each onShowHighlightMenu
+-- and honors show_in_highlight_dialog_func), so enable/disable, membership and
+-- ordering-manager changes apply the next time the menu opens — no restart.
+-- Membership beyond the slot cap appears only after the plugin re-inits (book reopen).
 function AskGPT:registerHighlightMenuActions()
   if not self.ui or not self.ui.highlight then return end
 
-  -- Check if highlight quick actions are disabled
-  local features = self.settings:readSetting("features") or {}
-  if features.show_quick_actions_in_highlight == false then
-    logger.info("KOAssistant: Highlight quick actions disabled")
-    return
-  end
+  local MAX_SLOTS = 15
 
-  -- Filter out actions requiring open book if no book is open (should always be true in highlight menu)
-  local has_open_book = self.ui and self.ui.document ~= nil
-  local document_path = has_open_book and self.ui.document.file
-  local quick_actions = self.action_service:getHighlightMenuActionObjects(has_open_book, document_path)
-  if #quick_actions == 0 then
-    logger.info("KOAssistant: No quick actions configured for highlight menu")
-    return
-  end
+  -- Per-menu-open memo shared by all slot closures. KOReader calls every registered
+  -- factory synchronously in ONE sorted onShowHighlightMenu loop, so slot 01 always
+  -- runs first among our slots: it resolves the ordered action list once and the
+  -- other slots reuse it. Resolving per slot would re-run action requirement checks
+  -- (hasAnyXray → loadCache dofile of the X-Ray cache) up to 15× per menu open —
+  -- a real cost on e-ink storage.
+  local menu_memo = nil
 
-  logger.info("KOAssistant: Registering " .. #quick_actions .. " quick actions for highlight menu")
-
-  for i, action in ipairs(quick_actions) do
-    -- Use numeric prefix for ordering: KOReader's orderedPairs sorts keys alphabetically
-    -- Format: "90_%02d_koassistant_%s" where 90_ comes after KOReader's built-in items (08_-11_)
-    local dialog_id = string.format("90_%02d_koassistant_%s", i, action.id)
-    local action_id = action.id  -- Capture ID for fresh lookup in callback
+  for i = 1, MAX_SLOTS do
+    local slot_index = i
+    -- Numeric prefix for ordering: KOReader's orderedPairs sorts keys alphabetically;
+    -- 90_ comes after KOReader's built-in items and before our koassistant_* buttons
+    local dialog_id = string.format("90_%02d_koassistant_slot", i)
 
     self.ui.highlight:addToHighlightDialog(dialog_id, function(reader_highlight_instance)
-      -- Re-fetch action to pick up mid-session override changes (flag toggles, etc.)
-      local fresh_action = self.action_service:getAction("highlight", action_id)
-      if not fresh_action or not fresh_action.enabled then return nil end
-      local cur_features = self.settings:readSetting("features") or {}
+      -- Slot 01 refreshes the memo each menu open (current toggle/membership/order);
+      -- later slots fall back to resolving only if slot 01 somehow never ran
+      if slot_index == 1 or not menu_memo then
+        local cur_features = self.settings:readSetting("features") or {}
+        local list = {}
+        if cur_features.show_quick_actions_in_highlight ~= false then
+          local has_open_book = self.ui and self.ui.document ~= nil
+          local document_path = has_open_book and self.ui.document.file
+          list = self.action_service:getHighlightMenuActionObjects(has_open_book, document_path)
+        end
+        menu_memo = { list = list, features = cur_features }
+      end
+      local cur_features = menu_memo.features
+      local action = menu_memo.list[slot_index]
+      if not action then
+        -- Empty/hidden slot. NEVER return nil here: onShowHighlightMenu indexes the
+        -- returned table unconditionally (readerhighlight.lua)
+        return { text = "", show_in_highlight_dialog_func = function() return false end }
+      end
       return {
-        text = ActionService.getActionDisplayText(fresh_action, cur_features) .. " (KOA)",
+        text = ActionService.getActionDisplayText(action, cur_features) .. " (KOA)",
         enabled = Device:hasClipboard(),
         allow_hold_when_disabled = true,
         hold_callback = function()
-          if fresh_action.description then
+          if action.description then
             UIManager:show(InfoMessage:new{
-              text = fresh_action.description,
+              text = action.description,
             })
           end
         end,
@@ -10669,15 +10717,15 @@ function AskGPT:registerHighlightMenuActions()
           -- Close highlight overlay to prevent darkening on saved highlights
           reader_highlight_instance:onClose()
 
-          if fresh_action.local_handler then
+          if action.local_handler then
             -- Local actions don't need network
             self:updateConfigFromSettings()
-            self:executeQuickAction(fresh_action, selected_text, context, selection_data, sc_window)
+            self:executeQuickAction(action, selected_text, context, selection_data, sc_window)
           else
             NetworkMgr:runWhenConnected(function()
               self:updateConfigFromSettings()
               -- Pass extracted context and selection data to executeQuickAction
-              self:executeQuickAction(fresh_action, selected_text, context, selection_data, sc_window)
+              self:executeQuickAction(action, selected_text, context, selection_data, sc_window)
             end)
           end
         end,
@@ -11420,7 +11468,7 @@ function AskGPT:resetActionMenus(silent)
 
   if not silent then
     UIManager:show(InfoMessage:new{
-      text = _("Action menus reset to defaults.") .. "\n" .. _("Restart KOReader for highlight menu changes to apply."),
+      text = _("Action menus reset to defaults."),
     })
   end
 end
@@ -11446,7 +11494,7 @@ function AskGPT:resetHighlightMenuActions(touchmenu_instance)
   self.settings:delSetting("_dismissed_highlight_menu_actions")
   self.settings:flush()
   UIManager:show(Notification:new{
-    text = _("Highlight menu actions reset (restart to apply)"),
+    text = _("Highlight menu actions reset"),
     timeout = 2,
   })
   if touchmenu_instance then touchmenu_instance:updateItems() end
@@ -13786,10 +13834,23 @@ function AskGPT:patchTextSelectionHandlers()
 
     -- 2+ words, or single word + long hold: show selection popup
     local plugin = getPlugin()
+    -- Viewer text isn't the book, but the note belongs to the reading session's open
+    -- book — the only identity available here (Q3 decision; toast names the target)
+    local doc_path = reader_ui.document and reader_ui.document.file
+    local append_to_notebook
+    if doc_path then
+      append_to_notebook = function(sel_text)
+        ChatGPTViewer.appendSnippetToNotebook(doc_path, sel_text, {
+          book_title = reader_ui.doc_props and reader_ui.doc_props.display_title,
+        })
+      end
+    end
     ChatGPTViewer.buildTextSelectionPopup(text, {
       ui = reader_ui,
       plugin = plugin,
       configuration = plugin and plugin.configuration,
+      document_path = doc_path,
+      append_to_notebook = append_to_notebook,
       clear_highlight = function() clearViewerHighlight(self) end,
     })
   end
@@ -13831,10 +13892,23 @@ function AskGPT:patchTextSelectionHandlers()
         -- Multi-word, or single word + long hold: show our popup
         local reader_ui = ReaderUI.instance
         local plugin = getPlugin()
+        -- Same open-book targeting as the TextViewer patch (Q3 decision)
+        local doc_path = reader_ui and reader_ui.document and reader_ui.document.file
+        local append_to_notebook
+        if doc_path then
+          append_to_notebook = function(sel_text)
+            ChatGPTViewer.appendSnippetToNotebook(doc_path, sel_text, {
+              book_title = reader_ui.doc_props
+                and (reader_ui.doc_props.display_title or reader_ui.doc_props.title),
+            })
+          end
+        end
         ChatGPTViewer.buildTextSelectionPopup(text, {
           ui = reader_ui,
           plugin = plugin,
           configuration = plugin and plugin.configuration,
+          document_path = doc_path,
+          append_to_notebook = append_to_notebook,
           clear_highlight = function()
             if dql_self.text_widget then
               local inner = dql_self.text_widget.htmlbox_widget or dql_self.text_widget.text_widget

@@ -13,6 +13,7 @@ Handles:
 ]]
 
 local _ = require("koassistant_gettext")
+local T = require("ffi/util").template
 local DocSettings = require("docsettings")
 local SafeDocSettings = require("koassistant_doc_settings")
 local lfs = require("libs/libkoreader-lfs")
@@ -478,6 +479,78 @@ function Notebook.append(notebook_path, entry)
 
     file:write(entry)
     file:close()
+    return true, nil
+end
+
+--- Format a raw text snippet as a notebook entry (no AI involvement)
+--- Pure function (unit-tested). Reader-origin snippets (page_info with a page) get a
+--- position-carrying header; other origins keep the legacy "*Note (timestamp):*" one.
+--- Raw English labels match formatEntry's style (notebook content is not localized).
+--- @param text string The snippet text
+--- @param page_info table|nil Page info from getPageInfo() (page/progress/chapter)
+--- @param timestamp string|nil Timestamp override (defaults to now; injectable for tests)
+--- @return string entry The formatted markdown entry (leading separator included)
+function Notebook.formatSnippet(text, page_info, timestamp)
+    local ts = timestamp or os.date("%Y-%m-%d %H:%M")
+    local header
+    if page_info and page_info.page then
+        local parts = { "Page " .. page_info.page }
+        if page_info.progress then
+            table.insert(parts, page_info.progress .. "%")
+        end
+        if page_info.chapter and page_info.chapter ~= "" then
+            table.insert(parts, page_info.chapter)
+        end
+        table.insert(parts, ts)
+        header = "*Highlight (" .. table.concat(parts, " • ") .. "):*"
+    else
+        header = "*Note (" .. ts .. "):*"
+    end
+    return "\n---\n\n" .. header .. "\n\n" .. text .. "\n"
+end
+
+--- Append a raw text snippet to a book's notebook (auto-creates the notebook)
+--- Storage-layer entry shared by the highlight-menu button and all selection popups;
+--- UI feedback belongs to callers (ChatGPTViewer.appendSnippetToNotebook).
+--- @param document_path string|nil The document file path (nil/general/library → error)
+--- @param text string The snippet text
+--- @param opts table|nil Options: page_info (reader origin), timestamp (tests)
+--- @return boolean success
+--- @return string|nil error User-displayable error message if failed
+function Notebook.appendSnippet(document_path, text, opts)
+    if not text or text == "" then
+        return false, _("No text selected")
+    end
+    local notebook_path = Notebook.getPath(document_path)
+    if not notebook_path then
+        return false, Notebook.getPathError(document_path)
+    end
+    -- Auto-create notebook if needed (writes proper header/frontmatter).
+    -- create/append return raw internal error strings — wrap them in a localized
+    -- frame here so every appendSnippet error is user-displayable (getPathError
+    -- messages above are already localized).
+    if not Notebook.exists(document_path) then
+        local ok, err = Notebook.create(document_path)
+        if not ok then
+            return false, T(_("Failed to create notebook: %1"), err or "unknown")
+        end
+        -- Re-resolve path after creation (vault mode may generate filename)
+        notebook_path = Notebook.getPath(document_path)
+        if not notebook_path then return false, Notebook.getPathError(document_path) end
+    end
+    local entry = Notebook.formatSnippet(text, opts and opts.page_info, opts and opts.timestamp)
+    local ok, err = Notebook.append(notebook_path, entry)
+    if not ok then
+        return false, T(_("Failed to save to notebook: %1"), err or "unknown")
+    end
+    -- Keep the notebook index fresh (same bookkeeping as the chat-save path)
+    local stats = Notebook.getStats(document_path)
+    if stats then
+        local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
+        index[document_path] = stats
+        G_reader_settings:saveSetting("koassistant_notebook_index", index)
+        G_reader_settings:flush()
+    end
     return true, nil
 end
 
