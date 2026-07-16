@@ -357,6 +357,13 @@ Registry.entries = {
         notes = "User-materialized files; preserved on teardown (user decision 2026-06-19).",
     },
     {
+        id = "images_dir", label = "Generated images (temp)",
+        location = "data_dir", ref = "koassistant_images",
+        category = "internal", backup = false,
+        reset_in = { "fresh_start", "wipe_all" }, uninstall = true,
+        notes = "Temp render files for highlight image generation (PR #96); viewer deletes on close, stale files swept on next generate.",
+    },
+    {
         id = "notebooks_vault_dir", label = "Notebook vault (default)",
         location = "data_dir", ref = "koassistant_notebooks",
         category = "notebooks", backup = false,

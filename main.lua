@@ -334,6 +334,41 @@ function AskGPT:init()
         end,
       }
     end)
+    -- "Generate Image" button — shown only when enabled and the active provider
+    -- supports image generation
+    self.ui.highlight:addToHighlightDialog("koassistant_generate_image", function(reader_highlight_instance)
+      return {
+        text = _("Generate Image") .. " (KOA)",
+        show_in_highlight_dialog_func = function()
+          local feats = self.settings:readSetting("features") or {}
+          if feats.show_image_gen_in_highlight == false then return false end
+          -- Same provider fallback chain as updateConfigFromSettings()
+          local active_provider = feats.provider
+              or (config_file_defaults and config_file_defaults.provider)
+              or "anthropic"
+          local ImageGenerator = require("koassistant_image_generator")
+          return ImageGenerator.isSupported(active_provider)
+        end,
+        hold_callback = function()
+          UIManager:show(InfoMessage:new{
+            text = _("Generate an image from the selected text description using the current AI provider."),
+          })
+        end,
+        callback = function()
+          -- Capture selection before closing the overlay
+          local selected_text = reader_highlight_instance.selected_text
+              and reader_highlight_instance.selected_text.text
+          reader_highlight_instance:onClose()
+          if not selected_text or selected_text == "" then return end
+          NetworkMgr:runWhenConnected(function()
+            self:updateConfigFromSettings()
+            local ImageGenerator = require("koassistant_image_generator")
+            ImageGenerator.generate(selected_text, configuration, self.settings)
+          end)
+        end,
+      }
+    end)
+
     logger.info("KOAssistant: highlight-menu buttons registered (visibility resolved per menu open)")
 
     -- Register quick-action shortcut slots (own toggle; resolved per menu open)
