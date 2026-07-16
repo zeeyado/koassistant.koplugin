@@ -4979,13 +4979,29 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 }
             end,
             book_tools = function()
-                -- Book contexts only (needs an open book); X-Ray chat stays excluded
-                -- (tools are off there by design). Otherwise ALWAYS visible like the Web
-                -- chip (maintainer 2026-07-12): "N/A" when the session can't run tools
-                -- (tap explains why), a locked OFF when the posture master switch is off
-                -- (tap points at the hold picker).
-                if not (chips_book_or_highlight and has_open_book and not is_xray_chat) then
+                -- Book contexts only (needs an open book) — those are STRUCTURAL hides.
+                -- Otherwise ALWAYS visible like the Web chip (maintainer 2026-07-12):
+                -- "N/A" when the session can't run tools (tap explains why), a locked
+                -- OFF when the posture master switch is off (tap points at the picker).
+                if not (chips_book_or_highlight and has_open_book) then
                     return nil
+                end
+                if is_xray_chat then
+                    -- POLICY exclusion (tools are off in X-Ray chat by design), not a
+                    -- structural one — gray with reason instead of hiding, matching the
+                    -- capability/consent N/A pattern (maintainer 2026-07-16). Enabling
+                    -- same-book tools here is a deferred controls-parity decision
+                    -- (tools_ux_plan.md revisit note).
+                    local function explainXray()
+                        UIManager:show(InfoMessage:new{
+                            text = _("Book tools aren't available in X-Ray chats."),
+                        })
+                    end
+                    return {
+                        text = enable_emoji and ("\u{1F50D} " .. _("N/A")) or _("Tools N/A"),
+                        callback = explainXray,
+                        hold_callback = explainXray,
+                    }
                 end
                 local eligible, reason = BookToolRunner.sessionEligible(configuration, ui_instance)
                 local posture_off = effective_tools_posture == "off"
