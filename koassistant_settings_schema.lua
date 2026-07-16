@@ -7,6 +7,20 @@ local Constants = require("koassistant_constants")
 -- This file defines the structure and metadata for all KOAssistant plugin settings
 -- Used by SettingsManager to generate menus - SINGLE SOURCE OF TRUTH
 
+local ModelLists = require("koassistant_model_lists")
+
+-- Helper: radio options for an image-generation model picker
+-- ("default" = first entry of the provider's image model list)
+local function imageModelOptions(provider)
+    local opts = {
+        { value = "default", text = T(_("Default (%1)"), ModelLists.getDefaultImageModel(provider) or "?") },
+    }
+    for _idx, m in ipairs(ModelLists.getImageModels(provider) or {}) do
+        table.insert(opts, { value = m, text = m })
+    end
+    return opts
+end
+
 -- Helper: Build model list string from capabilities
 local function getModelList(provider, capability)
     local caps = ModelConstraints.capabilities[provider]
@@ -2065,6 +2079,145 @@ local SettingsSchema = {
                             help_text = _("Show '*[Web search was used]*' indicator in chat when web search is used.\n\nStreaming indicator ('Searching the web...') is always shown."),
                             path = "features.show_web_search_indicator",
                             default = true,
+                        },
+                    },
+                },
+                -- Image Generation submenu (PR #96 polish)
+                {
+                    id = "image_generation_submenu",
+                    type = "submenu",
+                    text = _("Image Generation"),
+                    items = {
+                        {
+                            type = "info",
+                            text = _("Generate images from highlighted text (button in the highlight menu)"),
+                        },
+                        {
+                            id = "image_gen_provider",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local v = f.image_gen_provider or "auto"
+                                local labels = {
+                                    auto = _("Follow main provider"),
+                                    openai = "OpenAI",
+                                    xai = "xAI (Grok)",
+                                    gemini = "Gemini",
+                                }
+                                return T(_("Provider: %1"), labels[v] or v)
+                            end,
+                            help_text = _("Which provider generates images.\n\n'Follow main provider' uses your current chat provider when it supports images (OpenAI, xAI, Gemini). Picking one explicitly lets image generation work no matter which chat provider is active — it uses that provider's own API key.\n\nThe highlight-menu button only appears when the resolved provider has an API key."),
+                            path = "features.image_gen_provider",
+                            default = "auto",
+                            options = {
+                                { value = "auto", text = _("Follow main provider") },
+                                { value = "openai", text = "OpenAI" },
+                                { value = "xai", text = "xAI (Grok)" },
+                                { value = "gemini", text = "Gemini" },
+                            },
+                            separator = true,
+                        },
+                        {
+                            id = "image_gen_model_openai",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("OpenAI model: %1"), f.image_gen_model_openai or _("Default"))
+                            end,
+                            help_text = _("gpt-image-1-mini is fast (~15 s) and cheapest; gpt-image-2 is highest quality but slow (~60 s)."),
+                            path = "features.image_gen_model_openai",
+                            default = "default",
+                            options = imageModelOptions("openai"),
+                            depends_on = { id = "image_gen_provider", value = "openai" },
+                        },
+                        {
+                            id = "image_gen_model_xai",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("xAI model: %1"), f.image_gen_model_xai or _("Default"))
+                            end,
+                            path = "features.image_gen_model_xai",
+                            default = "default",
+                            options = imageModelOptions("xai"),
+                            depends_on = { id = "image_gen_provider", value = "xai" },
+                        },
+                        {
+                            id = "image_gen_model_gemini",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("Gemini model: %1"), f.image_gen_model_gemini or _("Default"))
+                            end,
+                            path = "features.image_gen_model_gemini",
+                            default = "default",
+                            options = imageModelOptions("gemini"),
+                            depends_on = { id = "image_gen_provider", value = "gemini" },
+                            separator = true,
+                        },
+                        {
+                            id = "image_gen_size",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("OpenAI size: %1"), f.image_gen_size or _("Default"))
+                            end,
+                            help_text = _("Image dimensions (OpenAI only). Default lets the API decide."),
+                            path = "features.image_gen_size",
+                            default = "default",
+                            options = {
+                                { value = "default", text = _("Default") },
+                                { value = "1024x1024", text = "1024x1024" },
+                                { value = "1536x1024", text = _("1536x1024 (landscape)") },
+                                { value = "1024x1536", text = _("1024x1536 (portrait)") },
+                            },
+                            depends_on = { id = "image_gen_provider", value = "openai" },
+                        },
+                        {
+                            id = "image_gen_quality",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("OpenAI quality: %1"), f.image_gen_quality or _("Default"))
+                            end,
+                            help_text = _("Higher quality is slower and costs more (OpenAI only)."),
+                            path = "features.image_gen_quality",
+                            default = "default",
+                            options = {
+                                { value = "default", text = _("Default") },
+                                { value = "low", text = _("Low") },
+                                { value = "medium", text = _("Medium") },
+                                { value = "high", text = _("High") },
+                            },
+                            depends_on = { id = "image_gen_provider", value = "openai" },
+                        },
+                        {
+                            id = "image_gen_aspect",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("Aspect ratio: %1"), f.image_gen_aspect or _("Default"))
+                            end,
+                            help_text = _("Output aspect ratio (xAI only). Default lets the API decide."),
+                            path = "features.image_gen_aspect",
+                            default = "default",
+                            options = {
+                                { value = "default", text = _("Default") },
+                                { value = "1:1", text = "1:1" },
+                                { value = "16:9", text = "16:9" },
+                                { value = "9:16", text = "9:16" },
+                                { value = "3:2", text = "3:2" },
+                                { value = "2:3", text = "2:3" },
+                            },
+                            depends_on = { id = "image_gen_provider", value = "xai" },
+                            separator = true,
+                        },
+                        {
+                            id = "generated_images_browser",
+                            type = "action",
+                            text = _("Generated images…"),
+                            callback = "showImageBrowser",
+                            help_text = _("Browse, view, and delete the images generated so far."),
                         },
                     },
                 },

@@ -530,8 +530,44 @@ local ModelLists = {
 }
 
 -------------------------------------------------------------------------------
+-- IMAGE GENERATION MODELS (PR #96 polish)
+-- Order matters: first model is the default for each provider. Wire/endpoint
+-- facts (URLs, auth headers, request shapes) live in koassistant_image_generator.lua.
+-- _-prefixed so provider iteration (getAllProviders) skips it.
+-------------------------------------------------------------------------------
+
+ModelLists._image_models = {
+    openai = {
+        "gpt-image-1-mini",       -- fast (~15 s), cheapest (default)
+        "gpt-image-1.5",
+        "gpt-image-2",            -- flagship quality, slow (~60 s)
+        "gpt-image-1",
+        "chatgpt-image-latest",
+    },
+    xai = {
+        "grok-imagine-image",          -- fast (~7 s) (default)
+        "grok-imagine-image-quality",  -- higher quality (alias: grok-imagine-image-pro)
+    },
+    gemini = {
+        "gemini-3.1-flash-image",  -- "Nano Banana" (default)
+        "gemini-3-pro-image",
+    },
+}
+
+-------------------------------------------------------------------------------
 -- HELPER FUNCTIONS
 -------------------------------------------------------------------------------
+
+-- Get image-generation models for a provider (nil if unsupported)
+function ModelLists.getImageModels(provider)
+    return ModelLists._image_models[provider]
+end
+
+-- Get the default image-generation model for a provider (first in list)
+function ModelLists.getDefaultImageModel(provider)
+    local list = ModelLists._image_models[provider]
+    return list and list[1]
+end
 
 -- Get sorted list of all provider names
 function ModelLists.getAllProviders()

@@ -10,15 +10,19 @@ Currently supported providers and their image-generation endpoints:
   • xai        → https://api.x.ai/v1/images/generations         (grok-imagine-image)
   • gemini     → generateContent with IMAGE modality             (gemini-*-image)
 
-All other providers fall back to a "not supported" notice.  The entry
-point is the single public function:
+Model inventory lives in koassistant_model_lists.lua (`_image_models`);
+this file holds only wire/endpoint facts. Generated images are kept in
+data_dir/koassistant_images (filename = date + prompt snippet); the
+Generated Images browser (koassistant_image_browser.lua) manages them.
 
+Public API:
   ImageGenerator.generate(word, configuration, settings)
-
-where `word` is the selected text / description, `configuration` is the
-global config table (provider + model resolved by updateConfigFromSettings
-before the call), and `settings` is the LuaSettings instance (for
-GUI-entered API keys).
+      `word` = selected text / description; `configuration` = global config
+      table (resolved by updateConfigFromSettings); `settings` = LuaSettings
+      instance (for GUI-entered API keys).
+  ImageGenerator.effectiveProvider(features, main_provider, settings)
+      → provider|nil, reason — the button-visibility / dispatch gate.
+  ImageGenerator.getImagesDir()
 ]]
 
 local json   = require("json")
@@ -29,6 +33,7 @@ local ltn12   = require("ltn12")
 local logger = require("logger")
 local mime   = require("mime")
 local BaseHandler = require("koassistant_api.base")
+local ModelLists = require("koassistant_model_lists")
 local _ = require("koassistant_gettext")
 local T = ffiutil.template
 
@@ -39,32 +44,29 @@ local ImageGenerator = {}
 -- ---------------------------------------------------------------------------
 
 --[[
- Provider entries:
+ Provider entries (wire/endpoint facts ONLY — model inventory lives in
+ koassistant_model_lists.lua `_image_models`, first entry = default):
    url        - base URL (OpenAI-style) or base URL for Gemini model interpolation
-   model      - default image model for this provider
    key_header - HTTP header used for authentication
    is_gemini  - when true, use Gemini's generateContent protocol instead of OpenAI images API
 
  Gemini ("Nano Banana") note:
-   Models gemini-3.1-flash-image / gemini-3-pro-image use the standard generateContent
-   endpoint with responseModalities=["IMAGE","TEXT"] and return images as inlineData
+   The gemini-*-image models use the standard generateContent endpoint with
+   responseModalities=["IMAGE","TEXT"] and return images as inlineData
    base64 parts in candidates[] -- not the OpenAI images response shape.
 ]]
 local IMAGE_ENDPOINTS = {
     openai = {
         url        = "https://api.openai.com/v1/images/generations",
-        model      = "gpt-image-1-mini",  -- fast (~15 s); gpt-image-2 takes ~60 s
         key_header = "Authorization",  -- "Bearer <key>"
     },
     xai = {
         url        = "https://api.x.ai/v1/images/generations",
-        model      = "grok-imagine-image",
         key_header = "Authorization",
     },
     gemini = {
         -- Base URL; model is appended as: <base>/<model>:generateContent
         url        = "https://generativelanguage.googleapis.com/v1beta/models",
-        model      = "gemini-3.1-flash-image",
         key_header = "x-goog-api-key",
         is_gemini  = true,
     },
@@ -102,6 +104,41 @@ local function resolveApiKey(provider, settings)
     return nil
 end
 
+--- Resolve which provider image generation should use.
+--- Chain (maintainer decision 2026-07-16): explicit `image_gen_provider`
+--- ("auto"/nil = follow the main provider) > main provider when image-capable.
+--- No fallback hunting through other configured keys — never spend on a
+--- provider the user didn't pick for the job.
+--- @param features table       resolved config features (image_gen_* keys)
+--- @param main_provider string the active chat provider
+--- @param settings table       LuaSettings instance (for GUI API keys)
+--- @return string|nil provider, nil|"no_endpoint"|"no_key" reason
+function ImageGenerator.effectiveProvider(features, main_provider, settings)
+    local pick = features and features.image_gen_provider
+    local provider
+    if type(pick) == "string" and pick ~= "" and pick ~= "auto" then
+        provider = pick
+    else
+        provider = main_provider
+    end
+    if not provider or not IMAGE_ENDPOINTS[provider] then
+        return nil, "no_endpoint"
+    end
+    if not resolveApiKey(provider, settings) then
+        return nil, "no_key"
+    end
+    return provider
+end
+
+--- Resolve the image model: explicit per-provider setting > list default.
+local function resolveImageModel(provider, features)
+    local m = features and features["image_gen_model_" .. provider]
+    if type(m) == "string" and m ~= "" and m ~= "default" then
+        return m
+    end
+    return ModelLists.getDefaultImageModel(provider)
+end
+
 --- Show a simple error / informational notice.
 local function showNotice(text)
     local UIManager  = require("ui/uimanager")
@@ -116,46 +153,43 @@ local function str(v)
     return type(v) == "string" and v or nil
 end
 
-local function getImagesDir()
+function ImageGenerator.getImagesDir()
     local DataStorage = require("datastorage")
     return DataStorage:getDataDir() .. "/koassistant_images"
 end
 
---- Remove leftover images from crashed sessions. The viewer deletes its own
---- file on close; anything older than an hour is an orphan.
-local function sweepStaleImages()
-    local lfs = require("libs/libkoreader-lfs")
-    local dir = getImagesDir()
-    if not lfs.attributes(dir, "mode") then return end
-    local now = os.time()
-    for entry in lfs.dir(dir) do
-        if entry ~= "." and entry ~= ".." then
-            local path = dir .. "/" .. entry
-            local mtime = lfs.attributes(path, "modification")
-            if mtime and now - mtime > 3600 then
-                os.remove(path)
-            end
-        end
+--- Filesystem-safe fragment from the prompt (FAT-safe: device storage).
+local function sanitizeForFilename(s)
+    s = s:gsub("[%c/\\:*?\"<>|%.]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$") or ""
+    if #s > 40 then
+        -- Byte-truncate, then drop a possibly split trailing UTF-8 sequence
+        s = require("util").fixUtf8(s:sub(1, 40), ""):match("^%s*(.-)%s*$") or ""
     end
+    return s
 end
 
---- Monotonic suffix so two generations in the same second don't collide.
-local image_seq = 0
-
 --- Show the generated image in KOReader's ImageViewer.
---- `image_data` is the raw PNG/JPEG binary string.
+--- `image_data` is the raw PNG/JPEG binary string. Images are KEPT
+--- (maintainer decision 2026-07-16): the filename carries the metadata
+--- (date + prompt snippet) and the Generated Images browser handles deletion.
 local function showImage(image_data, description, on_close)
     local UIManager  = require("ui/uimanager")
     local lfs = require("libs/libkoreader-lfs")
 
-    -- Write image to a temporary file
-    local tmp_dir = getImagesDir()
-    if not lfs.attributes(tmp_dir, "mode") then
-        lfs.mkdir(tmp_dir)
+    local dir = ImageGenerator.getImagesDir()
+    if not lfs.attributes(dir, "mode") then
+        lfs.mkdir(dir)
     end
-    image_seq = image_seq + 1
-    local tmp_path = string.format("%s/generated_%d_%d.png", tmp_dir, os.time(), image_seq)
-    local f = io.open(tmp_path, "wb")
+    local snippet = description and sanitizeForFilename(description) or ""
+    if snippet == "" then snippet = "image" end
+    local base = string.format("%s/%s %s", dir, os.date("%Y-%m-%d %H.%M.%S"), snippet)
+    local path = base .. ".png"
+    local n = 1
+    while lfs.attributes(path, "mode") do
+        n = n + 1
+        path = string.format("%s (%d).png", base, n)
+    end
+    local f = io.open(path, "wb")
     if not f then
         showNotice(_("Failed to save generated image to disk."))
         return
@@ -167,7 +201,7 @@ local function showImage(image_data, description, on_close)
     local ok, ImageViewer = pcall(require, "ui/widget/imageviewer")
     if not ok then
         -- Older KOReader builds may not have ImageViewer — offer a save notice
-        showNotice(T(_("Image saved to:\n%1"), tmp_path))
+        showNotice(T(_("Image saved to:\n%1"), path))
         if on_close then on_close() end
         return
     end
@@ -182,18 +216,17 @@ local function showImage(image_data, description, on_close)
     end
 
     local viewer = ImageViewer:new{
-        file = tmp_path,
+        file = path,
         with_title_bar = true,
         title_text = title_text,
         is_doc_page = false,
     }
-    -- Clean up temp file when viewer is dismissed
-    local orig_onClose = viewer.onClose
-    viewer.onClose = function(self_v, ...)
-        -- Remove temp file
-        os.remove(tmp_path)
-        if orig_onClose then orig_onClose(self_v, ...) end
-        if on_close then on_close() end
+    if on_close then
+        local orig_onClose = viewer.onClose
+        viewer.onClose = function(self_v, ...)
+            if orig_onClose then orig_onClose(self_v, ...) end
+            on_close()
+        end
     end
     UIManager:show(viewer)
 end
@@ -517,59 +550,25 @@ end
 
 --- Internal implementation — called via pcall from generate() for error catching.
 function ImageGenerator._generateImpl(word, config_table, settings)
-    local UIManager   = require("ui/uimanager")
-    local InfoMessage = require("ui/widget/infomessage")
+    local UIManager = require("ui/uimanager")
 
-    -- Provider/model come from the live config table: callers run
-    -- updateConfigFromSettings() before invoking, so both are already resolved
-    local provider = config_table and config_table.provider
-
-    local endpoint = provider and IMAGE_ENDPOINTS[provider]
-    if not endpoint then
-        showNotice(_("Image generation is not supported for the current provider.\n\nSupported providers: OpenAI, xAI (Grok), Gemini."))
-        return
-    end
-
-    local api_key = resolveApiKey(provider, settings)
-    if not api_key then
-        showNotice(T(_("No API key found for provider: %1.\n\nPlease add your key in KOAssistant settings."), provider))
-        return
-    end
-
-    -- Resolve selected model from config (per-provider override, then global)
-    local selected_model
-    local prov_settings = config_table.provider_settings or {}
-    if type(prov_settings[provider]) == "table" and prov_settings[provider].model then
-        selected_model = prov_settings[provider].model
-    end
-    if not selected_model or selected_model == "" or selected_model == "default" then
-        selected_model = config_table.model
-    end
-
-    -- Map selected model to a valid image-generation model for the provider
-    local resolved_model = endpoint.model
-    if selected_model and selected_model ~= "" and selected_model ~= "default" then
-        if provider == "gemini" then
-            if selected_model:find("-image", 1, true) then
-                resolved_model = selected_model
-            else
-                local lower = selected_model:lower()
-                if lower:find("pro", 1, true) then
-                    resolved_model = "gemini-3-pro-image"
-                else
-                    resolved_model = "gemini-3.1-flash-image"
-                end
-            end
-        elseif provider == "openai" then
-            if selected_model:find("image", 1, true) or selected_model:find("dall-e", 1, true) then
-                resolved_model = selected_model
-            end
-        elseif provider == "xai" then
-            if selected_model:find("image", 1, true) then
-                resolved_model = selected_model
-            end
+    -- Effective provider (maintainer decision 2026-07-16): explicit
+    -- image_gen_provider > image-capable main provider; never fall back to a
+    -- merely-keyed provider. Model: per-provider setting > list default.
+    local features = (config_table and config_table.features) or {}
+    local provider, unavailable = ImageGenerator.effectiveProvider(
+        features, config_table and config_table.provider, settings)
+    if not provider then
+        if unavailable == "no_key" then
+            showNotice(_("No API key found for the image generation provider.\n\nPlease add your key in KOAssistant settings."))
+        else
+            showNotice(_("Image generation is not available for the current provider.\n\nSupported: OpenAI, xAI (Grok), Gemini. You can also pick a dedicated image provider in KOAssistant settings (Advanced)."))
         end
+        return
     end
+    local endpoint = IMAGE_ENDPOINTS[provider]
+    local api_key = resolveApiKey(provider, settings)
+    local resolved_model = resolveImageModel(provider, features)
 
     -- Trim and validate description
     local description = word:match("^%s*(.-)%s*$")
@@ -605,39 +604,67 @@ function ImageGenerator._generateImpl(word, config_table, settings)
             n      = 1,
         }
         if provider == "openai" then
-            request_body.size = "1024x1024"
+            -- "default"/nil = omit the param and let the API decide
+            local size = str(features.image_gen_size)
+            if size and size ~= "default" then request_body.size = size end
+            local quality = str(features.image_gen_quality)
+            if quality and quality ~= "default" then request_body.quality = quality end
         else
             request_body.response_format = "b64_json"
+            if provider == "xai" then
+                local aspect = str(features.image_gen_aspect)
+                if aspect and aspect ~= "default" then request_body.aspect_ratio = aspect end
+            end
         end
         request_body_str = json.encode(request_body)
     end
 
-    sweepStaleImages()
-
-    -- Loading dialog; dismissing it cancels the request
+    -- Progress window: the tool-status dialog (setText handle + Stop button)
+    -- avoids InfoMessage's fire-dismiss_callback-on-any-close trap and gives
+    -- the user elapsed-time feedback during the long blocking POST
+    local StreamHandler = require("stream_handler")
     local cancelled = false
-    local active_pid  -- reassigned per fork; dismiss kills whichever is live
+    local active_pid  -- reassigned per fork; Stop kills whichever is live
+    local start_ts = os.time()
+    local provider_label = string.upper(provider:sub(1,1)) .. provider:sub(2)
+    local phase_text = T(_("Generating image with %1 / %2…"), provider_label, resolved_model)
+    local status, tick
+    local ticking = false
+    local function statusText()
+        return phase_text .. "\n\n" .. T(_("Elapsed: %1 s"), os.time() - start_ts)
+    end
+    local function stopTicker()
+        if ticking then
+            UIManager:unschedule(tick)
+            ticking = false
+        end
+    end
+    tick = function()
+        if not ticking then return end
+        status.setText(statusText())
+        UIManager:scheduleIn(5, tick)
+    end
     local function cancelRequest()
         cancelled = true
+        stopTicker()
         if active_pid then
             ffiutil.terminateSubProcess(active_pid)
         end
+        if status then status.close() end
     end
-    local provider_label = string.upper(provider:sub(1,1)) .. provider:sub(2)
-    local loading_dialog = InfoMessage:new{
-        text = T(_("Generating image…\n\n%1 / %2\n\nTap to cancel."), provider_label, resolved_model),
-        dismissable = true,
-        dismiss_callback = cancelRequest,
-    }
-    UIManager:show(loading_dialog)
-    UIManager:forceRePaint()
-
-    -- InfoMessage fires dismiss_callback on ANY close, including programmatic
-    -- ones — clear it first so only a real user dismissal cancels
-    local function closeDialog(dlg)
-        dlg.dismiss_callback = nil
-        UIManager:close(dlg)
+    local function openStatus(text)
+        if status then status.close() end
+        phase_text = text
+        status = StreamHandler.showToolStatusDialog({
+            settings = { large_stream_dialog = false, response_font_size = features.response_font_size },
+            title = _("Generating image"),
+            initial_text = statusText(),
+            on_stop = cancelRequest,
+        })
+        ticking = true
+        UIManager:scheduleIn(5, tick)
     end
+    openStatus(phase_text)
 
     -- pollSubprocess callbacks run from the UI task queue, outside generate()'s
     -- pcall — guard them so a parsing bug can't crash KOReader
@@ -645,6 +672,8 @@ function ImageGenerator._generateImpl(word, config_table, settings)
         return function(...)
             local cb_ok, cb_err = pcall(fn, ...)
             if not cb_ok then
+                stopTicker()
+                if status then status.close() end
                 logger.err("KOAssistant: image generation callback error:", cb_err)
                 showNotice(T(_("Image generation error:\n\n%1"), tostring(cb_err)))
             end
@@ -663,31 +692,39 @@ function ImageGenerator._generateImpl(word, config_table, settings)
     local pid, parent_read_fd = ffiutil.runInSubProcess(bg_fn, true)
 
     if not pid then
-        closeDialog(loading_dialog)
+        stopTicker()
+        status.close()
         showNotice(_("Failed to start image generation subprocess."))
         return
     end
     active_pid = pid
 
+    -- Close the status window and report an error
+    local function fail(msg)
+        stopTicker()
+        status.close()
+        showNotice(msg)
+    end
+
     -- Poll for result
     pollSubprocess(pid, parent_read_fd, guarded(function(raw)
-        closeDialog(loading_dialog)
+        stopTicker()
         logger.info("KOAssistant: image gen result:", raw and #raw or 0, "bytes; head:", raw and raw:sub(1, 120) or "<empty>")
         if cancelled then return end
 
         if not raw or raw == "" then
-            showNotice(_("Empty response from image generation API."))
+            fail(_("Empty response from image generation API."))
             return
         end
 
         -- Check for error prefix
         if raw:sub(1, 4) == "ERR:" then
-            showNotice(T(_("Image generation failed:\n\n%1"), raw:sub(5)))
+            fail(T(_("Image generation failed:\n\n%1"), raw:sub(5)))
             return
         end
         if raw:sub(1, 3) ~= "OK:" then
             -- Subprocess died mid-write; show what we got
-            showNotice(T(_("Image generation failed:\n\n%1"), raw:sub(1, 200)))
+            fail(T(_("Image generation failed:\n\n%1"), raw:sub(1, 200)))
             return
         end
 
@@ -697,7 +734,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
         -- Parse JSON response
         local ok_parse, resp = pcall(json.decode, body)
         if not ok_parse or type(resp) ~= "table" then
-            showNotice(_("Failed to parse image generation response."))
+            fail(_("Failed to parse image generation response."))
             return
         end
 
@@ -707,7 +744,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
             local err_msg = str(resp.error)
                 or (type(resp.error) == "table" and str(resp.error.message))
                 or _("Unknown API error")
-            showNotice(T(_("Image generation API error:\n\n%1"), err_msg))
+            fail(T(_("Image generation API error:\n\n%1"), err_msg))
             return
         end
 
@@ -718,7 +755,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
             local content = first and type(first.content) == "table" and first.content or nil
             local parts = content and type(content.parts) == "table" and content.parts or nil
             if not parts then
-                showNotice(_("No image data in Gemini response."))
+                fail(_("No image data in Gemini response."))
                 return
             end
             -- Find the first IMAGE part (mimeType starts with "image/")
@@ -729,15 +766,16 @@ function ImageGenerator._generateImpl(word, config_table, settings)
                     if mime_type and mime_type:sub(1, 6) == "image/" and data_b64 then
                         local image_bytes = mime.unb64(data_b64)
                         if not image_bytes or image_bytes == "" then
-                            showNotice(_("Failed to decode image data."))
+                            fail(_("Failed to decode image data."))
                             return
                         end
+                        status.close()
                         showImage(image_bytes, description)
                         return
                     end
                 end
             end
-            showNotice(_("No image part found in Gemini response."))
+            fail(_("No image part found in Gemini response."))
             return
         end
 
@@ -745,7 +783,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
         local data_list = type(resp.data) == "table" and resp.data or nil
         local image_data_entry = data_list and type(data_list[1]) == "table" and data_list[1] or nil
         if not image_data_entry then
-            showNotice(_("No image data in response."))
+            fail(_("No image data in response."))
             return
         end
 
@@ -754,9 +792,10 @@ function ImageGenerator._generateImpl(word, config_table, settings)
         if b64 and b64 ~= "" then
             local image_bytes = mime.unb64(b64)
             if not image_bytes or image_bytes == "" then
-                showNotice(_("Failed to decode image data."))
+                fail(_("Failed to decode image data."))
                 return
             end
+            status.close()
             showImage(image_bytes, description)
             return
         end
@@ -764,49 +803,37 @@ function ImageGenerator._generateImpl(word, config_table, settings)
         -- url response fallback: download the image
         local image_url = str(image_data_entry.url)
         if not image_url or image_url == "" then
-            showNotice(_("No image URL in response."))
+            fail(_("No image URL in response."))
             return
         end
 
-        -- Show secondary loading for download
-        local dl_dialog = InfoMessage:new{
-            text = _("Downloading generated image…\n\nTap to cancel."),
-            dismissable = true,
-            dismiss_callback = cancelRequest,
-        }
-        UIManager:show(dl_dialog)
-        UIManager:forceRePaint()
+        -- Download phase: fresh status window, same elapsed clock
+        openStatus(_("Downloading generated image…"))
 
         local dl_fn = makeDownloadFn(image_url)
         local dl_pid, dl_fd = ffiutil.runInSubProcess(dl_fn, true)
         if not dl_pid then
-            closeDialog(dl_dialog)
-            showNotice(_("Failed to download generated image."))
+            fail(_("Failed to download generated image."))
             return
         end
         active_pid = dl_pid
 
         pollSubprocess(dl_pid, dl_fd, guarded(function(dl_raw)
-            closeDialog(dl_dialog)
+            stopTicker()
             if cancelled then return end
             if not dl_raw or dl_raw:sub(1, 4) == "ERR:" then
-                showNotice(T(_("Image download failed:\n\n%1"), dl_raw and dl_raw:sub(5) or ""))
+                fail(T(_("Image download failed:\n\n%1"), dl_raw and dl_raw:sub(5) or ""))
                 return
             end
             if dl_raw:sub(1, 3) ~= "OK:" or #dl_raw <= 3 then
-                showNotice(_("Image download failed."))
+                fail(_("Image download failed."))
                 return
             end
             -- "OK:" prefix + binary
+            status.close()
             showImage(dl_raw:sub(4), description)
         end))
     end))
-end
-
---- Return whether image generation is supported for the given provider.
---- Used by the highlight-menu button to decide whether to show itself.
-function ImageGenerator.isSupported(provider)
-    return IMAGE_ENDPOINTS[provider] ~= nil
 end
 
 return ImageGenerator

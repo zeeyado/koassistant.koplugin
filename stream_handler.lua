@@ -203,7 +203,8 @@ end
 --- own). The tool runner updates it per lookup round, closes it, and the phase-2 streamed
 --- request then opens the real stream dialog in the same place.
 --- @param opts table: { settings = {large_stream_dialog, response_font_size},
----                      initial_text = string, on_stop = function, on_skip = function }
+---                      initial_text = string, on_stop = function, on_skip = function,
+---                      title = string (optional; defaults to "AI is responding") }
 --- on_skip (optional) adds a "Skip lookups" button: stop gathering but continue the
 --- request with whatever was collected (vs Stop, which kills the whole request).
 --- @return table handle: { setText = fn(text), close = fn() } (close is idempotent)
@@ -239,7 +240,7 @@ function StreamHandler.showToolStatusDialog(opts)
         })
     end
     dialog = InputDialog:new{
-        title = _("AI is responding"),
+        title = opts.title or _("AI is responding"),
         inputtext_class = StreamText,
         input_face = Font:getFace("infofont", font_size),
         width = width,

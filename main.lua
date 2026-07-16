@@ -343,11 +343,12 @@ function AskGPT:init()
           local feats = self.settings:readSetting("features") or {}
           if feats.show_image_gen_in_highlight == false then return false end
           -- Same provider fallback chain as updateConfigFromSettings()
-          local active_provider = feats.provider
+          local main_provider = feats.provider
               or (config_file_defaults and config_file_defaults.provider)
               or "anthropic"
+          -- Resolves image_gen_provider override + image capability + key presence
           local ImageGenerator = require("koassistant_image_generator")
-          return ImageGenerator.isSupported(active_provider)
+          return ImageGenerator.effectiveProvider(feats, main_provider, self.settings) ~= nil
         end,
         hold_callback = function()
           UIManager:show(InfoMessage:new{
@@ -4388,6 +4389,12 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
   for i = #plugin_rows, 1, -1 do
     table.insert(dict_buttons, 2, plugin_rows[i])
   end
+end
+
+-- Generated-images browser (Settings → Advanced → Image Generation)
+function AskGPT:showImageBrowser()
+  local ImageBrowser = require("koassistant_image_browser")
+  ImageBrowser.show()
 end
 
 -- Event handlers for gesture-triggered actions
