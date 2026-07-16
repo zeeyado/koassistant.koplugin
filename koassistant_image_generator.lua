@@ -202,6 +202,28 @@ end
 -- Background subprocess: make the HTTPS POST, stream result to pipe
 -- ---------------------------------------------------------------------------
 
+--- Write the whole buffer to a pipe fd. ffiutil.writeToFD is a single
+--- unlooped write(2), and pipe writes larger than the pipe buffer may
+--- return short — multi-MB image responses arrived truncated on device
+--- (json parse failures). Loops until done, retrying on EINTR.
+local function writeAllToFD(fd, data)
+    local ptr = ffi.cast("const char*", data)
+    local total = #data
+    local written = 0
+    while written < total do
+        local n = tonumber(ffi.C.write(fd, ptr + written, total - written))
+        if not n or n < 0 then
+            if ffi.errno() == 4 then -- EINTR: interrupted, nothing written; retry
+                n = 0
+            else
+                return false
+            end
+        end
+        written = written + n
+    end
+    return true
+end
+
 --- Build and return a background function suitable for ffiutil.runInSubProcess.
 --- The subprocess writes either:
 ---   "OK:<base64-json>" (the full response body) on success, or
@@ -285,9 +307,9 @@ local function makeBackgroundFn(url, api_key, request_body_str, endpoint)
                 local body = table.concat(chunks)
 
                 if status_code ~= 200 then
-                    ffiutil.writeToFD(child_write_fd, "ERR:HTTP " .. tostring(status_code) .. ": " .. body:sub(1, 200))
+                    writeAllToFD(child_write_fd, "ERR:HTTP " .. tostring(status_code) .. ": " .. body:sub(1, 200))
                 else
-                    ffiutil.writeToFD(child_write_fd, "OK:" .. body)
+                    writeAllToFD(child_write_fd, "OK:" .. body)
                 end
             else
                 -- Standard path
@@ -309,16 +331,16 @@ local function makeBackgroundFn(url, api_key, request_body_str, endpoint)
                 local body = table.concat(response_body)
                 local numeric_code = tonumber(code) or 0
                 if numeric_code ~= 200 then
-                    ffiutil.writeToFD(child_write_fd,
+                    writeAllToFD(child_write_fd,
                         "ERR:HTTP " .. tostring(code) .. " " .. tostring(status) .. ": " .. body:sub(1, 200))
                 else
-                    ffiutil.writeToFD(child_write_fd, "OK:" .. body)
+                    writeAllToFD(child_write_fd, "OK:" .. body)
                 end
             end
         end)
 
         if not ok then
-            ffiutil.writeToFD(child_write_fd, "ERR:Subprocess error: " .. tostring(err))
+            writeAllToFD(child_write_fd, "ERR:Subprocess error: " .. tostring(err))
         end
 
         ffi.C.close(child_write_fd)
@@ -380,12 +402,12 @@ local function makeDownloadFn(image_url)
                 end
                 ssl_sock:close()
                 if status_code ~= 200 then
-                    ffiutil.writeToFD(child_write_fd, "ERR:HTTP " .. tostring(status_code))
+                    writeAllToFD(child_write_fd, "ERR:HTTP " .. tostring(status_code))
                 else
                     -- prefix + binary body
-                    ffiutil.writeToFD(child_write_fd, "OK:")
+                    writeAllToFD(child_write_fd, "OK:")
                     local body = table.concat(chunks)
-                    ffiutil.writeToFD(child_write_fd, body)
+                    writeAllToFD(child_write_fd, body)
                 end
             else
                 local chunks_t = {}
@@ -394,15 +416,15 @@ local function makeDownloadFn(image_url)
                     sink = ltn12.sink.table(chunks_t),
                 }
                 if tonumber(code) ~= 200 then
-                    ffiutil.writeToFD(child_write_fd, "ERR:HTTP " .. tostring(code))
+                    writeAllToFD(child_write_fd, "ERR:HTTP " .. tostring(code))
                 else
-                    ffiutil.writeToFD(child_write_fd, "OK:")
-                    ffiutil.writeToFD(child_write_fd, table.concat(chunks_t))
+                    writeAllToFD(child_write_fd, "OK:")
+                    writeAllToFD(child_write_fd, table.concat(chunks_t))
                 end
             end
         end)
         if not ok then
-            ffiutil.writeToFD(child_write_fd, "ERR:Download subprocess error: " .. tostring(err))
+            writeAllToFD(child_write_fd, "ERR:Download subprocess error: " .. tostring(err))
         end
         ffi.C.close(child_write_fd)
         pcall(function() ffi.C._exit(0) end)
@@ -650,7 +672,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
     -- Poll for result
     pollSubprocess(pid, parent_read_fd, guarded(function(raw)
         closeDialog(loading_dialog)
-        logger.info("KOAssistant: image gen result head:", raw and raw:sub(1, 120) or "<empty>")
+        logger.info("KOAssistant: image gen result:", raw and #raw or 0, "bytes; head:", raw and raw:sub(1, 120) or "<empty>")
         if cancelled then return end
 
         if not raw or raw == "" then
