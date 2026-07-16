@@ -8,6 +8,7 @@
 
 > **New to KOAssistant?** The [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki) has short getting-started guides. [Help expand it.](https://github.com/zeeyado/koassistant.koplugin/wiki/Contributing-to-this-Wiki)
 
+Note July 2026: The README currently functions as the main documentation. It is out of date due to many changes in the plugin code. Any help migrating to wiki and cleaning up the docs is appreciated
 
 <p align="center">
   <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>

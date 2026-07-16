@@ -86,6 +86,40 @@ function ScopeResolver.paragraphWindow(prev, next_text, n, max_per_side)
     return before, after
 end
 
+--- Chapter-preset availability for the unified scope popup (flexible_scope_plan.md
+-- phase 1). Pure decision logic: takes resolved facts, returns which presets to show
+-- and their effective page ranges. UI labels, extraction, and gating stay in main.lua.
+-- @param p table {
+--   chapter = { start_page = N, end_page = N } | nil,  -- current chapter (nil = no TOC / front matter)
+--   current_page = number,
+--   is_whole_doc = boolean,    -- action's "Full document" = the entire book
+--   is_to_position = boolean,  -- action's "Full document" already stops at the position (recap family)
+--   spoiler_free = boolean,    -- resolved per-book/global posture (session chip never applies here)
+-- }
+-- @return table {
+--   chapter = { start_page, end_page } | nil,         -- "Current chapter" row (nil = hidden)
+--   chapter_so_far = { start_page, end_page } | nil,  -- "Current chapter so far" row (nil = hidden)
+-- }
+function ScopeResolver.chapterPresets(p)
+    local ch = p.chapter
+    if not ch or not ch.start_page or not ch.end_page then return {} end
+    local cur = p.current_page or 1
+    local out = {}
+    -- "Current chapter so far": strictly mid-chapter — at the chapter start nothing has
+    -- been read yet, and at/after the chapter end it equals the full chapter.
+    if (p.is_whole_doc or p.is_to_position) and cur > ch.start_page and cur < ch.end_page then
+        out.chapter_so_far = { start_page = ch.start_page, end_page = cur }
+    end
+    -- "Current chapter": whole-doc actions only (a to-position action's full run already
+    -- stops at the position, so offering unread chapter text would contradict it).
+    -- Spoiler posture clamps any scope's end to the current position (plan §2) — mid-chapter
+    -- the clamped range IS the so-far row, so hide this one instead of double-listing it.
+    if p.is_whole_doc and not (p.spoiler_free and cur < ch.end_page) then
+        out.chapter = { start_page = ch.start_page, end_page = ch.end_page }
+    end
+    return out
+end
+
 --- Trim a raw context window to the requested mode and mark the selection.
 -- Modes: "sentence" (default; falls back to characters when boundaries yield too
 -- little), "paragraph" (opts.paragraphs per side), "characters" (opts.char_count
