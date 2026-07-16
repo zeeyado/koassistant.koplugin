@@ -5529,11 +5529,15 @@ end
 --- @param action_id string: The action ID
 --- @param opts table: { on_execute = function(state), for_highlight = boolean }
 ---   state = { source = "full_text"|"summary"|"ai_knowledge",
----             scope = "full"|"section"|"read_so_far",
+---             scope = "full"|"section"|"read_so_far"|"chapter"|"chapter_so_far"|"from_section",
 ---             section_entry = table|nil, section_label = string|nil }
 ---   scope "read_so_far" (whole-doc actions, mid-read) routes through _executeSectionAction as a
 ---   synthetic page-1→current-page section; source is full_text (extract read text) or ai_knowledge
 ---   (no text, spoiler boundary via the framing instruction — like recap); summary doesn't apply.
+---   scopes "chapter"/"chapter_so_far" (flexible scope phase 1; QUIZ-ONLY) are synthetic sections
+---   from the quiz-level chapter resolution; "from_section" (all whole-doc + to-position actions)
+---   is the explicit-start "so far" (TOC pick → current position, section_entry holds the pick).
+---   All three route like read_so_far; summary doesn't apply.
 function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   local action_name = action.text or action_id
   local ActionCache = require("koassistant_action_cache")
@@ -5603,12 +5607,16 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   -- Show the scope section even without a TOC when read-so-far is the reason (it needs no sections).
   if read_so_far_available then show_scope = true end
 
-  -- Chapter scope presets (flexible_scope_plan.md phase 1): "Current chapter" for whole-doc
-  -- actions, "Current chapter so far" also for to-position actions (recap family — their
-  -- "Full document" already stops at the position, so only the so-far preset adds anything).
-  -- Chapter level = the auto chapter quiz's resolution, so both features agree on what "a
-  -- chapter" is. Availability + spoiler-clamp policy is pure (ScopeResolver.chapterPresets);
+  -- Chapter/section scope additions (flexible_scope_plan.md phase 1, revised 2026-07-16):
   -- everything is packed into ONE table local to spare closure upvalues (LuaJIT 60 cap).
+  --   * "From section… (to current position)" — generic explicit-start "so far" for whole-doc
+  --     AND to-position (recap family) actions: the user picks the start from the TOC, so no
+  --     chapter-level resolution is involved. Spoiler-safe by construction (end = position).
+  --   * "Current chapter (so far)" presets — QUIZ-ONLY (maintainer 2026-07-16): the chapter
+  --     level setting exists for the quiz trigger, and the manual quiz presets share its
+  --     resolution and cache labels (the trigger's existing-quiz check dedupes manual runs).
+  --     Every other action states its scope explicitly (Pick section… / From section…), so
+  --     quiz chapter resolution never leaks into non-quiz scope UI.
   local is_to_position = not is_whole_doc
       and (prompt_text:find("{book_text_section}", 1, true)
         or prompt_text:find("{incremental_book_text_section}", 1, true))
@@ -5617,22 +5625,27 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
   if (is_whole_doc or is_to_position) and not opts.for_highlight
       and self.ui and self.ui.document
       and (text_extraction_enabled or not requires_book_text) then
-    local info = self:_currentChapterInfo()
-    if info then
-      chapter.info = info
-      chapter.presets = require("koassistant_scope_resolver").chapterPresets({
-        chapter = info,
-        current_page = info.current_page,
-        is_whole_doc = is_whole_doc and true or false,
-        is_to_position = is_to_position,
-        -- Per-book > global posture; the session Spoiler chip never applies to
-        -- predefined actions (buildUnifiedRequestConfig clears it for action ~= nil).
-        spoiler_free = require("koassistant_book_settings").resolveSpoilerFree(
-            self.ui.doc_settings, features),
-      })
+    chapter.current_page = (self.ui.view and self.ui.view.state and self.ui.view.state.page) or 1
+    chapter.from_section_available = toc_available and chapter.current_page > 1 and true or false
+    if is_whole_doc and action.interactive_quiz then
+      local info = self:_currentChapterInfo()
+      if info then
+        chapter.info = info
+        chapter.presets = require("koassistant_scope_resolver").chapterPresets({
+          chapter = info,
+          current_page = info.current_page,
+          -- Per-book > global posture; the session Spoiler chip never applies to
+          -- predefined actions (buildUnifiedRequestConfig clears it for action ~= nil).
+          spoiler_free = require("koassistant_book_settings").resolveSpoilerFree(
+              self.ui.doc_settings, features),
+        })
+      end
     end
   end
-  if chapter.presets.chapter or chapter.presets.chapter_so_far then show_scope = true end
+  if chapter.presets.chapter or chapter.presets.chapter_so_far
+      or chapter.from_section_available then
+    show_scope = true
+  end
 
   -- Smart retrieval (D3 — tools_ux_plan.md §4): 4th source for pilot actions
   -- (action.smart_retrieval), highlight path only — the gather-before-action wiring
@@ -5772,10 +5785,22 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       -- With read-so-far or chapter presets present, stack the choices vertically; otherwise
       -- keep the original two-column row (no layout churn for actions without new options).
       local scope_radio_buttons
-      if read_so_far_available or chapter.presets.chapter or chapter.presets.chapter_so_far then
+      if read_so_far_available or chapter.presets.chapter or chapter.presets.chapter_so_far
+          or chapter.from_section_available then
         -- read_so_far can show the scope row without a TOC; keep "Pick section" explicitly disabled
         -- (false, not nil) when there are no sections so the callback's `== false` guard catches it.
         local pick_section_enabled = scope_sections_enabled and toc_available and true or false
+        -- Resolved chapter title in the preset rows (truncated): what the quiz-level chapter
+        -- resolution picked is visible BEFORE running, not just in the result's label. Shown on
+        -- the "Current chapter" row; the so-far row carries it only when that row is absent
+        -- (recap family / spoiler clamp) so the pair doesn't repeat it.
+        local ch_title_short
+        if chapter.info then
+          local truncated
+          ch_title_short, truncated =
+              require("koassistant_scope_resolver").utf8First(chapter.info.title, 25)
+          if truncated then ch_title_short = ch_title_short .. "…" end
+        end
         scope_radio_buttons = {
           { { text = _("Full document"), provider = "full", checked = state.scope == "full" } },
         }
@@ -5785,11 +5810,18 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         end
         if chapter.presets.chapter then
           table.insert(scope_radio_buttons,
-            { { text = _("Current chapter"), provider = "chapter", checked = state.scope == "chapter" } })
+            { { text = T(_("Current chapter (%1)"), ch_title_short), provider = "chapter", checked = state.scope == "chapter" } })
         end
         if chapter.presets.chapter_so_far then
+          local so_far_text = chapter.presets.chapter
+              and _("Current chapter so far")
+              or T(_("Current chapter so far (%1)"), ch_title_short)
           table.insert(scope_radio_buttons,
-            { { text = _("Current chapter so far"), provider = "chapter_so_far", checked = state.scope == "chapter_so_far" } })
+            { { text = so_far_text, provider = "chapter_so_far", checked = state.scope == "chapter_so_far" } })
+        end
+        if chapter.from_section_available then
+          table.insert(scope_radio_buttons,
+            { { text = T(_("From section… (to %1)"), reading_progress.formatted), provider = "from_section", checked = state.scope == "from_section" } })
         end
         table.insert(scope_radio_buttons,
           { { text = _("Pick section…"), provider = "section", checked = state.scope == "section", enabled = pick_section_enabled } })
@@ -5848,6 +5880,35 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             -- summary isn't chapter-scoped, and preset runs skip the section-summary lookup).
             state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
             buildAndShow()
+          elseif btn_entry.provider == "from_section" then
+            UIManager:close(current_dialog)
+            self_ref:_showSectionPicker(action, {
+              title = _("Start from which section?"),
+              on_select = function(entry)
+                if entry.start_page > chapter.current_page then
+                  -- An empty/backwards span; teach rather than filter (hiding later
+                  -- sections from the picker would read as missing chapters).
+                  UIManager:show(InfoMessage:new{
+                    text = _("That section starts after your current position."),
+                    timeout = 3,
+                  })
+                else
+                  state.scope = "from_section"
+                  state.section_entry = entry
+                  local picked_label = entry.title or ""
+                  if picked_label == "" then
+                    -- Untitled TOC entry: mirror the picker's own display fallback
+                    local vis_sp = self_ref.ui.document.getPageNumberInFlow
+                        and self_ref.ui.document:getPageNumberInFlow(entry.start_page)
+                        or entry.start_page
+                    picked_label = T(_("Page %1"), vis_sp)
+                  end
+                  state.section_label = picked_label
+                  state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                end
+                buildAndShow()
+              end,
+            })
           elseif btn_entry.provider == "section" then
             UIManager:close(current_dialog)
             self_ref:_showSectionPicker(action, {
@@ -5900,6 +5961,14 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
           width = content_width,
           fgcolor = Blitbuffer.COLOR_DARK_GRAY,
         })
+      elseif state.scope == "from_section" and state.section_label then
+        table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+        table.insert(vgroup, TextBoxWidget:new{
+          text = T(_("From \"%1\" to current position"), state.section_label),
+          face = info_face,
+          width = content_width,
+          fgcolor = Blitbuffer.COLOR_DARK_GRAY,
+        })
       elseif not scope_sections_enabled then
         table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
         table.insert(vgroup, TextBoxWidget:new{
@@ -5934,11 +6003,12 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     })
 
     -- Summary row(s): varies by scope and availability
-    if state.scope == "read_so_far" or state.scope == "chapter" or state.scope == "chapter_so_far" then
-      -- read_so_far: a whole-document summary isn't chronological, so it can't be scoped to the
-      -- reading position. Chapter presets: the document summary isn't chapter-scoped and preset
-      -- runs skip the section-summary lookup (Pick section still offers those).
-      -- Plain disabled label (no parenthetical) keeps the row height stable across scope switches.
+    if state.scope == "read_so_far" or state.scope == "chapter"
+        or state.scope == "chapter_so_far" or state.scope == "from_section" then
+      -- read_so_far/from_section: a whole-document summary isn't chronological, so it can't be
+      -- bounded to a position or a start→now span. Chapter presets: the document summary isn't
+      -- chapter-scoped and preset runs skip the section-summary lookup (Pick section still
+      -- offers those). Plain disabled label keeps the row height stable across scope switches.
       table.insert(source_radio_buttons, {
         { text = _("Use summary"), provider = "summary", checked = false, enabled = false },
       })
@@ -6090,9 +6160,9 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                   { start_page = 1, end_page = current_page }, rsf_label,
                   { source_mode = state.source, read_so_far = true })
               elseif state.scope == "chapter" or state.scope == "chapter_so_far" then
-                -- Chapter presets ride the section path (same as the auto chapter quiz), so for
-                -- prefix actions the artifact is cached under the chapter's name — the same label
-                -- the chapter-end trigger uses, so its existing-quiz check finds manual runs too.
+                -- Quiz-only chapter presets ride the section path (same as the auto chapter
+                -- quiz), so the artifact is cached under the chapter's name — the same label the
+                -- chapter-end trigger uses, so its existing-quiz check finds manual runs too.
                 -- "So far" labels carry the % so successive positions don't clobber each other.
                 local so_far = state.scope == "chapter_so_far"
                 local range = so_far and chapter.presets.chapter_so_far or chapter.presets.chapter
@@ -6103,8 +6173,20 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                   { start_page = range.start_page, end_page = range.end_page, title = chapter.info.title },
                   ch_label,
                   { source_mode = state.source,
-                    chapter_so_far = so_far and { chapter = chapter.info.title,
+                    section_so_far = so_far and { section = chapter.info.title,
                         position = reading_progress.formatted } or nil })
+              elseif state.scope == "from_section" and state.section_entry then
+                -- Explicit-start "so far": picked section's start → current position. Same
+                -- framing/label treatment as the quiz chapter preset, but the start is the
+                -- user's own TOC pick — chapter resolution is not involved.
+                local from_label = T(_("%1 (to %2)"), state.section_label, reading_progress.formatted)
+                self_ref:_executeSectionAction(action, action_id,
+                  { start_page = state.section_entry.start_page, end_page = chapter.current_page,
+                    title = state.section_label },
+                  from_label,
+                  { source_mode = state.source,
+                    section_so_far = { section = state.section_label,
+                        position = reading_progress.formatted } })
               elseif state.scope == "full" and not opts.for_highlight then
                 -- Check for existing full-document cache and warn before replacing
                 -- Skip for incremental actions (update_prompt) — they handle update/redo downstream
@@ -7066,7 +7148,8 @@ end
 --- @param label string Display label for the section
 --- @param opts table|nil { source_mode = string,
 ---   read_so_far = boolean,  -- "Up to current position" framing (label = the position)
----   chapter_so_far = { chapter = string, position = string } | nil,  -- "Current chapter so far"
+---   section_so_far = { section = string, position = string } | nil,  -- start→position framing
+---     (quiz "Current chapter so far" preset + generic "From section… (to current position)")
 --- } for source_selection actions
 function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
   local ActionCache = require("koassistant_action_cache")
@@ -7123,18 +7206,20 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
       scope_line = string.format(
           'This concerns "{title}"{author_clause} only up to the reader\'s current position (%s).\nCover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n',
           label)
-    elseif opts and opts.chapter_so_far then
-      -- Chapter-so-far framing (flexible scope phase 1): section boundary + spoiler boundary
-      -- in one. Phrased to hold in both source modes — extracted text ends at the position;
-      -- AI-knowledge mode gets an instruction boundary (like read_so_far).
+    elseif opts and opts.section_so_far then
+      -- Section-so-far framing (flexible scope phase 1): section boundary + spoiler boundary
+      -- in one. Used by the quiz "Current chapter so far" preset AND the generic "From
+      -- section… (to current position)" scope. Phrased to hold in both source modes —
+      -- extracted text ends at the position; AI-knowledge mode gets an instruction boundary
+      -- (like read_so_far).
       scope_line = string.format(
-          'This concerns the chapter "%s" of "{title}"{author_clause}, and only up to the reader\'s current position (%s of the whole work).\nCover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n',
-          opts.chapter_so_far.chapter, opts.chapter_so_far.position)
+          'This concerns the section "%s" of "{title}"{author_clause}, and only up to the reader\'s current position (%s of the whole work).\nCover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n',
+          opts.section_so_far.section, opts.section_so_far.position)
       -- The section pipeline forces {reading_progress} to 100% (the _full_document_xray
       -- progress override) — pre-resolve it with the real position so prompts that reference
       -- it (e.g. recap's "No spoilers beyond {reading_progress}") stay true.
       section_action.prompt = section_action.prompt:gsub("{reading_progress}",
-          function() return opts.chapter_so_far.position end)
+          function() return opts.section_so_far.position end)
     else
       scope_line = string.format(
           'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your analysis on this section only.\n\n',

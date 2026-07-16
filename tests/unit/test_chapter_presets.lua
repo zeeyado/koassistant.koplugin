@@ -1,4 +1,6 @@
--- Unit tests for chapter scope presets (flexible_scope_plan.md phase 1):
+-- Unit tests for chapter scope presets (flexible_scope_plan.md phase 1, revised
+-- 2026-07-16: chapter presets are QUIZ-ONLY — that product gating lives in main.lua;
+-- this file tests the pure policy):
 --   * ScopeResolver.chapterPresets — availability matrix + spoiler clamp policy
 --   * QuizChapters agreement — the presets use the same chapter resolution as the
 --     chapter-end quiz trigger, so a shared sanity case is pinned here
@@ -61,28 +63,21 @@ local CH = { start_page = 100, end_page = 140 }
 TestRunner:suite("chapterPresets — hidden entirely")
 
 TestRunner:test("no chapter (no TOC / front matter) → no presets", function()
-    local out = presets({ chapter = nil, current_page = 50, is_whole_doc = true })
+    local out = presets({ chapter = nil, current_page = 50 })
     TestRunner:assertNil(out.chapter, "chapter row")
     TestRunner:assertNil(out.chapter_so_far, "so-far row")
 end)
 
 TestRunner:test("chapter missing page bounds → no presets", function()
-    local out = presets({ chapter = { start_page = 100 }, current_page = 120, is_whole_doc = true })
+    local out = presets({ chapter = { start_page = 100 }, current_page = 120 })
     TestRunner:assertNil(out.chapter, "chapter row")
     TestRunner:assertNil(out.chapter_so_far, "so-far row")
 end)
 
-TestRunner:test("neither whole-doc nor to-position action → no presets", function()
-    local out = presets({ chapter = CH, current_page = 120,
-        is_whole_doc = false, is_to_position = false })
-    TestRunner:assertNil(out.chapter, "chapter row")
-    TestRunner:assertNil(out.chapter_so_far, "so-far row")
-end)
-
-TestRunner:suite("chapterPresets — whole-doc actions (quiz family)")
+TestRunner:suite("chapterPresets — availability matrix")
 
 TestRunner:test("mid-chapter → both presets, correct ranges", function()
-    local out = presets({ chapter = CH, current_page = 120, is_whole_doc = true })
+    local out = presets({ chapter = CH, current_page = 120 })
     TestRunner:assertNotNil(out.chapter, "chapter row")
     TestRunner:assertEqual(out.chapter.start_page, 100, "chapter start")
     TestRunner:assertEqual(out.chapter.end_page, 140, "chapter end")
@@ -92,19 +87,19 @@ TestRunner:test("mid-chapter → both presets, correct ranges", function()
 end)
 
 TestRunner:test("at chapter start → full chapter only (nothing read yet)", function()
-    local out = presets({ chapter = CH, current_page = 100, is_whole_doc = true })
+    local out = presets({ chapter = CH, current_page = 100 })
     TestRunner:assertNotNil(out.chapter, "chapter row")
     TestRunner:assertNil(out.chapter_so_far, "so-far hidden at chapter start")
 end)
 
 TestRunner:test("at chapter end → full chapter only (so-far would be identical)", function()
-    local out = presets({ chapter = CH, current_page = 140, is_whole_doc = true })
+    local out = presets({ chapter = CH, current_page = 140 })
     TestRunner:assertNotNil(out.chapter, "chapter row")
     TestRunner:assertNil(out.chapter_so_far, "so-far hidden at chapter end")
 end)
 
 TestRunner:test("default current_page (1) before chapter → chapter only", function()
-    local out = presets({ chapter = CH, is_whole_doc = true })
+    local out = presets({ chapter = CH })
     TestRunner:assertNotNil(out.chapter, "chapter row")
     TestRunner:assertNil(out.chapter_so_far, "so-far hidden")
 end)
@@ -112,51 +107,22 @@ end)
 TestRunner:suite("chapterPresets — spoiler clamp policy")
 
 TestRunner:test("spoiler + mid-chapter → full chapter hidden, so-far shown", function()
-    local out = presets({ chapter = CH, current_page = 120,
-        is_whole_doc = true, spoiler_free = true })
+    local out = presets({ chapter = CH, current_page = 120, spoiler_free = true })
     TestRunner:assertNil(out.chapter, "full-chapter row hidden (would leak unread text)")
     TestRunner:assertNotNil(out.chapter_so_far, "so-far row IS the clamped scope")
     TestRunner:assertEqual(out.chapter_so_far.end_page, 120, "so-far end = current page")
 end)
 
 TestRunner:test("spoiler + chapter finished → full chapter allowed", function()
-    local out = presets({ chapter = CH, current_page = 140,
-        is_whole_doc = true, spoiler_free = true })
+    local out = presets({ chapter = CH, current_page = 140, spoiler_free = true })
     TestRunner:assertNotNil(out.chapter, "chapter row (nothing unread in it)")
     TestRunner:assertNil(out.chapter_so_far, "so-far hidden at chapter end")
 end)
 
 TestRunner:test("spoiler + at chapter start → both hidden", function()
-    local out = presets({ chapter = CH, current_page = 100,
-        is_whole_doc = true, spoiler_free = true })
+    local out = presets({ chapter = CH, current_page = 100, spoiler_free = true })
     TestRunner:assertNil(out.chapter, "chapter row hidden under spoiler mid-chapter")
     TestRunner:assertNil(out.chapter_so_far, "so-far hidden at chapter start")
-end)
-
-TestRunner:suite("chapterPresets — to-position actions (recap family)")
-
-TestRunner:test("mid-chapter → so-far only (full run already stops at position)", function()
-    local out = presets({ chapter = CH, current_page = 120, is_to_position = true })
-    TestRunner:assertNil(out.chapter, "full-chapter row never offered")
-    TestRunner:assertNotNil(out.chapter_so_far, "so-far row")
-    TestRunner:assertEqual(out.chapter_so_far.start_page, 100, "so-far start")
-    TestRunner:assertEqual(out.chapter_so_far.end_page, 120, "so-far end")
-end)
-
-TestRunner:test("at chapter start / end → nothing", function()
-    local at_start = presets({ chapter = CH, current_page = 100, is_to_position = true })
-    TestRunner:assertNil(at_start.chapter_so_far, "so-far hidden at start")
-    TestRunner:assertNil(at_start.chapter, "chapter hidden")
-    local at_end = presets({ chapter = CH, current_page = 140, is_to_position = true })
-    TestRunner:assertNil(at_end.chapter_so_far, "so-far hidden at end")
-    TestRunner:assertNil(at_end.chapter, "chapter hidden")
-end)
-
-TestRunner:test("spoiler never affects the so-far row (its end IS the position)", function()
-    local out = presets({ chapter = CH, current_page = 120,
-        is_to_position = true, spoiler_free = true })
-    TestRunner:assertNotNil(out.chapter_so_far, "so-far row")
-    TestRunner:assertEqual(out.chapter_so_far.end_page, 120, "so-far end")
 end)
 
 TestRunner:suite("agreement with the chapter-end quiz resolution")
@@ -177,7 +143,7 @@ TestRunner:test("presets range matches _chapterContentRange semantics (next same
     local end_page = toc[4].page - 1
     local out = presets({
         chapter = { start_page = start_page, end_page = end_page },
-        current_page = 120, is_whole_doc = true,
+        current_page = 120,
     })
     TestRunner:assertEqual(out.chapter.start_page, 100, "chapter start from TOC")
     TestRunner:assertEqual(out.chapter.end_page, 140, "chapter end = next chapter start − 1")
