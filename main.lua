@@ -8592,34 +8592,30 @@ end
 --- Open KOAssistant settings via menu traversal
 --- Opens the main menu at the Tools tab and selects KOAssistant
 function AskGPT:onKOAssistantSettings()
-  logger.info("KOAssistant: Opening settings via menu traversal")
-
-  -- Determine Tools tab index (3 in FileManager, 4 in Reader)
-  local tools_tab_index = self.ui.document and 4 or 3
-
-  -- Show main menu at Tools tab, then traverse to KOAssistant
-  if self.ui.menu and self.ui.menu.onShowMenu then
-    self.ui.menu:onShowMenu(tools_tab_index)
-
-    -- Schedule menu item selection after menu is shown
-    UIManager:scheduleIn(0.2, function()
-      local menu_container = self.ui.menu.menu_container
-      if menu_container and menu_container[1] then
-        local touch_menu = menu_container[1]
-        local menu_items = touch_menu.item_table
-        if menu_items then
-          for i = 1, #menu_items do
-            local item = menu_items[i]
-            if item.text == _("KOAssistant") then
-              touch_menu:onMenuSelect(item)
-              return
-            end
-          end
-        end
-      end
-    end)
+  -- Standalone settings menu built directly from our schema. The previous
+  -- implementation crawled KOReader's main menu (hardcoded tab index + 0.2s timer +
+  -- text match on private internals), which silently no-opped with user menu_order
+  -- override files, on slow devices, and after KOReader menu refactors.
+  self:ensureInitialized()
+  local TouchMenu = require("ui/widget/touchmenu")
+  local CenterContainer = require("ui/widget/container/centercontainer")
+  local items = SettingsManager:generateMenuFromSchema(self, SettingsSchema)
+  items.icon = "appbar.settings"  -- TouchMenu builds its icon bar from each tab's .icon
+  local menu_container = CenterContainer:new{
+    covers_header = true,
+    ignore = "height",
+    dimen = Screen:getSize(),
+  }
+  local main_menu = TouchMenu:new{
+    width = Screen:getWidth(),
+    tab_item_table = { items },
+    show_parent = menu_container,
+  }
+  main_menu.close_callback = function()
+    UIManager:close(menu_container)
   end
-
+  menu_container[1] = main_menu
+  UIManager:show(menu_container)
   return true
 end
 

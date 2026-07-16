@@ -671,6 +671,7 @@ end
 function BookToolRunner.run(params)
     params = params or {}
     BookToolRunner._cancelled = false
+    BookToolRunner._skip_gather = false
     local query_fn = params.query_fn
     local on_complete = params.on_complete
     if not query_fn then
@@ -852,6 +853,10 @@ function BookToolRunner.run(params)
             -- already finished the run — bail before doing any work with its result.
             if completed then return end
             token_usage = mergeUsage(token_usage, usage)
+            -- Skip pressed: on_skip already dispatched startGenerate(); this round's
+            -- result (usually the skip-cancel failure) must neither finish() the run
+            -- nor recurse into another lookup round.
+            if BookToolRunner._skip_gather then return end
             if not success then
                 finish(false, nil, err, reasoning, web_search_used)
                 return
@@ -1003,6 +1008,19 @@ function BookToolRunner.run(params)
                             finish(false, nil, _("Request cancelled by user."))
                         end
                     end,
+                    on_skip = function()
+                        -- Stop gathering, answer from what was collected: kill any
+                        -- in-flight lookup round and go straight to phase 2. The dead
+                        -- round's callback bails on the flag (guard in step_gather).
+                        if completed or BookToolRunner._skip_gather then return end
+                        BookToolRunner._skip_gather = true
+                        if cancel_slot.cancel then
+                            local cancel = cancel_slot.cancel
+                            cancel_slot.cancel = nil
+                            pcall(cancel)
+                        end
+                        startGenerate()
+                    end,
                 })
                 if ok2 and type(handle) == "table" then status_handle = handle end
             end
@@ -1035,6 +1053,7 @@ function BookToolRunner.gatherForAction(params)
         return nil
     end
     BookToolRunner._cancelled = false
+    BookToolRunner._skip_gather = false
     local provider = config.provider or config.default_provider
     local reading_scope = resolveReadingScope(config, params.ui)
     local tools = BookTools:new(params.ui, buildToolSettings(features, reading_scope))
@@ -1172,6 +1191,19 @@ function BookToolRunner.gatherForAction(params)
                     else
                         finish(nil, { cancelled = true })
                     end
+                end,
+                on_skip = function()
+                    -- Deliver the bundle gathered so far ("" on zero-gather, which the
+                    -- caller's fallback path already handles). deliver() → finish() sets
+                    -- completed, so a killed round's late callback bails on that guard.
+                    if completed then return end
+                    BookToolRunner._skip_gather = true
+                    if cancel_slot.cancel then
+                        local cancel = cancel_slot.cancel
+                        cancel_slot.cancel = nil
+                        pcall(cancel)
+                    end
+                    deliver()
                 end,
             })
             if ok2 and type(handle) == "table" then status_handle = handle end
