@@ -2794,10 +2794,29 @@ function ChatGPTViewer:askAnotherQuestion()
   -- Store reference to current instance to use in callbacks
   local current_instance = self
 
+  -- Restored drafts open bottom-aligned with the cursor at the end. Without this,
+  -- InputText opens on the "hard page" containing the cursor, which for a draft
+  -- ending in blank lines (Add to reply) can be a nearly empty last page — the
+  -- quotes sit scrolled out above. math.huge is clamped by TextBoxWidget to the
+  -- last full page of content. The callback doubles as InputDialog's store hook
+  -- (called WITH values on close/re-init), so live positions survive re-inits.
+  local view_top, view_charpos
+  if self.reply_draft and self.reply_draft ~= "" then
+    view_top = math.huge
+    view_charpos = #util.splitToChars(self.reply_draft) + 1
+  end
+
   local input_dialog
   input_dialog = InputDialog:new {
     title = _("Reply"),
     input = self.reply_draft or "",  -- Restore saved draft
+    view_pos_callback = view_top and function(top_line_num, charpos)
+      if top_line_num then
+        view_top, view_charpos = top_line_num, charpos
+        return
+      end
+      return view_top, view_charpos
+    end or nil,
     input_type = "text",
     input_hint = _("Type your reply..."),
     allow_newline = true,
