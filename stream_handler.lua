@@ -13,6 +13,7 @@ local logger = require("logger")
 local json = require("json")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
+local T = require("ffi/util").template
 local UIConstants = require("koassistant_ui.constants")
 local Constants = require("koassistant_constants")
 
@@ -202,7 +203,9 @@ end
 --- own). The tool runner updates it per lookup round, closes it, and the phase-2 streamed
 --- request then opens the real stream dialog in the same place.
 --- @param opts table: { settings = {large_stream_dialog, response_font_size},
----                      initial_text = string, on_stop = function }
+---                      initial_text = string, on_stop = function, on_skip = function }
+--- on_skip (optional) adds a "Skip lookups" button: stop gathering but continue the
+--- request with whatever was collected (vs Stop, which kills the whole request).
 --- @return table handle: { setText = fn(text), close = fn() } (close is idempotent)
 function StreamHandler.showToolStatusDialog(opts)
     opts = opts or {}
@@ -221,6 +224,20 @@ function StreamHandler.showToolStatusDialog(opts)
     local function stop()
         if opts.on_stop then opts.on_stop() end
     end
+    local button_row = {
+        {
+            text = _("Stop"),
+            id = "close",
+            callback = stop,
+        },
+    }
+    if opts.on_skip then
+        table.insert(button_row, {
+            text = _("Skip lookups"),
+            id = "skip_lookups",
+            callback = function() opts.on_skip() end,
+        })
+    end
     dialog = InputDialog:new{
         title = _("AI is responding"),
         inputtext_class = StreamText,
@@ -237,15 +254,7 @@ function StreamHandler.showToolStatusDialog(opts)
         condensed = true,
         auto_para_direction = true,
         scroll_by_pan = true,
-        buttons = {
-            {
-                {
-                    text = _("Stop"),
-                    id = "close",
-                    callback = stop,
-                },
-            },
-        },
+        buttons = { button_row },
     }
     dialog.title_bar.close_callback = stop
     dialog.title_bar:init()
@@ -295,6 +304,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local completed = false
     local in_reasoning_phase = false  -- Track if we're currently showing reasoning
     local in_web_search_phase = false  -- Track if web search tool is executing
+    local web_search_status = nil  -- Display-only "Searching the web…" line, rendered as a
+                                   -- suffix by scheduleUIUpdate; never enters result_buffer
+    local web_query_block_idx = nil  -- Anthropic server_tool_use block streaming the query
+    local web_query_parts = nil      -- Accumulated input_json_delta fragments for it
     local web_search_used = false  -- Track if web search was ever used during this stream
     local segment_start_idx = 1  -- First result_buffer index of the current prose segment
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
@@ -675,7 +688,17 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                     display = _("Generating quiz") .. (hidden_animation and hidden_animation:getNextFrame() or "...")
                         .. "\n\n" .. _("Output hidden to avoid spoilers.")
                 else
-                    display = in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                    -- During a web search, base the display on the answer so far rather
+                    -- than the reasoning transcript — a search right after thinking shows
+                    -- the clean status line, not reasoning with a status stuck to it
+                    display = (in_reasoning_phase and not in_web_search_phase)
+                        and table.concat(reasoning_buffer) or table.concat(result_buffer)
+                    if in_web_search_phase and web_search_status then
+                        -- Keep the search status visible across throttled repaints
+                        -- (display-only suffix; result_buffer is never touched)
+                        display = #display > 0 and (display .. "\n\n" .. web_search_status)
+                            or web_search_status
+                    end
                 end
                 iw:setText(display, true)
 
@@ -1033,6 +1056,35 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             -- Capture web-search source details for "Show Sources"
                             harvestWebSources(event, web_prov)
 
+                            -- Anthropic streams the search query as input_json_delta
+                            -- fragments on the server_tool_use block: accumulate them and
+                            -- upgrade the generic status line to show the live query.
+                            -- Display-only; other providers never emit these events.
+                            if event.type == "content_block_start" and event.content_block
+                                    and event.content_block.type == "server_tool_use"
+                                    and event.content_block.name == "web_search" then
+                                web_query_block_idx = event.index
+                                web_query_parts = {}
+                            elseif web_query_block_idx and event.index == web_query_block_idx then
+                                if event.type == "content_block_delta" and event.delta
+                                        and event.delta.type == "input_json_delta"
+                                        and type(event.delta.partial_json) == "string" then
+                                    table.insert(web_query_parts, event.delta.partial_json)
+                                    -- Tolerant extract: matches once the closing quote of the
+                                    -- query value has streamed in; until then keep the generic line
+                                    local query = table.concat(web_query_parts):match('"query"%s*:%s*"(.-)"%s*[,}]')
+                                    if query and #query > 0 then
+                                        web_search_status = Constants.getEmojiText("🔍",
+                                            T(_("Searching the web: %1"), query),
+                                            settings and settings.enable_emoji_icons)
+                                        if in_web_search_phase then scheduleUIUpdate() end
+                                    end
+                                elseif event.type == "content_block_stop" then
+                                    web_query_block_idx = nil
+                                    web_query_parts = nil
+                                end
+                            end
+
                             -- Handle reasoning content (displayed with header, saved separately)
                             if type(reasoning) == "string" and #reasoning > 0 then
                                 table.insert(reasoning_buffer, reasoning)
@@ -1071,13 +1123,18 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                             animation_task = nil
                                         end
                                     end
-                                    local search_text = Constants.getEmojiText("🔍", _("Searching the web..."), settings and settings.enable_emoji_icons)
-                                    streamDialog._input_widget:setText(search_text, true)
-                                    -- Don't add to result buffer - this is just UI feedback
+                                    -- Display-only status, rendered as a suffix by scheduleUIUpdate
+                                    -- so throttled repaints keep it visible (never enters
+                                    -- result_buffer). A new search resets to the generic line;
+                                    -- Anthropic upgrades it with the live query (see the
+                                    -- input_json_delta accumulation above).
+                                    web_search_status = Constants.getEmojiText("🔍", _("Searching the web..."), settings and settings.enable_emoji_icons)
+                                    scheduleUIUpdate()
                                 else
                                     -- If transitioning from web search or reasoning to answer, clear display
                                     if in_web_search_phase then
                                         in_web_search_phase = false
+                                        web_search_status = nil
                                         streamDialog._input_widget:setText("", true)
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
