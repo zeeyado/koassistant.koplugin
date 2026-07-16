@@ -856,14 +856,8 @@ local SettingsSchema = {
             text = _("Dictionary Settings"),
             emoji = "📖",
             items = {
-                {
-                    id = "enable_dictionary_hook",
-                    type = "toggle",
-                    text = _("AI Buttons in Dictionary Popup"),
-                    path = "features.enable_dictionary_hook",
-                    default = true,
-                    help_text = _("Show AI Dictionary button when tapping on a word"),
-                },
+                -- (Popup visibility toggle + popup-actions manager live in
+                -- Menus & Buttons; behavior settings stay here)
                 {
                     id = "dictionary_language",
                     type = "submenu",
@@ -957,13 +951,6 @@ local SettingsSchema = {
                     path = "features.dictionary_enable_streaming",
                     default = true,
                     help_text = _("Stream dictionary responses in real-time. Disable to wait for complete response."),
-                },
-                {
-                    id = "dictionary_popup_actions",
-                    type = "action",
-                    text = _("Dictionary Popup Actions"),
-                    callback = "showDictionaryPopupManager",
-                    help_text = _("Configure which actions appear in the dictionary popup"),
                 },
                 {
                     id = "dictionary_bypass_enabled",
@@ -1244,13 +1231,8 @@ local SettingsSchema = {
                     callback = "buildHighlightBypassActionMenu",
                     help_text = _("Action to trigger when highlight bypass is enabled"),
                 },
-                {
-                    id = "highlight_menu_actions",
-                    type = "action",
-                    text = _("Highlight Menu Actions"),
-                    callback = "showHighlightMenuManager",
-                    help_text = _("Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 15 shown)."),
-                },
+                -- (Highlight-menu visibility toggles + actions manager live in
+                -- Menus & Buttons; behavior settings stay here)
             },
         },
 
@@ -1391,33 +1373,9 @@ local SettingsSchema = {
                             plugin:offerNotebookMigration(old_value or "sidecar", new_value)
                         end
                     end,
-                    separator = true,
                 },
-                {
-                    id = "show_notebook_in_highlight",
-                    type = "toggle",
-                    text = _("Show in highlight menu"),
-                    path = "features.show_notebook_in_highlight",
-                    default = true,
-                    help_text = _("Add an 'Add to notebook' button to the reader highlight menu, saving the selected text directly to this book's notebook. Takes effect the next time the menu opens."),
-                },
-                {
-                    id = "show_notebook_in_file_browser",
-                    type = "toggle",
-                    text = _("Show in file browser menu"),
-                    path = "features.show_notebook_in_file_browser",
-                    default = true,
-                    help_text = _("Show 'Notebook' button when long-pressing books in the file browser."),
-                },
-                {
-                    id = "notebook_button_require_existing",
-                    type = "toggle",
-                    text = _("Only for books with notebooks"),
-                    path = "features.notebook_button_require_existing",
-                    default = true,
-                    depends_on = { id = "show_notebook_in_file_browser", value = true },
-                    help_text = _("Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."),
-                },
+                -- (Notebook entry-point toggles — highlight menu / file browser —
+                -- live in Menus & Buttons)
             },
         },
 
@@ -1528,13 +1486,13 @@ local SettingsSchema = {
                     text = _("Allow Library Scanning"),
                     path = "features.enable_library_scanning",
                     default = false,
-                    help_text = _("Enables library actions that analyze your book collection. Configure permanent scan folders in Library Settings, or pick folders on the fly in the input dialog."),
+                    help_text = _("Enables library actions that analyze your book collection. Configure permanent scan folders in Reading & Library, or pick folders on the fly in the input dialog."),
                     on_change = function(new_value)
                         if new_value then
                             local InfoMessage = require("ui/widget/infomessage")
                             local UIManager = require("ui/uimanager")
                             UIManager:show(InfoMessage:new{
-                                text = _("Enables library actions that analyze your book collection.\n\nConfigure permanent scan folders in Library Settings, or pick folders on the fly in the input dialog."),
+                                text = _("Enables library actions that analyze your book collection.\n\nConfigure permanent scan folders in Reading & Library, or pick folders on the fly in the input dialog."),
                             })
                         end
                     end,
@@ -1642,11 +1600,14 @@ local SettingsSchema = {
             },
         },
 
-        -- KOReader Integration submenu
+        -- Menus & Buttons submenu (entry-points audit 2026-07-16, Option A): every
+        -- surface where KOAssistant appears gets one block — its visibility toggles
+        -- plus a link to its action manager. Settings PATHS are unchanged (placement
+        -- only); behavior-shaped settings stay in their feature sections.
         {
-            id = "koreader_integration",
+            id = "menus_and_buttons",
             type = "submenu",
-            text = _("KOReader Integration"),
+            text = _("Menus & Buttons"),
             emoji = "🔌",
             items = {
                 {
@@ -1654,10 +1615,76 @@ local SettingsSchema = {
                     type = "header",
                     text = _("Control where KOAssistant appears in KOReader"),
                 },
+                -- Highlight menu
+                {
+                    id = "highlight_menu_header",
+                    type = "header",
+                    text = _("Highlight menu"),
+                },
+                {
+                    id = "show_koassistant_in_highlight",
+                    type = "toggle",
+                    text = _("Show Chat/Action button"),
+                    path = "features.show_koassistant_in_highlight",
+                    default = true,
+                    help_text = _("Add the main 'Chat/Action' button to the highlight menu. Takes effect the next time the menu opens."),
+                },
+                {
+                    id = "show_quick_actions_in_highlight",
+                    type = "toggle",
+                    text = _("Show quick actions"),
+                    path = "features.show_quick_actions_in_highlight",
+                    default = true,
+                    help_text = _("Add action shortcuts (Explain, Translate, etc.) to the highlight menu. Takes effect the next time the menu opens."),
+                },
+                {
+                    id = "show_notebook_in_highlight",
+                    type = "toggle",
+                    text = _("Show Add to Notebook button"),
+                    path = "features.show_notebook_in_highlight",
+                    default = true,
+                    help_text = _("Add an 'Add to notebook' button to the highlight menu, saving the selected text directly to this book's notebook. Takes effect the next time the menu opens."),
+                },
+                {
+                    id = "highlight_menu_actions",
+                    type = "action",
+                    text = _("Highlight Menu Actions"),
+                    callback = "showHighlightMenuManager",
+                    help_text = _("Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 15 shown)."),
+                    separator = true,
+                },
+                -- Dictionary popup
+                {
+                    id = "dictionary_popup_header",
+                    type = "header",
+                    text = _("Dictionary popup"),
+                },
+                {
+                    id = "enable_dictionary_hook",
+                    type = "toggle",
+                    text = _("Show AI buttons"),
+                    path = "features.enable_dictionary_hook",
+                    default = true,
+                    help_text = _("Add AI buttons to KOReader's dictionary popup."),
+                },
+                {
+                    id = "dictionary_popup_actions",
+                    type = "action",
+                    text = _("Dictionary Popup Actions"),
+                    callback = "showDictionaryPopupManager",
+                    help_text = _("Configure which actions appear in the dictionary popup"),
+                    separator = true,
+                },
+                -- File browser
+                {
+                    id = "file_browser_header",
+                    type = "header",
+                    text = _("File browser"),
+                },
                 {
                     id = "show_in_file_browser",
                     type = "toggle",
-                    text = _("Show in File Browser"),
+                    text = _("Show KOAssistant actions"),
                     path = "features.show_in_file_browser",
                     default = true,
                     help_text = _("Add KOAssistant buttons to file browser context menus. Requires restart."),
@@ -1670,48 +1697,68 @@ local SettingsSchema = {
                     end,
                 },
                 {
-                    id = "show_koassistant_in_highlight",
+                    id = "show_notebook_in_file_browser",
                     type = "toggle",
-                    text = _("Show in Highlight Menu"),
-                    path = "features.show_koassistant_in_highlight",
+                    text = _("Show Notebook button"),
+                    path = "features.show_notebook_in_file_browser",
                     default = true,
-                    help_text = _("Add main 'Chat/Action' button to highlight menu. Takes effect the next time the menu opens."),
+                    help_text = _("Show 'Notebook' button when long-pressing books in the file browser."),
                 },
                 {
-                    id = "show_quick_actions_in_highlight",
+                    id = "notebook_button_require_existing",
                     type = "toggle",
-                    text = _("Show Highlight Quick Actions"),
-                    path = "features.show_quick_actions_in_highlight",
+                    text = _("Only for books with notebooks"),
+                    path = "features.notebook_button_require_existing",
                     default = true,
-                    help_text = _("Add action shortcuts (Explain, Translate, etc.) to highlight menu. Takes effect the next time the menu opens."),
+                    depends_on = { id = "show_notebook_in_file_browser", value = true },
+                    help_text = _("Only show button if notebook already exists. Disable to allow creating new notebooks from file browser."),
                 },
                 {
-                    id = "show_in_dictionary_popup",
-                    type = "toggle",
-                    text = _("Show in Dictionary Popup"),
-                    path = "features.enable_dictionary_hook",
-                    default = true,
-                    help_text = _("Add AI buttons to KOReader's dictionary popup."),
+                    id = "file_browser_actions",
+                    type = "action",
+                    text = _("File Browser Actions"),
+                    callback = "showFileBrowserActionsManager",
+                    help_text = _("Choose which actions appear in the file browser long-press menu."),
+                    separator = true,
+                },
+                -- Quick panels
+                {
+                    id = "panels_header",
+                    type = "header",
+                    text = _("Quick panels"),
                 },
                 {
-                    id = "enhance_text_selection",
-                    type = "toggle",
-                    text = _("Enhance Text Selection"),
-                    path = "features.enhance_text_selection",
-                    default = false,
-                    help_text = _("Add dictionary lookup and action popup to text selection in KOReader viewers (Dictionary, TextViewer, etc.). Single word → dictionary, long press single word or multi-word → popup with Copy, Dictionary, Translate. Requires restart."),
-                    on_change = function()
-                        local InfoMessage = require("ui/widget/infomessage")
-                        local UIManager = require("ui/uimanager")
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please restart KOReader for this change to take effect."),
-                        })
-                    end,
+                    id = "panel_actions",
+                    type = "action",
+                    text = _("Panel Actions"),
+                    callback = "showQuickActionsManager",
+                    help_text = _("Choose which actions appear on the Quick Actions panel."),
+                },
+                {
+                    id = "panel_utilities",
+                    type = "action",
+                    text = _("Panel Utilities"),
+                    callback = "showQaUtilitiesManager",
+                    help_text = _("Choose and order the utility buttons on the Quick Actions panel."),
+                },
+                {
+                    id = "quick_settings_items",
+                    type = "action",
+                    text = _("Quick Settings Items"),
+                    callback = "showQsItemsManager",
+                    help_text = _("Choose and order the tiles on the Quick Settings panel."),
+                    separator = true,
+                },
+                -- Gestures
+                {
+                    id = "gestures_header",
+                    type = "header",
+                    text = _("Gestures"),
                 },
                 {
                     id = "show_in_gesture_menu",
                     type = "toggle",
-                    text = _("Show in Gesture Menu"),
+                    text = _("Register gesture actions"),
                     path = "features.show_in_gesture_menu",
                     default = true,
                     help_text = _("Register KOAssistant actions in KOReader's gesture dispatcher. Requires restart."),
@@ -1722,8 +1769,41 @@ local SettingsSchema = {
                             text = _("Please restart KOReader for this change to take effect."),
                         })
                     end,
+                    separator = true,
                 },
-                -- (Recap Reminder and End of Book moved to Reading & Library section)
+                -- KOReader viewers
+                {
+                    id = "viewers_header",
+                    type = "header",
+                    text = _("Text selection in viewers"),
+                },
+                {
+                    id = "enhance_text_selection",
+                    type = "toggle",
+                    text = _("Enhance text selection"),
+                    path = "features.enhance_text_selection",
+                    default = false,
+                    help_text = _("Add dictionary lookup and action popup to text selection in KOReader viewers (Dictionary, TextViewer, etc.). Single word → dictionary, long press single word or multi-word → popup with Copy, Dictionary, Translate. Requires restart."),
+                    on_change = function()
+                        local InfoMessage = require("ui/widget/infomessage")
+                        local UIManager = require("ui/uimanager")
+                        UIManager:show(InfoMessage:new{
+                            text = _("Please restart KOReader for this change to take effect."),
+                        })
+                    end,
+                    separator = true,
+                },
+                -- Input dialog (managers stay contextual — pointer only)
+                {
+                    id = "input_dialog_header",
+                    type = "header",
+                    text = _("Input dialog"),
+                },
+                {
+                    id = "input_dialog_pointer",
+                    type = "info",
+                    text = _("Action rows and toolbar chips are configured from the input dialog's gear menu."),
+                },
             },
         },
 
