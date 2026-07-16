@@ -1249,7 +1249,7 @@ local SettingsSchema = {
                     type = "action",
                     text = _("Highlight Menu Actions"),
                     callback = "showHighlightMenuManager",
-                    help_text = _("Choose which actions appear in the highlight menu (requires restart)"),
+                    help_text = _("Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 15 shown)."),
                 },
             },
         },
@@ -1392,6 +1392,14 @@ local SettingsSchema = {
                         end
                     end,
                     separator = true,
+                },
+                {
+                    id = "show_notebook_in_highlight",
+                    type = "toggle",
+                    text = _("Show in highlight menu"),
+                    path = "features.show_notebook_in_highlight",
+                    default = true,
+                    help_text = _("Add an 'Add to notebook' button to the reader highlight menu, saving the selected text directly to this book's notebook. Takes effect the next time the menu opens."),
                 },
                 {
                     id = "show_notebook_in_file_browser",
@@ -1667,14 +1675,7 @@ local SettingsSchema = {
                     text = _("Show in Highlight Menu"),
                     path = "features.show_koassistant_in_highlight",
                     default = true,
-                    help_text = _("Add main 'Chat/Action' button to highlight menu. Requires restart."),
-                    on_change = function()
-                        local InfoMessage = require("ui/widget/infomessage")
-                        local UIManager = require("ui/uimanager")
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please restart KOReader for this change to take effect."),
-                        })
-                    end,
+                    help_text = _("Add main 'Chat/Action' button to highlight menu. Takes effect the next time the menu opens."),
                 },
                 {
                     id = "show_quick_actions_in_highlight",
@@ -1682,14 +1683,7 @@ local SettingsSchema = {
                     text = _("Show Highlight Quick Actions"),
                     path = "features.show_quick_actions_in_highlight",
                     default = true,
-                    help_text = _("Add action shortcuts (Explain, Translate, etc.) to highlight menu. Requires restart."),
-                    on_change = function()
-                        local InfoMessage = require("ui/widget/infomessage")
-                        local UIManager = require("ui/uimanager")
-                        UIManager:show(InfoMessage:new{
-                            text = _("Please restart KOReader for this change to take effect."),
-                        })
-                    end,
+                    help_text = _("Add action shortcuts (Explain, Translate, etc.) to highlight menu. Takes effect the next time the menu opens."),
                 },
                 {
                     id = "show_in_dictionary_popup",

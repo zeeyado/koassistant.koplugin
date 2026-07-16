@@ -3474,60 +3474,36 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
   UIManager:show(dialog_ref.dialog)
 end
 
-function ChatGPTViewer:appendSelectionToNotebook(text)
+--- Static: append a snippet to a book's notebook with user feedback toasts.
+--- Shared by the viewer selection popups, the patched TextViewer/DictQuickLookup
+--- handlers (main.lua), the X-Ray browser, and the highlight-menu button.
+--- @param document_path string|nil Target book (nil/general/library → error message)
+--- @param text string Selected text
+--- @param opts table|nil { page_info = reader-origin position, book_title = toast label }
+function ChatGPTViewer.appendSnippetToNotebook(document_path, text, opts)
   local Notebook = require("koassistant_notebook")
-  local document_path = self.configuration and self.configuration.document_path
-  local notebook_path = Notebook.getPath(document_path)
-
-  if not notebook_path then
+  local ok, err = Notebook.appendSnippet(document_path, text, opts)
+  if not ok then
     UIManager:show(InfoMessage:new{
-      text = Notebook.getPathError(document_path),
+      text = err or _("Failed to save to notebook"),
       timeout = 4,
     })
     return
   end
-
-  -- Auto-create notebook if needed
-  if not Notebook.exists(document_path) then
-    local ok, err = Notebook.create(document_path)
-    if not ok then
-      UIManager:show(Notification:new{
-        text = _("Failed to create notebook: ") .. (err or ""),
-        timeout = 3,
-      })
-      return
-    end
-    -- Re-resolve path after creation (vault mode may generate filename)
-    notebook_path = Notebook.getPath(document_path)
-    if not notebook_path then return end
-  end
-
-  local file = io.open(notebook_path, "a")
-  if not file then
-    UIManager:show(Notification:new{
-      text = _("Failed to open notebook"),
-      timeout = 3,
-    })
-    return
-  end
-
-  local date_str = os.date("%Y-%m-%d %H:%M")
-  file:write("\n---\n\n*Note (" .. date_str .. "):*\n\n" .. text .. "\n")
-  file:close()
-
-  -- Update index
-  local stats = Notebook.getStats(document_path)
-  if stats then
-    local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
-    index[document_path] = stats
-    G_reader_settings:saveSetting("koassistant_notebook_index", index)
-    G_reader_settings:flush()
-  end
-
+  -- Name the target book when known — matters when the selection came from a viewer
+  -- showing OTHER content than the book the notebook belongs to (Q3 decision).
+  local title = opts and opts.book_title
   UIManager:show(Notification:new{
-    text = _("Added to notebook"),
+    text = title and T(_("Added to notebook: %1"), title) or _("Added to notebook"),
     timeout = 2,
   })
+end
+
+function ChatGPTViewer:appendSelectionToNotebook(text)
+  local document_path = self.configuration and self.configuration.document_path
+  local features = self.configuration and self.configuration.features or {}
+  local book_title = features.book_metadata and features.book_metadata.title
+  ChatGPTViewer.appendSnippetToNotebook(document_path, text, { book_title = book_title })
 end
 
 function ChatGPTViewer:update(new_text, scroll_to_bottom)
@@ -4542,6 +4518,12 @@ function ChatGPTViewer:showToolTextViewer(title, text, export_basename)
         ui = self._ui,
         plugin = self._plugin,
         configuration = self.configuration,
+        -- Source book of this chat (popup hides the notebook button for
+        -- general/library chats via its own sentinel guard)
+        document_path = self.configuration and self.configuration.document_path,
+        append_to_notebook = function(snippet_text)
+          self:appendSelectionToNotebook(snippet_text)
+        end,
         clear_highlight = clear_highlight,
       })
     end,

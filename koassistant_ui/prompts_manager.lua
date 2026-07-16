@@ -956,8 +956,8 @@ function PromptsManager:showPromptDetails(prompt)
                 UIManager:close(self.details_dialog)
                 UIManager:show(InfoMessage:new{
                     text = now_in_menu
-                        and _("Added to highlight menu.\nRestart KOReader to apply.")
-                        or _("Removed from highlight menu.\nRestart KOReader to apply."),
+                        and _("Added to highlight menu.\nTakes effect the next time the menu opens.")
+                        or _("Removed from highlight menu.\nTakes effect the next time the menu opens."),
                     timeout = 3,
                 })
             end,
@@ -4876,7 +4876,7 @@ function PromptsManager:addPrompt(state)
 
         local msg = _("Action added successfully")
         if added_to_highlight_menu then
-            msg = msg .. "\n" .. _("Restart KOReader for highlight menu changes to apply.")
+            msg = msg .. "\n" .. _("Added to the highlight menu (shows the next time it opens).")
         end
         UIManager:show(InfoMessage:new{
             text = msg,
@@ -5081,7 +5081,7 @@ function PromptsManager:showHighlightMenuManager()
                 self.plugin.action_service:toggleHighlightMenuAction(action.id)
                 -- Show restart reminder
                 UIManager:show(Notification:new{
-                    text = _("Changes require restart to take effect"),
+                    text = _("Takes effect the next time the highlight menu opens"),
                     timeout = 2,
                 })
                 -- Refresh the menu after close completes
@@ -5139,7 +5139,7 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                     UIManager:close(self.options_dialog)
                     UIManager:close(self.highlight_menu)
                     UIManager:show(Notification:new{
-                        text = _("Changes require restart to take effect"),
+                        text = _("Takes effect the next time the highlight menu opens"),
                         timeout = 2,
                     })
                     self:showHighlightMenuManager()
@@ -5157,7 +5157,7 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                     UIManager:close(self.options_dialog)
                     UIManager:close(self.highlight_menu)
                     UIManager:show(Notification:new{
-                        text = _("Changes require restart to take effect"),
+                        text = _("Takes effect the next time the highlight menu opens"),
                         timeout = 2,
                     })
                     self:showHighlightMenuManager()
@@ -5174,7 +5174,7 @@ function PromptsManager:showHighlightMenuActionOptions(action, index, total)
                 UIManager:close(self.options_dialog)
                 UIManager:close(self.highlight_menu)
                 UIManager:show(Notification:new{
-                    text = _("Changes require restart to take effect"),
+                    text = _("Takes effect the next time the highlight menu opens"),
                     timeout = 2,
                 })
                 self:showHighlightMenuManager()

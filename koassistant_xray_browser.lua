@@ -701,7 +701,8 @@ end
 --- 1 word + short hold → auto dictionary, 1 word + long hold or 2+ words → selection popup
 --- @param text string Selected text
 --- @param hold_duration userdata|nil Hold duration from TextBoxWidget
---- @param opts table Options: ui, plugin, viewer (TextViewer for highlight clearing)
+--- @param opts table Options: ui, plugin, viewer (TextViewer for highlight clearing),
+---        book_file/book_title (the X-Ray's SOURCE book — ui is nil for cross-book viewing)
 local function handleTextSelection(text, hold_duration, opts)
     local ui = opts.ui
     local ChatGPTViewer = require("koassistant_chatgptviewer")
@@ -736,10 +737,26 @@ local function handleTextSelection(text, hold_duration, opts)
     end
 
     -- 2+ words, or single word + long hold: show selection popup
+    -- Target the X-Ray's SOURCE book (metadata.book_file) — ui is deliberately nil
+    -- when viewing another book's X-Ray via the artifact browser, and the notebook
+    -- belongs to the X-Ray's book either way (getPath resolves from disk)
+    local doc_path = opts.book_file or (ui and ui.document and ui.document.file)
+    local append_to_notebook
+    if doc_path then
+        append_to_notebook = function(sel_text)
+            ChatGPTViewer.appendSnippetToNotebook(doc_path, sel_text, {
+                book_title = opts.book_title
+                    or (ui and ui.doc_props
+                        and (ui.doc_props.display_title or ui.doc_props.title)),
+            })
+        end
+    end
     ChatGPTViewer.buildTextSelectionPopup(text, {
         ui = ui,
         plugin = opts.plugin,
         configuration = opts.plugin and opts.plugin.configuration,
+        document_path = doc_path,
+        append_to_notebook = append_to_notebook,
         clear_highlight = clear_highlight,
     })
 end
@@ -1554,7 +1571,13 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         height = Screen:getHeight(),
         buttons_table = buttons_rows,
         text_selection_callback = function(text, hold_duration)
-            handleTextSelection(text, hold_duration, { ui = captured_ui, plugin = self_ref.metadata.plugin, viewer = viewer })
+            handleTextSelection(text, hold_duration, {
+                ui = captured_ui,
+                plugin = self_ref.metadata.plugin,
+                viewer = viewer,
+                book_file = self_ref.metadata.book_file,
+                book_title = self_ref.metadata.title,
+            })
         end,
     }
     -- highlight_text_selection and HoldPanText gesture fix are handled globally
