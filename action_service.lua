@@ -2028,6 +2028,18 @@ local INPUT_CONTEXTS = {
     },
 }
 
+-- Settings/dismissed key pairs for every input context. Reset flows iterate this
+-- instead of hand-listing contexts — the library context was once missed exactly
+-- that way (flags audit 2026-07-16, I1).
+function ActionService.getInputContextKeys()
+    local keys = {}
+    for _ctx, def in pairs(INPUT_CONTEXTS) do
+        table.insert(keys, def.settings_key)
+        table.insert(keys, def.dismissed_key)
+    end
+    return keys
+end
+
 -- Get all eligible action IDs for an input context (respects enabled state and open book filtering)
 function ActionService:_getEligibleInputActionIds(ctx_name)
     local ctx = INPUT_CONTEXTS[ctx_name]

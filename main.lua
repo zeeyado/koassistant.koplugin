@@ -11451,15 +11451,11 @@ function AskGPT:resetActionMenus(silent)
   -- File browser actions
   self.settings:delSetting("file_browser_actions")
   self.settings:delSetting("_dismissed_file_browser_actions")
-  -- Input dialog actions (all 4 contexts)
-  self.settings:delSetting("input_book_actions")
-  self.settings:delSetting("_dismissed_input_book_actions")
-  self.settings:delSetting("input_book_fb_actions")
-  self.settings:delSetting("_dismissed_input_book_fb_actions")
-  self.settings:delSetting("input_highlight_actions")
-  self.settings:delSetting("_dismissed_input_highlight_actions")
-  self.settings:delSetting("input_xray_chat_actions")
-  self.settings:delSetting("_dismissed_input_xray_chat_actions")
+  -- Input dialog actions (all contexts — keys derived from ActionService so a
+  -- new context can't be missed here; library once was)
+  for _i, key in ipairs(ActionService.getInputContextKeys()) do
+    self.settings:delSetting(key)
+  end
   self.settings:flush()
 
   if not silent then
@@ -11520,16 +11516,11 @@ function AskGPT:resetQuickActions(touchmenu_instance)
   if touchmenu_instance then touchmenu_instance:updateItems() end
 end
 
--- Reset input dialog actions (all 4 contexts)
+-- Reset input dialog actions (all contexts — keys derived from ActionService)
 function AskGPT:resetInputDialogActions()
-  self.settings:delSetting("input_book_actions")
-  self.settings:delSetting("_dismissed_input_book_actions")
-  self.settings:delSetting("input_book_fb_actions")
-  self.settings:delSetting("_dismissed_input_book_fb_actions")
-  self.settings:delSetting("input_highlight_actions")
-  self.settings:delSetting("_dismissed_input_highlight_actions")
-  self.settings:delSetting("input_xray_chat_actions")
-  self.settings:delSetting("_dismissed_input_xray_chat_actions")
+  for _i, key in ipairs(ActionService.getInputContextKeys()) do
+    self.settings:delSetting(key)
+  end
   self.settings:flush()
   UIManager:show(Notification:new{
     text = _("Input dialog actions reset"),
