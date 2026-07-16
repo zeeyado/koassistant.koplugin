@@ -1646,6 +1646,14 @@ local SettingsSchema = {
                     help_text = _("Add an 'Add to notebook' button to the highlight menu, saving the selected text directly to this book's notebook. Takes effect the next time the menu opens."),
                 },
                 {
+                    id = "show_image_gen_in_highlight",
+                    type = "toggle",
+                    text = _("Show Generate Image button"),
+                    path = "features.show_image_gen_in_highlight",
+                    default = true,
+                    help_text = _("Add a 'Generate Image' button to the highlight menu, visualizing the selected text with the current AI provider. Only shown when the provider supports image generation (OpenAI, xAI, Gemini). Takes effect the next time the menu opens."),
+                },
+                {
                     id = "highlight_menu_actions",
                     type = "action",
                     text = _("Highlight Menu Actions"),
