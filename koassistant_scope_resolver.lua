@@ -86,6 +86,40 @@ function ScopeResolver.paragraphWindow(prev, next_text, n, max_per_side)
     return before, after
 end
 
+--- Chapter-preset availability for the unified scope popup (flexible_scope_plan.md
+-- phase 1). Pure decision logic: takes resolved facts, returns which presets to show
+-- and their effective page ranges. WHICH actions get chapter presets is the caller's
+-- product decision (quiz-only, maintainer 2026-07-16 — other actions state their scope
+-- explicitly via Pick section… / From section…); UI labels, chapter resolution,
+-- extraction, and gating all stay in main.lua.
+-- @param p table {
+--   chapter = { start_page = N, end_page = N } | nil,  -- current chapter (nil = no TOC / front matter)
+--   current_page = number,
+--   spoiler_free = boolean,  -- resolved per-book/global posture (session chip never applies here)
+-- }
+-- @return table {
+--   chapter = { start_page, end_page } | nil,         -- "Current chapter" row (nil = hidden)
+--   chapter_so_far = { start_page, end_page } | nil,  -- "Current chapter so far" row (nil = hidden)
+-- }
+function ScopeResolver.chapterPresets(p)
+    local ch = p.chapter
+    if not ch or not ch.start_page or not ch.end_page then return {} end
+    local cur = p.current_page or 1
+    local out = {}
+    -- "Current chapter so far": strictly mid-chapter — at the chapter start nothing has
+    -- been read yet, and at/after the chapter end it equals the full chapter.
+    if cur > ch.start_page and cur < ch.end_page then
+        out.chapter_so_far = { start_page = ch.start_page, end_page = cur }
+    end
+    -- "Current chapter": spoiler posture clamps any scope's end to the current position
+    -- (plan §2) — mid-chapter the clamped range IS the so-far row, so hide this one
+    -- instead of double-listing it.
+    if not (p.spoiler_free and cur < ch.end_page) then
+        out.chapter = { start_page = ch.start_page, end_page = ch.end_page }
+    end
+    return out
+end
+
 --- Trim a raw context window to the requested mode and mark the selection.
 -- Modes: "sentence" (default; falls back to characters when boundaries yield too
 -- little), "paragraph" (opts.paragraphs per side), "characters" (opts.char_count
