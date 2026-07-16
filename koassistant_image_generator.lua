@@ -28,8 +28,6 @@ Public API:
 local json   = require("json")
 local ffi    = require("ffi")
 local ffiutil = require("ffi/util")
-local https   = require("ssl.https")
-local ltn12   = require("ltn12")
 local logger = require("logger")
 local mime   = require("mime")
 local BaseHandler = require("koassistant_api.base")
@@ -76,32 +74,10 @@ local IMAGE_ENDPOINTS = {
 -- Internal helpers
 -- ---------------------------------------------------------------------------
 
---- Resolve the API key for the active provider.
---- Mirrors the priority used in koassistant_gpt_query.lua:
----   1. GUI-entered keys (features.api_keys[provider])
----   2. apikeys.lua file
+--- Resolve the API key for a provider (GUI keys > apikeys.lua, placeholder-
+--- aware). Shared logic lives in koassistant_api/base.lua.
 local function resolveApiKey(provider, settings)
-    -- GUI-entered key (highest priority)
-    if settings then
-        local features = settings:readSetting("features") or {}
-        local gui_keys = features.api_keys or {}
-        if gui_keys[provider] and gui_keys[provider] ~= "" then
-            return gui_keys[provider]:match("^%s*(.-)%s*$")
-        end
-    end
-    -- apikeys.lua fallback
-    local ok, apikeys = pcall(function() return require("apikeys") end)
-    if ok and apikeys and apikeys[provider] and apikeys[provider] ~= "" then
-        local k = apikeys[provider]:match("^%s*(.-)%s*$")
-        local upper = k:upper()
-        local is_placeholder = upper:find("YOUR_", 1, true)
-            or upper:find("_HERE", 1, true)
-            or upper:find("API_KEY", 1, true)
-        if not is_placeholder then
-            return k
-        end
-    end
-    return nil
+    return BaseHandler.getApiKey(provider, settings)
 end
 
 --- Resolve which provider image generation should use.
@@ -232,236 +208,70 @@ local function showImage(image_data, description, on_close)
 end
 
 -- ---------------------------------------------------------------------------
--- Background subprocess: make the HTTPS POST, stream result to pipe
+-- Background subprocess fetches (transport shared with base.lua)
 -- ---------------------------------------------------------------------------
 
---- Write the whole buffer to a pipe fd. ffiutil.writeToFD is a single
---- unlooped write(2), and pipe writes larger than the pipe buffer may
---- return short — multi-MB image responses arrived truncated on device
---- (json parse failures). Loops until done, retrying on EINTR.
-local function writeAllToFD(fd, data)
-    local ptr = ffi.cast("const char*", data)
-    local total = #data
-    local written = 0
-    while written < total do
-        local n = tonumber(ffi.C.write(fd, ptr + written, total - written))
-        if not n or n < 0 then
-            if ffi.errno() == 4 then -- EINTR: interrupted, nothing written; retry
-                n = 0
+--- Build a background function for ffiutil.runInSubProcess that runs `fetch`
+--- (returning status_code, body) and writes "OK:<body>" / "ERR:<message>" to
+--- the pipe. Transport lives in BaseHandler.fetchInSubprocess (macOS raw-SSL
+--- + standard paths); writes go through the looped BaseHandler.writeAllToFD.
+local function makePipeFetchFn(fetch, err_prefix)
+    return function(pid, child_write_fd)
+        if not pid or not child_write_fd then return end
+        local ok, err = pcall(function()
+            local code, body = fetch()
+            if code ~= 200 then
+                BaseHandler.writeAllToFD(child_write_fd,
+                    "ERR:HTTP " .. tostring(code) .. ": " .. (body or ""):sub(1, 200))
             else
-                return false
+                BaseHandler.writeAllToFD(child_write_fd, "OK:" .. (body or ""))
             end
+        end)
+        if not ok then
+            BaseHandler.writeAllToFD(child_write_fd, "ERR:" .. err_prefix .. tostring(err))
         end
-        written = written + n
+        ffi.C.close(child_write_fd)
+        pcall(function() ffi.C._exit(0) end)
     end
-    return true
 end
 
---- Build and return a background function suitable for ffiutil.runInSubProcess.
---- The subprocess writes either:
----   "OK:<base64-json>" (the full response body) on success, or
----   "ERR:<message>"   on failure.
---- We write the raw JSON body; the parent decodes it.
---- @param endpoint table: IMAGE_ENDPOINTS entry (used for key_header and is_gemini flag)
+--- POST the image-generation request; pipe carries "OK:<json>" or "ERR:<msg>".
+--- @param endpoint table: IMAGE_ENDPOINTS entry (used for key_header)
 local function makeBackgroundFn(url, api_key, request_body_str, endpoint)
     -- Pre-resolve DNS in parent (needed on macOS after fork)
     local resolved_ip = BaseHandler.resolveForSubprocess(url)
 
-    -- Build auth header value
     local auth_header_name  = (endpoint and endpoint.key_header) or "Authorization"
     local auth_header_value = (auth_header_name == "Authorization")
         and ("Bearer " .. api_key)
         or api_key
-
     local headers = {
-        ["Content-Type"]         = "application/json",
-        [auth_header_name]       = auth_header_value,
-        ["Content-Length"]       = tostring(#request_body_str),
+        ["Content-Type"]   = "application/json",
+        [auth_header_name] = auth_header_value,
+        ["Content-Length"] = tostring(#request_body_str),
     }
 
-    return function(pid, child_write_fd)
-        if not pid or not child_write_fd then return end
-
-        local ok, err = pcall(function()
-            local is_https = url:sub(1, 8) == "https://"
-            if is_https and ffi.os == "OSX" then
-                -- macOS: bypass getaddrinfo via raw SSL
-                local host = url:match("https://([^/:]+)")
-                local port = tonumber(url:match("https://[^/:]+:(%d+)")) or 443
-                local path = url:match("https://[^/]+(.*)") or "/"
-
-                local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, host, port, 120)
-
-                local req_lines = {
-                    string.format("POST %s HTTP/1.1", path),
-                    string.format("Host: %s", host),
-                    "Content-Type: application/json",
-                    string.format("%s: %s", auth_header_name, auth_header_value),
-                    string.format("Content-Length: %d", #request_body_str),
-                    "Connection: close",
-                    "", "",
-                }
-                ssl_sock:send(table.concat(req_lines, "\r\n"))
-                ssl_sock:send(request_body_str)
-
-                -- Read status + headers
-                local status_line = ssl_sock:receive("*l")
-                local status_code = status_line and tonumber(status_line:match("HTTP/%S+%s+(%d+)"))
-                local is_chunked = false
-                while true do
-                    local line = ssl_sock:receive("*l")
-                    if not line or line == "" then break end
-                    if line:lower():match("^transfer%-encoding:%s*chunked") then
-                        is_chunked = true
-                    end
-                end
-
-                -- Read body
-                local chunks = {}
-                if is_chunked then
-                    while true do
-                        local sz_line = ssl_sock:receive("*l")
-                        if not sz_line then break end
-                        local csz = tonumber(sz_line:match("^%s*(%x+)"), 16)
-                        if not csz or csz == 0 then break end
-                        local chunk = ssl_sock:receive(csz)
-                        if chunk then table.insert(chunks, chunk) end
-                        ssl_sock:receive("*l")
-                    end
-                else
-                    while true do
-                        local chunk, eof, partial = ssl_sock:receive(8192)
-                        if chunk then table.insert(chunks, chunk)
-                        elseif partial and #partial > 0 then table.insert(chunks, partial) end
-                        if eof then break end
-                    end
-                end
-                ssl_sock:close()
-                local body = table.concat(chunks)
-
-                if status_code ~= 200 then
-                    writeAllToFD(child_write_fd, "ERR:HTTP " .. tostring(status_code) .. ": " .. body:sub(1, 200))
-                else
-                    writeAllToFD(child_write_fd, "OK:" .. body)
-                end
-            else
-                -- Standard path
-                local su_ok, socketutil = pcall(require, "socketutil")
-                if su_ok and socketutil then
-                    socketutil:set_timeout(120, -1)
-                else
-                    https.TIMEOUT = 120
-                end
-
-                local response_body = {}
-                local _, code, _, status = https.request{
-                    url     = url,
-                    method  = "POST",
-                    headers = headers,
-                    source  = ltn12.source.string(request_body_str),
-                    sink    = ltn12.sink.table(response_body),
-                }
-                local body = table.concat(response_body)
-                local numeric_code = tonumber(code) or 0
-                if numeric_code ~= 200 then
-                    writeAllToFD(child_write_fd,
-                        "ERR:HTTP " .. tostring(code) .. " " .. tostring(status) .. ": " .. body:sub(1, 200))
-                else
-                    writeAllToFD(child_write_fd, "OK:" .. body)
-                end
-            end
-        end)
-
-        if not ok then
-            writeAllToFD(child_write_fd, "ERR:Subprocess error: " .. tostring(err))
-        end
-
-        ffi.C.close(child_write_fd)
-        pcall(function() ffi.C._exit(0) end)
-    end
+    return makePipeFetchFn(function()
+        return BaseHandler.fetchInSubprocess(url, {
+            method = "POST",
+            headers = headers,
+            body = request_body_str,
+            resolved_ip = resolved_ip,
+            timeout = 120,
+        })
+    end, "Subprocess error: ")
 end
 
--- ---------------------------------------------------------------------------
--- Download image bytes from URL (used for b64 + url response formats)
--- ---------------------------------------------------------------------------
-
---- Fetch binary content from a URL in a subprocess.
---- Returns a background function whose pipe carries "OK:<binary>" or "ERR:<msg>".
+--- GET binary content from a URL; pipe carries "OK:<binary>" or "ERR:<msg>".
 local function makeDownloadFn(image_url)
     local resolved_ip = BaseHandler.resolveForSubprocess(image_url)
 
-    return function(pid, child_write_fd)
-        if not pid or not child_write_fd then return end
-        local ok, err = pcall(function()
-            local is_https = image_url:sub(1, 8) == "https://"
-            if is_https and ffi.os == "OSX" then
-                local host = image_url:match("https://([^/:]+)")
-                local port = tonumber(image_url:match("https://[^/:]+:(%d+)")) or 443
-                local path = image_url:match("https://[^/]+(.*)") or "/"
-                local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, host, port, 60)
-                local req_lines = {
-                    string.format("GET %s HTTP/1.1", path),
-                    string.format("Host: %s", host),
-                    "Connection: close",
-                    "", "",
-                }
-                ssl_sock:send(table.concat(req_lines, "\r\n"))
-                local status_line = ssl_sock:receive("*l")
-                local status_code = status_line and tonumber(status_line:match("HTTP/%S+%s+(%d+)"))
-                local is_chunked = false
-                while true do
-                    local line = ssl_sock:receive("*l")
-                    if not line or line == "" then break end
-                    if line:lower():match("^transfer%-encoding:%s*chunked") then is_chunked = true end
-                end
-                local chunks = {}
-                if is_chunked then
-                    while true do
-                        local sz_line = ssl_sock:receive("*l")
-                        if not sz_line then break end
-                        local csz = tonumber(sz_line:match("^%s*(%x+)"), 16)
-                        if not csz or csz == 0 then break end
-                        local chunk = ssl_sock:receive(csz)
-                        if chunk then table.insert(chunks, chunk) end
-                        ssl_sock:receive("*l")
-                    end
-                else
-                    while true do
-                        local chunk, eof, partial = ssl_sock:receive(8192)
-                        if chunk then table.insert(chunks, chunk)
-                        elseif partial and #partial > 0 then table.insert(chunks, partial) end
-                        if eof then break end
-                    end
-                end
-                ssl_sock:close()
-                if status_code ~= 200 then
-                    writeAllToFD(child_write_fd, "ERR:HTTP " .. tostring(status_code))
-                else
-                    -- prefix + binary body
-                    writeAllToFD(child_write_fd, "OK:")
-                    local body = table.concat(chunks)
-                    writeAllToFD(child_write_fd, body)
-                end
-            else
-                local chunks_t = {}
-                local _, code = https.request{
-                    url  = image_url,
-                    sink = ltn12.sink.table(chunks_t),
-                }
-                if tonumber(code) ~= 200 then
-                    writeAllToFD(child_write_fd, "ERR:HTTP " .. tostring(code))
-                else
-                    writeAllToFD(child_write_fd, "OK:")
-                    writeAllToFD(child_write_fd, table.concat(chunks_t))
-                end
-            end
-        end)
-        if not ok then
-            writeAllToFD(child_write_fd, "ERR:Download subprocess error: " .. tostring(err))
-        end
-        ffi.C.close(child_write_fd)
-        pcall(function() ffi.C._exit(0) end)
-    end
+    return makePipeFetchFn(function()
+        return BaseHandler.fetchInSubprocess(image_url, {
+            resolved_ip = resolved_ip,
+            timeout = 60,
+        })
+    end, "Download subprocess error: ")
 end
 
 -- ---------------------------------------------------------------------------

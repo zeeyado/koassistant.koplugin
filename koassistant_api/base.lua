@@ -340,6 +340,110 @@ local function sendRequestAndReadHeaders(ssl_sock, method, path, hostname, heade
     return status_code, is_chunked
 end
 
+--- Detect unfilled sample placeholders from apikeys.lua.sample
+--- (e.g. "YOUR_DEEPSEEK_API_KEY") so we never send them to a provider,
+--- which would echo back a confusing 401 (issue #82).
+function BaseHandler.isPlaceholderKey(key)
+    if not key or key == "" then return true end
+    local upper = key:upper()
+    return upper:find("YOUR_", 1, true) ~= nil
+        or upper:find("_HERE", 1, true) ~= nil
+        or upper:find("API_KEY", 1, true) ~= nil
+end
+
+--- Resolve a provider's API key: GUI-entered keys first, then apikeys.lua
+--- (ignoring placeholders). Shared by the query router and image generation.
+function BaseHandler.getApiKey(provider, settings)
+    if settings then
+        local features = settings:readSetting("features") or {}
+        local gui_keys = features.api_keys or {}
+        if gui_keys[provider] and gui_keys[provider] ~= "" then
+            -- Trim whitespace (Kindle clipboard can add trailing spaces/newlines)
+            return gui_keys[provider]:match("^%s*(.-)%s*$")
+        end
+    end
+    local success, apikeys = pcall(function() return require("apikeys") end)
+    if success and apikeys and apikeys[provider] then
+        local file_key = apikeys[provider]:match("^%s*(.-)%s*$")
+        if not BaseHandler.isPlaceholderKey(file_key) then
+            return file_key
+        end
+    end
+    return nil
+end
+
+--- Write the whole buffer to a pipe fd. ffiutil.writeToFD is a single
+--- unlooped write(2): pipe writes larger than the pipe buffer may return
+--- short (truncated multi-MB image responses on device). Loops until done,
+--- retrying on EINTR.
+function BaseHandler.writeAllToFD(fd, data)
+    local ptr = ffi.cast("const char*", data)
+    local total = #data
+    local written = 0
+    while written < total do
+        local n = tonumber(ffi.C.write(fd, ptr + written, total - written))
+        if not n or n < 0 then
+            if ffi.errno() == 4 then -- EINTR: interrupted, nothing written; retry
+                n = 0
+            else
+                return false
+            end
+        end
+        written = written + n
+    end
+    return true
+end
+
+--- Complete (non-streaming) HTTP(S) fetch for use INSIDE a subprocess.
+--- Chooses the macOS raw-SSL path (http.request hangs after fork on macOS)
+--- or the standard http.request path. Pre-resolve DNS in the PARENT with
+--- resolveForSubprocess(url) and pass it as opts.resolved_ip.
+--- @param url string
+--- @param opts table: { method = "GET"|"POST" (default GET), headers = table,
+---                      body = string|nil, resolved_ip = string|nil,
+---                      timeout = seconds (default 120) }
+--- @return number|nil status_code (nil = transport error), string body_or_error
+function BaseHandler.fetchInSubprocess(url, opts)
+    opts = opts or {}
+    local method = opts.method or "GET"
+    local timeout = opts.timeout or 120
+    local is_https = url:sub(1, 8) == "https://"
+    if is_https and ffi.os == "OSX" then
+        local host = url:match("https://([^/:]+)")
+        local port = tonumber(url:match("https://[^/:]+:(%d+)")) or 443
+        local path = url:match("https://[^/]+(.*)") or "/"
+        local ssl_sock = BaseHandler.connectSSLInSubprocess(opts.resolved_ip, host, port, timeout)
+        local status_code, is_chunked = sendRequestAndReadHeaders(
+            ssl_sock, method, path, host, opts.headers, opts.body)
+        local resp_body = readFullBody(ssl_sock, is_chunked)
+        ssl_sock:close()
+        return status_code, resp_body
+    end
+    local su_ok, socketutil = pcall(require, "socketutil")
+    if su_ok and socketutil then
+        socketutil:set_timeout(timeout, -1)
+    elseif is_https then
+        https.TIMEOUT = timeout
+    end
+    local chunks = {}
+    local request = {
+        url = url,
+        method = method,
+        headers = opts.headers,
+        sink = ltn12.sink.table(chunks),
+    }
+    if opts.body then
+        request.source = ltn12.source.string(opts.body)
+    end
+    local ok, code = pcall(function()
+        return socket.skip(1, http.request(request))
+    end)
+    if not ok then
+        return nil, tostring(code)
+    end
+    return tonumber(code), table.concat(chunks)
+end
+
 --- Background request function for streaming responses
 --- This function is used to make a request in the background (subprocess),
 --- and write the response to a pipe for real-time processing.

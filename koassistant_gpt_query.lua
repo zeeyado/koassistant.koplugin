@@ -65,37 +65,10 @@ loadHandler("perplexity")
 -- Generic handler for custom OpenAI-compatible providers
 loadHandler("custom_openai")
 
--- Detect unfilled sample placeholders from apikeys.lua.sample (e.g. "YOUR_DEEPSEEK_API_KEY")
--- so we never send them to a provider, which would echo back a confusing 401
--- ("Authentication Fails, Your api key: ****_KEY is invalid"). See issue #82.
-local function isPlaceholderKey(key)
-    if not key or key == "" then return true end
-    local upper = key:upper()
-    return upper:find("YOUR_", 1, true) ~= nil
-        or upper:find("_HERE", 1, true) ~= nil
-        or upper:find("API_KEY", 1, true) ~= nil
-end
-
+-- Key resolution + placeholder detection live in koassistant_api/base.lua
+-- (shared with image generation). Local name kept for existing call sites.
 local function getApiKey(provider, settings)
-    -- 1. Check GUI-entered keys first (highest priority)
-    if settings then
-        local features = settings:readSetting("features") or {}
-        local gui_keys = features.api_keys or {}
-        if gui_keys[provider] and gui_keys[provider] ~= "" then
-            -- Trim whitespace (Kindle clipboard can add trailing spaces/newlines)
-            return gui_keys[provider]:match("^%s*(.-)%s*$")
-        end
-    end
-
-    -- 2. Fall back to apikeys.lua file (ignore unfilled sample placeholders)
-    local success, apikeys = pcall(function() return require("apikeys") end)
-    if success and apikeys and apikeys[provider] then
-        local file_key = apikeys[provider]:match("^%s*(.-)%s*$")
-        if not isPlaceholderKey(file_key) then
-            return file_key
-        end
-    end
-    return nil
+    return require("koassistant_api.base").getApiKey(provider, settings)
 end
 
 --- Marker returned when streaming is in progress
