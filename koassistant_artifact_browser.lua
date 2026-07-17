@@ -90,8 +90,13 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     local has_general_pinned = pinned_index[PinnedManager.GENERAL_KEY] and pinned_index[PinnedManager.GENERAL_KEY].count > 0
     local has_multi_pinned = pinned_index[PinnedManager.LIBRARY_KEY] and pinned_index[PinnedManager.LIBRARY_KEY].count > 0
 
-    -- Handle empty state (no artifacts AND no pinned)
-    if #docs == 0 and not has_general_pinned and not has_multi_pinned then
+    -- Generated-images index for merging: book_file → { count, modified, book_title }
+    local ImageGenerator = require("koassistant_image_generator")
+    local image_books = ImageGenerator.booksWithImages()
+
+    -- Handle empty state (no artifacts AND no pinned AND no generated images)
+    if #docs == 0 and not has_general_pinned and not has_multi_pinned
+        and next(image_books) == nil then
         -- Check if any per-book pinned exist
         local has_any_pinned = false
         for doc_path, _stats in pairs(pinned_index) do
@@ -173,17 +178,38 @@ function ArtifactBrowser:showArtifactBrowser(opts)
                     pinned_count = pstats.count,
                 }
                 table.insert(docs, doc)
+                docs_by_path[doc_path] = doc
             end
         end
     end
 
-    -- Re-sort after merge (pinned-only docs may be newer)
+    -- Merge generated-image counts; books with only images still get a row
+    -- (title comes from the index — no DocSettings read needed)
+    for book_file, istats in pairs(image_books) do
+        local existing = docs_by_path[book_file]
+        if existing then
+            existing.image_count = istats.count
+            if (istats.modified or 0) > (existing.modified or 0) then
+                existing.modified = istats.modified
+            end
+        else
+            table.insert(docs, {
+                path = book_file,
+                title = istats.book_title or book_file:match("([^/]+)$") or book_file,
+                modified = istats.modified or 0,
+                count = 0,
+                image_count = istats.count,
+            })
+        end
+    end
+
+    -- Re-sort after merge (pinned-only / image-only docs may be newer)
     table.sort(docs, function(a, b) return a.modified > b.modified end)
 
     for _idx, doc in ipairs(docs) do
         local captured_doc = doc
         local date_str = doc.modified > 0 and Constants.formatRelativeTime(doc.modified) or _("Unknown")
-        local total_count = (doc.count or 0) + (doc.pinned_count or 0)
+        local total_count = (doc.count or 0) + (doc.pinned_count or 0) + (doc.image_count or 0)
         local count_str = tostring(total_count)
         local right_text = count_str .. " \u{00B7} " .. date_str
 
@@ -264,7 +290,11 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
         and ReaderUI.instance.document.file == doc_path and ReaderUI.instance.document or nil
     local all_artifacts = ActionCache.getAvailableArtifactsWithPinned(doc_path, nil, open_doc)
 
-    if #all_artifacts == 0 then
+    local ImageGenerator = require("koassistant_image_generator")
+    local img_info = ImageGenerator.booksWithImages()[doc_path]
+    local image_count = img_info and img_info.count or 0
+
+    if #all_artifacts == 0 and image_count == 0 then
         -- All artifacts were removed since index was built; clean up and refresh
         local index = G_reader_settings:readSetting("koassistant_artifact_index", {})
         index[doc_path] = nil
@@ -337,6 +367,17 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                         name = captured.name, key = captured.key, data = captured.data,
                         book_title = doc_title, file = doc_path })
                 end
+            end,
+        }})
+    end
+
+    if image_count > 0 then
+        table.insert(buttons, {{
+            text = T(_("Generated Images (%1)"), image_count),
+            callback = function()
+                UIManager:close(self_ref._cache_selector)
+                local ImageBrowser = require("koassistant_image_browser")
+                ImageBrowser.show({ book_file = doc_path, book_title = doc_title })
             end,
         }})
     end

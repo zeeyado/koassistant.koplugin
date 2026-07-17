@@ -361,7 +361,7 @@ Registry.entries = {
         location = "data_dir", ref = "koassistant_images",
         category = "exports", backup = false,
         opt_in_reset = true, uninstall = false,
-        notes = "Kept images from highlight image generation (keep-all policy 2026-07-16); filenames carry date + prompt; koassistant_image_browser.lua manages deletion. Preserved on teardown like exports.",
+        notes = "Kept images from highlight image generation (keep-all policy 2026-07-16); filenames carry date + prompt; koassistant_image_browser.lua manages deletion. Also holds koassistant_index.lua (book-association index, agenda 2b) — covered by dir-level flows, no separate entry. Preserved on teardown like exports.",
     },
     {
         id = "notebooks_vault_dir", label = "Notebook vault (default)",

@@ -361,10 +361,16 @@ function AskGPT:init()
               and reader_highlight_instance.selected_text.text
           reader_highlight_instance:onClose()
           if not selected_text or selected_text == "" then return end
+          -- Book association for the images index (per-book gallery)
+          local book_info = self.ui and self.ui.document and self.ui.document.file and {
+            file = self.ui.document.file,
+            title = self.ui.doc_props
+              and (self.ui.doc_props.display_title or self.ui.doc_props.title),
+          } or nil
           NetworkMgr:runWhenConnected(function()
             self:updateConfigFromSettings()
             local ImageGenerator = require("koassistant_image_generator")
-            ImageGenerator.generate(selected_text, configuration, self.settings)
+            ImageGenerator.generate(selected_text, configuration, self.settings, book_info)
           end)
         end,
       }
@@ -14395,6 +14401,12 @@ function AskGPT:patchDocSettingsForChatIndex()
         logger.info("KOAssistant: Updated indices for moved file")
       end
     end
+
+    -- Generated-images index maps filenames → book_file values (a plain file
+    -- in the images dir, not a G_reader_settings index): move rewrites the
+    -- association, delete drops it (images are kept, global-only), copy no-ops
+    local ImageGenerator = require("koassistant_image_generator")
+    ImageGenerator.updateIndexForMove(old_path, new_path, copy)
   end
 
   DocSettings._koassistant_patched = true

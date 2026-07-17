@@ -7,6 +7,9 @@ Covers:
 - ImageGenerator.effectiveProvider resolution chain:
   explicit image_gen_provider > image-capable main provider; key required;
   no fallback to merely-keyed providers
+- Book-association index (agenda 2b): recordImage/readIndex roundtrip,
+  booksWithImages join + stale pruning, removeIndexEntries,
+  updateIndexForMove move/delete/copy semantics
 
 Run: lua tests/run_tests.lua --unit
 ]]
@@ -73,6 +76,47 @@ local function withApikeys(keys, fn)
     package.loaded["apikeys"] = keys
     local ok, err = pcall(fn)
     package.loaded["apikeys"] = prev
+    if not ok then error(err, 0) end
+end
+
+-- Index test helpers ---------------------------------------------------------
+-- The index helpers lazily require("luasettings") per call, so an in-memory
+-- mock can be swapped in around each test. Image files are real files under
+-- the mock datastorage dir (booksWithImages joins index against directory).
+
+local IMAGES_DIR = "/tmp/koreader/koassistant_images"
+
+local index_store  -- in-memory backing for the mocked LuaSettings
+
+local MockLuaSettings = {
+    open = function(_self, path)
+        index_store[path] = index_store[path] or {}
+        local data = index_store[path]
+        return {
+            readSetting = function(_s, key) return data[key] end,
+            saveSetting = function(_s, key, val) data[key] = val end,
+            flush = function() end,
+        }
+    end,
+}
+
+local function touchFile(name)
+    local f = assert(io.open(IMAGES_DIR .. "/" .. name, "w"))
+    f:write("png")
+    f:close()
+end
+
+--- Run fn with a fresh images dir + in-memory index store
+local function withImageIndex(fn)
+    local prev = package.loaded["luasettings"]
+    package.loaded["luasettings"] = MockLuaSettings
+    index_store = {}
+    os.execute('rm -rf "' .. IMAGES_DIR .. '" && mkdir -p "' .. IMAGES_DIR .. '"')
+    -- updateIndexForMove stat-guards on the index file existing on disk
+    touchFile(ImageGenerator.getIndexFilename())
+    local ok, err = pcall(fn)
+    package.loaded["luasettings"] = prev
+    os.execute('rm -rf "' .. IMAGES_DIR .. '"')
     if not ok then error(err, 0) end
 end
 
@@ -168,6 +212,62 @@ local function runAll()
         local p, reason = ImageGenerator.effectiveProvider({}, nil, mockSettings({}))
         TestRunner:assertEquals(p, nil)
         TestRunner:assertEquals(reason, "no_endpoint")
+    end)
+
+    print("  [Images index: book associations]")
+    TestRunner:test("recordImage → readIndex roundtrip; no-op without book info", function()
+        withImageIndex(function()
+            ImageGenerator.recordImage("a.png",
+                { file = "/books/b1.epub", title = "Book One" }, "a castle")
+            ImageGenerator.recordImage("b.png", nil, "ignored")
+            local index = ImageGenerator.readIndex()
+            TestRunner:assertEquals(index["a.png"].book_file, "/books/b1.epub")
+            TestRunner:assertEquals(index["a.png"].book_title, "Book One")
+            TestRunner:assertEquals(index["a.png"].prompt, "a castle")
+            TestRunner:assert(type(index["a.png"].created) == "number", "created timestamp set")
+            TestRunner:assertEquals(index["b.png"], nil)
+        end)
+    end)
+    TestRunner:test("booksWithImages counts per book and prunes stale entries", function()
+        withImageIndex(function()
+            touchFile("a.png")
+            touchFile("b.png")
+            ImageGenerator.recordImage("a.png", { file = "/books/b1.epub", title = "Book One" }, "p1")
+            ImageGenerator.recordImage("b.png", { file = "/books/b1.epub", title = "Book One" }, "p2")
+            ImageGenerator.recordImage("gone.png", { file = "/books/b2.epub", title = "Book Two" }, "p3")
+            local books = ImageGenerator.booksWithImages()
+            TestRunner:assertEquals(books["/books/b1.epub"].count, 2)
+            TestRunner:assertEquals(books["/books/b1.epub"].book_title, "Book One")
+            TestRunner:assert(books["/books/b1.epub"].modified > 0, "modified from created timestamps")
+            TestRunner:assertEquals(books["/books/b2.epub"], nil, "stale entry not counted")
+            TestRunner:assertEquals(ImageGenerator.readIndex()["gone.png"], nil, "stale entry pruned")
+        end)
+    end)
+    TestRunner:test("removeIndexEntries removes only the listed names", function()
+        withImageIndex(function()
+            ImageGenerator.recordImage("a.png", { file = "/books/b1.epub" }, "p1")
+            ImageGenerator.recordImage("b.png", { file = "/books/b1.epub" }, "p2")
+            ImageGenerator.removeIndexEntries({ "a.png", "never-there.png" })
+            local index = ImageGenerator.readIndex()
+            TestRunner:assertEquals(index["a.png"], nil)
+            TestRunner:assert(index["b.png"] ~= nil, "unrelated entry kept")
+        end)
+    end)
+    TestRunner:test("updateIndexForMove: move rewrites, delete unassigns, copy no-ops", function()
+        withImageIndex(function()
+            ImageGenerator.recordImage("a.png", { file = "/books/b1.epub" }, "p1")
+            ImageGenerator.recordImage("b.png", { file = "/books/b2.epub" }, "p2")
+            -- copy: images stay with the original book
+            ImageGenerator.updateIndexForMove("/books/b1.epub", "/copied/b1.epub", true)
+            TestRunner:assertEquals(ImageGenerator.readIndex()["a.png"].book_file, "/books/b1.epub")
+            -- move: association follows the book
+            ImageGenerator.updateIndexForMove("/books/b1.epub", "/moved/b1.epub", false)
+            TestRunner:assertEquals(ImageGenerator.readIndex()["a.png"].book_file, "/moved/b1.epub")
+            -- delete: association dropped (image becomes global-only)
+            ImageGenerator.updateIndexForMove("/books/b2.epub", nil, false)
+            TestRunner:assertEquals(ImageGenerator.readIndex()["b.png"], nil)
+            TestRunner:assert(ImageGenerator.readIndex()["a.png"] ~= nil, "other book untouched")
+        end)
     end)
 
     print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

@@ -16,13 +16,17 @@ data_dir/koassistant_images (filename = date + prompt snippet); the
 Generated Images browser (koassistant_image_browser.lua) manages them.
 
 Public API:
-  ImageGenerator.generate(word, configuration, settings)
+  ImageGenerator.generate(word, configuration, settings, book_info)
       `word` = selected text / description; `configuration` = global config
       table (resolved by updateConfigFromSettings); `settings` = LuaSettings
-      instance (for GUI-entered API keys).
+      instance (for GUI-entered API keys); `book_info` = optional
+      { file, title } — associates the saved image with a book in the
+      images index (per-book gallery / artifact browser row).
   ImageGenerator.effectiveProvider(features, main_provider, settings)
       → provider|nil, reason — the button-visibility / dispatch gate.
   ImageGenerator.getImagesDir()
+  Index API (book associations): readIndex, recordImage, removeIndexEntries,
+  booksWithImages, updateIndexForMove, getIndexFilename.
 ]]
 
 local json   = require("json")
@@ -134,6 +138,125 @@ function ImageGenerator.getImagesDir()
     return DataStorage:getDataDir() .. "/koassistant_images"
 end
 
+-- ---------------------------------------------------------------------------
+-- Book-association index
+-- Maps image filename → { book_file, book_title, prompt, created } so the
+-- gallery and artifact browser can offer per-book views. Lives INSIDE the
+-- images dir (already registry-tracked, so reset/backup flows cover it with
+-- no new registry work). Images absent from the index stay valid — they just
+-- appear in the global gallery only.
+-- ---------------------------------------------------------------------------
+
+local INDEX_FILENAME = "koassistant_index.lua"
+
+--- The index file's basename (the gallery excludes it from image listings).
+function ImageGenerator.getIndexFilename()
+    return INDEX_FILENAME
+end
+
+local function openIndex()
+    local LuaSettings = require("luasettings")
+    return LuaSettings:open(ImageGenerator.getImagesDir() .. "/" .. INDEX_FILENAME)
+end
+
+--- Read the whole index: { [filename] = { book_file, book_title, prompt, created } }
+function ImageGenerator.readIndex()
+    local idx = openIndex():readSetting("images")
+    return type(idx) == "table" and idx or {}
+end
+
+local function writeIndex(index)
+    local store = openIndex()
+    store:saveSetting("images", index)
+    store:flush()
+end
+
+--- Record a saved image's book association (called at save time; no-op
+--- without book info — the image just stays unassigned).
+function ImageGenerator.recordImage(filename, book_info, prompt)
+    if not (book_info and book_info.file) then return end
+    local index = ImageGenerator.readIndex()
+    index[filename] = {
+        book_file = book_info.file,
+        book_title = book_info.title,
+        prompt = prompt,
+        created = os.time(),
+    }
+    writeIndex(index)
+end
+
+--- Drop index entries for deleted images.
+--- @param filenames table array of image basenames
+function ImageGenerator.removeIndexEntries(filenames)
+    local index = ImageGenerator.readIndex()
+    local changed = false
+    for _idx, name in ipairs(filenames) do
+        if index[name] ~= nil then
+            index[name] = nil
+            changed = true
+        end
+    end
+    if changed then writeIndex(index) end
+end
+
+--- Map of book_file → { count, modified, book_title } for books with images.
+--- Joins the index against the directory; stale entries (image file removed
+--- outside the gallery) are pruned in passing.
+function ImageGenerator.booksWithImages()
+    local lfs = require("libs/libkoreader-lfs")
+    local dir = ImageGenerator.getImagesDir()
+    local index = ImageGenerator.readIndex()
+    local books = {}
+    local stale = false
+    for filename, entry in pairs(index) do
+        local valid = type(entry) == "table" and type(entry.book_file) == "string"
+            and lfs.attributes(dir .. "/" .. filename, "mode") == "file"
+        if valid then
+            local b = books[entry.book_file]
+            if not b then
+                b = { count = 0, modified = 0 }
+                books[entry.book_file] = b
+            end
+            b.count = b.count + 1
+            if (entry.created or 0) > b.modified then b.modified = entry.created end
+            if type(entry.book_title) == "string" and entry.book_title ~= "" then
+                b.book_title = entry.book_title
+            end
+        else
+            index[filename] = nil
+            stale = true
+        end
+    end
+    if stale then writeIndex(index) end
+    return books
+end
+
+--- Keep book associations valid across file-manager operations (called from
+--- the DocSettings.updateLocation patch in main.lua). Move rewrites
+--- book_file; delete drops the association (images are kept and become
+--- global-only); copy leaves images with the original book.
+function ImageGenerator.updateIndexForMove(old_path, new_path, copy)
+    if copy then return end
+    -- Cheap stat guard: this runs on EVERY file-manager move/delete
+    local lfs = require("libs/libkoreader-lfs")
+    if not lfs.attributes(ImageGenerator.getImagesDir() .. "/" .. INDEX_FILENAME, "mode") then
+        return
+    end
+    local index = ImageGenerator.readIndex()
+    local changed = false
+    for filename, entry in pairs(index) do
+        if type(entry) == "table" and entry.book_file == old_path then
+            if new_path then
+                entry.book_file = new_path
+            else
+                index[filename] = nil
+            end
+            changed = true
+        end
+    end
+    if changed then writeIndex(index) end
+end
+
 --- Filesystem-safe fragment from the prompt (FAT-safe: device storage).
 local function sanitizeForFilename(s)
     s = s:gsub("[%c/\\:*?\"<>|%.]", " "):gsub("%s+", " "):match("^%s*(.-)%s*$") or ""
@@ -148,7 +271,8 @@ end
 --- `image_data` is the raw PNG/JPEG binary string. Images are KEPT
 --- (maintainer decision 2026-07-16): the filename carries the metadata
 --- (date + prompt snippet) and the Generated Images browser handles deletion.
-local function showImage(image_data, description, on_close)
+--- `book_info` = optional { file, title } → recorded in the images index.
+local function showImage(image_data, description, on_close, book_info)
     local UIManager  = require("ui/uimanager")
     local lfs = require("libs/libkoreader-lfs")
 
@@ -172,6 +296,7 @@ local function showImage(image_data, description, on_close)
     end
     f:write(image_data)
     f:close()
+    ImageGenerator.recordImage(path:match("([^/]+)$"), book_info, description)
 
     -- Try to load KOReader's ImageViewer
     local ok, ImageViewer = pcall(require, "ui/widget/imageviewer")
@@ -348,9 +473,10 @@ end
 --- @param word         string  The selected text (place / person description)
 --- @param config_table table   The global `configuration` table from main.lua
 --- @param settings     table   LuaSettings instance (for GUI API keys)
-function ImageGenerator.generate(word, config_table, settings)
+--- @param book_info    table|nil { file, title } for the images index
+function ImageGenerator.generate(word, config_table, settings, book_info)
     local ok, err = pcall(function()
-        ImageGenerator._generateImpl(word, config_table, settings)
+        ImageGenerator._generateImpl(word, config_table, settings, book_info)
     end)
     if not ok then
         logger.err("KOAssistant: image generation error:", err)
@@ -359,7 +485,7 @@ function ImageGenerator.generate(word, config_table, settings)
 end
 
 --- Internal implementation — called via pcall from generate() for error catching.
-function ImageGenerator._generateImpl(word, config_table, settings)
+function ImageGenerator._generateImpl(word, config_table, settings, book_info)
     local UIManager = require("ui/uimanager")
 
     -- Effective provider (maintainer decision 2026-07-16): explicit
@@ -580,7 +706,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
                             return
                         end
                         status.close()
-                        showImage(image_bytes, description)
+                        showImage(image_bytes, description, nil, book_info)
                         return
                     end
                 end
@@ -606,7 +732,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
                 return
             end
             status.close()
-            showImage(image_bytes, description)
+            showImage(image_bytes, description, nil, book_info)
             return
         end
 
@@ -641,7 +767,7 @@ function ImageGenerator._generateImpl(word, config_table, settings)
             end
             -- "OK:" prefix + binary
             status.close()
-            showImage(dl_raw:sub(4), description)
+            showImage(dl_raw:sub(4), description, nil, book_info)
         end))
     end))
 end
