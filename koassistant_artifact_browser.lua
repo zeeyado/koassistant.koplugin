@@ -42,6 +42,24 @@ local function getBookMetadata(doc_path)
     return title, author
 end
 
+--- Shared select-mode tail for every leaf pick (attach_plan.md v1): a refusal
+--- (quiz/empty artifact) shows the reason and KEEPS the picker open; a success
+--- closes the given dialog, runs the parent-close callback, closes the browser
+--- menu, and hands the built entry to the select callback.
+local function finishLeafSelect(self, opts, entry, err, dialog, parent_close)
+    if not entry then
+        UIManager:show(InfoMessage:new{ text = err })
+        return
+    end
+    if dialog then UIManager:close(dialog) end
+    if parent_close then parent_close() end
+    if self.current_menu then
+        UIManager:close(self.current_menu)
+        self.current_menu = nil
+    end
+    opts.select_mode.on_select(entry)
+end
+
 --- Show the artifact browser (list of documents with artifacts)
 --- @param opts table|nil Optional config: { enable_emoji = bool }
 function ArtifactBrowser:showArtifactBrowser(opts)
@@ -227,9 +245,11 @@ function ArtifactBrowser:showArtifactBrowser(opts)
             callback = function()
                 self_ref:showArtifactSelector(captured_doc.path, captured_doc.title, opts)
             end,
-            hold_callback = function()
+            -- Hold options (Delete All…) are destructive — suppressed while
+            -- picking an artifact to attach
+            hold_callback = not (opts and opts.select_mode) and function()
                 self_ref:showDocumentOptions(captured_doc, opts)
-            end,
+            end or nil,
         })
     end
 
@@ -240,13 +260,16 @@ function ArtifactBrowser:showArtifactBrowser(opts)
     end
 
     local menu = Menu:new{
-        title = _("Artifacts"),
+        -- Select mode (attach_plan.md v1): same browser, tap selects-and-returns.
+        -- The left options menu is hidden there — its Chat History/Notebooks
+        -- entries open plain browsers that would silently abandon the pick.
+        title = (opts and opts.select_mode) and _("Select artifact to attach") or _("Artifacts"),
         item_table = menu_items,
         is_borderless = true,
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        title_bar_left_icon = "appbar.menu",
+        title_bar_left_icon = not (opts and opts.select_mode) and "appbar.menu" or nil,
         onLeftButtonTap = function()
             self_ref:showBrowserMenuOptions(opts)
         end,
@@ -277,6 +300,22 @@ function ArtifactBrowser:showArtifactBrowser(opts)
 
     self.current_menu = menu
     UIManager:show(menu)
+
+    -- Scoped open (attach_plan.md v1, chat-picker parity): when the caller
+    -- names a document, open its selector on top of the full list — Cancel
+    -- falls back to browsing all books. Consume-once: the selector's
+    -- empty-cleanup path reopens this browser with the same opts, and a stale
+    -- path here would loop it.
+    local initial = opts and opts.initial_doc_path
+    if initial then
+        opts.initial_doc_path = nil
+        for _idx, doc in ipairs(docs) do
+            if doc.path == initial then
+                self:showArtifactSelector(doc.path, doc.title, opts)
+                break
+            end
+        end
+    end
 end
 
 --- Show artifact selector popup for a document (same pattern as "View Artifacts" elsewhere)
@@ -319,6 +358,7 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
     -- Build buttons for all artifacts (cached + pinned)
     local self_ref = self
     local enable_emoji = opts and opts.enable_emoji
+    local select_mode = opts and opts.select_mode
     local buttons = {}
     for _idx, artifact in ipairs(all_artifacts) do
         local captured = artifact
@@ -330,6 +370,8 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                 display_name = display_name .. " · " .. rel
             end
         end
+        -- Select mode: image rows aren't text — skip them entirely
+        if not (select_mode and captured.is_image_group) then
         table.insert(buttons, {{
             text = display_name,
             callback = function()
@@ -337,21 +379,25 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                     local selector = self_ref._cache_selector
                     self_ref:_showSectionXrayGroupPopup(
                         captured.data, doc_path, doc_title, AskGPT, captured._excluded_section_key,
-                        function() UIManager:close(selector) end)
+                        function() UIManager:close(selector) end, opts)
                 elseif captured.is_section_group then
                     local selector = self_ref._cache_selector
                     self_ref:_showSectionGroupPopup(
                         captured.data, doc_path, doc_title, AskGPT, captured.section_type,
                         captured._excluded_section_key,
-                        function() UIManager:close(selector) end)
+                        function() UIManager:close(selector) end, opts)
                 elseif captured.is_wiki_group then
                     local selector = self_ref._cache_selector
                     self_ref:_showWikiGroupPopup(captured.data, doc_path, AskGPT, doc_title,
-                        function() UIManager:close(selector) end)
+                        function() UIManager:close(selector) end, opts)
                 elseif captured.is_pinned_group then
                     local selector = self_ref._cache_selector
                     self_ref:_showPinnedGroupPopup(captured.data, doc_path, doc_title,
-                        function() UIManager:close(selector) end)
+                        function() UIManager:close(selector) end, opts)
+                elseif select_mode then
+                    local entry, err = require("koassistant_attachments").makeArtifact(
+                        captured.name, captured.key, captured.data, doc_title)
+                    finishLeafSelect(self_ref, opts, entry, err, self_ref._cache_selector, nil)
                 elseif captured.is_image_group then
                     UIManager:close(self_ref._cache_selector)
                     local ImageBrowser = require("koassistant_image_browser")
@@ -369,19 +415,31 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                 end
             end,
         }})
+        end
     end
 
-    table.insert(buttons, {{
-        text = _("Open Book"),
-        callback = function()
-            UIManager:close(self_ref._cache_selector)
-            if self_ref.current_menu then
-                UIManager:close(self_ref.current_menu)
-                self_ref.current_menu = nil
-            end
-            require("apps/reader/readerui"):showReader(doc_path)
-        end,
-    }})
+    -- Select mode with every row filtered out (e.g. the book only has
+    -- generated images): explain instead of showing a bare Cancel popup
+    if select_mode and #buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = _("This document has no attachable artifacts (generated images can't be attached as text)."),
+        })
+        return
+    end
+
+    if not select_mode then
+        table.insert(buttons, {{
+            text = _("Open Book"),
+            callback = function()
+                UIManager:close(self_ref._cache_selector)
+                if self_ref.current_menu then
+                    UIManager:close(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                end
+                require("apps/reader/readerui"):showReader(doc_path)
+            end,
+        }})
+    end
     table.insert(buttons, {{
         text = _("Cancel"),
         callback = function()
@@ -577,11 +635,22 @@ function ArtifactBrowser:showPinnedList(entries, title, context_path, opts)
             mandatory = (captured.model or "") .. " \u{00B7} " .. date_str,
             mandatory_dim = true,
             callback = function()
+                -- Select mode (attach_plan.md): shared build-first tail
+                if opts and opts.select_mode then
+                    local sel_entry, err = require("koassistant_attachments").makePinned(captured)
+                    finishLeafSelect(self_ref, opts, sel_entry, err,
+                        self_ref.current_pinned_menu, function()
+                            self_ref.current_pinned_menu = nil
+                        end)
+                    return
+                end
                 self_ref:showPinnedViewer(captured, context_path, opts)
             end,
-            hold_callback = function()
+            -- Hold options (delete/rename) are destructive — suppressed while
+            -- picking an artifact to attach
+            hold_callback = not (opts and opts.select_mode) and function()
                 self_ref:showPinnedOptions(captured, context_path, opts)
-            end,
+            end or nil,
         })
     end
 
@@ -853,7 +922,7 @@ end
 --- @param AskGPT table Plugin instance for opening viewers
 --- @param excluded_key string|nil Section key to exclude from listing
 --- @param on_select function|nil Called when an item is selected (to close parent popups)
-function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_title, AskGPT, excluded_key, on_select)
+function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_title, AskGPT, excluded_key, on_select, opts)
     local self_ref = self
     local buttons = {}
     for _idx, sec in ipairs(sections) do
@@ -872,6 +941,14 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
             table.insert(buttons, {{
                 text = display,
                 callback = function()
+                    -- Select mode (attach_plan.md): shared build-first tail
+                    if opts and opts.select_mode then
+                        local entry, err = require("koassistant_attachments")
+                            .makeArtifact(label, captured.key, captured.data, doc_title)
+                        finishLeafSelect(self_ref, opts, entry, err,
+                            self_ref._section_group_dialog, on_select)
+                        return
+                    end
                     if self_ref._section_group_dialog then
                         UIManager:close(self_ref._section_group_dialog)
                     end
@@ -907,7 +984,7 @@ end
 --- @param section_type string Section type key (e.g., "summary", "recap")
 --- @param excluded_key string|nil Key to exclude
 --- @param on_select function|nil Called when an item is selected (to close parent popups)
-function ArtifactBrowser:_showSectionGroupPopup(sections, doc_path, doc_title, AskGPT, section_type, excluded_key, on_select)
+function ArtifactBrowser:_showSectionGroupPopup(sections, doc_path, doc_title, AskGPT, section_type, excluded_key, on_select, opts)
     local self_ref = self
     local buttons = {}
     local type_label = ActionCache.SECTION_TYPE_LABELS[section_type] or section_type
@@ -927,6 +1004,16 @@ function ArtifactBrowser:_showSectionGroupPopup(sections, doc_path, doc_title, A
             table.insert(buttons, {{
                 text = display,
                 callback = function()
+                    -- Select mode (attach_plan.md): shared build-first tail —
+                    -- a refusal (e.g. section quiz) keeps the picker open
+                    if opts and opts.select_mode then
+                        local entry, err = require("koassistant_attachments").makeArtifact(
+                            T(_("Section %1: %2"), type_label, label),
+                            captured.key, captured.data, doc_title, section_type)
+                        finishLeafSelect(self_ref, opts, entry, err,
+                            self_ref._section_group_dialog, on_select)
+                        return
+                    end
                     if self_ref._section_group_dialog then
                         UIManager:close(self_ref._section_group_dialog)
                     end
@@ -972,7 +1059,7 @@ end
 --- @param AskGPT table|nil Plugin instance for artifact cross-navigation
 --- @param doc_title string|nil Document title
 --- @param on_select function|nil Called when an item is selected (to close parent popups)
-function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc_title, on_select)
+function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc_title, on_select, opts)
     local ChatGPTViewer = require("koassistant_chatgptviewer")
     local self_ref = self
 
@@ -991,6 +1078,15 @@ function ArtifactBrowser:_showWikiGroupPopup(wiki_entries, doc_path, AskGPT, doc
         table.insert(buttons, {{
             text = btn_label,
             callback = function()
+                -- Select mode (attach_plan.md): shared build-first tail
+                if opts and opts.select_mode then
+                    local entry, err = require("koassistant_attachments").makeArtifact(
+                        T(_("AI Wiki: %1"), captured.label),
+                        captured.key, captured.data, doc_title)
+                    finishLeafSelect(self_ref, opts, entry, err,
+                        self_ref._wiki_group_dialog, on_select)
+                    return
+                end
                 if self_ref._wiki_group_dialog then
                     UIManager:close(self_ref._wiki_group_dialog)
                 end
@@ -1040,7 +1136,7 @@ end
 --- @param doc_path string Document file path
 --- @param doc_title string Document title
 --- @param on_select function|nil Called when an item is selected (to close parent popups)
-function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_title, on_select)
+function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_title, on_select, opts)
     local ChatGPTViewer = require("koassistant_chatgptviewer")
     local AskGPT = self:getAskGPTInstance()
     local self_ref = self
@@ -1058,6 +1154,13 @@ function ArtifactBrowser:_showPinnedGroupPopup(pinned_entries, doc_path, doc_tit
         table.insert(buttons, {{
             text = label,
             callback = function()
+                -- Select mode (attach_plan.md): shared build-first tail
+                if opts and opts.select_mode then
+                    local entry, err = require("koassistant_attachments").makePinned(captured)
+                    finishLeafSelect(self_ref, opts, entry, err,
+                        self_ref._pinned_group_dialog, on_select)
+                    return
+                end
                 if self_ref._pinned_group_dialog then
                     UIManager:close(self_ref._pinned_group_dialog)
                 end

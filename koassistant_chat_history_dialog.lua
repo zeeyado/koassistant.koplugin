@@ -585,20 +585,25 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
                 -- Target function handles closing current_menu
                 self_ref:showChatsForDocument(ui, captured_doc, chat_history_manager, config, nav_context)
             end,
-            hold_callback = function()
+            -- Hold options (Delete All Chats…) are destructive — suppressed
+            -- while picking a chat to attach
+            hold_callback = not nav_context.select_mode and function()
                 self_ref:showDocumentHoldOptions(ui, captured_doc, chat_history_manager, config, nav_context)
-            end,
+            end or nil,
         })
     end
 
     local document_menu = Menu:new{
-        title = _("Chat History"),
+        -- Select mode (attach_plan.md v1): same browser, tap selects-and-returns.
+        -- The left options menu is hidden there — its domain/tag sub-browsers
+        -- don't thread nav_context, so they can't select.
+        title = nav_context.select_mode and _("Select chat to attach") or _("Chat History"),
         item_table = menu_items,
         is_borderless = true,
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        title_bar_left_icon = "appbar.menu",
+        title_bar_left_icon = not nav_context.select_mode and "appbar.menu" or nil,
         multilines_show_more_text = true,
         items_max_lines = 2,
         single_line = false,
@@ -695,6 +700,24 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
             mandatory_dim = true,
             help_text = preview,
             callback = function()
+                -- Select mode (attach_plan.md v1): tap selects-and-returns instead
+                -- of opening chat options. Build first — a refusal keeps the picker
+                -- open. Special stores (General/Library) carry no book title.
+                if nav_context.select_mode then
+                    local A = require("koassistant_attachments")
+                    local is_special = document.path == "__GENERAL_CHATS__"
+                        or document.path == "__LIBRARY_CHATS__"
+                    local entry, err = A.makeChat(captured_chat,
+                        not is_special and document.title or nil)
+                    if not entry then
+                        UIManager:show(InfoMessage:new{ text = err })
+                        return
+                    end
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    nav_context.select_mode.on_select(entry)
+                    return
+                end
                 logger.info("Chat selected: " .. (captured_chat.id or "unknown") .. " - " .. (captured_chat.title or "Untitled"))
                 self_ref:showChatOptions(ui, document.path, captured_chat, chat_history_manager, config, document, nav_context, function()
                     self_ref:showChatsForDocument(ui, document, chat_history_manager, config, nav_context)
@@ -705,13 +728,17 @@ function ChatHistoryDialog:showChatsForDocument(ui, document, chat_history_manag
 
     local chat_menu
     chat_menu = Menu:new{
-        title = T(_("Chats: %1"), document.title),
+        title = nav_context.select_mode
+            and T(_("Select chat to attach: %1"), document.title)
+            or T(_("Chats: %1"), document.title),
         item_table = menu_items,
         is_borderless = true,
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        title_bar_left_icon = "appbar.menu",
+        -- Select mode: the options menu carries destructive rows (delete all)
+        -- — hidden while picking, back-arrow still navigates
+        title_bar_left_icon = not nav_context.select_mode and "appbar.menu" or nil,
         items_per_page = 8,
         multilines_show_more_text = true,
         items_max_lines = 2,
@@ -2502,6 +2529,22 @@ function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, na
             mandatory = date_str .. " \u{00B7} " .. short_model .. " \u{00B7} " .. msg_count,
             mandatory_dim = true,
             callback = function()
+                -- Select mode (attach_plan.md v1): tap selects-and-returns
+                if nav_context and nav_context.select_mode then
+                    local A = require("koassistant_attachments")
+                    local is_special = captured_path == "__GENERAL_CHATS__"
+                        or captured_path == "__LIBRARY_CHATS__"
+                    local entry, err = A.makeChat(captured_chat,
+                        not is_special and (captured_chat.book_title or context_label) or nil)
+                    if not entry then
+                        UIManager:show(InfoMessage:new{ text = err })
+                        return
+                    end
+                    safeClose(self_ref.current_menu)
+                    self_ref.current_menu = nil
+                    nav_context.select_mode.on_select(entry)
+                    return
+                end
                 -- Build a minimal document object for showChatOptions
                 local document = {
                     path = captured_path,
@@ -2514,15 +2557,16 @@ function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, na
         })
     end
 
+    local select_mode = nav_context and nav_context.select_mode
     local menu
     menu = Menu:new{
-        title = _("Starred Chats"),
+        title = select_mode and _("Select chat to attach") or _("Starred Chats"),
         item_table = menu_items,
         is_borderless = true,
         is_popout = false,
         width = Screen:getWidth(),
         height = Screen:getHeight(),
-        title_bar_left_icon = "appbar.menu",
+        title_bar_left_icon = not select_mode and "appbar.menu" or nil,
         onLeftButtonTap = function()
             self_ref:showStarredMenuOptions(ui, chat_history_manager, config)
         end,
@@ -2537,7 +2581,8 @@ function ChatHistoryDialog:showStarredChats(ui, chat_history_manager, config, na
         onReturn = function()
             safeClose(self_ref.current_menu)
             self_ref.current_menu = nil
-            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config)
+            -- Keep nav_context (select_mode must survive back-navigation)
+            self_ref:showChatHistoryBrowser(ui, nil, chat_history_manager, config, nav_context)
         end,
         multilines_show_more_text = true,
         items_max_lines = 2,

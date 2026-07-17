@@ -1675,7 +1675,7 @@ function AskGPT:initSettings()
     -- retired (spoiler visibility now lives in chip membership).
     if not features._session_chips_migrated then
       if features.session_chips == nil then
-        features.session_chips = { "domain", "web_search", "book_tools", "scope", "spoiler" }
+        features.session_chips = { "domain", "web_search", "book_tools", "scope", "attach", "spoiler" }
       end
       features.show_spoiler_toggle = nil
       features._session_chips_migrated = true
@@ -1704,6 +1704,27 @@ function AskGPT:initSettings()
       features._session_chips_scope_v2 = true
       needs_save = true
       logger.info("KOAssistant: Added scope chip to session_chips membership (canonical order)")
+    end
+
+    -- Attach chip membership (attach_plan.md v1): same ensure-membership +
+    -- canonical-order rebuild as the scope migration above. Runs AFTER scope_v2
+    -- (which rebuilds against the pre-attach canonical list and would drop
+    -- "attach" on a fresh install's first pass — this re-adds it). Keep the
+    -- literal in sync with SESSION_CHIP_IDS in koassistant_dialogs.lua.
+    if not features._session_chips_attach_v1 then
+      if type(features.session_chips) == "table" then
+        local member = {}
+        for _i, chip_id in ipairs(features.session_chips) do member[chip_id] = true end
+        member.attach = true
+        local new_list = {}
+        for _i, chip_id in ipairs({ "domain", "web_search", "book_tools", "scope", "attach", "spoiler" }) do
+          if member[chip_id] then table.insert(new_list, chip_id) end
+        end
+        features.session_chips = new_list
+      end
+      features._session_chips_attach_v1 = true
+      needs_save = true
+      logger.info("KOAssistant: Added attach chip to session_chips membership (canonical order)")
     end
 
     -- ONE-TIME migration (report 3(a)): the raw web_search_max_uses spinner
