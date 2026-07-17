@@ -278,6 +278,19 @@ function MessageBuilder.build(params)
     end
     user_prompt = replace_placeholder(user_prompt, "{library_section}", library_section)
 
+    -- {previous_results_section} - action-scoped history stopgap
+    -- (action_history_plan.md v0.5): data.previous_results is populated in
+    -- handlePredefinedPrompt for general-context actions whose prompt
+    -- references {previous_results. Disappears when empty.
+    local previous_results_section = ""
+    if data.previous_results and data.previous_results ~= "" then
+        previous_results_section = "Previous results from earlier runs of this action"
+            .. " (reference only; avoid repeating the same items unless there is"
+            .. " a significant new development):\n" .. data.previous_results
+    end
+    user_prompt = replace_placeholder(user_prompt, "{previous_results_section}", previous_results_section)
+    user_prompt = replace_placeholder(user_prompt, "{previous_results}", data.previous_results or "")
+
     -- {full_document_section} - includes "Full document:\n" label
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then

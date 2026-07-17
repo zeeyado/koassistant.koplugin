@@ -3112,6 +3112,25 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
     end
 
+    -- Action-scoped history stopgap (action_history_plan.md v0.5): general
+    -- actions whose prompt references {previous_results} get the assistant
+    -- replies from their own recent saved runs injected. Matched by display
+    -- text (stable for custom actions — user-authored, untranslated); needs
+    -- saved runs (auto_save_all_chats default covers this). Inline requires:
+    -- no new file-local upvalues in this function (60-upvalue cap).
+    if context == "general" and prompt and type(prompt.prompt) == "string"
+            and prompt.prompt:find("{previous_results", 1, true) then
+        local ok_prev, prev = pcall(function()
+            local Attachments = require("koassistant_attachments")
+            local chats = require("koassistant_chat_history_manager"):new():getGeneralChats()
+            return Attachments.buildPreviousResults(chats, prompt.text, 3)
+        end)
+        if ok_prev and prev then
+            message_data.previous_results = prev
+            logger.info("KOAssistant: previous_results injected, len=" .. #prev)
+        end
+    end
+
     -- Determine if web search will be active for this request
     -- Per-action override > per-chat toggle (dialog-launched actions) > per-book
     -- override > global setting

@@ -304,6 +304,60 @@ function Attachments.makeNote(note_text)
     }
 end
 
+-- ------------------------------------------------------- previous results ---
+
+--- Action-scoped history stopgap (action_history_plan.md v0.5): build the
+--- {previous_results} block for an action from its own recent saved runs.
+--- Pure: takes the already-loaded chat list (ChatHistoryManager:getGeneralChats
+--- order — newest first) and the action's display text. Matching by display
+--- text is safe for CUSTOM actions (their `text` is user-authored, never
+--- translated); built-ins get stable IDs with the full feature. Keeps only
+--- assistant turns (never earlier context blocks or user questions). Output
+--- runs oldest→newest with tail-keep truncation, so the newest run survives.
+--- @param chats table array of chat entries, newest first
+--- @param action_text string the action's display text (= chat.prompt_action)
+--- @param max_runs number how many recent runs to include
+--- @return string|nil block text, nil when there are no usable previous runs
+function Attachments.buildPreviousResults(chats, action_text, max_runs)
+    if type(chats) ~= "table" or type(action_text) ~= "string"
+            or action_text == "" then
+        return nil
+    end
+    max_runs = max_runs or 3
+    local runs = {}
+    for _idx, chat in ipairs(chats) do
+        if #runs >= max_runs then break end
+        if type(chat) == "table" and chat.prompt_action == action_text
+                and type(chat.messages) == "table" then
+            local replies = {}
+            for _midx, msg in ipairs(chat.messages) do
+                if msg.role == "assistant" and not msg.is_context
+                        and type(msg.content) == "string" and msg.content ~= "" then
+                    table.insert(replies, msg.content)
+                end
+            end
+            if #replies > 0 then
+                local header = type(chat.timestamp) == "number"
+                    and os.date("Result from %Y-%m-%d:", chat.timestamp)
+                    or "Earlier result:"
+                table.insert(runs, header .. "\n" .. table.concat(replies, "\n\n"))
+            end
+        end
+    end
+    if #runs == 0 then return nil end
+    -- Reverse to oldest→newest so tail-keep truncation drops the oldest first
+    local ordered = {}
+    for i = #runs, 1, -1 do
+        table.insert(ordered, runs[i])
+    end
+    local text, note = Attachments.truncate(
+        table.concat(ordered, "\n\n---\n\n"), Attachments.BUDGETS.chat, "tail")
+    if note then
+        text = "[Older results truncated]\n" .. text
+    end
+    return text
+end
+
 -- ------------------------------------------------------------------- wire ---
 
 local function frameHeader(entry)

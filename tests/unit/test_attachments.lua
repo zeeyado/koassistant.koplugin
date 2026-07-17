@@ -283,6 +283,97 @@ function T:runAll()
         self:assert(msg:find("[Attachment truncated:", 1, true), "note missing")
     end)
 
+    -- ------------------------------------------------ buildPreviousResults ---
+
+    -- Chat entries mimic ChatHistoryManager:getGeneralChats() output:
+    -- newest first, prompt_action = the action's display text.
+    local function newsChat(ts, reply, action)
+        return {
+            prompt_action = action or "Positive News",
+            timestamp = ts,
+            messages = {
+                { role = "user", content = "ctx", is_context = true },
+                { role = "user", content = "Get me positive news" },
+                { role = "assistant", content = reply },
+            },
+        }
+    end
+
+    self:test("buildPreviousResults: filters by action text", function()
+        local out = Attachments.buildPreviousResults({
+            newsChat(200, "Story A"),
+            newsChat(100, "Other action reply", "Recipe Ideas"),
+        }, "Positive News", 3)
+        self:assert(out and out:find("Story A", 1, true), "matching run missing")
+        self:assert(not out:find("Other action reply", 1, true), "other action leaked in")
+    end)
+
+    self:test("buildPreviousResults: assistant turns only", function()
+        local out = Attachments.buildPreviousResults({ newsChat(100, "Story A") },
+            "Positive News", 3)
+        self:assert(not out:find("Get me positive news", 1, true), "user turn leaked")
+        self:assert(not out:find("ctx", 1, true), "context message leaked")
+    end)
+
+    self:test("buildPreviousResults: caps at max_runs, keeps newest", function()
+        local out = Attachments.buildPreviousResults({
+            newsChat(300, "Newest"), newsChat(200, "Middle"), newsChat(100, "Oldest"),
+        }, "Positive News", 2)
+        self:assert(out:find("Newest", 1, true) and out:find("Middle", 1, true),
+            "newest two runs expected")
+        self:assert(not out:find("Oldest", 1, true), "oldest should be dropped")
+    end)
+
+    self:test("buildPreviousResults: output ordered oldest to newest", function()
+        local out = Attachments.buildPreviousResults({
+            newsChat(200, "Newest"), newsChat(100, "Oldest"),
+        }, "Positive News", 3)
+        self:assert(out:find("Oldest", 1, true) < out:find("Newest", 1, true),
+            "runs not in chronological order")
+    end)
+
+    self:test("buildPreviousResults: date header; fallback without timestamp", function()
+        local dated = Attachments.buildPreviousResults(
+            { newsChat(os.time({year=2026, month=7, day=16}), "A") }, "Positive News", 3)
+        self:assert(dated:find("Result from 2026-07-16:", 1, true), "date header missing")
+        local undated = Attachments.buildPreviousResults(
+            { newsChat(nil, "B") }, "Positive News", 3)
+        self:assert(undated:find("Earlier result:", 1, true), "fallback header missing")
+    end)
+
+    self:test("buildPreviousResults: nil on no matches / bad input", function()
+        self:assert(Attachments.buildPreviousResults({}, "Positive News", 3) == nil,
+            "empty list should be nil")
+        self:assert(Attachments.buildPreviousResults(
+            { newsChat(100, "A", "Recipe Ideas") }, "Positive News", 3) == nil,
+            "no matching action should be nil")
+        self:assert(Attachments.buildPreviousResults(nil, "Positive News", 3) == nil,
+            "nil chats should be nil")
+        self:assert(Attachments.buildPreviousResults({ newsChat(100, "A") }, "", 3) == nil,
+            "empty action text should be nil")
+    end)
+
+    self:test("buildPreviousResults: skips corrupt and reply-less chats", function()
+        local out = Attachments.buildPreviousResults({
+            { prompt_action = "Positive News", messages = "corrupt" },
+            { prompt_action = "Positive News", timestamp = 300, messages = {
+                { role = "user", content = "question only" } } },
+            newsChat(100, "Real reply"),
+        }, "Positive News", 3)
+        self:assert(out and out:find("Real reply", 1, true), "usable run missing")
+        self:assert(not out:find("question only", 1, true), "reply-less chat leaked")
+    end)
+
+    self:test("buildPreviousResults: truncates tail-keep, newest survives", function()
+        local out = Attachments.buildPreviousResults({
+            newsChat(200, "NEWEST_MARKER " .. string.rep("n", 200)),
+            newsChat(100, string.rep("o", Attachments.BUDGETS.chat + 1000)),
+        }, "Positive News", 3)
+        self:assert(#out <= Attachments.BUDGETS.chat + 100, "over budget")
+        self:assert(out:find("NEWEST_MARKER", 1, true), "newest run lost to truncation")
+        self:assert(out:find("[Older results truncated]", 1, true), "truncation note missing")
+    end)
+
     print(string.format("\n  Results: %d passed, %d failed", self.passed, self.failed))
     return self.failed == 0
 end

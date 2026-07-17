@@ -4746,6 +4746,10 @@ function PromptsManager:getPlaceholdersForContext(context)
         -- Surrounding context placeholder (for highlight actions)
         { value = "{surrounding_context_section}", text = _("Surrounding Context (with label)"), contexts = {"highlight", "both"} },
         { value = "{surrounding_context}", text = _("Surrounding Context (raw)"), contexts = {"highlight", "both"} },
+        -- Action-scoped history stopgap (action_history_plan.md v0.5):
+        -- this action's own recent saved results (needs saved chats)
+        { value = "{previous_results_section}", text = _("Previous Results of This Action (with label)"), contexts = {"general"} },
+        { value = "{previous_results}", text = _("Previous Results of This Action (raw)"), contexts = {"general"} },
     }
 
     local result = {}

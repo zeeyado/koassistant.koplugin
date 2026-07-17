@@ -192,6 +192,36 @@ local function runMessageBuilderTests()
         TestRunner:assertNotContains(result, "{highlights_section}")
     end)
 
+    TestRunner:test("previous_results_section disappears when empty", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Go. {previous_results_section} End." },
+            context = "general",
+            data = {},
+        })
+        TestRunner:assertNotContains(result, "Previous results from earlier runs")
+        TestRunner:assertNotContains(result, "{previous_results_section}")
+    end)
+
+    TestRunner:test("previous_results_section includes label when present", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Go. {previous_results_section}" },
+            context = "general",
+            data = { previous_results = "Result from 2026-07-16:\nStory A" },
+        })
+        TestRunner:assertContains(result, "Previous results from earlier runs of this action")
+        TestRunner:assertContains(result, "Story A")
+    end)
+
+    TestRunner:test("previous_results raw placeholder resolves without label", function()
+        local result = MessageBuilder.build({
+            prompt = { prompt = "Avoid these: {previous_results}" },
+            context = "general",
+            data = { previous_results = "Story B" },
+        })
+        TestRunner:assertContains(result, "Avoid these: Story B")
+        TestRunner:assertNotContains(result, "Previous results from earlier runs")
+    end)
+
     TestRunner:test("annotations_section uses 'My annotations:' label (full data)", function()
         local result = MessageBuilder.build({
             prompt = { prompt = "{annotations_section}" },
