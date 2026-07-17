@@ -1664,12 +1664,30 @@ function AskGPT:initSettings()
     -- retired (spoiler visibility now lives in chip membership).
     if not features._session_chips_migrated then
       if features.session_chips == nil then
-        features.session_chips = { "domain", "web_search", "book_tools", "spoiler" }
+        features.session_chips = { "domain", "web_search", "book_tools", "spoiler", "scope" }
       end
       features.show_spoiler_toggle = nil
       features._session_chips_migrated = true
       needs_save = true
       logger.info("KOAssistant: Migrated show_spoiler_toggle to session_chips")
+    end
+
+    -- Scope chip (flexible_scope_plan.md phase 3, 2026-07-17): append it to already-
+    -- migrated membership lists — the seed above only runs once, so without this the
+    -- chip would stay invisible for everyone who launched before it existed. Users who
+    -- later hide it via "Toolbar Buttons…" are not re-appended (marker set). Final
+    -- defaults/ordering are the defaults sweep's call.
+    if not features._session_chips_scope_added then
+      if type(features.session_chips) == "table" then
+        local has_scope = false
+        for _i, chip_id in ipairs(features.session_chips) do
+          if chip_id == "scope" then has_scope = true break end
+        end
+        if not has_scope then table.insert(features.session_chips, "scope") end
+      end
+      features._session_chips_scope_added = true
+      needs_save = true
+      logger.info("KOAssistant: Added scope chip to session_chips membership")
     end
 
     -- ONE-TIME migration (report 3(a)): the raw web_search_max_uses spinner

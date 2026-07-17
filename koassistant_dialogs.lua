@@ -220,8 +220,8 @@ end
 -- ("Chat Buttons…"), stored as an ordered array in features.session_chips. nil = the
 -- default set (the one-time migration in main.lua seeds it, folding the old
 -- show_spoiler_toggle bool into "spoiler" membership).
-local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "spoiler" }
-local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "spoiler" }
+local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "spoiler", "scope" }
+local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "spoiler", "scope" }
 local function getSessionChips(features)
     local chips = features and features.session_chips
     if type(chips) ~= "table" then return SESSION_CHIPS_DEFAULT end
@@ -2446,8 +2446,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- and X-Ray chat launches (xray_prefix) never get ambient context.
         local sc_window = config.features._selection_context_window
         config.features._selection_context_window = nil  -- consume: one launch per entry
+        -- Session override (Scope chip, highlight facet — dialog-launched only): the
+        -- just-in-time _highlight_context_active transient wins over per-book/global;
+        -- "none" is an explicit session OFF. Explicit per-action modes still win
+        -- inside effectiveSurroundingContextMode.
+        local session_ctx = config.features._highlight_context_active
+        config.features._highlight_context_active = nil  -- consume
         local sc_mode = PromptsActions.effectiveSurroundingContextMode(
-            prompt, config.features, BookSettings.resolveHighlightContext(per_book_ds, config.features))
+            prompt, config.features,
+            session_ctx or BookSettings.resolveHighlightContext(per_book_ds, config.features))
         if config.features._forced_surrounding_context then
             if prompt.use_surrounding_context then
                 message_data.surrounding_context = config.features._forced_surrounding_context
@@ -3689,6 +3696,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Stale-request hygiene: a per-chat web value from an earlier session must not
         -- outlive its dialog (it is normally consumed at bake/dispatch).
         configuration.features._web_search_active = nil
+        -- Scope-chip session state (flexible_scope_plan.md phase 3) is CONFIG-RESIDENT
+        -- (no dialog local — the Send/chip closures sit at LuaJIT's 60-upvalue cap, see
+        -- the _selection_context_window note below). A refresh preserves it via the
+        -- _session_keep_scope marker; a fresh open clears it here.
+        if not configuration.features._session_keep_scope then
+            configuration.features._session_scope = nil
+            configuration.features._session_highlight_context = nil
+        end
+        configuration.features._session_keep_scope = nil
     end
 
     -- session_spoiler_free is initialized further below, once the book's DocSettings is
@@ -4107,6 +4123,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 -- right after copying, so it can't go stale on the shared table.
                 configuration.features = configuration.features or {}
                 configuration.features._web_search_active = session_web_search == true
+                -- Session context-mode override (Scope chip, highlight facet): same
+                -- just-in-time pattern — set-or-clear at dispatch so direct entries
+                -- (highlight menu, gestures) never see a stale value; consumed in
+                -- handlePredefinedPrompt's ambient resolution.
+                configuration.features._highlight_context_active =
+                    configuration.features._session_highlight_context
                 -- (The pre-extracted selection window already rides
                 -- configuration.features._selection_context_window from the entry
                 -- point; handlePredefinedPrompt consumes it.)
@@ -4930,9 +4952,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 and (BookToolRunner.smartRetrievalAllowed(configuration, ui_instance)) == true,
         }
         -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Spoiler]
-        -- by membership (gear menu → "Chat Buttons…"), replacing the old checkbox pile +
-        -- top-row Web/Domain buttons. Binary chips toggle their SESSION value on tap and
-        -- open the scope-aware defaults picker (For this book / Global) on hold. Chips
+        -- [Scope] by membership (gear menu → "Chat Buttons…"), replacing the old checkbox
+        -- pile + top-row Web/Domain buttons. Binary chips toggle their SESSION value on tap
+        -- and open the scope-aware defaults picker (For this book / Global) on hold. Chips
         -- render compact (smaller font); Send always anchors the end of the top row.
         local chips_book_or_highlight = not is_general_context and not is_library_context
         local chip_defs = {
@@ -5039,6 +5061,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         hold_callback = holdPicker,
                     }
                 end
+                if configuration.features.is_book_context and configuration.features._session_scope then
+                    -- A Scope-chip pick attaches text directly — tools are redundant for
+                    -- that send (chip wins, flexible_scope_plan.md §4). Gray with reason,
+                    -- like the other policy exclusions.
+                    return {
+                        text = enable_emoji and ("\u{1F50D} " .. _("N/A")) or _("Tools N/A"),
+                        callback = function()
+                            UIManager:show(InfoMessage:new{
+                                text = _("The Scope chip attaches book text directly, so book tools are off for this send. Clear the Scope pick to use tools."),
+                            })
+                        end,
+                        hold_callback = holdPicker,
+                    }
+                end
                 return {
                     text = enable_emoji
                         and ("\u{1F50D} " .. (session_book_tools and _("ON") or _("OFF")))
@@ -5070,6 +5106,189 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     end,
                 }
             end,
+            scope = function()
+                -- Scope chip (flexible_scope_plan.md phase 3). Session-only (§7): seeds
+                -- empty on every fresh open; survives refresh via _session_keep_scope.
+                -- State is CONFIG-RESIDENT (_session_scope / _session_highlight_context —
+                -- no dialog locals, 60-upvalue cap). Structural inapplicability hides the
+                -- chip; consent problems explain at row level (Tools-chip pattern).
+                if not (chips_book_or_highlight and has_open_book) then return nil end
+                -- X-Ray chat: pseudo-selection — ambient context and book scope are both
+                -- excluded there by design (structural, like the highlight branch's
+                -- xray_context_prefix skip).
+                if is_xray_chat then return nil end
+                local feats = configuration.features
+                if feats.is_book_context then
+                    -- Book facet: pick a text range to attach to the sent message.
+                    local pick = feats._session_scope
+                    local label
+                    if not pick then
+                        label = _("Scope")
+                    elseif pick.kind == "page" then
+                        label = _("Scope: page")
+                    elseif pick.kind == "to_position" then
+                        label = _("Scope: so far")
+                    else
+                        local short, truncated = require("koassistant_scope_resolver")
+                            .utf8First(pick.title or _("section"), 10)
+                        label = T(_("Scope: %1"), short .. (truncated and "…" or ""))
+                    end
+                    local function pickScope()
+                        local ButtonDialog = require("ui/widget/buttondialog")
+                        local cur_page = (ui_instance.view and ui_instance.view.state
+                            and ui_instance.view.state.page) or 1
+                        local toc_available = ui_instance.toc and ui_instance.toc.toc
+                            and #ui_instance.toc.toc > 0
+                        local consent = feats.enable_book_text_extraction == true
+                        if not consent and feats.trusted_providers then
+                            for _i, tp in ipairs(feats.trusted_providers) do
+                                if tp == configuration.provider then consent = true break end
+                            end
+                        end
+                        local progress_fmt
+                        do
+                            local okr, CE = pcall(require, "koassistant_context_extractor")
+                            if okr and CE then
+                                local ex = CE:new(ui_instance, feats or {})
+                                local okp, p = pcall(function() return ex:getReadingProgress() end)
+                                if okp and p then progress_fmt = p.formatted end
+                            end
+                        end
+                        local dialog
+                        local function explainConsent()
+                            UIManager:show(InfoMessage:new{
+                                text = _("This scope needs \"Allow Text Extraction\" (Settings → Privacy & Data). \"Current page\" works without it."),
+                            })
+                        end
+                        local function setPick(new_pick)
+                            feats._session_scope = new_pick
+                            UIManager:close(dialog)
+                            refreshInputDialog()
+                        end
+                        local cur_kind = (feats._session_scope and feats._session_scope.kind) or "none"
+                        local function mark(kind) return (kind == cur_kind) and "● " or "○ " end
+                        -- Both section rows funnel through the shared TOC picker; the
+                        -- picker closes itself before on_select fires.
+                        local function sectionRowPick(kind, picker_title)
+                            if not consent then explainConsent() return end
+                            UIManager:close(dialog)
+                            plugin:_showSectionPicker({}, {
+                                title = picker_title,
+                                on_select = function(entry)
+                                    -- Pick-time validation mirrors the unified popup's
+                                    -- rules; Send-time chipScope re-validates (the
+                                    -- position/spoiler chip can change after the pick).
+                                    if kind == "from_section" and entry.start_page > cur_page then
+                                        UIManager:show(InfoMessage:new{
+                                            text = _("That section starts after your current position — pick an earlier one."),
+                                        })
+                                        refreshInputDialog()
+                                        return
+                                    end
+                                    if kind == "section" and session_spoiler_free
+                                        and entry.start_page > cur_page then
+                                        UIManager:show(InfoMessage:new{
+                                            text = _("That section is beyond your current position (spoiler-free is on)."),
+                                        })
+                                        refreshInputDialog()
+                                        return
+                                    end
+                                    local title = entry.title or ""
+                                    if title == "" then
+                                        local vis_sp = ui_instance.document.getPageNumberInFlow
+                                            and ui_instance.document:getPageNumberInFlow(entry.start_page)
+                                            or entry.start_page
+                                        title = T(_("Page %1"), vis_sp)
+                                    end
+                                    feats._session_scope = {
+                                        kind = kind,
+                                        start_page = entry.start_page,
+                                        end_page = entry.end_page,
+                                        title = title,
+                                    }
+                                    refreshInputDialog()
+                                end,
+                            })
+                        end
+                        local rows = {
+                            {{ text = mark("none") .. _("No book text (metadata only)"),
+                                callback = function() setPick(nil) end }},
+                            {{ text = mark("page") .. _("Current page"),
+                                callback = function() setPick({ kind = "page" }) end }},
+                        }
+                        if cur_page > 1 then
+                            table.insert(rows, {{
+                                text = mark("to_position") .. (progress_fmt
+                                    and T(_("Up to current position (%1)"), progress_fmt)
+                                    or _("Up to current position")),
+                                callback = function()
+                                    if not consent then explainConsent() return end
+                                    setPick({ kind = "to_position" })
+                                end,
+                            }})
+                        end
+                        if toc_available then
+                            if cur_page > 1 then
+                                table.insert(rows, {{
+                                    text = mark("from_section") .. _("From section… (to current position)"),
+                                    callback = function()
+                                        sectionRowPick("from_section", _("Start from which section?"))
+                                    end,
+                                }})
+                            end
+                            table.insert(rows, {{
+                                text = mark("section") .. _("Choose section…"),
+                                callback = function()
+                                    sectionRowPick("section", _("Which section?"))
+                                end,
+                            }})
+                        end
+                        table.insert(rows, {{ text = _("Close"),
+                            callback = function() UIManager:close(dialog) end }})
+                        dialog = ButtonDialog:new{
+                            title = _("Text to include with your message"),
+                            buttons = rows,
+                        }
+                        UIManager:show(dialog)
+                    end
+                    return { text = label, callback = pickScope, hold_callback = pickScope }
+                elseif highlighted_text then
+                    -- Highlight facet: session override of the ambient surrounding-context
+                    -- mode (the deferred surrounding_context_plan.md step-3 control).
+                    -- Applies to freeform Send AND dialog-launched nil-flag actions;
+                    -- explicit per-action modes still win in effectiveSurroundingContextMode.
+                    local mode = feats._session_highlight_context
+                        or BookSettings.resolveHighlightContext(doc_settings, feats)
+                    local label
+                    if mode == "sentence" then label = _("Ctx: sentence")
+                    elseif mode == "paragraph" then label = _("Ctx: paragraph")
+                    elseif mode == "characters" then label = _("Ctx: characters")
+                    else label = _("Ctx off") end
+                    local function pickMode()
+                        local ButtonDialog = require("ui/widget/buttondialog")
+                        local dialog
+                        local function mark(m) return (m == mode) and "● " or "○ " end
+                        local function setMode(m)
+                            feats._session_highlight_context = m
+                            UIManager:close(dialog)
+                            refreshInputDialog()
+                        end
+                        dialog = ButtonDialog:new{
+                            title = _("Context around the selection — for this chat"),
+                            buttons = {
+                                {{ text = mark("none") .. _("Off"), callback = function() setMode("none") end }},
+                                {{ text = mark("sentence") .. _("Sentence"), callback = function() setMode("sentence") end }},
+                                {{ text = mark("paragraph") .. _("Paragraph"), callback = function() setMode("paragraph") end }},
+                                {{ text = mark("characters") .. _("Characters"), callback = function() setMode("characters") end }},
+                                {{ text = _("Close"), callback = function() UIManager:close(dialog) end }},
+                            },
+                        }
+                        UIManager:show(dialog)
+                    end
+                    return { text = label, callback = pickMode, hold_callback = pickMode }
+                end
+                return nil
+            end,
         }
         local session_chips = {}
         for _idx, chip_id in ipairs(getSessionChips(configuration and configuration.features)) do
@@ -5097,9 +5316,106 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     })
                     return
                 end
-                UIManager:close(input_dialog)
-                -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
-                UIManager:scheduleIn(0.1, function()
+                -- Session Scope pick (flexible_scope_plan.md phase 3): resolve into an
+                -- attachable text block BEFORE closing the dialog, so a Cancel on the
+                -- size warning — or an invalid pick — keeps the typed input intact.
+                -- Inline requires on purpose (60-upvalue cap).
+                local scope_block
+                local scope_pick = configuration.features and configuration.features._session_scope
+                if scope_pick and configuration.features.is_book_context
+                        and ui_instance and ui_instance.document then
+                    local CE = require("koassistant_context_extractor")
+                    if scope_pick.kind == "page" then
+                        -- Current visible page: extraction-gating exempt (use_page_text precedent)
+                        local okv, res = pcall(function()
+                            return CE:new(ui_instance, configuration.features or {}):getVisiblePageText()
+                        end)
+                        local text = okv and res and res.text or ""
+                        if text == "" then
+                            UIManager:show(InfoMessage:new{
+                                text = _("Couldn't extract the current page's text. Clear the Scope chip or pick another scope."),
+                                timeout = 4,
+                            })
+                            return
+                        end
+                        scope_block = { label = "Text of the reader's current page:", text = text }
+                    else
+                        local consent = configuration.features.enable_book_text_extraction == true
+                        if not consent and configuration.features.trusted_providers then
+                            for _i, tp in ipairs(configuration.features.trusted_providers) do
+                                if tp == configuration.provider then consent = true; break end
+                            end
+                        end
+                        if not consent then
+                            UIManager:show(InfoMessage:new{
+                                text = _("The chosen scope needs \"Allow Text Extraction\" (Settings → Privacy & Data). Clear the Scope chip or enable extraction."),
+                                timeout = 5,
+                            })
+                            return
+                        end
+                        local cur_page = (ui_instance.view and ui_instance.view.state
+                            and ui_instance.view.state.page) or 1
+                        local range, range_reason = require("koassistant_scope_resolver").chipScope(
+                            scope_pick, {
+                                current_page = cur_page,
+                                spoiler_free = session_spoiler_free == true,
+                            })
+                        if not range then
+                            UIManager:show(InfoMessage:new{
+                                text = range_reason == "beyond_position"
+                                    and _("The chosen section is beyond your current position (spoiler-free is on). Pick another scope.")
+                                    or _("Nothing to include for the chosen scope yet. Pick another scope."),
+                                timeout = 4,
+                            })
+                            return
+                        end
+                        -- Consent (incl. trusted bypass) checked above — pass a resolved flag
+                        local okr, res = pcall(function()
+                            return CE:new(ui_instance, {
+                                enable_book_text_extraction = true,
+                                max_book_text_chars = (configuration.features or {}).max_book_text_chars,
+                            }):getPageRangeText(range.start_page, range.end_page, {})
+                        end)
+                        local text = okr and res and res.text or ""
+                        if text == "" then
+                            UIManager:show(InfoMessage:new{
+                                text = _("Couldn't extract text for the chosen scope. Clear the Scope chip or pick another scope."),
+                                timeout = 4,
+                            })
+                            return
+                        end
+                        local progress_fmt
+                        do
+                            local okp, p = pcall(function()
+                                return CE:new(ui_instance, configuration.features or {}):getReadingProgress()
+                            end)
+                            if okp and p then progress_fmt = p.formatted end
+                        end
+                        progress_fmt = progress_fmt or "?"
+                        -- Prompt text (untranslated, like the other parts labels):
+                        -- self-describing so the model knows exactly what slice it has
+                        -- (smart-retrieval labeling convention).
+                        local label
+                        if scope_pick.kind == "to_position" then
+                            label = string.format(
+                                "Text from the book, from the beginning to the reader's current position (%s):",
+                                progress_fmt)
+                        elseif scope_pick.kind == "from_section" then
+                            label = string.format(
+                                'Text from the book, from the start of the section "%s" to the reader\'s current position (%s):',
+                                scope_pick.title or "", progress_fmt)
+                        elseif range.clamped then
+                            label = string.format(
+                                'Text of the section "%s" from the book, trimmed to the reader\'s current position (%s):',
+                                scope_pick.title or "", progress_fmt)
+                        else
+                            label = string.format('Text of the section "%s" from the book:',
+                                scope_pick.title or "")
+                        end
+                        scope_block = { label = label, text = text }
+                    end
+                end
+                local function performSend()
                     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
                     -- System prompt and domain are built by buildUnifiedRequestConfig
 
@@ -5139,6 +5455,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
                     -- Build consolidated message parts (no system/domain - they're in config.system now)
                     local parts = {}
+                    local scope_attached = false  -- set by the book branch's Scope-chip block
 
                     -- For book-info level "full": gather reading position to append to the book
                     -- line. Respects Basic Stats; silently adds nothing when unavailable.
@@ -5217,6 +5534,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             if book_info_level == "full" then appendSendPosition() end
                             table.insert(parts, "")
                         end
+                        -- Session Scope chip block (flexible_scope_plan.md phase 3):
+                        -- pre-extracted in the Send callback, consumed here one-shot.
+                        local sb = configuration.features._session_scope_block
+                        configuration.features._session_scope_block = nil
+                        if sb then
+                            scope_attached = true
+                            table.insert(parts, sb.label)
+                            table.insert(parts, sb.text)
+                            table.insert(parts, "")
+                        end
                     elseif configuration.features.is_general_context then
                         -- For general context, no initial context needed
                         -- User will provide their question/prompt
@@ -5254,7 +5581,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         configuration.features._selection_context_window = nil
                         if sc_window and sc_window.text == highlighted_text
                             and not xray_context_prefix then
-                            local sc_mode = require("koassistant_book_settings")
+                            -- Session override (Scope chip, highlight facet) wins over the
+                            -- per-book/global mode; "none" is an explicit session OFF.
+                            local sc_mode = configuration.features._session_highlight_context
+                                or require("koassistant_book_settings")
                                 .resolveHighlightContext(doc_settings, configuration.features)
                             if sc_mode ~= "none" then
                                 local sc_text = require("koassistant_scope_resolver").trimContext(
@@ -5303,7 +5633,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- box overrides a globally-enabled flag, and a checked box activates
                         -- tools even when the global flag is off. Read by shouldUse; inherits
                         -- across replies via viewer.configuration like the spoiler flag.
+                        -- A Scope-chip attachment wins over tools for this send (the text
+                        -- is already in the message — flexible_scope_plan.md §4).
                         configuration.features._tools_active = session_book_tools == true
+                            and not scope_attached
                     else
                         if configuration.features then
                             configuration.features._spoiler_free_active = nil
@@ -5386,7 +5719,64 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Get initial response with callback
                     local result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), configuration, onResponseReady, plugin, ui_instance)
                     -- If not streaming, callback was already invoked
-                end)
+                end
+                local function dispatchSend()
+                    if scope_block then
+                        -- Consumed one-shot by performSend's book branch
+                        configuration.features._session_scope_block = scope_block
+                    end
+                    UIManager:close(input_dialog)
+                    -- Note: Loading dialog now handled by handleNonStreamingBackground in gpt_query.lua
+                    UIManager:scheduleIn(0.1, performSend)
+                end
+                -- Same cost guard as the action path (checkLargeExtractionAndSend);
+                -- here Cancel keeps the dialog open with the typed input intact.
+                if scope_block
+                        and #scope_block.text > require("koassistant_constants").LARGE_EXTRACTION_THRESHOLD
+                        and not (configuration.features and configuration.features.suppress_large_extraction_warning) then
+                    local ButtonDialog = require("ui/widget/buttondialog")
+                    local chars_k = math.floor(#scope_block.text / 1000)
+                    local tokens_low = math.floor(#scope_block.text / 4000)
+                    local tokens_high = math.floor(#scope_block.text / 2000)
+                    local warning_dialog
+                    warning_dialog = ButtonDialog:new{
+                        title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens). Make sure your model's context window can accommodate this.\n\nYou can pick a smaller scope on the Scope chip, or use KOReader's Hidden Flows to exclude irrelevant content."), chars_k, tokens_low, tokens_high),
+                        buttons = {
+                            {{
+                                text = _("Cancel"),
+                                callback = function()
+                                    UIManager:close(warning_dialog)
+                                end,
+                            }},
+                            {{
+                                text = _("Continue"),
+                                callback = function()
+                                    UIManager:close(warning_dialog)
+                                    dispatchSend()
+                                end,
+                            }},
+                            {{
+                                text = _("Don't warn again"),
+                                callback = function()
+                                    UIManager:close(warning_dialog)
+                                    if plugin and plugin.settings then
+                                        local features_tbl = plugin.settings:readSetting("features") or {}
+                                        features_tbl.suppress_large_extraction_warning = true
+                                        plugin.settings:saveSetting("features", features_tbl)
+                                        plugin.settings:flush()
+                                    end
+                                    if configuration.features then
+                                        configuration.features.suppress_large_extraction_warning = true
+                                    end
+                                    dispatchSend()
+                                end,
+                            }},
+                        },
+                    }
+                    UIManager:show(warning_dialog)
+                    return
+                end
+                dispatchSend()
             end,
             hold_callback = function()
                 local hint
@@ -5403,8 +5793,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         }
         -- Chips + Send fill the TOP ROW ONLY, shrinking with count (maintainer
         -- 2026-07-12): all chips + Send share one row; font size steps down as the row
-        -- fills. Current max is 4 chips + Send; if the chip set ever grows past that,
-        -- revisit (noted alternative in the plan: a gear-anchored controls menu).
+        -- fills. Current max is 5 chips + Send (Scope joined 2026-07-17); if the chip
+        -- set grows past that, revisit (noted alternative: a gear-anchored controls menu).
         local top_chip_row = {}
         for _idx, chip in ipairs(session_chips) do
             table.insert(top_chip_row, chip)
@@ -5814,6 +6204,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             if session_book_tools ~= nil then configuration.features._session_book_tools = session_book_tools end
             -- Web: same explicit-false preservation as tools.
             if session_web_search ~= nil then configuration.features._session_web_search = session_web_search end
+            -- Scope-chip state is config-resident; this marker keeps it across the reopen
+            -- (a fresh open clears it — see the consume block at the dialog top).
+            configuration.features._session_keep_scope = true
             -- (The pre-extracted selection window survives the reopen by itself — it
             -- lives on configuration.features until consumed at dispatch/Send.)
         end
@@ -5831,6 +6224,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             web_search = _("Web search"),
             book_tools = _("Book tools"),
             spoiler = _("Spoiler-free chat"),
+            scope = _("Scope & context"),
         }
         local enabled = {}
         for _idx, id in ipairs(getSessionChips(configuration and configuration.features)) do
