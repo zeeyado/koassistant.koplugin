@@ -220,8 +220,8 @@ end
 -- ("Chat Buttons…"), stored as an ordered array in features.session_chips. nil = the
 -- default set (the one-time migration in main.lua seeds it, folding the old
 -- show_spoiler_toggle bool into "spoiler" membership).
-local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "spoiler", "scope" }
-local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "spoiler", "scope" }
+local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "scope", "spoiler" }
+local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "scope", "spoiler" }
 local function getSessionChips(features)
     local chips = features and features.session_chips
     if type(chips) ~= "table" then return SESSION_CHIPS_DEFAULT end
@@ -3980,10 +3980,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local custom_domains = features.custom_domains or {}
         local domain = DomainLoader.getDomainById(effective_id, custom_domains)
         if domain then
+            -- Chip shows the bare name — provenance suffixes ("(file)"/"(custom)")
+            -- stay in the picker lists only (maintainer 2026-07-17).
+            local name = domain.name or domain.display_name or effective_id
             if book_domain_id and not plain then
-                return domain.display_name .. _(" (book)")
+                return name .. _(" (book)")
             end
-            return domain.display_name
+            return name
         end
         return effective_id
     end
@@ -4951,11 +4954,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             tools_allowed = session_book_tools == true
                 and (BookToolRunner.smartRetrievalAllowed(configuration, ui_instance)) == true,
         }
-        -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Spoiler]
-        -- [Scope] by membership (gear menu → "Chat Buttons…"), replacing the old checkbox
-        -- pile + top-row Web/Domain buttons. Binary chips toggle their SESSION value on tap
-        -- and open the scope-aware defaults picker (For this book / Global) on hold. Chips
-        -- render compact (smaller font); Send always anchors the end of the top row.
+        -- Session chips (book_scoped_controls_plan.md §4): [Domain][Web][Tools][Scope]
+        -- [Spoiler] by membership (gear menu → "Toolbar Buttons…"), replacing the old
+        -- checkbox pile + top-row Web/Domain buttons. Binary chips toggle their SESSION
+        -- value on tap and open the scope-aware defaults picker (For this book / Global)
+        -- on hold. Chips render compact (smaller font); Send anchors the end of the row.
         local chips_book_or_highlight = not is_general_context and not is_library_context
         local chip_defs = {
             domain = function()
@@ -5122,16 +5125,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Book facet: pick a text range to attach to the sent message.
                     local pick = feats._session_scope
                     local label
+                    -- Emoji SWAPS the word "Scope" (🎯), state suffix stays — same
+                    -- pattern as the web/tools chips.
                     if not pick then
-                        label = _("Scope")
+                        label = enable_emoji and ("\u{1F3AF} " .. _("OFF")) or _("Scope")
                     elseif pick.kind == "page" then
-                        label = _("Scope: page")
+                        label = enable_emoji and ("\u{1F3AF} " .. _("page")) or _("Scope: page")
                     elseif pick.kind == "to_position" then
-                        label = _("Scope: so far")
+                        label = enable_emoji and ("\u{1F3AF} " .. _("so far")) or _("Scope: so far")
                     else
                         local short, truncated = require("koassistant_scope_resolver")
                             .utf8First(pick.title or _("section"), 10)
-                        label = T(_("Scope: %1"), short .. (truncated and "…" or ""))
+                        short = short .. (truncated and "…" or "")
+                        label = enable_emoji and ("\u{1F3AF} " .. short) or T(_("Scope: %1"), short)
                     end
                     local function pickScope()
                         local ButtonDialog = require("ui/widget/buttondialog")
@@ -5167,7 +5173,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         end
                         local cur_kind = (feats._session_scope and feats._session_scope.kind) or "none"
                         local function mark(kind) return (kind == cur_kind) and "● " or "○ " end
-                        -- Both section rows funnel through the shared TOC picker; the
+                        -- Untitled TOC entries: mirror the picker's own "Page N" display fallback
+                        local function pickerEntryLabel(entry)
+                            local lbl = entry.title or ""
+                            if lbl == "" then
+                                local vis_sp = ui_instance.document.getPageNumberInFlow
+                                    and ui_instance.document:getPageNumberInFlow(entry.start_page)
+                                    or entry.start_page
+                                lbl = T(_("Page %1"), vis_sp)
+                            end
+                            return lbl
+                        end
+                        -- The section rows funnel through the shared TOC picker; the
                         -- picker closes itself before on_select fires.
                         local function sectionRowPick(kind, picker_title)
                             if not consent then explainConsent() return end
@@ -5193,20 +5210,56 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                         refreshInputDialog()
                                         return
                                     end
-                                    local title = entry.title or ""
-                                    if title == "" then
-                                        local vis_sp = ui_instance.document.getPageNumberInFlow
-                                            and ui_instance.document:getPageNumberInFlow(entry.start_page)
-                                            or entry.start_page
-                                        title = T(_("Page %1"), vis_sp)
-                                    end
                                     feats._session_scope = {
                                         kind = kind,
                                         start_page = entry.start_page,
                                         end_page = entry.end_page,
-                                        title = title,
+                                        title = pickerEntryLabel(entry),
                                     }
                                     refreshInputDialog()
+                                end,
+                            })
+                        end
+                        -- Custom range (phase 4): two sequential picks, start then end.
+                        -- Under spoiler a fully-unread START is rejected; a straddling
+                        -- END is allowed — Send-time chipScope clamps it with an honest
+                        -- "trimmed to position" label (chip policy: clamp; the popup's
+                        -- policy is reject).
+                        local function rangeRowPick()
+                            if not consent then explainConsent() return end
+                            UIManager:close(dialog)
+                            plugin:_showSectionPicker({}, {
+                                title = _("Range start: which section?"),
+                                on_select = function(start_entry)
+                                    if session_spoiler_free and start_entry.start_page > cur_page then
+                                        UIManager:show(InfoMessage:new{
+                                            text = _("That section is beyond your current position (spoiler-free is on)."),
+                                        })
+                                        refreshInputDialog()
+                                        return
+                                    end
+                                    plugin:_showSectionPicker({}, {
+                                        title = _("Range end: which section?"),
+                                        on_select = function(end_entry)
+                                            if end_entry.start_page < start_entry.start_page then
+                                                UIManager:show(InfoMessage:new{
+                                                    text = _("The end section comes before the start section."),
+                                                })
+                                            else
+                                                local from_title = pickerEntryLabel(start_entry)
+                                                local to_title = pickerEntryLabel(end_entry)
+                                                feats._session_scope = {
+                                                    kind = "range",
+                                                    start_page = start_entry.start_page,
+                                                    end_page = end_entry.end_page,
+                                                    title = from_title .. " – " .. to_title,
+                                                    from_title = from_title,
+                                                    to_title = to_title,
+                                                }
+                                            end
+                                            refreshInputDialog()
+                                        end,
+                                    })
                                 end,
                             })
                         end
@@ -5237,6 +5290,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 }})
                             end
                             table.insert(rows, {{
+                                text = mark("range") .. _("Pick section range…"),
+                                callback = rangeRowPick,
+                            }})
+                            table.insert(rows, {{
                                 text = mark("section") .. _("Choose section…"),
                                 callback = function()
                                     sectionRowPick("section", _("Which section?"))
@@ -5260,10 +5317,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local mode = feats._session_highlight_context
                         or BookSettings.resolveHighlightContext(doc_settings, feats)
                     local label
-                    if mode == "sentence" then label = _("Ctx: sentence")
-                    elseif mode == "paragraph" then label = _("Ctx: paragraph")
-                    elseif mode == "characters" then label = _("Ctx: characters")
-                    else label = _("Ctx off") end
+                    if mode == "sentence" then
+                        label = enable_emoji and ("\u{1F3AF} " .. _("sentence")) or _("Ctx: sentence")
+                    elseif mode == "paragraph" then
+                        label = enable_emoji and ("\u{1F3AF} " .. _("paragraph")) or _("Ctx: paragraph")
+                    elseif mode == "characters" then
+                        label = enable_emoji and ("\u{1F3AF} " .. _("characters")) or _("Ctx: characters")
+                    else
+                        label = enable_emoji and ("\u{1F3AF} " .. _("OFF")) or _("Ctx off")
+                    end
                     local function pickMode()
                         local ButtonDialog = require("ui/widget/buttondialog")
                         local dialog
@@ -5285,7 +5347,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         }
                         UIManager:show(dialog)
                     end
-                    return { text = label, callback = pickMode, hold_callback = pickMode }
+                    return {
+                        text = label,
+                        callback = pickMode,
+                        -- Hold = persistent defaults (book/global), tap = session — the
+                        -- established chip pattern.
+                        hold_callback = function()
+                            BookSettings.showHighlightContext({
+                                plugin = plugin, ui = ui_instance, document_path = document_path,
+                                on_close = function() refreshInputDialog() end,
+                            })
+                        end,
+                    }
                 end
                 return nil
             end,
@@ -5404,6 +5477,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             label = string.format(
                                 'Text from the book, from the start of the section "%s" to the reader\'s current position (%s):',
                                 scope_pick.title or "", progress_fmt)
+                        elseif scope_pick.kind == "range" then
+                            if range.clamped then
+                                label = string.format(
+                                    'Text from the book, from the section "%s" through "%s", trimmed to the reader\'s current position (%s):',
+                                    scope_pick.from_title or "", scope_pick.to_title or "", progress_fmt)
+                            else
+                                label = string.format(
+                                    'Text from the book, from the section "%s" through "%s":',
+                                    scope_pick.from_title or "", scope_pick.to_title or "")
+                            end
                         elseif range.clamped then
                             label = string.format(
                                 'Text of the section "%s" from the book, trimmed to the reader\'s current position (%s):',

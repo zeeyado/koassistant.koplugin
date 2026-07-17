@@ -144,6 +144,31 @@ TestRunner:test("missing page bounds → bad_pick", function()
     TestRunner:assertEqual(reason, "bad_pick", "reason")
 end)
 
+TestRunner:suite("chipScope — range (section rules across two picks)")
+
+TestRunner:test("no spoiler → raw range passes", function()
+    local r = scope({ kind = "range", start_page = 50, end_page = 190 }, { current_page = 120 })
+    TestRunner:assertNotNil(r, "range")
+    TestRunner:assertEqual(r.start_page, 50, "start")
+    TestRunner:assertEqual(r.end_page, 190, "end")
+    TestRunner:assertNil(r.clamped, "not clamped")
+end)
+
+TestRunner:test("spoiler + range straddling position → end clamped", function()
+    local r = scope({ kind = "range", start_page = 50, end_page = 190 },
+        { current_page = 120, spoiler_free = true })
+    TestRunner:assertNotNil(r, "range")
+    TestRunner:assertEqual(r.end_page, 120, "end clamped to current page")
+    TestRunner:assertEqual(r.clamped, true, "clamped flag set")
+end)
+
+TestRunner:test("spoiler + range fully beyond position → invalid", function()
+    local r, reason = scope({ kind = "range", start_page = 150, end_page = 190 },
+        { current_page = 120, spoiler_free = true })
+    TestRunner:assertNil(r, "range")
+    TestRunner:assertEqual(reason, "beyond_position", "reason")
+end)
+
 TestRunner:suite("chipScope — degenerate picks")
 
 TestRunner:test("nil pick → bad_pick", function()

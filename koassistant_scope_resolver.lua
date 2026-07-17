@@ -126,8 +126,8 @@ end
 -- to the current position (plan §2); picks lying entirely beyond the position are invalid
 -- rather than silently empty. The "page" kind never reaches here (no range — the caller
 -- extracts the visible page directly).
--- @param pick table { kind = "to_position"|"from_section"|"section",
---   start_page = N|nil, end_page = N|nil }  -- pages only used by the section kinds
+-- @param pick table { kind = "to_position"|"from_section"|"section"|"range",
+--   start_page = N|nil, end_page = N|nil }  -- pages only used by the section/range kinds
 -- @param p table { current_page = number, spoiler_free = boolean }
 -- @return table|nil { start_page, end_page, clamped = true|nil },
 --         string|nil reason when nil: "nothing_read"|"beyond_position"|"bad_pick"
@@ -144,7 +144,7 @@ function ScopeResolver.chipScope(pick, p)
         if not (pick.start_page) then return nil, "bad_pick" end
         if pick.start_page > cur then return nil, "beyond_position" end
         return { start_page = pick.start_page, end_page = cur }
-    elseif kind == "section" then
+    elseif kind == "section" or kind == "range" then
         if not (pick.start_page and pick.end_page) then return nil, "bad_pick" end
         if p and p.spoiler_free then
             if pick.start_page > cur then return nil, "beyond_position" end

@@ -464,11 +464,13 @@ function BookSettings.buildDomainResearchButtons(state, cb, opts)
     return buttons
 end
 
--- Look up a domain's display name by id (nil id → nil).
+-- Look up a domain's display name by id (nil id → nil). Bare name, no provenance
+-- suffix — used for current-state labels ("Domain: X", "Follow global (X)"); picker
+-- option lists keep display_name with its "(file)"/"(custom)" suffix.
 local function domainDisplayName(id, features)
     if not id then return nil end
     for _i, d in ipairs(DomainLoader.getSortedDomains(features.custom_domains or {})) do
-        if d.id == id then return d.display_name or d.name or id end
+        if d.id == id then return d.name or d.display_name or id end
     end
     return id
 end
@@ -888,6 +890,109 @@ function BookSettings.showSpoilerFree(opts)
     }})
 
     dialog = ButtonDialog:new{ title = _("Spoiler-Free Chat"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
+--- Scope-aware highlight-context mode picker (For this book / Global) — the Ctx chip's
+-- hold target (flexible_scope_plan.md phase 3 finishing round, 2026-07-17). Sets the
+-- PERSISTENT defaults; the chip's tap sets the session override. Same two-target
+-- pattern as showWebSearch/showToolsPosture/showSpoilerFree.
+-- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showHighlightContext(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+    local document_path = opts.document_path
+
+    local doc_settings = resolveDocSettings(ui, document_path)
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT)
+    local global_mode = features.highlight_context_mode or "none"
+
+    local target = opts.target_override
+        or (doc_settings and book_val ~= nil and "book")
+        or "global"
+    local is_book_target = doc_settings ~= nil and target == "book"
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function commit()
+        closeDialog()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        if on_close then on_close() end
+    end
+    local function pickBook(val)
+        doc_settings:saveSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT, val)
+        doc_settings:flush()
+        commit()
+    end
+    local function pickGlobal(val)
+        local f = plugin.settings:readSetting("features") or {}
+        f.highlight_context_mode = val
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        commit()
+    end
+    local function setTarget(new_target)
+        closeDialog()
+        BookSettings.showHighlightContext({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target,
+        })
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    local MODES = { "none", "sentence", "paragraph", "characters" }
+    local buttons = {}
+    if doc_settings then
+        table.insert(buttons, {
+            {
+                text = dot(is_book_target) .. _("For this book"),
+                callback = function()
+                    if not is_book_target then setTarget("book") end
+                end,
+            },
+            {
+                text = dot(not is_book_target) .. _("Global"),
+                callback = function()
+                    if is_book_target then setTarget("global") end
+                end,
+            },
+        })
+    end
+
+    if is_book_target then
+        table.insert(buttons, {{
+            text = dot(book_val == nil)
+                .. T(_("Follow global (%1)"), BookSettings.contextModeLabel(global_mode)),
+            callback = function() pickBook(nil) end,
+        }})
+        for _i, m in ipairs(MODES) do
+            table.insert(buttons, {{
+                text = dot(book_val == m) .. BookSettings.contextModeLabel(m),
+                callback = function() pickBook(m) end,
+            }})
+        end
+    else
+        for _i, m in ipairs(MODES) do
+            table.insert(buttons, {{
+                text = dot(global_mode == m) .. BookSettings.contextModeLabel(m),
+                callback = function() pickGlobal(m) end,
+            }})
+        end
+    end
+    table.insert(buttons, {{
+        text = _("Close"), id = "close",
+        callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end,
+    }})
+
+    dialog = ButtonDialog:new{ title = _("Context Around Highlights"), buttons = buttons }
     UIManager:show(dialog)
 end
 

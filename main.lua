@@ -1664,7 +1664,7 @@ function AskGPT:initSettings()
     -- retired (spoiler visibility now lives in chip membership).
     if not features._session_chips_migrated then
       if features.session_chips == nil then
-        features.session_chips = { "domain", "web_search", "book_tools", "spoiler", "scope" }
+        features.session_chips = { "domain", "web_search", "book_tools", "scope", "spoiler" }
       end
       features.show_spoiler_toggle = nil
       features._session_chips_migrated = true
@@ -1672,22 +1672,27 @@ function AskGPT:initSettings()
       logger.info("KOAssistant: Migrated show_spoiler_toggle to session_chips")
     end
 
-    -- Scope chip (flexible_scope_plan.md phase 3, 2026-07-17): append it to already-
-    -- migrated membership lists — the seed above only runs once, so without this the
-    -- chip would stay invisible for everyone who launched before it existed. Users who
-    -- later hide it via "Toolbar Buttons…" are not re-appended (marker set). Final
-    -- defaults/ordering are the defaults sweep's call.
-    if not features._session_chips_scope_added then
+    -- Scope chip membership (flexible_scope_plan.md phase 3): the seed above only runs
+    -- once, so already-migrated lists need scope added — and rendered in canonical
+    -- order (scope BEFORE spoiler, maintainer 2026-07-17). Ensures membership, then
+    -- rebuilds the list in canonical order (keep the literal in sync with
+    -- SESSION_CHIP_IDS in koassistant_dialogs.lua). Supersedes the short-lived
+    -- _session_chips_scope_added append (same day, never released).
+    if not features._session_chips_scope_v2 then
       if type(features.session_chips) == "table" then
-        local has_scope = false
-        for _i, chip_id in ipairs(features.session_chips) do
-          if chip_id == "scope" then has_scope = true break end
+        local member = {}
+        for _i, chip_id in ipairs(features.session_chips) do member[chip_id] = true end
+        member.scope = true
+        local new_list = {}
+        for _i, chip_id in ipairs({ "domain", "web_search", "book_tools", "scope", "spoiler" }) do
+          if member[chip_id] then table.insert(new_list, chip_id) end
         end
-        if not has_scope then table.insert(features.session_chips, "scope") end
+        features.session_chips = new_list
       end
-      features._session_chips_scope_added = true
+      features._session_chips_scope_added = nil
+      features._session_chips_scope_v2 = true
       needs_save = true
-      logger.info("KOAssistant: Added scope chip to session_chips membership")
+      logger.info("KOAssistant: Added scope chip to session_chips membership (canonical order)")
     end
 
     -- ONE-TIME migration (report 3(a)): the raw web_search_max_uses spinner
@@ -5589,7 +5594,7 @@ end
 --- @param action_id string: The action ID
 --- @param opts table: { on_execute = function(state), for_highlight = boolean }
 ---   state = { source = "full_text"|"summary"|"ai_knowledge",
----             scope = "full"|"section"|"read_so_far"|"chapter"|"chapter_so_far"|"from_section",
+---             scope = "full"|"section"|"read_so_far"|"chapter"|"chapter_so_far"|"from_section"|"range",
 ---             section_entry = table|nil, section_label = string|nil }
 ---   scope "read_so_far" (whole-doc actions, mid-read) routes through _executeSectionAction as a
 ---   synthetic page-1→current-page section; source is full_text (extract read text) or ai_knowledge
@@ -5689,6 +5694,9 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       and (text_extraction_enabled or not requires_book_text) then
     chapter.current_page = (self.ui.view and self.ui.view.state and self.ui.view.state.page) or 1
     chapter.from_section_available = toc_available and chapter.current_page > 1 and true or false
+    -- "Pick section range…" (phase 4): two TOC picks, start→end. Needs only a TOC —
+    -- no reading-position requirement.
+    chapter.range_available = toc_available and true or false
     if is_whole_doc and action.interactive_quiz then
       local info = self:_currentChapterInfo()
       if info then
@@ -5705,7 +5713,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
     end
   end
   if chapter.presets.chapter or chapter.presets.chapter_so_far
-      or chapter.from_section_available then
+      or chapter.from_section_available or chapter.range_available then
     show_scope = true
   end
 
@@ -5849,7 +5857,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       -- keep the original two-column row (no layout churn for actions without new options).
       local scope_radio_buttons
       if read_so_far_available or chapter.presets.chapter or chapter.presets.chapter_so_far
-          or chapter.from_section_available then
+          or chapter.from_section_available or chapter.range_available then
         -- read_so_far can show the scope row without a TOC; keep "Pick section" explicitly disabled
         -- (false, not nil) when there are no sections so the callback's `== false` guard catches it.
         local pick_section_enabled = scope_sections_enabled and toc_available and true or false
@@ -5880,6 +5888,10 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
         if chapter.from_section_available then
           table.insert(scope_radio_buttons,
             { { text = T(_("From section… (to %1)"), reading_progress.formatted), provider = "from_section", checked = state.scope == "from_section" } })
+        end
+        if chapter.range_available then
+          table.insert(scope_radio_buttons,
+            { { text = _("Pick section range…"), provider = "range", checked = state.scope == "range" } })
         end
         table.insert(scope_radio_buttons,
           { { text = _("Pick section…"), provider = "section", checked = state.scope == "section", enabled = pick_section_enabled } })
@@ -5992,6 +6004,64 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                 buildAndShow()
               end,
             })
+          elseif btn_entry.provider == "range" then
+            -- Custom range (phase 4): two sequential TOC picks — start section, then end
+            -- section. Spoiler posture REJECTS spans touching unread text (popup policy:
+            -- teach, don't clamp — the chip's freeform equivalent clamps instead).
+            UIManager:close(current_dialog)
+            local function rangeSectionLabel(entry)
+              local lbl = entry.title or ""
+              if lbl == "" then
+                local vis_sp = self_ref.ui.document.getPageNumberInFlow
+                    and self_ref.ui.document:getPageNumberInFlow(entry.start_page)
+                    or entry.start_page
+                lbl = T(_("Page %1"), vis_sp)
+              end
+              return lbl
+            end
+            local range_spoiler_free = require("koassistant_book_settings").resolveSpoilerFree(
+                self_ref.ui.doc_settings, features)
+            self_ref:_showSectionPicker(action, {
+              title = _("Range start: which section?"),
+              on_select = function(start_entry)
+                if range_spoiler_free and start_entry.start_page > chapter.current_page then
+                  UIManager:show(InfoMessage:new{
+                    text = _("That section is beyond your current position (spoiler-free is on)."),
+                    timeout = 3,
+                  })
+                  buildAndShow()
+                  return
+                end
+                self_ref:_showSectionPicker(action, {
+                  title = _("Range end: which section?"),
+                  on_select = function(end_entry)
+                    if end_entry.start_page < start_entry.start_page then
+                      UIManager:show(InfoMessage:new{
+                        text = _("The end section comes before the start section."),
+                        timeout = 3,
+                      })
+                    elseif range_spoiler_free and end_entry.end_page > chapter.current_page then
+                      UIManager:show(InfoMessage:new{
+                        text = _("That range extends beyond your current position (spoiler-free is on)."),
+                        timeout = 3,
+                      })
+                    else
+                      state.scope = "range"
+                      state.section_entry = {
+                        start_page = start_entry.start_page,
+                        end_page = end_entry.end_page,
+                        title = rangeSectionLabel(start_entry) .. " – " .. rangeSectionLabel(end_entry),
+                      }
+                      state.section_label = state.section_entry.title
+                      -- Extracted text or AI knowledge only (no summary matches a
+                      -- two-section span).
+                      state.source = text_extraction_enabled and "full_text" or "ai_knowledge"
+                    end
+                    buildAndShow()
+                  end,
+                })
+              end,
+            })
           elseif btn_entry.provider == "section" then
             UIManager:close(current_dialog)
             self_ref:_showSectionPicker(action, {
@@ -6036,7 +6106,8 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
       table.insert(vgroup, scope_table)
 
       -- Show selected section name or explanation for unavailable sections
-      if (state.scope == "section" or state.scope == "chapter") and state.section_label then
+      if (state.scope == "section" or state.scope == "chapter" or state.scope == "range")
+          and state.section_label then
         table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
         table.insert(vgroup, TextBoxWidget:new{
           text = state.section_label,
@@ -6095,11 +6166,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
 
     -- Summary row(s): varies by scope and availability
     if state.scope == "read_so_far" or state.scope == "chapter_so_far"
-        or state.scope == "from_section" then
-      -- A whole-document summary isn't chronological, so it can't be bounded to a position or
-      -- a start→now span. ("chapter" is NOT here: it's an auto-filled section pick and gets the
-      -- full section-summary options below.) Plain disabled label keeps the row height stable
-      -- across scope switches.
+        or state.scope == "from_section" or state.scope == "range" then
+      -- A whole-document summary isn't chronological, so it can't be bounded to a position, a
+      -- start→now span, or a two-section range. ("chapter" is NOT here: it's an auto-filled
+      -- section pick and gets the full section-summary options below.) Plain disabled label
+      -- keeps the row height stable across scope switches.
       table.insert(source_radio_buttons, {
         { text = _("Use summary"), provider = "summary", checked = false, enabled = false },
       })
@@ -6275,6 +6346,12 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                   { source_mode = state.source,
                     section_so_far = { section = state.section_label,
                         position = reading_progress.formatted } })
+              elseif state.scope == "range" and state.section_entry then
+                -- Custom range (phase 4): rides the plain section path — the composite
+                -- "start – end" label is the section name for framing and cache.
+                self_ref:_executeSectionAction(action, action_id,
+                  state.section_entry, state.section_label,
+                  { source_mode = state.source })
               elseif state.scope == "full" and not opts.for_highlight then
                 -- Check for existing full-document cache and warn before replacing
                 -- Skip for incremental actions (update_prompt) — they handle update/redo downstream
@@ -9598,7 +9675,8 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
     local custom_domains = features.custom_domains or {}
     local domain = DomainLoader.getDomainById(effective_domain_id, custom_domains)
     if domain then
-      domain_display = domain.display_name or domain.name or effective_domain_id
+      -- Bare name on the chip — provenance suffixes stay in picker lists only
+      domain_display = domain.name or domain.display_name or effective_domain_id
       if book_domain_id then
         domain_display = domain_display .. _(" (book)")
       end
