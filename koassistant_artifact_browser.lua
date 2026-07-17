@@ -300,22 +300,6 @@ function ArtifactBrowser:showArtifactBrowser(opts)
 
     self.current_menu = menu
     UIManager:show(menu)
-
-    -- Scoped open (attach_plan.md v1, chat-picker parity): when the caller
-    -- names a document, open its selector on top of the full list — Cancel
-    -- falls back to browsing all books. Consume-once: the selector's
-    -- empty-cleanup path reopens this browser with the same opts, and a stale
-    -- path here would loop it.
-    local initial = opts and opts.initial_doc_path
-    if initial then
-        opts.initial_doc_path = nil
-        for _idx, doc in ipairs(docs) do
-            if doc.path == initial then
-                self:showArtifactSelector(doc.path, doc.title, opts)
-                break
-            end
-        end
-    end
 end
 
 --- Show artifact selector popup for a document (same pattern as "View Artifacts" elsewhere)
@@ -323,6 +307,8 @@ end
 --- @param doc_title string The document title
 --- @param opts table|nil Config passed through for refresh
 function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
+    -- Callers that only know the path (Attach chip) pass nil title
+    doc_title = doc_title or getBookMetadata(doc_path)
     -- Load all artifacts including pinned; pass doc for section promotion if this is the open book
     local ReaderUI = require("apps/reader/readerui")
     local open_doc = ReaderUI.instance and ReaderUI.instance.document
@@ -419,12 +405,28 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
     end
 
     -- Select mode with every row filtered out (e.g. the book only has
-    -- generated images): explain instead of showing a bare Cancel popup
+    -- generated images): explain instead of showing a bare Cancel popup —
+    -- and when launched directly (Attach chip, no browser underneath), fall
+    -- through to the all-books browser so the pick isn't dead-ended
     if select_mode and #buttons == 0 then
         UIManager:show(InfoMessage:new{
             text = _("This document has no attachable artifacts (generated images can't be attached as text)."),
         })
+        if not self.current_menu then
+            self:showArtifactBrowser(opts)
+        end
         return
+    end
+
+    -- Launched directly for one book (Attach chip): offer the full browser
+    if select_mode and not self.current_menu then
+        table.insert(buttons, {{
+            text = _("All books…"),
+            callback = function()
+                UIManager:close(self_ref._cache_selector)
+                self_ref:showArtifactBrowser(opts)
+            end,
+        }})
     end
 
     if not select_mode then

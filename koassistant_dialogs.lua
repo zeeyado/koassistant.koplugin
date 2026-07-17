@@ -5402,12 +5402,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             attach = function()
                 -- Attach chip (attach_plan.md v1): material OTHER than the open
                 -- book's text — notebook, saved artifacts/chats, text files, free
-                -- notes. All contexts; excluded in X-Ray chat (same exclusion set
-                -- as the Tools chip). Staged list is MODULE-RESIDENT in
-                -- koassistant_attachments (no dialog locals — 60-upvalue cap; not
-                -- on features — settings-flush exposure); inline requires on
+                -- notes. ALL input-dialog contexts, X-Ray chat included
+                -- (maintainer 2026-07-17: it's a full input dialog, and unlike
+                -- Scope's text ranges an attachment doesn't conflict with the
+                -- item-pseudo-selection framing). Staged list is MODULE-RESIDENT
+                -- in koassistant_attachments (no dialog locals — 60-upvalue cap;
+                -- not on features — settings-flush exposure); inline requires on
                 -- purpose.
-                if is_xray_chat then return nil end
                 local feats = configuration.features
                 local count = require("koassistant_attachments").count()
                 -- Count, not ON/OFF — attach is a collection, not a toggle
@@ -5514,18 +5515,25 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         text = _("Artifact…"),
                         callback = function()
                             UIManager:close(type_dialog)
-                            require("koassistant_artifact_browser"):showArtifactBrowser({
+                            -- With a current book: open ITS selector directly (no
+                            -- browser stacked underneath — maintainer 2026-07-17);
+                            -- the selector offers "All books…" when launched this
+                            -- way. Bookless contexts go straight to the browser.
+                            local AB = require("koassistant_artifact_browser")
+                            local sel_opts = {
                                 enable_emoji = enable_emoji,
-                                -- Open scoped to the current book (chat-picker
-                                -- parity); full navigation stays via Cancel
-                                initial_doc_path = book_path,
                                 select_mode = {
                                     on_select = function(entry)
                                         require("koassistant_attachments").add(entry)
                                         refreshInputDialog()
                                     end,
                                 },
-                            })
+                            }
+                            if book_path then
+                                AB:showArtifactSelector(book_path, nil, sel_opts)
+                            else
+                                AB:showArtifactBrowser(sel_opts)
+                            end
                         end,
                     }})
                     table.insert(rows, {{
@@ -5584,8 +5592,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             local note_dialog
                             note_dialog = require("ui/widget/inputdialog"):new{
                                 title = _("Attach a note"),
-                                input_hint = _("Anything the AI should know for this chat…"),
+                                input_hint = _("Background context for this whole chat — sent alongside your messages as a note from you, not as a question.\ne.g. \"this is the 2nd edition\", \"I'm reading this for a course\", \"the file's author metadata is wrong\""),
                                 allow_newline = true,
+                                -- Multi-line by default; only text_height works for
+                                -- InputDialog sizing (input_height is a no-op)
+                                text_height = require("device").screen:scaleBySize(160),
                                 buttons = {{
                                     {
                                         text = _("Cancel"),
@@ -6604,6 +6615,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             scope = _("Scope & context"),
             attach = _("Attach"),
         }
+        -- Membership is GLOBAL (any view can edit it), but chips with a
+        -- structural hide won't appear in THIS view — say so instead of
+        -- offering a toggle that seems to do nothing (maintainer 2026-07-17).
+        -- Keep these conditions in sync with the chip_defs visibility guards.
+        local mf = (configuration and configuration.features) or {}
+        local m_book_or_hl = not mf.is_general_context and not mf.is_library_context
+        local m_has_book = ui_instance and ui_instance.document ~= nil
+        local applicable = {
+            domain = true,
+            web_search = true,
+            attach = true,
+            book_tools = (m_book_or_hl and m_has_book) or false,
+            scope = (m_book_or_hl and m_has_book and not mf._xray_chat_context) or false,
+            spoiler = m_book_or_hl,
+        }
         local enabled = {}
         for _idx, id in ipairs(getSessionChips(configuration and configuration.features)) do
             enabled[id] = true
@@ -6612,7 +6638,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local rows = {}
         for _idx, id in ipairs(SESSION_CHIP_IDS) do
             table.insert(rows, {{
-                text = (enabled[id] and "● " or "○ ") .. labels[id],
+                text = (enabled[id] and "● " or "○ ") .. labels[id]
+                    .. (applicable[id] and "" or (" " .. _("(not in this view)"))),
                 callback = function()
                     if enabled[id] then enabled[id] = nil else enabled[id] = true end
                     local new_list = {}
