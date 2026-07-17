@@ -290,11 +290,7 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
         and ReaderUI.instance.document.file == doc_path and ReaderUI.instance.document or nil
     local all_artifacts = ActionCache.getAvailableArtifactsWithPinned(doc_path, nil, open_doc)
 
-    local ImageGenerator = require("koassistant_image_generator")
-    local img_info = ImageGenerator.booksWithImages()[doc_path]
-    local image_count = img_info and img_info.count or 0
-
-    if #all_artifacts == 0 and image_count == 0 then
+    if #all_artifacts == 0 then
         -- All artifacts were removed since index was built; clean up and refresh
         local index = G_reader_settings:readSetting("koassistant_artifact_index", {})
         index[doc_path] = nil
@@ -356,6 +352,10 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                     local selector = self_ref._cache_selector
                     self_ref:_showPinnedGroupPopup(captured.data, doc_path, doc_title,
                         function() UIManager:close(selector) end)
+                elseif captured.is_image_group then
+                    UIManager:close(self_ref._cache_selector)
+                    local ImageBrowser = require("koassistant_image_browser")
+                    ImageBrowser.show({ book_file = doc_path, book_title = doc_title })
                 elseif captured.is_per_action then
                     UIManager:close(self_ref._cache_selector)
                     AskGPT:viewCachedAction(
@@ -367,17 +367,6 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                         name = captured.name, key = captured.key, data = captured.data,
                         book_title = doc_title, file = doc_path })
                 end
-            end,
-        }})
-    end
-
-    if image_count > 0 then
-        table.insert(buttons, {{
-            text = T(_("Generated Images (%1)"), image_count),
-            callback = function()
-                UIManager:close(self_ref._cache_selector)
-                local ImageBrowser = require("koassistant_image_browser")
-                ImageBrowser.show({ book_file = doc_path, book_title = doc_title })
             end,
         }})
     end

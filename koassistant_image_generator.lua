@@ -205,6 +205,12 @@ end
 function ImageGenerator.booksWithImages()
     local lfs = require("libs/libkoreader-lfs")
     local dir = ImageGenerator.getImagesDir()
+    -- Cheap stat guard: this runs from every View Artifacts surface incl.
+    -- file-browser long-press rows and the QS panel — skip the settings-file
+    -- read while no index exists
+    if not lfs.attributes(dir .. "/" .. INDEX_FILENAME, "mode") then
+        return {}
+    end
     local index = ImageGenerator.readIndex()
     local books = {}
     local stale = false

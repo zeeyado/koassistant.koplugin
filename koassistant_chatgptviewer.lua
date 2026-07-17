@@ -2352,6 +2352,11 @@ function ChatGPTViewer:init()
                     }
                     UIManager:show(self._pinned_group_dialog)
                   end
+                elseif captured.is_image_group then
+                  -- Gallery opens on top; the artifact viewer stays open beneath
+                  local ImageBrowser = require("koassistant_image_browser")
+                  ImageBrowser.show({ book_file = self._artifact_file,
+                    book_title = self._artifact_book_title })
                 elseif self._plugin then
                   self:onClose()
                   if captured.is_per_action then

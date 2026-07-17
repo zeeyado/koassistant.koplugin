@@ -636,6 +636,22 @@ function ActionCache.getAvailableArtifactsWithPinned(document_path, exclude_key,
         })
     end
 
+    -- Generated images for this book: every "View Artifacts" surface consumes
+    -- this aggregation, so the row appears everywhere. Callers handle
+    -- is_image_group by opening the gallery filtered (no data payload).
+    local img_ok, ImageGenerator = pcall(require, "koassistant_image_generator")
+    if img_ok and ImageGenerator then
+        local img_info = ImageGenerator.booksWithImages()[document_path]
+        if img_info and img_info.count > 0 then
+            table.insert(artifacts, {
+                name = T(_("Generated Images (%1)"), img_info.count),
+                key = "_generated_images",
+                is_image_group = true,
+                image_count = img_info.count,
+            })
+        end
+    end
+
     return artifacts
 end
 

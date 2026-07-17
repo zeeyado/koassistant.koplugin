@@ -4101,6 +4101,10 @@ function XrayBrowser:_openArtifact(art)
         self:_showWikiGroupPopup(art.data)
     elseif art.is_pinned_group then
         self:_showPinnedGroupPopup(art.data)
+    elseif art.is_image_group then
+        -- Gallery opens on top; the X-Ray browser stays open beneath
+        local ImageBrowser = require("koassistant_image_browser")
+        ImageBrowser.show({ book_file = book_file, book_title = book_title })
     elseif art.is_per_action then
         plugin:viewCachedAction(
             { text = art.name }, art.key, art.data,

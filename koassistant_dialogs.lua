@@ -6074,6 +6074,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local ArtifactBrowser = require("koassistant_artifact_browser")
                     ArtifactBrowser:_showPinnedGroupPopup(cache.data, artifact_file,
                         book_metadata and book_metadata.title, on_select)
+                elseif cache.is_image_group then
+                    local ImageBrowser = require("koassistant_image_browser")
+                    ImageBrowser.show({ book_file = artifact_file,
+                        book_title = book_metadata and book_metadata.title })
                 elseif cache.is_per_action then
                     plugin:viewCachedAction({ text = cache.name }, cache.key, cache.data,
                         { file = artifact_file, book_title = book_metadata and book_metadata.title })
@@ -6083,7 +6087,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             end
 
             local function formatDisplayText(cache)
-                if cache.is_pinned_group or cache.is_section_group or cache.is_wiki_group then
+                if cache.is_pinned_group or cache.is_section_group or cache.is_wiki_group
+                    or cache.is_image_group then
                     return cache.name
                 end
                 return formatArtifactDisplayText(cache)

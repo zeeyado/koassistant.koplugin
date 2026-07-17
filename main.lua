@@ -677,7 +677,12 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
           table.insert(btn_rows, {{
             text = display,
             callback = function()
-              if cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
+              if cache.is_image_group then
+                UIManager:close(self_ref._cache_selector)
+                if fb_menu then UIManager:close(fb_menu) end
+                local ImageBrowser = require("koassistant_image_browser")
+                ImageBrowser.show({ book_file = file, book_title = title })
+              elseif cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
                 local ArtifactBrowser = require("koassistant_artifact_browser")
                 local selector = self_ref._cache_selector
                 local close_all = function()
@@ -4680,7 +4685,14 @@ function AskGPT:viewCache(parent_dialog)
     table.insert(buttons, {{
       text = display,
       callback = function()
-        if cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
+        if cache.is_image_group then
+          UIManager:close(self_ref._cache_selector)
+          if parent_dialog then UIManager:close(parent_dialog) end
+          local props = self_ref.ui and self_ref.ui.doc_props
+          local ImageBrowser = require("koassistant_image_browser")
+          ImageBrowser.show({ book_file = file,
+            book_title = props and (props.display_title or props.title) })
+        elseif cache.is_section_group or cache.is_wiki_group or cache.is_pinned_group then
           local ArtifactBrowser = require("koassistant_artifact_browser")
           local props = self_ref.ui and self_ref.ui.doc_props
           local book_title = props and (props.display_title or props.title)
