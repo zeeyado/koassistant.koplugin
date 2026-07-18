@@ -3424,6 +3424,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     local xray_success = ActionCache.setXrayCache(cache_file, cache_answer, progress, xray_metadata)
                     if xray_success then
                         logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_highlights=", used_highlights, "used_book_text=", book_text_was_provided)
+                        -- Keep the background auto-update pre-filter in sync with the fresh
+                        -- cache: a book opted in BEFORE its first X-Ray existed (or whose
+                        -- cache just moved via a manual update) would otherwise stay
+                        -- stale in memory until reopen (plan §3 "refreshed best-effort
+                        -- after popup actions and background completions")
+                        if plugin and plugin._refreshXrayAutoState then
+                            plugin:_refreshXrayAutoState()
+                        end
                     end
                 end
 

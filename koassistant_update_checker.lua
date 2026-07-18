@@ -1147,11 +1147,14 @@ local function fetchWithAbsoluteTimeout(url, timeout, callback)
     end
 
     -- Set pipe to non-blocking mode for instant EOF detection.
-    -- F_GETFL=3, F_SETFL=4 are universal POSIX constants.
+    -- F_GETFL=3, F_SETFL=4 are universal POSIX constants — O_NONBLOCK is NOT:
+    -- KOReader's cdef hardcodes the Linux value (2048); macOS needs 0x0004 or the
+    -- pipe stays blocking and read() freezes the UI (see gpt_query.lua).
     local bit = require("bit")
+    local O_NONBLOCK = ffi.os == "OSX" and 0x0004 or ffi.C.O_NONBLOCK
     local nb_flags = ffi.C.fcntl(parent_read_fd, 3)  -- F_GETFL
     if nb_flags >= 0 then
-        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(nb_flags, ffi.C.O_NONBLOCK)))  -- F_SETFL
+        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(nb_flags, O_NONBLOCK)))  -- F_SETFL
     end
 
     local chunksize = 8192
@@ -1401,10 +1404,12 @@ local function downloadFile(url, dest_path, callback)
     end
 
     -- Set pipe to non-blocking mode for instant EOF detection.
+    -- (O_NONBLOCK is platform-specific — see the note at the other fcntl site above.)
     local bit = require("bit")
+    local O_NONBLOCK = ffi.os == "OSX" and 0x0004 or ffi.C.O_NONBLOCK
     local nb_flags = ffi.C.fcntl(parent_read_fd, 3)  -- F_GETFL
     if nb_flags >= 0 then
-        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(nb_flags, ffi.C.O_NONBLOCK)))  -- F_SETFL
+        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(nb_flags, O_NONBLOCK)))  -- F_SETFL
     end
 
     -- Poll for subprocess completion (small buffer - pipe only carries status)

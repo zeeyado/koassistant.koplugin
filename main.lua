@@ -8416,6 +8416,8 @@ function AskGPT:_refreshXrayAutoState()
     local XrayParser = require("koassistant_xray_parser")
     state.eligible, state.cached_progress =
       XrayAuto.eligibilityFromEntry(ActionCache.get(file, "xray"), XrayParser.isJSON)
+    -- Console visibility while testing: log per-turn gate declines when debug is on
+    state.debug = features.debug and true or nil
   end
   self._xray_auto_state = state
 end
@@ -8442,13 +8444,26 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
     cached_progress = state.cached_progress,
     prev_page = prev_page,
   }, pageno / total, pageno, os.time())
-  if not verdict.fire then return end
+  if not verdict.fire then
+    if state.debug then
+      logger.info("KOAssistant: X-Ray auto-update declined:", verdict.reason,
+        string.format("(at %.1f%%, cache %.1f%%)", (pageno / total) * 100,
+          (state.cached_progress or 0) * 100))
+    end
+    return
+  end
   -- No-request-in-flight gate (plan §3 #9): don't contend with a user's streamed
   -- request (update-checker precedent; the streaming-disabled overlap is accepted,
   -- correctness preserved by the completion guard)
-  if _G.KOAssistantStreaming then return end
+  if _G.KOAssistantStreaming then
+    if state.debug then logger.info("KOAssistant: X-Ray auto-update declined: user request streaming") end
+    return
+  end
   -- WiFi fast guard: background work never prompts (update-checker precedent)
-  if not NetworkMgr:isWifiOn() then return end
+  if not NetworkMgr:isWifiOn() then
+    if state.debug then logger.info("KOAssistant: X-Ray auto-update declined: WiFi off") end
+    return
+  end
   self:_scheduleXrayAutoFire()
 end
 

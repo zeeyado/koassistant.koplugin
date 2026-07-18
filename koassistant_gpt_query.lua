@@ -217,11 +217,16 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
 
     -- Set pipe to non-blocking mode so read() can distinguish
     -- "no data yet" (returns -1/EAGAIN) from "pipe closed" (returns 0/EOF).
-    -- F_GETFL=3, F_SETFL=4 are universal POSIX constants.
+    -- F_GETFL=3, F_SETFL=4 are universal POSIX constants — but O_NONBLOCK is NOT:
+    -- KOReader's posix cdef hardcodes the Linux value (2048); on macOS the real value
+    -- is 0x0004, so the wrong bit left the pipe BLOCKING and the first poll read()
+    -- froze the whole UI for the duration of the request (mac-only; e-ink devices are
+    -- Linux and were always correct). Same fix as image_generator's portable poll.
     local bit = require("bit")
+    local O_NONBLOCK = ffi.os == "OSX" and 0x0004 or ffi.C.O_NONBLOCK
     local flags = ffi.C.fcntl(parent_read_fd, 3)  -- F_GETFL
     if flags >= 0 then
-        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(flags, ffi.C.O_NONBLOCK)))  -- F_SETFL
+        ffi.C.fcntl(parent_read_fd, 4, ffi.cast("int", bit.bor(flags, O_NONBLOCK)))  -- F_SETFL
     end
 
     -- Process accumulated response data
