@@ -765,10 +765,10 @@ local SettingsSchema = {
                 {
                     id = "xray_auto_notify",
                     type = "toggle",
-                    text = _("Notify When Auto-Update Completes"),
+                    text = _("Notify on Auto-Update"),
                     path = "features.xray_auto_notify",
                     default = false,
-                    help_text = _("Show a brief notification when a background X-Ray update finishes. Off = fully silent (the X-Ray popup always shows the current coverage)."),
+                    help_text = _("Show a brief notification when a background X-Ray update starts and when it completes. Off = fully silent (the X-Ray popup always shows the current coverage)."),
                     depends_on = { id = "xray_auto_update", value = true },
                     separator = true,
                 },

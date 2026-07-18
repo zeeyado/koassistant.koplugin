@@ -8532,6 +8532,22 @@ function AskGPT:_fireXrayAutoUpdate()
   local action = self.action_service and self.action_service:getAction("book", "xray")
   if not action or not action.update_prompt or not action.use_response_caching then return end
 
+  -- Consent gate, mirroring _checkRequirements' book_text gate (the background path
+  -- never runs that UI pre-flight): revoking text extraction after a book was opted
+  -- in must stop background fires. Trusted providers bypass, same as everywhere.
+  if action.use_book_text == false then return end
+  if features.enable_book_text_extraction ~= true then
+    local trusted = false
+    local provider = action.provider or features.provider
+    for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
+      if trusted_id == provider then trusted = true break end
+    end
+    if not trusted then
+      logger.info("KOAssistant: background X-Ray update declined: text extraction consent off")
+      return
+    end
+  end
+
   self:updateConfigFromSettings()
   local config_copy = {}
   for k, v in pairs(configuration or {}) do config_copy[k] = v end
@@ -8562,6 +8578,14 @@ function AskGPT:_fireXrayAutoUpdate()
   UIManager:scheduleIn(XrayAuto.WATCHDOG_S, watchdog)
 
   logger.info("KOAssistant: background X-Ray update firing, delta", delta)
+  -- Start toast (same opt-in as the completion one — §10: the pair brackets the run)
+  if features.xray_auto_notify == true then
+    local Notification = require("ui/widget/notification")
+    UIManager:show(Notification:new{
+      text = T(_("Updating X-Ray in background (%1% → %2%)…"),
+        math.floor(cached_progress * 100 + 0.5), math.floor(decimal * 100 + 0.5)),
+    })
+  end
   Dialogs.executeActionForResult(action, book_context, self.ui, config_copy, self,
     config_copy.features.book_metadata,
     function(result, meta_or_err)
