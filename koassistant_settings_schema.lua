@@ -721,7 +721,16 @@ local SettingsSchema = {
                     text = _("Auto-update X-Ray while reading"),
                     path = "features.xray_auto_update",
                     default = false,
-                    help_text = _("Quietly bring this book's X-Ray up to your reading position in the background as you read. Each book must additionally be opted in from its X-Ray popup or Book Settings.\n\nSpend guards: never creates an X-Ray (only updates an existing incremental one), fires at most once per cooldown, only for progress gaps inside the window below (bigger gaps stay manual), and only when WiFi is already on. This makes API calls without a tap — leave off if every request should be explicit."),
+                    help_text = _("Quietly bring this book's X-Ray up to your reading position in the background as you read. Each book must additionally be opted in from its X-Ray popup or Book Settings.\n\nSpend guards: never creates an X-Ray (only updates an existing incremental one — unless Auto-create below is also on), fires at most once per cooldown, only for progress gaps inside the window below (bigger gaps stay manual), and only when WiFi is already on. This makes API calls without a tap — leave off if every request should be explicit."),
+                },
+                {
+                    id = "xray_auto_create",
+                    type = "toggle",
+                    text = _("Auto-create X-Ray (early in a book)"),
+                    path = "features.xray_auto_create",
+                    default = false,
+                    help_text = _("For opted-in books with no X-Ray yet: quietly create the first one in the background once you've read past the minimum gap. The maximum gap still caps it — further into a book, create the first X-Ray manually (which shows the extraction size first). Books with an existing non-incremental X-Ray (complete, AI-knowledge, legacy) are never touched."),
+                    depends_on = { id = "xray_auto_update", value = true },
                 },
                 {
                     id = "xray_auto_min_gap",

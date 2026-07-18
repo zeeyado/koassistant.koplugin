@@ -2184,8 +2184,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Downstream checks read message_data._background_request (set below) — message_data
     -- is already captured by the closures here, so no new upvalues (60-upvalue cap).
     local background_request = config and config.features and config.features._background_request
+    local background_create = config and config.features and config.features._background_create
     if config and config.features then
         config.features._background_request = nil
+        config.features._background_create = nil
     end
     if background_request then
         temp_config.features = temp_config.features or {}
@@ -2396,6 +2398,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         request_prefix = xray_prefix,
         -- Background auto-update marker (read by the abort/guard/pre-send checks)
         _background_request = background_request or nil,
+        -- Auto-create marker (§5 decision 1): permits the fresh path in the §4 abort
+        _background_create = background_create or nil,
     }
     logger.info("KOAssistant: message_data.book_metadata=", message_data.book_metadata and "present" or "nil")
 
@@ -2741,9 +2745,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 -- only the delta, extracted in the cache block below) — and a background run
                 -- that does NOT engage the incremental path aborts anyway. Skip the expensive
                 -- part on a pruned COPY (never mutate the shared action table); progress /
-                -- highlights extraction still runs.
+                -- highlights extraction still runs. EXCEPT auto-create (§5 decision 1):
+                -- a first generation IS the base prompt — it needs the to-position text
+                -- (bounded by the max-gap dial, same bound as an update's delta).
                 local extract_prompt = prompt or {}
-                if message_data._background_request and extract_prompt.use_book_text then
+                if message_data._background_request and extract_prompt.use_book_text
+                    and not message_data._background_create then
                     local pruned = {}
                     for k, v in pairs(extract_prompt) do pruned[k] = v end
                     pruned.use_book_text = false
@@ -2985,6 +2992,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Cache when: action supports it and file is known (open book or file browser metadata fallback)
     local using_cache = false
     local cached_progress_display = nil
+    local cache_entry_existed = false
     local cache_file = (ui and ui.document and ui.document.file)
         or (config.features and config.features.book_metadata and config.features.book_metadata.file)
     local cache_enabled = prompt and prompt.use_response_caching and cache_file
@@ -2992,6 +3000,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     if cache_enabled and not (config.features and config.features._full_document_xray) then
         local ActionCache = require("koassistant_action_cache")
         local cached_entry = ActionCache.get(cache_file, prompt.id)
+        cache_entry_existed = (cached_entry ~= nil and cached_entry.result ~= nil)
 
         if cached_entry and message_data.progress_decimal then
             local current_progress = tonumber(message_data.progress_decimal) or 0
@@ -3153,9 +3162,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- reason (missing entry, legacy cache, ai_knowledge source, revoked read gate,
     -- delta too small) — abort before any further extraction or send.
     if message_data._background_request and not using_cache then
-        logger.info("KOAssistant: background X-Ray update aborted - incremental path did not engage")
-        if on_complete then on_complete(nil, "background: incremental update not applicable") end
-        return nil
+        -- Auto-create carve-out (xray_ecosystem_plan.md §5 decision 1): the
+        -- explicitly-flagged create path may run the fresh generation — but ONLY
+        -- when no X-Ray exists at all. An existing-but-ineligible artifact
+        -- (legacy, ai_knowledge, revoked read gate) stays manual.
+        if message_data._background_create and not cache_entry_existed then
+            logger.info("KOAssistant: background X-Ray create - fresh generation engaged")
+        else
+            logger.info("KOAssistant: background X-Ray update aborted - incremental path did not engage")
+            if on_complete then on_complete(nil, "background: incremental update not applicable") end
+            return nil
+        end
     end
 
     -- Action-scoped history stopgap (action_history_plan.md v0.5): general
@@ -3331,6 +3348,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     -- Let the fire callback classify this as a skip, not a success
                     require("koassistant_xray_auto").markDiscarded()
                     logger.info("KOAssistant: background X-Ray update DISCARDED - cache changed mid-flight")
+                end
+            elseif message_data._background_create then
+                -- Create-mode guard (started from nothing): if any X-Ray appeared
+                -- mid-flight, a manual run won the race — theirs is newer; discard
+                local ActionCache = require("koassistant_action_cache")
+                local e1 = ActionCache.get(cache_file, original_action_id)
+                local e2 = ActionCache.getXrayCache(cache_file)
+                if (e1 and e1.result) or (e2 and e2.result) then
+                    background_discard = true
+                    require("koassistant_xray_auto").markDiscarded()
+                    logger.info("KOAssistant: background X-Ray create DISCARDED - an X-Ray appeared mid-flight")
                 end
             end
 
@@ -3647,6 +3675,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if message_data.incremental_book_text_truncated then
             logger.info("KOAssistant: background X-Ray update aborted - delta exceeded extraction limit")
             if on_complete then on_complete(nil, "background: delta truncated") end
+            return nil
+        end
+        -- Create mode: same honesty rule for the base to-position extraction — a
+        -- silently-truncated first X-Ray would record progress its text doesn't cover
+        if message_data._background_create and message_data.book_text_truncated then
+            logger.info("KOAssistant: background X-Ray create aborted - extraction exceeded limit")
+            if on_complete then on_complete(nil, "background: extraction truncated") end
             return nil
         end
         return sendQuery()

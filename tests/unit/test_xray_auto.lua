@@ -453,6 +453,22 @@ TestRunner:test("restore: pre-metadata checkpoint inherits the outgoing entry's 
     TestRunner:assertEqual(live.model, "model-C", "fallback model")
 end)
 
+print("")
+print("  [auto-create window]")
+
+TestRunner:test("create mode: cached_progress 0 fires only inside the gap window", function()
+    -- Auto-create rides the normal gates with cached_progress = 0 (§5 decision 1):
+    -- min_gap = too early, max_gap = too far into the book (stays manual)
+    local FAR = NOW + 100000  -- past every rate-limit stamp earlier tests left behind
+    local s = baseState({ cached_progress = 0 })
+    TestRunner:assertEqual(XrayAuto.shouldFire(s, 0.04, 101, FAR).reason, "below_threshold",
+        "before min gap: too early")
+    TestRunner:assertEqual(XrayAuto.shouldFire(s, 0.10, 101, FAR).fire, true,
+        "early-book window fires")
+    TestRunner:assertEqual(XrayAuto.shouldFire(s, 0.30, 101, FAR).reason, "above_cap",
+        "past max gap: first X-Ray stays manual")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

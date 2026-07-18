@@ -6693,6 +6693,25 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         }})
       end
     end
+    -- Per-book opt-in BEFORE the first X-Ray exists, when auto-create makes it
+    -- actionable (§5 decision 1): opting in = "create early, then keep updated"
+    local nc_af = self.settings:readSetting("features") or {}
+    if nc_af.xray_auto_update == true and nc_af.xray_auto_create == true
+        and self.ui and self.ui.doc_settings and self.ui.document
+        and not (self.ui.document.info and self.ui.document.info.has_pages) then
+      local auto_key = require("koassistant_book_settings").KEY_XRAY_AUTO
+      local auto_on = self.ui.doc_settings:readSetting(auto_key) == true
+      table.insert(buttons, {{
+        text = (auto_on and "● " or "○ ") .. _("Auto-create & update while reading (this book)"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref.ui.doc_settings:saveSetting(auto_key, (not auto_on) and true or nil)
+          self_ref.ui.doc_settings:flush()
+          self_ref:_refreshXrayAutoState()
+          self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+        end,
+      }})
+    end
     table.insert(buttons, {{
       text = _("Cancel"),
       callback = function()
@@ -8692,8 +8711,20 @@ function AskGPT:_refreshXrayAutoState()
     local XrayAuto = require("koassistant_xray_auto")
     local ActionCache = require("koassistant_action_cache")
     local XrayParser = require("koassistant_xray_parser")
+    local entry = ActionCache.get(file, "xray")
     state.eligible, state.cached_progress =
-      XrayAuto.eligibilityFromEntry(ActionCache.get(file, "xray"), XrayParser.isJSON)
+      XrayAuto.eligibilityFromEntry(entry, XrayParser.isJSON)
+    -- Auto-create (§5 decision 1): a book with NO X-Ray at all becomes eligible
+    -- from progress 0 — the max-gap cap then confines creation to early in the
+    -- book. Existing-but-ineligible artifacts stay manual.
+    if not state.eligible and features.xray_auto_create == true
+        and not (entry and entry.result) then
+      local doc_entry = ActionCache.getXrayCache(file)
+      if not (doc_entry and doc_entry.result) then
+        state.eligible = true
+        state.cached_progress = 0
+      end
+    end
     -- User dials (§10): stamped here so the per-page pre-filter stays zero-disk
     local dials = XrayAuto.dialsFromFeatures(features)
     state.min_gap, state.max_gap, state.cooldown_s = dials.min_gap, dials.max_gap, dials.cooldown_s
@@ -8795,11 +8826,24 @@ function AskGPT:_fireXrayAutoUpdate()
 
   local ActionCache = require("koassistant_action_cache")
   local XrayParser = require("koassistant_xray_parser")
+  local fire_entry = ActionCache.get(file, "xray")
   local eligible, cached_progress =
-    XrayAuto.eligibilityFromEntry(ActionCache.get(file, "xray"), XrayParser.isJSON)
+    XrayAuto.eligibilityFromEntry(fire_entry, XrayParser.isJSON)
+  local create_mode = false
   if not eligible then
-    self:_refreshXrayAutoState()
-    return
+    -- Auto-create carve-out (§5 decision 1): opt-in, and ONLY when no X-Ray
+    -- exists at all — an existing-but-ineligible artifact stays manual
+    if features.xray_auto_create == true and not (fire_entry and fire_entry.result) then
+      local doc_entry = ActionCache.getXrayCache(file)
+      if not (doc_entry and doc_entry.result) then
+        create_mode = true
+        cached_progress = 0
+      end
+    end
+    if not create_mode then
+      self:_refreshXrayAutoState()
+      return
+    end
   end
 
   -- Authoritative (flow-aware) progress for the delta window
@@ -8839,6 +8883,7 @@ function AskGPT:_fireXrayAutoUpdate()
   for k, v in pairs((configuration or {}).features or {}) do config_copy.features[k] = v end
   config_copy.features.is_book_context = true
   config_copy.features._background_request = true
+  config_copy.features._background_create = create_mode or nil
   config_copy.features._is_book_level_action = true
 
   local doc_props = self.ui.doc_props or {}
@@ -8861,13 +8906,16 @@ function AskGPT:_fireXrayAutoUpdate()
   self._xray_auto_watchdog = watchdog
   UIManager:scheduleIn(XrayAuto.WATCHDOG_S, watchdog)
 
-  logger.info("KOAssistant: background X-Ray update firing, delta", delta)
+  logger.info("KOAssistant: background X-Ray", create_mode and "create" or "update",
+    "firing, delta", delta)
   -- Start toast (same opt-in as the completion one — §10: the pair brackets the run)
   if features.xray_auto_notify == true then
     local Notification = require("ui/widget/notification")
     UIManager:show(Notification:new{
-      text = T(_("Updating X-Ray in background (%1% → %2%)…"),
-        math.floor(cached_progress * 100 + 0.5), math.floor(decimal * 100 + 0.5)),
+      text = create_mode
+        and T(_("Creating X-Ray in background (to %1%)…"), math.floor(decimal * 100 + 0.5))
+        or T(_("Updating X-Ray in background (%1% → %2%)…"),
+          math.floor(cached_progress * 100 + 0.5), math.floor(decimal * 100 + 0.5)),
     })
   end
   Dialogs.executeActionForResult(action, book_context, self.ui, config_copy, self,
@@ -8886,13 +8934,15 @@ function AskGPT:_fireXrayAutoUpdate()
           was_discarded and "discarded (cache changed mid-flight)" or "cancelled")
       elseif result then
         XrayAuto.recordSuccess(file)
-        logger.info("KOAssistant: background X-Ray update completed (session total:",
-          XrayAuto.sessionUpdateCount(), ")")
+        logger.info("KOAssistant: background X-Ray", create_mode and "create" or "update",
+          "completed (session total:", XrayAuto.sessionUpdateCount(), ")")
         -- Completion toast (§10, opt-in — the default posture stays silent)
         if features.xray_auto_notify == true then
           local Notification = require("ui/widget/notification")
           UIManager:show(Notification:new{
-            text = T(_("X-Ray updated to %1%"), math.floor(decimal * 100 + 0.5)),
+            text = create_mode
+              and T(_("X-Ray created to %1%"), math.floor(decimal * 100 + 0.5))
+              or T(_("X-Ray updated to %1%"), math.floor(decimal * 100 + 0.5)),
           })
         end
       else
