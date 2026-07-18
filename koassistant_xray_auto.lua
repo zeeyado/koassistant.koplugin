@@ -13,7 +13,8 @@ in-flight flag. main.lua owns all event wiring and disk reads.
 
 local XrayAuto = {}
 
--- Fixed v1 constants (xray_background_plan.md §8.6 — no knobs until someone asks)
+-- Defaults (xray_background_plan.md §10: threshold/cap/cooldown are user dials now;
+-- these values back the schema defaults and any state without stamped dials)
 XrayAuto.THRESHOLD = 0.05        -- min progress delta before an update is worth firing
 XrayAuto.MAX_DELTA = 0.25        -- cap: bigger gaps stay manual (the popup shows size/cost)
 XrayAuto.RATE_LIMIT_S = 15 * 60  -- min seconds between background attempts
@@ -31,9 +32,27 @@ local session_updates = 0
 local cancelled = false    -- set when an actual flight was cancelled (close/watchdog)
 local discarded = false    -- set by the completion guard when it rejects the write
 
+--- Resolve the user dials (schema: Reading & Library → X-Ray) into gate values.
+--- Pure; fallbacks MUST match the schema defaults (5% / 25% / 15 min). An inverted
+--- window (max < min) clamps to max = min rather than silently never firing.
+--- @param features table settings features (may be nil)
+--- @return table { min_gap, max_gap, cooldown_s }
+function XrayAuto.dialsFromFeatures(features)
+  local f = features or {}
+  local min_gap = (tonumber(f.xray_auto_min_gap) or 5) / 100
+  local max_gap = (tonumber(f.xray_auto_max_gap) or 25) / 100
+  if max_gap < min_gap then max_gap = min_gap end
+  return {
+    min_gap = min_gap,
+    max_gap = max_gap,
+    cooldown_s = (tonumber(f.xray_auto_cooldown) or 15) * 60,
+  }
+end
+
 --- Pure trigger gate. All checks answerable from arguments; disk truth (fresh cache
---- read, WiFi, document type) is the caller's job at fire time.
---- @param state table { auto_update, eligible, cached_progress, prev_page } (may be stale)
+--- read, WiFi, document type) is the caller's job at fire time. Dial fields on state
+--- (min_gap/max_gap/cooldown_s, from dialsFromFeatures) override the module defaults.
+--- @param state table { auto_update, eligible, cached_progress, prev_page, min_gap, max_gap, cooldown_s } (may be stale)
 --- @param progress_decimal number current position 0..1 (cheap approximation is fine)
 --- @param pageno number current page (jump guard)
 --- @param now number os.time()
@@ -49,10 +68,10 @@ function XrayAuto.shouldFire(state, progress_decimal, pageno, now)
     return { fire = false, reason = "no_progress" }
   end
   local delta = progress_decimal - state.cached_progress
-  if delta <= XrayAuto.THRESHOLD then
+  if delta <= (state.min_gap or XrayAuto.THRESHOLD) then
     return { fire = false, reason = "below_threshold" }
   end
-  if delta > XrayAuto.MAX_DELTA then
+  if delta > (state.max_gap or XrayAuto.MAX_DELTA) then
     return { fire = false, reason = "above_cap" }
   end
   -- Jump guard: no prev_page (first turn after open/refresh) or a big hop = not
@@ -60,7 +79,7 @@ function XrayAuto.shouldFire(state, progress_decimal, pageno, now)
   if not state.prev_page or math.abs((pageno or 0) - state.prev_page) > XrayAuto.JUMP_GUARD_PAGES then
     return { fire = false, reason = "page_jump" }
   end
-  if last_attempt and now and (now - last_attempt) < XrayAuto.RATE_LIMIT_S then
+  if last_attempt and now and (now - last_attempt) < (state.cooldown_s or XrayAuto.RATE_LIMIT_S) then
     return { fire = false, reason = "rate_limited" }
   end
   if in_flight then

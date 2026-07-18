@@ -594,7 +594,7 @@ local function getNonEnglishInteractionLanguages()
     local langs = features.interaction_languages or features.user_languages
     local all_languages = {}
     if type(langs) == "table" then
-        for _, lang in ipairs(langs) do
+        for _idx, lang in ipairs(langs) do
             if lang and lang ~= "" then table.insert(all_languages, lang) end
         end
     elseif type(langs) == "string" and langs ~= "" then
@@ -605,7 +605,7 @@ local function getNonEnglishInteractionLanguages()
     end
 
     local result = {}
-    for _, lang in ipairs(all_languages) do
+    for _idx, lang in ipairs(all_languages) do
         if not lang:match("^English") then
             table.insert(result, lang)
         end
@@ -810,7 +810,7 @@ showUpdatePopup = function(update_info)
                             -- Multiple languages: show picker
                             local picker_dialog
                             local picker_buttons = {}
-                            for _, lang_id in ipairs(translate_languages) do
+                            for _idx, lang_id in ipairs(translate_languages) do
                                 table.insert(picker_buttons, {{
                                     text = Languages.getDisplay(lang_id),
                                     callback = function()

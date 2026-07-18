@@ -111,6 +111,47 @@ TestRunner:test("in-flight blocks; endFlight releases", function()
 end)
 
 print("")
+print("  [user dials (§10)]")
+
+TestRunner:test("dialsFromFeatures: defaults match module constants", function()
+    local d = XrayAuto.dialsFromFeatures(nil)
+    TestRunner:assertEqual(d.min_gap, XrayAuto.THRESHOLD, "default min gap")
+    TestRunner:assertEqual(d.max_gap, XrayAuto.MAX_DELTA, "default max gap")
+    TestRunner:assertEqual(d.cooldown_s, XrayAuto.RATE_LIMIT_S, "default cooldown")
+end)
+
+TestRunner:test("dialsFromFeatures: custom values convert; inverted window clamps", function()
+    local d = XrayAuto.dialsFromFeatures({
+        xray_auto_min_gap = 10, xray_auto_max_gap = 40, xray_auto_cooldown = 5 })
+    TestRunner:assertEqual(d.min_gap, 0.10, "percent to decimal")
+    TestRunner:assertEqual(d.max_gap, 0.40, "percent to decimal")
+    TestRunner:assertEqual(d.cooldown_s, 300, "minutes to seconds")
+    d = XrayAuto.dialsFromFeatures({ xray_auto_min_gap = 20, xray_auto_max_gap = 10 })
+    TestRunner:assertEqual(d.max_gap, d.min_gap, "inverted window clamps to min")
+end)
+
+TestRunner:test("shouldFire honors state gap overrides", function()
+    local past_limit = NOW + XrayAuto.RATE_LIMIT_S  -- earlier markScheduled(NOW) still stands
+    local v = XrayAuto.shouldFire(baseState({ min_gap = 0.10 }), 0.38, 101, past_limit)
+    TestRunner:assertEqual(v.reason, "below_threshold", "raised min gap blocks a default-firing delta")
+    v = XrayAuto.shouldFire(baseState({ min_gap = 0.10 }), 0.45, 101, past_limit)
+    TestRunner:assertEqual(v.fire, true, "fires past the raised min gap")
+    v = XrayAuto.shouldFire(baseState({ max_gap = 0.50 }), 0.70, 101, past_limit)
+    TestRunner:assertEqual(v.fire, true, "raised max gap allows a default-blocked delta")
+end)
+
+TestRunner:test("shouldFire honors state cooldown override (0 = none)", function()
+    local T0 = NOW + 10000
+    XrayAuto.markScheduled(T0)
+    local v = XrayAuto.shouldFire(baseState({ cooldown_s = 60 }), 0.40, 101, T0 + 30)
+    TestRunner:assertEqual(v.reason, "rate_limited", "inside the shortened window")
+    v = XrayAuto.shouldFire(baseState({ cooldown_s = 60 }), 0.40, 101, T0 + 61)
+    TestRunner:assertEqual(v.fire, true, "past the shortened window")
+    v = XrayAuto.shouldFire(baseState({ cooldown_s = 0 }), 0.40, 101, T0 + 1)
+    TestRunner:assertEqual(v.fire, true, "zero cooldown never rate-limits")
+end)
+
+print("")
 print("  [session state helpers]")
 
 TestRunner:test("cancelInFlight calls the handle once and clears state", function()

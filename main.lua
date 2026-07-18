@@ -8416,6 +8416,9 @@ function AskGPT:_refreshXrayAutoState()
     local XrayParser = require("koassistant_xray_parser")
     state.eligible, state.cached_progress =
       XrayAuto.eligibilityFromEntry(ActionCache.get(file, "xray"), XrayParser.isJSON)
+    -- User dials (§10): stamped here so the per-page pre-filter stays zero-disk
+    local dials = XrayAuto.dialsFromFeatures(features)
+    state.min_gap, state.max_gap, state.cooldown_s = dials.min_gap, dials.max_gap, dials.cooldown_s
     -- Console visibility while testing: log per-turn gate declines when debug is on
     state.debug = features.debug and true or nil
   end
@@ -8443,6 +8446,9 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
     eligible = true,
     cached_progress = state.cached_progress,
     prev_page = prev_page,
+    min_gap = state.min_gap,
+    max_gap = state.max_gap,
+    cooldown_s = state.cooldown_s,
   }, pageno / total, pageno, os.time())
   if not verdict.fire then
     if state.debug then
@@ -8518,7 +8524,8 @@ function AskGPT:_fireXrayAutoUpdate()
   local decimal = progress and tonumber(progress.decimal)
   if not decimal then return end
   local delta = decimal - cached_progress
-  if delta <= XrayAuto.THRESHOLD or delta > XrayAuto.MAX_DELTA then return end
+  local dials = XrayAuto.dialsFromFeatures(features)
+  if delta <= dials.min_gap or delta > dials.max_gap then return end
   if _G.KOAssistantStreaming then return end
   if not NetworkMgr:isWifiOn() then return end
 
@@ -8573,6 +8580,13 @@ function AskGPT:_fireXrayAutoUpdate()
         XrayAuto.recordSuccess(file)
         logger.info("KOAssistant: background X-Ray update completed (session total:",
           XrayAuto.sessionUpdateCount(), ")")
+        -- Completion toast (§10, opt-in — the default posture stays silent)
+        if features.xray_auto_notify == true then
+          local Notification = require("ui/widget/notification")
+          UIManager:show(Notification:new{
+            text = T(_("X-Ray updated to %1%"), math.floor(decimal * 100 + 0.5)),
+          })
+        end
       else
         local msg = tostring(meta_or_err or "unknown error")
         if msg:find("^background:") then
@@ -11471,6 +11485,21 @@ function AskGPT:syncDictionaryBypass()
             return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
           end
           return
+        end
+        -- Word-level conditional (#63): with the X-Ray lookup as the bypass action,
+        -- a word no X-Ray knows falls through to the normal dictionary instead of a
+        -- dead-end "no results" message. Same name+alias matcher the handler uses,
+        -- across main + section X-Rays; costs one cache parse per tapped word.
+        if bypass_action.local_handler == "xray_lookup" then
+          local hits = ActionCache.searchAllXrays(file, word,
+            self_ref.ui and self_ref.ui.document, { skip_description = true })
+          if #hits == 0 then
+            logger.info("KOAssistant: Dictionary bypass - no X-Ray entry for word, falling through to dictionary")
+            if dictionary._koassistant_original_onLookupWord then
+              return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+            end
+            return
+          end
         end
       end
 
