@@ -14852,9 +14852,11 @@ function AskGPT:patchTextSelectionHandlers()
   end
 
   -- Helper: clear highlight from a TextViewer's scroll widget
+  -- (scroll_widget = post-2026-07 KOReader field name, scroll_text_w = older)
   local function clearViewerHighlight(viewer)
-    if viewer and viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
-      local tw = viewer.scroll_text_w.text_widget
+    local sw = viewer and (viewer.scroll_widget or viewer.scroll_text_w)
+    if sw and sw.text_widget then
+      local tw = sw.text_widget
       if tw.clearHighlight and tw:clearHighlight() then
         tw:redrawHighlight()
       end
@@ -14989,8 +14991,10 @@ function AskGPT:patchTextSelectionHandlers()
     orig_tv_init(self, re_init)
 
     -- Enable highlight on text selection
-    if self.scroll_text_w and self.scroll_text_w.text_widget then
-      self.scroll_text_w.text_widget.highlight_text_selection = true
+    -- (scroll_widget = post-2026-07 KOReader field name, scroll_text_w = older)
+    local sw = self.scroll_widget or self.scroll_text_w
+    if sw and sw.text_widget then
+      sw.text_widget.highlight_text_selection = true
     end
 
     -- Fix live highlight during drag: TextViewer uses ges="hold" for HoldPanText

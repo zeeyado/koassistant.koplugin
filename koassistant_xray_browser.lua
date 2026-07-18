@@ -718,8 +718,10 @@ local function handleTextSelection(text, hold_duration, opts)
 
     local function clear_highlight()
         local viewer = opts.viewer
-        if viewer and viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
-            local tw = viewer.scroll_text_w.text_widget
+        -- KOReader renamed TextViewer.scroll_text_w to scroll_widget (2026-07)
+        local sw = viewer and (viewer.scroll_widget or viewer.scroll_text_w)
+        if sw and sw.text_widget then
+            local tw = sw.text_widget
             if tw.clearHighlight and tw:clearHighlight() then
                 tw:redrawHighlight()
             end
@@ -1409,14 +1411,16 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             text = "⇱",
             id = "top",
             callback = function()
-                if viewer then viewer.scroll_text_w:scrollToTop() end
+                local sw = viewer and (viewer.scroll_widget or viewer.scroll_text_w)
+                if sw then sw:scrollToTop() end
             end,
         })
         table.insert(row, {
             text = "⇲",
             id = "bottom",
             callback = function()
-                if viewer then viewer.scroll_text_w:scrollToBottom() end
+                local sw = viewer and (viewer.scroll_widget or viewer.scroll_text_w)
+                if sw then sw:scrollToBottom() end
             end,
         })
     end
@@ -1571,6 +1575,10 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         width = Screen:getWidth(),
         height = Screen:getHeight(),
         buttons_table = buttons_rows,
+        -- Newer KOReader (2026-06+): first-class boundary fall-through for
+        -- page-turn keys; nil when no nav context (fields then unused)
+        page_turn_callback_prev = navigatePrev,
+        page_turn_callback_next = navigateNext,
         text_selection_callback = function(text, hold_duration)
             handleTextSelection(text, hold_duration, {
                 ui = captured_ui,
@@ -1583,11 +1591,13 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     }
     -- highlight_text_selection and HoldPanText gesture fix are handled globally
     -- by patchTextSelectionHandlers() in main.lua
-    -- Hook page-turn keys for prev/next navigation when at scroll boundaries.
+    -- Hook page-turn keys for prev/next navigation when at scroll boundaries,
+    -- for KOReader versions without page_turn_callback_* (pre 2026-06).
     -- ScrollTextWidget.onScrollUp/Down return nil at top/bottom boundaries,
     -- letting the event propagate. We catch it to navigate items.
-    if navigatePrev and navigateNext and viewer.scroll_text_w then
-        local stw = viewer.scroll_text_w
+    -- (scroll_widget = post-2026-07 field name, scroll_text_w = older)
+    if navigatePrev and navigateNext and (viewer.scroll_widget or viewer.scroll_text_w) then
+        local stw = viewer.scroll_widget or viewer.scroll_text_w
         local orig_onScrollUp = stw.onScrollUp
         stw.onScrollUp = function(self_w)
             local result = orig_onScrollUp(self_w)
