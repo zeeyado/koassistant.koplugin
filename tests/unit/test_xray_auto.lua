@@ -323,6 +323,29 @@ TestRunner:test("checkpoint metadata round-trips (incl. explicit false)", functi
     ActionCache.clearXrayCheckpoints(DOC_PATH)
 end)
 
+TestRunner:test("checkpointLimitFromFeatures parity + clamps; push honors limit", function()
+    TestRunner:assertEqual(ActionCache.checkpointLimitFromFeatures(nil), 5, "nil features -> schema default 5")
+    TestRunner:assertEqual(ActionCache.checkpointLimitFromFeatures({}),
+        ActionCache.XRAY_CHECKPOINT_LIMIT, "fallback equals module constant")
+    TestRunner:assertEqual(ActionCache.checkpointLimitFromFeatures({ xray_versions_kept = 2 }), 2, "custom value")
+    TestRunner:assertEqual(ActionCache.checkpointLimitFromFeatures({ xray_versions_kept = 0 }), 0, "zero allowed")
+    TestRunner:assertEqual(ActionCache.checkpointLimitFromFeatures({ xray_versions_kept = -3 }), 0, "negative clamps to 0")
+    TestRunner:assertEqual(ActionCache.checkpointLimitFromFeatures({ xray_versions_kept = 99 }), 20, "upper clamp")
+
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    for i = 1, 4 do
+        ActionCache.pushXrayCheckpoint(DOC_PATH, {
+            result = '{"n": ' .. i .. '}', progress_decimal = i / 10, timestamp = 1700000000 + i,
+        }, 2)
+    end
+    TestRunner:assertEqual(#ActionCache.getXrayCheckpoints(DOC_PATH), 2, "ring capped at custom limit")
+    TestRunner:assertEqual(ActionCache.pushXrayCheckpoint(DOC_PATH, {
+        result = '{"n": 5}', progress_decimal = 0.5, timestamp = 1700000005,
+    }, 0), false, "limit 0 = no archiving")
+    TestRunner:assertEqual(#ActionCache.getXrayCheckpoints(DOC_PATH), 2, "ring untouched at limit 0")
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+end)
+
 TestRunner:test("nearestCheckpointIndex: at-or-below, tolerance, ties, complete excluded", function()
     local ring = {
         { progress_decimal = 0.60 },              -- newest

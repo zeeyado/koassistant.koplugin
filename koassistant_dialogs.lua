@@ -3416,7 +3416,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                     -- one this run started from).
                     local prev_xray = ActionCache.getXrayCache(cache_file)
                     if prev_xray and prev_xray.result and prev_xray.result ~= cache_answer then
-                        ActionCache.pushXrayCheckpoint(cache_file, prev_xray)
+                        ActionCache.pushXrayCheckpoint(cache_file, prev_xray,
+                            ActionCache.checkpointLimitFromFeatures(config.features))
                     end
                     local xray_success = ActionCache.setXrayCache(cache_file, cache_answer, progress, xray_metadata)
                     if xray_success then

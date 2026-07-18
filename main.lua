@@ -4973,6 +4973,9 @@ function AskGPT:showCacheViewer(cache_info)
           used_reasoning = cache_info.data.used_reasoning,
           web_search_used = cache_info.data.web_search_used,
           info_popup_text = info_popup_text,
+          -- Archived-version view: browser goes read-only (no update/delete rows,
+          -- no nested version history), title says "X-Ray Version"
+          checkpoint = cache_info.checkpoint,
         }
         -- Add scope metadata for section X-Rays
         if is_section_xray and cache_info.data.scope_label then
@@ -6723,6 +6726,12 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       update_text = T(_("Redo %1"), action_name)
     end
 
+    local ActionCache = require("koassistant_action_cache")
+    local sx_file = (self.ui and self.ui.document and self.ui.document.file)
+        or (opts and opts.file)
+    local doc = self.ui and self.ui.document
+    local cp_ring = sx_file and ActionCache.getXrayCheckpoints(sx_file) or {}
+
     table.insert(buttons, {{
       text = T(_("View %1"), action_name .. view_detail),
       callback = function()
@@ -6730,11 +6739,33 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         self_ref:viewCachedAction(action, action_id, cached_entry, { skip_stale_popup = true })
       end,
     }})
-    -- Surface in-range section X-Rays
-    local ActionCache = require("koassistant_action_cache")
-    local sx_file = (self.ui and self.ui.document and self.ui.document.file)
-        or (opts and opts.file)
-    local doc = self.ui and self.ui.document
+    -- Re-reader shortcut: when the live X-Ray is ahead of the reading position,
+    -- offer the newest archived version that stays at-or-below it directly
+    -- (spoiler-safe view — xray_ecosystem_plan.md W5)
+    if #cp_ring > 0 and doc and current_progress
+        and (cached_entry.full_document
+          or (cached_entry.progress_decimal or 0) > current_progress.decimal + 0.01) then
+      local near_idx = ActionCache.nearestCheckpointIndex(cp_ring, current_progress.decimal)
+      if near_idx then
+        local near_cp = cp_ring[near_idx]
+        table.insert(buttons, {{
+          text = T(_("View earlier version (%1)"), self:_xrayCheckpointLabel(near_cp)),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:showCacheViewer({
+              name = _("X-Ray Version"),
+              key = "_xray_cache",
+              data = near_cp,
+              file = sx_file,
+              book_title = opts and opts.book_title,
+              book_author = opts and opts.book_author,
+              skip_stale_popup = true,
+              checkpoint = true,
+            })
+          end,
+        }})
+      end
+    end
     if sx_file and doc then
       local in_range = ActionCache.findMatchingSections(sx_file, doc)
       for _idx, sec in ipairs(in_range) do
@@ -6811,13 +6842,12 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         }})
       end
       -- Archived pre-overwrite versions (#73 browsable history)
-      local cp_count = #ActionCache.getXrayCheckpoints(sx_file)
-      if cp_count > 0 then
+      if #cp_ring > 0 then
         table.insert(buttons, {{
-          text = T(_("Previous versions (%1)…"), cp_count),
+          text = T(_("Previous versions (%1)…"), #cp_ring),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showXrayCheckpointList(action, action_id, opts)
+            self_ref:_showXrayCheckpointList(opts)
           end,
         }})
       end
@@ -7887,7 +7917,7 @@ end
 --- Browse archived X-Ray versions (#73 browsable history): the pre-overwrite
 --- snapshot ring, newest first. For a re-reader whose live X-Ray is ahead of
 --- their position, marks the nearest at-or-below version — the spoiler-safe view.
-function AskGPT:_showXrayCheckpointList(action, action_id, opts)
+function AskGPT:_showXrayCheckpointList(opts)
   local ActionCache = require("koassistant_action_cache")
   local ButtonDialog = require("ui/widget/buttondialog")
 
@@ -7922,14 +7952,16 @@ function AskGPT:_showXrayCheckpointList(action, action_id, opts)
   for idx, cp in ipairs(ring) do
     local row_text = self:_xrayCheckpointLabel(cp)
     if idx == mark_idx then
-      row_text = row_text .. " " .. _("(closest to your position)")
+      -- "latest BEFORE your position", not numerically closest: a version ahead
+      -- of the reader covers text they haven't re-reached (spoilers)
+      row_text = row_text .. " " .. _("(latest before your position)")
     end
     local captured_cp = cp
     table.insert(buttons, {{
       text = row_text,
       callback = function()
         UIManager:close(list_dialog)
-        self_ref:_showXrayCheckpointOptions(captured_cp, action, action_id, opts)
+        self_ref:_showXrayCheckpointOptions(captured_cp, opts)
       end,
     }})
   end
@@ -7954,7 +7986,7 @@ end
 --- Options card for one archived X-Ray version: view (read-only), restore
 --- (move semantics: the current version takes its ring slot — a restore
 --- round-trip never grows the ring), delete.
-function AskGPT:_showXrayCheckpointOptions(cp, action, action_id, opts)
+function AskGPT:_showXrayCheckpointOptions(cp, opts)
   local ActionCache = require("koassistant_action_cache")
   local ButtonDialog = require("ui/widget/buttondialog")
   local XrayAuto = require("koassistant_xray_auto")
@@ -8001,7 +8033,9 @@ function AskGPT:_showXrayCheckpointOptions(cp, action, action_id, opts)
               callback = function()
                 UIManager:close(confirm_dialog)
                 local idx = self_ref:_findXrayCheckpointIndex(file, cp)
-                local ok = idx and ActionCache.restoreXrayCheckpoint(file, idx)
+                local features = self_ref.settings:readSetting("features") or {}
+                local ok = idx and ActionCache.restoreXrayCheckpoint(file, idx,
+                    ActionCache.checkpointLimitFromFeatures(features))
                 if ok then
                   self_ref._file_dialog_row_cache = { file = nil, rows = nil }
                   -- Cache progress moved — resync the background pre-filter
@@ -8019,7 +8053,7 @@ function AskGPT:_showXrayCheckpointOptions(cp, action, action_id, opts)
               text = _("Cancel"),
               callback = function()
                 UIManager:close(confirm_dialog)
-                self_ref:_showXrayCheckpointList(action, action_id, opts)
+                self_ref:_showXrayCheckpointList(opts)
               end,
             }},
           },
@@ -8044,14 +8078,14 @@ function AskGPT:_showXrayCheckpointOptions(cp, action, action_id, opts)
               if idx then
                 ActionCache.removeXrayCheckpoint(file, idx)
               end
-              self_ref:_showXrayCheckpointList(action, action_id, opts)
+              self_ref:_showXrayCheckpointList(opts)
             end,
           }},
           {{
             text = _("Cancel"),
             callback = function()
               UIManager:close(confirm_dialog)
-              self_ref:_showXrayCheckpointList(action, action_id, opts)
+              self_ref:_showXrayCheckpointList(opts)
             end,
           }},
         },
@@ -8063,7 +8097,7 @@ function AskGPT:_showXrayCheckpointOptions(cp, action, action_id, opts)
     text = _("Cancel"),
     callback = function()
       UIManager:close(options_dialog)
-      self_ref:_showXrayCheckpointList(action, action_id, opts)
+      self_ref:_showXrayCheckpointList(opts)
     end,
   }})
 

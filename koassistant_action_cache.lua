@@ -992,6 +992,20 @@ end
 ActionCache.XRAY_CHECKPOINTS_FILE = "koassistant_xray_checkpoints.lua"
 ActionCache.XRAY_CHECKPOINT_LIMIT = 5
 
+--- Resolve the ring depth from settings. Fallback MUST equal the
+--- koassistant_settings_schema.lua default for xray_versions_kept (5).
+--- 0 = stop archiving new versions (existing archives stay until deleted).
+--- @param features table|nil The features settings table
+--- @return number limit 0..20
+function ActionCache.checkpointLimitFromFeatures(features)
+    local n = tonumber(features and features.xray_versions_kept)
+    if n == nil then return ActionCache.XRAY_CHECKPOINT_LIMIT end
+    n = math.floor(n)
+    if n < 0 then n = 0 end
+    if n > 20 then n = 20 end
+    return n
+end
+
 -- Fields copied from a cache entry into its archived checkpoint (and back on
 -- restore). Permission flags ride along so a restored version keeps honest
 -- read-gating metadata; pre-metadata checkpoints fall back to the outgoing
@@ -1122,15 +1136,17 @@ end
 --- Archive a pre-overwrite X-Ray snapshot at the head of the ring.
 --- @param document_path string The document file path
 --- @param checkpoint table Cache-entry-shaped source (see CHECKPOINT_COPY_FIELDS)
+--- @param limit number|nil Ring depth override (checkpointLimitFromFeatures; 0 = no archiving)
 --- @return boolean success
-function ActionCache.pushXrayCheckpoint(document_path, checkpoint)
+function ActionCache.pushXrayCheckpoint(document_path, checkpoint, limit)
+    if limit == 0 then return false end
     if not document_path or not checkpoint or not checkpoint.result then return false end
     local path = ActionCache.getXrayCheckpointsPath(document_path)
     if not path then return false end
 
     local ring = ActionCache.getXrayCheckpoints(document_path)
     table.insert(ring, 1, buildCheckpointEntry(checkpoint))
-    ActionCache.trimCheckpoints(ring)
+    ActionCache.trimCheckpoints(ring, limit)
 
     if not writeCheckpointRing(path, ring) then return false end
     logger.info("KOAssistant ActionCache: Archived X-Ray checkpoint at",
@@ -1183,9 +1199,10 @@ end
 --- pre-filter read the document-level key.
 --- @param document_path string The document file path
 --- @param index number 1-based index into the ring (newest first)
+--- @param limit number|nil Ring depth override (checkpointLimitFromFeatures)
 --- @return boolean success
 --- @return table|nil entry The restored checkpoint entry (for notifications)
-function ActionCache.restoreXrayCheckpoint(document_path, index)
+function ActionCache.restoreXrayCheckpoint(document_path, index, limit)
     local path = ActionCache.getXrayCheckpointsPath(document_path)
     if not path then return false end
     local ring = ActionCache.getXrayCheckpoints(document_path)
@@ -1194,10 +1211,10 @@ function ActionCache.restoreXrayCheckpoint(document_path, index)
     table.remove(ring, index)
 
     local live = ActionCache.getXrayCache(document_path)
-    if live and live.result then
+    if live and live.result and limit ~= 0 then
         table.insert(ring, 1, buildCheckpointEntry(live))
     end
-    ActionCache.trimCheckpoints(ring)
+    ActionCache.trimCheckpoints(ring, limit)
     if #ring == 0 then
         os.remove(path)
     elseif not writeCheckpointRing(path, ring) then

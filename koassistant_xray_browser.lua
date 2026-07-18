@@ -844,8 +844,9 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     self.on_update = nil
     self.on_update_full = nil
     -- Section X-Rays: no update/redo callbacks (complete-only)
-    if self.scope then
-        -- No-op: section X-Rays don't support incremental update
+    -- Archived-version views (metadata.checkpoint): read-only, no update either
+    if self.scope or metadata.checkpoint then
+        -- No-op
     elseif metadata.plugin and ui and ui.document then
         local plugin_ref = metadata.plugin
         self.on_update = function()
@@ -1004,7 +1005,7 @@ function XrayBrowser:buildMainTitle()
         end
         return scope_title
     end
-    local title = "X-Ray"
+    local title = self.metadata.checkpoint and _("X-Ray Version") or "X-Ray"
     if self.metadata.progress then
         title = title .. " (" .. self.metadata.progress .. ")"
     end
@@ -3983,6 +3984,30 @@ function XrayBrowser:showOptions()
                 })
             end,
         }})
+    end
+
+    -- Archived versions (#73): main X-Ray only — sections have no ring, and an
+    -- archived view offering its own history would recurse
+    if not self.scope and not self.metadata.checkpoint
+        and self.metadata.plugin and self.metadata.book_file then
+        local ActionCache = require("koassistant_action_cache")
+        local cp_count = #ActionCache.getXrayCheckpoints(self.metadata.book_file)
+        if cp_count > 0 then
+            table.insert(buttons, {{
+                text = T(_("Previous versions (%1)…"), cp_count), align = "left",
+                callback = function()
+                    closeOptions()
+                    -- Close the browser: the version list may view/restore another
+                    -- version, and XrayBrowser holds module-level state
+                    if self_ref.menu then UIManager:close(self_ref.menu) end
+                    self_ref.metadata.plugin:_showXrayCheckpointList({
+                        file = self_ref.metadata.book_file,
+                        book_title = self_ref.metadata.title,
+                        book_author = self_ref.metadata.book_author,
+                    })
+                end,
+            }})
+        end
     end
 
     -- Info

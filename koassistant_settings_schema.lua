@@ -770,6 +770,18 @@ local SettingsSchema = {
                     default = false,
                     help_text = _("Show a brief notification when a background X-Ray update starts and when it completes. Off = fully silent (the X-Ray popup always shows the current coverage)."),
                     depends_on = { id = "xray_auto_update", value = true },
+                },
+                {
+                    id = "xray_versions_kept",
+                    type = "spinner",
+                    text = _("X-Ray Versions to Keep"),
+                    path = "features.xray_versions_kept",
+                    default = 5,
+                    min = 0,
+                    max = 20,
+                    step = 1,
+                    precision = "%d",
+                    help_text = _("Whenever an update or redo overwrites the X-Ray, the outgoing version is archived — browse, view, or restore them via \"Previous versions\" in the X-Ray popup and browser menu. This sets how many are kept per book (oldest dropped first). 0 stops archiving new versions; already-archived ones stay until you delete them or the X-Ray itself."),
                     separator = true,
                 },
                 -- Recap Reminder
