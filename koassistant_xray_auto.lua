@@ -79,11 +79,13 @@ function XrayAuto.shouldFire(state, progress_decimal, pageno, now)
   if not state.prev_page or math.abs((pageno or 0) - state.prev_page) > XrayAuto.JUMP_GUARD_PAGES then
     return { fire = false, reason = "page_jump" }
   end
-  if last_attempt and now and (now - last_attempt) < (state.cooldown_s or XrayAuto.RATE_LIMIT_S) then
-    return { fire = false, reason = "rate_limited" }
-  end
+  -- in_flight before the rate limit: both usually hold together (the limit is
+  -- stamped at schedule time), and "in_flight" is the honest reason then
   if in_flight then
     return { fire = false, reason = "in_flight" }
+  end
+  if last_attempt and now and (now - last_attempt) < (state.cooldown_s or XrayAuto.RATE_LIMIT_S) then
+    return { fire = false, reason = "rate_limited" }
   end
   return { fire = true, reason = "ok" }
 end

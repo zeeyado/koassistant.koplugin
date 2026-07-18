@@ -8440,6 +8440,12 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
   if not doc_info or doc_info.has_pages then return end
   local total = doc_info.number_of_pages
   if not total or total <= 0 then return end
+  -- A scheduled-but-not-yet-fired update would otherwise log as "rate_limited"
+  -- (the limit is stamped at schedule time) — say what's actually happening
+  if self._xray_auto_pending then
+    if state.debug then logger.info("KOAssistant: X-Ray auto-update: fire already scheduled") end
+    return
+  end
   local XrayAuto = require("koassistant_xray_auto")
   local verdict = XrayAuto.shouldFire({
     auto_update = true,

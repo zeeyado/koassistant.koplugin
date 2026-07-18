@@ -151,6 +151,19 @@ TestRunner:test("shouldFire honors state cooldown override (0 = none)", function
     TestRunner:assertEqual(v.fire, true, "zero cooldown never rate-limits")
 end)
 
+TestRunner:test("in-flight reason wins over the rate limit (log honesty)", function()
+    -- Both gates usually hold together (the limit is stamped at schedule time);
+    -- the decline must report the flight, not the cooldown
+    local T1 = NOW + 20000
+    XrayAuto.markScheduled(T1)
+    XrayAuto.beginFlight()
+    local v = XrayAuto.shouldFire(baseState(), 0.40, 101, T1 + 1)
+    TestRunner:assertEqual(v.reason, "in_flight", "in_flight masks rate_limited")
+    XrayAuto.endFlight()
+    v = XrayAuto.shouldFire(baseState(), 0.40, 101, T1 + 1)
+    TestRunner:assertEqual(v.reason, "rate_limited", "cooldown reported once the flight ends")
+end)
+
 print("")
 print("  [session state helpers]")
 
