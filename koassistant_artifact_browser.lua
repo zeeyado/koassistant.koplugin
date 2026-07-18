@@ -356,8 +356,9 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                 display_name = display_name .. " · " .. rel
             end
         end
-        -- Select mode: image rows aren't text — skip them entirely
-        if not (select_mode and captured.is_image_group) then
+        -- Select mode: image rows aren't text, and archived X-Ray versions are a
+        -- management surface (attach the live X-Ray artifact instead) — skip both
+        if not (select_mode and (captured.is_image_group or captured.is_xray_versions_group)) then
         table.insert(buttons, {{
             text = display_name,
             callback = function()
@@ -380,6 +381,9 @@ function ArtifactBrowser:showArtifactSelector(doc_path, doc_title, opts)
                     local selector = self_ref._cache_selector
                     self_ref:_showPinnedGroupPopup(captured.data, doc_path, doc_title,
                         function() UIManager:close(selector) end, opts)
+                elseif captured.is_xray_versions_group then
+                    UIManager:close(self_ref._cache_selector)
+                    AskGPT:_showXrayCheckpointList({ file = doc_path, book_title = doc_title })
                 elseif select_mode then
                     local entry, err = require("koassistant_attachments").makeArtifact(
                         captured.name, captured.key, captured.data, doc_title)

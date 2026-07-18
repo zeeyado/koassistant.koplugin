@@ -551,6 +551,24 @@ function ActionCache.getAvailableArtifacts(document_path, exclude_key, doc)
             end
         end
     end
+    -- Archived X-Ray versions (#73): listed right under the X-Ray row, only when
+    -- the X-Ray itself is listed (the ring never outlives the X-Ray; the X-Ray
+    -- browser's own "other artifacts" list — exclude_key = _xray_cache — keeps
+    -- its hamburger entry instead). Callers handle is_xray_versions_group by
+    -- opening the checkpoint list (no data payload).
+    for i, art in ipairs(available) do
+        if art.key == "_xray_cache" then
+            local cp_count = ActionCache.getXrayCheckpointCount(document_path)
+            if cp_count > 0 then
+                table.insert(available, i + 1, {
+                    name = T(_("Previous X-Ray Versions (%1)"), cp_count),
+                    key = "_xray_versions",
+                    is_xray_versions_group = true,
+                })
+            end
+            break
+        end
+    end
     -- Add section X-Ray entries as a group (no position-based promotion here;
     -- surfacing is done in the action popups themselves)
     local sections = ActionCache.getSectionXrays(document_path)
@@ -1036,6 +1054,9 @@ local function writeCheckpointRing(path, ring)
         logger.err("KOAssistant ActionCache: Failed to open X-Ray checkpoints file for writing:", err)
         return false
     end
+    -- Count header: lets hot paths (artifact aggregation) read the ring size
+    -- from one line instead of parsing every archived JSON
+    file:write("-- count: " .. #ring .. "\n")
     file:write("return {\n")
     for _idx, cp in ipairs(ring) do
         file:write("    {\n")
@@ -1131,6 +1152,30 @@ function ActionCache.getXrayCheckpoints(document_path)
         end
     end
     return data
+end
+
+--- Cheap ring count for hot paths — the artifact aggregation runs on
+--- file-browser long-press, so never parse up to 20 archived JSONs just to
+--- count them. Reads the writeCheckpointRing count header; pre-header files
+--- (v1 rings) fall back to a full parse (the next write adds the header).
+--- @param document_path string The document file path
+--- @return number count
+function ActionCache.getXrayCheckpointCount(document_path)
+    local path = ActionCache.getXrayCheckpointsPath(document_path)
+    if not path then return 0 end
+    local attr = lfs.attributes(path)
+    if not attr or attr.mode ~= "file" then
+        if not migrateSidecarIfNeeded(document_path, path, ActionCache.XRAY_CHECKPOINTS_FILE) then
+            return 0
+        end
+    end
+    local file = io.open(path, "r")
+    if not file then return 0 end
+    local first = file:read("*l")
+    file:close()
+    local n = first and first:match("^%-%- count: (%d+)$")
+    if n then return tonumber(n) end
+    return #ActionCache.getXrayCheckpoints(document_path)
 end
 
 --- Archive a pre-overwrite X-Ray snapshot at the head of the ring.

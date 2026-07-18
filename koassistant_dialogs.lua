@@ -6501,6 +6501,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     local ImageBrowser = require("koassistant_image_browser")
                     ImageBrowser.show({ book_file = artifact_file,
                         book_title = book_metadata and book_metadata.title })
+                elseif cache.is_xray_versions_group then
+                    plugin:_showXrayCheckpointList({ file = artifact_file,
+                        book_title = book_metadata and book_metadata.title })
                 elseif cache.is_per_action then
                     plugin:viewCachedAction({ text = cache.name }, cache.key, cache.data,
                         { file = artifact_file, book_title = book_metadata and book_metadata.title })
@@ -6511,7 +6514,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
             local function formatDisplayText(cache)
                 if cache.is_pinned_group or cache.is_section_group or cache.is_wiki_group
-                    or cache.is_image_group then
+                    or cache.is_image_group or cache.is_xray_versions_group then
                     return cache.name
                 end
                 return formatArtifactDisplayText(cache)

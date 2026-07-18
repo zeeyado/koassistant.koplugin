@@ -346,6 +346,28 @@ TestRunner:test("checkpointLimitFromFeatures parity + clamps; push honors limit"
     ActionCache.clearXrayCheckpoints(DOC_PATH)
 end)
 
+TestRunner:test("getXrayCheckpointCount: header fast-path + pre-header fallback", function()
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    for i = 1, 3 do
+        ActionCache.pushXrayCheckpoint(DOC_PATH, {
+            result = '{"n": ' .. i .. '}', progress_decimal = i / 10, timestamp = 1700000000 + i,
+        })
+    end
+    TestRunner:assertEqual(ActionCache.getXrayCheckpointCount(DOC_PATH), 3, "header count")
+    -- Simulate a v1 (pre-header) ring file: strip the first line
+    local path = ActionCache.getXrayCheckpointsPath(DOC_PATH)
+    local f = io.open(path, "r")
+    local content = f:read("*a")
+    f:close()
+    content = content:gsub("^%-%- count: %d+\n", "")
+    f = io.open(path, "w")
+    f:write(content)
+    f:close()
+    TestRunner:assertEqual(ActionCache.getXrayCheckpointCount(DOC_PATH), 3, "pre-header fallback parses")
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    TestRunner:assertEqual(ActionCache.getXrayCheckpointCount(DOC_PATH), 0, "cleared -> 0")
+end)
+
 TestRunner:test("nearestCheckpointIndex: at-or-below, tolerance, ties, complete excluded", function()
     local ring = {
         { progress_decimal = 0.60 },              -- newest

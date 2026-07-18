@@ -4130,6 +4130,11 @@ function XrayBrowser:_openArtifact(art)
         -- Gallery opens on top; the X-Ray browser stays open beneath
         local ImageBrowser = require("koassistant_image_browser")
         ImageBrowser.show({ book_file = book_file, book_title = book_title })
+    elseif art.is_xray_versions_group then
+        -- Close the browser first: viewing an archived version reuses the
+        -- module-level XrayBrowser state
+        if self.menu then UIManager:close(self.menu) end
+        plugin:_showXrayCheckpointList({ file = book_file, book_title = book_title })
     elseif art.is_per_action then
         plugin:viewCachedAction(
             { text = art.name }, art.key, art.data,

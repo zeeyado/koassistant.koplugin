@@ -2357,6 +2357,14 @@ function ChatGPTViewer:init()
                   local ImageBrowser = require("koassistant_image_browser")
                   ImageBrowser.show({ book_file = self._artifact_file,
                     book_title = self._artifact_book_title })
+                elseif captured.is_xray_versions_group then
+                  -- Version list opens on top; the artifact viewer stays open beneath
+                  if self._plugin then
+                    self._plugin:_showXrayCheckpointList({
+                      file = self._artifact_file,
+                      book_title = self._artifact_book_title,
+                      book_author = self._artifact_book_author })
+                  end
                 elseif self._plugin then
                   self:onClose()
                   if captured.is_per_action then
