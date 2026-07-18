@@ -87,6 +87,7 @@ local FULL_METADATA = {
     used_reasoning = true,
     web_search_used = true,
     used_research_mode = true,
+    updated_by_auto = true,
     source_mode = "full_text",
     unavailable_data_text = "highlights (sharing off)",
     scope_label = "Chapter 3",

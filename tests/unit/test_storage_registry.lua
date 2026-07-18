@@ -154,10 +154,11 @@ TestRunner:test("updateDirs() == old USER_DIRS", function()
     assertListEqual(Registry.updateDirs(), { "behaviors", "domains" }, "updateDirs")
 end)
 
-TestRunner:test("sidecarFiles() == old KOASSISTANT_SIDECAR_FILES", function()
+TestRunner:test("sidecarFiles() == old KOASSISTANT_SIDECAR_FILES + xray checkpoints", function()
     assertListEqual(Registry.sidecarFiles(), {
         "koassistant_notebook.md", "koassistant_cache.lua",
         "koassistant_user_aliases.lua", "koassistant_pinned.lua",
+        "koassistant_xray_checkpoints.lua",
     }, "sidecarFiles")
 end)
 

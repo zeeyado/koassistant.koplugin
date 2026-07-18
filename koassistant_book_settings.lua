@@ -57,6 +57,12 @@ end
 -- Per-book AI Book Tools posture ("off" | "manual" | "auto" | nil = follow global).
 BookSettings.KEY_TOOLS = "koassistant_book_tools"
 
+-- Background X-Ray auto-update per-book opt-in (xray_background_plan.md §5).
+-- PLAIN opt-in, not tri-state: true = opted in, nil = not (there is no
+-- "follow global" state — the global toggle is the master switch and this is the
+-- second half of the double opt-in, so nil must never mean "inherit on").
+BookSettings.KEY_XRAY_AUTO = "koassistant_book_xray_auto"
+
 --- Resolve the effective AI Book Tools posture for a book: per-book override > global
 -- tools_posture > "auto" (the schema default — the fallback MUST match it, per the
 -- check-pattern rule; existing pre-posture users get an explicit "manual"/"auto" from
@@ -282,6 +288,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_WEB_SEARCH,
     BookSettings.KEY_HIGHLIGHT_CONTEXT,
     BookSettings.KEY_DICTIONARY_CONTEXT,
+    BookSettings.KEY_XRAY_AUTO,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -1308,6 +1315,26 @@ function BookSettings.show(opts)
         end })
     addButton({ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
         callback = showBookInfoSubPicker })
+    -- Plain per-book opt-in (nil = off): second half of the double opt-in with the
+    -- global xray_auto_update master — no follow-global state, so a simple toggle,
+    -- not the tri-state picker
+    addButton({ text = T(_("X-Ray auto-update: %1"),
+            doc_settings:readSetting(BookSettings.KEY_XRAY_AUTO) == true and _("On") or _("Off")),
+        callback = function()
+            if features.xray_auto_update ~= true then
+                UIManager:show(require("ui/widget/infomessage"):new{
+                    text = _("Enable 'Auto-update X-Ray while reading' in Settings → Reading & Library first, then opt this book in."),
+                })
+                return
+            end
+            local cur = doc_settings:readSetting(BookSettings.KEY_XRAY_AUTO) == true
+            doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, (not cur) and true or nil)
+            doc_settings:flush()
+            syncConfig()
+            -- Refresh the page-turn pre-filter so the change takes effect this session
+            if plugin and plugin._refreshXrayAutoState then plugin:_refreshXrayAutoState() end
+            reopen()
+        end })
     addButton({ text = T(_("Highlight context: %1"), contextRowLabel(doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT))),
         callback = function()
             showContextModeSubPicker(BookSettings.KEY_HIGHLIGHT_CONTEXT,

@@ -408,7 +408,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- When WiFi is off, shows the WiFi turn-on dialog and runs the callback after connection.
     local NetworkMgr = require("ui/network/manager")
     local query_return = STREAMING_IN_PROGRESS
-    NetworkMgr:runWhenConnected(function()
+    local function doQuery()
 
     local success, result = pcall(function()
         return handler:query(message_history, config)
@@ -545,7 +545,16 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     end
     query_return = result
 
-    end) -- runWhenConnected
+    end -- doQuery
+
+    -- Background requests never prompt (update-checker precedent): the auto-update
+    -- fire pre-checked isWifiOn(), and a drop inside the schedule window should fail
+    -- silently in the subprocess — runWhenConnected would raise the WiFi dialog.
+    if config.features and config.features._background_request then
+        doQuery()
+    else
+        NetworkMgr:runWhenConnected(doQuery)
+    end
 
     return query_return
 end

@@ -322,20 +322,27 @@ function ContextExtractor:getBookText(options)
                 logger.warn("ContextExtractor: Failed to extract flow-aware EPUB text:", text)
             end
         else
-            -- Standard path: extract from beginning to current position
+            -- Standard path: extract from beginning to current position. Position captured
+            -- BEFORE the pcall and restored unconditionally after — an error right after
+            -- gotoPos(0) would otherwise strand the reader at the book START (same
+            -- position-safety rule as getBookTextRange; background fires depend on it).
+            local restore_xp
+            pcall(function() restore_xp = self.ui.document:getXPointer() end)
             local success, text = pcall(function()
-                local current_xp = self.ui.document:getXPointer()
-                if not current_xp then
+                if not restore_xp then
                     return ""
                 end
                 -- Jump to beginning to get start position
                 self.ui.document:gotoPos(0)
                 local start_xp = self.ui.document:getXPointer()
                 -- Return to current position
-                self.ui.document:gotoXPointer(current_xp)
+                self.ui.document:gotoXPointer(restore_xp)
                 -- Extract text between start and current
-                return self.ui.document:getTextFromXPointers(start_xp, current_xp) or ""
+                return self.ui.document:getTextFromXPointers(start_xp, restore_xp) or ""
             end)
+            if restore_xp then
+                pcall(function() self.ui.document:gotoXPointer(restore_xp) end)
+            end
             if success then
                 book_text = text
             else
@@ -480,22 +487,24 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
                 logger.warn("ContextExtractor: Failed to extract flow-aware EPUB range text:", text)
             end
         else
-            -- Standard path: navigate to get XPointers
+            -- Standard path: navigate to get XPointers. The reader's position is captured
+            -- BEFORE the pcall and restored unconditionally after — a mid-navigation error
+            -- must never strand the position pages back (KOReader's progress autosave would
+            -- silently persist it; background auto-update fires depend on this).
+            local restore_xp
+            pcall(function() restore_xp = document:getXPointer() end)
             local success, text = pcall(function()
-                local current_xp = document:getXPointer()
-
                 document:gotoPage(from_page)
                 local start_xp = document:getXPointer()
 
                 document:gotoPage(to_page)
                 local end_xp = document:getXPointer()
 
-                if current_xp then
-                    document:gotoXPointer(current_xp)
-                end
-
                 return document:getTextFromXPointers(start_xp, end_xp) or ""
             end)
+            if restore_xp then
+                pcall(function() document:gotoXPointer(restore_xp) end)
+            end
             if success then
                 book_text = text
             else

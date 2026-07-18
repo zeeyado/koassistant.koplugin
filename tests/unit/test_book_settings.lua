@@ -742,7 +742,9 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_highlight_context missing from SIDECAR_KEYS")
     TestRunner:assertEqual(found[BookSettings.KEY_DICTIONARY_CONTEXT] == true, true,
         "koassistant_book_dictionary_context missing from SIDECAR_KEYS")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 14, "14 per-book keys expected")
+    TestRunner:assertEqual(found[BookSettings.KEY_XRAY_AUTO] == true, true,
+        "koassistant_book_xray_auto missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 15, "15 per-book keys expected")
 end)
 
 TestRunner:suite("Surrounding-context per-book layer (surrounding_context_plan.md §2)")

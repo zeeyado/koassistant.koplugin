@@ -439,6 +439,24 @@ function AskGPT:init()
     self._quiz_chapter_indices = nil
     self._quiz_level = nil
     self._quiz_setting = nil
+    -- X-Ray background auto-update: load the per-book pre-filter state, then a
+    -- session-start catch-up pass (update-checker delay pattern; obeys ALL gates
+    -- including the delta cap — it serves only modest cross-session gaps, plan §8.3)
+    self:_refreshXrayAutoState()
+    if self._xray_auto_state and self._xray_auto_state.auto_update then
+      local XrayAuto = require("koassistant_xray_auto")
+      local xa_file = self.ui and self.ui.document and self.ui.document.file
+      local UIManager = require("ui/uimanager")
+      UIManager:scheduleIn(XrayAuto.CATCHUP_DELAY_S, function()
+        if not (self.ui and self.ui.document and self.ui.document.file == xa_file) then return end
+        local ok, cur = pcall(function() return self.ui.document:getCurrentPage() end)
+        if ok and type(cur) == "number" then
+          local st = self._xray_auto_state
+          if st then st.prev_page = cur end  -- same page → the jump guard passes
+          self:_xrayAutoOnPageUpdate(cur)
+        end
+      end)
+    end
     -- Heal KOAssistant data indexes for this book (issue #92): synced or
     -- restored sidecar data becomes visible in the global browsers through
     -- normal use. Deferred off the book-open path; each refresh writes
@@ -4874,6 +4892,8 @@ function AskGPT:showCacheViewer(cache_info)
         ActionCache.clear(file, "xray")
         -- Clear all per-item wiki entries (derived from X-Ray data)
         ActionCache.clearWikiEntries(file)
+        -- Checkpoint ring dies with the X-Ray
+        ActionCache.clearXrayCheckpoints(file)
       elseif cache_key == "_analyze_cache" then
         ActionCache.clearAnalyzeCache(file)
         ActionCache.clear(file, "analyze_full_document")
@@ -6681,6 +6701,11 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     if rel_time ~= "" then
       table.insert(parts, rel_time)
     end
+    -- Visible trace (v1 requirement, xray_background_plan.md §6): distinguish
+    -- auto-updates from manual ones in the detail line
+    if cached_entry.updated_by_auto then
+      table.insert(parts, _("auto"))
+    end
     if #parts > 0 then
       view_detail = " (" .. table.concat(parts, ", ") .. ")"
     end
@@ -6735,14 +6760,21 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         }})
       end
     end
-    table.insert(buttons, {{
-      text = update_text,
-      callback = function()
-        UIManager:close(dialog)
-        if self_ref:_checkRequirements(action) then return end
-        on_update()
-      end,
-    }})
+    local XrayAuto = require("koassistant_xray_auto")
+    if XrayAuto.isInFlight() then
+      -- A manual run while a background one is in flight is safe (completion guard),
+      -- just wasteful — surface the state instead of the Update button
+      table.insert(buttons, {{ text = _("Auto-update in progress…"), enabled = false }})
+    else
+      table.insert(buttons, {{
+        text = update_text,
+        callback = function()
+          UIManager:close(dialog)
+          if self_ref:_checkRequirements(action) then return end
+          on_update()
+        end,
+      }})
+    end
     -- "Update to 100%": normal incremental update with progress override (same spoiler-free prompt)
     -- Only shown when reader isn't already near 100% (otherwise the regular Update button covers it)
     if not current_progress or current_progress.decimal < 0.995 then
@@ -6777,6 +6809,24 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         }})
       end
     end
+    -- Per-book background auto-update opt-in (double opt-in: master toggle + this row;
+    -- here for discoverability, mirrored in Book Settings). Flowing docs only in v1.
+    local af = self.settings:readSetting("features") or {}
+    if af.xray_auto_update == true and self.ui and self.ui.doc_settings and doc
+        and not (doc.info and doc.info.has_pages) then
+      local auto_key = require("koassistant_book_settings").KEY_XRAY_AUTO
+      local auto_on = self.ui.doc_settings:readSetting(auto_key) == true
+      table.insert(buttons, {{
+        text = (auto_on and "● " or "○ ") .. _("Auto-update while reading (this book)"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref.ui.doc_settings:saveSetting(auto_key, (not auto_on) and true or nil)
+          self_ref.ui.doc_settings:flush()
+          self_ref:_refreshXrayAutoState()
+          self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+        end,
+      }})
+    end
     table.insert(buttons, {{
       text = _("Cancel"),
       callback = function()
@@ -6784,8 +6834,13 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       end,
     }})
 
+    -- "Last auto-update failed" trace line (session-scoped, silent-failure surfacing)
+    local popup_title = action_name .. view_detail
+    if doc and doc.file and XrayAuto.lastFailure(doc.file) then
+      popup_title = popup_title .. "\n" .. _("Last auto-update failed")
+    end
     dialog = ButtonDialog:new{
-      title = action_name .. view_detail,
+      title = popup_title,
       buttons = buttons,
     }
   end
@@ -8280,7 +8335,15 @@ end
 --- Range-based: tracks which chapter (at the resolved level) the current page sits in and
 --- offers a quiz for the chapter just finished when you cross forward into the next one.
 --- Nested sub-entries never trigger (same chapter); a parent heading is not a chapter.
+-- Thin dispatcher: each page-turn feature gets its own handler with its own gates.
+-- The quiz handler's whole-handler early return must not shadow other features
+-- (xray_background_plan.md §3 wiring note).
 function AskGPT:onPageUpdate(pageno)
+  self:_quizOnPageUpdate(pageno)
+  self:_xrayAutoOnPageUpdate(pageno)
+end
+
+function AskGPT:_quizOnPageUpdate(pageno)
   local features = self.settings:readSetting("features") or {}
   if features.enable_chapter_quiz ~= true then return end
   if not self.ui or not self.ui.document or not self.ui.toc then return end
@@ -8326,6 +8389,204 @@ function AskGPT:onPageUpdate(pageno)
       end
     end
   end
+end
+
+-- ========================= X-Ray background auto-update =========================
+-- docs/xray_background_plan.md. Per-page work is arithmetic on in-memory state only
+-- (self._xray_auto_state); ALL disk truth is re-derived inside the deferred fire.
+
+--- Rebuild the in-memory pre-filter state from disk. Called on onReaderReady, after
+--- the scope-popup toggle, and after background completions. It may go stale in
+--- between — that can cost at most a wasted schedule, never a wrong request (the
+--- fire re-verifies everything from disk).
+function AskGPT:_refreshXrayAutoState()
+  local prev = self._xray_auto_state
+  self._xray_auto_state = nil
+  local file = self.ui and self.ui.document and self.ui.document.file
+  if not file then return end
+  local features = self.settings:readSetting("features") or {}
+  local state = { prev_page = prev and prev.prev_page }
+  state.auto_update = features.xray_auto_update == true
+    and self.ui.doc_settings ~= nil
+    and self.ui.doc_settings:readSetting(require("koassistant_book_settings").KEY_XRAY_AUTO) == true
+  if state.auto_update then
+    -- One cache dofile — paid only by opted-in books; default users never hit disk here
+    local XrayAuto = require("koassistant_xray_auto")
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    state.eligible, state.cached_progress =
+      XrayAuto.eligibilityFromEntry(ActionCache.get(file, "xray"), XrayParser.isJSON)
+  end
+  self._xray_auto_state = state
+end
+
+--- Cheap per-page pre-filter (zero disk). Tracks prev_page for the jump guard even
+--- when the gates fail.
+function AskGPT:_xrayAutoOnPageUpdate(pageno)
+  local state = self._xray_auto_state
+  if not state then return end
+  local prev_page = state.prev_page
+  state.prev_page = pageno
+  if state.auto_update ~= true or state.eligible ~= true then return end
+  if not self.ui or not self.ui.document then return end
+  local doc_info = self.ui.document.info
+  -- Flowing documents only in v1: a PDF range extraction is a synchronous per-page
+  -- MuPDF loop — minutes of frozen UI at the delta cap (plan §8.2)
+  if not doc_info or doc_info.has_pages then return end
+  local total = doc_info.number_of_pages
+  if not total or total <= 0 then return end
+  local XrayAuto = require("koassistant_xray_auto")
+  local verdict = XrayAuto.shouldFire({
+    auto_update = true,
+    eligible = true,
+    cached_progress = state.cached_progress,
+    prev_page = prev_page,
+  }, pageno / total, pageno, os.time())
+  if not verdict.fire then return end
+  -- No-request-in-flight gate (plan §3 #9): don't contend with a user's streamed
+  -- request (update-checker precedent; the streaming-disabled overlap is accepted,
+  -- correctness preserved by the completion guard)
+  if _G.KOAssistantStreaming then return end
+  -- WiFi fast guard: background work never prompts (update-checker precedent)
+  if not NetworkMgr:isWifiOn() then return end
+  self:_scheduleXrayAutoFire()
+end
+
+--- Defer the fire off the page-turn tick. The rate limit is stamped at SCHEDULE
+--- time — several page turns can pass the gates inside the deferral window.
+function AskGPT:_scheduleXrayAutoFire()
+  local XrayAuto = require("koassistant_xray_auto")
+  if self._xray_auto_pending or XrayAuto.isInFlight() then return end
+  XrayAuto.markScheduled(os.time())
+  local self_ref = self
+  local fire = function()
+    self_ref._xray_auto_pending = nil
+    self_ref:_fireXrayAutoUpdate()
+  end
+  self._xray_auto_pending = fire
+  UIManager:scheduleIn(XrayAuto.SCHEDULE_DELAY_S, fire)
+end
+
+--- The deferred fire. Fresh disk reads are the authority here; then dispatch the
+--- headless update through the normal incremental machinery (executeActionForResult
+--- with the _background_request transient on a config COPY — never the shared
+--- module configuration).
+function AskGPT:_fireXrayAutoUpdate()
+  local XrayAuto = require("koassistant_xray_auto")
+  -- A close/book-switch inside the deferral window must not execute against a dead
+  -- instance (readerui broadcasts CloseDocument then nils the document)
+  if not self.ui or not self.ui.document or not self.ui.document.file then return end
+  if XrayAuto.isInFlight() then return end
+  local file = self.ui.document.file
+
+  local features = self.settings:readSetting("features") or {}
+  if features.xray_auto_update ~= true then return end
+  if not (self.ui.doc_settings
+      and self.ui.doc_settings:readSetting(require("koassistant_book_settings").KEY_XRAY_AUTO) == true) then
+    return
+  end
+  local doc_info = self.ui.document.info
+  if not doc_info or doc_info.has_pages then return end
+
+  local ActionCache = require("koassistant_action_cache")
+  local XrayParser = require("koassistant_xray_parser")
+  local eligible, cached_progress =
+    XrayAuto.eligibilityFromEntry(ActionCache.get(file, "xray"), XrayParser.isJSON)
+  if not eligible then
+    self:_refreshXrayAutoState()
+    return
+  end
+
+  -- Authoritative (flow-aware) progress for the delta window
+  local ContextExtractor = require("koassistant_context_extractor")
+  local progress = ContextExtractor:new(self.ui):getReadingProgress()
+  local decimal = progress and tonumber(progress.decimal)
+  if not decimal then return end
+  local delta = decimal - cached_progress
+  if delta <= XrayAuto.THRESHOLD or delta > XrayAuto.MAX_DELTA then return end
+  if _G.KOAssistantStreaming then return end
+  if not NetworkMgr:isWifiOn() then return end
+
+  local action = self.action_service and self.action_service:getAction("book", "xray")
+  if not action or not action.update_prompt or not action.use_response_caching then return end
+
+  self:updateConfigFromSettings()
+  local config_copy = {}
+  for k, v in pairs(configuration or {}) do config_copy[k] = v end
+  config_copy.features = {}
+  for k, v in pairs((configuration or {}).features or {}) do config_copy.features[k] = v end
+  config_copy.features.is_book_context = true
+  config_copy.features._background_request = true
+  config_copy.features._is_book_level_action = true
+
+  local doc_props = self.ui.doc_props or {}
+  local title = doc_props.display_title or doc_props.title or "Unknown"
+  local authors = doc_props.authors or ""
+  if authors:find("\n") then authors = authors:gsub("\n", ", ") end
+  local raw_doc_props = getRawDocProps(file) or doc_props
+  config_copy.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props,
+      self.ui.document, self.ui.doc_settings)
+  local book_context = bookContextString(config_copy.features.book_metadata)
+  config_copy.features.book_context = book_context
+
+  XrayAuto.beginFlight()
+  -- Absolute watchdog (update-checker pattern): don't rely on the child's socket timeout
+  local self_ref = self
+  local watchdog = function()
+    self_ref._xray_auto_watchdog = nil
+    XrayAuto.cancelInFlight()
+  end
+  self._xray_auto_watchdog = watchdog
+  UIManager:scheduleIn(XrayAuto.WATCHDOG_S, watchdog)
+
+  logger.info("KOAssistant: background X-Ray update firing, delta", delta)
+  Dialogs.executeActionForResult(action, book_context, self.ui, config_copy, self,
+    config_copy.features.book_metadata,
+    function(result, meta_or_err)
+      if self_ref._xray_auto_watchdog then
+        UIManager:unschedule(self_ref._xray_auto_watchdog)
+        self_ref._xray_auto_watchdog = nil
+      end
+      XrayAuto.endFlight()
+      local was_cancelled, was_discarded = XrayAuto.consumeOutcomeFlags()
+      if was_cancelled or was_discarded then
+        -- Guard-discard (a manual run won the race / X-Ray deleted) or book-close/
+        -- watchdog cancel: a skip — neither a success (nothing written) nor a failure
+        logger.info("KOAssistant: background X-Ray update skipped -",
+          was_discarded and "discarded (cache changed mid-flight)" or "cancelled")
+      elseif result then
+        XrayAuto.recordSuccess(file)
+        logger.info("KOAssistant: background X-Ray update completed (session total:",
+          XrayAuto.sessionUpdateCount(), ")")
+      else
+        local msg = tostring(meta_or_err or "unknown error")
+        if msg:find("^background:") then
+          -- Deliberate abort (path not applicable / truncated delta) — a skip, not a failure
+          logger.info("KOAssistant: background X-Ray update skipped -", msg)
+        else
+          XrayAuto.recordFailure(file, msg)
+          logger.info("KOAssistant: background X-Ray update failed:", msg)
+        end
+      end
+      -- Refresh the pre-filter state if this book is still open
+      if self_ref.ui and self_ref.ui.document and self_ref.ui.document.file == file then
+        self_ref:_refreshXrayAutoState()
+      end
+    end)
+end
+
+--- Kill anything pending or in flight when the book closes. (The completion guard
+--- makes a straggler write impossible regardless; this just stops wasted work.)
+function AskGPT:onCloseDocument()
+  if self._xray_auto_pending then
+    UIManager:unschedule(self._xray_auto_pending)
+    self._xray_auto_pending = nil
+  end
+  if self._xray_auto_watchdog then
+    UIManager:unschedule(self._xray_auto_watchdog)
+    self._xray_auto_watchdog = nil
+  end
+  require("koassistant_xray_auto").cancelInFlight()
 end
 
 --- Show a "quiz?" popup for a finished chapter.

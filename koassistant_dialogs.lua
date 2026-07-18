@@ -2177,6 +2177,25 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     if config and config.features then
         config.features._attachments_active = nil
     end
+    -- Background auto-update (xray_background_plan.md §4): consume the dispatch flag
+    -- (the fire path passes a config COPY, but consume defensively — same staleness
+    -- rule as the transients above) and force the silent wire mode on the temp copy:
+    -- non-streaming, no loading dialog, cancel handle registered with the auto module.
+    -- Downstream checks read message_data._background_request (set below) — message_data
+    -- is already captured by the closures here, so no new upvalues (60-upvalue cap).
+    local background_request = config and config.features and config.features._background_request
+    if config and config.features then
+        config.features._background_request = nil
+    end
+    if background_request then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.enable_streaming = false
+        temp_config.features._suppress_loading_dialog = true
+        temp_config.features._background_request = true
+        temp_config._register_cancel = function(cancel)
+            require("koassistant_xray_auto").registerCancel(cancel)
+        end
+    end
     if prompt.provider then
         if not temp_config.provider_settings[prompt.provider] then
             temp_config.provider_settings[prompt.provider] = {}
@@ -2375,6 +2394,8 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             or BookSettings.resolveDictionaryContext(per_book_ds, config.features),
         -- X-Ray context prefix (injected before action prompt in message builder)
         request_prefix = xray_prefix,
+        -- Background auto-update marker (read by the abort/guard/pre-send checks)
+        _background_request = background_request or nil,
     }
     logger.info("KOAssistant: message_data.book_metadata=", message_data.book_metadata and "present" or "nil")
 
@@ -2715,7 +2736,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             if extractor:isAvailable() then
                 logger.info("KOAssistant: Context extraction starting for action:", prompt and prompt.id or "unknown")
                 logger.info("KOAssistant: use_book_text=", prompt and prompt.use_book_text and "true" or "false")
-                local extracted = extractor:extractForAction(prompt or {})
+                -- Background auto-update: the base prompt's {book_text_section} would trigger
+                -- a full to-position extraction that the update prompt never consumes (it uses
+                -- only the delta, extracted in the cache block below) — and a background run
+                -- that does NOT engage the incremental path aborts anyway. Skip the expensive
+                -- part on a pruned COPY (never mutate the shared action table); progress /
+                -- highlights extraction still runs.
+                local extract_prompt = prompt or {}
+                if message_data._background_request and extract_prompt.use_book_text then
+                    local pruned = {}
+                    for k, v in pairs(extract_prompt) do pruned[k] = v end
+                    pruned.use_book_text = false
+                    extract_prompt = pruned
+                end
+                local extracted = extractor:extractForAction(extract_prompt)
                 -- Merge extracted data into message_data
                 for key, value in pairs(extracted) do
                     message_data[key] = value
@@ -3066,6 +3100,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 message_data.cached_used_book_text = cached_entry.used_book_text
                 message_data.cached_used_highlights = cached_entry.used_highlights
                 message_data.cached_used_annotations = cached_entry.used_annotations
+                -- ...and for the pre-update snapshot ring (archived before overwrite)
+                message_data.cached_timestamp = cached_entry.timestamp
+                message_data.cached_progress_page = cached_entry.progress_page
 
                 -- For X-Ray: parse cached result and build entity index for merge-based updates
                 if prompt.id == "xray" and XrayParser.isJSON(cached_entry.result) then
@@ -3110,6 +3147,18 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 end
             end
         end
+    end
+
+    -- Background auto-update invariant (xray_background_plan.md §4 — outcome-based,
+    -- "abort, never fall through"): a user tap that misses the incremental path falls
+    -- through to a FULL generation, which is correct; an unattended fire doing the same
+    -- is an unconsented full-book spend. If `using_cache` did not engage — for ANY
+    -- reason (missing entry, legacy cache, ai_knowledge source, revoked read gate,
+    -- delta too small) — abort before any further extraction or send.
+    if message_data._background_request and not using_cache then
+        logger.info("KOAssistant: background X-Ray update aborted - incremental path did not engage")
+        if on_complete then on_complete(nil, "background: incremental update not applicable") end
+        return nil
     end
 
     -- Action-scoped history stopgap (action_history_plan.md v0.5): general
@@ -3265,11 +3314,34 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 unavailable_text = table.concat(message_data._unavailable_data, ", ")
             end
 
+            -- Background completion guard (compare-and-write, xray_background_plan.md §4):
+            -- re-load BOTH cache keys from disk and verify the entry this run started from
+            -- is still there with the same progress. Deleted mid-flight → discard (never
+            -- resurrect — delete paths clear different key sets). Progress moved → a manual
+            -- update won the race; theirs is newer → discard. Disk-vs-disk compare with an
+            -- epsilon — never against in-memory floats.
+            local background_discard = false
+            if message_data._background_request and using_cache then
+                local ActionCache = require("koassistant_action_cache")
+                local started_from = tonumber(message_data.cached_progress_decimal)
+                local function still_current(e)
+                    return e and e.result and tonumber(e.progress_decimal) and started_from
+                        and math.abs(tonumber(e.progress_decimal) - started_from) < 1e-6
+                end
+                if not (still_current(ActionCache.get(cache_file, original_action_id))
+                        and still_current(ActionCache.getXrayCache(cache_file))) then
+                    background_discard = true
+                    -- Let the fire callback classify this as a skip, not a success
+                    require("koassistant_xray_auto").markDiscarded()
+                    logger.info("KOAssistant: background X-Ray update DISCARDED - cache changed mid-flight")
+                end
+            end
+
             -- Save to response cache if enabled (for incremental updates)
             -- Skip caching if response was truncated or was an error response (cache_answer set to nil)
             -- For progress actions: require progress_decimal (extraction must succeed)
             -- For non-progress actions (book_info, etc.): save with default 1.0 even without extraction
-            if cache_enabled and original_action_id
+            if cache_enabled and original_action_id and not background_discard
                     and (message_data.progress_decimal or not (prompt and prompt.use_reading_progress))
                     and not is_truncated and cache_answer then
                 local ActionCache = require("koassistant_action_cache")
@@ -3293,6 +3365,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                       used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                       web_search_used = web_search_flag,
                       used_research_mode = research_mode_active or nil,
+                      updated_by_auto = message_data._background_request or nil,
                       previous_progress_decimal = message_data.cached_progress_decimal,
                       flow_visible_pages = message_data.flow_visible_pages,
                       progress_page = message_data.progress_page,
@@ -3309,7 +3382,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
             -- Save to document caches if action has cache_as_* flags (for reuse by other actions)
             -- Always cache regardless of text extraction — tracks used_book_text for dynamic permission gating
-            if not is_truncated and cache_file then
+            if not is_truncated and cache_file and not background_discard then
                 local ActionCache = require("koassistant_action_cache")
                 local progress = tonumber(message_data.progress_decimal) or 0
                 local model_name = ConfigHelper:getModelInfo(temp_config)
@@ -3331,12 +3404,23 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
                         web_search_used = web_search_flag,
                         used_research_mode = research_mode_active or nil,
+                        updated_by_auto = message_data._background_request or nil,
                         previous_progress_decimal = message_data.cached_progress_decimal,
                         flow_visible_pages = message_data.flow_visible_pages,
                         progress_page = message_data.progress_page,
                         full_document = config.features and config.features._full_document_xray or nil,
                         unavailable_data_text = unavailable_text,
                     }
+                    -- Archive the pre-update snapshot before overwriting (ring of 5; manual
+                    -- AND background updates — xray_ecosystem_plan.md §5 decision 2)
+                    if using_cache and message_data.cached_result then
+                        ActionCache.pushXrayCheckpoint(cache_file, {
+                            result = message_data.cached_result,
+                            progress_decimal = message_data.cached_progress_decimal,
+                            progress_page = message_data.cached_progress_page,
+                            timestamp = message_data.cached_timestamp,
+                        })
+                    end
                     local xray_success = ActionCache.setXrayCache(cache_file, cache_answer, progress, xray_metadata)
                     if xray_success then
                         logger.info("KOAssistant: Saved X-Ray to reusable cache at", progress, "used_highlights=", used_highlights, "used_book_text=", book_text_was_provided)
@@ -3546,6 +3630,20 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         end
 
         return checkSidecarDataAndSend()
+    end
+
+    -- Background auto-update: no dialogs may fire. The only chain step reachable on an
+    -- update run is the incremental-truncation warning (extracted_chars counts only
+    -- book_text/full_document; the sidecar warning is multi-book only) — under
+    -- _background_request that is an ABORT, not a suppression: a silently-sent truncated
+    -- delta would record progress the artifact text doesn't cover.
+    if message_data._background_request then
+        if message_data.incremental_book_text_truncated then
+            logger.info("KOAssistant: background X-Ray update aborted - delta exceeded extraction limit")
+            if on_complete then on_complete(nil, "background: delta truncated") end
+            return nil
+        end
+        return sendQuery()
     end
 
     -- Step 1: Truncation warning (fires before large extraction check)
@@ -7028,7 +7126,14 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
     browser_metadata._cleanup_widgets = cleanup_widgets
 
     XrayBrowser:show(data, browser_metadata, ui, function()
+        -- Clear all three homes like main.lua's on_delete: doc-level key, the per-action
+        -- "xray" entry (update eligibility reads it), and derived wiki entries. A
+        -- doc-key-only clear leaves a live per-action entry that background auto-update
+        -- would resurrect from.
         ActionCache.clearXrayCache(ui.document.file)
+        ActionCache.clear(ui.document.file, "xray")
+        ActionCache.clearWikiEntries(ui.document.file)
+        ActionCache.clearXrayCheckpoints(ui.document.file)
         UIManager:show(Notification:new{
             text = T(_("%1 deleted"), "X-Ray"),
             timeout = 2,
@@ -7594,7 +7699,12 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                                 used_book_text = xray_cache.used_book_text,
                             },
                         }, ui, function()
+                            -- Same triple clear as main.lua's on_delete (see the other
+                            -- XrayBrowser:show delete callback above).
                             ActionCache.clearXrayCache(ui.document.file)
+                            ActionCache.clear(ui.document.file, "xray")
+                            ActionCache.clearWikiEntries(ui.document.file)
+                            ActionCache.clearXrayCheckpoints(ui.document.file)
                             UIManager:show(Notification:new{
                                 text = T(_("%1 deleted"), "X-Ray"),
                                 timeout = 2,

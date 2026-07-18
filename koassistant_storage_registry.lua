@@ -257,6 +257,14 @@ Registry.entries = {
         index_key = "koassistant_pinned_index",
         opt_in_reset = true,
     },
+    {
+        id = "sidecar_xray_checkpoints", label = "Per-book X-Ray checkpoints",
+        location = "sidecar_file", ref = "koassistant_xray_checkpoints.lua",
+        category = "artifacts", backup = "opt_in",
+        index_key = "koassistant_artifact_index",  -- best-effort: shares the artifact sidecar dir (like user_aliases)
+        opt_in_reset = true,
+        notes = "Snapshot ring of pre-update X-Ray JSONs (max 5, newest first); deleted with the X-Ray.",
+    },
 
     --========================= Sidecar DocSettings keys (per-book) ============
     {
@@ -264,7 +272,7 @@ Registry.entries = {
         location = "sidecar_dockey",
         ref = function() return require("koassistant_book_settings").SIDECAR_KEYS end,
         category = "config", backup = false,
-        notes = "14 per-book override keys; SIDECAR_KEYS is the owner's source of truth (no dedicated index; per-book DocSettings).",
+        notes = "15 per-book override keys; SIDECAR_KEYS is the owner's source of truth (no dedicated index; per-book DocSettings).",
     },
     {
         id = "dockey_chats", label = "Per-book chats",

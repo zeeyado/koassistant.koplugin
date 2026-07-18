@@ -709,6 +709,21 @@ local SettingsSchema = {
                     default = true,
                     separator = true,
                 },
+                -- X-Ray background auto-update
+                {
+                    id = "xray_auto_header",
+                    type = "header",
+                    text = _("X-Ray"),
+                },
+                {
+                    id = "xray_auto_update",
+                    type = "toggle",
+                    text = _("Auto-update X-Ray while reading"),
+                    path = "features.xray_auto_update",
+                    default = false,
+                    help_text = _("Quietly bring this book's X-Ray up to your reading position in the background as you read. Each book must additionally be opted in from its X-Ray popup or Book Settings.\n\nSpend guards: never creates an X-Ray (only updates an existing incremental one), fires at most every 15 minutes, only for progress gaps between 5% and 25% (bigger gaps stay manual), and only when WiFi is already on. This makes API calls without a tap — leave off if every request should be explicit."),
+                    separator = true,
+                },
                 -- Recap Reminder
                 {
                     id = "recap_reminder_header",
