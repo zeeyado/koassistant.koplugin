@@ -3100,9 +3100,6 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 message_data.cached_used_book_text = cached_entry.used_book_text
                 message_data.cached_used_highlights = cached_entry.used_highlights
                 message_data.cached_used_annotations = cached_entry.used_annotations
-                -- ...and for the pre-update snapshot ring (archived before overwrite)
-                message_data.cached_timestamp = cached_entry.timestamp
-                message_data.cached_progress_page = cached_entry.progress_page
 
                 -- For X-Ray: parse cached result and build entity index for merge-based updates
                 if prompt.id == "xray" and XrayParser.isJSON(cached_entry.result) then
@@ -3411,15 +3408,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         full_document = config.features and config.features._full_document_xray or nil,
                         unavailable_data_text = unavailable_text,
                     }
-                    -- Archive the pre-update snapshot before overwriting (ring of 5; manual
-                    -- AND background updates — xray_ecosystem_plan.md §5 decision 2)
-                    if using_cache and message_data.cached_result then
-                        ActionCache.pushXrayCheckpoint(cache_file, {
-                            result = message_data.cached_result,
-                            progress_decimal = message_data.cached_progress_decimal,
-                            progress_page = message_data.cached_progress_page,
-                            timestamp = message_data.cached_timestamp,
-                        })
+                    -- Archive the pre-overwrite snapshot (ring of 5; incremental updates
+                    -- AND redos/regenerations, manual AND background — xray_ecosystem_plan.md
+                    -- §5 decision 2). Read disk truth rather than message_data.cached_*:
+                    -- it carries the full permission metadata and archives whatever entry
+                    -- is actually being overwritten (a racing write may be newer than the
+                    -- one this run started from).
+                    local prev_xray = ActionCache.getXrayCache(cache_file)
+                    if prev_xray and prev_xray.result and prev_xray.result ~= cache_answer then
+                        ActionCache.pushXrayCheckpoint(cache_file, prev_xray)
                     end
                     local xray_success = ActionCache.setXrayCache(cache_file, cache_answer, progress, xray_metadata)
                     if xray_success then

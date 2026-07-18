@@ -392,7 +392,9 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
     local cache = loadCache(document_path)
     cache[action_id] = {
         progress_decimal = progress_decimal or 0,
-        timestamp = os.time(),
+        -- metadata.timestamp preserves the original generation time when a
+        -- checkpoint is restored; every normal save stamps now
+        timestamp = (metadata and metadata.timestamp) or os.time(),
         model = metadata and metadata.model or "",
         result = result,
         version = CACHE_VERSION,
@@ -980,14 +982,87 @@ end
 
 -- =============================================================================
 -- X-Ray checkpoints (snapshot ring)
--- Every incremental X-Ray update (manual or background) archives the pre-update
--- JSON here before the cache is overwritten (xray_ecosystem_plan.md §5 decision 2)
--- — cheap insurance and the input for future "browse as of chapter N" / series
--- merge. Newest first, trimmed to the ring limit. No browse UI in v1.
+-- Every X-Ray save that overwrites a different existing result (incremental
+-- update, redo, complete regeneration — manual or background) archives the
+-- pre-overwrite entry here (xray_ecosystem_plan.md §5 decision 2) — browsable
+-- via "Previous versions" in the X-Ray popup (view/restore/delete) and the
+-- input for future series merge. Newest first, trimmed to the ring limit.
 -- =============================================================================
 
 ActionCache.XRAY_CHECKPOINTS_FILE = "koassistant_xray_checkpoints.lua"
 ActionCache.XRAY_CHECKPOINT_LIMIT = 5
+
+-- Fields copied from a cache entry into its archived checkpoint (and back on
+-- restore). Permission flags ride along so a restored version keeps honest
+-- read-gating metadata; pre-metadata checkpoints fall back to the outgoing
+-- live entry's flags (its sticky-true superset — never looser).
+local CHECKPOINT_COPY_FIELDS = {
+    "progress_decimal", "progress_page", "timestamp", "result",
+    "used_highlights", "used_annotations", "used_book_text",
+    "model", "full_document", "flow_visible_pages", "source_mode",
+}
+
+local function buildCheckpointEntry(source)
+    local cp = { archived_at = os.time() }
+    for _idx, field in ipairs(CHECKPOINT_COPY_FIELDS) do
+        cp[field] = source[field]
+    end
+    return cp
+end
+
+--- Serialize the ring to disk (shared by push/remove/restore).
+local function writeCheckpointRing(path, ring)
+    local util = require("util")
+    local dir = path:match("(.*/)")
+    if dir then
+        util.makePath(dir)
+    end
+    local file, err = io.open(path, "w")
+    if not file then
+        logger.err("KOAssistant ActionCache: Failed to open X-Ray checkpoints file for writing:", err)
+        return false
+    end
+    file:write("return {\n")
+    for _idx, cp in ipairs(ring) do
+        file:write("    {\n")
+        file:write(string.format("        progress_decimal = %s,\n", tostring(cp.progress_decimal or 0)))
+        if cp.progress_page then
+            file:write(string.format("        progress_page = %s,\n", tostring(cp.progress_page)))
+        end
+        file:write(string.format("        timestamp = %s,\n", tostring(cp.timestamp or 0)))
+        file:write(string.format("        archived_at = %s,\n", tostring(cp.archived_at or 0)))
+        if cp.used_highlights ~= nil then
+            file:write(string.format("        used_highlights = %s,\n", tostring(cp.used_highlights)))
+        end
+        if cp.used_annotations ~= nil then
+            file:write(string.format("        used_annotations = %s,\n", tostring(cp.used_annotations)))
+        end
+        if cp.used_book_text ~= nil then
+            file:write(string.format("        used_book_text = %s,\n", tostring(cp.used_book_text)))
+        end
+        if cp.model then
+            file:write(string.format("        model = %q,\n", cp.model))
+        end
+        if cp.full_document then
+            file:write(string.format("        full_document = %s,\n", tostring(cp.full_document)))
+        end
+        if cp.flow_visible_pages then
+            file:write(string.format("        flow_visible_pages = %s,\n", tostring(cp.flow_visible_pages)))
+        end
+        if cp.source_mode then
+            file:write(string.format("        source_mode = %q,\n", cp.source_mode))
+        end
+        local result_text = cp.result or ""
+        local eq_str = string.rep("=", findSafeDelimiter(result_text))
+        file:write(string.format("        result = [%s[\n", eq_str))
+        file:write(result_text)
+        file:write(string.format("\n]%s],\n", eq_str))
+        file:write("    },\n")
+    end
+    file:write("}\n")
+    file:close()
+    return true
+end
 
 --- Get path to the X-Ray checkpoints sidecar file
 --- @param document_path string The document file path
@@ -1044,9 +1119,9 @@ function ActionCache.getXrayCheckpoints(document_path)
     return data
 end
 
---- Archive a pre-update X-Ray snapshot at the head of the ring.
+--- Archive a pre-overwrite X-Ray snapshot at the head of the ring.
 --- @param document_path string The document file path
---- @param checkpoint table { result, progress_decimal, progress_page, timestamp }
+--- @param checkpoint table Cache-entry-shaped source (see CHECKPOINT_COPY_FIELDS)
 --- @return boolean success
 function ActionCache.pushXrayCheckpoint(document_path, checkpoint)
     if not document_path or not checkpoint or not checkpoint.result then return false end
@@ -1054,46 +1129,101 @@ function ActionCache.pushXrayCheckpoint(document_path, checkpoint)
     if not path then return false end
 
     local ring = ActionCache.getXrayCheckpoints(document_path)
-    table.insert(ring, 1, {
-        progress_decimal = checkpoint.progress_decimal,
-        progress_page = checkpoint.progress_page,
-        timestamp = checkpoint.timestamp,
-        archived_at = os.time(),
-        result = checkpoint.result,
-    })
+    table.insert(ring, 1, buildCheckpointEntry(checkpoint))
     ActionCache.trimCheckpoints(ring)
 
-    local util = require("util")
-    local dir = path:match("(.*/)")
-    if dir then
-        util.makePath(dir)
-    end
-    local file, err = io.open(path, "w")
-    if not file then
-        logger.err("KOAssistant ActionCache: Failed to open X-Ray checkpoints file for writing:", err)
-        return false
-    end
-    file:write("return {\n")
-    for _idx, cp in ipairs(ring) do
-        file:write("    {\n")
-        file:write(string.format("        progress_decimal = %s,\n", tostring(cp.progress_decimal or 0)))
-        if cp.progress_page then
-            file:write(string.format("        progress_page = %s,\n", tostring(cp.progress_page)))
-        end
-        file:write(string.format("        timestamp = %s,\n", tostring(cp.timestamp or 0)))
-        file:write(string.format("        archived_at = %s,\n", tostring(cp.archived_at or 0)))
-        local result_text = cp.result or ""
-        local eq_str = string.rep("=", findSafeDelimiter(result_text))
-        file:write(string.format("        result = [%s[\n", eq_str))
-        file:write(result_text)
-        file:write(string.format("\n]%s],\n", eq_str))
-        file:write("    },\n")
-    end
-    file:write("}\n")
-    file:close()
+    if not writeCheckpointRing(path, ring) then return false end
     logger.info("KOAssistant ActionCache: Archived X-Ray checkpoint at",
         tostring(checkpoint.progress_decimal), "for", document_path)
     return true
+end
+
+--- Remove one checkpoint from the ring.
+--- @param document_path string The document file path
+--- @param index number 1-based index into the ring (newest first)
+--- @return boolean success
+function ActionCache.removeXrayCheckpoint(document_path, index)
+    local path = ActionCache.getXrayCheckpointsPath(document_path)
+    if not path then return false end
+    local ring = ActionCache.getXrayCheckpoints(document_path)
+    if not ring[index] then return false end
+    table.remove(ring, index)
+    if #ring == 0 then
+        os.remove(path)
+        return true
+    end
+    return writeCheckpointRing(path, ring)
+end
+
+--- Pick the archived version nearest at-or-below a reading position — the
+--- spoiler-safe view for a re-reader whose live X-Ray is ahead of them.
+--- Half-percent tolerance; ties resolve to the newest entry; full-document
+--- versions never qualify (they always contain whole-book spoilers).
+--- @param ring table Checkpoint list (newest first)
+--- @param current_decimal number Reader position 0..1
+--- @return number|nil index into ring, or nil when every version is ahead
+function ActionCache.nearestCheckpointIndex(ring, current_decimal)
+    if type(ring) ~= "table" or type(current_decimal) ~= "number" then return nil end
+    local best_idx, best_progress
+    for i, cp in ipairs(ring) do
+        local p = tonumber(cp.progress_decimal)
+        if p and not cp.full_document and p <= current_decimal + 0.005 then
+            if not best_progress or p > best_progress then
+                best_idx, best_progress = i, p
+            end
+        end
+    end
+    return best_idx
+end
+
+--- Restore an archived version as the live X-Ray (move semantics: the outgoing
+--- live entry takes a ring slot, the restored entry leaves the ring — a
+--- restore round-trip never grows the ring). Writes BOTH cache keys: the
+--- popup reads the per-action "xray" entry, the extractor and the background
+--- pre-filter read the document-level key.
+--- @param document_path string The document file path
+--- @param index number 1-based index into the ring (newest first)
+--- @return boolean success
+--- @return table|nil entry The restored checkpoint entry (for notifications)
+function ActionCache.restoreXrayCheckpoint(document_path, index)
+    local path = ActionCache.getXrayCheckpointsPath(document_path)
+    if not path then return false end
+    local ring = ActionCache.getXrayCheckpoints(document_path)
+    local entry = ring[index]
+    if not entry or not entry.result then return false end
+    table.remove(ring, index)
+
+    local live = ActionCache.getXrayCache(document_path)
+    if live and live.result then
+        table.insert(ring, 1, buildCheckpointEntry(live))
+    end
+    ActionCache.trimCheckpoints(ring)
+    if #ring == 0 then
+        os.remove(path)
+    elseif not writeCheckpointRing(path, ring) then
+        return false
+    end
+
+    local function pickFlag(archived, fallback)
+        if archived ~= nil then return archived end
+        return fallback
+    end
+    local meta = {
+        model = entry.model or (live and live.model),
+        timestamp = entry.timestamp,
+        progress_page = entry.progress_page,
+        full_document = entry.full_document,
+        flow_visible_pages = entry.flow_visible_pages,
+        source_mode = entry.source_mode or (live and live.source_mode),
+        used_highlights = pickFlag(entry.used_highlights, live and live.used_highlights),
+        used_annotations = pickFlag(entry.used_annotations, live and live.used_annotations),
+        used_book_text = pickFlag(entry.used_book_text, live and live.used_book_text),
+    }
+    local ok_doc = ActionCache.setXrayCache(document_path, entry.result, entry.progress_decimal or 0, meta)
+    local ok_action = ActionCache.set(document_path, "xray", entry.result, entry.progress_decimal or 0, meta)
+    logger.info("KOAssistant ActionCache: Restored X-Ray checkpoint at",
+        tostring(entry.progress_decimal), "for", document_path)
+    return (ok_doc and ok_action) == true, entry
 end
 
 --- Remove the checkpoint ring file (called when the X-Ray itself is deleted —

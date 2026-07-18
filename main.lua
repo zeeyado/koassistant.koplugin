@@ -4877,10 +4877,12 @@ function AskGPT:showCacheViewer(cache_info)
   -- Create delete/regenerate callbacks
   -- Delete works from both open book and file browser (via cache_info.file fallback)
   -- Prefer explicit file (artifact browser may pass a different book than the one open)
+  -- Checkpoint views (archived X-Ray versions) are read-only: no delete/regenerate —
+  -- deleting the LIVE cache from an archived version's viewer would be a trap
   local on_delete = nil
   local on_regenerate = nil
   local file = cache_info.file or (self.ui and self.ui.document and self.ui.document.file)
-  if file then
+  if file and not cache_info.checkpoint then
     local cache_key = cache_info.key
     local cache_name = cache_info.name
 
@@ -6808,6 +6810,17 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           end,
         }})
       end
+      -- Archived pre-overwrite versions (#73 browsable history)
+      local cp_count = #ActionCache.getXrayCheckpoints(sx_file)
+      if cp_count > 0 then
+        table.insert(buttons, {{
+          text = T(_("Previous versions (%1)…"), cp_count),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_showXrayCheckpointList(action, action_id, opts)
+          end,
+        }})
+      end
     end
     -- Per-book background auto-update opt-in (double opt-in: master toggle + this row;
     -- here for discoverability, mirrored in Book Settings). Flowing docs only in v1.
@@ -7835,6 +7848,228 @@ function AskGPT:_showSectionXrayOptions(sec, file, opts)
         end,
       }},
     },
+  }
+  UIManager:show(options_dialog)
+end
+
+--- Display label for an archived X-Ray version: "43% · 3 days ago"
+--- (complete versions show "Complete" instead of a percent).
+function AskGPT:_xrayCheckpointLabel(cp)
+  local parts = {}
+  if cp.full_document then
+    table.insert(parts, _("Complete"))
+  elseif cp.progress_decimal then
+    table.insert(parts, math.floor(cp.progress_decimal * 100 + 0.5) .. "%")
+  end
+  local rel = formatRelativeTime(cp.timestamp)
+  if rel ~= "" then
+    table.insert(parts, rel)
+  end
+  if #parts == 0 then
+    return _("Unknown")
+  end
+  return table.concat(parts, " · ")
+end
+
+--- Locate a checkpoint by identity (archived_at + original timestamp) — ring
+--- indices can shift if a background update archives a new head while the
+--- version card is open, so actions never trust a stale index.
+function AskGPT:_findXrayCheckpointIndex(file, cp)
+  local ActionCache = require("koassistant_action_cache")
+  local ring = ActionCache.getXrayCheckpoints(file)
+  for i, e in ipairs(ring) do
+    if e.archived_at == cp.archived_at and e.timestamp == cp.timestamp then
+      return i
+    end
+  end
+end
+
+--- Browse archived X-Ray versions (#73 browsable history): the pre-overwrite
+--- snapshot ring, newest first. For a re-reader whose live X-Ray is ahead of
+--- their position, marks the nearest at-or-below version — the spoiler-safe view.
+function AskGPT:_showXrayCheckpointList(action, action_id, opts)
+  local ActionCache = require("koassistant_action_cache")
+  local ButtonDialog = require("ui/widget/buttondialog")
+
+  local file = (self.ui and self.ui.document and self.ui.document.file) or (opts and opts.file)
+  if not file then return end
+
+  local ring = ActionCache.getXrayCheckpoints(file)
+  if #ring == 0 then
+    UIManager:show(InfoMessage:new{ text = _("No previous X-Ray versions."), timeout = 2 })
+    return
+  end
+
+  -- Re-reader marker: only when this book is open, position is known, and the
+  -- live X-Ray is ahead of the reader (the one real spoiler exposure —
+  -- xray_ecosystem_plan.md W5)
+  local mark_idx, current_progress
+  if self.ui and self.ui.document and self.ui.document.file == file then
+    local ContextExtractor = require("koassistant_context_extractor")
+    current_progress = ContextExtractor:new(self.ui):getReadingProgress()
+    if current_progress then
+      local live = ActionCache.getXrayCache(file)
+      if live and (live.full_document
+          or (live.progress_decimal or 0) > current_progress.decimal + 0.01) then
+        mark_idx = ActionCache.nearestCheckpointIndex(ring, current_progress.decimal)
+      end
+    end
+  end
+
+  local self_ref = self
+  local list_dialog
+  local buttons = {}
+  for idx, cp in ipairs(ring) do
+    local row_text = self:_xrayCheckpointLabel(cp)
+    if idx == mark_idx then
+      row_text = row_text .. " " .. _("(closest to your position)")
+    end
+    local captured_cp = cp
+    table.insert(buttons, {{
+      text = row_text,
+      callback = function()
+        UIManager:close(list_dialog)
+        self_ref:_showXrayCheckpointOptions(captured_cp, action, action_id, opts)
+      end,
+    }})
+  end
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(list_dialog)
+    end,
+  }})
+
+  local title = _("Previous X-Ray Versions")
+  if mark_idx and current_progress then
+    title = title .. "\n" .. T(_("Reading position: %1"), current_progress.formatted)
+  end
+  list_dialog = ButtonDialog:new{
+    title = title,
+    buttons = buttons,
+  }
+  UIManager:show(list_dialog)
+end
+
+--- Options card for one archived X-Ray version: view (read-only), restore
+--- (move semantics: the current version takes its ring slot — a restore
+--- round-trip never grows the ring), delete.
+function AskGPT:_showXrayCheckpointOptions(cp, action, action_id, opts)
+  local ActionCache = require("koassistant_action_cache")
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local XrayAuto = require("koassistant_xray_auto")
+  local self_ref = self
+
+  local file = (self.ui and self.ui.document and self.ui.document.file) or (opts and opts.file)
+  if not file then return end
+  local label = self:_xrayCheckpointLabel(cp)
+
+  local options_dialog
+  local buttons = {}
+  table.insert(buttons, {{
+    text = _("View"),
+    callback = function()
+      UIManager:close(options_dialog)
+      self_ref:showCacheViewer({
+        name = _("X-Ray Version"),
+        key = "_xray_cache",
+        data = cp,
+        file = file,
+        book_title = opts and opts.book_title,
+        book_author = opts and opts.book_author,
+        skip_stale_popup = true,
+        checkpoint = true,
+      })
+    end,
+  }})
+  if XrayAuto.isInFlight() then
+    -- Restoring under an in-flight background update would either lose the
+    -- race at its completion or clobber its result — wait it out
+    table.insert(buttons, {{ text = _("Restore (auto-update in progress)"), enabled = false }})
+  else
+    table.insert(buttons, {{
+      text = _("Restore this version"),
+      callback = function()
+        UIManager:close(options_dialog)
+        local confirm_dialog
+        confirm_dialog = ButtonDialog:new{
+          title = T(_("Replace the current X-Ray with the version from %1?"), label)
+            .. "\n" .. _("The current version will be kept in Previous versions."),
+          buttons = {
+            {{
+              text = _("Restore"),
+              callback = function()
+                UIManager:close(confirm_dialog)
+                local idx = self_ref:_findXrayCheckpointIndex(file, cp)
+                local ok = idx and ActionCache.restoreXrayCheckpoint(file, idx)
+                if ok then
+                  self_ref._file_dialog_row_cache = { file = nil, rows = nil }
+                  -- Cache progress moved — resync the background pre-filter
+                  self_ref:_refreshXrayAutoState()
+                  UIManager:show(Notification:new{
+                    text = T(_("X-Ray restored (%1)"), label),
+                    timeout = 2,
+                  })
+                else
+                  UIManager:show(InfoMessage:new{ text = _("Restore failed — this version is no longer archived."), timeout = 3 })
+                end
+              end,
+            }},
+            {{
+              text = _("Cancel"),
+              callback = function()
+                UIManager:close(confirm_dialog)
+                self_ref:_showXrayCheckpointList(action, action_id, opts)
+              end,
+            }},
+          },
+        }
+        UIManager:show(confirm_dialog)
+      end,
+    }})
+  end
+  table.insert(buttons, {{
+    text = _("Delete"),
+    callback = function()
+      UIManager:close(options_dialog)
+      local confirm_dialog
+      confirm_dialog = ButtonDialog:new{
+        title = T(_("Delete the X-Ray version from %1?"), label),
+        buttons = {
+          {{
+            text = _("Delete"),
+            callback = function()
+              UIManager:close(confirm_dialog)
+              local idx = self_ref:_findXrayCheckpointIndex(file, cp)
+              if idx then
+                ActionCache.removeXrayCheckpoint(file, idx)
+              end
+              self_ref:_showXrayCheckpointList(action, action_id, opts)
+            end,
+          }},
+          {{
+            text = _("Cancel"),
+            callback = function()
+              UIManager:close(confirm_dialog)
+              self_ref:_showXrayCheckpointList(action, action_id, opts)
+            end,
+          }},
+        },
+      }
+      UIManager:show(confirm_dialog)
+    end,
+  }})
+  table.insert(buttons, {{
+    text = _("Cancel"),
+    callback = function()
+      UIManager:close(options_dialog)
+      self_ref:_showXrayCheckpointList(action, action_id, opts)
+    end,
+  }})
+
+  options_dialog = ButtonDialog:new{
+    title = T(_("X-Ray version: %1"), label),
+    buttons = buttons,
   }
   UIManager:show(options_dialog)
 end

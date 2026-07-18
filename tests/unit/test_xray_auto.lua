@@ -234,35 +234,41 @@ end)
 print("")
 print("  [checkpoint ring]")
 
-TestRunner:test("trimCheckpoints keeps the newest N", function()
-    package.loaded["koassistant_action_cache"] = nil
-    -- trim is pure; load the module with the parity-style mocks below installed lazily
-    -- (ActionCache requires KOReader modules at load — mock first)
-    local TMP_ROOT = "/tmp/koassistant_xray_auto_test_" .. tostring(os.time()) .. "_" .. tostring(math.random(10000))
-    local SIDECAR_DIR = TMP_ROOT .. "/book.sdr"
-    os.execute(string.format("mkdir -p %q", SIDECAR_DIR))
-    package.loaded["koassistant_gettext"] = nil
-    package.loaded["docsettings"] = nil
-    package.loaded["util"] = nil
-    package.loaded["luasettings"] = nil
-    require("mock_koreader")
-    _G.G_reader_settings = _G.G_reader_settings or {
-        readSetting = function() return nil end,
-        saveSetting = function() end,
-        flush = function() end,
-    }
-    package.loaded["docsettings"] = {
-        getSidecarDir = function(_self, _doc_path, _force) return SIDECAR_DIR end,
-        isHashLocationEnabled = function() return false end,
-    }
-    package.loaded["util"] = {
-        makePath = function(dir) os.execute(string.format("mkdir -p %q", dir)) end,
-    }
-    package.loaded["luasettings"] = {
-        open = function() return { readSetting = function() return nil end, close = function() end } end,
-    }
-    local ActionCache = require("koassistant_action_cache")
+-- Section-level mocks (ActionCache requires KOReader modules at load — mock first;
+-- shared by all checkpoint tests below, TMP_ROOT removed before summary)
+local TMP_ROOT = "/tmp/koassistant_xray_auto_test_" .. tostring(os.time()) .. "_" .. tostring(math.random(10000))
+local SIDECAR_DIR = TMP_ROOT .. "/book.sdr"
+os.execute(string.format("mkdir -p %q", SIDECAR_DIR))
+package.loaded["koassistant_action_cache"] = nil
+package.loaded["koassistant_gettext"] = nil
+package.loaded["docsettings"] = nil
+package.loaded["util"] = nil
+package.loaded["luasettings"] = nil
+require("mock_koreader")
+_G.G_reader_settings = {
+    _store = {},
+    readSetting = function(self, key, default)
+        local v = self._store[key]
+        if v == nil then return default end
+        return v
+    end,
+    saveSetting = function(self, key, value) self._store[key] = value end,
+    flush = function() end,
+}
+package.loaded["docsettings"] = {
+    getSidecarDir = function(_self, _doc_path, _force) return SIDECAR_DIR end,
+    isHashLocationEnabled = function() return false end,
+}
+package.loaded["util"] = {
+    makePath = function(dir) os.execute(string.format("mkdir -p %q", dir)) end,
+}
+package.loaded["luasettings"] = {
+    open = function() return { readSetting = function() return nil end, close = function() end } end,
+}
+local ActionCache = require("koassistant_action_cache")
+local DOC_PATH = TMP_ROOT .. "/book.epub"
 
+TestRunner:test("trimCheckpoints keeps the newest N", function()
     local list = {}
     for i = 1, 8 do list[i] = { progress_decimal = i } end
     ActionCache.trimCheckpoints(list, 5)
@@ -270,7 +276,6 @@ TestRunner:test("trimCheckpoints keeps the newest N", function()
     TestRunner:assertEqual(list[1].progress_decimal, 1, "head (newest) kept")
 
     -- Real push/get round-trip: ring order, cap, and tricky-result serialization
-    local DOC_PATH = TMP_ROOT .. "/book.epub"
     for i = 1, 7 do
         local ok = ActionCache.pushXrayCheckpoint(DOC_PATH, {
             result = '{"n": ' .. i .. ', "s": "with \\"quotes\\" and ]] closer"}',
@@ -292,9 +297,118 @@ TestRunner:test("trimCheckpoints keeps the newest N", function()
 
     ActionCache.clearXrayCheckpoints(DOC_PATH)
     TestRunner:assertEqual(#ActionCache.getXrayCheckpoints(DOC_PATH), 0, "clear removes the ring")
-
-    os.execute(string.format("rm -rf %q", TMP_ROOT))
 end)
+
+TestRunner:test("checkpoint metadata round-trips (incl. explicit false)", function()
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    ActionCache.pushXrayCheckpoint(DOC_PATH, {
+        result = '{"v": 1}',
+        progress_decimal = 0.4,
+        progress_page = 40,
+        timestamp = 1700000001,
+        used_highlights = true,
+        used_annotations = false,
+        used_book_text = false,
+        model = "test-model",
+        source_mode = "extract",
+        flow_visible_pages = 123,
+    })
+    local ring = ActionCache.getXrayCheckpoints(DOC_PATH)
+    TestRunner:assertEqual(ring[1].used_highlights, true, "used_highlights kept")
+    TestRunner:assertEqual(ring[1].used_annotations, false, "explicit false kept")
+    TestRunner:assertEqual(ring[1].used_book_text, false, "used_book_text false kept")
+    TestRunner:assertEqual(ring[1].model, "test-model", "model kept")
+    TestRunner:assertEqual(ring[1].source_mode, "extract", "source_mode kept")
+    TestRunner:assertEqual(ring[1].flow_visible_pages, 123, "flow_visible_pages kept")
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+end)
+
+TestRunner:test("nearestCheckpointIndex: at-or-below, tolerance, ties, complete excluded", function()
+    local ring = {
+        { progress_decimal = 0.60 },              -- newest
+        { progress_decimal = 0.45 },
+        { progress_decimal = 0.30 },
+        { progress_decimal = 1.0, full_document = true },
+        { progress_decimal = 0.10 },              -- oldest
+    }
+    TestRunner:assertEqual(ActionCache.nearestCheckpointIndex(ring, 0.50), 2, "0.45 nearest below 0.50")
+    TestRunner:assertEqual(ActionCache.nearestCheckpointIndex(ring, 0.35), 3, "0.30 nearest below 0.35")
+    TestRunner:assertEqual(ActionCache.nearestCheckpointIndex(ring, 0.05), nil, "all ahead -> nil")
+    -- Half-percent tolerance: a 0.598 reader matches the 0.60 version
+    TestRunner:assertEqual(ActionCache.nearestCheckpointIndex(ring, 0.598), 1, "tolerance catches near-equal")
+    -- Complete versions never qualify (whole-book spoilers), even past everything else
+    TestRunner:assertEqual(ActionCache.nearestCheckpointIndex(
+        { { progress_decimal = 1.0, full_document = true } }, 0.99), nil, "complete excluded")
+    -- Tie: two entries at the same progress -> newest (lowest index)
+    TestRunner:assertEqual(ActionCache.nearestCheckpointIndex(
+        { { progress_decimal = 0.30 }, { progress_decimal = 0.30 } }, 0.40), 1, "tie -> newest")
+end)
+
+TestRunner:test("removeXrayCheckpoint removes by index; bad index refused", function()
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    for i = 1, 3 do
+        ActionCache.pushXrayCheckpoint(DOC_PATH, {
+            result = '{"n": ' .. i .. '}', progress_decimal = i / 10, timestamp = 1700000000 + i,
+        })
+    end
+    -- ring is newest-first: [3, 2, 1]; remove the middle (n=2)
+    TestRunner:assertEqual(ActionCache.removeXrayCheckpoint(DOC_PATH, 2), true, "remove succeeds")
+    local ring = ActionCache.getXrayCheckpoints(DOC_PATH)
+    TestRunner:assertEqual(#ring, 2, "one removed")
+    TestRunner:assertEqual(ring[1].progress_decimal, 0.3, "head intact")
+    TestRunner:assertEqual(ring[2].progress_decimal, 0.1, "tail intact")
+    TestRunner:assertEqual(ActionCache.removeXrayCheckpoint(DOC_PATH, 9), false, "bad index refused")
+    ActionCache.removeXrayCheckpoint(DOC_PATH, 1)
+    ActionCache.removeXrayCheckpoint(DOC_PATH, 1)
+    TestRunner:assertEqual(#ActionCache.getXrayCheckpoints(DOC_PATH), 0, "ring empty after removing all")
+end)
+
+TestRunner:test("restoreXrayCheckpoint swaps live and archived versions (move semantics)", function()
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    -- Live cache = B (current, both keys); archived = A (older, own metadata)
+    local b_meta = { model = "model-B", used_book_text = true, used_highlights = true, progress_page = 50 }
+    ActionCache.setXrayCache(DOC_PATH, '{"live": "B"}', 0.5, b_meta)
+    ActionCache.set(DOC_PATH, "xray", '{"live": "B"}', 0.5, b_meta)
+    ActionCache.pushXrayCheckpoint(DOC_PATH, {
+        result = '{"old": "A"}', progress_decimal = 0.3, progress_page = 30,
+        timestamp = 1700000100, used_book_text = false, used_highlights = false, model = "model-A",
+    })
+
+    local ok = ActionCache.restoreXrayCheckpoint(DOC_PATH, 1)
+    TestRunner:assertEqual(ok, true, "restore succeeds")
+
+    local live = ActionCache.getXrayCache(DOC_PATH)
+    TestRunner:assertEqual(live.result, '{"old": "A"}', "A is live")
+    TestRunner:assertEqual(live.progress_decimal, 0.3, "progress restored")
+    TestRunner:assertEqual(live.timestamp, 1700000100, "original generation time preserved")
+    TestRunner:assertEqual(live.used_book_text, false, "archived flag wins over outgoing entry's")
+    TestRunner:assertEqual(live.model, "model-A", "archived model wins")
+    local per_action = ActionCache.get(DOC_PATH, "xray")
+    TestRunner:assertEqual(per_action and per_action.result, '{"old": "A"}', "per-action key updated too")
+
+    local ring = ActionCache.getXrayCheckpoints(DOC_PATH)
+    TestRunner:assertEqual(#ring, 1, "ring did not grow")
+    TestRunner:assertEqual(ring[1].result, '{"live": "B"}', "outgoing live took the slot")
+    TestRunner:assertEqual(ring[1].progress_decimal, 0.5, "with its progress")
+end)
+
+TestRunner:test("restore: pre-metadata checkpoint inherits the outgoing entry's flags", function()
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    ActionCache.setXrayCache(DOC_PATH, '{"live": "C"}', 0.6,
+        { model = "model-C", used_book_text = true, used_highlights = true })
+    -- Pre-metadata checkpoint: only the v1 archive fields
+    ActionCache.pushXrayCheckpoint(DOC_PATH, {
+        result = '{"old": "legacy"}', progress_decimal = 0.2, timestamp = 1700000200,
+    })
+    local ok = ActionCache.restoreXrayCheckpoint(DOC_PATH, 1)
+    TestRunner:assertEqual(ok, true, "restore succeeds")
+    local live = ActionCache.getXrayCache(DOC_PATH)
+    TestRunner:assertEqual(live.used_book_text, true, "falls back to outgoing flags (sticky-true superset)")
+    TestRunner:assertEqual(live.used_highlights, true, "fallback used_highlights")
+    TestRunner:assertEqual(live.model, "model-C", "fallback model")
+end)
+
+os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()
 return ok
