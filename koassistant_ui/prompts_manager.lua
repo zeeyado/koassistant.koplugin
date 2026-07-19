@@ -2912,7 +2912,7 @@ function PromptsManager:showThinkingBudgetSelector(state)
 end
 
 -- Provider selector dialog
-function PromptsManager:showProviderSelector(state)
+function PromptsManager:showProviderSelector(state, show_all)
     local ModelLists = require("koassistant_model_lists")
 
     local providers = ModelLists.getAllProviders()
@@ -2933,24 +2933,48 @@ function PromptsManager:showProviderSelector(state)
         },
     }
 
-    -- Add provider options
+    -- Add provider options. Key-filtering (controls parity): show configured
+    -- providers (+ the current override, marked); "Show all" reveals the rest.
+    -- Disarmed while no real key exists. Display-only — never touches the override.
+    local has_real_key = self.plugin:hasAnyRealApiKey()
+    local hidden_count = 0
     for _idx,provider in ipairs(providers) do
-        local prefix = (state.provider == provider) and "● " or "○ "
-        local model_count = ModelLists[provider] and #ModelLists[provider] or 0
+        local configured = not has_real_key or self.plugin:isProviderConfigured(provider)
+        if configured or show_all or state.provider == provider then
+            local prefix = (state.provider == provider) and "● " or "○ "
+            local model_count = ModelLists[provider] and #ModelLists[provider] or 0
+            local label = prefix .. provider .. " (" .. model_count .. " models)"
+            if not configured then
+                label = T(_("%1 (no key)"), label)
+            end
+            table.insert(buttons, {
+                {
+                    text = label,
+                    callback = function()
+                        state.provider = provider
+                        -- Set default model for this provider
+                        if ModelLists[provider] and #ModelLists[provider] > 0 then
+                            state.model = ModelLists[provider][1]
+                        else
+                            state.model = nil
+                        end
+                        UIManager:close(self.provider_dialog)
+                        UIManager:close(self.advanced_dialog)
+                        self:showStep3_Settings(state)
+                    end,
+                },
+            })
+        else
+            hidden_count = hidden_count + 1
+        end
+    end
+    if hidden_count > 0 then
         table.insert(buttons, {
             {
-                text = prefix .. provider .. " (" .. model_count .. " models)",
+                text = T(_("Show all providers (%1 more)…"), hidden_count),
                 callback = function()
-                    state.provider = provider
-                    -- Set default model for this provider
-                    if ModelLists[provider] and #ModelLists[provider] > 0 then
-                        state.model = ModelLists[provider][1]
-                    else
-                        state.model = nil
-                    end
                     UIManager:close(self.provider_dialog)
-                    UIManager:close(self.advanced_dialog)
-                    self:showStep3_Settings(state)
+                    self:showProviderSelector(state, true)
                 end,
             },
         })
@@ -3678,7 +3702,7 @@ function PromptsManager:showBuiltinTemperatureSelector(state)
 end
 
 -- Provider selector for builtin actions
-function PromptsManager:showBuiltinProviderSelector(state)
+function PromptsManager:showBuiltinProviderSelector(state, show_all)
     local ModelLists = require("koassistant_model_lists")
 
     local providers = ModelLists.getAllProviders()
@@ -3698,22 +3722,45 @@ function PromptsManager:showBuiltinProviderSelector(state)
         },
     }
 
+    -- Key-filtering (controls parity): same rules as showProviderSelector
+    local has_real_key = self.plugin:hasAnyRealApiKey()
+    local hidden_count = 0
     for _idx,provider in ipairs(providers) do
-        local prefix = (state.provider == provider) and "● " or "○ "
-        local model_count = ModelLists[provider] and #ModelLists[provider] or 0
+        local configured = not has_real_key or self.plugin:isProviderConfigured(provider)
+        if configured or show_all or state.provider == provider then
+            local prefix = (state.provider == provider) and "● " or "○ "
+            local model_count = ModelLists[provider] and #ModelLists[provider] or 0
+            local label = prefix .. provider .. " (" .. model_count .. " models)"
+            if not configured then
+                label = T(_("%1 (no key)"), label)
+            end
+            table.insert(buttons, {
+                {
+                    text = label,
+                    callback = function()
+                        state.provider = provider
+                        if ModelLists[provider] and #ModelLists[provider] > 0 then
+                            state.model = ModelLists[provider][1]
+                        else
+                            state.model = nil
+                        end
+                        UIManager:close(self.builtin_provider_dialog)
+                        UIManager:close(self.builtin_settings_dialog)
+                        self:showBuiltinSettingsDialog(state)
+                    end,
+                },
+            })
+        else
+            hidden_count = hidden_count + 1
+        end
+    end
+    if hidden_count > 0 then
         table.insert(buttons, {
             {
-                text = prefix .. provider .. " (" .. model_count .. " models)",
+                text = T(_("Show all providers (%1 more)…"), hidden_count),
                 callback = function()
-                    state.provider = provider
-                    if ModelLists[provider] and #ModelLists[provider] > 0 then
-                        state.model = ModelLists[provider][1]
-                    else
-                        state.model = nil
-                    end
                     UIManager:close(self.builtin_provider_dialog)
-                    UIManager:close(self.builtin_settings_dialog)
-                    self:showBuiltinSettingsDialog(state)
+                    self:showBuiltinProviderSelector(state, true)
                 end,
             },
         })
@@ -4042,8 +4089,8 @@ function PromptsManager:showCustomQuickSettingsDialog(state)
     -- Reasoning display
     local thinking_display = self:getStateReasoningDisplayText(state)
 
-    -- Provider/model display
-    local provider_display = state.provider or _("Global")
+    -- Provider/model display (custom providers store an id — show their name)
+    local provider_display = state.provider and self.plugin:getProviderDisplayName(state.provider) or _("Global")
     local model_display = state.model or _("Global")
 
     local buttons = {
@@ -4548,8 +4595,9 @@ function PromptsManager:showCustomTemperatureSelector(state)
 end
 
 -- Provider selector for custom quick settings
-function PromptsManager:showCustomProviderSelector(state)
+function PromptsManager:showCustomProviderSelector(state, show_all)
     local ModelLists = require("koassistant_model_lists")
+    local plugin = self.plugin
     local buttons = {}
 
     -- Global option
@@ -4566,19 +4614,56 @@ function PromptsManager:showCustomProviderSelector(state)
         },
     })
 
-    -- Provider list
-    local providers = ModelLists.getAllProvidersWithCustom(self.plugin.settings)
-    for _idx, provider in ipairs(providers) do
-        local is_selected = state.provider == provider.id
+    -- Provider list: built-ins + custom providers, sorted by display name
+    -- (mirrors buildProviderMenu)
+    local all_providers = {}
+    for _idx, provider in ipairs(ModelLists.getAllProviders()) do
+        table.insert(all_providers, { id = provider, name = provider:gsub("^%l", string.upper) })
+    end
+    for _idx, cp in ipairs(plugin:getCustomProviders()) do
+        if cp.id then
+            table.insert(all_providers, { id = cp.id, name = cp.name or cp.id, is_custom = true, config = cp })
+        end
+    end
+    table.sort(all_providers, function(a, b) return a.name:lower() < b.name:lower() end)
+
+    -- Key-filtering (controls parity): show configured providers (+ the current
+    -- override, marked); "Show all" reveals the rest. Disarmed while no real key
+    -- exists. Display-only — the stored override is never touched.
+    local has_real_key = plugin:hasAnyRealApiKey()
+    local hidden_count = 0
+    for _idx, prov in ipairs(all_providers) do
+        local configured = not has_real_key or plugin:isProviderConfigured(prov.id, prov.config)
+        if configured or show_all or state.provider == prov.id then
+            local label = (state.provider == prov.id and "● " or "○ ")
+                .. (prov.is_custom and ("★ " .. prov.name) or prov.name)
+            if not configured then
+                label = T(_("%1 (no key)"), label)
+            end
+            local prov_id = prov.id
+            table.insert(buttons, {
+                {
+                    text = label,
+                    callback = function()
+                        state.provider = prov_id
+                        state.model = nil  -- Reset model when provider changes
+                        UIManager:close(self.custom_provider_dialog)
+                        UIManager:close(self.custom_quick_dialog)
+                        self:showCustomQuickSettingsDialog(state)
+                    end,
+                },
+            })
+        else
+            hidden_count = hidden_count + 1
+        end
+    end
+    if hidden_count > 0 then
         table.insert(buttons, {
             {
-                text = (is_selected and "● " or "○ ") .. provider.name,
+                text = T(_("Show all providers (%1 more)…"), hidden_count),
                 callback = function()
-                    state.provider = provider.id
-                    state.model = nil  -- Reset model when provider changes
                     UIManager:close(self.custom_provider_dialog)
-                    UIManager:close(self.custom_quick_dialog)
-                    self:showCustomQuickSettingsDialog(state)
+                    self:showCustomProviderSelector(state, true)
                 end,
             },
         })
@@ -4604,10 +4689,26 @@ end
 -- Model selector for custom quick settings
 function PromptsManager:showCustomModelSelector(state)
     local ModelLists = require("koassistant_model_lists")
+    local plugin = self.plugin
     local buttons = {}
 
-    -- Get models for selected provider
-    local models = ModelLists.getModelsForProvider(state.provider, self.plugin.settings)
+    -- Get models for selected provider: built-in list, or for custom providers
+    -- their default model + any user-saved custom models
+    local models
+    local custom_provider = plugin:getCustomProvider(state.provider)
+    if custom_provider then
+        models = {}
+        if custom_provider.default_model and custom_provider.default_model ~= "" then
+            table.insert(models, custom_provider.default_model)
+        end
+        for _idx, m in ipairs(plugin:getCustomModels(state.provider)) do
+            if m ~= custom_provider.default_model then
+                table.insert(models, m)
+            end
+        end
+    else
+        models = ModelLists[state.provider] or {}
+    end
 
     for _idx, model in ipairs(models) do
         local is_selected = state.model == model

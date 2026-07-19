@@ -2055,6 +2055,32 @@ function AskGPT:getProviderDisplayName(provider_id)
   return provider_id:gsub("^%l", string.upper)
 end
 
+-- Helper: A provider is "configured" when a real API key resolves for it (GUI or
+-- apikeys.lua), or when it doesn't need one (ollama; custom providers with
+-- api_key_required = false). Mirrors the pre-flight gate in koassistant_gpt_query.
+function AskGPT:isProviderConfigured(provider_id, custom_config)
+  if provider_id == "ollama" then return true end
+  local custom = custom_config or self:getCustomProvider(provider_id)
+  if custom and custom.api_key_required == false then return true end
+  local BaseHandler = require("koassistant_api.base")
+  return BaseHandler.getApiKey(provider_id, self.settings) ~= nil
+end
+
+-- Helper: true when at least one provider (built-in or custom) has an actual API
+-- key. While false (fresh install), key-filtered pickers stay disarmed and show
+-- the full list; keyless-but-usable providers like Ollama don't count toward this.
+function AskGPT:hasAnyRealApiKey()
+  local BaseHandler = require("koassistant_api.base")
+  local ModelLists = require("koassistant_model_lists")
+  for _idx, provider in ipairs(ModelLists.getAllProviders()) do
+    if BaseHandler.getApiKey(provider, self.settings) then return true end
+  end
+  for _idx, cp in ipairs(self:getCustomProviders()) do
+    if cp.id and BaseHandler.getApiKey(cp.id, self.settings) then return true end
+  end
+  return false
+end
+
 -- Helper: Generate a unique ID for a custom provider
 function AskGPT:generateCustomProviderId(name)
   -- Convert name to lowercase, replace spaces with underscores
@@ -2233,7 +2259,7 @@ end
 
 -- Helper: Build provider selection sub-menu
 -- @param simplified: if true, shows only provider list without management options (for quick settings)
-function AskGPT:buildProviderMenu(simplified)
+function AskGPT:buildProviderMenu(simplified, show_all)
   local self_ref = self
   local current = self:getCurrentProvider()
   local ModelLists = require("koassistant_model_lists")
@@ -2291,10 +2317,37 @@ function AskGPT:buildProviderMenu(simplified)
     return a.display_name:lower() < b.display_name:lower()
   end)
 
+  -- Key-filtering (controls parity): in quick-settings mode, once any real API key
+  -- exists, show only configured providers (+ the current selection, marked) with a
+  -- "Show all" escape hatch. Display-only — stored selections are never touched.
+  local hidden_count = 0
+  if simplified then
+    local has_real_key = self:hasAnyRealApiKey()
+    for _i, prov in ipairs(all_providers) do
+      if has_real_key and not self:isProviderConfigured(prov.id, prov.config) then
+        prov.no_key = true
+      end
+    end
+    if has_real_key and not show_all then
+      local kept = {}
+      for _i, prov in ipairs(all_providers) do
+        if not prov.no_key or prov.id == current then
+          table.insert(kept, prov)
+        else
+          hidden_count = hidden_count + 1
+        end
+      end
+      all_providers = kept
+    end
+  end
+
   -- Create menu items from sorted list
   for _i, prov in ipairs(all_providers) do
     local prov_copy = prov  -- Capture for closure
     local text = prov.is_custom and ("★ " .. prov.display_name) or prov.display_name
+    if prov.no_key then
+      text = T(_("%1 (no key)"), text)
+    end
     local item = {
       text = text,
       checked_func = function() return self_ref:getCurrentProvider() == prov_copy.id end,
@@ -2311,6 +2364,15 @@ function AskGPT:buildProviderMenu(simplified)
     end
 
     table.insert(items, item)
+  end
+
+  -- "Show all" escape hatch so the filtered list never hides the existence of
+  -- more providers (keys are added in Settings → API Keys)
+  if hidden_count > 0 then
+    table.insert(items, {
+      text = T(_("Show all providers (%1 more)…"), hidden_count),
+      replace_items = function() return self_ref:buildProviderMenu(true, true) end,
+    })
   end
 
   -- Add management options (only in full mode, not quick settings)
@@ -9705,28 +9767,45 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
       if is_checked then
         text = "✓ " .. text
       end
-      table.insert(buttons, {
-        {
-          text = text,
-          callback = function()
-            if item.callback then
-              item.callback()
-            end
+      local btn = {
+        text = text,
+        callback = function()
+          -- replace_items: swap this popup's list in place (e.g. "Show all
+          -- providers"), keeping the same title and close semantics
+          if item.replace_items then
             UIManager:close(self_ref._quick_settings_dialog)
-            if not close_on_select then
-              -- Reopen to show updated state
-              self_ref._quick_settings_dialog = nil
-              self_ref:showQuickSettingsPopup(title, menu_items, close_on_select, on_close_callback)
-            else
-              self_ref._quick_settings_dialog = nil
-              -- Call the close callback if provided (e.g., to reopen parent dialog)
-              if on_close_callback then
-                on_close_callback()
-              end
+            self_ref._quick_settings_dialog = nil
+            self_ref:showQuickSettingsPopup(title, item.replace_items(), close_on_select, on_close_callback)
+            return
+          end
+          if item.callback then
+            item.callback()
+          end
+          UIManager:close(self_ref._quick_settings_dialog)
+          if not close_on_select then
+            -- Reopen to show updated state
+            self_ref._quick_settings_dialog = nil
+            self_ref:showQuickSettingsPopup(title, menu_items, close_on_select, on_close_callback)
+          else
+            self_ref._quick_settings_dialog = nil
+            -- Call the close callback if provided (e.g., to reopen parent dialog)
+            if on_close_callback then
+              on_close_callback()
             end
-          end,
-        },
-      })
+          end
+        end,
+      }
+      -- Long-press: pass the item's hold action through (e.g. custom provider
+      -- options) — close the popup first so the follow-up dialog isn't stacked
+      -- over a list it may invalidate
+      if item.hold_callback then
+        btn.hold_callback = function()
+          UIManager:close(self_ref._quick_settings_dialog)
+          self_ref._quick_settings_dialog = nil
+          item.hold_callback()
+        end
+      end
+      table.insert(buttons, { btn })
     end
   end
 
@@ -9968,7 +10047,7 @@ end
 --- state) → the same reasoning popup for that model. Lets the Quick Settings popup
 --- reach EVERY model, not just the active one.
 --- (Defined after reasoningCapableProviders — local function ordering matters.)
-function AskGPT:showReasoningModelBrowser(on_close_callback)
+function AskGPT:showReasoningModelBrowser(on_close_callback, show_all)
   local ButtonDialog = require("ui/widget/buttondialog")
   local ModelConstraints = require("model_constraints")
   local ReasoningPrefs = require("reasoning_prefs")
@@ -10008,13 +10087,31 @@ function AskGPT:showReasoningModelBrowser(on_close_callback)
   end
 
   local buttons = {}
+  -- Key-filtering (controls parity): quick-settings surface, so hide providers
+  -- without a configured key behind a "Show all" row (disarmed while no real key
+  -- exists at all)
+  local has_real_key = self:hasAnyRealApiKey()
+  local hidden_count = 0
   for _idx, provider in ipairs(reasoningCapableProviders()) do
     local p = provider
+    if show_all or not has_real_key or self:isProviderConfigured(p) then
+      table.insert(buttons, {{
+        text = self_ref:getProviderDisplayName(p),
+        callback = function()
+          closeBrowser()
+          showModels(p)
+        end,
+      }})
+    else
+      hidden_count = hidden_count + 1
+    end
+  end
+  if hidden_count > 0 then
     table.insert(buttons, {{
-      text = self_ref:getProviderDisplayName(p),
+      text = T(_("Show all providers (%1 more)…"), hidden_count),
       callback = function()
         closeBrowser()
-        showModels(p)
+        self_ref:showReasoningModelBrowser(on_close_callback, true)
       end,
     }})
   end

@@ -582,27 +582,6 @@ function ModelLists.getAllProviders()
     return providers
 end
 
--- Get sorted list of all providers including custom ones
--- @param custom_providers table - Array of custom provider objects {id, name, base_url, ...}
--- @return table, table - Array of provider IDs, table mapping ID -> is_custom
-function ModelLists.getAllProvidersWithCustom(custom_providers)
-    local providers = ModelLists.getAllProviders()
-    local is_custom = {}
-
-    -- Add custom providers
-    if custom_providers and type(custom_providers) == "table" then
-        for _, cp in ipairs(custom_providers) do
-            if cp.id then
-                table.insert(providers, cp.id)
-                is_custom[cp.id] = true
-            end
-        end
-    end
-
-    table.sort(providers)
-    return providers, is_custom
-end
-
 -- Check if a provider ID is a built-in provider
 -- @param provider_id string - Provider ID to check
 -- @return boolean
