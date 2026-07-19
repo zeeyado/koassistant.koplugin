@@ -555,6 +555,28 @@ local function showContentPicker(title, is_translate, callback)
     UIManager:show(content_dialog)
 end
 
+-- Copy with an explicit content pick (Copy long-press — controls parity slice
+-- (d)): same data path as the tap's doCopy at each Copy site, but ALWAYS asks,
+-- regardless of the copy_content/dictionary_copy_content default.
+local function copyWithPicker(viewer, is_translate)
+    local history = viewer._message_history or viewer.original_history
+    if not history then
+        UIManager:show(Notification:new{ text = _("No chat to copy"), timeout = 2 })
+        return
+    end
+    local features = viewer.configuration and viewer.configuration.features or {}
+    local style = features.export_style or "markdown"
+    showContentPicker(_("Copy Content"), is_translate, function(selected_content)
+        local Export = require("koassistant_export")
+        local book_metadata = features.book_metadata
+        local books_info = features.is_library_context and features.books_info or nil
+        local data = Export.fromHistory(history, viewer.original_highlighted_text, book_metadata, books_info)
+        local text = Export.format(data, selected_content, style)
+        Device.input.setClipboardText(text)
+        UIManager:show(Notification:new{ text = _("Copied"), timeout = 2 })
+    end)
+end
+
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
 local function preprocessMarkdownTables(text)
     if not text then return text end
@@ -886,6 +908,7 @@ local ChatGPTViewer = InputContainer:extend {
 
   -- Session-only web search override (nil = follow global, true = force on, false = force off)
   session_web_search_override = nil,
+  session_tools_override = nil,  -- Reply-dialog Tools toggle (parity slice (b))
 
   -- Compact view mode (used for dictionary lookups)
   compact_view = false,
@@ -1148,7 +1171,11 @@ function ChatGPTViewer:init()
           doCopy(content)
         end
       end,
-      hold_callback = self.default_hold_callback,
+      hold_callback = function()
+        -- Long-press: always offer the content picker (tap follows the
+        -- copy_content default — parity slice (d))
+        copyWithPicker(self, false)
+      end,
     },
     {
       text = _("Save to Note"),
@@ -1560,7 +1587,10 @@ function ChatGPTViewer:init()
         doCopy(content)
       end
     end,
-    hold_callback = self.default_hold_callback,
+    hold_callback = function()
+      -- Long-press: always offer the content picker (parity slice (d))
+      copyWithPicker(self, false)
+    end,
   })
 
   -- Row 1: +Note button (save to KOReader highlight note)
@@ -1988,7 +2018,10 @@ function ChatGPTViewer:init()
         doCopy(content)
       end
     end,
-    hold_callback = self.default_hold_callback,
+    hold_callback = function()
+      -- Long-press: always offer the content picker (parity slice (d))
+      copyWithPicker(self, true)
+    end,
   })
 
   -- Translate Row 1: Save to Note button (grayed out when no selection_data)
@@ -2820,6 +2853,104 @@ function ChatGPTViewer:askAnotherQuestion()
   end
 
   local input_dialog
+
+  -- Reply-surface session controls (controls parity slice (b) — plan §1/§8.1,
+  -- the LIVE-READ class): Web and Tools are read fresh at reply dispatch
+  -- (onAskQuestion applies the overrides to the chat's config), so a per-chat
+  -- toggle here needs no system-prompt rebuild. Button labels are static while
+  -- the dialog is up — toggling saves the draft and reopens for fresh labels.
+  local cfg = self.configuration or {}
+  local cfg_features = cfg.features or {}
+  local function reopenWithDraft()
+    local draft = input_dialog:getInputText()
+    if draft and draft ~= "" then
+      current_instance.reply_draft = draft
+    else
+      current_instance.reply_draft = nil
+    end
+    UIManager:close(input_dialog)
+    current_instance:askAnotherQuestion()
+  end
+
+  -- Web toggle (state logic mirrors the viewer's row-2 web button)
+  local ConfigHelper = require("koassistant_config_helper")
+  local web_btn
+  if ConfigHelper:supportsWebSearch(cfg) then
+    local web_state
+    if self.session_web_search_override ~= nil then
+      web_state = self.session_web_search_override
+    elseif cfg.enable_web_search ~= nil then
+      web_state = cfg.enable_web_search == true
+    else
+      web_state = cfg_features.enable_web_search == true
+    end
+    web_btn = {
+      text = web_state and _("Web ON") or _("Web OFF"),
+      font_bold = false,
+      callback = function()
+        current_instance.session_web_search_override = not web_state
+        reopenWithDraft()
+      end,
+    }
+  else
+    web_btn = {
+      text = _("Web N/A"),
+      font_bold = false,
+      callback = function()
+        UIManager:show(InfoMessage:new{
+          text = T(_("Web search isn't currently available for %1."),
+            cfg.provider or _("this provider")),
+        })
+      end,
+    }
+  end
+
+  -- Tools toggle: same exclusions as the input dialog's Tools chip (X-Ray chat
+  -- policy exclusion; capability/consent/open-book eligibility). The override is
+  -- viewer-session-sticky, like the web one.
+  local tools_btn
+  if cfg_features._xray_chat_active then
+    tools_btn = {
+      text = _("Tools N/A"),
+      font_bold = false,
+      callback = function()
+        UIManager:show(InfoMessage:new{
+          text = _("Book tools aren't available in X-Ray chats."),
+        })
+      end,
+    }
+  else
+    local BookToolRunner = require("koassistant_book_tool_runner")
+    local eligible = BookToolRunner.sessionEligible
+      and BookToolRunner.sessionEligible(cfg, self._ui)
+    if not eligible then
+      tools_btn = {
+        text = _("Tools N/A"),
+        font_bold = false,
+        callback = function()
+          UIManager:show(InfoMessage:new{
+            text = _("Book tools aren't available for this chat (provider support, text-extraction consent, or no open book)."),
+          })
+        end,
+      }
+    else
+      local tools_effective
+      if self.session_tools_override ~= nil then
+        tools_effective = self.session_tools_override
+      else
+        tools_effective = cfg_features._tools_active == true
+      end
+      tools_btn = {
+        text = tools_effective and _("Tools ON") or _("Tools OFF"),
+        font_bold = false,
+        callback = function()
+          current_instance.session_tools_override = not tools_effective
+          reopenWithDraft()
+        end,
+      }
+    end
+  end
+
   input_dialog = InputDialog:new {
     title = _("Reply"),
     input = self.reply_draft or "",  -- Restore saved draft
@@ -2839,6 +2970,7 @@ function ChatGPTViewer:askAnotherQuestion()
     text_height = Screen:scaleBySize(160),
     width = UIConstants.DIALOG_WIDTH(),
     buttons = {
+      { web_btn, tools_btn },
       {
         {
           text = _("Close"),

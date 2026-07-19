@@ -1615,6 +1615,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config.features._tools_active = nil
     config.features._spoiler_free_active = nil
     config.features._web_search_active = nil
+    -- Stale X-Ray-chat marker from a prior freeform send would mislabel this
+    -- chat's reply Tools toggle "N/A (X-Ray)" AND silently suppress tools in
+    -- shouldUse — resumed chats are never X-Ray chats.
+    config.features._xray_chat_active = nil
     -- Quick controls (controls_parity_plan.md §10): resumed chats follow the global
     -- settings too — clear the dispatch consumables and any lingering chip state.
     config.features._quick_answer_active = nil
@@ -1849,7 +1853,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     -- Function to create and show the chat viewer
     -- state param for rotation: {text, scroll_ratio, scroll_to_last_question}
     -- session_web_search param: preserved session web search override (nil/true/false)
-    local function showChatViewer(content_text, state, session_web_search)
+    local function showChatViewer(content_text, state, session_web_search, session_tools)
         -- Always close existing viewer first
         safeClose(self_ref.current_chat_viewer)
         self_ref.current_chat_viewer = nil
@@ -1870,6 +1874,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             original_history = history,
             original_highlighted_text = chat_highlighted_text,
             session_web_search_override = session_web_search,  -- Preserve session override
+            session_tools_override = session_tools,  -- Preserve session override (parity slice (b))
             _plugin = ui and ui.koassistant,  -- For text selection dictionary lookup
             _ui = ui,  -- For text selection dictionary lookup
             settings_callback = function(path, value)
@@ -1907,12 +1912,19 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 end
             end,
             onAskQuestion = function(self_viewer, question)
-                -- Store session web search override before viewer is closed
+                -- Store session overrides before viewer is closed
                 local viewer_web_search = self_viewer.session_web_search_override
+                local viewer_tools = self_viewer.session_tools_override
 
                 -- Apply session web search override if set on the viewer
                 if viewer_web_search ~= nil then
                     config.enable_web_search = viewer_web_search
+                end
+                -- Apply session tools override (Reply-dialog Tools toggle —
+                -- parity slice (b)): read at dispatch by BookToolRunner.shouldUse
+                if viewer_tools ~= nil then
+                    config.features = config.features or {}
+                    config.features._tools_active = viewer_tools
                 end
 
                 showLoadingDialog()
@@ -1922,7 +1934,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     local function onResponseComplete(success, answer, err)
                         if success and answer then
                             local new_content = history:createResultText(chat_highlighted_text, config)
-                            showChatViewer(new_content, nil, viewer_web_search)
+                            showChatViewer(new_content, nil, viewer_web_search, viewer_tools)
                         else
                             UIManager:show(InfoMessage:new{
                                 text = _("Failed to get response: ") .. (err or "Unknown error"),

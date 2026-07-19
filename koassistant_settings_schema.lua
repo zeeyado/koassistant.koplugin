@@ -483,23 +483,25 @@ local SettingsSchema = {
                         },
                         {
                             id = "quick_preset_model_mode",
-                            type = "radio",
+                            type = "action",
                             text_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 local mode = f.quick_preset_model_mode or "none"
-                                local labels = {
-                                    none = _("Keep current"),
-                                    fastest = _("Fastest for provider"),
-                                }
-                                return T(_("Model: %1"), labels[mode] or mode)
+                                local label
+                                if mode == "fastest" then
+                                    label = _("Fastest for provider")
+                                elseif mode == "tier" then
+                                    label = T(_("%1 tier"), f.quick_preset_tier or "fast")
+                                elseif mode == "model" then
+                                    label = f.quick_preset_model or "?"
+                                else
+                                    label = _("Keep current")
+                                end
+                                return T(_("Model override: %1"), label)
                             end,
-                            help_text = _("Optionally switch to your active provider's fastest listed model while Quick Answer is on (this chat only — your default model is untouched). Custom providers have no tier info and keep the current model. A one-shot model pick in the Quick chip's menu overrides this."),
-                            path = "features.quick_preset_model_mode",
-                            default = "none",
-                            options = {
-                                { value = "none", text = _("Keep current model") },
-                                { value = "fastest", text = _("Fastest model for active provider") },
-                            },
+                            help_text = _("Optionally switch models while Quick Answer is on (that chat only — your default model is untouched): the active provider's fastest listed model, a tier of the active provider, or a pinned specific model. Custom providers have no tier info and keep the current model. A one-shot model pick in the Quick chip's menu overrides this."),
+                            callback = "showQuickPresetModelMode",
+                            keep_menu_open = true,
                         },
                     },
                 },

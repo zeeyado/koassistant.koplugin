@@ -300,6 +300,38 @@ end
 -- @param action: Optional action definition with behavior/api_params
 -- @param plugin: Plugin instance
 -- @return boolean: true if config was successfully built
+-- Resolve the Quick Answer preset's model component (controls_parity_plan.md §2
+-- round 3): quick_preset_model_mode = "none" | "fastest" (fastest listed tier for
+-- the active provider) | "tier" (quick_preset_tier for the active provider, tier
+-- fallback toward faster) | "model" (pinned quick_preset_provider/_model).
+-- Shared by the request bake AND the quick-menu provenance label — keep them
+-- agreeing. Returns { provider, model } or nil (no override).
+local function resolveQuickPresetModel(features, provider)
+    local mode = features.quick_preset_model_mode or "none"
+    if mode == "none" then return nil end
+    local MLists = require("koassistant_model_lists")
+    if mode == "model" then
+        if features.quick_preset_provider and features.quick_preset_model then
+            return { provider = features.quick_preset_provider, model = features.quick_preset_model }
+        end
+        return nil
+    end
+    if mode == "tier" then
+        local m = MLists.getModelForTier(provider, features.quick_preset_tier or "fast", true)
+        if m then return { provider = provider, model = m } end
+        return nil
+    end
+    -- "fastest": walk from ultrafast toward slower until the provider has a listed
+    -- tier (custom providers have no tier info → nil → keep the current model)
+    for _idx, tier in ipairs({ "ultrafast", "fast", "standard", "flagship" }) do
+        local tier_map = MLists._tiers[tier]
+        if tier_map and tier_map[provider] then
+            return { provider = provider, model = tier_map[provider] }
+        end
+    end
+    return nil
+end
+
 local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     if not config then return false end
 
@@ -324,20 +356,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     if quick_answer and action and action.accept_quick_answer ~= true then
         quick_answer = nil
     end
-    -- Preset model component (quick_preset_model_mode = "fastest"): switch to the
-    -- active provider's fastest LISTED model for this chat. Manual ⚡-menu model
-    -- picks win; custom providers have no tier info and keep the current model.
-    if quick_answer and not model_override
-        and features.quick_preset_model_mode == "fastest" then
-        local MLists = require("koassistant_model_lists")
-        local prov = config.provider or config.default_provider or "anthropic"
-        for _idx, tier in ipairs({ "ultrafast", "fast", "standard", "flagship" }) do
-            local tier_map = MLists._tiers[tier]
-            if tier_map and tier_map[prov] then
-                model_override = { provider = prov, model = tier_map[prov] }
-                break
-            end
-        end
+    -- Preset model component: switch model for this chat per quick_preset_model_mode
+    -- (fastest / tier / pinned model — resolveQuickPresetModel above). Manual
+    -- ⚡-menu model picks win.
+    if quick_answer and not model_override then
+        model_override = resolveQuickPresetModel(features,
+            config.provider or config.default_provider or "anthropic")
     end
     -- One-shot provider/model override — applied BEFORE every provider-dependent
     -- read below (caching gate, Perplexity check, reasoning resolution). An
@@ -557,6 +581,245 @@ local function createTempConfig(prompt, base_config)
     return temp_config
 end
 
+-- Shared provider→model picker (module-level): used by the ⚡ menu's one-shot
+-- model pick and by the Quick Answer preset's pinned-model pick. Key-filtered
+-- like every quick picker (slice (a)): configured providers (+ the current pick,
+-- marked), "Show all" reveals the rest, disarmed while no real key exists.
+-- opts = { plugin, current = {provider, model}|nil,
+--          top_row = { text, callback }|nil (prepended row, closes first),
+--          on_pick(provider_id, model_name) }
+local function pickProviderModel(opts)
+    local ButtonDialog = require("ui/widget/buttondialog")
+    local ModelLists = require("koassistant_model_lists")
+    local plugin = opts.plugin
+    local current = opts.current
+
+    local function pickModelFor(provider_id, provider_label)
+        local sub
+        -- Built-in list, or for custom providers their default model + saved
+        -- customs (same sources as the Quick Edit selector)
+        local models
+        local custom = plugin and plugin.getCustomProvider and plugin:getCustomProvider(provider_id)
+        if custom then
+            models = {}
+            if custom.default_model and custom.default_model ~= "" then
+                table.insert(models, custom.default_model)
+            end
+            for _idx, m in ipairs(plugin:getCustomModels(provider_id)) do
+                if m ~= custom.default_model then
+                    table.insert(models, m)
+                end
+            end
+        else
+            models = ModelLists[provider_id] or {}
+        end
+        local buttons = {}
+        for _idx, m in ipairs(models) do
+            local model_name = m
+            local is_current = current and current.provider == provider_id
+                and current.model == model_name
+            table.insert(buttons, {{
+                text = (is_current and "● " or "○ ") .. model_name,
+                callback = function()
+                    UIManager:close(sub)
+                    opts.on_pick(provider_id, model_name)
+                end,
+            }})
+        end
+        if #buttons == 0 then
+            table.insert(buttons, {{ text = _("No models listed for this provider"), enabled = false }})
+        end
+        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        sub = ButtonDialog:new{
+            title = T(_("Model · %1"), provider_label),
+            buttons = buttons,
+        }
+        UIManager:show(sub)
+    end
+
+    local pickProvider
+    pickProvider = function(show_all)
+        local sub
+        local buttons = {}
+        if opts.top_row then
+            table.insert(buttons, {{
+                text = opts.top_row.text,
+                callback = function()
+                    UIManager:close(sub)
+                    opts.top_row.callback()
+                end,
+            }})
+        end
+        local all_providers = {}
+        for _idx, provider in ipairs(ModelLists.getAllProviders()) do
+            table.insert(all_providers, { id = provider, name = provider:gsub("^%l", string.upper) })
+        end
+        if plugin and plugin.getCustomProviders then
+            for _idx, cp in ipairs(plugin:getCustomProviders()) do
+                if cp.id then
+                    table.insert(all_providers, { id = cp.id, name = cp.name or cp.id, is_custom = true, config = cp })
+                end
+            end
+        end
+        table.sort(all_providers, function(a, b) return a.name:lower() < b.name:lower() end)
+        local has_real_key = plugin and plugin.hasAnyRealApiKey and plugin:hasAnyRealApiKey()
+        local hidden_count = 0
+        for _idx, prov in ipairs(all_providers) do
+            local configured = not has_real_key
+                or plugin:isProviderConfigured(prov.id, prov.config)
+            local is_current = current and current.provider == prov.id
+            if configured or show_all or is_current then
+                local label = prov.is_custom and ("★ " .. prov.name) or prov.name
+                if not configured then
+                    label = T(_("%1 (no key)"), label)
+                end
+                local prov_id, prov_name = prov.id, prov.name
+                table.insert(buttons, {{
+                    text = label,
+                    callback = function()
+                        UIManager:close(sub)
+                        pickModelFor(prov_id, prov_name)
+                    end,
+                }})
+            else
+                hidden_count = hidden_count + 1
+            end
+        end
+        if hidden_count > 0 then
+            table.insert(buttons, {{
+                text = T(_("Show all providers (%1 more)…"), hidden_count),
+                callback = function()
+                    UIManager:close(sub)
+                    pickProvider(true)
+                end,
+            }})
+        end
+        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        sub = ButtonDialog:new{
+            title = _("Model · pick a provider"),
+            buttons = buttons,
+        }
+        UIManager:show(sub)
+    end
+
+    pickProvider(false)
+end
+
+-- Quick Answer preset: model-component mode picker — Keep current / Fastest /
+-- Tier for active provider / Specific pinned model (controls_parity_plan.md §2
+-- round 3, maintainer: "more complete settings" + clearer provenance).
+-- Persistent settings. Reachable from the preset editor AND main settings
+-- (schema action row → AskGPT:showQuickPresetModelMode).
+-- opts = { plugin, on_close }
+local showQuickPresetModelMode
+showQuickPresetModelMode = function(opts)
+    local ButtonDialog = require("ui/widget/buttondialog")
+    local plugin = opts.plugin
+    local dialog
+    local function mutate(fn)
+        local f = plugin.settings:readSetting("features") or {}
+        fn(f)
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        if plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+    end
+    local function finish()
+        if opts.on_close then opts.on_close() end
+    end
+    local f = plugin.settings:readSetting("features") or {}
+    local mode = f.quick_preset_model_mode or "none"
+    local active_provider = (plugin.getCurrentProvider and plugin:getCurrentProvider()) or "anthropic"
+
+    local function pickTier()
+        local ModelLists = require("koassistant_model_lists")
+        local sub
+        local buttons = {}
+        local TIERS = {
+            { id = "ultrafast", label = _("Ultrafast") },
+            { id = "fast", label = _("Fast") },
+            { id = "standard", label = _("Standard") },
+            { id = "flagship", label = _("Flagship") },
+            { id = "reasoning", label = _("Reasoning") },
+        }
+        for _idx, tier in ipairs(TIERS) do
+            -- Not every provider lists every tier: show what the pick resolves to
+            -- for the ACTIVE provider (fallback walks toward faster tiers)
+            local resolved = ModelLists.getModelForTier(active_provider, tier.id, true)
+            local is_current = mode == "tier" and (f.quick_preset_tier or "fast") == tier.id
+            local tier_id = tier.id
+            table.insert(buttons, {{
+                text = (is_current and "● " or "○ ")
+                    .. (resolved and T(_("%1 (%2)"), tier.label, resolved)
+                        or T(_("%1 (not available)"), tier.label)),
+                enabled = resolved ~= nil,
+                callback = function()
+                    mutate(function(feats)
+                        feats.quick_preset_model_mode = "tier"
+                        feats.quick_preset_tier = tier_id
+                    end)
+                    UIManager:close(sub)
+                    finish()
+                end,
+            }})
+        end
+        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        sub = ButtonDialog:new{
+            title = T(_("Tier for %1"), plugin.getProviderDisplayName
+                and plugin:getProviderDisplayName(active_provider) or active_provider),
+            buttons = buttons,
+        }
+        UIManager:show(sub)
+    end
+
+    local function row(label, is_current, cb)
+        return {{ text = (is_current and "● " or "○ ") .. label, callback = cb }}
+    end
+    dialog = ButtonDialog:new{
+        title = _("Quick Answer preset · model"),
+        buttons = {
+            row(_("Keep current model"), mode == "none", function()
+                mutate(function(feats) feats.quick_preset_model_mode = "none" end)
+                UIManager:close(dialog)
+                finish()
+            end),
+            row(_("Fastest for active provider"), mode == "fastest", function()
+                mutate(function(feats) feats.quick_preset_model_mode = "fastest" end)
+                UIManager:close(dialog)
+                finish()
+            end),
+            row(mode == "tier"
+                    and T(_("Tier: %1 (change…)"), f.quick_preset_tier or "fast")
+                    or _("A tier of the active provider…"),
+                mode == "tier", function()
+                UIManager:close(dialog)
+                pickTier()
+            end),
+            row(mode == "model"
+                    and T(_("Pinned: %1 (change…)"), f.quick_preset_model or "?")
+                    or _("A specific model…"),
+                mode == "model", function()
+                UIManager:close(dialog)
+                pickProviderModel({
+                    plugin = plugin,
+                    current = f.quick_preset_provider
+                        and { provider = f.quick_preset_provider, model = f.quick_preset_model }
+                        or nil,
+                    on_pick = function(provider_id, model_name)
+                        mutate(function(feats)
+                            feats.quick_preset_model_mode = "model"
+                            feats.quick_preset_provider = provider_id
+                            feats.quick_preset_model = model_name
+                        end)
+                        finish()
+                    end,
+                })
+            end),
+            {{ text = _("Cancel"), callback = function() UIManager:close(dialog) end }},
+        },
+    }
+    UIManager:show(dialog)
+end
+
 -- Quick Answer preset editor — persistent GLOBAL settings for what the ⚡ tap
 -- applies (controls_parity_plan.md §2, maintainer 2026-07-19). Reachable from
 -- main settings (Chat & Export → Quick Answer Preset — schema is the source of
@@ -588,6 +851,16 @@ showQuickPresetEditor = function(opts)
         }}
     end
     local mode = f.quick_preset_model_mode or "none"
+    local model_mode_label
+    if mode == "fastest" then
+        model_mode_label = _("Fastest for provider")
+    elseif mode == "tier" then
+        model_mode_label = T(_("%1 tier"), f.quick_preset_tier or "fast")
+    elseif mode == "model" then
+        model_mode_label = f.quick_preset_model or "?"
+    else
+        model_mode_label = _("Keep current")
+    end
     dialog = ButtonDialog:new{
         title = _("Quick Answer preset · applies while Quick Answer is on"),
         -- Tap-outside dismissal must fire on_close too, or the dialog beneath
@@ -601,13 +874,13 @@ showQuickPresetEditor = function(opts)
             toggleRow(_("Web search off"), "quick_preset_web_off"),
             toggleRow(_("Book tools off"), "quick_preset_tools_off"),
             {{
-                text = T(_("Model: %1"), mode == "fastest"
-                    and _("Fastest for provider") or _("Keep current")),
+                text = T(_("Model: %1"), model_mode_label),
                 callback = function()
-                    mutate(function(feats)
-                        feats.quick_preset_model_mode =
-                            (feats.quick_preset_model_mode == "fastest") and "none" or "fastest"
-                    end)
+                    UIManager:close(dialog)
+                    showQuickPresetModelMode({
+                        plugin = plugin,
+                        on_close = function() showQuickPresetEditor(opts) end,
+                    })
                 end,
             }},
             {{
@@ -665,120 +938,6 @@ local function showQuickControlsMenu(opts)
         UIManager:show(sub)
     end
 
-    local function pickModel(provider_id, provider_label)
-        local ModelLists = require("koassistant_model_lists")
-        local sub
-        -- Built-in list, or for custom providers their default model + saved customs
-        -- (same sources as the Quick Edit selector)
-        local models
-        local custom = plugin and plugin.getCustomProvider and plugin:getCustomProvider(provider_id)
-        if custom then
-            models = {}
-            if custom.default_model and custom.default_model ~= "" then
-                table.insert(models, custom.default_model)
-            end
-            for _idx, m in ipairs(plugin:getCustomModels(provider_id)) do
-                if m ~= custom.default_model then
-                    table.insert(models, m)
-                end
-            end
-        else
-            models = ModelLists[provider_id] or {}
-        end
-        local buttons = {}
-        local current = f._session_model
-        for _idx, m in ipairs(models) do
-            local model_name = m
-            local is_current = current and current.provider == provider_id
-                and current.model == model_name
-            table.insert(buttons, {{
-                text = (is_current and "● " or "○ ") .. model_name,
-                callback = function()
-                    f._session_model = { provider = provider_id, model = model_name }
-                    UIManager:close(sub)
-                    on_change()
-                end,
-            }})
-        end
-        if #buttons == 0 then
-            table.insert(buttons, {{ text = _("No models listed for this provider"), enabled = false }})
-        end
-        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
-        sub = ButtonDialog:new{
-            title = T(_("Model · %1 · this chat only"), provider_label),
-            buttons = buttons,
-        }
-        UIManager:show(sub)
-    end
-
-    local pickProvider
-    pickProvider = function(show_all)
-        local ModelLists = require("koassistant_model_lists")
-        local sub
-        local buttons = {}
-        table.insert(buttons, {{
-            text = (f._session_model == nil and "● " or "○ ") .. _("Default (follow settings)"),
-            callback = function()
-                f._session_model = nil
-                UIManager:close(sub)
-                on_change()
-            end,
-        }})
-        local all_providers = {}
-        for _idx, provider in ipairs(ModelLists.getAllProviders()) do
-            table.insert(all_providers, { id = provider, name = provider:gsub("^%l", string.upper) })
-        end
-        if plugin and plugin.getCustomProviders then
-            for _idx, cp in ipairs(plugin:getCustomProviders()) do
-                if cp.id then
-                    table.insert(all_providers, { id = cp.id, name = cp.name or cp.id, is_custom = true, config = cp })
-                end
-            end
-        end
-        table.sort(all_providers, function(a, b) return a.name:lower() < b.name:lower() end)
-        -- Key-filtering: same rules as the slice-(a) pickers — configured providers
-        -- (+ the current pick, marked), "Show all" reveals the rest, disarmed while
-        -- no real key exists.
-        local has_real_key = plugin and plugin.hasAnyRealApiKey and plugin:hasAnyRealApiKey()
-        local hidden_count = 0
-        for _idx, prov in ipairs(all_providers) do
-            local configured = not has_real_key
-                or plugin:isProviderConfigured(prov.id, prov.config)
-            local is_current = f._session_model and f._session_model.provider == prov.id
-            if configured or show_all or is_current then
-                local label = prov.is_custom and ("★ " .. prov.name) or prov.name
-                if not configured then
-                    label = T(_("%1 (no key)"), label)
-                end
-                local prov_id, prov_name = prov.id, prov.name
-                table.insert(buttons, {{
-                    text = label,
-                    callback = function()
-                        UIManager:close(sub)
-                        pickModel(prov_id, prov_name)
-                    end,
-                }})
-            else
-                hidden_count = hidden_count + 1
-            end
-        end
-        if hidden_count > 0 then
-            table.insert(buttons, {{
-                text = T(_("Show all providers (%1 more)…"), hidden_count),
-                callback = function()
-                    UIManager:close(sub)
-                    pickProvider(true)
-                end,
-            }})
-        end
-        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
-        sub = ButtonDialog:new{
-            title = _("Model · pick a provider"),
-            buttons = buttons,
-        }
-        UIManager:show(sub)
-    end
-
     local qa_on = f._session_quick_answer == true
     local so = f._session_reasoning
     local reasoning_label
@@ -795,13 +954,23 @@ local function showQuickControlsMenu(opts)
     else
         reasoning_label = _("On for this chat")
     end
+    -- Model label carries PROVENANCE (maintainer 2026-07-19: "Default" was
+    -- confusing) — always show the model that would actually be used and why:
+    -- (this chat) session pick > (Quick preset) while ⚡ on > (global).
+    local active_provider = (plugin and plugin.getCurrentProvider and plugin:getCurrentProvider())
+        or configuration.provider or "anthropic"
+    local global_model = (plugin and plugin.getCurrentModel and plugin:getCurrentModel())
+        or configuration.model or _("provider default")
     local model_label
     if f._session_model then
-        model_label = f._session_model.model or f._session_model.provider
-    elseif qa_on and f.quick_preset_model_mode == "fastest" then
-        model_label = _("Fastest (preset)")
+        model_label = T(_("%1 (this chat)"), f._session_model.model or f._session_model.provider)
     else
-        model_label = _("Default")
+        local preset_pick = qa_on and resolveQuickPresetModel(f, active_provider) or nil
+        if preset_pick then
+            model_label = T(_("%1 (Quick preset)"), preset_pick.model)
+        else
+            model_label = T(_("%1 (global)"), global_model)
+        end
     end
     local buttons = {
         {{
@@ -823,7 +992,22 @@ local function showQuickControlsMenu(opts)
             text = T(_("Model: %1"), model_label),
             callback = function()
                 UIManager:close(menu)
-                pickProvider()
+                pickProviderModel({
+                    plugin = plugin,
+                    current = f._session_model,
+                    top_row = {
+                        text = (f._session_model == nil and "● " or "○ ")
+                            .. T(_("Global setting (%1)"), global_model),
+                        callback = function()
+                            f._session_model = nil
+                            on_change()
+                        end,
+                    },
+                    on_pick = function(provider_id, model_name)
+                        f._session_model = { provider = provider_id, model = model_name }
+                        on_change()
+                    end,
+                })
             end,
         }},
     }
@@ -1667,6 +1851,14 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if viewer.session_web_search_override ~= nil then
                 cfg.enable_web_search = viewer.session_web_search_override
             end
+            -- Apply session tools override (Reply-dialog Tools toggle — parity
+            -- slice (b)): _tools_active is read at dispatch by
+            -- BookToolRunner.shouldUse; explicit true/false, overriding the baked
+            -- per-chat flag for this chat's replies.
+            if viewer.session_tools_override ~= nil then
+                cfg.features = cfg.features or {}
+                cfg.features._tools_active = viewer.session_tools_override
+            end
 
             -- Note: Loading dialog is now handled by handleNonStreamingBackground in gpt_query.lua
             -- which shows a cancellable dialog for non-streaming requests
@@ -1715,6 +1907,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         get_star_state = viewer.get_star_state,
                         selection_data = viewer.selection_data,  -- Preserve for "Save to Note" feature
                         session_web_search_override = viewer.session_web_search_override,  -- Preserve session override
+                        session_tools_override = viewer.session_tools_override,  -- Preserve session override
                     }
                     -- Set close_callback after creation so new_viewer is defined.
                     -- Inherits the stacked-view restore duty (see the outer close_callback).
@@ -4246,6 +4439,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Stale-request hygiene: a per-chat web value from an earlier session must not
         -- outlive its dialog (it is normally consumed at bake/dispatch).
         configuration.features._web_search_active = nil
+        -- Same hygiene for the X-Ray-chat marker: performSend re-derives it per
+        -- send (is_xray_chat), but a fresh non-X-Ray dialog must not inherit a
+        -- stale true from an earlier X-Ray chat (reply Tools toggle + shouldUse
+        -- both read it off the chat's config).
+        configuration.features._xray_chat_active = nil
         -- Quick-controls dispatch consumables: same hygiene (normally consumed at bake).
         configuration.features._quick_answer_active = nil
         configuration.features._reasoning_override_active = nil
@@ -8604,6 +8802,10 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     configuration.features._spoiler_free_active = nil
     configuration.features._tools_active = nil
     configuration.features._web_search_active = nil
+    -- Stale X-Ray-chat marker from a prior freeform send would mislabel this
+    -- chat's reply Tools toggle "N/A (X-Ray)" AND suppress tools in shouldUse —
+    -- artifact chats are never X-Ray chats.
+    configuration.features._xray_chat_active = nil
     -- Quick controls: artifact chat follows the global settings too — clear the
     -- dispatch consumables and any lingering chip state (matrix §10).
     configuration.features._quick_answer_active = nil
@@ -8694,4 +8896,6 @@ return {
     -- Exported for runtime self-require from the quick chip's hold (60-upvalue
     -- cap) and for the reply-dialog reuse planned in parity slice (b).
     showQuickControlsMenu = showQuickControlsMenu,
+    -- Exported for the main-settings action row (AskGPT:showQuickPresetModelMode)
+    showQuickPresetModelMode = showQuickPresetModelMode,
 }

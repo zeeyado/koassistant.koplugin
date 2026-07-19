@@ -2076,6 +2076,19 @@ function AskGPT:getProviderDisplayName(provider_id)
   return provider_id:gsub("^%l", string.upper)
 end
 
+-- Settings action row (Quick Answer Preset → Model override): opens the shared
+-- mode picker from koassistant_dialogs; refreshes the menu row on close.
+function AskGPT:showQuickPresetModelMode(touchmenu_instance)
+  require("koassistant_dialogs").showQuickPresetModelMode({
+    plugin = self,
+    on_close = function()
+      if touchmenu_instance and touchmenu_instance.updateItems then
+        touchmenu_instance:updateItems()
+      end
+    end,
+  })
+end
+
 -- Helper: A provider is "configured" when a real API key resolves for it (GUI or
 -- apikeys.lua), or when it doesn't need one (ollama; custom providers with
 -- api_key_required = false). Mirrors the pre-flight gate in koassistant_gpt_query.
