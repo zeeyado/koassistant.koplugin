@@ -791,12 +791,18 @@ end
 
 --- Resolve the effective reasoning decision for a request.
 --- Precedence (highest first):
----   action_override > model_pref > global_stance > model natural default.
+---   action_override > session_override > model_pref > global_stance >
+---   model natural default.
+--- session_override is the one-shot per-chat layer (Quick controls chip —
+--- controls_parity_plan.md §10): same shape as action_override, deliberately
+--- BELOW it so actions with an explicit reasoning_config (quiz JSON contract
+--- etc.) stay protected.
 --- @param provider string
 --- @param model string
 --- @param layers table { global_stance="minimal"|"default"|"maximum",
 ---                       model_pref={state=,effort=,budget=}|nil,
----                       action_override={force="on"|"off", effort=, budget=}|nil }
+---                       action_override={force="on"|"off", effort=, budget=}|nil,
+---                       session_override={force="on"|"off", effort=, budget=}|nil }
 --- @return table decision { mode="on"|"off", axis, effort, budget, send_nothing,
 ---                          needs_temp_1, needs_no_sampling, off_option, profile }
 function ModelConstraints.resolveReasoning(provider, model, layers)
@@ -820,10 +826,15 @@ function ModelConstraints.resolveReasoning(provider, model, layers)
     -- 1. Resolve desired {state, option} by precedence (highest non-nil wins).
     local desired
     local ao = layers.action_override
+    local so = layers.session_override
     if ao and ao.force == "off" then
         desired = { state = "off" }
     elseif ao and ao.force == "on" then
         desired = { state = "on", option = ao.effort or ao.budget }
+    elseif so and so.force == "off" then
+        desired = { state = "off" }
+    elseif so and so.force == "on" then
+        desired = { state = "on", option = so.effort or so.budget }
     else
         desired = prefDesired(layers.model_pref)
         if desired and desired.api_default then

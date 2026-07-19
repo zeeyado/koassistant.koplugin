@@ -220,8 +220,8 @@ end
 -- ("Chat Buttons…"), stored as an ordered array in features.session_chips. nil = the
 -- default set (the one-time migration in main.lua seeds it, folding the old
 -- show_spoiler_toggle bool into "spoiler" membership).
-local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "scope", "attach", "spoiler" }
-local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "scope", "attach", "spoiler" }
+local SESSION_CHIP_IDS = { "domain", "web_search", "book_tools", "quick", "scope", "attach", "spoiler" }
+local SESSION_CHIPS_DEFAULT = { "domain", "web_search", "book_tools", "quick", "scope", "attach", "spoiler" }
 local function getSessionChips(features)
     local chips = features and features.session_chips
     if type(chips) ~= "table" then return SESSION_CHIPS_DEFAULT end
@@ -306,6 +306,46 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     local features = config.features or {}
     local SystemPrompts = require("prompts.system_prompts")
 
+    -- Quick controls (controls_parity_plan.md §10): one-shot session overrides,
+    -- set just-in-time at dispatch (*_active pattern, like the Web chip) and
+    -- consumed here. Matrix rule: explicit action pins always win
+    -- (action > session > book > global).
+    local quick_answer = features._quick_answer_active
+    local reasoning_override = features._reasoning_override_active
+    local model_override = features._model_override_active
+    features._quick_answer_active = nil
+    features._reasoning_override_active = nil
+    features._model_override_active = nil
+    -- Quick Answer reaches predefined actions only by opt-in (accept_quick_answer
+    -- = true on Explain-type actions; never X-Ray/translate/quiz — §10).
+    if quick_answer and action and action.accept_quick_answer ~= true then
+        quick_answer = nil
+    end
+    -- One-shot provider/model override — applied BEFORE every provider-dependent
+    -- read below (caching gate, Perplexity check, reasoning resolution). An
+    -- action's own provider pin (already applied by createTempConfig/
+    -- handlePredefinedPrompt) wins.
+    if model_override and model_override.provider and not (action and action.provider) then
+        config.provider = model_override.provider
+        config.model = model_override.model
+        -- Clone the per-provider table before writing: the freeform rebase copy is
+        -- shallow-2-level, so this sub-table can still be SHARED with the module
+        -- config — a configuration.lua provider_settings entry must not absorb a
+        -- one-shot override as its session default.
+        config.provider_settings = config.provider_settings or {}
+        local ps = {}
+        for k, v in pairs(config.provider_settings[config.provider] or {}) do
+            ps[k] = v
+        end
+        ps.model = model_override.model
+        config.provider_settings[config.provider] = ps
+    end
+    if quick_answer then
+        -- "No slow features": book tools off for this chat (explicit false — rides
+        -- the viewer config into replies, same mechanics as the G6 action clear).
+        features._tools_active = false
+    end
+
     -- Spoiler-free is a freeform-Send-only session flag; predefined actions (Summarize, X-Ray,
     -- …) are excluded by design. It persists on the shared configuration (main.lua keeps
     -- underscore keys across disk sync) and gets copied into temp_config, so a prior spoiler-free
@@ -358,6 +398,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         config.enable_web_search = bookWebSearchOverride(features)
     end
     features._web_search_active = nil
+    -- Quick Answer: web search off for this request unless the action forces it
+    -- on (explicit action flag wins — matrix §10).
+    if quick_answer and not (action and action.enable_web_search == true) then
+        config.enable_web_search = false
+    end
     -- Effective boolean for the system-prompt nudge (mirrors the handlers' read:
     -- override-first, else global; Perplexity searches unconditionally)
     local web_search_effective
@@ -396,6 +441,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         reading_progress = features.book_metadata and features.book_metadata.reading_progress,
         -- Web search active → prose nudge (pre-search text is reader-visible)
         web_search = web_search_effective,
+        -- Quick Answer posture → brevity nudge (session ⚡ chip / opted-in actions)
+        quick_answer = quick_answer and true or nil,
     })
 
     config.system = system_config
@@ -438,6 +485,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         global_stance = ReasoningPrefs.getStance(features),
         model_pref = ReasoningPrefs.getModelPref(features, provider, reasoning_model),
         action_override = action and ModelConstraints.parseActionReasoning(action, provider) or nil,
+        -- One-shot session layer (Quick controls — matrix §10): explicit reasoning
+        -- pick wins over Quick Answer's implied off; both sit BELOW action_override.
+        session_override = reasoning_override or (quick_answer and { force = "off" } or nil),
     })
     config.api_params._reasoning = reasoning_decision
     ModelConstraints.applyReasoningParams(provider, config.api_params, reasoning_decision)
@@ -471,7 +521,7 @@ local function createTempConfig(prompt, base_config)
     end
     
     -- Only override if provider/model are specified in the prompt
-    if prompt.provider then 
+    if prompt.provider then
         temp_config.provider = prompt.provider
         if prompt.model then
             temp_config.provider_settings = temp_config.provider_settings or {}
@@ -479,8 +529,209 @@ local function createTempConfig(prompt, base_config)
             temp_config.provider_settings[temp_config.provider].model = prompt.model
         end
     end
-    
+
     return temp_config
+end
+
+-- Quick controls menu (controls_parity_plan.md §2/§9 — #86): one-shot session
+-- overrides for THIS chat only — the Quick Answer posture, a reasoning override,
+-- and a provider/model override. State lives on opts.configuration.features
+-- (_session_quick_answer / _session_reasoning / _session_model) — config-resident
+-- like the Scope chip (60-upvalue cap), consumed at dispatch via the *_active
+-- transients (see buildUnifiedRequestConfig). Module-level so the reply dialog
+-- (parity slice (b)) can reuse it with its own opts.
+-- opts = { configuration, plugin, on_change }
+local function showQuickControlsMenu(opts)
+    local ButtonDialog = require("ui/widget/buttondialog")
+    local configuration = opts.configuration
+    local plugin = opts.plugin
+    local on_change = opts.on_change or function() end
+    configuration.features = configuration.features or {}
+    local f = configuration.features
+
+    local menu
+
+    local function pickReasoning()
+        local sub
+        local so = f._session_reasoning
+        local function row(label, value, is_current)
+            return {{
+                text = (is_current and "● " or "○ ") .. label,
+                callback = function()
+                    f._session_reasoning = value
+                    UIManager:close(sub)
+                    on_change()
+                end,
+            }}
+        end
+        sub = ButtonDialog:new{
+            title = _("Reasoning · this chat only"),
+            buttons = {
+                row(_("Follow settings"), nil, so == nil),
+                row(_("Off for this chat"), { force = "off" }, (so and so.force == "off") or false),
+                row(_("On for this chat"), { force = "on" }, (so and so.force == "on") or false),
+                {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }},
+            },
+        }
+        UIManager:show(sub)
+    end
+
+    local function pickModel(provider_id, provider_label)
+        local ModelLists = require("koassistant_model_lists")
+        local sub
+        -- Built-in list, or for custom providers their default model + saved customs
+        -- (same sources as the Quick Edit selector)
+        local models
+        local custom = plugin and plugin.getCustomProvider and plugin:getCustomProvider(provider_id)
+        if custom then
+            models = {}
+            if custom.default_model and custom.default_model ~= "" then
+                table.insert(models, custom.default_model)
+            end
+            for _idx, m in ipairs(plugin:getCustomModels(provider_id)) do
+                if m ~= custom.default_model then
+                    table.insert(models, m)
+                end
+            end
+        else
+            models = ModelLists[provider_id] or {}
+        end
+        local buttons = {}
+        local current = f._session_model
+        for _idx, m in ipairs(models) do
+            local model_name = m
+            local is_current = current and current.provider == provider_id
+                and current.model == model_name
+            table.insert(buttons, {{
+                text = (is_current and "● " or "○ ") .. model_name,
+                callback = function()
+                    f._session_model = { provider = provider_id, model = model_name }
+                    UIManager:close(sub)
+                    on_change()
+                end,
+            }})
+        end
+        if #buttons == 0 then
+            table.insert(buttons, {{ text = _("No models listed for this provider"), enabled = false }})
+        end
+        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        sub = ButtonDialog:new{
+            title = T(_("Model · %1 · this chat only"), provider_label),
+            buttons = buttons,
+        }
+        UIManager:show(sub)
+    end
+
+    local pickProvider
+    pickProvider = function(show_all)
+        local ModelLists = require("koassistant_model_lists")
+        local sub
+        local buttons = {}
+        table.insert(buttons, {{
+            text = (f._session_model == nil and "● " or "○ ") .. _("Default (follow settings)"),
+            callback = function()
+                f._session_model = nil
+                UIManager:close(sub)
+                on_change()
+            end,
+        }})
+        local all_providers = {}
+        for _idx, provider in ipairs(ModelLists.getAllProviders()) do
+            table.insert(all_providers, { id = provider, name = provider:gsub("^%l", string.upper) })
+        end
+        if plugin and plugin.getCustomProviders then
+            for _idx, cp in ipairs(plugin:getCustomProviders()) do
+                if cp.id then
+                    table.insert(all_providers, { id = cp.id, name = cp.name or cp.id, is_custom = true, config = cp })
+                end
+            end
+        end
+        table.sort(all_providers, function(a, b) return a.name:lower() < b.name:lower() end)
+        -- Key-filtering: same rules as the slice-(a) pickers — configured providers
+        -- (+ the current pick, marked), "Show all" reveals the rest, disarmed while
+        -- no real key exists.
+        local has_real_key = plugin and plugin.hasAnyRealApiKey and plugin:hasAnyRealApiKey()
+        local hidden_count = 0
+        for _idx, prov in ipairs(all_providers) do
+            local configured = not has_real_key
+                or plugin:isProviderConfigured(prov.id, prov.config)
+            local is_current = f._session_model and f._session_model.provider == prov.id
+            if configured or show_all or is_current then
+                local label = prov.is_custom and ("★ " .. prov.name) or prov.name
+                if not configured then
+                    label = T(_("%1 (no key)"), label)
+                end
+                local prov_id, prov_name = prov.id, prov.name
+                table.insert(buttons, {{
+                    text = label,
+                    callback = function()
+                        UIManager:close(sub)
+                        pickModel(prov_id, prov_name)
+                    end,
+                }})
+            else
+                hidden_count = hidden_count + 1
+            end
+        end
+        if hidden_count > 0 then
+            table.insert(buttons, {{
+                text = T(_("Show all providers (%1 more)…"), hidden_count),
+                callback = function()
+                    UIManager:close(sub)
+                    pickProvider(true)
+                end,
+            }})
+        end
+        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        sub = ButtonDialog:new{
+            title = _("Model · pick a provider"),
+            buttons = buttons,
+        }
+        UIManager:show(sub)
+    end
+
+    local so = f._session_reasoning
+    local reasoning_label
+    if so == nil then
+        reasoning_label = _("Follow settings")
+    elseif so.force == "off" then
+        reasoning_label = _("Off for this chat")
+    else
+        reasoning_label = _("On for this chat")
+    end
+    local model_label = f._session_model
+        and (f._session_model.model or f._session_model.provider)
+        or _("Default")
+    local qa_on = f._session_quick_answer == true
+    menu = ButtonDialog:new{
+        title = _("Quick controls · this chat only"),
+        buttons = {
+            {{
+                text = (qa_on and "✓ " or "") .. _("Quick answer (concise, minimal reasoning)"),
+                callback = function()
+                    f._session_quick_answer = (not qa_on) or nil
+                    UIManager:close(menu)
+                    on_change()
+                end,
+            }},
+            {{
+                text = T(_("Reasoning: %1"), reasoning_label),
+                callback = function()
+                    UIManager:close(menu)
+                    pickReasoning()
+                end,
+            }},
+            {{
+                text = T(_("Model: %1"), model_label),
+                callback = function()
+                    UIManager:close(menu)
+                    pickProvider()
+                end,
+            }},
+            {{ text = _("Close"), callback = function() UIManager:close(menu) end }},
+        },
+    }
+    UIManager:show(menu)
 end
 
 local function getAllPrompts(configuration, plugin)
@@ -2168,6 +2419,17 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- consume it from the SOURCE config so it can't go stale on the shared table.
     if config and config.features then
         config.features._web_search_active = nil
+        -- Quick controls: consume the dispatch consumables AND the chip state from
+        -- the SOURCE config (same staleness rule — the copies already rode into
+        -- temp_config; a direct entry with chip state lingering from an abandoned
+        -- dialog also gets cleaned up here, and stays inert because bake reads
+        -- only the *_active keys, which direct entries never set).
+        config.features._quick_answer_active = nil
+        config.features._reasoning_override_active = nil
+        config.features._model_override_active = nil
+        config.features._session_quick_answer = nil
+        config.features._session_reasoning = nil
+        config.features._session_model = nil
     end
     -- Attach chip: consume the just-in-time dispatch flag from the SOURCE config,
     -- same staleness rule as above. The block itself is built from the module
@@ -3874,6 +4136,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Stale-request hygiene: a per-chat web value from an earlier session must not
         -- outlive its dialog (it is normally consumed at bake/dispatch).
         configuration.features._web_search_active = nil
+        -- Quick-controls dispatch consumables: same hygiene (normally consumed at bake).
+        configuration.features._quick_answer_active = nil
+        configuration.features._reasoning_override_active = nil
+        configuration.features._model_override_active = nil
         -- Scope-chip session state (flexible_scope_plan.md phase 3) is CONFIG-RESIDENT
         -- (no dialog local — the Send/chip closures sit at LuaJIT's 60-upvalue cap, see
         -- the _selection_context_window note below). A refresh preserves it via the
@@ -3881,6 +4147,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if not configuration.features._session_keep_scope then
             configuration.features._session_scope = nil
             configuration.features._session_highlight_context = nil
+            -- Quick-controls chip state (controls_parity_plan.md §2/§9): same
+            -- config-resident lifecycle as the scope pick — survives a refresh
+            -- via the marker, cleared on a fresh open.
+            configuration.features._session_quick_answer = nil
+            configuration.features._session_reasoning = nil
+            configuration.features._session_model = nil
             -- Attach chip staging (attach_plan.md): MODULE-resident, not on
             -- features — configuration.features shares identity with the
             -- persisted settings table, and staged text must never reach a
@@ -4313,6 +4585,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 -- right after copying, so it can't go stale on the shared table.
                 configuration.features = configuration.features or {}
                 configuration.features._web_search_active = session_web_search == true
+                -- Quick controls (controls_parity_plan.md §10): same just-in-time
+                -- pattern — the *_active consumables carry the one-shot session
+                -- overrides into this action dispatch (handlePredefinedPrompt
+                -- consumes them from the source right after copying). Model/
+                -- reasoning follow the Web pattern (explicit action pins win at
+                -- bake); Quick Answer additionally needs the action's opt-in
+                -- (accept_quick_answer — gated at bake).
+                configuration.features._quick_answer_active =
+                    configuration.features._session_quick_answer
+                configuration.features._reasoning_override_active =
+                    configuration.features._session_reasoning
+                configuration.features._model_override_active =
+                    configuration.features._session_model
                 -- Session context-mode override (Scope chip, highlight facet): same
                 -- just-in-time pattern — set-or-clear at dispatch so direct entries
                 -- (highlight menu, gestures) never see a stale value; consumed in
@@ -5284,6 +5569,41 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     hold_callback = holdPicker,
                 }
             end,
+            quick = function()
+                -- Quick chip (controls_parity_plan.md §2/§9 — #86): tap toggles the
+                -- Quick Answer posture for this chat (concise · reasoning off ·
+                -- web/tools off); hold opens the quick controls menu (one-shot
+                -- reasoning/model overrides). State is CONFIG-RESIDENT
+                -- (_session_quick_answer/_session_reasoning/_session_model —
+                -- 60-upvalue cap), consumed at dispatch via the *_active
+                -- transients; a fresh dialog open clears it (scope-chip lifecycle).
+                local qf = configuration.features
+                local qa_on = qf._session_quick_answer == true
+                local has_override = qf._session_reasoning ~= nil or qf._session_model ~= nil
+                local label
+                if enable_emoji then
+                    label = "\u{26A1} " .. (qa_on and _("ON") or (has_override and _("SET") or _("OFF")))
+                else
+                    label = qa_on and _("Quick ON") or (has_override and _("Quick SET") or _("Quick"))
+                end
+                return {
+                    text = label,
+                    callback = function()
+                        configuration.features._session_quick_answer = (not qa_on) or nil
+                        refreshInputDialog()
+                    end,
+                    hold_callback = function()
+                        -- Runtime self-require on purpose: a direct file-local
+                        -- reference would add an upvalue to buildInputDialogButtons,
+                        -- which sits AT LuaJIT's 60-upvalue cap.
+                        require("koassistant_dialogs").showQuickControlsMenu({
+                            configuration = configuration,
+                            plugin = plugin,
+                            on_change = function() refreshInputDialog() end,
+                        })
+                    end,
+                }
+            end,
             spoiler = function()
                 if not chips_book_or_highlight then return nil end
                 -- State labels name the OUTCOME ("ON/OFF" over a negated feature read
@@ -6162,6 +6482,50 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         end
                     end
 
+                    -- Quick controls (controls_parity_plan.md §10): with a one-shot
+                    -- session override active, rebase THIS chat onto a config COPY.
+                    -- The override must ride the chat's config (replies stay sticky on
+                    -- viewer.configuration) without ever touching the shared module
+                    -- table: updateConfigFromSettings gives top-level provider/model
+                    -- no underscore protection, and direct entries must never inherit
+                    -- session state. The *_active consumables go on the copy (consumed
+                    -- at bake); the chip state is cleared from the SHARED features.
+                    -- Rebinding `configuration` here is deliberate — every later use
+                    -- in this Send (bake, queries, viewer, replies, model-info) must
+                    -- see the same overridden config.
+                    do
+                        local shared_features = configuration.features
+                        if shared_features._session_quick_answer
+                            or shared_features._session_reasoning
+                            or shared_features._session_model then
+                            -- Inline shallow-2-level copy (createTempConfig's shape) on
+                            -- purpose: referencing the file-local helper here would add
+                            -- an upvalue to a closure at LuaJIT's 60-upvalue cap.
+                            local copy = {}
+                            for k, v in pairs(configuration) do
+                                if type(v) ~= "table" then
+                                    copy[k] = v
+                                else
+                                    copy[k] = {}
+                                    for k2, v2 in pairs(v) do
+                                        copy[k][k2] = v2
+                                    end
+                                end
+                            end
+                            configuration = copy
+                            local cf = configuration.features
+                            cf._quick_answer_active = shared_features._session_quick_answer
+                            cf._reasoning_override_active = shared_features._session_reasoning
+                            cf._model_override_active = shared_features._session_model
+                            cf._session_quick_answer = nil
+                            cf._session_reasoning = nil
+                            cf._session_model = nil
+                            shared_features._session_quick_answer = nil
+                            shared_features._session_reasoning = nil
+                            shared_features._session_model = nil
+                        end
+                    end
+
                     -- Set spoiler-free flag for system prompt injection (freeform chat only)
                     -- This is read by buildUnifiedRequestConfig → buildUnifiedSystem, and by the
                     -- tool runner's resolveReadingScope. Use an explicit true/false (not true/nil)
@@ -6334,8 +6698,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         }
         -- Chips + Send fill the TOP ROW ONLY, shrinking with count (maintainer
         -- 2026-07-12): all chips + Send share one row; font size steps down as the row
-        -- fills. Current max is 5 chips + Send (Scope joined 2026-07-17); if the chip
-        -- set grows past that, revisit (noted alternative: a gear-anchored controls menu).
+        -- fills. Current max is 7 chips + Send (Quick joined 2026-07-19); if the row
+        -- gets too tight on device, revisit membership defaults in the defaults sweep
+        -- (noted alternative: a gear-anchored controls menu).
         local top_chip_row = {}
         for _idx, chip in ipairs(session_chips) do
             table.insert(top_chip_row, chip)
@@ -6772,6 +7137,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             domain = _("Domain"),
             web_search = _("Web search"),
             book_tools = _("Book tools"),
+            quick = _("Quick controls"),
             spoiler = _("Spoiler-free chat"),
             scope = _("Scope & context"),
             attach = _("Attach"),
@@ -6786,6 +7152,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local applicable = {
             domain = true,
             web_search = true,
+            quick = true,
             attach = true,
             book_tools = (m_book_or_hl and m_has_book) or false,
             scope = (m_book_or_hl and m_has_book and not mf._xray_chat_context) or false,
@@ -6885,7 +7252,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     else
         dialog_title = _("KOAssistant Actions")
-        input_hint_text = _("Type your question or additional instructions for any action...")
+        if highlighted_text and not is_xray_chat then
+            -- Empty-input Send is first-class on a highlight — "talk about this"
+            -- (controls_parity_plan.md §9.3): say so instead of implying input is
+            -- required. The Send path already handles empty input (the consolidated
+            -- context message goes with no [User Question] block).
+            input_hint_text = _("Just tap Send to discuss the highlighted text, or type a question...")
+        else
+            input_hint_text = _("Type your question or additional instructions for any action...")
+        end
     end
     input_dialog = InputDialog:new{
         title = dialog_title,
@@ -8112,6 +8487,14 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
     configuration.features._spoiler_free_active = nil
     configuration.features._tools_active = nil
     configuration.features._web_search_active = nil
+    -- Quick controls: artifact chat follows the global settings too — clear the
+    -- dispatch consumables and any lingering chip state (matrix §10).
+    configuration.features._quick_answer_active = nil
+    configuration.features._reasoning_override_active = nil
+    configuration.features._model_override_active = nil
+    configuration.features._session_quick_answer = nil
+    configuration.features._session_reasoning = nil
+    configuration.features._session_model = nil
 
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, nil, nil, plugin)
@@ -8191,4 +8574,7 @@ return {
     extractSurroundingContext = extractSurroundingContext,
     fetchSelectionContextWindow = fetchSelectionContextWindow,
     launchArtifactChat = launchArtifactChat,
+    -- Exported for runtime self-require from the quick chip's hold (60-upvalue
+    -- cap) and for the reply-dialog reuse planned in parity slice (b).
+    showQuickControlsMenu = showQuickControlsMenu,
 }

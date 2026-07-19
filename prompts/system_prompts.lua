@@ -393,6 +393,19 @@ function SystemPrompts.buildUnifiedSystem(config)
         end
     end
 
+    -- Append Quick Answer posture nudge (controls parity — session ⚡ chip; also
+    -- reaches predefined actions that opt in via accept_quick_answer)
+    local quick_answer_nudge = nil
+    if config.quick_answer
+            and Templates and Templates.QUICK_ANSWER_NUDGE then
+        quick_answer_nudge = Templates.QUICK_ANSWER_NUDGE
+        if content then
+            content = content .. "\n\n" .. quick_answer_nudge
+        else
+            content = quick_answer_nudge
+        end
+    end
+
     -- Append spoiler-free nudge when enabled (for freeform chat in book context)
     local spoiler_nudge = nil
     if config.spoiler_free and Templates then
@@ -422,6 +435,7 @@ function SystemPrompts.buildUnifiedSystem(config)
             language = language_instruction,
             research = research_nudge,
             web_search = web_search_nudge,
+            quick_answer = quick_answer_nudge,
             spoiler = spoiler_nudge,
         },
     }

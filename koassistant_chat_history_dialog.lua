@@ -1615,6 +1615,14 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config.features._tools_active = nil
     config.features._spoiler_free_active = nil
     config.features._web_search_active = nil
+    -- Quick controls (controls_parity_plan.md §10): resumed chats follow the global
+    -- settings too — clear the dispatch consumables and any lingering chip state.
+    config.features._quick_answer_active = nil
+    config.features._reasoning_override_active = nil
+    config.features._model_override_active = nil
+    config.features._session_quick_answer = nil
+    config.features._session_reasoning = nil
+    config.features._session_model = nil
 
     -- Restore system prompt metadata for debug display (if available from saved chat)
     if chat.system_metadata then

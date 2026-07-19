@@ -1750,6 +1750,25 @@ function AskGPT:initSettings()
       logger.info("KOAssistant: Added attach chip to session_chips membership (canonical order)")
     end
 
+    -- Quick chip membership (controls_parity_plan.md §2/§9): same ensure-membership +
+    -- canonical-order rebuild as the migrations above. Keep the literal in sync with
+    -- SESSION_CHIP_IDS in koassistant_dialogs.lua.
+    if not features._session_chips_quick_v1 then
+      if type(features.session_chips) == "table" then
+        local member = {}
+        for _i, chip_id in ipairs(features.session_chips) do member[chip_id] = true end
+        member.quick = true
+        local new_list = {}
+        for _i, chip_id in ipairs({ "domain", "web_search", "book_tools", "quick", "scope", "attach", "spoiler" }) do
+          if member[chip_id] then table.insert(new_list, chip_id) end
+        end
+        features.session_chips = new_list
+      end
+      features._session_chips_quick_v1 = true
+      needs_save = true
+      logger.info("KOAssistant: Added quick chip to session_chips membership (canonical order)")
+    end
+
     -- ONE-TIME migration (report 3(a)): the raw web_search_max_uses spinner
     -- (Anthropic-only, 1-10) became the 3-level web_search_effort dial. Map a tuned
     -- value to the nearest level and retire the old key from GUI settings (a

@@ -1111,5 +1111,71 @@ TestRunner:test("quiz action reasoning_config='off' emits thinking disabled on s
         "thinking disabled so it can't consume the quiz max_tokens budget")
 end)
 
+-- ============================================================
+-- Session override layer (Quick controls — controls_parity_plan.md §10)
+-- Precedence: action_override > session_override > model_pref > stance > natural
+-- ============================================================
+
+TestRunner:suite("resolveReasoning: session override layer")
+
+TestRunner:test("Session off beats maximum stance (Sonnet 5 -> explicit disable)", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", {
+        global_stance = "maximum",
+        session_override = { force = "off" },
+    })
+    TestRunner:assertEqual(d.mode, "off", "session off wins over stance")
+    TestRunner:assertFalse(d.send_nothing, "must emit explicit disable")
+    local params = {}
+    ModelConstraints.applyReasoningParams("anthropic", params, d)
+    TestRunner:assertEqual(params.thinking.type, "disabled", "thinking disabled")
+end)
+
+TestRunner:test("Session off beats a per-model ON pref", function()
+    local d = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", {
+        model_pref = { state = "on" },
+        session_override = { force = "off" },
+    })
+    TestRunner:assertEqual(d.mode, "off", "session wins over model pref")
+end)
+
+TestRunner:test("Action override still beats session (quiz JSON contract)", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5", {
+        action_override = { force = "off" },
+        session_override = { force = "on" },
+    })
+    TestRunner:assertEqual(d.mode, "off", "action off beats session on")
+end)
+
+TestRunner:test("Session on enables a default-off binary model", function()
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-haiku-4-5-20251001", {
+        session_override = { force = "on" },
+    })
+    TestRunner:assertEqual(d.mode, "on", "session on enables")
+end)
+
+TestRunner:test("Nil session layer falls through unchanged (stance still applies)", function()
+    local with = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", {
+        global_stance = "minimal", session_override = nil,
+    })
+    local without = ModelConstraints.resolveReasoning("deepseek", "deepseek-v4-pro", {
+        global_stance = "minimal",
+    })
+    TestRunner:assertEqual(with.mode, without.mode, "same mode with/without nil layer")
+    TestRunner:assertEqual(with.send_nothing, without.send_nothing, "same send_nothing")
+end)
+
+TestRunner:test("Session off on a can't-disable model clamps to lowest (Gemini 3.5)", function()
+    local d = ModelConstraints.resolveReasoning("gemini", "gemini-3.5-flash", {
+        session_override = { force = "off" },
+    })
+    local profile = ModelConstraints.getReasoningProfile("gemini", "gemini-3.5-flash")
+    if profile.can_disable then
+        TestRunner:assertEqual(d.mode, "off", "disable honoured where supported")
+    else
+        TestRunner:assertEqual(d.mode, "on", "can't disable -> stays on")
+        TestRunner:assertNotNil(d.effort or d.budget, "clamped to the lowest level")
+    end
+end)
+
 -- Summary
 return TestRunner:summary()

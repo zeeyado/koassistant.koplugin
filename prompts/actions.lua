@@ -36,6 +36,11 @@ local Constants = require("koassistant_constants")
 --                      gathers relevant passages via the local book tools and they replace
 --                      full-text extraction (D3, tools_ux_plan.md §4). Only meaningful with
 --                      source_selection; only rendered in tools-capable sessions (optional)
+--   accept_quick_answer - Opt in to the session Quick Answer posture (⚡ chip): when the
+--                      user has Quick Answer on, this action's dialog launch also gets
+--                      the concise nudge + reasoning/web off (controls_parity_plan.md §10).
+--                      Only for conversational explain-type actions — never artifact/JSON
+--                      actions (X-Ray, quiz, translate) (optional, default false)
 
 local _ = require("koassistant_gettext")
 
@@ -224,6 +229,7 @@ Actions.highlight = {
     explain = {
         id = "explain",
         enable_web_search = false,
+        accept_quick_answer = true,
         text = _("Explain"),
         description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
@@ -241,6 +247,7 @@ Actions.highlight = {
         id = "eli5",
         enable_web_search = false,
         reasoning_config = "off",  -- Simplification doesn't benefit from reasoning
+        accept_quick_answer = true,
         text = _("ELI5"),
         description = _("Simplifies the passage into everyday language using analogies and concrete examples, without sacrificing accuracy."),
         context = "highlight",
@@ -275,6 +282,7 @@ Actions.highlight = {
     elaborate = {
         id = "elaborate",
         enable_web_search = false,
+        accept_quick_answer = true,
         text = _("Elaborate"),
         description = _("Expands on the passage by unpacking concepts, adding context, and exploring implications."),
         context = "highlight",
@@ -355,6 +363,7 @@ If I have no prior highlights or notebook entries, just reflect on this passage 
     explain_in_context = {
         id = "explain_in_context",
         enable_web_search = false,
+        accept_quick_answer = true,
         text = _("Explain in Context"),
         description = _("Helps you understand what a passage means — its content, context, and the ideas it builds on. Comprehension-focused. Works well for longer or particularly difficult passages that benefit from document context."),
         context = "highlight",
