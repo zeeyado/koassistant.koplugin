@@ -441,6 +441,68 @@ local SettingsSchema = {
                         },
                     },
                 },
+                -- Quick Answer preset (controls_parity_plan.md §2): what the ⚡ chip's
+                -- tap applies for that chat. Also editable from the chip's hold menu
+                -- ("Preset settings…"). Check patterns: posture toggles are opt-out
+                -- (~= false), model mode is opt-in (default "none").
+                {
+                    id = "quick_answer_preset",
+                    type = "submenu",
+                    text = _("Quick Answer Preset"),
+                    items = {
+                        {
+                            id = "quick_preset_nudge",
+                            type = "toggle",
+                            text = _("Concise Answer Nudge"),
+                            path = "features.quick_preset_nudge",
+                            default = true,
+                            help_text = _("Ask for a short, direct reply (a few sentences, no preamble) while Quick Answer is on."),
+                        },
+                        {
+                            id = "quick_preset_reasoning_off",
+                            type = "toggle",
+                            text = _("Turn Reasoning Off"),
+                            path = "features.quick_preset_reasoning_off",
+                            default = true,
+                            help_text = _("Disable model reasoning/thinking for Quick Answer chats (models that can't disable it drop to their lowest level). A one-shot reasoning pick in the Quick chip's menu overrides this."),
+                        },
+                        {
+                            id = "quick_preset_web_off",
+                            type = "toggle",
+                            text = _("Turn Web Search Off"),
+                            path = "features.quick_preset_web_off",
+                            default = true,
+                        },
+                        {
+                            id = "quick_preset_tools_off",
+                            type = "toggle",
+                            text = _("Turn Book Tools Off"),
+                            path = "features.quick_preset_tools_off",
+                            default = true,
+                            separator = true,
+                        },
+                        {
+                            id = "quick_preset_model_mode",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                local mode = f.quick_preset_model_mode or "none"
+                                local labels = {
+                                    none = _("Keep current"),
+                                    fastest = _("Fastest for provider"),
+                                }
+                                return T(_("Model: %1"), labels[mode] or mode)
+                            end,
+                            help_text = _("Optionally switch to your active provider's fastest listed model while Quick Answer is on (this chat only — your default model is untouched). Custom providers have no tier info and keep the current model. A one-shot model pick in the Quick chip's menu overrides this."),
+                            path = "features.quick_preset_model_mode",
+                            default = "none",
+                            options = {
+                                { value = "none", text = _("Keep current model") },
+                                { value = "fastest", text = _("Fastest model for active provider") },
+                            },
+                        },
+                    },
+                },
                 {
                     id = "scroll_to_last_message",
                     type = "toggle",

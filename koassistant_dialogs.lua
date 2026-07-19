@@ -317,9 +317,27 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     features._reasoning_override_active = nil
     features._model_override_active = nil
     -- Quick Answer reaches predefined actions only by opt-in (accept_quick_answer
-    -- = true on Explain-type actions; never X-Ray/translate/quiz — §10).
+    -- = true on Explain-type actions; never X-Ray/translate/quiz — §10). This one
+    -- gate covers the WHOLE preset (two-source rule, maintainer 2026-07-19): every
+    -- preset component below derives from quick_answer, while manual ⚡-menu
+    -- overrides (reasoning_override/model_override) keep their Web-pattern reach.
     if quick_answer and action and action.accept_quick_answer ~= true then
         quick_answer = nil
+    end
+    -- Preset model component (quick_preset_model_mode = "fastest"): switch to the
+    -- active provider's fastest LISTED model for this chat. Manual ⚡-menu model
+    -- picks win; custom providers have no tier info and keep the current model.
+    if quick_answer and not model_override
+        and features.quick_preset_model_mode == "fastest" then
+        local MLists = require("koassistant_model_lists")
+        local prov = config.provider or config.default_provider or "anthropic"
+        for _idx, tier in ipairs({ "ultrafast", "fast", "standard", "flagship" }) do
+            local tier_map = MLists._tiers[tier]
+            if tier_map and tier_map[prov] then
+                model_override = { provider = prov, model = tier_map[prov] }
+                break
+            end
+        end
     end
     -- One-shot provider/model override — applied BEFORE every provider-dependent
     -- read below (caching gate, Perplexity check, reasoning resolution). An
@@ -340,9 +358,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         ps.model = model_override.model
         config.provider_settings[config.provider] = ps
     end
-    if quick_answer then
-        -- "No slow features": book tools off for this chat (explicit false — rides
-        -- the viewer config into replies, same mechanics as the G6 action clear).
+    if quick_answer and features.quick_preset_tools_off ~= false then
+        -- Preset "no slow features": book tools off for this chat (explicit false —
+        -- rides the viewer config into replies, same mechanics as the G6 clear).
         features._tools_active = false
     end
 
@@ -398,9 +416,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         config.enable_web_search = bookWebSearchOverride(features)
     end
     features._web_search_active = nil
-    -- Quick Answer: web search off for this request unless the action forces it
-    -- on (explicit action flag wins — matrix §10).
-    if quick_answer and not (action and action.enable_web_search == true) then
+    -- Quick Answer preset: web search off for this request unless the preset
+    -- component is disabled or the action forces web on (explicit action flag
+    -- wins — matrix §10).
+    if quick_answer and features.quick_preset_web_off ~= false
+        and not (action and action.enable_web_search == true) then
         config.enable_web_search = false
     end
     -- Effective boolean for the system-prompt nudge (mirrors the handlers' read:
@@ -441,8 +461,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         reading_progress = features.book_metadata and features.book_metadata.reading_progress,
         -- Web search active → prose nudge (pre-search text is reader-visible)
         web_search = web_search_effective,
-        -- Quick Answer posture → brevity nudge (session ⚡ chip / opted-in actions)
-        quick_answer = quick_answer and true or nil,
+        -- Quick Answer posture → brevity nudge (session ⚡ chip / opted-in actions;
+        -- preset component quick_preset_nudge, default on)
+        quick_answer = (quick_answer and features.quick_preset_nudge ~= false) and true or nil,
     })
 
     config.system = system_config
@@ -486,8 +507,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         model_pref = ReasoningPrefs.getModelPref(features, provider, reasoning_model),
         action_override = action and ModelConstraints.parseActionReasoning(action, provider) or nil,
         -- One-shot session layer (Quick controls — matrix §10): explicit reasoning
-        -- pick wins over Quick Answer's implied off; both sit BELOW action_override.
-        session_override = reasoning_override or (quick_answer and { force = "off" } or nil),
+        -- pick wins over Quick Answer's preset off (quick_preset_reasoning_off,
+        -- default on); both sit BELOW action_override.
+        session_override = reasoning_override
+            or ((quick_answer and features.quick_preset_reasoning_off ~= false)
+                and { force = "off" } or nil),
     })
     config.api_params._reasoning = reasoning_decision
     ModelConstraints.applyReasoningParams(provider, config.api_params, reasoning_decision)
@@ -531,6 +555,71 @@ local function createTempConfig(prompt, base_config)
     end
 
     return temp_config
+end
+
+-- Quick Answer preset editor — persistent GLOBAL settings for what the ⚡ tap
+-- applies (controls_parity_plan.md §2, maintainer 2026-07-19). Reachable from
+-- main settings (Chat & Export → Quick Answer Preset — schema is the source of
+-- the defaults) and from the quick controls menu ("Preset settings…"). Rebuilds
+-- itself per toggle so the marks stay fresh.
+-- opts = { plugin, on_close }
+local showQuickPresetEditor
+showQuickPresetEditor = function(opts)
+    local ButtonDialog = require("ui/widget/buttondialog")
+    local plugin = opts.plugin
+    local dialog
+    local function mutate(fn)
+        local f = plugin.settings:readSetting("features") or {}
+        fn(f)
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        if plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        UIManager:close(dialog)
+        showQuickPresetEditor(opts)
+    end
+    local f = plugin.settings:readSetting("features") or {}
+    local function toggleRow(label, key)
+        local on = f[key] ~= false
+        return {{
+            text = (on and "✓ " or "○ ") .. label,
+            callback = function()
+                mutate(function(feats) feats[key] = not on end)
+            end,
+        }}
+    end
+    local mode = f.quick_preset_model_mode or "none"
+    dialog = ButtonDialog:new{
+        title = _("Quick Answer preset · applies while Quick Answer is on"),
+        -- Tap-outside dismissal must fire on_close too, or the dialog beneath
+        -- keeps stale state (showSessionChipsManager precedent)
+        tap_close_callback = function()
+            if opts.on_close then opts.on_close() end
+        end,
+        buttons = {
+            toggleRow(_("Concise answer nudge"), "quick_preset_nudge"),
+            toggleRow(_("Reasoning off"), "quick_preset_reasoning_off"),
+            toggleRow(_("Web search off"), "quick_preset_web_off"),
+            toggleRow(_("Book tools off"), "quick_preset_tools_off"),
+            {{
+                text = T(_("Model: %1"), mode == "fastest"
+                    and _("Fastest for provider") or _("Keep current")),
+                callback = function()
+                    mutate(function(feats)
+                        feats.quick_preset_model_mode =
+                            (feats.quick_preset_model_mode == "fastest") and "none" or "fastest"
+                    end)
+                end,
+            }},
+            {{
+                text = _("Close"),
+                callback = function()
+                    UIManager:close(dialog)
+                    if opts.on_close then opts.on_close() end
+                end,
+            }},
+        },
+    }
+    UIManager:show(dialog)
 end
 
 -- Quick controls menu (controls_parity_plan.md §2/§9 — #86): one-shot session
@@ -690,46 +779,67 @@ local function showQuickControlsMenu(opts)
         UIManager:show(sub)
     end
 
+    local qa_on = f._session_quick_answer == true
     local so = f._session_reasoning
     local reasoning_label
     if so == nil then
-        reasoning_label = _("Follow settings")
+        -- Reflect the preset's implied state so the menu doesn't claim "Follow
+        -- settings" while Quick Answer is forcing reasoning off.
+        if qa_on and f.quick_preset_reasoning_off ~= false then
+            reasoning_label = _("Off (Quick answer)")
+        else
+            reasoning_label = _("Follow settings")
+        end
     elseif so.force == "off" then
         reasoning_label = _("Off for this chat")
     else
         reasoning_label = _("On for this chat")
     end
-    local model_label = f._session_model
-        and (f._session_model.model or f._session_model.provider)
-        or _("Default")
-    local qa_on = f._session_quick_answer == true
+    local model_label
+    if f._session_model then
+        model_label = f._session_model.model or f._session_model.provider
+    elseif qa_on and f.quick_preset_model_mode == "fastest" then
+        model_label = _("Fastest (preset)")
+    else
+        model_label = _("Default")
+    end
+    local buttons = {
+        {{
+            text = (qa_on and "✓ " or "") .. _("Quick answer (apply preset)"),
+            callback = function()
+                f._session_quick_answer = (not qa_on) or nil
+                UIManager:close(menu)
+                on_change()
+            end,
+        }},
+        {{
+            text = T(_("Reasoning: %1"), reasoning_label),
+            callback = function()
+                UIManager:close(menu)
+                pickReasoning()
+            end,
+        }},
+        {{
+            text = T(_("Model: %1"), model_label),
+            callback = function()
+                UIManager:close(menu)
+                pickProvider()
+            end,
+        }},
+    }
+    if plugin and plugin.settings then
+        table.insert(buttons, {{
+            text = _("Preset settings…"),
+            callback = function()
+                UIManager:close(menu)
+                showQuickPresetEditor({ plugin = plugin, on_close = on_change })
+            end,
+        }})
+    end
+    table.insert(buttons, {{ text = _("Close"), callback = function() UIManager:close(menu) end }})
     menu = ButtonDialog:new{
         title = _("Quick controls · this chat only"),
-        buttons = {
-            {{
-                text = (qa_on and "✓ " or "") .. _("Quick answer (concise, minimal reasoning)"),
-                callback = function()
-                    f._session_quick_answer = (not qa_on) or nil
-                    UIManager:close(menu)
-                    on_change()
-                end,
-            }},
-            {{
-                text = T(_("Reasoning: %1"), reasoning_label),
-                callback = function()
-                    UIManager:close(menu)
-                    pickReasoning()
-                end,
-            }},
-            {{
-                text = T(_("Model: %1"), model_label),
-                callback = function()
-                    UIManager:close(menu)
-                    pickProvider()
-                end,
-            }},
-            {{ text = _("Close"), callback = function() UIManager:close(menu) end }},
-        },
+        buttons = buttons,
     }
     UIManager:show(menu)
 end
@@ -7252,15 +7362,22 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
     else
         dialog_title = _("KOAssistant Actions")
-        if highlighted_text and not is_xray_chat then
+        -- Rolling hints — a fresh pick per dialog open (the hint is the input
+        -- field's placeholder; it cannot change while the dialog is up). The
+        -- empty-input-Send hint is gated on the HIGHLIGHT input context, not on
+        -- highlighted_text (book launches can carry a text payload too —
+        -- maintainer 2026-07-19); book/general empty Send stays blocked by the
+        -- Send guard, so the hint would be wrong there.
+        local hints = {
+            _("Type your question or additional instructions for any action..."),
+            _("Tip: long-press toolbar buttons for their settings, action buttons for descriptions..."),
+        }
+        if input_context == "highlight" then
             -- Empty-input Send is first-class on a highlight — "talk about this"
-            -- (controls_parity_plan.md §9.3): say so instead of implying input is
-            -- required. The Send path already handles empty input (the consolidated
-            -- context message goes with no [User Question] block).
-            input_hint_text = _("Just tap Send to discuss the highlighted text, or type a question...")
-        else
-            input_hint_text = _("Type your question or additional instructions for any action...")
+            -- (controls_parity_plan.md §9.3): lead the rotation with it.
+            table.insert(hints, 1, _("Just tap Send to discuss the highlighted text, or type a question..."))
         end
+        input_hint_text = pickHint(hints)
     end
     input_dialog = InputDialog:new{
         title = dialog_title,

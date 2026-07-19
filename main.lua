@@ -335,8 +335,10 @@ function AskGPT:init()
       }
     end)
     -- "Generate Image" button — shown only when enabled and the active provider
-    -- supports image generation
-    self.ui.highlight:addToHighlightDialog("koassistant_generate_image", function(reader_highlight_instance)
+    -- supports image generation. Key sorts BEFORE "koassistant_dialog" on purpose
+    -- (orderedPairs renders by key): Chat/Action stays the LAST KOAssistant button
+    -- in the highlight menu (maintainer 2026-07-19).
+    self.ui.highlight:addToHighlightDialog("koassistant_b_generate_image", function(reader_highlight_instance)
       return {
         text = _("Generate Image") .. " (KOA)",
         show_in_highlight_dialog_func = function()

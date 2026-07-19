@@ -477,7 +477,7 @@ function SystemPrompts.getAllBehaviors(custom_behaviors)
 
     -- Add UI-created behaviors
     if custom_behaviors and type(custom_behaviors) == "table" then
-        for _, behavior in ipairs(custom_behaviors) do
+        for _idx, behavior in ipairs(custom_behaviors) do
             if behavior.id and behavior.text then
                 all_behaviors[behavior.id] = {
                     id = behavior.id,
@@ -500,7 +500,7 @@ function SystemPrompts.getSortedBehaviors(custom_behaviors)
     local all = SystemPrompts.getAllBehaviors(custom_behaviors)
     local sorted = {}
 
-    for _, behavior in pairs(all) do
+    for _key, behavior in pairs(all) do
         table.insert(sorted, behavior)
     end
 
@@ -553,7 +553,7 @@ function SystemPrompts.getBehaviorById(id, custom_behaviors)
 
     -- Check UI-created behaviors
     if custom_behaviors and type(custom_behaviors) == "table" then
-        for _, behavior in ipairs(custom_behaviors) do
+        for _idx, behavior in ipairs(custom_behaviors) do
             if behavior.id == id then
                 return {
                     id = behavior.id,
@@ -581,7 +581,7 @@ function SystemPrompts.parseUserLanguages(user_languages, primary_override)
 
     -- Handle array format (new)
     if type(user_languages) == "table" then
-        for _, lang in ipairs(user_languages) do
+        for _idx, lang in ipairs(user_languages) do
             if lang and lang ~= "" then
                 table.insert(languages, lang)
             end
@@ -612,7 +612,7 @@ function SystemPrompts.parseUserLanguages(user_languages, primary_override)
     -- Determine primary: override if valid, else first
     local primary = languages[1]
     if primary_override and primary_override ~= "" then
-        for _, lang in ipairs(languages) do
+        for _idx, lang in ipairs(languages) do
             if lang == primary_override then
                 primary = primary_override
                 break
@@ -622,7 +622,7 @@ function SystemPrompts.parseUserLanguages(user_languages, primary_override)
 
     -- Convert to native script display
     local display_languages = {}
-    for _, lang in ipairs(languages) do
+    for _idx, lang in ipairs(languages) do
         table.insert(display_languages, Languages.getDisplay(lang))
     end
 
@@ -640,7 +640,7 @@ function SystemPrompts.buildLanguageInstruction(user_languages, primary_override
     -- Build English language list (parseUserLanguages returns native, so rebuild)
     local languages = {}
     if type(user_languages) == "table" then
-        for _, lang in ipairs(user_languages) do
+        for _idx, lang in ipairs(user_languages) do
             table.insert(languages, lang)
         end
     elseif type(user_languages) == "string" and user_languages ~= "" then
