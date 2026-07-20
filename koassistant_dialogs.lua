@@ -984,9 +984,15 @@ local function showQuickControlsMenu(opts)
     local global_model = opts.chat_model or current_global_model
     local model_label
     local sm = f._session_model
-    if sm and sm.follow then sm = nil end  -- sentinel displays as the global row
+    local sm_follow = sm and sm.follow == true
+    if sm_follow then sm = nil end  -- sentinel displays as the global row
+    -- MUST mirror applyQuickReplyOverrides' model resolution: follow-sentinel
+    -- and ⚡-off both re-pin the CURRENT GLOBAL — label what will actually run.
+    local qa_off = f._session_quick_answer == false
     if sm then
         model_label = T(_("%1 (this chat)"), sm.model or sm.provider)
+    elseif opts.reply_mode and (sm_follow or qa_off) then
+        model_label = T(_("%1 (global)"), current_global_model)
     else
         local preset_pick = qa_on and resolveQuickPresetModel(f, active_provider) or nil
         if preset_pick then
@@ -1136,11 +1142,15 @@ local function applyQuickReplyOverrides(config, plugin)
     end
 
     -- Model: manual menu pick > Quick preset model mode (fastest/tier/pinned).
-    -- {follow=true} sentinel = reply-time "Global setting" pick on a chat whose
-    -- baked model IS an override: re-pin the current global selection (explicit
-    -- user pick — also wins over the quick preset model).
+    -- Re-pin to the CURRENT GLOBAL selection when either (a) the {follow=true}
+    -- sentinel is set (reply-time "Use global setting" pick), or (b) ⚡ was
+    -- toggled OFF with no explicit pick — ⚡ OFF must undo the preset's model
+    -- switch too (maintainer 2026-07-20: a quick chat's baked config IS the
+    -- quick state, so "off" re-derives from globals — and thereby follows a
+    -- global provider change). Only an explicit per-chat pick pins a model.
     local model_override = f._session_model
-    if model_override and model_override.follow then
+    local qa_off = f._session_quick_answer == false
+    if (model_override and model_override.follow) or (qa_off and not model_override) then
         local gp = plugin and plugin.getCurrentProvider and plugin:getCurrentProvider()
         local gm = plugin and plugin.getCurrentModel and plugin:getCurrentModel()
         model_override = gp and { provider = gp, model = gm } or nil
