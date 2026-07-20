@@ -84,6 +84,11 @@ ModelConstraints.capabilities = {
         thinking = { "deepseek-v4-pro", "deepseek-v4-flash" },
         -- Keep reasoning list for tier system (which models are "reasoning-class")
         reasoning = { "deepseek-v4-pro" },
+        -- Function calling for the book-tool workflows (tools wave 1; both V4 models
+        -- per api-docs.deepseek.com — works in thinking AND non-thinking mode since V3.2).
+        -- Wire gotcha: replayed tool-call turns MUST carry reasoning_content (400 if
+        -- dropped) — deepseek.lua's message-copy loop forwards it.
+        tools = { "deepseek-v4" },
     },
     gemini = {
         -- Gemini 3 models use thinkingLevel (minimal/low/medium/high)
@@ -104,6 +109,12 @@ ModelConstraints.capabilities = {
     },
     -- Note: Z.AI web search only works via a separate endpoint (/api/paas/v4/tools),
     -- NOT via the chat completions tools parameter (silently ignored).
+    -- Book tools: GLM function calling on chat completions IS supported (verified
+    -- 2026-07-20, docs.z.ai/guides/capabilities/function-calling — OpenAI wire,
+    -- JSON-string arguments), but tool_choice only supports "auto": the runner's
+    -- gather mode (tool_choice=required) and final pass (tool_choice=none) both
+    -- depend on non-auto values, so Z.AI stays OUT of tools wave 1 until it gets
+    -- a downgrade accommodation + live test (web_search_tool_plan.md).
     zai = {
         -- GLM-4.5+ models support toggleable thinking (type: enabled/disabled)
         -- Returns reasoning_content field in responses (like DeepSeek)
@@ -135,6 +146,14 @@ ModelConstraints.capabilities = {
         reasoning = {
             "openai/gpt-oss-120b", "openai/gpt-oss-20b",
             "qwen/qwen3-32b",
+        },
+        -- Function calling for the book-tool workflows (tools wave 1; per
+        -- console.groq.com/docs/tool-use). groq/compound* excluded: built-in
+        -- agentic tools only — user-defined tools are explicitly unsupported.
+        -- (qwen3-32b + llama-4-scout deprecated by Groq 2026-07-17, not listed.)
+        tools = {
+            "llama-3.3-70b-versatile", "llama-3.1-8b-instant",
+            "openai/gpt-oss-120b", "openai/gpt-oss-20b",
         },
     },
     together = {
@@ -170,6 +189,13 @@ ModelConstraints.capabilities = {
         responses_web_search = {
             "grok-4.5", "grok-4.3", "grok-4.20",
         },
+        -- Function calling for the book-tool workflows (tools wave 1) — on the CHAT
+        -- wire: xai.lua's Responses routing bails when config.tools is set. Per-model
+        -- "Function calling: Yes" on docs.x.ai (grok-4.5 + grok-build confirm chat
+        -- completions explicitly; 4.3/4.20 pages are less explicit — live test).
+        tools = {
+            "grok-4.5", "grok-4.3", "grok-4.20", "grok-build",
+        },
     },
     perplexity = {
         -- Reasoning models (always-on, but effort is controllable)
@@ -180,6 +206,15 @@ ModelConstraints.capabilities = {
         -- Magistral models always think (no toggle, extraction only)
         -- Returns structured content blocks with type: "thinking"
         thinking = { "magistral-medium", "magistral-small" },
+        -- Function calling for the book-tool workflows (tools wave 1; all current
+        -- families per docs.mistral.ai/capabilities/function_calling). Magistral
+        -- included: tool_calls coexists with structured thinking content, though a
+        -- reported client bug says it may ignore tool_choice=required (gather mode
+        -- falls back to prose acceptance) — live test.
+        tools = {
+            "mistral-large", "mistral-medium", "mistral-small",
+            "codestral", "magistral",
+        },
     },
 }
 

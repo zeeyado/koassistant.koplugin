@@ -122,7 +122,10 @@ end
 -- nil/empty — buildRequestBody must preserve such turns), then one {role="tool"} message per
 -- result, keyed by tool_call_id, with string content. reasoning_details rides along on the
 -- echo: OpenRouter's reasoning backends (Anthropic thinking, Gemini thought signatures)
--- require it back verbatim on replayed tool-call turns.
+-- require it back verbatim on replayed tool-call turns. reasoning_content rides along too:
+-- DeepSeek V3.2+ 400s when a replayed tool-call turn is missing it (each provider's
+-- message-copy loop decides whether it actually goes on the wire — only deepseek.lua
+-- forwards it).
 ToolWire.adapters.openai = {
     appendToolTurn = function(messages, raw_assistant_turn, executed)
         if raw_assistant_turn and type(raw_assistant_turn._responses_output) == "table" then
@@ -137,6 +140,8 @@ ToolWire.adapters.openai = {
                     and raw_assistant_turn.content or nil,
                 tool_calls = echoed_calls,
                 reasoning_details = raw_assistant_turn.reasoning_details,
+                reasoning_content = type(raw_assistant_turn.reasoning_content) == "string"
+                    and raw_assistant_turn.reasoning_content or nil,
             })
         end
         local answered = {}
@@ -167,6 +172,17 @@ ToolWire.adapters.openai = {
 
 -- OpenRouter speaks the OpenAI tool wire format verbatim (it normalizes across backends).
 ToolWire.adapters.openrouter = ToolWire.adapters.openai
+
+-- Tools wave 1 (web_search_tool_plan.md rollout): these providers speak the OpenAI
+-- chat-completions tool wire verbatim. Each also has a `tools` capability list in
+-- model_constraints.lua (the load-bearing gate — some backends silently ignore the
+-- tools param) and a _tool_calls detection branch in its response_parser transformer.
+-- xAI note: tool sessions stay on the chat wire by design — xai.lua's Responses
+-- routing explicitly bails when config.tools is set.
+ToolWire.adapters.deepseek = ToolWire.adapters.openai
+ToolWire.adapters.mistral = ToolWire.adapters.openai
+ToolWire.adapters.groq = ToolWire.adapters.openai
+ToolWire.adapters.xai = ToolWire.adapters.openai
 
 --- Whether a provider can wire tool turns (membership gate for the runner's shouldUse).
 function ToolWire.hasAdapter(provider)

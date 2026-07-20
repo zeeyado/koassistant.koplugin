@@ -377,9 +377,26 @@ TestRunner:test("shouldUse requires a tools-capable provider/model with an adapt
     TestRunner:assertTrue(BookToolRunner.shouldUse(
         { provider = "openai", model = "gpt-5.5", features = base }, makeUi()),
         "openai tools-capable model is eligible")
+    -- tools wave 1 providers + capable models → eligible
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
+        { provider = "deepseek", model = "deepseek-v4-pro", features = base }, makeUi()),
+        "deepseek tools-capable model is eligible")
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
+        { provider = "mistral", model = "mistral-large-latest", features = base }, makeUi()),
+        "mistral tools-capable model is eligible")
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
+        { provider = "groq", model = "llama-3.3-70b-versatile", features = base }, makeUi()),
+        "groq tools-capable model is eligible")
+    TestRunner:assertTrue(BookToolRunner.shouldUse(
+        { provider = "xai", model = "grok-4.5", features = base }, makeUi()),
+        "xai tools-capable model is eligible (chat wire)")
+    -- groq compound rejects user-defined tools → gated off
+    TestRunner:assertFalse(BookToolRunner.shouldUse(
+        { provider = "groq", model = "groq/compound", features = base }, makeUi()),
+        "groq compound (built-in tools only) is gated off")
     -- provider with no tools capability / adapter → gated off (falls through to normal path)
     TestRunner:assertFalse(BookToolRunner.shouldUse(
-        { provider = "mistral", model = "mistral-large-2", features = base }, makeUi()),
+        { provider = "perplexity", model = "sonar-pro", features = base }, makeUi()),
         "provider without tools capability/adapter is gated off")
     -- gemini but a model lacking the tools capability → gated off
     TestRunner:assertFalse(BookToolRunner.shouldUse(
@@ -424,7 +441,7 @@ TestRunner:test("queryWith delegates to query_fn when shouldUse is false", funct
         callback(true, "direct answer")
     end
     local cfg = {
-        provider = "mistral", -- no tools capability/adapter → shouldUse returns false (even with opt-in + consent)
+        provider = "perplexity", -- no tools capability/adapter → shouldUse returns false (even with opt-in + consent)
         features = { is_book_context = true, tools_posture = "auto", enable_book_text_extraction = true },
     }
     local final
@@ -816,7 +833,7 @@ TestRunner:test("shouldUse: session checkbox overrides the posture both ways", f
     TestRunner:assertTrue(BookToolRunner.shouldUse(cfg, makeUi()),
         "explicit session true wins over posture manual")
     -- session true still can't bypass capability/consent gates
-    cfg = { provider = "mistral", model = "mistral-large-2", features = {
+    cfg = { provider = "perplexity", model = "sonar-pro", features = {
         is_book_context = true, enable_book_text_extraction = true, _tools_active = true } }
     TestRunner:assertFalse(BookToolRunner.shouldUse(cfg, makeUi()),
         "session checkbox never bypasses capability gates")
@@ -830,7 +847,7 @@ TestRunner:test("sessionEligible: capability+consent+document, independent of ac
         "eligible with consent + capable provider even when posture is manual")
     -- reason returns (drive the smart-retrieval row's grayed-out labels)
     local ok_r, why = BookToolRunner.sessionEligible(
-        { provider = "mistral", model = "mistral-large-2",
+        { provider = "perplexity", model = "sonar-pro",
           features = { enable_book_text_extraction = true } }, makeUi())
     TestRunner:assertFalse(ok_r, "incapable provider ineligible")
     TestRunner:assertEqual(why, "provider", "provider reason reported")

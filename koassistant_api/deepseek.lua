@@ -41,9 +41,27 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
         })
     end
 
-    -- Add conversation messages (filter out system role and empty content)
+    -- Add conversation messages (filter out system role and empty content).
+    -- Tool turns must survive intact: an assistant tool-call turn keeps tool_calls (its
+    -- content may legitimately be nil) AND reasoning_content — since V3.2 DeepSeek
+    -- REQUIRES reasoning_content back on replayed tool-call turns (400 if missing;
+    -- on non-tool turns it is simply ignored). Tool-result turns keep role="tool" +
+    -- tool_call_id.
     for _, msg in ipairs(message_history) do
-        if msg.role ~= "system" and hasContent(msg) then
+        if msg.role == "tool" and msg.tool_call_id then
+            table.insert(request_body.messages, {
+                role = "tool",
+                tool_call_id = msg.tool_call_id,
+                content = msg.content,
+            })
+        elseif msg.role == "assistant" and msg.tool_calls then
+            table.insert(request_body.messages, {
+                role = "assistant",
+                content = msg.content,
+                tool_calls = msg.tool_calls,
+                reasoning_content = msg.reasoning_content,
+            })
+        elseif msg.role ~= "system" and hasContent(msg) then
             table.insert(request_body.messages, {
                 role = msg.role == "assistant" and "assistant" or "user",
                 content = msg.content,
@@ -64,6 +82,30 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     -- `thinking` entirely so V4's default-on behaviour applies; an explicit
     -- enabled/disabled decision is honoured as-is.
     request_body.thinking = api_params.deepseek_thinking
+
+    -- Book-tool declarations from the neutral config.tools (set by the tool runner).
+    -- Same OpenAI-shaped rendering as openai_compatible.lua; gated upstream by the
+    -- deepseek `tools` capability list in model_constraints.lua.
+    if config.tools and config.tools.specs then
+        request_body.tools = {}
+        for _, spec in ipairs(config.tools.specs) do
+            table.insert(request_body.tools, {
+                type = "function",
+                ["function"] = {
+                    name = spec.name,
+                    description = spec.description,
+                    parameters = spec.parameters,
+                },
+            })
+        end
+        if config.tools.mode == "NONE" then
+            request_body.tool_choice = "none"
+        elseif config.tools.mode == "ANY" then
+            request_body.tool_choice = "required"
+        else
+            request_body.tool_choice = "auto"
+        end
+    end
 
     local headers = {
         ["Content-Type"] = "application/json",
@@ -86,46 +128,10 @@ function DeepSeekHandler:query(message_history, config)
         return "Error: Missing API key in configuration"
     end
 
-    local defaults = Defaults.ProviderDefaults.deepseek
-    local model = config.model or defaults.model
-
-    -- Build request body using unified config
-    local request_body = {
-        model = model,
-        messages = {},
-    }
-
-    -- Add system message from unified config
-    if config.system and config.system.text and config.system.text ~= "" then
-        table.insert(request_body.messages, {
-            role = "system",
-            content = config.system.text,
-        })
-    end
-
-    -- Add conversation messages (filter out system role and empty content)
-    for _, msg in ipairs(message_history) do
-        if msg.role ~= "system" and hasContent(msg) then
-            table.insert(request_body.messages, {
-                role = msg.role == "assistant" and "assistant" or "user",
-                content = msg.content,
-            })
-        end
-    end
-
-    -- Apply API parameters from unified config
-    local api_params = config.api_params or {}
-    local default_params = defaults.additional_parameters or {}
-
-    request_body.temperature = api_params.temperature or default_params.temperature or 0.7
-    request_body.max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
-    request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
-
-    -- DeepSeek V4 thinking toggle (resolved upstream by the reasoning resolver).
-    -- When the resolver emits nothing (model behaves at its API default) we omit
-    -- `thinking` entirely so V4's default-on behaviour applies; an explicit
-    -- enabled/disabled decision is honoured as-is.
-    request_body.thinking = api_params.deepseek_thinking
+    -- Build request using shared method (single source of truth)
+    local built = self:buildRequestBody(message_history, config)
+    local request_body = built.body
+    local base_url = built.url
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
@@ -137,13 +143,8 @@ function DeepSeekHandler:query(message_history, config)
     end
 
     local requestBody = json.encode(request_body)
-    local headers = {
-        ["Content-Type"] = "application/json",
-        ["Authorization"] = "Bearer " .. config.api_key,
-        ["Content-Length"] = tostring(#requestBody),
-    }
-
-    local base_url = config.base_url or defaults.base_url
+    local headers = built.headers
+    headers["Content-Length"] = tostring(#requestBody)
 
     -- If streaming is enabled, return the background request function
     if use_streaming then

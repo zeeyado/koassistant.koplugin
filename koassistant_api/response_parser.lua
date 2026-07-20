@@ -69,6 +69,28 @@ local function finishProv(prov)
     return true
 end
 
+-- Book-tool function calls on the OpenAI chat wire → neutral calls array (or nil).
+-- Shared by the wave-1 compatible transformers (deepseek/mistral/groq/xai).
+-- function.arguments is a JSON STRING (Gemini/Anthropic give tables); type check,
+-- not truthiness — an explicit tool_calls:null is the luajson function sentinel.
+local function extractOpenAIToolCalls(message)
+    if type(message.tool_calls) ~= "table" then return nil end
+    local calls = {}
+    for _, tool_call in ipairs(message.tool_calls) do
+        local fn = tool_call["function"]
+        if fn and fn.name and fn.name ~= "web_search" then
+            local ok, decoded = pcall(json.decode, fn.arguments or "{}")
+            table.insert(calls, {
+                id = tool_call.id,
+                name = fn.name,
+                args = (ok and type(decoded) == "table") and decoded or {},
+            })
+        end
+    end
+    if #calls > 0 then return calls end
+    return nil
+end
+
 -- Format Perplexity citations as clickable footnotes
 -- @param citations table: Array of URL strings from Perplexity response
 -- @return string: Formatted sources section (or empty string if no citations)
@@ -489,7 +511,23 @@ local RESPONSE_TRANSFORMERS = {
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
             local content = message.content
+            -- Tool-call messages carry content:null → luajson's truthy function sentinel
+            if type(content) ~= "string" then content = nil end
             local reasoning = message.reasoning_content  -- DeepSeek reasoner returns this
+
+            -- Book-tool function calls → neutral shape for the tool runner.
+            -- raw_assistant_turn keeps message.reasoning_content: DeepSeek V3.2+
+            -- REQUIRES it back on replayed tool-call turns (tool_wire echoes it,
+            -- deepseek.lua's copy loop forwards it on the wire).
+            local calls = extractOpenAIToolCalls(message)
+            if calls then
+                return true, {
+                    _tool_calls = true,
+                    calls = calls,
+                    raw_assistant_turn = message,
+                }, reasoning
+            end
+
             -- Check for truncation
             local finish_reason = response.choices[1].finish_reason
             if content and content ~= "" and finish_reason == "length" then
@@ -521,7 +559,21 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            local content = response.choices[1].message.content
+            local message = response.choices[1].message
+            local content = message.content
+            -- Tool-call messages carry content:null → luajson's truthy function sentinel
+            if type(content) ~= "string" then content = nil end
+
+            -- Book-tool function calls → neutral shape for the tool runner
+            local calls = extractOpenAIToolCalls(message)
+            if calls then
+                return true, {
+                    _tool_calls = true,
+                    calls = calls,
+                    raw_assistant_turn = message,
+                }
+            end
+
             -- Extract <think> tags from R1 models
             local clean_content, reasoning = extractThinkTags(content)
             return true, clean_content, reasoning
@@ -536,6 +588,19 @@ local RESPONSE_TRANSFORMERS = {
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
             local content = message.content
+
+            -- Book-tool function calls → neutral shape for the tool runner.
+            -- (The echo replays with content dropped unless it's a string —
+            -- tool_wire's openai adapter handles Magistral's table content safely.)
+            local calls = extractOpenAIToolCalls(message)
+            if calls then
+                return true, {
+                    _tool_calls = true,
+                    calls = calls,
+                    raw_assistant_turn = message,
+                }
+            end
+
             -- Magistral models return structured content blocks
             if type(content) == "table" then
                 local text_parts, think_parts = {}, {}
@@ -554,7 +619,9 @@ local RESPONSE_TRANSFORMERS = {
                 local thinking = #think_parts > 0 and table.concat(think_parts, "\n") or nil
                 return true, text, thinking
             end
-            return true, content  -- Non-Magistral models return string
+            -- Non-Magistral models return a string (null sentinel normalized)
+            if type(content) ~= "string" then content = nil end
+            return true, content
         end
         return false, "Unexpected response format"
     end,
@@ -566,10 +633,13 @@ local RESPONSE_TRANSFORMERS = {
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
             local content = message.content
+            -- Tool-call messages carry content:null → luajson's truthy function sentinel
+            if type(content) ~= "string" then content = nil end
 
             -- Check for live_search tool usage in tool_calls (xAI's web search)
+            -- (type check, not truthiness: an explicit tool_calls:null is the sentinel)
             local web_search_used = nil
-            if message.tool_calls then
+            if type(message.tool_calls) == "table" then
                 for _, tool_call in ipairs(message.tool_calls) do
                     -- xAI uses "live_search" type (not "web_search")
                     if tool_call.type == "live_search" or tool_call.type == "web_search" or
@@ -580,8 +650,20 @@ local RESPONSE_TRANSFORMERS = {
                 end
             end
 
-            -- xAI returns reasoning_content for grok-3-mini
+            -- xAI returns reasoning_content for grok reasoning models
             local reasoning = message.reasoning_content
+
+            -- Book-tool function calls → neutral shape for the tool runner
+            -- (chat wire only — xai.lua never routes tool sessions to Responses)
+            local calls = extractOpenAIToolCalls(message)
+            if calls then
+                return true, {
+                    _tool_calls = true,
+                    calls = calls,
+                    raw_assistant_turn = message,
+                }, reasoning, web_search_used
+            end
+
             return true, content, reasoning, web_search_used
         end
         return false, "Unexpected response format"

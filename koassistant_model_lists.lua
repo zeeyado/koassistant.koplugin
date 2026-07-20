@@ -86,9 +86,9 @@ local ModelLists = {
         "llama-3.1-8b-instant",                         -- ultrafast
         "openai/gpt-oss-120b",                          -- OpenAI open-weight
         "openai/gpt-oss-20b",                           -- OpenAI open-weight (fast)
-        -- Preview models
-        "meta-llama/llama-4-scout-17b-16e-instruct",
-        "qwen/qwen3-32b",
+        -- (qwen/qwen3-32b + meta-llama/llama-4-scout deprecated by Groq effective
+        -- 2026-07-17 — removed from the picker; constraint entries kept for users
+        -- with the model still persisted in settings.)
         -- Compound AI (agentic)
         "groq/compound",                                -- web search + code exec
         "groq/compound-mini",

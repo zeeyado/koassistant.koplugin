@@ -6103,7 +6103,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             if reason == "consent" then
                                 msg = _("Book tools need \"Allow Text Extraction\" (Settings → Privacy & Data).")
                             else
-                                msg = T(_("Book tools aren't available for %1.\n\nSupported providers: Gemini, Claude (Anthropic), OpenAI, OpenRouter."),
+                                msg = T(_("Book tools aren't available for %1.\n\nSupported providers: Gemini, Claude (Anthropic), OpenAI, OpenRouter, DeepSeek, Mistral, Groq, xAI."),
                                     configuration.provider or _("this provider"))
                             end
                             UIManager:show(InfoMessage:new{ text = msg })

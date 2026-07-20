@@ -247,6 +247,111 @@ TestRunner:test("openrouter tool_calls:null sentinel is ignored, content returne
     TestRunner:assertEqual(result, "plain answer", "content returned")
 end)
 
+-- Tools wave 1: deepseek/mistral/groq/xai chat-wire tool-call detection
+TestRunner:test("deepseek tool_calls → neutral shape, reasoning_content rides along", function()
+    local message = {
+        role = "assistant",
+        content = nil,
+        reasoning_content = "let me search the book",
+        tool_calls = {
+            { id = "ds1", type = "function",
+              ["function"] = { name = "search_book", arguments = "{\"query\":\"Daisy\"}" } },
+        },
+    }
+    local response = { choices = { { message = message, finish_reason = "tool_calls" } } }
+    local success, result, reasoning = ResponseParser:parseResponse(response, "deepseek")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "neutral tool-call marker")
+    TestRunner:assertEqual(result.calls[1].name, "search_book", "call name")
+    TestRunner:assertEqual(result.calls[1].args.query, "Daisy", "arguments decoded")
+    TestRunner:assertTrue(result.raw_assistant_turn == message, "raw_assistant_turn is the message")
+    TestRunner:assertEqual(result.raw_assistant_turn.reasoning_content, "let me search the book",
+        "reasoning_content preserved for the mandatory replay echo")
+    TestRunner:assertEqual(reasoning, "let me search the book", "reasoning returned")
+end)
+
+TestRunner:test("deepseek content:null sentinel cannot escape as the answer", function()
+    local sentinel = function() end
+    local response = { choices = { { message = {
+        role = "assistant", content = sentinel,
+    }, finish_reason = "stop" } } }
+    local success, result = ResponseParser:parseResponse(response, "deepseek")
+    TestRunner:assertTrue(success, "no crash")
+    TestRunner:assertTrue(result == nil, "sentinel normalized to nil")
+end)
+
+TestRunner:test("mistral tool_calls → neutral shape (coexists with Magistral thinking blocks)", function()
+    local message = {
+        role = "assistant",
+        -- Magistral: structured content chunks AND tool_calls as sibling fields
+        content = {
+            { type = "thinking", thinking = { { text = "hmm" } } },
+        },
+        tool_calls = {
+            { id = "m1", type = "function",
+              ["function"] = { name = "toc", arguments = "{}" } },
+        },
+    }
+    local response = { choices = { { message = message } } }
+    local success, result = ResponseParser:parseResponse(response, "mistral")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "tool calls win over thinking content")
+    TestRunner:assertEqual(result.calls[1].name, "toc", "call name")
+end)
+
+TestRunner:test("mistral non-string non-table content normalized to nil", function()
+    local sentinel = function() end
+    local response = { choices = { { message = { role = "assistant", content = sentinel } } } }
+    local success, result = ResponseParser:parseResponse(response, "mistral")
+    TestRunner:assertTrue(success, "no crash")
+    TestRunner:assertTrue(result == nil, "sentinel normalized to nil")
+end)
+
+TestRunner:test("groq tool_calls → neutral shape (before think-tag extraction)", function()
+    local sentinel = function() end
+    local response = { choices = { { message = {
+        role = "assistant",
+        content = sentinel,  -- tool-call turns carry content:null
+        tool_calls = {
+            { id = "g1", type = "function",
+              ["function"] = { name = "read_around", arguments = "{\"page\":7}" } },
+        },
+    }, finish_reason = "tool_calls" } } }
+    local success, result = ResponseParser:parseResponse(response, "groq")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "neutral tool-call marker")
+    TestRunner:assertEqual(result.calls[1].args.page, 7, "arguments decoded")
+end)
+
+TestRunner:test("xai tool_calls → neutral shape, reasoning + no false web flag", function()
+    local message = {
+        role = "assistant",
+        content = nil,
+        reasoning_content = "searching",
+        tool_calls = {
+            { id = "x1", type = "function",
+              ["function"] = { name = "search_book", arguments = "{\"query\":\"whale\"}" } },
+        },
+    }
+    local response = { choices = { { message = message } } }
+    local success, result, reasoning, web = ResponseParser:parseResponse(response, "xai")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertTrue(type(result) == "table" and result._tool_calls, "neutral tool-call marker")
+    TestRunner:assertEqual(result.calls[1].args.query, "whale", "arguments decoded")
+    TestRunner:assertEqual(reasoning, "searching", "reasoning_content returned")
+    TestRunner:assertTrue(web == nil, "book tools don't set the web-search flag")
+end)
+
+TestRunner:test("xai tool_calls:null sentinel is ignored, content returned", function()
+    local sentinel = function() end
+    local response = { choices = { { message = {
+        role = "assistant", content = "plain answer", tool_calls = sentinel,
+    } } } }
+    local success, result = ResponseParser:parseResponse(response, "xai")
+    TestRunner:assertTrue(success, "no crash on non-table tool_calls")
+    TestRunner:assertEqual(result, "plain answer", "content returned")
+end)
+
 TestRunner:test("openai malformed tool arguments fall back to empty args", function()
     local response = { choices = { { message = {
         role = "assistant",

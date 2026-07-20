@@ -30,8 +30,37 @@ TestRunner:test("hasAdapter recognizes registered providers only", function()
     TestRunner:assertTrue(ToolWire.hasAdapter("gemini"), "gemini")
     TestRunner:assertTrue(ToolWire.hasAdapter("anthropic"), "anthropic")
     TestRunner:assertTrue(ToolWire.hasAdapter("openai"), "openai")
-    TestRunner:assertFalse(ToolWire.hasAdapter("mistral"), "mistral (no adapter)")
+    TestRunner:assertFalse(ToolWire.hasAdapter("perplexity"), "perplexity (no adapter)")
     TestRunner:assertFalse(ToolWire.hasAdapter(nil), "nil provider")
+end)
+
+TestRunner:test("wave-1 providers alias the openai chat-wire adapter", function()
+    for _idx, provider in ipairs({ "openrouter", "deepseek", "mistral", "groq", "xai" }) do
+        TestRunner:assertTrue(ToolWire.hasAdapter(provider), provider .. " has adapter")
+        TestRunner:assertTrue(ToolWire.adapters[provider] == ToolWire.adapters.openai,
+            provider .. " aliases the openai adapter")
+    end
+    -- Z.AI deliberately excluded: tool_choice only supports "auto" (gather/final
+    -- passes need required/none) — see model_constraints.lua zai note.
+    TestRunner:assertFalse(ToolWire.hasAdapter("zai"), "zai stays out of wave 1")
+end)
+
+TestRunner:test("openai adapter echo keeps reasoning_content (DeepSeek V3.2+ replay contract)", function()
+    local messages = {}
+    local raw = { role = "assistant", content = nil, reasoning_content = "thinking...", tool_calls = {
+        { id = "c1", type = "function", ["function"] = { name = "search_book", arguments = "{}" } },
+    } }
+    local executed = { { call = { name = "search_book", id = "c1" }, result = { ok = true } } }
+    ToolWire.appendToolTurn("deepseek", messages, raw, executed)
+    TestRunner:assertEqual(messages[1].reasoning_content, "thinking...", "echo keeps reasoning_content")
+    -- and the luajson null sentinel never rides the echo
+    local messages2 = {}
+    local raw2 = { role = "assistant", reasoning_content = function() end, tool_calls = {
+        { id = "c2", type = "function", ["function"] = { name = "toc", arguments = "{}" } },
+    } }
+    ToolWire.appendToolTurn("deepseek", messages2, raw2,
+        { { call = { name = "toc", id = "c2" }, result = { ok = true } } })
+    TestRunner:assertTrue(messages2[1].reasoning_content == nil, "sentinel reasoning_content dropped")
 end)
 
 TestRunner:test("stringifyResult JSON-encodes a result table losslessly", function()
@@ -108,7 +137,7 @@ end)
 
 TestRunner:test("appendToolTurn is a no-op for an unknown provider", function()
     local messages = { { role = "user", content = "hi" } }
-    ToolWire.appendToolTurn("mistral", messages, { content = {} }, { { call = { name = "x" }, result = {} } })
+    ToolWire.appendToolTurn("perplexity", messages, { content = {} }, { { call = { name = "x" }, result = {} } })
     TestRunner:assertEqual(#messages, 1, "no messages appended")
 end)
 
