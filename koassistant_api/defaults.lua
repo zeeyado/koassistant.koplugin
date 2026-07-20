@@ -19,7 +19,7 @@ local function getDefaultModel(provider)
         ollama = "llama4",
         groq = "llama-3.3-70b-versatile",
         mistral = "mistral-large-latest",
-        xai = "grok-4.3",
+        xai = "grok-4.5",
         openrouter = "anthropic/claude-sonnet-5",
         requesty = "openai/gpt-4o-mini",
         qwen = "qwen3-max",

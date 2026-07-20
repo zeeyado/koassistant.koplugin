@@ -248,9 +248,13 @@ function OpenAICompatibleHandler:query(message_history, config)
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming
 
-    -- Debug: Print request body
+    -- Debug: Print constraint adjustments (e.g. xAI's Responses routing marker)
+    -- and request body
     local provider_name = self:getProviderName()
     if config and config.features and config.features.debug then
+        if built.adjustments then
+            ModelConstraints.logAdjustments(provider_name, built.adjustments)
+        end
         DebugUtils.print(provider_name .. " Request Body:", request_body, config)
         print("Streaming enabled:", use_streaming and "yes" or "no")
     end
@@ -270,8 +274,10 @@ function OpenAICompatibleHandler:query(message_history, config)
         return self:backgroundRequest(base_url, headers, stream_body)
     end
 
-    -- Non-streaming mode: use background request for non-blocking UI
-    local parser_key = self:getResponseParserKey()
+    -- Non-streaming mode: use background request for non-blocking UI.
+    -- A per-request parser override (e.g. xAI's Responses routing sets
+    -- "openai_responses") wins over the provider's static parser key.
+    local parser_key = built.parser or self:getResponseParserKey()
     local debug_enabled = config and config.features and config.features.debug
     local self_ref = self  -- Capture for closure
 

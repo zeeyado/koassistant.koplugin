@@ -109,8 +109,11 @@ local ModelLists = {
     },
 
     xai = {
-        -- Grok 4.3 (current flagship, 1M context)
-        "grok-4.3",                     -- flagship (default) + reasoning
+        -- Grok 4.5 (current flagship, 500K context; the documented agent-tools
+        -- model — native web search rides its Responses endpoint)
+        "grok-4.5",                     -- flagship (default) + reasoning
+        -- Grok 4.3 (1M context)
+        "grok-4.3",                     -- reasoning
         -- Grok 4.20 (1M context; reasoning toggle baked into the slug)
         "grok-4.20-0309-non-reasoning", -- standard/fast
         "grok-4.20-0309-reasoning",     -- reasoning
@@ -306,7 +309,7 @@ local ModelLists = {
             gemini = "gemini-3.5-flash",             -- Pro models are paid-only (Apr 2026); keep tier free-tier usable
             groq = "openai/gpt-oss-120b",            -- OpenAI open-weight
             mistral = "magistral-medium-latest",
-            xai = "grok-4.3",
+            xai = "grok-4.5",
             cohere = "command-a-reasoning-08-2025",
             ollama = "deepseek-r1",
             openrouter = "deepseek/deepseek-v4-pro",
@@ -329,7 +332,7 @@ local ModelLists = {
             gemini = "gemini-3.5-flash",             -- Pro models are paid-only (Apr 2026); keep tier free-tier usable
             groq = "llama-3.3-70b-versatile",
             mistral = "mistral-large-latest",
-            xai = "grok-4.3",
+            xai = "grok-4.5",
             cohere = "command-a-plus-05-2026",
             ollama = "llama4",
             openrouter = "anthropic/claude-sonnet-5",

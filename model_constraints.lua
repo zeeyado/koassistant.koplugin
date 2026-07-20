@@ -102,8 +102,6 @@ ModelConstraints.capabilities = {
             "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
         },
     },
-    -- Note: xAI web search requires Responses API (/v1/responses) which is
-    -- not compatible with Chat Completions. Deprecated Feb 20, 2026 (410 Gone).
     -- Note: Z.AI web search only works via a separate endpoint (/api/paas/v4/tools),
     -- NOT via the chat completions tools parameter (silently ignored).
     zai = {
@@ -161,9 +159,17 @@ ModelConstraints.capabilities = {
         thinking = { "DeepSeek-V3.1", "DeepSeek-V3.2" },
     },
     xai = {
-        -- grok-4.3 and the grok-4.20 reasoning variant support reasoning_effort (none/low/medium/high)
+        -- grok-4.5/4.3 and the grok-4.20 reasoning variant support reasoning_effort (none/low/medium/high)
         -- The grok-4.20 non-reasoning slug has no effort control
-        reasoning = { "grok-4.3", "grok-4.20-0309-reasoning" },
+        reasoning = { "grok-4.5", "grok-4.3", "grok-4.20-0309-reasoning" },
+        -- Grok-4-family models take the native web_search agent tool on xAI's
+        -- Responses endpoint (/v1/responses, OpenAI-compatible wire — the old
+        -- chat-completions live search returns 410 Gone since 2026-01-12).
+        -- Routing in xai.lua; also the web-search UI gate via _web_search_providers.
+        -- Prefix match: "grok-4.20" covers both -0309 slugs.
+        responses_web_search = {
+            "grok-4.5", "grok-4.3", "grok-4.20",
+        },
     },
     perplexity = {
         -- Reasoning models (always-on, but effort is controllable)
@@ -459,7 +465,10 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
     },
     xai = {
-        -- grok-4.3 / 4.20 reasoning: reasons by default, disableable via effort "none".
+        -- grok-4.5 / 4.3 / 4.20 reasoning: reasons by default, disableable via effort "none".
+        { match = "grok-4.5", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
         { match = "grok-4.3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
@@ -490,13 +499,14 @@ ModelConstraints.reasoning_profiles = {
 --   mode = "capability:<name>"    -> only models with that capability (e.g. Gemini's google_search)
 -- Mechanisms today: anthropic (web_search_20250305 tool), openrouter (:online / Exa),
 -- perplexity (built-in Sonar, always on), gemini (googleSearch grounding, capable models),
--- openai (web_search tool on the Responses API — the handler routes web-on requests to
--- /v1/responses, responses_api_plan.md). Everything else (DeepSeek, xAI, Mistral, Groq,
--- etc.) has NO web search via the Chat Completions API the plugin uses.
+-- openai + xai (web_search tool on their Responses APIs — the handlers route web-on
+-- requests to /v1/responses, responses_api_plan.md). Everything else (DeepSeek, Mistral,
+-- Groq, etc.) has NO web search via the Chat Completions API the plugin uses.
 ModelConstraints._web_search_providers = {
     { id = "anthropic",  label = "Anthropic",  mode = "all" },
     { id = "gemini",     label = "Gemini",     mode = "capability:google_search" },
     { id = "openai",     label = "OpenAI",     mode = "capability:responses_web_search" },
+    { id = "xai",        label = "xAI",        mode = "capability:responses_web_search" },
     { id = "perplexity", label = "Perplexity", mode = "all" },
     { id = "openrouter", label = "OpenRouter", mode = "all" },
 }
