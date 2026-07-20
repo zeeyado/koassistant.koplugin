@@ -77,6 +77,47 @@ ToolWire.adapters.anthropic = {
     end,
 }
 
+-- OpenAI Responses shape (R3, responses_api_plan.md): the parser hands us the raw
+-- output[] array under raw_assistant_turn._responses_output. Echo reasoning /
+-- function_call / message items verbatim (reasoning items must precede their
+-- function calls — the builder requests their encrypted form for stateless
+-- replay), then append one function_call_output item per result. The whole turn
+-- goes into the history as ONE { _responses_items = {...} } entry that only
+-- buildResponsesRequest consumes (endpoint routing is stable across a session).
+local function appendResponsesToolTurn(messages, output, executed)
+    local items = {}
+    for _, item in ipairs(output) do
+        if type(item) == "table" and (item.type == "reasoning"
+                or item.type == "function_call" or item.type == "message") then
+            table.insert(items, item)
+        end
+    end
+    local answered = {}
+    for _, ex in ipairs(executed or {}) do
+        if ex.call.id then
+            table.insert(items, {
+                type = "function_call_output",
+                call_id = ex.call.id,
+                output = ToolWire.stringifyResult(ex.call.name, ex.result),
+            })
+            answered[ex.call.id] = true
+        end
+    end
+    -- Every echoed function_call must receive an output (same rule as the chat
+    -- shape below — the API rejects unanswered calls).
+    for _, item in ipairs(output) do
+        if type(item) == "table" and item.type == "function_call"
+                and item.call_id and not answered[item.call_id] then
+            table.insert(items, {
+                type = "function_call_output",
+                call_id = item.call_id,
+                output = "{\"ok\":false,\"error\":\"tool call not handled\"}",
+            })
+        end
+    end
+    table.insert(messages, { _responses_items = items })
+end
+
 -- OpenAI: the assistant echo is the whole message object (carries tool_calls; content may be
 -- nil/empty — buildRequestBody must preserve such turns), then one {role="tool"} message per
 -- result, keyed by tool_call_id, with string content. reasoning_details rides along on the
@@ -84,6 +125,9 @@ ToolWire.adapters.anthropic = {
 -- require it back verbatim on replayed tool-call turns.
 ToolWire.adapters.openai = {
     appendToolTurn = function(messages, raw_assistant_turn, executed)
+        if raw_assistant_turn and type(raw_assistant_turn._responses_output) == "table" then
+            return appendResponsesToolTurn(messages, raw_assistant_turn._responses_output, executed)
+        end
         local echoed_calls = nil
         if raw_assistant_turn and raw_assistant_turn.tool_calls then
             echoed_calls = raw_assistant_turn.tool_calls

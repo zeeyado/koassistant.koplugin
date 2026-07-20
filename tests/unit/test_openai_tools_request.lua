@@ -1,7 +1,9 @@
--- Unit tests for OpenAI tool request construction.
+-- Unit tests for OpenAI tool request construction on the CHAT COMPLETIONS wire.
 -- These go through OpenAIHandler:buildRequestBody (the real send path) to exercise BOTH the
 -- tools declaration block AND the message-copy loop — the loop previously dropped
 -- tool_calls/tool_call_id and coerced role="tool" to user, which would break tool replay.
+-- Model is gpt-4o deliberately: gpt-5.x tool sessions route to the Responses API (R3,
+-- responses_api_plan.md) and are covered by test_openai_responses.lua.
 
 local function setupPaths()
     local info = debug.getinfo(1, "S")
@@ -46,7 +48,7 @@ TestRunner:test("declaration: config.tools becomes type=function tools + tool_ch
         { role = "user", content = "hi" },
     }, {
         api_key = "test",
-        model = "gpt-5.5",
+        model = "gpt-4o",
         tools = { specs = SPECS, mode = "AUTO" },
     })
     local body = result.body
@@ -62,7 +64,7 @@ TestRunner:test("no tools in config -> no tools/tool_choice in request", functio
         { role = "user", content = "hi" },
     }, {
         api_key = "test",
-        model = "gpt-5.5",
+        model = "gpt-4o",
     })
     TestRunner:assertTrue(result.body.tools == nil, "no tools array")
     TestRunner:assertTrue(result.body.tool_choice == nil, "no tool_choice")
@@ -77,7 +79,7 @@ TestRunner:test("message loop preserves assistant tool_calls turn (nil content) 
         { role = "tool", tool_call_id = "c1", content = "{\"ok\":true,\"total_hits\":2}" },
     }, {
         api_key = "test",
-        model = "gpt-5.5",
+        model = "gpt-4o",
         tools = { specs = SPECS },
     })
     local msgs = result.body.messages
@@ -95,7 +97,7 @@ TestRunner:test("final pass (mode NONE) keeps declarations and sets tool_choice 
         { role = "user", content = "hi" },
     }, {
         api_key = "test",
-        model = "gpt-5.5",
+        model = "gpt-4o",
         tools = { specs = SPECS, mode = "NONE" },
     })
     TestRunner:assertTrue(result.body.tools ~= nil, "declarations stay on the final pass")
@@ -110,7 +112,7 @@ TestRunner:test("assistant tool_calls turn keeps reasoning_details through the c
         { role = "tool", tool_call_id = "c1", content = "{}" },
     }, {
         api_key = "test",
-        model = "gpt-5.5",
+        model = "gpt-4o",
         tools = { specs = SPECS },
     })
     TestRunner:assertTrue(result.body.messages[1].reasoning_details ~= nil,
@@ -144,7 +146,7 @@ TestRunner:test("gather pass (mode ANY) sets tool_choice required", function()
     local result = OpenAIHandler:buildRequestBody({
         { role = "user", content = "q" },
     }, {
-        model = "gpt-5.5",
+        model = "gpt-4o",
         api_key = "test",
         tools = { specs = SPECS, mode = "ANY" },
         features = {},

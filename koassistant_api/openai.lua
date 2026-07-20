@@ -27,15 +27,20 @@ local function webSearchEnabled(config)
     return (config.features and config.features.enable_web_search) and true or false
 end
 
---- Route this request to the Responses API (/v1/responses)? R1 scope
---- (responses_api_plan.md): ONLY when native web search is wanted — web search
---- active + model in the curated responses_web_search list + no book-tool
---- declarations (tool_wire has no Responses adapter yet — that's phase R3, so
---- tool sessions stay on Chat Completions and simply get no web, as today).
+--- Route this request to the Responses API (/v1/responses)? Capable models
+--- (the responses_web_search list) route there when native web search is
+--- wanted (R1) OR when book tools are declared (R3): on Responses, reasoning
+--- state persists across tool rounds via encrypted reasoning items — Chat
+--- Completions re-reasons from scratch every round. The runner keeps one
+--- endpoint per session: every tool-turn config carries config.tools (gather /
+--- tools / final modes), so _responses_items history entries are only ever
+--- replayed by buildResponsesRequest.
 local function shouldUseResponses(config, model)
+    if not ModelConstraints.supportsCapability("openai", model, "responses_web_search") then
+        return false
+    end
+    if config.tools ~= nil then return true end
     return webSearchEnabled(config)
-        and config.tools == nil
-        and ModelConstraints.supportsCapability("openai", model, "responses_web_search")
 end
 
 --- Build a Responses API request. Differences from Chat Completions: `input`
@@ -44,7 +49,11 @@ end
 --- @return table: { body, headers, url, model, provider, parser, adjustments }
 function OpenAIHandler:buildResponsesRequest(message_history, config, model)
     local defaults = Defaults.ProviderDefaults.openai
-    local adjustments = { responses_api = true }
+    -- Adjustment entries must be {from, to, reason} tables — logAdjustments
+    -- indexes them (a bare boolean here crashed debug-enabled requests).
+    local adjustments = {
+        responses_api = { to = "/v1/responses", reason = "native web search / book tools" },
+    }
 
     local request_body = {
         model = model,
@@ -59,7 +68,15 @@ function OpenAIHandler:buildResponsesRequest(message_history, config, model)
     end
 
     for _, msg in ipairs(message_history) do
-        if msg.role ~= "system" and hasContent(msg) then
+        if type(msg._responses_items) == "table" then
+            -- A completed tool turn appended by tool_wire's Responses branch:
+            -- raw output items (reasoning/function_call/message) + our
+            -- function_call_output items, replayed verbatim (the documented
+            -- stateless pattern for store=false).
+            for _idx, item in ipairs(msg._responses_items) do
+                table.insert(request_body.input, item)
+            end
+        elseif msg.role ~= "system" and hasContent(msg) then
             table.insert(request_body.input, {
                 role = msg.role == "assistant" and "assistant" or "user",
                 content = msg.content,
@@ -91,14 +108,41 @@ function OpenAIHandler:buildResponsesRequest(message_history, config, model)
         end
     end
 
-    -- Native web search: this is the whole reason we're on this endpoint.
+    -- Native web search (when active — tool-turn configs force it off).
     -- Effort dial → search_context_size (standard omits = API default), matching
     -- the Perplexity mapping convention.
-    local EFFORT_CONTEXT_SIZE = { light = "low", thorough = "high" }
-    local effort = ModelConstraints.webSearchEffort(config.features)
-    request_body.tools = {
-        { type = "web_search", search_context_size = EFFORT_CONTEXT_SIZE[effort] },
-    }
+    if webSearchEnabled(config) then
+        local EFFORT_CONTEXT_SIZE = { light = "low", thorough = "high" }
+        local effort = ModelConstraints.webSearchEffort(config.features)
+        request_body.tools = {
+            { type = "web_search", search_context_size = EFFORT_CONTEXT_SIZE[effort] },
+        }
+    end
+
+    -- Book-tool declarations (R3): Responses takes FLAT function defs (no
+    -- nested "function" wrapper). Same mode mapping as the chat path.
+    if config.tools and config.tools.specs then
+        request_body.tools = request_body.tools or {}
+        for _idx, spec in ipairs(config.tools.specs) do
+            table.insert(request_body.tools, {
+                type = "function",
+                name = spec.name,
+                description = spec.description,
+                parameters = spec.parameters,
+            })
+        end
+        if config.tools.mode == "NONE" then
+            request_body.tool_choice = "none"
+        elseif config.tools.mode == "ANY" then
+            request_body.tool_choice = "required"
+        else
+            request_body.tool_choice = "auto"
+        end
+        -- Stateless tool loop: reasoning items must be replayed alongside their
+        -- function calls (gpt-5.x rejects orphaned function_call items), which
+        -- with store=false requires their encrypted form.
+        request_body.include = { "reasoning.encrypted_content" }
+    end
 
     local headers = {
         ["Content-Type"] = "application/json",

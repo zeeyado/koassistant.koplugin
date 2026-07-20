@@ -166,70 +166,97 @@ end
 function DebugUtils.extractUsage(response)
     if not response or type(response) ~= "table" then return nil end
 
+    -- This runs on EVERY streamed event, and KOReader's luajson decodes JSON
+    -- null to a truthy FUNCTION sentinel — so every field must be type-checked
+    -- before indexing or arithmetic. OpenAI Responses lifecycle events carry
+    -- usage:null until the terminal event (crashed live streams on device).
+    local function tbl(v) return type(v) == "table" and v or nil end
+    local function num(v) return type(v) == "number" and v or nil end
+
     -- Anthropic: { usage: { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } }
     -- Also in message_start SSE: { message: { usage: { input_tokens, output_tokens } } }
     -- Also in message_delta SSE: { usage: { output_tokens } }
     -- OpenAI Responses uses the same input_tokens/output_tokens names — non-streaming
     -- at response.usage, streaming inside the terminal event's response object
-    local usage = response.usage
-        or (response.message and response.message.usage)
-        or (type(response.response) == "table" and response.response.usage)
+    local usage = tbl(response.usage)
+        or (tbl(response.message) and tbl(response.message.usage))
+        or (tbl(response.response) and tbl(response.response.usage))
+        or nil
 
-    if usage and (usage.input_tokens or usage.output_tokens) then
-        return {
-            input_tokens = usage.input_tokens,
-            output_tokens = usage.output_tokens,
-            total_tokens = usage.total_tokens
-                or ((usage.input_tokens or 0) + (usage.output_tokens or 0)),
-            cache_read = usage.cache_read_input_tokens
-                or (type(usage.input_tokens_details) == "table" and usage.input_tokens_details.cached_tokens),
-            cache_creation = usage.cache_creation_input_tokens,
-            reasoning_tokens = type(usage.output_tokens_details) == "table"
-                and usage.output_tokens_details.reasoning_tokens or nil,
-        }
-    end
+    if usage then
+        local input = num(usage.input_tokens)
+        local output = num(usage.output_tokens)
+        if input or output then
+            return {
+                input_tokens = input,
+                output_tokens = output,
+                total_tokens = num(usage.total_tokens) or ((input or 0) + (output or 0)),
+                cache_read = num(usage.cache_read_input_tokens)
+                    or (tbl(usage.input_tokens_details)
+                        and num(usage.input_tokens_details.cached_tokens) or nil),
+                cache_creation = num(usage.cache_creation_input_tokens),
+                reasoning_tokens = tbl(usage.output_tokens_details)
+                    and num(usage.output_tokens_details.reasoning_tokens) or nil,
+            }
+        end
 
-    -- OpenAI/compatible: { usage: { prompt_tokens, completion_tokens, total_tokens } }
-    if usage and (usage.prompt_tokens or usage.completion_tokens) then
-        local completion_details = usage.completion_tokens_details or usage.output_tokens_details
-        return {
-            input_tokens = usage.prompt_tokens,
-            output_tokens = usage.completion_tokens,
-            total_tokens = usage.total_tokens or ((usage.prompt_tokens or 0) + (usage.completion_tokens or 0)),
-            cache_read = usage.prompt_tokens_details and usage.prompt_tokens_details.cached_tokens,
-            reasoning_tokens = completion_details and completion_details.reasoning_tokens,
-        }
+        -- OpenAI/compatible: { usage: { prompt_tokens, completion_tokens, total_tokens } }
+        local prompt = num(usage.prompt_tokens)
+        local completion = num(usage.completion_tokens)
+        if prompt or completion then
+            local completion_details = tbl(usage.completion_tokens_details)
+                or tbl(usage.output_tokens_details)
+            return {
+                input_tokens = prompt,
+                output_tokens = completion,
+                total_tokens = num(usage.total_tokens) or ((prompt or 0) + (completion or 0)),
+                cache_read = tbl(usage.prompt_tokens_details)
+                    and num(usage.prompt_tokens_details.cached_tokens) or nil,
+                reasoning_tokens = completion_details
+                    and num(completion_details.reasoning_tokens) or nil,
+            }
+        end
     end
 
     -- Gemini: { usageMetadata: { promptTokenCount, candidatesTokenCount, totalTokenCount } }
-    local gemini = response.usageMetadata
-    if gemini and (gemini.promptTokenCount or gemini.candidatesTokenCount) then
-        return {
-            input_tokens = gemini.promptTokenCount,
-            output_tokens = gemini.candidatesTokenCount,
-            total_tokens = gemini.totalTokenCount or ((gemini.promptTokenCount or 0) + (gemini.candidatesTokenCount or 0)),
-            cache_read = gemini.cachedContentTokenCount,
-            reasoning_tokens = gemini.thoughtsTokenCount,
-        }
+    local gemini = tbl(response.usageMetadata)
+    if gemini then
+        local prompt = num(gemini.promptTokenCount)
+        local candidates = num(gemini.candidatesTokenCount)
+        if prompt or candidates then
+            return {
+                input_tokens = prompt,
+                output_tokens = candidates,
+                total_tokens = num(gemini.totalTokenCount) or ((prompt or 0) + (candidates or 0)),
+                cache_read = num(gemini.cachedContentTokenCount),
+                reasoning_tokens = num(gemini.thoughtsTokenCount),
+            }
+        end
     end
 
     -- Ollama: { eval_count, prompt_eval_count } (in done event)
-    if response.prompt_eval_count or response.eval_count then
+    local prompt_eval = num(response.prompt_eval_count)
+    local eval = num(response.eval_count)
+    if prompt_eval or eval then
         return {
-            input_tokens = response.prompt_eval_count,
-            output_tokens = response.eval_count,
-            total_tokens = (response.prompt_eval_count or 0) + (response.eval_count or 0),
+            input_tokens = prompt_eval,
+            output_tokens = eval,
+            total_tokens = (prompt_eval or 0) + (eval or 0),
         }
     end
 
     -- Cohere: { meta: { tokens: { input_tokens, output_tokens } } }
-    local cohere = response.meta and response.meta.tokens
-    if cohere and (cohere.input_tokens or cohere.output_tokens) then
-        return {
-            input_tokens = cohere.input_tokens,
-            output_tokens = cohere.output_tokens,
-            total_tokens = (cohere.input_tokens or 0) + (cohere.output_tokens or 0),
-        }
+    local cohere = tbl(response.meta) and tbl(response.meta.tokens) or nil
+    if cohere then
+        local input = num(cohere.input_tokens)
+        local output = num(cohere.output_tokens)
+        if input or output then
+            return {
+                input_tokens = input,
+                output_tokens = output,
+                total_tokens = (input or 0) + (output or 0),
+            }
+        end
     end
 
     return nil

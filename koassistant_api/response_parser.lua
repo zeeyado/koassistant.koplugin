@@ -263,11 +263,13 @@ local RESPONSE_TRANSFORMERS = {
         return false, "Unexpected response format"
     end,
     
-    -- OpenAI Responses API (/v1/responses) — used by the openai handler when native
-    -- web search routes there (responses_api_plan.md R1). Typed output[] items:
-    -- message (output_text parts + url_citation annotations), web_search_call
-    -- (queries), reasoning (summaries — not requested in R1, ignored). Pre-search
-    -- prose keeps the same segment/marker rules as the Anthropic transformer.
+    -- OpenAI Responses API (/v1/responses) — used by the openai handler for native
+    -- web search (R1) and book-tool sessions (R3, responses_api_plan.md). Typed
+    -- output[] items: message (output_text parts + url_citation annotations),
+    -- web_search_call (queries), function_call (book tools → neutral shape),
+    -- reasoning (summaries — not requested, ignored; replayed via tool_wire).
+    -- Pre-search prose keeps the same segment/marker rules as the Anthropic
+    -- transformer.
     openai_responses = function(response)
         if type(response.error) == "table" and (response.error.message or response.error.code) then
             return false, response.error.message or response.error.code
@@ -281,12 +283,27 @@ local RESPONSE_TRANSFORMERS = {
 
         local text_blocks = {}
         local web_prov = nil
+        local tool_calls = {}
         local segment_start = 1
         local last_was_search = false
 
         for _, item in ipairs(response.output) do
             if type(item) == "table" then
-                if item.type == "message" and type(item.content) == "table" then
+                if item.type == "function_call" and type(item.name) == "string" then
+                    -- Book-tool call → neutral shape for the runner. The matching
+                    -- key for function_call_output is call_id (NOT the item id);
+                    -- arguments is a JSON STRING like Chat Completions.
+                    local args = {}
+                    if type(item.arguments) == "string" then
+                        local ok, decoded = pcall(json.decode, item.arguments)
+                        if ok and type(decoded) == "table" then args = decoded end
+                    end
+                    table.insert(tool_calls, {
+                        id = item.call_id,
+                        name = item.name,
+                        args = args,
+                    })
+                elseif item.type == "message" and type(item.content) == "table" then
                     for _idx, part in ipairs(item.content) do
                         if type(part) == "table" and part.type == "output_text"
                                 and type(part.text) == "string" and part.text ~= "" then
@@ -332,6 +349,17 @@ local RESPONSE_TRANSFORMERS = {
             table.remove(text_blocks)
         end
         local web_search_used = web_prov and finishProv(web_prov) or nil
+
+        -- Tool calls take precedence over prose (mirrors the openai transformer);
+        -- raw_assistant_turn carries the FULL output array so tool_wire can replay
+        -- it verbatim (reasoning items must precede their function calls).
+        if #tool_calls > 0 then
+            return true, {
+                _tool_calls = true,
+                calls = tool_calls,
+                raw_assistant_turn = { _responses_output = response.output },
+            }, nil, web_search_used
+        end
 
         local text_content = #text_blocks > 0 and table.concat(text_blocks, "\n\n") or nil
 

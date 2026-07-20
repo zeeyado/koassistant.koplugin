@@ -25,6 +25,7 @@ local OpenAIHandler = require("koassistant_api.openai")
 local ResponseParser = require("koassistant_api.response_parser")
 local StreamHandler = require("stream_handler")
 local DebugUtils = require("koassistant_debug_utils")
+local ToolWire = require("koassistant_api.tool_wire")
 local TestRunner = require("test_runner"):new()
 
 print("")
@@ -82,11 +83,21 @@ TestRunner:test("per-action force-on works without the global", function()
     TestRunner:assertEqual(result.parser, "openai_responses", "routes on action override")
 end)
 
-TestRunner:test("book-tool sessions stay on Chat Completions (no Responses adapter yet)", function()
-    local config = webConfig()
+TestRunner:test("book-tool session on capable model routes to /responses (R3)", function()
+    local config = webConfig({ features = { enable_web_search = false } })
+    config.enable_web_search = false
     config.tools = { specs = { { name = "search_book", description = "d", parameters = { type = "object" } } } }
     local result = OpenAIHandler:buildRequestBody(HISTORY, config)
-    TestRunner:assertTrue(result.body.messages ~= nil, "chat body when config.tools present")
+    TestRunner:assertEqual(result.parser, "openai_responses", "tool turns ride Responses even with web off")
+end)
+
+TestRunner:test("book-tool session on non-capable model stays on Chat Completions", function()
+    local config = webConfig({ model = "gpt-4o" })
+    config.tools = { specs = { { name = "search_book", description = "d", parameters = { type = "object" } } } }
+    local result = OpenAIHandler:buildRequestBody(HISTORY, config)
+    TestRunner:assertTrue(result.parser == nil, "no parser override")
+    TestRunner:assertTrue(result.body.messages ~= nil, "chat body when model can't do Responses")
+    TestRunner:assertEqual(result.body.tools[1]["function"].name, "search_book", "nested chat-format tool def")
 end)
 
 TestRunner:test("non-capable model stays on Chat Completions", function()
@@ -164,6 +175,24 @@ TestRunner:test("reasoning effort rides nested, not top-level", function()
     }))
     TestRunner:assertEqual(result.body.reasoning.effort, "high", "nested reasoning.effort")
     TestRunner:assertEqual(result.body.reasoning_effort, nil, "no top-level reasoning_effort")
+end)
+
+TestRunner:test("adjustments are loggable (debug mode crashed on a boolean entry)", function()
+    local ModelConstraints = require("model_constraints")
+    local tool_config = webConfig()
+    tool_config.tools = { specs = { { name = "toc", description = "d",
+        parameters = { type = "object" } } }, mode = "AUTO" }
+    for _idx, config in ipairs({ webConfig(), tool_config }) do
+        local adjustments = OpenAIHandler:buildRequestBody(HISTORY, config).adjustments
+        for param, adj in pairs(adjustments) do
+            TestRunner:assertEqual(type(adj), "table", "adjustment '" .. param .. "' is a table")
+        end
+        local ok, err = pcall(ModelConstraints.logAdjustments, "OpenAI", adjustments)
+        TestRunner:assertTrue(ok, "logAdjustments must not error: " .. tostring(err))
+    end
+    -- Scalar entries from any future marker must degrade gracefully too
+    local ok = pcall(ModelConstraints.logAdjustments, "OpenAI", { marker = true })
+    TestRunner:assertTrue(ok, "scalar adjustment entries are tolerated")
 end)
 
 TestRunner:test("custom base URL keeps its host", function()
@@ -372,6 +401,28 @@ TestRunner:test("checkIfTruncated detects max_output_tokens", function()
     }), "completed is not truncated")
 end)
 
+TestRunner:test("lifecycle events with usage:null don't crash (on-device crash)", function()
+    -- luajson decodes JSON null to a truthy FUNCTION sentinel; every Responses
+    -- lifecycle event carries usage:null until the terminal event, and
+    -- extractUsage runs on EVERY streamed event.
+    local sentinel = function() end
+    TestRunner:assertEqual(DebugUtils.extractUsage({
+        type = "response.created",
+        response = { status = "in_progress", usage = sentinel },
+    }), nil, "null usage inside the response object -> nil")
+    TestRunner:assertEqual(DebugUtils.extractUsage({ usage = sentinel }), nil,
+        "top-level null usage -> nil")
+    local usage = DebugUtils.extractUsage({
+        response = { usage = {
+            input_tokens = 5, output_tokens = 2, total_tokens = sentinel,
+            input_tokens_details = sentinel, output_tokens_details = sentinel,
+        } },
+    })
+    TestRunner:assertEqual(usage.total_tokens, 7, "null total recomputed from parts")
+    TestRunner:assertEqual(usage.cache_read, nil, "null details fields tolerated")
+    TestRunner:assertEqual(usage.reasoning_tokens, nil, "null output details tolerated")
+end)
+
 TestRunner:test("usage extracted from the terminal event", function()
     local usage = DebugUtils.extractUsage({
         type = "response.completed",
@@ -380,6 +431,140 @@ TestRunner:test("usage extracted from the terminal event", function()
     TestRunner:assertEqual(usage.input_tokens, 100, "input tokens")
     TestRunner:assertEqual(usage.output_tokens, 40, "output tokens")
     TestRunner:assertEqual(usage.total_tokens, 140, "total tokens")
+end)
+
+--------------------------------------------------------------------------------
+print("\n  [R3: book tools on the Responses wire]")
+--------------------------------------------------------------------------------
+
+local function toolConfig(mode, web_on)
+    local config = webConfig({ features = { enable_web_search = web_on == true } })
+    config.enable_web_search = web_on == true
+    config.tools = {
+        specs = { { name = "search_book", description = "Search the book",
+                    parameters = { type = "object" } } },
+        mode = mode or "AUTO",
+    }
+    return config
+end
+
+TestRunner:test("tool session body: flat function defs, tool_choice, encrypted-reasoning include", function()
+    local body = OpenAIHandler:buildRequestBody(HISTORY, toolConfig("AUTO")).body
+    TestRunner:assertEqual(body.tools[1].type, "function", "flat function tool")
+    TestRunner:assertEqual(body.tools[1].name, "search_book", "name at top level")
+    TestRunner:assertEqual(body.tools[1]["function"], nil, "no nested function wrapper")
+    TestRunner:assertEqual(body.tool_choice, "auto", "AUTO -> auto")
+    TestRunner:assertEqual(body.include[1], "reasoning.encrypted_content", "encrypted reasoning requested")
+    TestRunner:assertEqual(#body.tools, 1, "no web_search tool when web off")
+end)
+
+TestRunner:test("tool_choice mapping: ANY -> required, NONE -> none", function()
+    TestRunner:assertEqual(OpenAIHandler:buildRequestBody(HISTORY, toolConfig("ANY")).body.tool_choice,
+        "required", "gather rounds force a call")
+    TestRunner:assertEqual(OpenAIHandler:buildRequestBody(HISTORY, toolConfig("NONE")).body.tool_choice,
+        "none", "final pass forbids calls")
+end)
+
+TestRunner:test("web + tools coexist in one request", function()
+    local body = OpenAIHandler:buildRequestBody(HISTORY, toolConfig("AUTO", true)).body
+    TestRunner:assertEqual(body.tools[1].type, "web_search", "web_search tool present")
+    TestRunner:assertEqual(body.tools[2].name, "search_book", "function tool alongside")
+end)
+
+TestRunner:test("web-only request has no tool_choice/include", function()
+    local body = OpenAIHandler:buildRequestBody(HISTORY, webConfig()).body
+    TestRunner:assertEqual(body.tool_choice, nil, "no tool_choice without function tools")
+    TestRunner:assertEqual(body.include, nil, "no include without function tools")
+end)
+
+TestRunner:test("_responses_items history entries splice verbatim into input", function()
+    local echoed = { type = "function_call", call_id = "call_1", name = "search_book", arguments = "{}" }
+    local result_item = { type = "function_call_output", call_id = "call_1", output = "{\"ok\":true}" }
+    local history = {
+        { role = "user", content = "Q" },
+        { _responses_items = { echoed, result_item } },
+    }
+    local body = OpenAIHandler:buildRequestBody(history, toolConfig("AUTO")).body
+    TestRunner:assertEqual(#body.input, 3, "user turn + two spliced items")
+    TestRunner:assertTrue(body.input[2] == echoed, "echoed item verbatim")
+    TestRunner:assertTrue(body.input[3] == result_item, "result item verbatim")
+end)
+
+TestRunner:test("parser: function_call items -> neutral tool-call shape", function()
+    local output = {
+        { type = "reasoning", id = "rs_1", encrypted_content = "abc" },
+        { type = "function_call", id = "fc_1", call_id = "call_1",
+          name = "search_book", arguments = "{\"query\":\"whales\"}" },
+    }
+    local ok, result = ResponseParser:parseResponse({ output = output }, "openai_responses")
+    TestRunner:assertTrue(ok, "parse succeeds")
+    TestRunner:assertTrue(result._tool_calls == true, "neutral tool-call shape")
+    TestRunner:assertEqual(result.calls[1].id, "call_1", "call_id is the matching key (not item id)")
+    TestRunner:assertEqual(result.calls[1].name, "search_book", "tool name")
+    TestRunner:assertEqual(result.calls[1].args.query, "whales", "arguments JSON decoded")
+    TestRunner:assertTrue(result.raw_assistant_turn._responses_output == output, "raw output for replay")
+end)
+
+TestRunner:test("parser: tool calls win over prose in a mixed turn", function()
+    local ok, result = ResponseParser:parseResponse({ output = {
+        { type = "message", content = { { type = "output_text", text = "Let me check the book." } } },
+        { type = "function_call", call_id = "call_1", name = "toc", arguments = "{}" },
+    } }, "openai_responses")
+    TestRunner:assertTrue(ok and result._tool_calls == true, "tool-call shape, prose not returned as answer")
+end)
+
+TestRunner:test("parser: malformed/sentinel arguments degrade to empty args", function()
+    local ok, result = ResponseParser:parseResponse({ output = {
+        { type = "function_call", call_id = "c1", name = "toc", arguments = "{broken" },
+        { type = "function_call", call_id = "c2", name = "toc", arguments = function() end },
+    } }, "openai_responses")
+    TestRunner:assertTrue(ok, "parse succeeds")
+    TestRunner:assertEqual(next(result.calls[1].args), nil, "malformed JSON -> {}")
+    TestRunner:assertEqual(next(result.calls[2].args), nil, "luajson sentinel -> {}")
+end)
+
+TestRunner:test("tool_wire: Responses turn echoes items + appends outputs", function()
+    local output = {
+        { type = "reasoning", id = "rs_1", encrypted_content = "abc" },
+        { type = "function_call", call_id = "call_1", name = "search_book", arguments = "{}" },
+        { type = "web_search_call", id = "ws_1" },  -- not replayable: filtered
+    }
+    local messages = {}
+    ToolWire.appendToolTurn("openai", messages, { _responses_output = output },
+        { { call = { id = "call_1", name = "search_book" }, result = { ok = true } } })
+    TestRunner:assertEqual(#messages, 1, "one history entry per tool turn")
+    local items = messages[1]._responses_items
+    TestRunner:assertEqual(#items, 3, "reasoning + function_call + output (web_search_call dropped)")
+    TestRunner:assertEqual(items[1].type, "reasoning", "reasoning echoed first")
+    TestRunner:assertEqual(items[2].type, "function_call", "call echoed")
+    TestRunner:assertEqual(items[3].type, "function_call_output", "result appended")
+    TestRunner:assertEqual(items[3].call_id, "call_1", "keyed by call_id")
+    TestRunner:assertTrue(items[3].output:find("true", 1, true) ~= nil, "result stringified")
+end)
+
+TestRunner:test("tool_wire: unanswered Responses calls get a stub output", function()
+    local output = {
+        { type = "function_call", call_id = "call_1", name = "search_book", arguments = "{}" },
+        { type = "function_call", call_id = "call_2", name = "toc", arguments = "{}" },
+    }
+    local messages = {}
+    ToolWire.appendToolTurn("openai", messages, { _responses_output = output },
+        { { call = { id = "call_1", name = "search_book" }, result = { ok = true } } })
+    local items = messages[1]._responses_items
+    TestRunner:assertEqual(#items, 4, "two calls + real output + stub")
+    TestRunner:assertEqual(items[4].call_id, "call_2", "stub for the unanswered call")
+    TestRunner:assertTrue(items[4].output:find("not handled", 1, true) ~= nil, "stub says not handled")
+end)
+
+TestRunner:test("tool_wire: chat shape untouched by the Responses branch", function()
+    local messages = {}
+    ToolWire.appendToolTurn("openai", messages, {
+        role = "assistant",
+        tool_calls = { { id = "call_9", type = "function", ["function"] = { name = "toc", arguments = "{}" } } },
+    }, { { call = { id = "call_9", name = "toc" }, result = { ok = true } } })
+    TestRunner:assertEqual(#messages, 2, "assistant echo + tool result")
+    TestRunner:assertEqual(messages[1].role, "assistant", "chat echo shape")
+    TestRunner:assertEqual(messages[2].tool_call_id, "call_9", "chat result shape")
 end)
 
 return TestRunner:summary()

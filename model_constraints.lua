@@ -70,9 +70,11 @@ ModelConstraints.capabilities = {
         tools = {
             "gpt-5.5", "gpt-5.4",
         },
-        -- Native web search via the Responses API (/v1/responses) — the openai handler
-        -- routes web-search-on requests there (responses_api_plan.md R1). Chat
-        -- Completions has NO native search. Prefix match covers -mini/-nano.
+        -- Responses API (/v1/responses) eligibility — the openai handler routes
+        -- web-search-on requests (R1: Chat Completions has NO native search) AND
+        -- book-tool sessions (R3: reasoning persists across tool rounds) there
+        -- (responses_api_plan.md). Also the web-search UI gate via
+        -- _web_search_providers below. Prefix match covers -mini/-nano.
         responses_web_search = {
             "gpt-5.5", "gpt-5.4",
         },
@@ -645,12 +647,17 @@ function ModelConstraints.logAdjustments(provider, adjustments)
 
     print(string.format("%s: Model constraints applied:", provider))
     for param, adj in pairs(adjustments) do
-        local reason_str = adj.reason and (" (" .. adj.reason .. ")") or ""
-        print(string.format("  %s: %s -> %s%s",
-            param,
-            tostring(adj.from),
-            tostring(adj.to),
-            reason_str))
+        if type(adj) == "table" then
+            local reason_str = adj.reason and (" (" .. adj.reason .. ")") or ""
+            print(string.format("  %s: %s -> %s%s",
+                param,
+                tostring(adj.from),
+                tostring(adj.to),
+                reason_str))
+        else
+            -- Scalar marker entries: a debug logger must never crash the request
+            print(string.format("  %s: %s", param, tostring(adj)))
+        end
     end
 end
 
