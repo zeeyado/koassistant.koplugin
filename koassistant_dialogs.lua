@@ -2029,8 +2029,14 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- the explicit Web/Tools reply toggles below so those still win.
             do
                 local qf = cfg.features
-                if qf and (qf._session_quick_answer or qf._session_reasoning
-                    or qf._session_model or qf._quick_reply_orig) then
+                -- Presence checks, NOT truthiness: ⚡ OFF is an EXPLICIT false
+                -- (counteract) and must reach the helper — truthiness here
+                -- silently skipped it and the baked quick model went out
+                -- unchanged (maintainer device log 2026-07-20).
+                if qf and (qf._session_quick_answer ~= nil
+                    or qf._session_reasoning ~= nil
+                    or qf._session_model ~= nil
+                    or qf._quick_reply_orig ~= nil) then
                     if not qf._quick_reply_private then
                         local copy = {}
                         for k, v in pairs(cfg) do
