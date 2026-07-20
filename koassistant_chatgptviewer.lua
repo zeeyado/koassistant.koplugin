@@ -2504,6 +2504,8 @@ function ChatGPTViewer:init()
       id = "launch_chat",
       callback = function()
         local artifact_viewer = self
+        local artifact_emoji = self.configuration and self.configuration.features
+          and self.configuration.features.enable_emoji_icons == true
         local chat_input
         chat_input = InputDialog:new{
           title = _("Chat about this artifact"),
@@ -2515,7 +2517,8 @@ function ChatGPTViewer:init()
           -- ~6 lines, scaled by screen size for cross-device consistency.
           -- (Was a raw 380px; text_widget_width/height were no-ops InputDialog ignores.)
           text_height = Screen:scaleBySize(160),
-          width = UIConstants.DIALOG_WIDTH(),
+          -- No explicit width: InputDialog default (80% of the short side), like
+          -- the main chat input — full-screen width touched the screen edges.
           buttons = {{
             {
               text = _("Cancel"),
@@ -2526,7 +2529,7 @@ function ChatGPTViewer:init()
               end,
             },
             {
-              text = _("Send"),
+              text = artifact_emoji and (_("Send") .. " ➤") or _("Send"),
               is_enter_default = true,
               font_bold = false,
               callback = function()
@@ -2859,8 +2862,10 @@ function ChatGPTViewer:askAnotherQuestion()
   -- (onAskQuestion applies the overrides to the chat's config), so a per-chat
   -- toggle here needs no system-prompt rebuild. Button labels are static while
   -- the dialog is up — toggling saves the draft and reopens for fresh labels.
+  -- Labels, glyphs, and N/A reasons mirror the input dialog's chips.
   local cfg = self.configuration or {}
   local cfg_features = cfg.features or {}
+  local enable_emoji = cfg_features.enable_emoji_icons == true
   local function reopenWithDraft()
     local draft = input_dialog:getInputText()
     if draft and draft ~= "" then
@@ -2885,7 +2890,8 @@ function ChatGPTViewer:askAnotherQuestion()
       web_state = cfg_features.enable_web_search == true
     end
     web_btn = {
-      text = web_state and _("Web ON") or _("Web OFF"),
+      text = enable_emoji and ("\u{1F310} " .. (web_state and _("ON") or _("OFF")))
+        or (web_state and _("Web ON") or _("Web OFF")),
       font_bold = false,
       callback = function()
         current_instance.session_web_search_override = not web_state
@@ -2894,61 +2900,107 @@ function ChatGPTViewer:askAnotherQuestion()
     }
   else
     web_btn = {
-      text = _("Web N/A"),
+      text = enable_emoji and ("\u{1F310} " .. _("N/A")) or _("Web N/A"),
       font_bold = false,
       callback = function()
         UIManager:show(InfoMessage:new{
-          text = T(_("Web search isn't currently available for %1."),
-            cfg.provider or _("this provider")),
+          text = T(_("Web search isn't currently available for %1.\n\nSupported providers: %2."),
+            cfg.provider or _("this provider"),
+            ConfigHelper:getWebSearchProvidersLabel()),
         })
       end,
     }
   end
 
-  -- Tools toggle: same exclusions as the input dialog's Tools chip (X-Ray chat
-  -- policy exclusion; capability/consent/open-book eligibility). The override is
-  -- viewer-session-sticky, like the web one.
+  -- Tools toggle: same visibility rules and per-cause explanations as the input
+  -- dialog's Tools chip. Structural absences (general/library chat, no open
+  -- book) drop the button entirely; policy/capability blocks keep it as N/A
+  -- with the specific reason. The override is viewer-session-sticky, like web.
   local tools_btn
-  if cfg_features._xray_chat_active then
-    tools_btn = {
-      text = _("Tools N/A"),
-      font_bold = false,
-      callback = function()
-        UIManager:show(InfoMessage:new{
-          text = _("Book tools aren't available in X-Ray chats."),
-        })
-      end,
-    }
-  else
-    local BookToolRunner = require("koassistant_book_tool_runner")
-    local eligible = BookToolRunner.sessionEligible
-      and BookToolRunner.sessionEligible(cfg, self._ui)
-    if not eligible then
+  local tools_na_label = enable_emoji and ("\u{1F50D} " .. _("N/A")) or _("Tools N/A")
+  if not (cfg_features.is_general_context or cfg_features.is_library_context) then
+    if cfg_features._xray_chat_active then
       tools_btn = {
-        text = _("Tools N/A"),
+        text = tools_na_label,
         font_bold = false,
         callback = function()
           UIManager:show(InfoMessage:new{
-            text = _("Book tools aren't available for this chat (provider support, text-extraction consent, or no open book)."),
+            text = _("Book tools aren't available in X-Ray chats."),
           })
         end,
       }
     else
-      local tools_effective
-      if self.session_tools_override ~= nil then
-        tools_effective = self.session_tools_override
+      local BookToolRunner = require("koassistant_book_tool_runner")
+      local eligible, reason = BookToolRunner.sessionEligible(cfg, self._ui)
+      if not eligible then
+        -- "no_book" is structural (nothing to search) — omit the button, like
+        -- the input dialog does. Provider/consent blocks explain themselves.
+        if reason ~= "no_book" then
+          tools_btn = {
+            text = tools_na_label,
+            font_bold = false,
+            callback = function()
+              local msg
+              if reason == "consent" then
+                msg = _("Book tools need \"Allow Text Extraction\" (Settings → Privacy & Data).")
+              else
+                msg = T(_("Book tools aren't available for %1.\n\nSupported providers: Gemini, Claude (Anthropic), OpenAI, OpenRouter."),
+                  cfg.provider or _("this provider"))
+              end
+              UIManager:show(InfoMessage:new{ text = msg })
+            end,
+          }
+        end
       else
-        tools_effective = cfg_features._tools_active == true
+        local BookSettings = require("koassistant_book_settings")
+        local posture = BookSettings.resolveToolsPosture(
+          self._ui and self._ui.doc_settings, cfg_features)
+        if posture == "off" and self.session_tools_override == nil
+            and cfg_features._tools_active ~= true then
+          -- Posture master switch is off and nothing has re-enabled tools for
+          -- this chat: locked OFF, tap explains (input-chip behavior).
+          tools_btn = {
+            text = enable_emoji and ("\u{1F50D} " .. _("OFF")) or _("Tools OFF"),
+            font_bold = false,
+            callback = function()
+              UIManager:show(InfoMessage:new{
+                text = _("AI Book Tools are turned off. Turn them on from the chat input's Tools button (long-press) or Book Settings."),
+                timeout = 3,
+              })
+            end,
+          }
+        else
+          local tools_effective
+          if self.session_tools_override ~= nil then
+            tools_effective = self.session_tools_override
+          elseif cfg_features._tools_active ~= nil then
+            tools_effective = cfg_features._tools_active == true
+          else
+            -- No baked per-chat flag (resumed chats): dispatch follows the
+            -- effective posture default — label must match (BookToolRunner.shouldUse).
+            tools_effective = posture == "auto"
+          end
+          tools_btn = {
+            text = enable_emoji and ("\u{1F50D} " .. (tools_effective and _("ON") or _("OFF")))
+              or (tools_effective and _("Tools ON") or _("Tools OFF")),
+            font_bold = false,
+            callback = function()
+              current_instance.session_tools_override = not tools_effective
+              reopenWithDraft()
+            end,
+          }
+        end
       end
-      tools_btn = {
-        text = tools_effective and _("Tools ON") or _("Tools OFF"),
-        font_bold = false,
-        callback = function()
-          current_instance.session_tools_override = not tools_effective
-          reopenWithDraft()
-        end,
-      }
     end
+  end
+
+  -- Controls row: chips only (Tools may be structurally absent). Same compact
+  -- font stepping as the input dialog's chip row (≤3 controls → 18).
+  local chip_row = {}
+  table.insert(chip_row, web_btn)
+  if tools_btn then table.insert(chip_row, tools_btn) end
+  for _idx, btn in ipairs(chip_row) do
+    btn.font_size = 18
   end
 
   input_dialog = InputDialog:new {
@@ -2968,9 +3020,11 @@ function ChatGPTViewer:askAnotherQuestion()
     -- ~6 lines, scaled by screen size for cross-device consistency.
     -- (Was a raw 380px; text_widget_width/height were no-ops InputDialog ignores.)
     text_height = Screen:scaleBySize(160),
-    width = UIConstants.DIALOG_WIDTH(),
+    -- No explicit width: InputDialog's default (80% of the screen's short side),
+    -- same as the main chat input dialog. Full-screen width made the dialog
+    -- edges touch the screen edges.
     buttons = {
-      { web_btn, tools_btn },
+      chip_row,
       {
         {
           text = _("Close"),
@@ -2988,7 +3042,7 @@ function ChatGPTViewer:askAnotherQuestion()
           end,
         },
         {
-          text = _("Send"),
+          text = enable_emoji and (_("Send") .. " ➤") or _("Send"),
           is_enter_default = true,
           font_bold = false,
           callback = function()
