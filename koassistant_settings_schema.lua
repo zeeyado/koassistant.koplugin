@@ -2199,7 +2199,7 @@ local SettingsSchema = {
                             id = "enable_web_search",
                             type = "toggle",
                             text = _("Enable Web Search"),
-                            help_text = T(_("Allow AI to search the web for current information.\n\nSupported providers: %1.\n\nGemini supports it only on Search-grounding-capable models; Perplexity always searches (no toggle needed); OpenRouter works for any model via the :online suffix.\n\nOther providers currently ignore this setting.\n\nThis is a global default — per-request toggles (input dialog, chat viewer) adapt to the active provider.\n\nIncreases token usage/cost."),
+                            help_text = T(_("Allow AI to search the web for current information.\n\nSupported providers: %1.\n\nGemini supports it only on Search-grounding-capable models; OpenAI on GPT-5 models (via the Responses API); Perplexity always searches (no toggle needed); OpenRouter works for any model via the :online suffix.\n\nOther providers currently ignore this setting.\n\nThis is a global default — per-request toggles (input dialog, chat viewer) adapt to the active provider.\n\nIncreases token usage/cost."),
                                 ModelConstraints.getWebSearchProvidersLabel()),
                             path = "features.enable_web_search",
                             default = false,
@@ -2217,7 +2217,7 @@ local SettingsSchema = {
                                 }
                                 return T(_("Web Search Effort: %1"), labels[effort] or effort)
                             end,
-                            help_text = _("How much web searching the AI may do per question.\n\nLight: fewest searches — fastest and cheapest.\nStandard: balanced (provider defaults).\nThorough: most searches and context — slower and costlier.\n\nApplies where the provider offers control: Anthropic (up to 2/5/10 searches), Perplexity (search context size), OpenRouter (3/5/10 results). Gemini decides automatically."),
+                            help_text = _("How much web searching the AI may do per question.\n\nLight: fewest searches — fastest and cheapest.\nStandard: balanced (provider defaults).\nThorough: most searches and context — slower and costlier.\n\nApplies where the provider offers control: Anthropic (up to 2/5/10 searches), OpenAI and Perplexity (search context size), OpenRouter (3/5/10 results). Gemini decides automatically."),
                             path = "features.web_search_effort",
                             default = "standard",
                             options = {

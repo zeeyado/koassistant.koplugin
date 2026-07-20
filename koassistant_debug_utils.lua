@@ -169,16 +169,23 @@ function DebugUtils.extractUsage(response)
     -- Anthropic: { usage: { input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens } }
     -- Also in message_start SSE: { message: { usage: { input_tokens, output_tokens } } }
     -- Also in message_delta SSE: { usage: { output_tokens } }
+    -- OpenAI Responses uses the same input_tokens/output_tokens names — non-streaming
+    -- at response.usage, streaming inside the terminal event's response object
     local usage = response.usage
         or (response.message and response.message.usage)
+        or (type(response.response) == "table" and response.response.usage)
 
     if usage and (usage.input_tokens or usage.output_tokens) then
         return {
             input_tokens = usage.input_tokens,
             output_tokens = usage.output_tokens,
-            total_tokens = (usage.input_tokens or 0) + (usage.output_tokens or 0),
-            cache_read = usage.cache_read_input_tokens,
+            total_tokens = usage.total_tokens
+                or ((usage.input_tokens or 0) + (usage.output_tokens or 0)),
+            cache_read = usage.cache_read_input_tokens
+                or (type(usage.input_tokens_details) == "table" and usage.input_tokens_details.cached_tokens),
             cache_creation = usage.cache_creation_input_tokens,
+            reasoning_tokens = type(usage.output_tokens_details) == "table"
+                and usage.output_tokens_details.reasoning_tokens or nil,
         }
     end
 

@@ -66,10 +66,14 @@ ModelConstraints.capabilities = {
         reasoning_gated = {
             "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
         },
-        -- Note: OpenAI Chat Completions API does NOT have native web search.
-        -- Web search requires Responses API or function calling with external tools.
         -- Function calling for the book-tool workflows (prefix match covers -mini/-nano).
         tools = {
+            "gpt-5.5", "gpt-5.4",
+        },
+        -- Native web search via the Responses API (/v1/responses) — the openai handler
+        -- routes web-search-on requests there (responses_api_plan.md R1). Chat
+        -- Completions has NO native search. Prefix match covers -mini/-nano.
+        responses_web_search = {
             "gpt-5.5", "gpt-5.4",
         },
     },
@@ -483,12 +487,14 @@ ModelConstraints.reasoning_profiles = {
 --   mode = "all"                  -> every model of this provider can search
 --   mode = "capability:<name>"    -> only models with that capability (e.g. Gemini's google_search)
 -- Mechanisms today: anthropic (web_search_20250305 tool), openrouter (:online / Exa),
--- perplexity (built-in Sonar, always on), gemini (googleSearch grounding, capable models).
--- Everything else (OpenAI, DeepSeek, xAI, Mistral, Groq, etc.) has NO web search via the
--- Chat Completions API the plugin uses.
+-- perplexity (built-in Sonar, always on), gemini (googleSearch grounding, capable models),
+-- openai (web_search tool on the Responses API — the handler routes web-on requests to
+-- /v1/responses, responses_api_plan.md). Everything else (DeepSeek, xAI, Mistral, Groq,
+-- etc.) has NO web search via the Chat Completions API the plugin uses.
 ModelConstraints._web_search_providers = {
     { id = "anthropic",  label = "Anthropic",  mode = "all" },
     { id = "gemini",     label = "Gemini",     mode = "capability:google_search" },
+    { id = "openai",     label = "OpenAI",     mode = "capability:responses_web_search" },
     { id = "perplexity", label = "Perplexity", mode = "all" },
     { id = "openrouter", label = "OpenRouter", mode = "all" },
 }
@@ -515,9 +521,10 @@ end
 
 --- Web search effort dial (report 3(a), 2026-07-12): one 3-level setting mapped to
 --- provider-specific wire params by each request builder — Anthropic max_uses
---- (2/5/10), Perplexity search_context_size (low/–/high; standard sends nothing =
---- API default), OpenRouter web-plugin max_results (3/–/10; standard keeps the
---- plain :online suffix). Gemini has no count control (dial ignored).
+--- (2/5/10), Perplexity + OpenAI Responses search_context_size (low/–/high;
+--- standard sends nothing = API default), OpenRouter web-plugin max_results
+--- (3/–/10; standard keeps the plain :online suffix). Gemini has no count
+--- control (dial ignored).
 --- @param features table|nil plugin features
 --- @return string "light" | "standard" | "thorough" (nil/unknown → "standard")
 function ModelConstraints.webSearchEffort(features)
@@ -530,7 +537,7 @@ end
 
 --- Friendly, comma-joined list of providers that support web search.
 --- Derived from _web_search_providers so UI strings stay in sync on expansion.
---- @return string e.g. "Anthropic, Gemini, Perplexity, OpenRouter"
+--- @return string e.g. "Anthropic, Gemini, OpenAI, Perplexity, OpenRouter"
 function ModelConstraints.getWebSearchProvidersLabel()
     local labels = {}
     for _, p in ipairs(ModelConstraints._web_search_providers) do

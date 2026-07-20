@@ -18,6 +18,109 @@ local function hasContent(msg)
     return true
 end
 
+--- Resolve the effective web-search decision (per-action override > global),
+--- same pattern as anthropic_request.lua.
+local function webSearchEnabled(config)
+    if config.enable_web_search ~= nil then
+        return config.enable_web_search and true or false
+    end
+    return (config.features and config.features.enable_web_search) and true or false
+end
+
+--- Route this request to the Responses API (/v1/responses)? R1 scope
+--- (responses_api_plan.md): ONLY when native web search is wanted — web search
+--- active + model in the curated responses_web_search list + no book-tool
+--- declarations (tool_wire has no Responses adapter yet — that's phase R3, so
+--- tool sessions stay on Chat Completions and simply get no web, as today).
+local function shouldUseResponses(config, model)
+    return webSearchEnabled(config)
+        and config.tools == nil
+        and ModelConstraints.supportsCapability("openai", model, "responses_web_search")
+end
+
+--- Build a Responses API request. Differences from Chat Completions: `input`
+--- items instead of `messages`, system prompt as `instructions`,
+--- `max_output_tokens`, flat tool defs, and the native web_search tool.
+--- @return table: { body, headers, url, model, provider, parser, adjustments }
+function OpenAIHandler:buildResponsesRequest(message_history, config, model)
+    local defaults = Defaults.ProviderDefaults.openai
+    local adjustments = { responses_api = true }
+
+    local request_body = {
+        model = model,
+        input = {},
+        -- Stateless by design: full history is resent each turn and chats must
+        -- never be retained server-side (the API default is store=true).
+        store = false,
+    }
+
+    if config.system and config.system.text and config.system.text ~= "" then
+        request_body.instructions = config.system.text
+    end
+
+    for _, msg in ipairs(message_history) do
+        if msg.role ~= "system" and hasContent(msg) then
+            table.insert(request_body.input, {
+                role = msg.role == "assistant" and "assistant" or "user",
+                content = msg.content,
+            })
+        end
+    end
+
+    local api_params = config.api_params or {}
+    local default_params = defaults.additional_parameters or {}
+    local max_tokens = api_params.max_tokens or default_params.max_tokens or 16384
+    -- Same reasoning-headroom bump as the Chat Completions path
+    if not api_params.max_tokens and ModelConstraints.supportsCapability("openai", model, "reasoning") then
+        max_tokens = 32768
+    end
+    request_body.max_output_tokens = max_tokens
+
+    -- Temperature is deliberately OMITTED: every model in responses_web_search
+    -- is a gpt-5.x that accepts only its default (the chat path forces 1.0);
+    -- sending nothing yields the same behavior with zero reject risk.
+
+    -- Reasoning effort rides nested on this API (not top-level reasoning_effort)
+    if api_params.reasoning and api_params.reasoning.effort then
+        if ModelConstraints.supportsCapability("openai", model, "reasoning") then
+            request_body.reasoning = { effort = api_params.reasoning.effort }
+        else
+            adjustments.reasoning_skipped = {
+                reason = "model " .. model .. " does not support reasoning"
+            }
+        end
+    end
+
+    -- Native web search: this is the whole reason we're on this endpoint.
+    -- Effort dial → search_context_size (standard omits = API default), matching
+    -- the Perplexity mapping convention.
+    local EFFORT_CONTEXT_SIZE = { light = "low", thorough = "high" }
+    local effort = ModelConstraints.webSearchEffort(config.features)
+    request_body.tools = {
+        { type = "web_search", search_context_size = EFFORT_CONTEXT_SIZE[effort] },
+    }
+
+    local headers = {
+        ["Content-Type"] = "application/json",
+        ["Authorization"] = "Bearer " .. (config.api_key or ""),
+    }
+
+    -- Derive the endpoint from the configured base URL so custom bases keep
+    -- working; a nonstandard base without /chat/completions passes through
+    -- unchanged (visible 404 rather than a silent wrong host).
+    local url = (config.base_url or defaults.base_url):gsub("/chat/completions", "/responses")
+
+    return {
+        body = request_body,
+        headers = headers,
+        url = url,
+        model = model,
+        provider = "openai",
+        parser = "openai_responses",
+        adjustments = adjustments,
+    }
+end
+
 --- Build the request body, headers, and URL without making the API call.
 --- This is used by the test inspector to see exactly what would be sent.
 --- @param message_history table: Array of message objects
@@ -26,6 +129,11 @@ end
 function OpenAIHandler:buildRequestBody(message_history, config)
     local defaults = Defaults.ProviderDefaults.openai
     local model = config.model or defaults.model
+
+    -- Native web search lives on the Responses API — route there when wanted
+    if shouldUseResponses(config, model) then
+        return self:buildResponsesRequest(message_history, config, model)
+    end
 
     -- Build request body using unified config
     local request_body = {
@@ -104,9 +212,9 @@ function OpenAIHandler:buildRequestBody(message_history, config)
         end
     end
 
-    -- Note: OpenAI Chat Completions API does not support native web search.
-    -- Web search requires function calling with user-provided search tools.
-    -- For now, web search is not supported for OpenAI direct.
+    -- Note: OpenAI Chat Completions has no native web search — web-search-on
+    -- requests route to the Responses API above (models outside the
+    -- responses_web_search capability list fall through here without search).
 
     -- Book-tool declarations from the neutral config.tools (set by the tool runner).
     -- mode NONE = the runner's final pass: declarations must stay (tool turns are being
@@ -192,11 +300,14 @@ function OpenAIHandler:query(message_history, config)
 
         -- If reasoning was requested, wrap the function with metadata
         -- so gpt_query.lua knows to show "reasoning requested" indicator
-        if request_body.reasoning_effort then
+        -- (top-level reasoning_effort on Chat Completions, nested on Responses)
+        local stream_reasoning_effort = request_body.reasoning_effort
+            or (type(request_body.reasoning) == "table" and request_body.reasoning.effort)
+        if stream_reasoning_effort then
             return {
                 _stream_fn = stream_fn,
                 _reasoning_requested = true,
-                _reasoning_effort = request_body.reasoning_effort,
+                _reasoning_effort = stream_reasoning_effort,
             }
         end
 
@@ -205,6 +316,8 @@ function OpenAIHandler:query(message_history, config)
 
     -- Non-streaming mode: use background request for non-blocking UI
     local reasoning_effort = request_body.reasoning_effort
+        or (type(request_body.reasoning) == "table" and request_body.reasoning.effort)
+    local parser_key = built.parser or "openai"
     local debug_enabled = config and config.features and config.features.debug
 
     local response_parser = function(response)
@@ -213,17 +326,17 @@ function OpenAIHandler:query(message_history, config)
             DebugUtils.print("OpenAI Parsed Response:", response, config)
         end
 
-        local parse_success, result, reasoning = ResponseParser:parseResponse(response, "openai")
+        local parse_success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, parser_key)
         if not parse_success then
             return false, "Error: " .. result
         end
 
         -- Return with reasoning metadata if requested
         if reasoning_effort then
-            return true, result, { _requested = true, effort = reasoning_effort }
+            return true, result, { _requested = true, effort = reasoning_effort }, web_search_used
         end
 
-        return true, result
+        return true, result, reasoning, web_search_used
     end
 
     return {

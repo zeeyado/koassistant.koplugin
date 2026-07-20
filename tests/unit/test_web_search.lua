@@ -808,8 +808,27 @@ TestRunner:test("gemini unsupported model does NOT support web search", function
         "gemini-2.0-flash should NOT support web search")
 end)
 
+-- OpenAI: only Responses-capable models (gpt-5.x route to /v1/responses)
+TestRunner:test("openai gpt-5.5 supports web search (Responses API)", function()
+    TestRunner:assertTrue(
+        ModelConstraints.supportsWebSearch("openai", "gpt-5.5"),
+        "gpt-5.5 should support web search via Responses")
+end)
+
+TestRunner:test("openai gpt-5.4-mini supports web search (prefix match)", function()
+    TestRunner:assertTrue(
+        ModelConstraints.supportsWebSearch("openai", "gpt-5.4-mini"),
+        "gpt-5.4-mini should support web search via Responses")
+end)
+
+TestRunner:test("openai unlisted model does NOT support web search", function()
+    TestRunner:assertFalse(
+        ModelConstraints.supportsWebSearch("openai", "gpt-4o"),
+        "gpt-4o should NOT support web search")
+end)
+
 -- Providers WITHOUT web search (toggle is a no-op there) — root cause of issue #81
-for _idx, p in ipairs({ "openai", "deepseek", "xai", "mistral", "groq",
+for _idx, p in ipairs({ "deepseek", "xai", "mistral", "groq",
                         "qwen", "kimi", "together", "fireworks", "sambanova",
                         "cohere", "doubao", "zai", "ollama", "requesty" }) do
     TestRunner:test(p .. " does NOT support web search", function()
@@ -826,7 +845,7 @@ end)
 
 TestRunner:test("getWebSearchProvidersLabel lists supported providers (single source)", function()
     local label = ModelConstraints.getWebSearchProvidersLabel()
-    for _idx, name in ipairs({ "Anthropic", "Gemini", "Perplexity", "OpenRouter" }) do
+    for _idx, name in ipairs({ "Anthropic", "Gemini", "OpenAI", "Perplexity", "OpenRouter" }) do
         TestRunner:assertNotNil(label:find(name, 1, true), name .. " should appear in label")
     end
 end)

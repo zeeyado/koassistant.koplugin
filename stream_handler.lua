@@ -110,6 +110,36 @@ local function harvestWebSources(event, prov)
             end
         end
     end
+
+    -- OpenAI Responses API: url_citation annotations stream as their own events…
+    if event.type == "response.output_text.annotation.added"
+        and type(event.annotation) == "table"
+        and event.annotation.type == "url_citation" then
+        addSource(event.annotation.url, event.annotation.title)
+    end
+    -- …and the terminal event carries the full response object — sweep it for
+    -- search queries + any annotations the per-event path missed (addSource/
+    -- addQuery dedupe via prov.seen)
+    if (event.type == "response.completed" or event.type == "response.incomplete")
+        and type(event.response) == "table" and type(event.response.output) == "table" then
+        for _idx, item in ipairs(event.response.output) do
+            if type(item) == "table" then
+                if item.type == "web_search_call" and type(item.action) == "table" then
+                    addQuery(item.action.query)
+                elseif item.type == "message" and type(item.content) == "table" then
+                    for _j, part in ipairs(item.content) do
+                        if type(part) == "table" and type(part.annotations) == "table" then
+                            for _k, ann in ipairs(part.annotations) do
+                                if type(ann) == "table" and ann.type == "url_citation" then
+                                    addSource(ann.url, ann.title)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 --- Close the current prose segment when a web search starts (report 3(b) decision,
@@ -1022,6 +1052,29 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 stream_error = err_message  -- finishStream reports it once
                                 finishStream()
                                 return
+                            elseif event.type == "error"
+                                    and (type(event.message) == "string" or type(event.code) == "string") then
+                                -- OpenAI Responses flat error event ({type:"error", code, message};
+                                -- Anthropic's {type:"error", error:{…}} hits the branch above)
+                                local err_message = event.message or event.code
+                                logger.warn("Responses stream error event:", err_message)
+                                partial_data = data:sub(pos)
+                                completed = true
+                                stream_error = err_message
+                                finishStream()
+                                return
+                            elseif event.type == "response.failed"
+                                    and type(event.response) == "table"
+                                    and type(event.response.error) == "table" then
+                                -- OpenAI Responses terminal failure carrying the response object
+                                local rerr = event.response.error
+                                local err_message = rerr.message or rerr.code or "Request failed"
+                                logger.warn("Responses stream failed:", err_message)
+                                partial_data = data:sub(pos)
+                                completed = true
+                                stream_error = err_message
+                                finishStream()
+                                return
                             end
 
                             -- Check for truncation before extracting content
@@ -1095,6 +1148,20 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     web_query_block_idx = nil
                                     web_query_parts = nil
                                 end
+                            end
+
+                            -- OpenAI Responses: the completed web_search_call item carries
+                            -- its query — upgrade the generic status line (display-only)
+                            if event.type == "response.output_item.done"
+                                    and type(event.item) == "table"
+                                    and event.item.type == "web_search_call"
+                                    and type(event.item.action) == "table"
+                                    and type(event.item.action.query) == "string"
+                                    and event.item.action.query ~= "" then
+                                web_search_status = Constants.getEmojiText("🔍",
+                                    T(_("Searching the web: %1"), event.item.action.query),
+                                    settings and settings.enable_emoji_icons)
+                                if in_web_search_phase then scheduleUIUpdate() end
                             end
 
                             -- Handle reasoning content (displayed with header, saved separately)
@@ -1353,6 +1420,15 @@ function StreamHandler:checkIfTruncated(event)
         end
     end
 
+    -- OpenAI Responses format: terminal event carries the full response object;
+    -- status "incomplete" with reason max_output_tokens = output cap hit
+    local resp = event.response
+    if type(resp) == "table" and resp.status == "incomplete"
+            and type(resp.incomplete_details) == "table"
+            and resp.incomplete_details.reason == "max_output_tokens" then
+        return true
+    end
+
     -- Gemini format: finishReason = "MAX_TOKENS"
     local gemini_candidate = event.candidates and event.candidates[1]
     if gemini_candidate and gemini_candidate.finishReason == "MAX_TOKENS" then
@@ -1369,6 +1445,32 @@ end
 ---          (nil, reasoning) for reasoning-only chunks
 ---          (content, reasoning) if both present in same event
 function StreamHandler:extractContentFromSSE(event)
+    -- OpenAI Responses API (/v1/responses): semantic event types; `delta` is a
+    -- STRING here (Chat Completions' delta is a table, so the branches below
+    -- would silently miss these). Only three event types carry displayable
+    -- signal; every other lifecycle event returns nothing.
+    local ev_type = event.type
+    if type(ev_type) == "string" and ev_type:sub(1, 9) == "response." then
+        if ev_type == "response.output_text.delta" then
+            if type(event.delta) == "string" and event.delta ~= "" then
+                return event.delta, nil
+            end
+            return nil, nil
+        end
+        if ev_type == "response.reasoning_summary_text.delta" then
+            -- Summaries are not requested in R1/R2; supported for forward-compat
+            if type(event.delta) == "string" and event.delta ~= "" then
+                return nil, event.delta
+            end
+            return nil, nil
+        end
+        if ev_type == "response.output_item.added" and type(event.item) == "table"
+                and event.item.type == "web_search_call" then
+            return "__WEB_SEARCH_START__", nil
+        end
+        return nil, nil
+    end
+
     -- OpenAI/DeepSeek/xAI format: choices[0].delta.content
     local choice = event.choices and event.choices[1]
     if choice then

@@ -263,6 +263,91 @@ local RESPONSE_TRANSFORMERS = {
         return false, "Unexpected response format"
     end,
     
+    -- OpenAI Responses API (/v1/responses) — used by the openai handler when native
+    -- web search routes there (responses_api_plan.md R1). Typed output[] items:
+    -- message (output_text parts + url_citation annotations), web_search_call
+    -- (queries), reasoning (summaries — not requested in R1, ignored). Pre-search
+    -- prose keeps the same segment/marker rules as the Anthropic transformer.
+    openai_responses = function(response)
+        if type(response.error) == "table" and (response.error.message or response.error.code) then
+            return false, response.error.message or response.error.code
+        end
+        if response.status == "failed" then
+            return false, "Request failed"
+        end
+        if type(response.output) ~= "table" then
+            return false, "Unexpected response format"
+        end
+
+        local text_blocks = {}
+        local web_prov = nil
+        local segment_start = 1
+        local last_was_search = false
+
+        for _, item in ipairs(response.output) do
+            if type(item) == "table" then
+                if item.type == "message" and type(item.content) == "table" then
+                    for _idx, part in ipairs(item.content) do
+                        if type(part) == "table" and part.type == "output_text"
+                                and type(part.text) == "string" and part.text ~= "" then
+                            table.insert(text_blocks, part.text)
+                            last_was_search = false
+                            if type(part.annotations) == "table" then
+                                web_prov = web_prov or {}
+                                for _j, ann in ipairs(part.annotations) do
+                                    if type(ann) == "table" and ann.type == "url_citation" then
+                                        addProvSource(web_prov, ann.url, ann.title)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                elseif item.type == "web_search_call" then
+                    web_prov = web_prov or {}
+                    if type(item.action) == "table" then
+                        addProvQuery(web_prov, item.action.query)
+                    end
+                    -- Close the current prose segment on the first search of a burst
+                    if not last_was_search then
+                        local segment = table.concat(text_blocks, "\n\n", segment_start, #text_blocks)
+                        local trimmed = segment:gsub("^%s+", ""):gsub("%s+$", "")
+                        if #trimmed < ResponseParser.WEB_PRESEARCH_FILLER_CHARS then
+                            -- Filler (or nothing): drop the segment, no marker
+                            while #text_blocks >= segment_start do
+                                table.remove(text_blocks)
+                            end
+                        else
+                            table.insert(text_blocks, ResponseParser.WEB_SEARCH_MARKER)
+                        end
+                        segment_start = #text_blocks + 1
+                        last_was_search = true
+                    end
+                end
+                -- reasoning items and other types are silently ignored
+            end
+        end
+
+        -- A search with no prose after it leaves a dangling trailing marker
+        if text_blocks[#text_blocks] == ResponseParser.WEB_SEARCH_MARKER then
+            table.remove(text_blocks)
+        end
+        local web_search_used = web_prov and finishProv(web_prov) or nil
+
+        local text_content = #text_blocks > 0 and table.concat(text_blocks, "\n\n") or nil
+
+        -- Truncation: status=incomplete with reason max_output_tokens
+        if text_content and response.status == "incomplete"
+                and type(response.incomplete_details) == "table"
+                and response.incomplete_details.reason == "max_output_tokens" then
+            text_content = text_content .. ResponseParser.TRUNCATION_NOTICE
+        end
+
+        if text_content then
+            return true, text_content, nil, web_search_used
+        end
+        return false, "Unexpected response format"
+    end,
+
     gemini = function(response)
         -- Check for error response
         if response.error then
