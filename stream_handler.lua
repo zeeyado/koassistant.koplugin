@@ -962,21 +962,30 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                 return
             else
                 local data_chunk = ffi.string(buffer, bytes_read)
-                partial_data = partial_data .. data_chunk
+                -- Split lines with a position index over one immutable string:
+                -- re-slicing partial_data per line copies the shrinking remainder
+                -- every iteration — O(n²) when a 16KB chunk holds many SSE lines.
+                -- partial_data gets the unconsumed tail at EVERY exit from this
+                -- loop (break + each early return) — finishStream reads it for
+                -- error diagnostics.
+                local data = partial_data .. data_chunk
+                local pos = 1
 
                 -- Process complete lines
                 while true do
-                    local line_end = partial_data:find("[\r\n]")
-                    if not line_end then break end
-
-                    local line = partial_data:sub(1, line_end - 1)
-                    -- Handle both \r\n and \n line endings
-                    local next_start = line_end + 1
-                    if partial_data:sub(line_end, line_end) == "\r" and
-                       partial_data:sub(line_end + 1, line_end + 1) == "\n" then
-                        next_start = line_end + 2  -- Skip both \r and \n
+                    local line_end = data:find("[\r\n]", pos)
+                    if not line_end then
+                        partial_data = data:sub(pos)
+                        break
                     end
-                    partial_data = partial_data:sub(next_start)
+
+                    local line = data:sub(pos, line_end - 1)
+                    -- Handle both \r\n and \n line endings
+                    pos = line_end + 1
+                    if data:sub(line_end, line_end) == "\r" and
+                       data:sub(line_end + 1, line_end + 1) == "\n" then
+                        pos = line_end + 2  -- Skip both \r and \n
+                    end
 
                     -- Parse SSE data line (handle both "data: " and "data:" formats)
                     local data_prefix_len = nil
@@ -989,6 +998,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                     if data_prefix_len then
                         local json_str = line:sub(data_prefix_len + 1):match("^%s*(.-)%s*$") -- trim
                         if json_str == '[DONE]' then
+                            partial_data = data:sub(pos)
                             completed = true
                             finishStream()
                             return
@@ -1007,6 +1017,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                             if event.error then
                                 local err_message = event.error.message or event.error.type or json.encode(event.error)
                                 logger.warn("SSE error event received:", err_message)
+                                partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = err_message  -- finishStream reports it once
                                 finishStream()
@@ -1201,12 +1212,14 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 if type(err_message) == "table" then
                                     err_message = err_message.message or err_message.type or json.encode(err_message)
                                 end
+                                partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = tostring(err_message)
                                 finishStream()
                                 return
                             -- Check for Ollama done signal
                             elseif event.done == true then
+                                partial_data = data:sub(pos)
                                 completed = true
                                 finishStream()
                                 return
@@ -1283,6 +1296,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                         for _idx = #result_buffer, 1, -1 do result_buffer[_idx] = nil end
                         for _idx = #error_body_lines, 1, -1 do error_body_lines[_idx] = nil end
                         table.insert(result_buffer, clean)
+                        partial_data = data:sub(pos)
                         completed = true
                         finishStream()
                         return
