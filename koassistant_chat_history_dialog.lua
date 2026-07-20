@@ -1607,8 +1607,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config = config or {}
     config.features = config.features or {}
     config.document_path = document_path  -- Needed for notebook save
-    -- Resumed chats follow the GLOBAL flags: clear per-chat Send transients that persist
-    -- on the shared module-level configuration (underscore keys survive disk sync). A
+    -- Shared-table hygiene: clear per-chat Send transients that persist on the
+    -- shared module-level configuration (underscore keys survive disk sync) —
+    -- the resumed chat's OWN state is restored from chat.control_state below
+    -- (chats saved without it follow the globals, the old behavior). A
     -- stale _tools_active would silently override the tools posture both ways here;
     -- a stale _spoiler_free_active would leak the nudge AND clamp/unclamp the tool
     -- reading scope (history resume is spoiler-excluded by design — audit G6 family).
@@ -1627,6 +1629,54 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     config.features._session_quick_answer = nil
     config.features._session_reasoning = nil
     config.features._session_model = nil
+
+    -- Private per-resume copy (parity §8c): the passed config is usually the
+    -- shared module table, and reply-time Quick overrides (model/reasoning —
+    -- applyQuickReplyOverrides) mutate the chat's config at dispatch. The
+    -- clears above ran on the SHARED table on purpose (that hygiene predates
+    -- this copy); everything below — including all reply closures — captures
+    -- the private copy, so this chat can never mutate the module config.
+    do
+        local src = config
+        config = {}
+        for k, v in pairs(src) do
+            if type(v) ~= "table" then
+                config[k] = v
+            else
+                config[k] = {}
+                for k2, v2 in pairs(v) do config[k][k2] = v2 end
+            end
+        end
+        config.features._quick_reply_private = true
+    end
+
+    -- Reactivate the chat's saved control state (parity §8c persistence,
+    -- maintainer 2026-07-20: resume should REACTIVATE the chat's controls,
+    -- not lock them). Restored onto the private copy as ordinary session
+    -- state: the reply ⚡/Web/Tools controls can still change everything, and
+    -- applyQuickReplyOverrides applies model/reasoning at reply dispatch. A
+    -- vanished provider/key fails politely at send (established pattern).
+    -- Chats saved before this feature have no control_state → globals, as before.
+    local cs = chat.control_state
+    if cs then
+        if cs.quick_answer ~= nil then
+            config.features._session_quick_answer = cs.quick_answer
+        end
+        if cs.reasoning and cs.reasoning.force then
+            config.features._session_reasoning = { force = cs.reasoning.force }
+        end
+        if cs.model and cs.model.provider then
+            config.features._session_model = {
+                provider = cs.model.provider, model = cs.model.model,
+            }
+        end
+        if cs.web_search ~= nil then
+            config.enable_web_search = cs.web_search
+        end
+        if cs.tools ~= nil then
+            config.features._tools_active = cs.tools
+        end
+    end
 
     -- Restore system prompt metadata for debug display (if available from saved chat)
     if chat.system_metadata then
@@ -1733,6 +1783,9 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             original_highlighted_text = chat.original_highlighted_text,
                             -- Preserve system prompt metadata for debug display
                             system_metadata = chat.system_metadata,
+                            -- Per-chat control state, captured LIVE from the resumed
+                            -- config (reflects reply-time changes — parity §8c)
+                            control_state = chat_history_manager.captureControlState(config),
                             -- Preserve cache continuation info
                             used_cache = chat.used_cache,
                             cached_progress = chat.cached_progress,
@@ -1916,6 +1969,12 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 local viewer_web_search = self_viewer.session_web_search_override
                 local viewer_tools = self_viewer.session_tools_override
 
+                -- Reply-time Quick overrides (parity §8c): config here is the
+                -- private per-resume copy (see continueChat) — apply directly,
+                -- BEFORE the explicit Web/Tools toggles below so those win.
+                -- No-op when no ⚡/menu pick was made on this chat.
+                require("koassistant_dialogs").applyQuickReplyOverrides(config, ui and ui.koassistant)
+
                 -- Apply session web search override if set on the viewer
                 if viewer_web_search ~= nil then
                     config.enable_web_search = viewer_web_search
@@ -1990,6 +2049,9 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                             original_highlighted_text = chat.original_highlighted_text,
                             -- Preserve system prompt metadata for debug display
                             system_metadata = chat.system_metadata,
+                            -- Per-chat control state, captured LIVE from the resumed
+                            -- config (reflects reply-time changes — parity §8c)
+                            control_state = chat_history_manager.captureControlState(config),
                             -- Preserve cache continuation info
                             used_cache = chat.used_cache,
                             cached_progress = chat.cached_progress,

@@ -340,6 +340,36 @@ function ChatHistoryManager:generateChatId()
     return os.time() .. "_" .. math.random(100000, 999999)
 end
 
+-- Capture a chat's per-chat control state for persistence (controls parity
+-- §8c, maintainer 2026-07-20: resume should REACTIVATE the chat's controls,
+-- not lock them). Pure/static — call as ChatHistoryManager.captureControlState.
+-- Reads the chat config's session-state keys (kept on every chat's private
+-- config since the same-day rebase fix) plus the baked web/tools flags.
+-- Returns nil when the chat carries no control state (field stays absent).
+-- Restore side: continueChat maps this back onto the resumed chat's private
+-- config as ordinary session state, so every reply-side control still works.
+function ChatHistoryManager.captureControlState(config)
+    local f = config and config.features or {}
+    local cs = {}
+    if f._session_quick_answer ~= nil then
+        cs.quick_answer = f._session_quick_answer == true
+    end
+    local sr = f._session_reasoning
+    if sr and sr.force then cs.reasoning = { force = sr.force } end
+    local sm = f._session_model
+    if sm and sm.provider then
+        cs.model = { provider = sm.provider, model = sm.model }
+    end
+    if config and config.enable_web_search ~= nil then
+        cs.web_search = config.enable_web_search == true
+    end
+    if f._tools_active ~= nil then
+        cs.tools = f._tools_active == true
+    end
+    if next(cs) == nil then return nil end
+    return cs
+end
+
 -- Save a chat session
 function ChatHistoryManager:saveChat(document_path, chat_title, message_history, metadata)
     if not document_path or not message_history then
@@ -378,6 +408,8 @@ function ChatHistoryManager:saveChat(document_path, chat_title, message_history,
         tags = metadata and metadata.tags or {},
         -- Store highlighted text for display toggle in continued chats (not in messages/export)
         original_highlighted_text = metadata and metadata.original_highlighted_text or nil,
+        -- Per-chat control state (quick/reasoning/model/web/tools) — restored on resume
+        control_state = metadata and metadata.control_state or nil,
     }
     
     -- Check if this is an update to an existing chat

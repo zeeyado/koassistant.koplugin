@@ -2877,6 +2877,26 @@ function ChatGPTViewer:askAnotherQuestion()
     current_instance:askAnotherQuestion()
   end
 
+  -- Long-press on the chips opens the same persistent-defaults pickers as the
+  -- input dialog's chips (For this book / Global). Reopen re-derives labels.
+  local BookSettings = require("koassistant_book_settings")
+  local hold_document_path = self._ui and self._ui.document and self._ui.document.file
+  local web_hold, tools_hold
+  if self._plugin then
+    web_hold = function()
+      BookSettings.showWebSearch({
+        plugin = self._plugin, ui = self._ui, document_path = hold_document_path,
+        on_close = reopenWithDraft,
+      })
+    end
+    tools_hold = function()
+      BookSettings.showToolsPosture({
+        plugin = self._plugin, ui = self._ui, document_path = hold_document_path,
+        on_close = reopenWithDraft,
+      })
+    end
+  end
+
   -- Web toggle (state logic mirrors the viewer's row-2 web button)
   local ConfigHelper = require("koassistant_config_helper")
   local web_btn
@@ -2897,6 +2917,7 @@ function ChatGPTViewer:askAnotherQuestion()
         current_instance.session_web_search_override = not web_state
         reopenWithDraft()
       end,
+      hold_callback = web_hold,
     }
   else
     web_btn = {
@@ -2909,6 +2930,7 @@ function ChatGPTViewer:askAnotherQuestion()
             ConfigHelper:getWebSearchProvidersLabel()),
         })
       end,
+      hold_callback = web_hold,
     }
   end
 
@@ -2920,14 +2942,16 @@ function ChatGPTViewer:askAnotherQuestion()
   local tools_na_label = enable_emoji and ("\u{1F50D} " .. _("N/A")) or _("Tools N/A")
   if not (cfg_features.is_general_context or cfg_features.is_library_context) then
     if cfg_features._xray_chat_active then
+      local function explainXray()
+        UIManager:show(InfoMessage:new{
+          text = _("Book tools aren't available in X-Ray chats."),
+        })
+      end
       tools_btn = {
         text = tools_na_label,
         font_bold = false,
-        callback = function()
-          UIManager:show(InfoMessage:new{
-            text = _("Book tools aren't available in X-Ray chats."),
-          })
-        end,
+        callback = explainXray,
+        hold_callback = explainXray,
       }
     else
       local BookToolRunner = require("koassistant_book_tool_runner")
@@ -2949,10 +2973,10 @@ function ChatGPTViewer:askAnotherQuestion()
               end
               UIManager:show(InfoMessage:new{ text = msg })
             end,
+            hold_callback = tools_hold,
           }
         end
       else
-        local BookSettings = require("koassistant_book_settings")
         local posture = BookSettings.resolveToolsPosture(
           self._ui and self._ui.doc_settings, cfg_features)
         if posture == "off" and self.session_tools_override == nil
@@ -2964,10 +2988,11 @@ function ChatGPTViewer:askAnotherQuestion()
             font_bold = false,
             callback = function()
               UIManager:show(InfoMessage:new{
-                text = _("AI Book Tools are turned off. Turn them on from the chat input's Tools button (long-press) or Book Settings."),
+                text = _("AI Book Tools are turned off. Long-press to turn them on for this book or globally."),
                 timeout = 3,
               })
             end,
+            hold_callback = tools_hold,
           }
         else
           local tools_effective
@@ -2988,10 +3013,62 @@ function ChatGPTViewer:askAnotherQuestion()
               current_instance.session_tools_override = not tools_effective
               reopenWithDraft()
             end,
+            hold_callback = tools_hold,
           }
         end
       end
     end
+  end
+
+  -- Quick (⚡) chip — reply-side "live parts" (parity §8c decision 2026-07-20):
+  -- tap toggles the Quick posture for this chat's NEXT replies (reasoning off +
+  -- preset model + web/tools off per preset — the brevity nudge is NOT
+  -- retro-applied, the system prompt stays as created); hold opens the quick
+  -- controls menu (reasoning/model picks). State is config-resident on the
+  -- chat's config (_session_* keys), applied at reply dispatch by
+  -- applyQuickReplyOverrides — sticky until changed, honest revert on clear.
+  local quick_btn
+  do
+    local qa_on = cfg_features._session_quick_answer == true
+    -- {follow=true} sentinels are "explicitly back to settings" — not overrides
+    local sr = cfg_features._session_reasoning
+    local sm = cfg_features._session_model
+    local has_override = (sr ~= nil and not sr.follow) or (sm ~= nil and not sm.follow)
+    local label
+    if enable_emoji then
+      label = "\u{26A1} " .. (qa_on and _("ON") or (has_override and _("SET") or _("OFF")))
+    else
+      label = qa_on and _("Quick ON") or (has_override and _("Quick SET") or _("Quick"))
+    end
+    local orig = cfg_features._quick_reply_orig
+    quick_btn = {
+      text = label,
+      font_bold = false,
+      callback = function()
+        cfg.features = cfg.features or {}
+        -- Explicit true/false (never nil): OFF must COUNTERACT a chat that was
+        -- created quick — its baked config IS the quick state, so an explicit
+        -- false makes applyQuickReplyOverrides re-resolve reasoning from prefs
+        -- instead of leaving the baked quick-off in place.
+        cfg.features._session_quick_answer = not qa_on
+        reopenWithDraft()
+      end,
+      hold_callback = function()
+        require("koassistant_dialogs").showQuickControlsMenu({
+          configuration = cfg,
+          plugin = self._plugin,
+          on_change = reopenWithDraft,
+          reply_mode = true,  -- clear-rows write counteract sentinels, not nil
+          -- Provenance labels should name the CHAT's baseline, not the
+          -- current global selection (they differ on rebased chats).
+          chat_provider = (orig and orig.provider) or cfg.provider,
+          chat_model = (orig and orig.model) or cfg.model
+            or (cfg.provider_settings and cfg.provider
+                and cfg.provider_settings[cfg.provider]
+                and cfg.provider_settings[cfg.provider].model),
+        })
+      end,
+    }
   end
 
   -- Controls row: chips only (Tools may be structurally absent). Same compact
@@ -2999,6 +3076,7 @@ function ChatGPTViewer:askAnotherQuestion()
   local chip_row = {}
   table.insert(chip_row, web_btn)
   if tools_btn then table.insert(chip_row, tools_btn) end
+  table.insert(chip_row, quick_btn)
   for _idx, btn in ipairs(chip_row) do
     btn.font_size = 18
   end

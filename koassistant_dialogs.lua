@@ -355,6 +355,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- overrides (reasoning_override/model_override) keep their Web-pattern reach.
     if quick_answer and action and action.accept_quick_answer ~= true then
         quick_answer = nil
+        -- Also drop the chip-state key from this chat's config: it would ride
+        -- into the action chat's replies, where applyQuickReplyOverrides has no
+        -- accept gate — the posture would reach non-accepting actions (and then
+        -- persist via control_state). Reasoning/model session picks stay —
+        -- Web-pattern reach (round-2 gate, governance hole).
+        features._session_quick_answer = nil
     end
     -- Preset model component: switch model for this chat per quick_preset_model_mode
     -- (fastest / tier / pinned model — resolveQuickPresetModel above). Manual
@@ -901,8 +907,15 @@ end
 -- (_session_quick_answer / _session_reasoning / _session_model) — config-resident
 -- like the Scope chip (60-upvalue cap), consumed at dispatch via the *_active
 -- transients (see buildUnifiedRequestConfig). Module-level so the reply dialog
--- (parity slice (b)) can reuse it with its own opts.
--- opts = { configuration, plugin, on_change }
+-- (parity slice (b)) can reuse it with its own opts — reply callers pass
+-- chat_provider/chat_model so the provenance labels name the CHAT's baseline
+-- instead of the global selection (the two can differ on a rebased chat), and
+-- reply_mode = true, which makes the "off"/"follow"/"global" rows write
+-- EXPLICIT counteract values ({follow=true} sentinels, explicit false) instead
+-- of nil — a chat whose config was CREATED with these overrides baked in has
+-- no nil-state to fall back to; clearing must actively re-resolve
+-- (applyQuickReplyOverrides handles the sentinels).
+-- opts = { configuration, plugin, on_change, chat_provider, chat_model, reply_mode }
 local function showQuickControlsMenu(opts)
     local ButtonDialog = require("ui/widget/buttondialog")
     local configuration = opts.configuration
@@ -929,7 +942,8 @@ local function showQuickControlsMenu(opts)
         sub = ButtonDialog:new{
             title = _("Reasoning · this chat only"),
             buttons = {
-                row(_("Follow settings"), nil, so == nil),
+                row(_("Follow settings"), opts.reply_mode and { follow = true } or nil,
+                    so == nil or so.follow == true),
                 row(_("Off for this chat"), { force = "off" }, (so and so.force == "off") or false),
                 row(_("On for this chat"), { force = "on" }, (so and so.force == "on") or false),
                 {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }},
@@ -940,6 +954,7 @@ local function showQuickControlsMenu(opts)
 
     local qa_on = f._session_quick_answer == true
     local so = f._session_reasoning
+    if so and so.follow then so = nil end  -- sentinel displays as "Follow settings"
     local reasoning_label
     if so == nil then
         -- Reflect the preset's implied state so the menu doesn't claim "Follow
@@ -957,17 +972,29 @@ local function showQuickControlsMenu(opts)
     -- Model label carries PROVENANCE (maintainer 2026-07-19: "Default" was
     -- confusing) — always show the model that would actually be used and why:
     -- (this chat) session pick > (Quick preset) while ⚡ on > (global).
-    local active_provider = (plugin and plugin.getCurrentProvider and plugin:getCurrentProvider())
+    local active_provider = opts.chat_provider
+        or (plugin and plugin.getCurrentProvider and plugin:getCurrentProvider())
         or configuration.provider or "anthropic"
-    local global_model = (plugin and plugin.getCurrentModel and plugin:getCurrentModel())
+    -- Two distinct models in reply_mode (round-2 gate CONFIRMED-3): the CHAT's
+    -- baseline (what runs when nothing is picked) vs the CURRENT GLOBAL (what
+    -- the {follow=true} row actually pins). Conflating them mislabeled the
+    -- follow row on every rebased chat.
+    local current_global_model = (plugin and plugin.getCurrentModel and plugin:getCurrentModel())
         or configuration.model or _("provider default")
+    local global_model = opts.chat_model or current_global_model
     local model_label
-    if f._session_model then
-        model_label = T(_("%1 (this chat)"), f._session_model.model or f._session_model.provider)
+    local sm = f._session_model
+    if sm and sm.follow then sm = nil end  -- sentinel displays as the global row
+    if sm then
+        model_label = T(_("%1 (this chat)"), sm.model or sm.provider)
     else
         local preset_pick = qa_on and resolveQuickPresetModel(f, active_provider) or nil
         if preset_pick then
             model_label = T(_("%1 (Quick preset)"), preset_pick.model)
+        elseif opts.reply_mode then
+            -- The chat's baked baseline — "(global)" would be wrong on a
+            -- rebased chat, and the reply menu only exists on live chats.
+            model_label = T(_("%1 (this chat)"), global_model)
         else
             model_label = T(_("%1 (global)"), global_model)
         end
@@ -976,7 +1003,13 @@ local function showQuickControlsMenu(opts)
         {{
             text = (qa_on and "✓ " or "") .. _("Quick answer (apply preset)"),
             callback = function()
-                f._session_quick_answer = (not qa_on) or nil
+                if opts.reply_mode then
+                    -- Explicit false: a chat CREATED under ⚡ has the quick
+                    -- posture baked — off must counteract, not just clear.
+                    f._session_quick_answer = not qa_on
+                else
+                    f._session_quick_answer = (not qa_on) or nil
+                end
                 UIManager:close(menu)
                 on_change()
             end,
@@ -994,12 +1027,21 @@ local function showQuickControlsMenu(opts)
                 UIManager:close(menu)
                 pickProviderModel({
                     plugin = plugin,
-                    current = f._session_model,
+                    current = sm,
                     top_row = {
-                        text = (f._session_model == nil and "● " or "○ ")
-                            .. T(_("Global setting (%1)"), global_model),
+                        -- reply_mode: an ACTION row naming its real pin target
+                        -- (the current global) — no radio marker, since the
+                        -- chat's baseline may differ from the global and the
+                        -- row CHANGES the chat rather than describing it.
+                        text = opts.reply_mode
+                            and T(_("Use global setting (%1)"), current_global_model)
+                            or ((sm == nil and "● " or "○ ")
+                                .. T(_("Global setting (%1)"), global_model)),
                         callback = function()
-                            f._session_model = nil
+                            -- reply_mode: {follow=true} sentinel — an explicit
+                            -- "re-pin to the current global selection" (the
+                            -- chat's baked model has no nil-state to revert to)
+                            f._session_model = opts.reply_mode and { follow = true } or nil
                             on_change()
                         end,
                     },
@@ -1026,6 +1068,128 @@ local function showQuickControlsMenu(opts)
         buttons = buttons,
     }
     UIManager:show(menu)
+end
+
+-- Every api_params key applyReasoningParams can emit, plus the decision record.
+-- The reply-override re-bake must wipe these before re-applying — a stale
+-- same-provider key (e.g. thinking={enabled}) would survive a send_nothing/off
+-- decision (applyReasoningParams only writes, never clears).
+local REASONING_WIRE_KEYS = {
+    "thinking", "output_config", "reasoning", "thinking_budget", "thinking_level",
+    "deepseek_thinking", "zai_thinking", "sambanova_thinking",
+    "openrouter_reasoning", "requesty_reasoning", "groq_reasoning",
+    "together_reasoning", "fireworks_reasoning", "xai_reasoning",
+    "perplexity_reasoning", "_reasoning",
+}
+
+-- Reply-time Quick overrides (controls parity §8c, "live parts only" decision
+-- 2026-07-20): applies the chip/menu state on the chat's config
+-- (features._session_quick_answer / _session_reasoning / _session_model) at
+-- reply dispatch — model, reasoning, and the preset's web/tools-off. The Quick
+-- Answer NUDGE is deliberately NOT retro-applied (the system prompt is baked at
+-- chat creation — the "baked class" stays a chat-creation control).
+-- IDEMPOTENT: the first application stashes the chat's baseline
+-- (features._quick_reply_orig); every later call restores the baseline before
+-- applying the current picks, so clearing a pick honestly reverts the chat.
+-- Callers MUST pass a config private to the chat (never the shared module
+-- table) and should run this BEFORE applying the explicit reply Web/Tools
+-- toggles so those still win over the preset. `plugin` is used only to
+-- resolve the CURRENT global provider/model for the {follow=true} model
+-- sentinel (reply-time "Global setting" pick on a baked-model chat).
+local function applyQuickReplyOverrides(config, plugin)
+    local f = config and config.features
+    if not f then return end
+    local qa = f._session_quick_answer == true
+    -- Explicit false counts as a pick: it COUNTERACTS a chat that was CREATED
+    -- under the ⚡ posture (reasoning re-resolves from prefs/stance instead of
+    -- the baked quick-off) — the baked config has no pre-quick state to
+    -- restore, so "off" must be an active re-resolution, not just a revert.
+    local has_picks = f._session_quick_answer ~= nil
+        or f._session_reasoning ~= nil or f._session_model ~= nil
+    if not has_picks and not f._quick_reply_orig then return end
+
+    local orig = f._quick_reply_orig
+    if not orig then
+        orig = {
+            provider = config.provider,
+            model = config.model,
+            provider_settings = config.provider_settings,
+            enable_web_search = config.enable_web_search,
+            tools_active = f._tools_active,
+            api_params = {},
+        }
+        for k, v in pairs(config.api_params or {}) do orig.api_params[k] = v end
+        f._quick_reply_orig = orig
+    end
+    -- Restore the baseline (idempotent base for the current picks)
+    config.provider = orig.provider
+    config.model = orig.model
+    config.provider_settings = orig.provider_settings
+    config.enable_web_search = orig.enable_web_search
+    f._tools_active = orig.tools_active
+    config.api_params = {}
+    for k, v in pairs(orig.api_params) do config.api_params[k] = v end
+    if not has_picks then
+        -- Fully reverted; drop the stash so a later pick re-stashes fresh.
+        f._quick_reply_orig = nil
+        return
+    end
+
+    -- Model: manual menu pick > Quick preset model mode (fastest/tier/pinned).
+    -- {follow=true} sentinel = reply-time "Global setting" pick on a chat whose
+    -- baked model IS an override: re-pin the current global selection (explicit
+    -- user pick — also wins over the quick preset model).
+    local model_override = f._session_model
+    if model_override and model_override.follow then
+        local gp = plugin and plugin.getCurrentProvider and plugin:getCurrentProvider()
+        local gm = plugin and plugin.getCurrentModel and plugin:getCurrentModel()
+        model_override = gp and { provider = gp, model = gm } or nil
+    end
+    if not model_override and qa then
+        model_override = resolveQuickPresetModel(f,
+            config.provider or config.default_provider or "anthropic")
+    end
+    if model_override and model_override.provider then
+        config.provider = model_override.provider
+        config.model = model_override.model
+        -- Copy-on-write: never mutate the original provider_settings tables
+        -- (they can be shared with the module config / configuration.lua).
+        local new_ps = {}
+        for prov, entry in pairs(orig.provider_settings or {}) do new_ps[prov] = entry end
+        local entry = {}
+        for k, v in pairs(new_ps[config.provider] or {}) do entry[k] = v end
+        entry.model = model_override.model
+        new_ps[config.provider] = entry
+        config.provider_settings = new_ps
+    end
+
+    -- Preset "no slow features" (only under the ⚡ posture; explicit reply
+    -- toggles are applied after this by the callers and win)
+    if qa and f.quick_preset_web_off ~= false then config.enable_web_search = false end
+    if qa and f.quick_preset_tools_off ~= false then f._tools_active = false end
+
+    -- Reasoning: wipe the wire keys, then re-resolve for the (possibly new)
+    -- model. Same layering as the Send-time bake minus the action layer — a
+    -- reply-time pick is the user's most explicit signal for THIS chat.
+    for _idx, key in ipairs(REASONING_WIRE_KEYS) do config.api_params[key] = nil end
+    local provider = config.provider or config.default_provider or "anthropic"
+    local model = config.model
+    if not model then
+        local pd = Defaults.ProviderDefaults[provider]
+        model = pd and pd.model or nil
+    end
+    -- {follow=true} sentinel = reply-time "Follow settings" pick on a chat with
+    -- a baked reasoning override: resolve WITHOUT a session layer (prefs/stance).
+    local sr = f._session_reasoning
+    if sr and sr.follow then sr = nil end
+    local decision = ModelConstraints.resolveReasoning(provider, model, {
+        global_stance = ReasoningPrefs.getStance(f),
+        model_pref = ReasoningPrefs.getModelPref(f, provider, model),
+        session_override = sr
+            or ((qa and f.quick_preset_reasoning_off ~= false) and { force = "off" } or nil),
+    })
+    config.api_params._reasoning = decision
+    ModelConstraints.applyReasoningParams(provider, config.api_params, decision)
 end
 
 local function getAllPrompts(configuration, plugin)
@@ -1185,6 +1349,8 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                                     original_highlighted_text = metadata.original_highlighted_text,
                                     -- Store system prompt metadata for debug display
                                     system_metadata = config and config.system,
+                                    -- Per-chat control state — resume reactivates it (parity §8c)
+                                    control_state = chat_history_manager.captureControlState(config),
                                     -- Store cache continuation info (for "Updated from X% cache" notice)
                                     used_cache = history.used_cache,
                                     cached_progress = history.cached_progress,
@@ -1846,6 +2012,43 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- This is critical for compact→full view transition to work correctly
             local cfg = viewer.configuration or temp_config or CONFIGURATION
 
+            -- Reply-time Quick overrides (parity §8c, "live parts"): the chat's
+            -- cfg can share identity with the module config (freeform chats
+            -- without Send-time overrides), so REBASE onto a private copy on
+            -- first use, then apply model/reasoning/preset picks. Runs BEFORE
+            -- the explicit Web/Tools reply toggles below so those still win.
+            do
+                local qf = cfg.features
+                if qf and (qf._session_quick_answer or qf._session_reasoning
+                    or qf._session_model or qf._quick_reply_orig) then
+                    if not qf._quick_reply_private then
+                        local copy = {}
+                        for k, v in pairs(cfg) do
+                            if type(v) ~= "table" then
+                                copy[k] = v
+                            else
+                                copy[k] = {}
+                                for k2, v2 in pairs(v) do copy[k][k2] = v2 end
+                            end
+                        end
+                        copy.features = copy.features or {}
+                        copy.features._quick_reply_private = true
+                        -- The picks now live on the copy — strip them from the
+                        -- source so a shared module config can't leak them into
+                        -- later chats (fresh-open clears are the backstop).
+                        qf._session_quick_answer = nil
+                        qf._session_reasoning = nil
+                        qf._session_model = nil
+                        qf._quick_reply_orig = nil
+                        viewer.configuration = copy
+                        cfg = copy
+                    end
+                    -- Runtime self-require on purpose (zero new upvalues — the
+                    -- enclosing closures sit near LuaJIT's 60-upvalue cap).
+                    require("koassistant_dialogs").applyQuickReplyOverrides(cfg, plugin)
+                end
+            end
+
             -- Apply session web search override if set on the viewer
             -- This allows per-query toggling of web search from the Reply dialog
             if viewer.session_web_search_override ~= nil then
@@ -2076,6 +2279,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                                     original_highlighted_text = metadata.original_highlighted_text,
                                     -- Store system prompt metadata for debug display
                                     system_metadata = cfg.system,
+                                    -- Per-chat control state — resume reactivates it (parity §8c)
+                                    control_state = chat_history_manager.captureControlState(cfg),
                                     -- Store cache continuation info (for "Updated from X% cache" notice)
                                     used_cache = history.used_cache,
                                     cached_progress = history.cached_progress,
@@ -2210,6 +2415,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             original_highlighted_text = metadata.original_highlighted_text,
                             -- Store system prompt metadata for debug display
                             system_metadata = viewer_config and viewer_config.system,
+                            -- Per-chat control state — resume reactivates it (parity §8c)
+                            control_state = chat_history_manager.captureControlState(viewer_config),
                             -- Store cache continuation info (for "Updated from X% cache" notice)
                             used_cache = history.used_cache,
                             cached_progress = history.cached_progress,
@@ -2271,9 +2478,14 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     timeout = 3,
                 })
             else
-                -- First-time manual save with dialog (no chat_id yet)
+                -- First-time manual save with dialog (no chat_id yet). Use the
+                -- viewer's LIVE config, not the creation-time temp_config: the
+                -- first reply-time Quick pick rebases viewer.configuration to a
+                -- new copy and strips the session state from the old table —
+                -- capturing control_state from temp_config would save nothing
+                -- (round-2 gate CONFIRMED-2).
                 local is_general_context = temp_config and temp_config.features and temp_config.features.is_general_context or false
-                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText, ui_instance, temp_config)
+                createSaveDialog(document_path, history, chat_history_manager, is_general_context, book_metadata, launch_context, highlightedText, ui_instance, (viewer and viewer.configuration) or temp_config)
             end
         end,
         export_callback = function()
@@ -2611,6 +2823,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         original_highlighted_text = metadata.original_highlighted_text,
                         -- Store system prompt metadata for debug display
                         system_metadata = temp_config.system,
+                        -- Per-chat control state — resume reactivates it (parity §8c)
+                        control_state = chat_history_manager.captureControlState(temp_config),
                         -- Store cache continuation info (for "Updated from X% cache" notice)
                         used_cache = history.used_cache,
                         cached_progress = history.cached_progress,
@@ -2724,15 +2938,29 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         config.features._web_search_active = nil
         -- Quick controls: consume the dispatch consumables AND the chip state from
         -- the SOURCE config (same staleness rule — the copies already rode into
-        -- temp_config; a direct entry with chip state lingering from an abandoned
-        -- dialog also gets cleaned up here, and stays inert because bake reads
-        -- only the *_active keys, which direct entries never set).
+        -- temp_config for dialog launches, where they are the chat's live state).
         config.features._quick_answer_active = nil
         config.features._reasoning_override_active = nil
         config.features._model_override_active = nil
         config.features._session_quick_answer = nil
         config.features._session_reasoning = nil
         config.features._session_model = nil
+    end
+    -- DIRECT entries (highlight menu / gestures / QA tiles — no dialog) must not
+    -- inherit chip state: a reply-⚡ write on a shared-identity chat config can
+    -- leave _session_* on the shared table, and the copy above would hand it to
+    -- this unrelated chat, whose replies would then silently apply it
+    -- (round-2 gate CONFIRMED-1). The just-in-time *_active consumables are the
+    -- dialog-launch signature — absent all three, this is a direct entry.
+    do
+        local tf = temp_config.features
+        if tf and tf._quick_answer_active == nil
+            and tf._reasoning_override_active == nil
+            and tf._model_override_active == nil then
+            tf._session_quick_answer = nil
+            tf._session_reasoning = nil
+            tf._session_model = nil
+        end
     end
     -- Attach chip: consume the just-in-time dispatch flag from the SOURCE config,
     -- same staleness rule as above. The block itself is built from the module
@@ -6825,9 +7053,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             cf._quick_answer_active = shared_features._session_quick_answer
                             cf._reasoning_override_active = shared_features._session_reasoning
                             cf._model_override_active = shared_features._session_model
-                            cf._session_quick_answer = nil
-                            cf._session_reasoning = nil
-                            cf._session_model = nil
+                            -- Keep the _session_* state on the chat's private
+                            -- copy (2026-07-20 — maintainer device report: the
+                            -- reply ⚡ chip showed OFF on a quick chat): it is
+                            -- the chat's live control state — the reply chip
+                            -- reads it, the reply hold-menu edits it, and
+                            -- applyQuickReplyOverrides re-applies it
+                            -- idempotently. Only the SHARED table is cleared.
                             shared_features._session_quick_answer = nil
                             shared_features._session_reasoning = nil
                             shared_features._session_model = nil
@@ -8896,6 +9128,7 @@ return {
     -- Exported for runtime self-require from the quick chip's hold (60-upvalue
     -- cap) and for the reply-dialog reuse planned in parity slice (b).
     showQuickControlsMenu = showQuickControlsMenu,
+    applyQuickReplyOverrides = applyQuickReplyOverrides,
     -- Exported for the main-settings action row (AskGPT:showQuickPresetModelMode)
     showQuickPresetModelMode = showQuickPresetModelMode,
 }

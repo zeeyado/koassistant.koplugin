@@ -780,6 +780,65 @@ TestRunner:test("removeTagFromChat on chat with no tags succeeds", function()
 end)
 
 -- ============================================================
+-- Control state capture + persistence (controls parity §8c)
+-- ============================================================
+
+TestRunner:test("captureControlState: nil for a bare chat config", function()
+    local cs = ChatHistoryManager.captureControlState({ features = {} })
+    TestRunner:assertTrue(cs == nil, "Bare config should capture no control state")
+end)
+
+TestRunner:test("captureControlState: captures picks and baked flags", function()
+    local cs = ChatHistoryManager.captureControlState({
+        enable_web_search = false,
+        features = {
+            _session_quick_answer = true,
+            _session_reasoning = { force = "off" },
+            _session_model = { provider = "openai", model = "gpt-test" },
+            _tools_active = false,
+        },
+    })
+    TestRunner:assertTrue(cs ~= nil, "Should capture state")
+    TestRunner:assertTrue(cs.quick_answer == true, "quick_answer captured")
+    TestRunner:assertTrue(cs.reasoning and cs.reasoning.force == "off", "reasoning captured")
+    TestRunner:assertTrue(cs.model and cs.model.provider == "openai"
+        and cs.model.model == "gpt-test", "model captured")
+    TestRunner:assertTrue(cs.web_search == false, "baked web flag captured")
+    TestRunner:assertTrue(cs.tools == false, "baked tools flag captured")
+end)
+
+TestRunner:test("captureControlState: follow-sentinels do not capture as overrides", function()
+    local cs = ChatHistoryManager.captureControlState({
+        features = {
+            _session_reasoning = { follow = true },
+            _session_model = { follow = true },
+        },
+    })
+    TestRunner:assertTrue(cs == nil,
+        "Follow-sentinels alone should capture nothing (back-to-settings)")
+end)
+
+TestRunner:test("control_state roundtrips through general chat save", function()
+    resetStorage()
+    local mgr = ChatHistoryManager:new()
+    local chat = makeChatData({ id = "cs_roundtrip_1" })
+    chat.control_state = {
+        quick_answer = true,
+        model = { provider = "gemini", model = "gemini-test" },
+        web_search = false,
+    }
+    mgr:saveGeneralChat(chat)
+
+    local loaded = mgr:getChatById("__GENERAL_CHATS__", "cs_roundtrip_1")
+    TestRunner:assertTrue(loaded ~= nil, "Chat should load")
+    local cs = loaded.control_state
+    TestRunner:assertTrue(cs ~= nil, "control_state should survive the roundtrip")
+    TestRunner:assertTrue(cs.quick_answer == true, "quick_answer survives")
+    TestRunner:assertTrue(cs.model and cs.model.provider == "gemini", "model survives")
+    TestRunner:assertTrue(cs.web_search == false, "web_search false survives")
+end)
+
+-- ============================================================
 -- Summary
 -- ============================================================
 
