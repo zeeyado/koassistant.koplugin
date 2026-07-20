@@ -744,7 +744,29 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_dictionary_context missing from SIDECAR_KEYS")
     TestRunner:assertEqual(found[BookSettings.KEY_XRAY_AUTO] == true, true,
         "koassistant_book_xray_auto missing from SIDECAR_KEYS")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 15, "15 per-book keys expected")
+    TestRunner:assertEqual(found[BookSettings.KEY_QUICK_ANSWER] == true, true,
+        "koassistant_book_quick_answer missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 16, "16 per-book keys expected")
+end)
+
+TestRunner:suite("Quick Answer default (controls_parity_plan.md §8c.7)")
+
+TestRunner:test("resolveQuickAnswerDefault: per-book override > global (opt-in, default false)", function()
+    local ds_on = { readSetting = function(_, key)
+        if key == BookSettings.KEY_QUICK_ANSWER then return true end
+    end }
+    local ds_off = { readSetting = function(_, key)
+        if key == BookSettings.KEY_QUICK_ANSWER then return false end
+    end }
+    local ds_nil = { readSetting = function() return nil end }
+    TestRunner:assertEqual(BookSettings.resolveQuickAnswerDefault(ds_on, { quick_answer_default = false }), true,
+        "per-book true beats global false")
+    TestRunner:assertEqual(BookSettings.resolveQuickAnswerDefault(ds_off, { quick_answer_default = true }), false,
+        "per-book false beats global true")
+    TestRunner:assertEqual(BookSettings.resolveQuickAnswerDefault(ds_nil, { quick_answer_default = true }), true,
+        "nil override follows global true")
+    TestRunner:assertEqual(BookSettings.resolveQuickAnswerDefault(nil, {}), false,
+        "no book, unset global = off (opt-in default)")
 end)
 
 TestRunner:suite("Surrounding-context per-book layer (surrounding_context_plan.md §2)")

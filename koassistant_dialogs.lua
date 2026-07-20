@@ -915,7 +915,9 @@ end
 -- of nil — a chat whose config was CREATED with these overrides baked in has
 -- no nil-state to fall back to; clearing must actively re-resolve
 -- (applyQuickReplyOverrides handles the sentinels).
--- opts = { configuration, plugin, on_change, chat_provider, chat_model, reply_mode }
+-- opts = { configuration, plugin, ui, document_path, on_change, chat_provider,
+--          chat_model, reply_mode } — ui/document_path feed the persistent
+-- "Quick answer default…" picker (per-book target).
 local function showQuickControlsMenu(opts)
     local ButtonDialog = require("ui/widget/buttondialog")
     local configuration = opts.configuration
@@ -1060,6 +1062,20 @@ local function showQuickControlsMenu(opts)
         }},
     }
     if plugin and plugin.settings then
+        table.insert(buttons, {{
+            text = _("Quick answer default…"),
+            callback = function()
+                -- Persistent default (global / per-book): governs the ⚡ chip's
+                -- starting state on FRESH chat dialogs only — this chat's
+                -- session state is untouched (tools-posture parity, §8c.7).
+                UIManager:close(menu)
+                BookSettings.showQuickAnswerDefault({
+                    plugin = plugin, ui = opts.ui,
+                    document_path = opts.document_path,
+                    on_close = on_change,
+                })
+            end,
+        }})
         table.insert(buttons, {{
             text = _("Preset settings…"),
             callback = function()
@@ -4701,8 +4717,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             configuration.features._session_highlight_context = nil
             -- Quick-controls chip state (controls_parity_plan.md §2/§9): same
             -- config-resident lifecycle as the scope pick — survives a refresh
-            -- via the marker, cleared on a fresh open.
-            configuration.features._session_quick_answer = nil
+            -- via the marker, cleared on a fresh open — then SEEDED from the
+            -- resolved Quick Answer DEFAULT (global + per-book override, §8c.7
+            -- tools-posture parity, 2026-07-20): true = chip starts ON; the
+            -- session chip wins once touched. Book-scoped contexts consult the
+            -- open book's override; general/library follow the global only.
+            local qa_ds
+            if not (configuration.features.is_general_context
+                or configuration.features.is_library_context) then
+                qa_ds = ui_instance and ui_instance.doc_settings or nil
+            end
+            configuration.features._session_quick_answer =
+                BookSettings.resolveQuickAnswerDefault(qa_ds, configuration.features)
+                and true or nil
             configuration.features._session_reasoning = nil
             configuration.features._session_model = nil
             -- Attach chip staging (attach_plan.md): MODULE-resident, not on
@@ -6151,6 +6178,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         require("koassistant_dialogs").showQuickControlsMenu({
                             configuration = configuration,
                             plugin = plugin,
+                            ui = ui_instance,
+                            document_path = document_path,
                             on_change = function() refreshInputDialog() end,
                         })
                     end,

@@ -115,6 +115,21 @@ function BookSettings.resolveWebSearch(doc_settings, features)
     return (features and features.enable_web_search) == true
 end
 
+-- Per-book ⚡ Quick Answer default (true | false | nil = follow global). Governs
+-- only the chip's STARTING state on a fresh chat dialog (controls parity §8c.7 —
+-- tools-posture-style default, decided 2026-07-20); the session chip wins once
+-- touched, exactly like tools "auto".
+BookSettings.KEY_QUICK_ANSWER = "koassistant_book_quick_answer"
+
+--- Resolve the ⚡ Quick Answer DEFAULT for a fresh chat dialog: per-book
+-- override > global quick_answer_default (opt-in, schema default false).
+-- @return boolean
+function BookSettings.resolveQuickAnswerDefault(doc_settings, features)
+    local v = doc_settings and doc_settings:readSetting(BookSettings.KEY_QUICK_ANSWER)
+    if v ~= nil then return v == true end
+    return (features and features.quick_answer_default) == true
+end
+
 -- Per-book surrounding-context overrides (surrounding_context_plan.md §2): a mode
 -- string ("none" | "sentence" | "paragraph" | "characters") or nil = follow global.
 -- "none" = explicitly off for this book. Sizes (chars/paragraphs) stay global.
@@ -289,6 +304,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_HIGHLIGHT_CONTEXT,
     BookSettings.KEY_DICTIONARY_CONTEXT,
     BookSettings.KEY_XRAY_AUTO,
+    BookSettings.KEY_QUICK_ANSWER,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -790,6 +806,112 @@ function BookSettings.showWebSearch(opts)
     }})
 
     dialog = ButtonDialog:new{ title = _("Web Search"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
+--- Quick Answer DEFAULT picker with a For-this-book ↔ Global target toggle
+-- (same shape as showWebSearch). Governs the ⚡ chip's starting state on fresh
+-- chat dialogs only — open chats and the session chip are untouched.
+-- Book target: Follow global / On / Off (KEY_QUICK_ANSWER). Global target:
+-- On / Off (features.quick_answer_default).
+-- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showQuickAnswerDefault(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+    local document_path = opts.document_path
+
+    local doc_settings = resolveDocSettings(ui, document_path)
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_QUICK_ANSWER)
+    local global_on = features.quick_answer_default == true
+
+    local target = opts.target_override
+        or (doc_settings and book_val ~= nil and "book")
+        or "global"
+    local is_book_target = doc_settings ~= nil and target == "book"
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function commit()
+        closeDialog()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        if on_close then on_close() end
+    end
+    local function pickBook(val)
+        doc_settings:saveSetting(BookSettings.KEY_QUICK_ANSWER, val)
+        doc_settings:flush()
+        commit()
+    end
+    local function pickGlobal(val)
+        local f = plugin.settings:readSetting("features") or {}
+        f.quick_answer_default = val
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        commit()
+    end
+    local function setTarget(new_target)
+        closeDialog()
+        BookSettings.showQuickAnswerDefault({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target,
+        })
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    local buttons = {}
+    if doc_settings then
+        table.insert(buttons, {
+            {
+                text = dot(is_book_target) .. _("For this book"),
+                callback = function()
+                    if not is_book_target then setTarget("book") end
+                end,
+            },
+            {
+                text = dot(not is_book_target) .. _("Global"),
+                callback = function()
+                    if is_book_target then setTarget("global") end
+                end,
+            },
+        })
+    end
+
+    if is_book_target then
+        table.insert(buttons, {{
+            text = dot(book_val == nil) .. T(_("Follow global (%1)"), global_on and _("On") or _("Off")),
+            callback = function() pickBook(nil) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(book_val == true) .. _("On"),
+            callback = function() pickBook(true) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(book_val == false) .. _("Off"),
+            callback = function() pickBook(false) end,
+        }})
+    else
+        table.insert(buttons, {{
+            text = dot(global_on) .. _("On"),
+            callback = function() pickGlobal(true) end,
+        }})
+        table.insert(buttons, {{
+            text = dot(not global_on) .. _("Off"),
+            callback = function() pickGlobal(false) end,
+        }})
+    end
+    table.insert(buttons, {{
+        text = _("Close"), id = "close",
+        callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end,
+    }})
+
+    dialog = ButtonDialog:new{ title = _("Quick Answer Default"), buttons = buttons }
     UIManager:show(dialog)
 end
 
@@ -1312,6 +1434,11 @@ function BookSettings.show(opts)
         callback = function()
             showBoolSubPicker(BookSettings.KEY_WEB_SEARCH,
                 _("Web search (this book)"), features.enable_web_search == true)
+        end })
+    addButton({ text = T(_("Quick answer default: %1"), boolLabel(doc_settings:readSetting(BookSettings.KEY_QUICK_ANSWER))),
+        callback = function()
+            showBoolSubPicker(BookSettings.KEY_QUICK_ANSWER,
+                _("Quick answer default (this book)"), features.quick_answer_default == true)
         end })
     addButton({ text = T(_("Book info: %1"), bookInfoLabel(doc_settings:readSetting(BookSettings.KEY_BOOK_INFO))),
         callback = showBookInfoSubPicker })

@@ -3057,6 +3057,8 @@ function ChatGPTViewer:askAnotherQuestion()
         require("koassistant_dialogs").showQuickControlsMenu({
           configuration = cfg,
           plugin = self._plugin,
+          ui = self._ui,
+          document_path = hold_document_path,
           on_change = reopenWithDraft,
           reply_mode = true,  -- clear-rows write counteract sentinels, not nil
           -- Provenance labels should name the CHAT's baseline, not the

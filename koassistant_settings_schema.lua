@@ -451,6 +451,14 @@ local SettingsSchema = {
                     text = _("Quick Answer Preset"),
                     items = {
                         {
+                            id = "quick_answer_default",
+                            type = "toggle",
+                            text = _("Quick Answer On by Default"),
+                            path = "features.quick_answer_default",
+                            default = false,
+                            help_text = _("Start new chats with the Quick Answer (⚡) button already on. You can still turn it off per chat — and override the default per book from Book Settings or the ⚡ button's menu."),
+                        },
+                        {
                             id = "quick_preset_nudge",
                             type = "toggle",
                             text = _("Concise Answer Nudge"),
