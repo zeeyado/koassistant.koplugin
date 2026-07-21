@@ -4407,7 +4407,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Wrap the API call so it can be deferred by the large extraction warning dialog
     local function sendQuery()
-        local result = queryChatGPT(history:getMessages(), temp_config, handleResponse, plugin and plugin.settings)
+        -- Route through queryWith (not queryChatGPT directly) so the ⚡ quick-retry is
+        -- intercepted here too (input safety net S3): predefined actions send their FIRST
+        -- answer on this path, and without the wrapper the retry sentinel would leak into
+        -- handleResponse's error display. Predefined actions carry _tools_active=false, so
+        -- shouldUse returns false and this stays a plain send — queryWith just adds the
+        -- quick-retry interception. This is the only send path that bypassed queryWith.
+        local result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, handleResponse, plugin, ui)
 
         -- If streaming is in progress, return nil (result comes via callback)
         if isStreamingInProgress(result) then
