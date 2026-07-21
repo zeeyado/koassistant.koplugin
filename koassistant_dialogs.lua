@@ -5093,6 +5093,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         configuration.features._spoiler_free_active = session_spoiler_free == true
 
         local additional_input = input_dialog:getInputText()
+        -- Input safety net: stash typed input on the plugin instance (session-scoped,
+        -- never flushed to disk) so a failed/cancelled send is recoverable via the
+        -- gear's "Restore last input". See the gear menu + performSend stash below.
+        if plugin and additional_input and additional_input ~= "" then
+            plugin._last_input = additional_input
+        end
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
 
@@ -7060,6 +7066,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- Store user question for title generation
                     if has_user_question then
                         history.source_input = question
+                        -- Input safety net: keep the last typed input (session-scoped on
+                        -- the plugin instance, never flushed) so a failed/cancelled send
+                        -- or wrong-options mistap is recoverable via the gear.
+                        if plugin then plugin._last_input = question end
                     end
 
                     -- Add user question to context message
@@ -7924,6 +7934,21 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     refreshInputDialog()
                 end }},
             }
+            -- Input safety net: recover the last typed input after a failed/cancelled send
+            -- or a wrong-options mistap (stashed on plugin._last_input at Send). Only shown
+            -- when something is stashed. Appends when the field already has text (never
+            -- clobbers), sets it when empty (the common post-failure case).
+            if plugin and plugin._last_input and plugin._last_input ~= "" then
+                table.insert(gear_buttons, {{ text = _("Restore last input"), callback = function()
+                    UIManager:close(gear_menu)
+                    local cur = input_dialog:getInputText()
+                    if cur and cur ~= "" then
+                        input_dialog:addTextToInput(plugin._last_input)
+                    else
+                        input_dialog:setInputText(plugin._last_input)
+                    end
+                end }})
+            end
             -- Toolbar buttons manager: which session chips appear above the input field
             table.insert(gear_buttons, {{ text = _("Toolbar Buttons…"), callback = function()
                 UIManager:close(gear_menu)
