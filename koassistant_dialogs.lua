@@ -7233,9 +7233,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context, ui_instance)
                         else
                             closeLoadingDialog()
+                            -- Input safety net S2: on a genuine failure (not a user cancel)
+                            -- point at the gear recovery, so a lost long prompt is obviously
+                            -- recoverable rather than gone. Reuses this error message =
+                            -- maximally discoverable (no separate toast to miss).
+                            local err_text = _("Error: ") .. (err or "Unknown error")
+                            local recoverable = plugin and plugin._last_input
+                                and plugin._last_input ~= ""
+                                and err ~= _("Request cancelled by user.")
+                            if recoverable then
+                                err_text = err_text .. "\n\n" .. _("Your typed input was saved. Reopen this dialog and tap the gear \u{2699}, then \"Restore last input\".")
+                            end
                             UIManager:show(InfoMessage:new{
-                                text = _("Error: ") .. (err or "Unknown error"),
-                                timeout = 3
+                                text = err_text,
+                                timeout = recoverable and 6 or 3,
                             })
                         end
                     end
