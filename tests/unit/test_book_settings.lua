@@ -729,6 +729,52 @@ TestRunner:test("resolveWebSearch: per-book override > global (opt-in, default f
         "no layers set → off")
 end)
 
+TestRunner:suite("Effort dials per-book layer (T1: chip-hold effort surfacing)")
+
+TestRunner:test("resolveToolEffort: per-book override > global > standard", function()
+    TestRunner:assertEqual(BookSettings.resolveToolEffort(nil, nil), "standard",
+        "no book, no features → standard (schema default)")
+    TestRunner:assertEqual(BookSettings.resolveToolEffort(nil, { tool_lookup_effort = "thorough" }), "thorough",
+        "global used when no book override")
+    local ds = fakeDocSettings({ koassistant_book_tool_effort = "quick" })
+    TestRunner:assertEqual(BookSettings.resolveToolEffort(ds, { tool_lookup_effort = "thorough" }), "quick",
+        "per-book wins over global")
+    TestRunner:assertEqual(BookSettings.resolveToolEffort(
+        fakeDocSettings({ koassistant_book_tool_effort = "bogus" }), { tool_lookup_effort = "thorough" }), "thorough",
+        "invalid per-book falls through to global")
+    TestRunner:assertEqual(BookSettings.resolveToolEffort(fakeDocSettings({}), { tool_lookup_effort = "nonsense" }),
+        "standard", "invalid global falls through to standard")
+end)
+
+TestRunner:test("resolveWebEffort: per-book override > global > standard", function()
+    TestRunner:assertEqual(BookSettings.resolveWebEffort(nil, nil), "standard",
+        "no book, no features → standard")
+    TestRunner:assertEqual(BookSettings.resolveWebEffort(nil, { web_search_effort = "light" }), "light",
+        "global used when no book override")
+    local ds = fakeDocSettings({ koassistant_book_web_effort = "thorough" })
+    TestRunner:assertEqual(BookSettings.resolveWebEffort(ds, { web_search_effort = "light" }), "thorough",
+        "per-book wins over global")
+    TestRunner:assertEqual(BookSettings.resolveWebEffort(
+        fakeDocSettings({ koassistant_book_web_effort = "quick" }), { web_search_effort = "light" }), "light",
+        "invalid per-book (quick is tools-only) falls through to global")
+end)
+
+TestRunner:test("effort labels map values (standard is the fallback)", function()
+    TestRunner:assertEqual(BookSettings.toolEffortLabel("quick"), "Quick", "tool quick")
+    TestRunner:assertEqual(BookSettings.toolEffortLabel("thorough"), "Thorough", "tool thorough")
+    TestRunner:assertEqual(BookSettings.toolEffortLabel(nil), "Standard", "tool nil → Standard")
+    TestRunner:assertEqual(BookSettings.webEffortLabel("light"), "Light", "web light")
+    TestRunner:assertEqual(BookSettings.webEffortLabel("thorough"), "Thorough", "web thorough")
+    TestRunner:assertEqual(BookSettings.webEffortLabel(nil), "Standard", "web nil → Standard")
+end)
+
+TestRunner:test("KEY_TOOL_EFFORT and KEY_WEB_EFFORT are in SIDECAR_KEYS (reset/count coverage)", function()
+    local have = {}
+    for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do have[key] = true end
+    TestRunner:assertEqual(have[BookSettings.KEY_TOOL_EFFORT], true, "tool effort key registered")
+    TestRunner:assertEqual(have[BookSettings.KEY_WEB_EFFORT], true, "web effort key registered")
+end)
+
 TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS", function()
     local found = {}
     for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do found[key] = true end
@@ -746,7 +792,11 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_xray_auto missing from SIDECAR_KEYS")
     TestRunner:assertEqual(found[BookSettings.KEY_QUICK_ANSWER] == true, true,
         "koassistant_book_quick_answer missing from SIDECAR_KEYS")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 16, "16 per-book keys expected")
+    TestRunner:assertEqual(found[BookSettings.KEY_TOOL_EFFORT] == true, true,
+        "koassistant_book_tool_effort missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(found[BookSettings.KEY_WEB_EFFORT] == true, true,
+        "koassistant_book_web_effort missing from SIDECAR_KEYS")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 18, "18 per-book keys expected")
 end)
 
 TestRunner:suite("Quick Answer default (controls_parity_plan.md §8c.7)")

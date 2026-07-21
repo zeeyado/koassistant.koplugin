@@ -115,6 +115,50 @@ function BookSettings.resolveWebSearch(doc_settings, features)
     return (features and features.enable_web_search) == true
 end
 
+-- Per-book overrides for the two "how much work" dials (nil = follow global). Surfaced
+-- on the Tools/Web chip holds (showEffortPicker) so cost/latency is tunable per book or
+-- globally without diving into Advanced settings — buildUnifiedRequestConfig bakes the
+-- resolved value into config.features so BookToolRunner.budgetFor and
+-- ModelConstraints.webSearchEffort pick it up unchanged.
+BookSettings.KEY_TOOL_EFFORT = "koassistant_book_tool_effort"   -- "quick"|"standard"|"thorough"
+BookSettings.KEY_WEB_EFFORT = "koassistant_book_web_effort"     -- "light"|"standard"|"thorough"
+
+--- Resolve effective book-tools lookup effort: per-book override > global
+-- features.tool_lookup_effort > "standard" (schema default).
+-- @return "quick" | "standard" | "thorough"
+function BookSettings.resolveToolEffort(doc_settings, features)
+    local valid = { quick = true, standard = true, thorough = true }
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOL_EFFORT)
+    if valid[per_book] then return per_book end
+    local global = features and features.tool_lookup_effort
+    if valid[global] then return global end
+    return "standard"
+end
+
+--- Resolve effective web-search depth: per-book override > global
+-- features.web_search_effort > "standard". Mirrors resolveToolEffort.
+-- @return "light" | "standard" | "thorough"
+function BookSettings.resolveWebEffort(doc_settings, features)
+    local valid = { light = true, standard = true, thorough = true }
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_EFFORT)
+    if valid[per_book] then return per_book end
+    local global = features and features.web_search_effort
+    if valid[global] then return global end
+    return "standard"
+end
+
+--- Translated labels for the effort values (shared by the chip-hold rows + the picker).
+function BookSettings.toolEffortLabel(v)
+    if v == "quick" then return _("Quick")
+    elseif v == "thorough" then return _("Thorough") end
+    return _("Standard")
+end
+function BookSettings.webEffortLabel(v)
+    if v == "light" then return _("Light")
+    elseif v == "thorough" then return _("Thorough") end
+    return _("Standard")
+end
+
 -- Per-book ⚡ Quick Answer default (true | false | nil = follow global). Governs
 -- only the chip's STARTING state on a fresh chat dialog (controls parity §8c.7 —
 -- tools-posture-style default, decided 2026-07-20); the session chip wins once
@@ -305,6 +349,8 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_DICTIONARY_CONTEXT,
     BookSettings.KEY_XRAY_AUTO,
     BookSettings.KEY_QUICK_ANSWER,
+    BookSettings.KEY_TOOL_EFFORT,
+    BookSettings.KEY_WEB_EFFORT,
 }
 
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
@@ -610,6 +656,8 @@ function BookSettings.showToolsPosture(opts)
     local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
     local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOLS) or nil
     local global_val = features.tools_posture or "manual"
+    local book_effort = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOL_EFFORT) or nil
+    local global_effort = features.tool_lookup_effort or "standard"
 
     -- Default to "book" only when the book already has an override, else "global".
     local target = opts.target_override
@@ -690,6 +738,22 @@ function BookSettings.showToolsPosture(opts)
             }})
         end
     end
+    -- Lookup effort row → effort sub-picker (inherits the current book/global target).
+    local eff_label = is_book_target
+        and (book_effort and BookSettings.toolEffortLabel(book_effort)
+             or T(_("Follow global (%1)"), BookSettings.toolEffortLabel(global_effort)))
+        or BookSettings.toolEffortLabel(global_effort)
+    table.insert(buttons, {{
+        text = T(_("Lookup effort: %1"), eff_label),
+        callback = function()
+            closeDialog()
+            BookSettings.showEffortPicker({
+                plugin = plugin, ui = ui, document_path = document_path,
+                on_close = on_close, kind = "tool",
+                target_override = is_book_target and "book" or "global",
+            })
+        end,
+    }})
     table.insert(buttons, {{
         text = _("Close"), id = "close",
         callback = function()
@@ -718,6 +782,8 @@ function BookSettings.showWebSearch(opts)
     local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
     local book_val = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH)
     local global_on = features.enable_web_search == true
+    local book_depth = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_EFFORT) or nil
+    local global_depth = features.web_search_effort or "standard"
 
     -- Default to "book" only when the book already has an override, else "global".
     local target = opts.target_override
@@ -797,6 +863,22 @@ function BookSettings.showWebSearch(opts)
             callback = function() pickGlobal(false) end,
         }})
     end
+    -- Search depth row → effort sub-picker (inherits the current book/global target).
+    local depth_label = is_book_target
+        and (book_depth and BookSettings.webEffortLabel(book_depth)
+             or T(_("Follow global (%1)"), BookSettings.webEffortLabel(global_depth)))
+        or BookSettings.webEffortLabel(global_depth)
+    table.insert(buttons, {{
+        text = T(_("Search depth: %1"), depth_label),
+        callback = function()
+            closeDialog()
+            BookSettings.showEffortPicker({
+                plugin = plugin, ui = ui, document_path = document_path,
+                on_close = on_close, kind = "web",
+                target_override = is_book_target and "book" or "global",
+            })
+        end,
+    }})
     table.insert(buttons, {{
         text = _("Close"), id = "close",
         callback = function()
@@ -806,6 +888,125 @@ function BookSettings.showWebSearch(opts)
     }})
 
     dialog = ButtonDialog:new{ title = _("Web Search"), buttons = buttons }
+    UIManager:show(dialog)
+end
+
+--- Per-book effort sub-picker (Tools lookup effort / Web search depth) with the same
+-- For-this-book ↔ Global target toggle as showWebSearch. Reached from the effort row on
+-- the Tools/Web chip holds; one function serves both via opts.kind.
+-- @param opts table: { plugin, ui, document_path, on_close, target_override, kind="tool"|"web" }
+function BookSettings.showEffortPicker(opts)
+    opts = opts or {}
+    local plugin = opts.plugin
+    local ui = opts.ui
+    local on_close = opts.on_close
+    local document_path = opts.document_path
+    local kind = opts.kind == "web" and "web" or "tool"
+
+    local spec
+    if kind == "web" then
+        spec = {
+            key = BookSettings.KEY_WEB_EFFORT, field = "web_search_effort",
+            title = _("Web Search Depth"), label = BookSettings.webEffortLabel,
+            options = {
+                { value = "light", label = _("Light (fewest searches)") },
+                { value = "standard", label = _("Standard") },
+                { value = "thorough", label = _("Thorough (most searches)") },
+            },
+        }
+    else
+        spec = {
+            key = BookSettings.KEY_TOOL_EFFORT, field = "tool_lookup_effort",
+            title = _("Book Tools Lookup Effort"), label = BookSettings.toolEffortLabel,
+            options = {
+                { value = "quick", label = _("Quick (up to 4 lookups)") },
+                { value = "standard", label = _("Standard (up to 8 lookups)") },
+                { value = "thorough", label = _("Thorough (up to 16 lookups)") },
+            },
+        }
+    end
+
+    local doc_settings = resolveDocSettings(ui, document_path)
+    local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+    local book_val = doc_settings and doc_settings:readSetting(spec.key) or nil
+    local global_val = features[spec.field] or "standard"
+
+    local target = opts.target_override
+        or (doc_settings and book_val ~= nil and "book")
+        or "global"
+    local is_book_target = doc_settings ~= nil and target == "book"
+
+    local dialog
+    local function closeDialog()
+        if dialog then UIManager:close(dialog); dialog = nil end
+    end
+    local function commit()
+        closeDialog()
+        if plugin and plugin.updateConfigFromSettings then plugin:updateConfigFromSettings() end
+        if on_close then on_close() end
+    end
+    local function pickBook(val)
+        doc_settings:saveSetting(spec.key, val)
+        doc_settings:flush()
+        commit()
+    end
+    local function pickGlobal(val)
+        local f = plugin.settings:readSetting("features") or {}
+        f[spec.field] = val
+        plugin.settings:saveSetting("features", f)
+        plugin.settings:flush()
+        commit()
+    end
+    local function setTarget(new_target)
+        closeDialog()
+        BookSettings.showEffortPicker({
+            plugin = plugin, ui = ui, document_path = document_path,
+            on_close = on_close, target_override = new_target, kind = kind,
+        })
+    end
+    local function dot(active) return active and "● " or "○ " end
+
+    local buttons = {}
+    if doc_settings then
+        table.insert(buttons, {
+            {
+                text = dot(is_book_target) .. _("For this book"),
+                callback = function() if not is_book_target then setTarget("book") end end,
+            },
+            {
+                text = dot(not is_book_target) .. _("Global"),
+                callback = function() if is_book_target then setTarget("global") end end,
+            },
+        })
+    end
+    if is_book_target then
+        table.insert(buttons, {{
+            text = dot(book_val == nil) .. T(_("Follow global (%1)"), spec.label(global_val)),
+            callback = function() pickBook(nil) end,
+        }})
+        for _idx, o in ipairs(spec.options) do
+            table.insert(buttons, {{
+                text = dot(book_val == o.value) .. o.label,
+                callback = function() pickBook(o.value) end,
+            }})
+        end
+    else
+        for _idx, o in ipairs(spec.options) do
+            table.insert(buttons, {{
+                text = dot(global_val == o.value) .. o.label,
+                callback = function() pickGlobal(o.value) end,
+            }})
+        end
+    end
+    table.insert(buttons, {{
+        text = _("Close"), id = "close",
+        callback = function()
+            closeDialog()
+            if on_close then on_close() end
+        end,
+    }})
+
+    dialog = ButtonDialog:new{ title = spec.title, buttons = buttons }
     UIManager:show(dialog)
 end
 

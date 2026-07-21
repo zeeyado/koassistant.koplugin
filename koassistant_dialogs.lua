@@ -446,6 +446,21 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         config.enable_web_search = bookWebSearchOverride(features)
     end
     features._web_search_active = nil
+
+    -- Effort dials (Book Tools lookup effort / Web search depth): per-book override >
+    -- global. `features` here is config.features, a private per-request copy
+    -- (createTempConfig 2-level copy — the sole buildUnifiedRequestConfig call site), so
+    -- writing the resolved value back is flush-safe and both readers pick it up with no
+    -- wire change: BookToolRunner.budgetFor(config.features) and
+    -- ModelConstraints.webSearchEffort(config.features). Book resolved from the same
+    -- sidecar route as the web override (book_metadata.file); general/library fall to
+    -- global. Always assigned so a stale value can't linger; no-op when there's no book
+    -- override (resolver returns the global).
+    do
+        local eff_ds = lang_file and SafeDocSettings.resolve(lang_file) or nil
+        features.tool_lookup_effort = BookSettings.resolveToolEffort(eff_ds, features)
+        features.web_search_effort = BookSettings.resolveWebEffort(eff_ds, features)
+    end
     -- Quick Answer preset: web search off for this request unless the preset
     -- component is disabled or the action forces web on (explicit action flag
     -- wins — matrix §10).
