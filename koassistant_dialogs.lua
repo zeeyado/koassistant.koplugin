@@ -6070,8 +6070,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         refreshInputDialog()
                     end,
                     hold_callback = function()
+                        -- A general/library chat has no book subject even when a book is
+                        -- open in the reader: withhold ui/document_path so the picker offers
+                        -- Global only (no bogus "For this book" — and no per-book Search-depth
+                        -- row — for an unrelated open book).
                         BookSettings.showWebSearch({
-                            plugin = plugin, ui = ui_instance, document_path = document_path,
+                            plugin = plugin,
+                            ui = chips_book_or_highlight and ui_instance or nil,
+                            document_path = chips_book_or_highlight and document_path or nil,
                             on_close = function() refreshInputDialog() end,
                         })
                     end,
@@ -6190,11 +6196,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- Runtime self-require on purpose: a direct file-local
                         -- reference would add an upvalue to buildInputDialogButtons,
                         -- which sits AT LuaJIT's 60-upvalue cap.
+                        -- Same book-subject gate as the Web chip: in general/library the
+                        -- menu's "Quick answer default…" must target Global only, not an
+                        -- unrelated open book (ui/document_path are used ONLY for that row).
                         require("koassistant_dialogs").showQuickControlsMenu({
                             configuration = configuration,
                             plugin = plugin,
-                            ui = ui_instance,
-                            document_path = document_path,
+                            ui = chips_book_or_highlight and ui_instance or nil,
+                            document_path = chips_book_or_highlight and document_path or nil,
                             on_change = function() refreshInputDialog() end,
                         })
                     end,
