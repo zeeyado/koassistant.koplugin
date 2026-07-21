@@ -7800,6 +7800,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     refreshInputDialog = function()
         if not input_dialog then return end
         local current_text = input_dialog:getInputText()
+        -- Suppress the leave-stash (input safety net): this is an internal
+        -- close-and-reopen, not a user exit — the text is carried straight back
+        -- via initial_input, so it must NOT churn plugin._last_input.
+        input_dialog._koa_internal_close = true
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
         -- Re-set transient flags for the reopen
@@ -7958,6 +7962,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local hints = {
             _("Type your question or additional instructions for any action..."),
             _("Tip: long-press toolbar buttons for their settings, action buttons for descriptions..."),
+            _("Tip: your typed input is kept if you close this — reopen and use the gear to restore it..."),
         }
         if input_context == "highlight" then
             -- Empty-input Send is first-class on a highlight — "talk about this"
@@ -8115,6 +8120,22 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     end
     input_dialog.onSetRotationMode = function(self, rotation)
         return self:onScreenResize(nil)
+    end
+
+    -- Input safety net (leave-stash): exiting the input window with text typed saves it
+    -- for recovery via gear → Restore last input — so the user can leave to copy more
+    -- text or re-read something, then come back. Both user-exit paths (title-bar X ~8080,
+    -- tap-outside ~8100) route through UIManager:close → onCloseWidget, so wrapping it
+    -- catches them all. Internal close-and-reopen (refreshInputDialog, rotation) sets
+    -- _koa_internal_close so it is skipped; Send/action closes already stash via their own
+    -- paths (redundant-harmless here). Read the text before teardown; pcall for safety.
+    local koaOrigOnCloseWidget = input_dialog.onCloseWidget
+    input_dialog.onCloseWidget = function(self_dlg)
+        if plugin and not self_dlg._koa_internal_close then
+            local ok, txt = pcall(function() return self_dlg:getInputText() end)
+            if ok and txt and txt ~= "" then plugin._last_input = txt end
+        end
+        return koaOrigOnCloseWidget(self_dlg)
     end
 
     -- If a prompt_type is specified, automatically trigger it after dialog is shown
