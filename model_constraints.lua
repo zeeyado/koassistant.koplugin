@@ -86,8 +86,11 @@ ModelConstraints.capabilities = {
         reasoning = { "deepseek-v4-pro" },
         -- Function calling for the book-tool workflows (tools wave 1; both V4 models
         -- per api-docs.deepseek.com — works in thinking AND non-thinking mode since V3.2).
-        -- Wire gotcha: replayed tool-call turns MUST carry reasoning_content (400 if
-        -- dropped) — deepseek.lua's message-copy loop forwards it.
+        -- Wire gotchas (deepseek.lua): (1) replayed tool-call turns MUST carry
+        -- reasoning_content (400 if dropped); (2) thinking mode rejects tool_choice
+        -- "required" (our gather rounds) — "Thinking mode does not support this
+        -- tool_choice" — and V4 thinks by DEFAULT, so deepseek.lua forces
+        -- thinking={type=disabled} on any tool session.
         tools = { "deepseek-v4" },
     },
     gemini = {

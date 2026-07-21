@@ -87,6 +87,15 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
     -- Same OpenAI-shaped rendering as openai_compatible.lua; gated upstream by the
     -- deepseek `tools` capability list in model_constraints.lua.
     if config.tools and config.tools.specs then
+        -- Force thinking OFF for tool sessions. DeepSeek V4 thinks by DEFAULT, and its
+        -- thinking mode rejects tool_choice "required" (our gather rounds, mode ANY) with
+        -- 400 "Thinking mode does not support this tool_choice" (and only loosely tolerates
+        -- "none"). {type="disabled"} is DeepSeek's documented toggle, so we override the
+        -- resolver's decision (incl. its default-on omission) to restore full tool_choice
+        -- control. Only the mechanical lookup turns lose thinking: gather mode's phase-2
+        -- answer carries NO config.tools, so it still streams with the model's default
+        -- thinking.
+        request_body.thinking = { type = "disabled" }
         request_body.tools = {}
         for _, spec in ipairs(config.tools.specs) do
             table.insert(request_body.tools, {

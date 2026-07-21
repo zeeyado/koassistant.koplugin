@@ -110,6 +110,33 @@ TestRunner:test("deepseek: plain turns do NOT leak reasoning_content", function(
         "no reasoning_content on non-tool assistant turns")
 end)
 
+TestRunner:test("deepseek: tool sessions force thinking OFF (thinking mode 400s on tool_choice required)", function()
+    -- Even when the resolver asks for thinking ON, a tool session must override it to
+    -- disabled: DeepSeek V4 thinks by default and rejects tool_choice "required" (our
+    -- gather rounds) in thinking mode ("Thinking mode does not support this tool_choice").
+    local any = DeepSeekHandler:buildRequestBody({ { role = "user", content = "hi" } }, {
+        api_key = "test", model = "deepseek-v4-pro",
+        api_params = { deepseek_thinking = { type = "enabled" } },
+        tools = { specs = SPECS, mode = "ANY" },
+    })
+    TestRunner:assertTrue(type(any.body.thinking) == "table" and any.body.thinking.type == "disabled",
+        "tools override thinking to disabled even when the resolver asked for enabled")
+    TestRunner:assertEqual(any.body.tool_choice, "required", "gather round still forces the tool call")
+
+    -- No tools: the resolver's thinking decision is honored untouched. Explicit enabled
+    -- is kept; a nil decision (default-on path) omits `thinking` so V4's default applies.
+    local plain = DeepSeekHandler:buildRequestBody({ { role = "user", content = "hi" } }, {
+        api_key = "test", model = "deepseek-v4-pro",
+        api_params = { deepseek_thinking = { type = "enabled" } },
+    })
+    TestRunner:assertTrue(type(plain.body.thinking) == "table" and plain.body.thinking.type == "enabled",
+        "non-tool request keeps the resolver's thinking decision")
+    local omitted = DeepSeekHandler:buildRequestBody({ { role = "user", content = "hi" } },
+        { api_key = "test", model = "deepseek-v4-pro" })
+    TestRunner:assertTrue(omitted.body.thinking == nil,
+        "non-tool request with no decision omits thinking (V4 default-on applies)")
+end)
+
 TestRunner:test("mistral: declaration + tool-turn preservation via the shared base", function()
     local result = MistralHandler:buildRequestBody(TOOL_HISTORY, {
         api_key = "test",
