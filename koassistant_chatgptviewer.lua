@@ -3142,11 +3142,6 @@ function ChatGPTViewer:askAnotherQuestion()
   input_dialog = InputDialog:new {
     title = _("Reply"),
     input = self.reply_draft or "",  -- Restore saved draft
-    -- Input safety net S2: persistent, informational help text (NOT a "restored"
-    -- alert). Explains the draft survives closing/reopening the reply while the chat
-    -- window stays open. Shown always — gating it on reply_draft misfired as a false
-    -- "restored your draft" message on every chip-toggle reopen (reopenWithDraft).
-    description = _("Your draft is kept while this chat window stays open, even if you close this reply."),
     view_pos_callback = view_top and function(top_line_num, charpos)
       if top_line_num then
         view_top, view_charpos = top_line_num, charpos
@@ -3155,7 +3150,9 @@ function ChatGPTViewer:askAnotherQuestion()
       return view_top, view_charpos
     end or nil,
     input_type = "text",
-    input_hint = _("Type your reply..."),
+    -- Input safety net S2: the draft-kept tip rides the placeholder now. (A separate
+    -- description line misfired as a false "restored" alert on chip-toggle reopen.)
+    input_hint = _("Type your reply. Draft is kept while this chat window stays open."),
     allow_newline = true,
     input_multiline = true,
     -- ~6 lines, scaled by screen size for cross-device consistency.

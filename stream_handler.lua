@@ -282,7 +282,7 @@ function StreamHandler.showToolStatusDialog(opts)
             id = "quick_retry",
             callback = function()
                 UIManager:show(require("ui/widget/infomessage"):new{
-                    text = _("Quick answer — resending…"),
+                    text = _("Quick answer, resending..."),
                     timeout = 2,
                 })
                 opts.on_quick()
@@ -846,7 +846,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
             callback = function()
                 self.quick_retry_requested = true
                 UIManager:show(require("ui/widget/infomessage"):new{
-                    text = _("Quick answer — resending…"),
+                    text = _("Quick answer, resending..."),
                     timeout = 2,
                 })
                 _closeStreamDialog()

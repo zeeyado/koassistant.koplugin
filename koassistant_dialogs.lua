@@ -7962,7 +7962,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local hints = {
             _("Type your question or additional instructions for any action..."),
             _("Tip: long-press toolbar buttons for their settings, action buttons for descriptions..."),
-            _("Tip: your typed input is kept if you close this — reopen and use the gear to restore it..."),
+            _("Tip: your typed input is kept if you close this. Reopen and use the gear to restore it..."),
         }
         if input_context == "highlight" then
             -- Empty-input Send is first-class on a highlight — "talk about this"
