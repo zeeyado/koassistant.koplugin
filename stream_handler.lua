@@ -232,11 +232,14 @@ end
 --- look as the streaming dialog, but with externally-pushed text (no subprocess of its
 --- own). The tool runner updates it per lookup round, closes it, and the phase-2 streamed
 --- request then opens the real stream dialog in the same place.
---- @param opts table: { settings = {large_stream_dialog, response_font_size},
+--- @param opts table: { settings = {large_stream_dialog, response_font_size, enable_emoji_icons},
 ---                      initial_text = string, on_stop = function, on_skip = function,
+---                      on_quick = function,
 ---                      title = string (optional; defaults to "AI is responding") }
 --- on_skip (optional) adds a "Skip lookups" button: stop gathering but continue the
 --- request with whatever was collected (vs Stop, which kills the whole request).
+--- on_quick (optional) adds a ⚡ button: abandon gathering and resend with quick posture
+--- (a plain fast answer, ignoring the book work — vs Skip, which answers with it).
 --- @return table handle: { setText = fn(text), close = fn() } (close is idempotent)
 function StreamHandler.showToolStatusDialog(opts)
     opts = opts or {}
@@ -267,6 +270,23 @@ function StreamHandler.showToolStatusDialog(opts)
             text = _("Skip lookups"),
             id = "skip_lookups",
             callback = function() opts.on_skip() end,
+        })
+    end
+    -- Quick-answer retry (input safety net S3, gather-⚡): abandon the book gathering and
+    -- resend with quick posture. The runner's on_quick cancels the in-flight lookup and
+    -- finishes with the sentinel that drives the resend; here we just give the tap
+    -- immediate feedback. Only present when the run is quick-eligible.
+    if opts.on_quick then
+        table.insert(button_row, {
+            text = settings.enable_emoji_icons and "\u{26A1}" or _("Quick"),
+            id = "quick_retry",
+            callback = function()
+                UIManager:show(require("ui/widget/infomessage"):new{
+                    text = _("Quick answer — resending…"),
+                    timeout = 2,
+                })
+                opts.on_quick()
+            end,
         })
     end
     dialog = InputDialog:new{

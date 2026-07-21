@@ -690,6 +690,7 @@ function BookToolRunner.run(params)
     params = params or {}
     BookToolRunner._cancelled = false
     BookToolRunner._skip_gather = false
+    BookToolRunner._quick_retry_requested = false
     local query_fn = params.query_fn
     local on_complete = params.on_complete
     if not query_fn then
@@ -875,6 +876,10 @@ function BookToolRunner.run(params)
             -- result (usually the skip-cancel failure) must neither finish() the run
             -- nor recurse into another lookup round.
             if BookToolRunner._skip_gather then return end
+            -- Quick pressed: on_quick already finish()ed with the retry sentinel; the
+            -- dead round's cancel-failure must not touch the run (defends against a
+            -- cancel that fires the callback synchronously, before finish set completed).
+            if BookToolRunner._quick_retry_requested then return end
             if not success then
                 finish(false, nil, err, reasoning, web_search_used)
                 return
@@ -1012,6 +1017,7 @@ function BookToolRunner.run(params)
                     settings = {
                         large_stream_dialog = features.large_stream_dialog,
                         response_font_size = features.markdown_font_size,
+                        enable_emoji_icons = features.enable_emoji_icons == true,
                     },
                     initial_text = _("Consulting book tools…"),
                     on_stop = function()
@@ -1039,6 +1045,22 @@ function BookToolRunner.run(params)
                         end
                         startGenerate()
                     end,
+                    -- Quick-answer retry (gather-⚡): abandon the book work entirely and
+                    -- resend as a plain fast answer. Only when the run is quick-eligible.
+                    -- Set the flag first (mirrors on_skip's synchronous-cancel guard),
+                    -- kill the in-flight round, then finish() with the sentinel — which
+                    -- rides up through on_complete (queryWith's wrapped callback) to apply
+                    -- quick posture and resend. tools-off there ⇒ no re-gather, no loop.
+                    on_quick = features._quick_eligible == true and function()
+                        if completed or BookToolRunner._quick_retry_requested then return end
+                        BookToolRunner._quick_retry_requested = true
+                        if cancel_slot.cancel then
+                            local cancel = cancel_slot.cancel
+                            cancel_slot.cancel = nil
+                            pcall(cancel)
+                        end
+                        finish(false, nil, require("koassistant_constants").QUICK_RETRY_SENTINEL)
+                    end or nil,
                 })
                 if ok2 and type(handle) == "table" then status_handle = handle end
             end
