@@ -2897,6 +2897,17 @@ function ChatGPTViewer:askAnotherQuestion()
     end
   end
 
+  -- Quick posture affects the EFFECTIVE Web/Tools state at dispatch:
+  -- applyQuickReplyOverrides forces them off under the ⚡ preset (dialogs ~1215-1216).
+  -- Reflect that in the chip LABELS so toggling ⚡ live-updates Web/Tools honestly —
+  -- replies always respect quick (unlike the input dialog, where a launched action
+  -- might not, so THAT stays independent). An explicit reply Web/Tools tap still wins
+  -- (applied after the preset at dispatch). quick_orig = the pre-quick baseline stashed
+  -- by the first reply dispatch; before that the config itself holds the baseline.
+  -- Keep the preset conditions in sync with applyQuickReplyOverrides.
+  local quick_on = cfg_features._session_quick_answer == true
+  local quick_orig = cfg_features._quick_reply_orig
+
   -- Web toggle (state logic mirrors the viewer's row-2 web button)
   local ConfigHelper = require("koassistant_config_helper")
   local web_btn
@@ -2904,10 +2915,15 @@ function ChatGPTViewer:askAnotherQuestion()
     local web_state
     if self.session_web_search_override ~= nil then
       web_state = self.session_web_search_override
-    elseif cfg.enable_web_search ~= nil then
-      web_state = cfg.enable_web_search == true
+    elseif quick_on and cfg_features.quick_preset_web_off ~= false then
+      web_state = false  -- ⚡ preset forces web off at dispatch
     else
-      web_state = cfg_features.enable_web_search == true
+      -- Baseline: the pre-quick value (stash if a reply already dispatched),
+      -- else the config's own web flag, else the global feature default.
+      local base = quick_orig and quick_orig.enable_web_search
+      if base == nil then base = cfg.enable_web_search end
+      if base == nil then base = cfg_features.enable_web_search end
+      web_state = base == true
     end
     web_btn = {
       text = enable_emoji and ("\u{1F310} " .. (web_state and _("ON") or _("OFF")))
@@ -2998,12 +3014,19 @@ function ChatGPTViewer:askAnotherQuestion()
           local tools_effective
           if self.session_tools_override ~= nil then
             tools_effective = self.session_tools_override
-          elseif cfg_features._tools_active ~= nil then
-            tools_effective = cfg_features._tools_active == true
+          elseif quick_on and cfg_features.quick_preset_tools_off ~= false then
+            tools_effective = false  -- ⚡ preset forces tools off at dispatch
           else
-            -- No baked per-chat flag (resumed chats): dispatch follows the
-            -- effective posture default — label must match (BookToolRunner.shouldUse).
-            tools_effective = posture == "auto"
+            -- Baseline: pre-quick stash if a reply dispatched, else the baked
+            -- per-chat flag; failing both, the effective posture default (resumed
+            -- chats) — label must match BookToolRunner.shouldUse.
+            local base = quick_orig and quick_orig.tools_active
+            if base == nil then base = cfg_features._tools_active end
+            if base ~= nil then
+              tools_effective = base == true
+            else
+              tools_effective = posture == "auto"
+            end
           end
           tools_btn = {
             text = enable_emoji and ("\u{1F50D} " .. (tools_effective and _("ON") or _("OFF")))
@@ -3073,14 +3096,47 @@ function ChatGPTViewer:askAnotherQuestion()
     }
   end
 
-  -- Controls row: chips only (Tools may be structurally absent). Same compact
-  -- font stepping as the input dialog's chip row (≤3 controls → 18).
+  -- Attach chip (parity slice (b)): stage notebook/artifacts/chats/files/notes as
+  -- context for this reply. Reuses the input dialog's menu + module-resident staged
+  -- list via a runtime require of dialogs (no load-time cycle — the
+  -- showQuickControlsMenu pattern). Injected at reply dispatch (onAskQuestion) as its
+  -- own is_context message. Present in every reply context (notebook row inside is
+  -- book-gated). enable_emoji already resolved above.
+  local attach_btn
+  do
+    local D = require("koassistant_dialogs")
+    local attach_menu = D.showAttachMenu({
+      configuration = cfg,
+      ui = self._ui,
+      document_path = hold_document_path,
+      enable_emoji = enable_emoji,
+      chips_book_or_highlight = not (cfg_features.is_general_context or cfg_features.is_library_context),
+      on_change = reopenWithDraft,
+    })
+    attach_btn = {
+      text = D.attachChipLabel(enable_emoji),
+      font_bold = false,
+      callback = attach_menu.open,
+      hold_callback = function()
+        if require("koassistant_attachments").count() > 0 then
+          attach_menu.manage()
+        else
+          attach_menu.open()
+        end
+      end,
+    }
+  end
+
+  -- Controls row: chips only (Tools may be structurally absent). Font steps down as
+  -- the row fills, mirroring the input dialog's chip row (≤3 → 18, 4 → 16, else 14).
   local chip_row = {}
   table.insert(chip_row, web_btn)
   if tools_btn then table.insert(chip_row, tools_btn) end
   table.insert(chip_row, quick_btn)
+  table.insert(chip_row, attach_btn)
+  local control_font = (#chip_row <= 3 and 18) or (#chip_row == 4 and 16) or 14
   for _idx, btn in ipairs(chip_row) do
-    btn.font_size = 18
+    btn.font_size = control_font
   end
 
   input_dialog = InputDialog:new {

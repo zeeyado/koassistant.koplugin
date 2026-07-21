@@ -2204,6 +2204,21 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 end
             end
 
+            -- Attach chip on replies (parity slice (b)): staged attachments ride as
+            -- their own is_context message BEFORE the reply turn, then the module
+            -- list is cleared so the next reply doesn't re-attach (a reply has no
+            -- fresh-dialog-open to clear it, unlike the input dialog). Inline require
+            -- (60-upvalue cap). The list is empty unless the user staged via the reply
+            -- Attach chip — every initial-send site consume-and-clears.
+            do
+                local A = require("koassistant_attachments")
+                local attach_msg = A.buildMessage(A.getList())
+                if attach_msg then
+                    history:addUserMessage(attach_msg, true)
+                    A.clear()
+                end
+            end
+
             -- Process the question with callback for streaming support
             -- IMPORTANT: Use viewer's cfg for the query, not the closure-captured temp_config
             -- This ensures expanded views use large_stream_dialog=true
@@ -4072,6 +4087,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         if attach_msg then
             history:addUserMessage(attach_msg, true)
         end
+        -- Consume-and-clear: attachments are single-send context. Clearing here
+        -- (not only at the next fresh input-open) keeps the module list empty when
+        -- the viewer opens, so a reply's Attach chip starts fresh and can't inherit
+        -- this send's leftovers (reply parity, slice (b)).
+        Attachments.clear()
     end
 
     -- Store domain in history for saving with chat
@@ -4685,6 +4705,253 @@ local function runSmartRetrieval(action, action_id, highlighted_text, ui_instanc
             proceed()
         end,
     })
+end
+
+-- Attach chip label (attach_plan.md v1): a count, not ON/OFF — attach is a
+-- collection, not a toggle (empty shows 0/plain). Shared by the input dialog's
+-- Attach chip and the reply dialog's Attach chip.
+local function attachChipLabel(enable_emoji)
+    local count = require("koassistant_attachments").count()
+    if count > 0 then
+        return enable_emoji and ("\u{1F4CE} " .. tostring(count))
+            or T(_("Attach (%1)"), count)
+    end
+    return enable_emoji and "\u{1F4CE} 0" or _("Attach")
+end
+
+-- Attach chip menu (attach_plan.md v1) — the type-picker + manage submenu, factored
+-- out of showChatGPTDialog so the reply dialog (chatgptviewer) can open the SAME menu
+-- via a runtime require (the showQuickControlsMenu pattern; no load-time cycle). The
+-- staged list is MODULE-resident in koassistant_attachments; `on_change` re-renders
+-- whichever dialog opened the menu (the input dialog's refreshInputDialog, or the
+-- reply dialog's reopenWithDraft). Returns { open = typeMenuFn, manage = manageFn } so
+-- callers can wire tap vs hold. opts = { configuration, ui, document_path, enable_emoji,
+-- chips_book_or_highlight, on_change }.
+local function showAttachMenu(opts)
+    opts = opts or {}
+    local configuration = opts.configuration or {}
+    local feats = configuration.features or {}
+    local enable_emoji = opts.enable_emoji == true
+    local ui_instance = opts.ui
+    local document_path = opts.document_path
+    local chips_book_or_highlight = opts.chips_book_or_highlight
+    local on_change = opts.on_change or function() end
+
+    -- Manage list (hold, or the "manage…" row): stays open across removals,
+    -- fires on_change once at close — the Toolbar-Buttons-manager pattern.
+    local manage_dialog
+    local showManage
+    showManage = function(changed)
+        local Attachments = require("koassistant_attachments")
+        local list = Attachments.getList() or {}
+        local rows = {}
+        for i, entry in ipairs(list) do
+            local idx = i
+            local entry_label = entry.label
+            table.insert(rows, {{
+                text = T(_("Remove: %1"), entry_label),
+                callback = function()
+                    UIManager:close(manage_dialog)
+                    Attachments.remove(idx)
+                    if Attachments.count() > 0 then
+                        showManage(true)
+                    else
+                        on_change()
+                    end
+                end,
+            }})
+        end
+        if #list > 1 then
+            table.insert(rows, {{
+                text = _("Remove all"),
+                callback = function()
+                    UIManager:close(manage_dialog)
+                    Attachments.clear()
+                    on_change()
+                end,
+            }})
+        end
+        table.insert(rows, {{
+            text = _("Close"),
+            callback = function()
+                UIManager:close(manage_dialog)
+                if changed then on_change() end
+            end,
+        }})
+        manage_dialog = require("ui/widget/buttondialog"):new{
+            title = _("Attached to this chat"),
+            buttons = rows,
+            tap_close_callback = function()
+                if changed then on_change() end
+            end,
+        }
+        UIManager:show(manage_dialog)
+    end
+    local function showTypeMenu()
+        local Attachments = require("koassistant_attachments")
+        local book_path = document_path
+            or (ui_instance and ui_instance.document and ui_instance.document.file)
+        local type_dialog
+        local rows = {}
+        local n = Attachments.count()
+        if n > 0 then
+            table.insert(rows, {{
+                text = T(_("Attached (%1) — manage…"), n),
+                callback = function()
+                    UIManager:close(type_dialog)
+                    showManage()
+                end,
+            }})
+        end
+        if chips_book_or_highlight and book_path then
+            table.insert(rows, {{
+                text = _("Notebook (this book)"),
+                callback = function()
+                    -- Same gate as use_notebook (attach_plan.md §4);
+                    -- trusted providers bypass as elsewhere.
+                    if feats.enable_notebook_sharing ~= true
+                            and not Attachments.isTrustedProvider(feats, configuration.provider) then
+                        UIManager:show(InfoMessage:new{
+                            text = _("Attaching your notebook needs \"Notebook sharing\" (Settings → Privacy & Data)."),
+                        })
+                        return
+                    end
+                    local entry, err = Attachments.makeNotebook(book_path)
+                    if not entry then
+                        UIManager:show(InfoMessage:new{ text = err })
+                        return
+                    end
+                    Attachments.add(entry)
+                    UIManager:close(type_dialog)
+                    on_change()
+                end,
+            }})
+        end
+        table.insert(rows, {{
+            text = _("Artifact…"),
+            callback = function()
+                UIManager:close(type_dialog)
+                -- With a current book: open ITS selector directly (no
+                -- browser stacked underneath — maintainer 2026-07-17);
+                -- the selector offers "All books…" when launched this
+                -- way. Bookless contexts go straight to the browser.
+                local AB = require("koassistant_artifact_browser")
+                local sel_opts = {
+                    enable_emoji = enable_emoji,
+                    select_mode = {
+                        on_select = function(entry)
+                            require("koassistant_attachments").add(entry)
+                            on_change()
+                        end,
+                    },
+                }
+                if book_path then
+                    AB:showArtifactSelector(book_path, nil, sel_opts)
+                else
+                    AB:showArtifactBrowser(sel_opts)
+                end
+            end,
+        }})
+        table.insert(rows, {{
+            text = _("Chat…"),
+            callback = function()
+                UIManager:close(type_dialog)
+                local chm = require("koassistant_chat_history_manager"):new()
+                require("koassistant_chat_history_dialog"):showChatHistoryBrowser(
+                    ui_instance, book_path, chm, configuration, {
+                        level = "documents",
+                        came_from_document = book_path ~= nil,
+                        initial_document = book_path,
+                        select_mode = {
+                            on_select = function(entry)
+                                require("koassistant_attachments").add(entry)
+                                on_change()
+                            end,
+                        },
+                    })
+            end,
+        }})
+        table.insert(rows, {{
+            text = _("Text file…"),
+            callback = function()
+                UIManager:close(type_dialog)
+                local PathChooser = require("ui/widget/pathchooser")
+                local start_path = G_reader_settings:readSetting("home_dir")
+                    or require("device").home_dir
+                    or require("datastorage"):getDataDir()
+                UIManager:show(PathChooser:new{
+                    title = _("Select a text file to attach"),
+                    path = start_path,
+                    select_file = true,
+                    select_directory = false,
+                    file_filter = function(filename)
+                        local lower = filename:lower()
+                        return lower:match("%.txt$") ~= nil or lower:match("%.md$") ~= nil
+                    end,
+                    onConfirm = function(file_path)
+                        local A = require("koassistant_attachments")
+                        local entry, err = A.makeFile(file_path)
+                        if not entry then
+                            UIManager:show(InfoMessage:new{ text = err })
+                            return
+                        end
+                        A.add(entry)
+                        on_change()
+                    end,
+                })
+            end,
+        }})
+        table.insert(rows, {{
+            text = _("Note…"),
+            callback = function()
+                UIManager:close(type_dialog)
+                local note_dialog
+                note_dialog = require("ui/widget/inputdialog"):new{
+                    title = _("Attach a note"),
+                    input_hint = _("Background context for this whole chat — sent alongside your messages as a note from you, not as a question.\ne.g. \"this is the 2nd edition\", \"I'm reading this for a course\", \"the file's author metadata is wrong\""),
+                    allow_newline = true,
+                    -- Multi-line by default; only text_height works for
+                    -- InputDialog sizing (input_height is a no-op)
+                    text_height = require("device").screen:scaleBySize(160),
+                    buttons = {{
+                        {
+                            text = _("Cancel"),
+                            id = "close",
+                            callback = function()
+                                UIManager:close(note_dialog)
+                            end,
+                        },
+                        {
+                            text = _("Attach"),
+                            callback = function()
+                                local A = require("koassistant_attachments")
+                                local entry, err = A.makeNote(note_dialog:getInputText())
+                                if not entry then
+                                    UIManager:show(InfoMessage:new{ text = err })
+                                    return
+                                end
+                                UIManager:close(note_dialog)
+                                A.add(entry)
+                                on_change()
+                            end,
+                        },
+                    }},
+                }
+                UIManager:show(note_dialog)
+                note_dialog:onShowKeyboard()
+            end,
+        }})
+        table.insert(rows, {{
+            text = _("Cancel"),
+            callback = function() UIManager:close(type_dialog) end,
+        }})
+        type_dialog = require("ui/widget/buttondialog"):new{
+            title = _("Attach to this chat"),
+            buttons = rows,
+        }
+        UIManager:show(type_dialog)
+    end
+    return { open = showTypeMenu, manage = showManage }
 end
 
 local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_type, plugin, book_metadata, initial_input)
@@ -6503,247 +6770,30 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             attach = function()
                 -- Attach chip (attach_plan.md v1): material OTHER than the open
                 -- book's text — notebook, saved artifacts/chats, text files, free
-                -- notes. ALL input-dialog contexts, X-Ray chat included
-                -- (maintainer 2026-07-17: it's a full input dialog, and unlike
-                -- Scope's text ranges an attachment doesn't conflict with the
-                -- item-pseudo-selection framing). Staged list is MODULE-RESIDENT
-                -- in koassistant_attachments (no dialog locals — 60-upvalue cap;
-                -- not on features — settings-flush exposure); inline requires on
-                -- purpose.
-                local feats = configuration.features
-                local count = require("koassistant_attachments").count()
-                -- Count, not ON/OFF — attach is a collection, not a toggle
-                -- (maintainer 2026-07-17: no "OFF" legend; empty shows 0/plain)
-                local label
-                if count > 0 then
-                    label = enable_emoji and ("\u{1F4CE} " .. tostring(count))
-                        or T(_("Attach (%1)"), count)
-                else
-                    label = enable_emoji and "\u{1F4CE} 0" or _("Attach")
-                end
-                -- Manage list (hold, or the "manage…" row): stays open across
-                -- removals, refreshes the input dialog once at close — the
-                -- Toolbar-Buttons-manager pattern.
-                local manage_dialog
-                local showManage
-                showManage = function(changed)
-                    local Attachments = require("koassistant_attachments")
-                    local list = Attachments.getList() or {}
-                    local rows = {}
-                    for i, entry in ipairs(list) do
-                        local idx = i
-                        local entry_label = entry.label
-                        table.insert(rows, {{
-                            text = T(_("Remove: %1"), entry_label),
-                            callback = function()
-                                UIManager:close(manage_dialog)
-                                Attachments.remove(idx)
-                                if Attachments.count() > 0 then
-                                    showManage(true)
-                                else
-                                    refreshInputDialog()
-                                end
-                            end,
-                        }})
-                    end
-                    if #list > 1 then
-                        table.insert(rows, {{
-                            text = _("Remove all"),
-                            callback = function()
-                                UIManager:close(manage_dialog)
-                                Attachments.clear()
-                                refreshInputDialog()
-                            end,
-                        }})
-                    end
-                    table.insert(rows, {{
-                        text = _("Close"),
-                        callback = function()
-                            UIManager:close(manage_dialog)
-                            if changed then refreshInputDialog() end
-                        end,
-                    }})
-                    manage_dialog = require("ui/widget/buttondialog"):new{
-                        title = _("Attached to this chat"),
-                        buttons = rows,
-                        tap_close_callback = function()
-                            if changed then refreshInputDialog() end
-                        end,
-                    }
-                    UIManager:show(manage_dialog)
-                end
-                local function showTypeMenu()
-                    local Attachments = require("koassistant_attachments")
-                    local book_path = document_path
-                        or (ui_instance and ui_instance.document and ui_instance.document.file)
-                    local type_dialog
-                    local rows = {}
-                    local n = Attachments.count()
-                    if n > 0 then
-                        table.insert(rows, {{
-                            text = T(_("Attached (%1) — manage…"), n),
-                            callback = function()
-                                UIManager:close(type_dialog)
-                                showManage()
-                            end,
-                        }})
-                    end
-                    if chips_book_or_highlight and book_path then
-                        table.insert(rows, {{
-                            text = _("Notebook (this book)"),
-                            callback = function()
-                                -- Same gate as use_notebook (attach_plan.md §4);
-                                -- trusted providers bypass as elsewhere.
-                                if feats.enable_notebook_sharing ~= true
-                                        and not Attachments.isTrustedProvider(feats, configuration.provider) then
-                                    UIManager:show(InfoMessage:new{
-                                        text = _("Attaching your notebook needs \"Notebook sharing\" (Settings → Privacy & Data)."),
-                                    })
-                                    return
-                                end
-                                local entry, err = Attachments.makeNotebook(book_path)
-                                if not entry then
-                                    UIManager:show(InfoMessage:new{ text = err })
-                                    return
-                                end
-                                Attachments.add(entry)
-                                UIManager:close(type_dialog)
-                                refreshInputDialog()
-                            end,
-                        }})
-                    end
-                    table.insert(rows, {{
-                        text = _("Artifact…"),
-                        callback = function()
-                            UIManager:close(type_dialog)
-                            -- With a current book: open ITS selector directly (no
-                            -- browser stacked underneath — maintainer 2026-07-17);
-                            -- the selector offers "All books…" when launched this
-                            -- way. Bookless contexts go straight to the browser.
-                            local AB = require("koassistant_artifact_browser")
-                            local sel_opts = {
-                                enable_emoji = enable_emoji,
-                                select_mode = {
-                                    on_select = function(entry)
-                                        require("koassistant_attachments").add(entry)
-                                        refreshInputDialog()
-                                    end,
-                                },
-                            }
-                            if book_path then
-                                AB:showArtifactSelector(book_path, nil, sel_opts)
-                            else
-                                AB:showArtifactBrowser(sel_opts)
-                            end
-                        end,
-                    }})
-                    table.insert(rows, {{
-                        text = _("Chat…"),
-                        callback = function()
-                            UIManager:close(type_dialog)
-                            local chm = require("koassistant_chat_history_manager"):new()
-                            require("koassistant_chat_history_dialog"):showChatHistoryBrowser(
-                                ui_instance, book_path, chm, configuration, {
-                                    level = "documents",
-                                    came_from_document = book_path ~= nil,
-                                    initial_document = book_path,
-                                    select_mode = {
-                                        on_select = function(entry)
-                                            require("koassistant_attachments").add(entry)
-                                            refreshInputDialog()
-                                        end,
-                                    },
-                                })
-                        end,
-                    }})
-                    table.insert(rows, {{
-                        text = _("Text file…"),
-                        callback = function()
-                            UIManager:close(type_dialog)
-                            local PathChooser = require("ui/widget/pathchooser")
-                            local start_path = G_reader_settings:readSetting("home_dir")
-                                or require("device").home_dir
-                                or require("datastorage"):getDataDir()
-                            UIManager:show(PathChooser:new{
-                                title = _("Select a text file to attach"),
-                                path = start_path,
-                                select_file = true,
-                                select_directory = false,
-                                file_filter = function(filename)
-                                    local lower = filename:lower()
-                                    return lower:match("%.txt$") ~= nil or lower:match("%.md$") ~= nil
-                                end,
-                                onConfirm = function(file_path)
-                                    local A = require("koassistant_attachments")
-                                    local entry, err = A.makeFile(file_path)
-                                    if not entry then
-                                        UIManager:show(InfoMessage:new{ text = err })
-                                        return
-                                    end
-                                    A.add(entry)
-                                    refreshInputDialog()
-                                end,
-                            })
-                        end,
-                    }})
-                    table.insert(rows, {{
-                        text = _("Note…"),
-                        callback = function()
-                            UIManager:close(type_dialog)
-                            local note_dialog
-                            note_dialog = require("ui/widget/inputdialog"):new{
-                                title = _("Attach a note"),
-                                input_hint = _("Background context for this whole chat — sent alongside your messages as a note from you, not as a question.\ne.g. \"this is the 2nd edition\", \"I'm reading this for a course\", \"the file's author metadata is wrong\""),
-                                allow_newline = true,
-                                -- Multi-line by default; only text_height works for
-                                -- InputDialog sizing (input_height is a no-op)
-                                text_height = require("device").screen:scaleBySize(160),
-                                buttons = {{
-                                    {
-                                        text = _("Cancel"),
-                                        id = "close",
-                                        callback = function()
-                                            UIManager:close(note_dialog)
-                                        end,
-                                    },
-                                    {
-                                        text = _("Attach"),
-                                        callback = function()
-                                            local A = require("koassistant_attachments")
-                                            local entry, err = A.makeNote(note_dialog:getInputText())
-                                            if not entry then
-                                                UIManager:show(InfoMessage:new{ text = err })
-                                                return
-                                            end
-                                            UIManager:close(note_dialog)
-                                            A.add(entry)
-                                            refreshInputDialog()
-                                        end,
-                                    },
-                                }},
-                            }
-                            UIManager:show(note_dialog)
-                            note_dialog:onShowKeyboard()
-                        end,
-                    }})
-                    table.insert(rows, {{
-                        text = _("Cancel"),
-                        callback = function() UIManager:close(type_dialog) end,
-                    }})
-                    type_dialog = require("ui/widget/buttondialog"):new{
-                        title = _("Attach to this chat"),
-                        buttons = rows,
-                    }
-                    UIManager:show(type_dialog)
-                end
+                -- notes. Menu factored into the file-local showAttachMenu so the
+                -- reply dialog reuses the SAME menu (koassistant_chatgptviewer);
+                -- staged list is MODULE-RESIDENT in koassistant_attachments.
+                -- Inline require, NOT a file-local reference: the enclosing chip
+                -- closure sits at LuaJIT's 60-upvalue cap, and a direct reference
+                -- to showAttachMenu/attachChipLabel would add two upvalues and
+                -- break the whole-plugin load (same pattern as showQuickControlsMenu).
+                local D = require("koassistant_dialogs")
+                local menu = D.showAttachMenu({
+                    configuration = configuration,
+                    ui = ui_instance,
+                    document_path = document_path,
+                    enable_emoji = enable_emoji,
+                    chips_book_or_highlight = chips_book_or_highlight,
+                    on_change = refreshInputDialog,
+                })
                 return {
-                    text = label,
-                    callback = showTypeMenu,
+                    text = D.attachChipLabel(enable_emoji),
+                    callback = menu.open,
                     hold_callback = function()
                         if require("koassistant_attachments").count() > 0 then
-                            showManage()
+                            menu.manage()
                         else
-                            showTypeMenu()
+                            menu.open()
                         end
                     end,
                 }
@@ -7107,6 +7157,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         if attach_msg then
                             history:addUserMessage(attach_msg, true)
                         end
+                        -- Consume-and-clear (see the action path): single-send
+                        -- context, keeps the list empty for the reply Attach chip.
+                        A.clear()
                     end
 
                     -- Quick controls (controls_parity_plan.md §10): with a one-shot
@@ -9248,6 +9301,8 @@ return {
     -- cap) and for the reply-dialog reuse planned in parity slice (b).
     showQuickControlsMenu = showQuickControlsMenu,
     applyQuickReplyOverrides = applyQuickReplyOverrides,
+    showAttachMenu = showAttachMenu,
+    attachChipLabel = attachChipLabel,
     -- Exported for the main-settings action row (AskGPT:showQuickPresetModelMode)
     showQuickPresetModelMode = showQuickPresetModelMode,
 }

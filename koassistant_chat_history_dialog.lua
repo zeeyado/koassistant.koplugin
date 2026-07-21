@@ -2002,6 +2002,21 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                         end
                     end
 
+                    -- Attach chip on replies (parity slice (b)) — RESUMED-chat path:
+                    -- staged attachments ride as their own is_context message BEFORE the
+                    -- reply turn, then the module list clears (a resumed reply has no
+                    -- fresh-dialog-open to clear it). Mirrors the fresh-chat onAskQuestion
+                    -- in dialogs; without this, a continued chat injected nothing and the
+                    -- chip kept showing the stale attachment. Inline require (module boundary).
+                    do
+                        local A = require("koassistant_attachments")
+                        local attach_msg = A.buildMessage(A.getList())
+                        if attach_msg then
+                            history:addUserMessage(attach_msg, true)
+                            A.clear()
+                        end
+                    end
+
                     local answer = addMessage(question, false, onResponseComplete)
 
                     -- For non-streaming, the answer is returned directly and callback was already called
