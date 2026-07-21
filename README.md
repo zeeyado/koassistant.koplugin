@@ -8,7 +8,7 @@
 
 > **New to KOAssistant?** The [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki) has short getting-started guides. [Help expand it.](https://github.com/zeeyado/koassistant.koplugin/wiki/Contributing-to-this-Wiki)
 
-Note July 2026: The README currently functions as the main documentation. It is out of date due to many changes in the plugin code. Any help migrating to wiki and cleaning up the docs is appreciated
+Note: This README is the main documentation for now, and is being migrated to the [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki). It was substantially refreshed in July 2026 to match the current code; if you spot anything out of date, or want to help with the wiki migration and docs cleanup, contributions are appreciated.
 
 <p align="center">
   <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>
@@ -18,15 +18,20 @@ Note July 2026: The README currently functions as the main documentation. It is 
 </p>
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
+- **Generate images** → turn a highlight into an image using OpenAI, xAI, or Gemini image models; generated images are kept on-device in a browsable **Generated Images** gallery (tap to view, hold to delete) and associated with the book they came from
 - **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, Section X-Rays for focused chapter/part analysis, AI Wiki for per-item encyclopedia entries, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
+- **X-Ray that keeps up** → optional background auto-update as you read, optional auto-create of the first X-Ray early in a book, and **version history** (browse, restore, or delete earlier X-Ray snapshots, with a keep-count setting)
+- **Session controls (chips)** → a configurable chip row in the input dialog — Domain, Web search, AI Book Tools, Quick Answer, Scope, Attach, and Spoiler-free — each tap-toggles for the current chat and hold-opens its defaults; choose which chips appear via the input gear menu
+- **See its sources** → a **Show Sources** viewer (web URLs, search queries, and book-tool lookups) alongside **Show Reasoning**, plus per-message "searched the web" and "searched the book" indicators
 - **Research Mode** → automatic academic enhancements for papers with DOI: discipline-agnostic academic X-Ray (7 research categories), web search override, research-aware system prompts. Zero configuration, DOI detection triggers everything
-- **Notebooks** → per-book markdown notebooks for curating AI insights and personal notes, with Obsidian vault integration (three save locations: alongside book, central folder, or custom folder like an Obsidian vault)
+- **Notebooks** → per-book markdown notebooks for curating AI insights and personal notes (including one-tap "Add to Notebook" from the highlight menu and other selection popups), with Obsidian vault integration (three save locations: alongside book, central folder, or custom folder like an Obsidian vault)
 - **Library** → scan-based actions (what to read next, reading patterns, discover new books), multi-book comparison, collection analysis, with an end-of-book suggestion popup
 - **General chat** → AI without book/document context
-- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
-- **Multilingual** → Use any language the AI understands, and use the KOAssistant UI in 20 languages
+- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenAI, xAI, Perplexity, OpenRouter), with an effort dial (quick / standard / thorough)
+- **AI Book Tools** → let the AI search and read the open book on demand to ground its answers (gather-then-generate by default, or an interactive agentic loop)
+- **Multilingual** → chat in any of 47 languages the AI understands, and use the KOAssistant UI in over 20 languages
 
-19 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in, not sent to the AI unless you enable it.
+19 built-in providers (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. Fully configurable: custom actions, behaviors, domains, per-action model overrides. Reasoning/thinking is configured per model (stance dial + per-model overrides). **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in, not sent to the AI unless you enable it.
 
 **Status:** Active development. [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and don't want to wait for tested releases, you can run off main branch to get the latest features. Breakage may happen. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
@@ -44,12 +49,14 @@ Note July 2026: The README currently functions as the main documentation. It is 
   - [Text Extraction and Double-gating](#text-extraction-and-double-gating): Enable document content analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant): Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
+  - [Image Generation](#image-generation): Turn a highlight into an image
   - [Book/Document Mode](#bookdocument-mode)
     - [Research Mode](#research-mode): Automatic academic enhancements for papers with DOI
     - [Reading Analysis Actions](#reading-analysis-actions): X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, About, Analyze Notes
   - [Library Mode](#library-mode)
   - [General Chat](#general-chat)
-  - [Input Dialog Actions](#managing-the-input-dialog): Per-context action sorting, gear menu, web toggle
+  - [Input Dialog Actions](#managing-the-input-dialog): Per-context action sorting, gear menu
+  - [Session Controls (Chips)](#session-controls-chips): Domain, Web, Tools, Quick, Scope, Attach, Spoiler
   - [Spoiler-Free Mode](#spoiler-free-mode): Prevent AI from revealing events beyond your reading position
   - [Save to Note](#save-to-note)
 - [How the AI Prompt Works](#how-the-ai-prompt-works): Behavior + Domain + Language system
@@ -83,7 +90,7 @@ Note July 2026: The README currently functions as the main documentation. It is 
   - [Chat Storage & File Moves](#chat-storage--file-moves)
   - [Tags](#tags)
   - [Starring & Pinning](#starring--pinning): Star conversations for quick access, pin responses as artifacts
-- [Settings Reference](#settings-reference) ↓ includes [KOReader Integration](#koreader-integration)
+- [Settings Reference](#settings-reference) ↓ includes [Menus & Buttons](#menus--buttons)
 - [Updating the Plugin](#updating-the-plugin): Auto-update and manual methods
   - [Automatic Update (One-Tap)](#automatic-update-one-tap)
   - [Manual Update](#manual-update)
@@ -92,11 +99,12 @@ Note July 2026: The README currently functions as the main documentation. It is 
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
-  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let the AI (Gemini/Claude/OpenAI/OpenRouter) search & read the open book on demand
+  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let the AI (Gemini/Claude/OpenAI/OpenRouter, plus DeepSeek/Mistral/Groq/xAI) search & read the open book on demand
   - [Prompt Caching](#prompt-caching)
-  - [Document Artifacts](#document-artifacts): 12 cacheable artifacts, AI Wiki, pinned, → Chat, incremental caching
+  - [Document Artifacts](#document-artifacts): 13 cacheable artifacts, AI Wiki, pinned, → Chat, incremental caching
+  - [Response Provenance (Show Sources)](#web-search): Web URLs, search queries, and book-tool lookups
   - [Reasoning/Thinking](#reasoningthinking)
-  - [Web Search](#web-search): AI searches the web for current information (Anthropic, Gemini, OpenRouter, Perplexity)
+  - [Web Search](#web-search): AI searches the web for current information (Anthropic, Gemini, OpenAI, xAI, Perplexity, OpenRouter)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
   - [Free Tier Providers](#free-tier-providers)
   - [Adding Custom Providers](#adding-custom-providers): Local provider presets (LM Studio, llama.cpp, Jan, vLLM, KoboldCpp, LocalAI)
@@ -137,7 +145,7 @@ You can also [test your setup](#testing-your-setup): Web inspector for experimen
 
 **Note:** The README is intentionally verbose and somewhat repetitive to ensure you see all features and their nuances. Use the table of contents to jump to specific topics. A more concise structured documentation system is planned (contributions welcome).
 
-**Prefer a minimal footprint?** KOAssistant is designed to stay out of your way. The main menu is tucked under Tools (page 2), and all default integrations (file browser buttons, highlight menu items, dictionary popup, gesture actions) can be disabled via **[Settings → KOReader Integration](#koreader-integration)**. Use only what you need.
+**Prefer a minimal footprint?** KOAssistant is designed to stay out of your way. The main menu is tucked under Tools (page 2), and all default integrations (file browser buttons, highlight menu items, dictionary popup, gesture actions) can be disabled via **[Settings → Menus & Buttons](#menus--buttons)**. Use only what you need.
 
 ---
 
@@ -199,9 +207,9 @@ return {
 }
 ```
 
-> **Note:** GUI-entered keys take priority over file-based keys. The API Keys menu shows `[set]` for GUI keys and `(file)` for keys from apikeys.lua.
+> **Note:** GUI-entered keys take priority over file-based keys. The API Keys menu shows `[set]` for GUI keys and `(file)` for keys from apikeys.lua. Provider pickers only list providers that have a key configured (plus local/no-key providers like Ollama), so the menus stay short.
 
-See [Supported Providers](#supported-providers) for full list with links to get API keys.
+See [Supported Providers](#supported-providers--settings) for full list with links to get API keys.
 
 > **Free Options Available:** Don't want to pay? Groq, Gemini, and Ollama offer free tiers. See [Free Tier Providers](#free-tier-providers).
 
@@ -237,12 +245,13 @@ After the setup wizard, complete these steps for the best experience:
 
 - [ ] **Configure privacy settings**: Enable data sharing for features you want (Settings → Privacy & Data). See [Privacy & Data](#privacy--data)
 - [ ] **Set up gestures** (if you skipped the wizard). See [Configure Quick Access Gestures](#configure-quick-access-gestures)
-- [ ] **Explore the highlight menu**: 10 actions included by default (Translate, Look up in X-Ray, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, AI Wiki, Grammar); add more via Manage Actions → hold action → "Add to Highlight Menu"
+- [ ] **Explore the highlight menu**: 11 actions included by default (Translate, Look up in X-Ray, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, AI Wiki, Grammar, Counterpoint); add more via Manage Actions → hold action → "+ Highlight Menu", or via Settings → Menus & Buttons → Highlight Menu Actions
 - [ ] **Try Dictionary Bypass**: Single-word selections go straight to AI dictionary (Settings → Dictionary Settings → Bypass KOReader Dictionary)
 - [ ] **Try Highlight Bypass**: Multi-word selections trigger instant translation (Settings → Highlight Settings → Enable Highlight Bypass)
 - [ ] **Set your languages** (if you skipped the wizard): KOAssistant auto-detects from your KOReader UI language, but you can configure additional languages or change your primary (Settings → AI Language Settings)
-- [ ] **Add custom actions to gestures**: Any book/general action can become a gesture (Manage Actions → hold → "Add to Gesture Menu", requires restart)
-- [ ] **Pin actions to file browser**: Add frequently-used book actions directly to the long-press menu (Manage Actions → hold → "Add to File Browser")
+- [ ] **Add custom actions to gestures**: Any book/general action can become a gesture (Manage Actions → hold → "+ Gesture Menu", requires restart)
+- [ ] **Pin actions to file browser**: Add frequently-used book actions directly to the long-press menu (Manage Actions → hold → "+ File Browser")
+- [ ] **Try Generate Image**: Turn a highlighted passage into an AI-generated illustration (highlight menu → Generate Image; requires an OpenAI, xAI, or Gemini image model). See [Image Generation](#image-generation)
 
 > **Tip**: Edit built-in actions to always use the provider/model of your choice (regardless of your main settings); e.g. Dictionary actions benefit from a lighter model for speed.
 
@@ -268,22 +277,25 @@ KOAssistant provides two distinct quick-access panels for different purposes:
 Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model**: Quick switching between AI providers and models
 - **Behavior & Domain**: Change communication style, knowledge context, and Research Mode
-- **Temperature & Reasoning**: Adjust creativity level, and set the reasoning stance (Minimal/Default/Maximum) or override the current model's reasoning
-- **Web Search & Language**: Enable AI web search and set primary response language
+- **Temperature & Reasoning**: Adjust creativity level, and set the reasoning stance (Minimal/Default/Maximum) or override the current model's reasoning (reasoning is per-model — the stance is a global preference each model honors as far as it can)
+- **Web Search**: Toggle AI web search on or off (this sets the global default; per-chat control lives in the input dialog's Web chip). Annotated "N/A" when the active provider can't search
+- **Book Tools**: Set the AI Book Tools posture (off / manual / auto) for the current book or globally, so the AI can look things up in the book to answer
+- **Language**: Set the primary response language
 - **Translate & Dictionary**: Translation and dictionary language settings
 - **Highlight Bypass & Dictionary Bypass**: Toggle bypass modes on/off
 - **Text Extraction**: Toggle book text extraction on/off (must be enabled once via Settings → Privacy & Data first)
 - **Chat History, Browse Notebooks & Browse Artifacts**: Quick access to saved chats, notebooks, and cached artifacts
 - **Library Chat/Action**: Launch library actions by selecting books from your reading history
 - **General Chat/Action**: Start a context-free conversation or run a general action
+- **Continue Last Chat**: Resume your most recent conversation
 - **Manage Actions**: Edit and configure your actions
-
-In reader mode, additional buttons appear (items naturally shift to accommodate):
-- **New Book Chat/Action**: Start a chat about the current book or access book actions
-- **Quick Actions...**: Access the Quick Actions panel for reading features
 - **More Settings...**: Open the full settings menu
 
-The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manager for reordering and toggling buttons. Also accessible via **Settings → Quick Settings Settings → QS Panel Utilities**.
+In reader mode, two additional buttons appear (items naturally shift to accommodate):
+- **Book Chat/Action**: Start a chat about the current book or access book actions
+- **Quick Actions...**: Switch to the Quick Actions panel for reading features
+
+The panel has a **gear icon** (top-left) that opens a small menu with **Sort Items** (reorder and show/hide the tiles) and **Align Buttons** (left-align vs. centered). The same tile manager is also reachable via **Settings → Menus & Buttons → Quick panels → Quick Settings Items**.
 
 **2. Quick Actions** (reader mode only)
 
@@ -291,10 +303,10 @@ The panel has a **gear icon** (top-left) that opens the QS Panel Utilities manag
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions**: X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Quiz, Suggest from Library
-- **Artifact button**: "View Artifacts" appears when any artifacts exist (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes), opening a picker showing each artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)")
-- **Utilities**: Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Quick Settings
+- **Artifact button**: "View Artifacts" appears when any artifacts exist, opening a picker showing each cached artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)"). The picker aggregates the per-action artifacts (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes) plus any pinned artifacts, a **Generated Images** entry (opens the per-book image gallery), and a **Previous X-Ray Versions** entry (archived X-Ray snapshots) when those exist
+- **Utilities**: Translate Page, Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Book Settings, Quick Settings
 
-You can add any book action to Quick Actions via **Action Manager → hold action → "Add to Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). Also accessible via the hamburger menu in **Manage Actions**. Defaults can also be removed.
+You can add any book action to Quick Actions via **Action Manager → hold action → "+ Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). These managers are also reachable via the hamburger menu in **Manage Actions** and via **Settings → Menus & Buttons → Quick panels**. Defaults can also be removed.
 
 > **Tip**: For quick access, assign Quick Settings and Quick Actions to their own gestures (e.g. corner tap). This gives you one-tap access to these panels from anywhere. Alternatively, you can add them to a KOReader QuickMenu alongside other actions (see below).
 
@@ -321,7 +333,6 @@ Any book or general action (built-in or custom) can be added to the gesture menu
 >
 > You must set up gestures in **both places** if you want access from both contexts. Reader-only gestures (like Quick Actions, Translate Page, Book Chat/Action) will appear grayed out if you try to add them to File Browser gestures. This is expected. General gestures (like Quick Settings, Chat History) work in both contexts and can be added to either or both.
 
-
 ### Key Features to Explore
 
 After basic setup, explore these features to get the most out of KOAssistant:
@@ -333,12 +344,13 @@ After basic setup, explore these features to get the most out of KOAssistant:
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book or document | Gesture → "KOAssistant: Quick Actions" |
 | **[Research Mode](#research-mode)** | Automatic academic enhancements when DOI detected (academic X-Ray, web search, research prompts) | Automatic, no configuration needed |
-| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, chapter tracking | Quick Actions → X-Ray |
-| **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (10 defaults including Translate, Explain, ELI5) | Manage Actions → Add to Highlight Menu |
+| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, version history, chapter tracking | Quick Actions → X-Ray |
+| **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (11 defaults including Translate, Explain, ELI5) | Settings → Menus & Buttons → Highlight Menu Actions |
+| **[Image Generation](#image-generation)** | Turn a highlighted passage into an AI-generated illustration | Highlight menu → Generate Image |
 | **[Notebooks](#notebooks-per-book-notes)** | Per-book markdown notes with Obsidian vault support | Settings → Notebook Settings |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
-| **Reasoning/Thinking** | Enable deep analysis for complex questions | Settings → Advanced → Reasoning |
+| **Reasoning/Thinking** | Per-model reasoning depth, via a global stance (Minimal/Default/Maximum) or per-model overrides | Settings → Advanced → Reasoning |
 | **Backup & Reset** | Backup settings, restore, and reset options | Settings → Backup & Reset |
 | **Languages** | Configure multilingual responses (native script pickers) | Settings → AI Language Settings |
 
@@ -348,7 +360,7 @@ See detailed sections below for each feature.
 
 - **Good document metadata** improves AI responses. Use Calibre or similar tools to ensure titles, authors, and identifiers (including DOI for academic papers) are correct. DOI triggers [Research Mode](#research-mode) with academic X-Ray categories and web-enriched analysis.
 - **Shorter tap duration** makes text selection in KOReader easier: Settings → Taps and Gestures → Long-press interval
-- **Choose models wisely**: Fast models (like Haiku) for quick queries; powerful models (like Sonnet, Opus) for deeper analysis. You can set different models for different actions, see [Tuning Built-in Actions](#tuning-built-in-actions).
+- **Choose models wisely**: Fast models (like Haiku 4.5, Gemini 3.5-flash) for quick queries; powerful models (like Sonnet 5, Opus 4.8) for deeper analysis. You can set different models for different actions, see [Tuning Built-in Actions](#tuning-built-in-actions).
 - **Try different behavior styles**: 23 built-in behaviors include provider-inspired styles (Claude, GPT, Gemini, Grok, DeepSeek, Perplexity), all work with any provider. Change via Quick Settings or Settings → Actions & Prompts → Manage Behaviors.
 - **Combine behaviors with domains**: Behavior controls *how* the AI communicates; Domain provides *what* context. Try Perplexity Style + a research domain for source-focused academic analysis.
 
@@ -426,7 +438,7 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 | Preset | What it does |
 |--------|--------------|
 | **Default** | Basic stats (progress, chapter info) shared for context-aware features. Personal content (highlights, annotations, notebook) stays private. Advanced stats off. |
-| **Minimal** | Maximum privacy. Only your question and book metadata are sent. All stats, library scanning, and personal content disabled. |
+| **Minimal** | Maximum privacy. Only your question and book metadata are sent. All stats (including basic stats), library scanning, and personal content disabled. |
 | **Full** | All data sharing enabled for full functionality, including advanced stats. Does not automatically enable text extraction (see below). |
 
 **Individual toggles** (under Data Sharing Controls):
@@ -436,8 +448,8 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 - **Allow Basic Stats**: Reading progress percentage, chapter title, chapters read count, time since last opened (default: ON). Used by X-Ray, Recap, and other context-aware features.
 - **Allow Advanced Stats**: Reading engagement data derived from KOReader's Statistics plugin (default: OFF). Shares curated groups based on reading time and completion patterns with library scan actions. Raw statistics never leave the device, only human-readable labels like "read extensively" or "started briefly" reach the AI. See [Design Choices](#design-choices) for details.
 
-**Library Settings** (in Chat & Export Settings → Reading & Library):
-- **Enable Library Scanning**: Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library) and the Suggest from Library book action
+**Library Settings** (in Reading & Library):
+- **Enable Library Scanning**: Allow scanning configured folders for book metadata (default: OFF). Required for scan-based library actions (Next Read, Discover New, Analyze Library, Challenge My Taste) and the Suggest from Library book action
 - **Permanent Scan Folders**: Folders always scanned for library actions. You can also pick folders on the fly in the input dialog
 - The global toggle is an absolute gate: all library scanning (including on-the-fly folders picked in the input dialog) requires it to be enabled. Per-action `use_library` flag provides the second gate
 
@@ -452,6 +464,8 @@ KOAssistant sends data to AI providers to generate responses. This section expla
 > ⚠️ **Text extraction is OFF by default.** To use features like X-Ray, Recap, and context-aware highlight actions with actual book content (rather than AI's training knowledge), you must enable it in **Settings → Privacy & Data → Text Extraction → Allow Text Extraction**.
 
 Text extraction sends actual book/document content to the AI, enabling features like X-Ray, Recap, Document Summary/Analysis, and highlight actions like "Explain in Context" to analyze what you've read. Without it enabled, most actions gracefully fall back to the AI's training knowledge: the AI is explicitly told no document text was provided and asked to use what it knows about the work (or say so honestly if it doesn't recognize it). This works reasonably for well-known titles but will be inaccurate for obscure works, and basically unusable for research papers and articles the AI hasn't seen. **Exception:** X-Ray requires text extraction and blocks generation without it; use X-Ray (Simple) for a prose overview from AI knowledge.
+
+> **Tip:** If you enable text extraction but don't want to send the *whole* document, you have finer-grained options: choose "Document summary" or a specific section in an action's source-selection popup, attach a text range with the **Scope** session chip on a freeform chat, or let **AI Book Tools** retrieve only the relevant passages (see [AI Book Tools](#ai-book-tools-experimental)). Hidden Flows also exclude front matter, appendices, etc. from extraction.
 
 **Why it's off by default:**
 
@@ -480,9 +494,10 @@ The table below documents which flags are required for each data type (relevant 
 | Notebook | Allow Notebook | "Allow notebook use" checked |
 | Library catalog | Enable Library Scanning + folders configured | "Allow library use" checked |
 | Advanced stats | Allow Advanced Stats | "Allow advanced stats" checked |
-| Surrounding context* | None (hard-capped 2000 chars) | Auto-inferred from placeholder |
+| Surrounding context* | None (hard-capped 2000 chars) | Field `use_surrounding_context` (no in-app checkbox): nil/omitted = follow the global Surrounding Context setting (the default for custom actions), `true` = always on (also auto-set when your prompt contains `{surrounding_context}`), `false` = never |
+| Page text* | None (single current page, exempt) | Auto-inferred from a `{page_text}` placeholder |
 
-\* Surrounding context is a text selection type for highlight context (same as highlighting text), included here for clarity because it extracts more than you highlighted.
+\* **Surrounding context** is the text around a highlight (more than you actually selected). It has no global privacy gate because it is hard-capped at 2000 characters, but it is *off by default*: it only rides along when the global **Surrounding Context** mode (Settings → Highlight Settings → Surrounding Context, or per-book in Book Settings, or the **Scope** session chip) is set to Sentence / Paragraph(s) / Characters rather than "None". Per-action this is a tri-state value in the action's Lua definition (not an editor checkbox): leave `use_surrounding_context` unset to follow that setting, or set it to `true`/`false` in a custom action to pin it always-on or never. **Page text** is the single currently visible page and is likewise exempt from the global gate; it is included only when an action's prompt uses the `{page_text}` placeholder.
 
 > **Tip:** Enable **[Emoji Data Access Indicators](#display-settings)** to see which flags each action has directly on its name, no need to inspect action settings manually.
 
@@ -521,7 +536,7 @@ Cloud providers have their own data handling practices. Check their policies on 
 
 ### Design Choices
 
-**Library scanning** is opt-in. When enabled (Settings → Chat & Export Settings → Reading & Library), KOAssistant scans configured folders for book metadata (title, author, series, reading status, progress, last read date) to power library-aware features like "What to read next?" and reading pattern analysis. Only catalog metadata is sent, **not** book content, highlights, or annotations. Library scanning is triple-gated: (1) global `enable_library_scanning` toggle, (2) at least one folder configured, and (3) per-action `use_library` flag. Trusted providers bypass the global toggle but still require configured folders.
+**Library scanning** is opt-in. When enabled (Settings → Reading & Library), KOAssistant scans configured folders for book metadata (title, author, series, reading status, progress, last read date) to power library-aware features like "What to read next?" and reading pattern analysis. Only catalog metadata is sent, **not** book content, highlights, or annotations. Library scanning is triple-gated: (1) global `enable_library_scanning` toggle, (2) at least one folder configured, and (3) per-action `use_library` flag. Trusted providers bypass the global toggle but still require configured folders.
 
 **Reading engagement data (Advanced Stats):** KOReader's Statistics plugin collects extensive local data (reading time, pages per session, reading speed, session history, daily patterns). With **Allow Advanced Stats** enabled (Settings → Privacy & Data, default: OFF), KOAssistant queries this database **locally** to compute engagement groups: curated categories like "books read extensively" (complete + significant reading time), "stalled reads" (started but inactive for weeks), "briefly started" (opened but barely read), and "recently finished". These groups are exposed as template variables (`{deep_reads_section}`, `{stalled_section}`, etc.) for library scan actions to compose.
 
@@ -533,16 +548,16 @@ Cloud providers have their own data handling practices. Check their policies on 
 
 ## How to Use KOAssistant
 
-KOAssistant works in **4 contexts**, each with its own set of built-in actions (11 library actions shown as 3 scan-based + 7 selection-based + 1 book-context action that uses library data):
+KOAssistant works in **4 contexts**, each with its own set of built-in actions (12 library actions shown as 4 scan-based + 7 selection-based + 1 book-context action that uses library data):
 
 | Context | Built-in Actions |
 |---------|------------------|
-| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Current Context*, Translate, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray†† |
-| **Book** | About, Find Similar, Suggest from Library†, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Discussion Questions, Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
-| **Library** | Next Read‡, Discover New‡, Analyze Library‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§, Analyze Notes§ⁿ |
+| **Highlight** | Explain, ELI5, Summarize, Elaborate, Connect, Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Fact Check*, Counterpoint, Current Context*, Translate, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis, Look up in X-Ray†† |
+| **Book** | About, Find Similar, Suggest from Library†, About Author, Historical Context, Related Thinkers, Reviews*, X-Ray, X-Ray (Simple), Recap, Analyze Notes, Key Arguments, Counterarguments, Discussion Questions, Quiz, Reading Guide, Document Analysis, Document Summary, Extract Key Insights |
+| **Library** | Next Read‡, Discover New‡, Analyze Library‡, Challenge My Taste‡, Compare§, Find Common Themes§, Analyze Collection§, Quick Summaries§, Reading Order§, Recommend§, Analyze Notes§ⁿ |
 | **General** | News Update* |
 
-*Requires web search (Anthropic, Gemini, Perplexity, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
+*Requires web search (Anthropic, Gemini, OpenAI, xAI, Perplexity, OpenRouter). News Update is available in gesture menu by default but not in the general input dialog. See [Web Search](#web-search) and [General Chat](#general-chat) for details.
 
 †Book-context action that also appears in end-of-book suggestion popup. Requires library scanning.
 
@@ -553,6 +568,8 @@ KOAssistant works in **4 contexts**, each with its own set of built-in actions (
 ⁿRequires Allow Highlights or Allow Annotation Notes. Reads per-book sidecar data (highlights, annotations, notes) across selected books.
 
 ††Local action, searches cached X-Ray data instantly, no AI call or network required. Only appears when the book has an X-Ray cache.
+
+> **Note:** A separate **Generate Image** button also appears in KOReader's highlight popup (see below). It is a standalone highlight-menu button rather than a KOAssistant action, so it is not listed in the table above.
 
 You can customize these, create your own, or disable ones you don't use. See [Actions](#actions) for details.
 
@@ -575,37 +592,46 @@ You can customize these, create your own, or disable ones you don't use. See [Ac
 | **Elaborate** | Expand on concepts, provide additional context and details |
 | **Connect** | Draw connections to other works, thinkers, and broader context |
 | **Connect (With Notes)** | Connect passage to your personal reading journey ⚠️ *Requires: Allow Annotation Notes, Allow Notebook* |
-| **Explain in Context** | Comprehension-focused: what the passage means, what leads up to it, and what it builds on. Source selection: full text, summary, or AI knowledge |
-| **Analyze in Context** | Reader-focused: connects the passage to your highlights, annotations, and the threads you've been tracking. Source selection: full text, summary, or AI knowledge ⚠️ *Requires: Allow Annotation Notes* |
+| **Explain in Context** | Comprehension-focused: what the passage means, what leads up to it, and what it builds on. Source selection: full text, summary, AI knowledge, or Smart retrieval (AI searches the book) |
+| **Analyze in Context** | Reader-focused: connects the passage to your highlights, annotations, and the threads you've been tracking. Source selection: full text, summary, AI knowledge, or Smart retrieval (AI searches the book) ⚠️ *Requires: Allow Annotation Notes, Allow Notebook* |
 | **Thematic Connection** | Craft-focused: examines the author's technique (language, structure, imagery) and how the passage fits into the work's thematic architecture. Source selection: full text, summary, or AI knowledge |
 | **Fact Check** | Verify claims using web search ⚠️ *Requires: Web Search* |
+| **Counterpoint** | Argues against the selected passage in good faith and at full strength: the strongest objections to its claim, reasoning, and framing, and who would disagree. (Fact Check verifies accuracy; Counterpoint challenges the argument.) |
 | **Current Context** | Get latest information about a topic using web search ⚠️ *Requires: Web Search* |
 | **Translate** | Translate to your configured language |
 | **AI Wiki** | Wikipedia-style encyclopedia entry about the selected text, using AI knowledge. Cached as an artifact (same as X-Ray browser wiki entries). Uses web search if enabled globally. Available in dictionary popup by default |
 | **Dictionary** | Full dictionary entry: definition, etymology, synonyms, usage (also accessible via dictionary popup) |
 | **Quick Define** | Minimal lookup: brief definition only, no etymology or synonyms |
-| **Grammar** | Sentence-level grammatical breakdown: word-by-word analysis with part of speech, morphological features, and structural role. Optional constituency parse. Language-aware (e.g., Arabic gets i'rab annotations) |
+| **Grammar** | Sentence-level grammatical breakdown: constituency parse plus word-by-word analysis with part of speech, morphological features, and structural role. Language-aware — e.g., Arabic responses use traditional grammatical terminology alongside modern linguistic labels. |
 | **Deep Analysis** | Linguistic deep-dive: morphology, word family, cognates, etymology path |
 | **Look up in X-Ray** | `[Local]` Instant search of cached X-Ray data for selected text, no AI call, works offline. Searches by name and alias across all X-Rays (main + sections). Single match shows full detail; multiple matches across X-Rays show a grouped results view. Available in highlight menu and dictionary popup. Only appears when the book has an X-Ray cache. |
 
+**Generate Image**: A separate **Generate Image (KOA)** button in the highlight popup turns the selected text into an image via an image-generation provider (OpenAI, xAI, or Gemini). It uses its own provider/model and settings (independent of your chat provider) and appears only when image generation is enabled and the effective provider supports it. Generated images are kept on device in `data_dir/koassistant_images` and collected in a **Generated Images** gallery (tap to view, hold to delete, or delete all), with a per-book association so each book's images also appear on its "View Artifacts" list and in the cross-book artifact browser. You can hide the button via **Settings → Menus & Buttons** ("Show Generate Image button"). See [Image Generation](#image-generation) for details.
+
 **Source selection:**
 
-Several actions let you choose which document source the AI uses when you trigger them. A unified popup combines **scope** (full document or a specific section) and **source** (what data to send) in a single dialog:
+Several actions let you choose which document source the AI uses when you trigger them. A unified popup combines **scope** (what part of the book) and **source** (what data to send) in a single dialog:
 
-**Scope** (shown when the book has a table of contents):
-- **Full document**: Use the entire document
+**Scope** (rows shown depend on the action, whether the book has a table of contents, and your reading position):
+- **Full document**: Use the entire document. For "up to current position" actions (like Recap), whose extraction already stops at your reading position, this row is labeled **Up to current position (NN%)** instead.
+- **Up to current position (NN%)**: For whole-document actions, limits scope to what you've read so far (spoiler-safe).
 - **Pick section…**: Focus on a specific chapter or part via a hierarchical TOC picker. The selected section name appears below the scope buttons. Section results are stored as independent artifacts (e.g., "Section Key Arguments: Chapter 5")
+- **From section… (to current position)**: From a chosen section up to your current reading position.
+- **Pick section range…**: A start section and an end section.
+- **Current chapter** / **Current chapter so far**: Quiz only.
 
 **Source:**
 - **Extract text**: Sends the actual document text to the AI. Most accurate, but uses more tokens. Requires text extraction to be enabled. When scoped to a section, only that section's text is extracted.
-- **Use summary**: Uses a pre-generated summary (~2-8K tokens) instead of raw text. Much cheaper for repeated use or follow-up conversations. Requires generating the summary first via the Document Summary action. When scoped to a section, uses the section summary if available. If no summary exists, this option shows "(generate first)".
+- **Use summary**: Uses a pre-generated summary (~2-8K tokens) instead of raw text. Much cheaper for repeated use or follow-up conversations. Requires generating the summary first via the Document Summary action. When scoped to a section, uses the section summary if available (or offers to generate one). If no summary exists, this option shows a "(generate first / enable text extraction first)" hint.
+- **Smart retrieval (AI searches the book)**: Offered on **Explain in Context** and **Analyze in Context** in tools-capable sessions. Instead of extracting a fixed span, the AI uses the local book tools to gather the passages it decides are relevant, and those replace full-text extraction. Requires full scope and text-extraction consent (or a trusted provider); shown disabled with the reason otherwise. See [AI Book Tools](#ai-book-tools-experimental).
 - **AI knowledge only**: No document data sent. The AI uses its training knowledge of the work. Free and fast, but less accurate for obscure works.
 
-Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Discussion Questions, Quiz, Extract Key Insights, Document Summary, Document Analysis, Recap. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage. Document Summary and Document Analysis require text extraction (other sources are grayed out). Recap doesn't support section scoping (scope row is grayed with an explanation).
+Actions with source selection: Explain in Context, Analyze in Context, Thematic Connection, Key Arguments, Counterarguments, Discussion Questions, Quiz, Reading Guide, Extract Key Insights, Document Summary, Document Analysis, Recap. For highlight-context actions (Explain in Context, Analyze in Context, Thematic Connection), the scope controls the text extraction range around the highlighted passage. Document Summary and Document Analysis require text extraction (other sources are grayed out). Recap doesn't support section scoping (scope row is grayed with an explanation).
 
 **When to use each source:**
 - **Full text**: Short to medium documents, one-off queries, when you need the AI to work from the actual text
 - **Summary**: Longer documents, repeated queries, extended conversations, when token cost matters
+- **Smart retrieval**: Long documents where you want targeted passages instead of one big extraction, and the AI to decide what's relevant to your question
 - **AI knowledge**: Well-known works where the AI has good training data, quick queries, where nuance and bias may not matter as much
 
 **How sources affect AI behavior:**
@@ -624,7 +650,7 @@ With AI knowledge only, the AI is essentially giving you its "remembered take" o
 
 > **Tip**: For documents you'll query multiple times, generate the summary proactively via the Document Summary action. All artifact actions produce viewable reference guides that are also browsable via "View Artifacts". See [Document Artifacts](#document-artifacts).
 
-**What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted document text to understand the surrounding content. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text, depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
+**What the AI sees**: Your highlighted text, plus document metadata (title, author). Actions like "Explain in Context" and "Analyze in Context" also use extracted document text to understand the surrounding content. When surrounding-context is enabled (Settings → highlight context mode, a per-book override, or the session Scope chip), highlight requests can also include a bounded window of text around your selection. Custom actions can access reading progress, chapter info, your highlights/annotations, notebook, and extracted book text, depending on action settings and [privacy preferences](#privacy--data). See [Template Variables](#template-variables) for details.
 
 **Save to Note**: After getting an AI response, tap the **Save to Note** button to save it directly as a KOReader highlight note attached to your selected text. See [Save to Note](#save-to-note) for details.
 
@@ -647,13 +673,14 @@ Some actions work from the file browser (using only document metadata like title
 | **Historical Context** | When written and historical significance. Adapts to work type (novel, manifesto, religious text, research paper) |
 | **Related Thinkers** | Intellectual landscape: influences, contemporaries, and connected thinkers |
 | **Reviews** | Find critical and reader reviews, awards, and reception ⚠️ *Requires: Web Search* |
-| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline. Opens in a structured menu with search (including cross-section search across all X-Rays), chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration ⚠️ *Requires: Allow Text Extraction* |
+| **X-Ray** | Browsable reference guide: characters (with aliases and connections), locations, themes, lexicon, timeline. Opens in a structured menu with search (including cross-section search across all X-Rays), chapter/book mention tracking, per-item chapter distribution, AI Wiki per-item encyclopedia, Section X-Rays for focused chapter/part analysis, linkable cross-references, local lookup, and highlight integration. Supports background auto-update and version history. ⚠️ *Requires: Allow Text Extraction* |
 | **X-Ray (Simple)** | Prose companion guide from AI knowledge: characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. |
 | **Recap** | "Previously on..." style summary to help you resume reading. Source selection: extracted text (with incremental updates) or AI knowledge. Use Hidden Flows to limit scope ⚠️ *Best with: Allow Text Extraction* |
 | **Analyze Notes** | Discover patterns and connections in your notes and highlights ⚠️ *Requires: Allow Annotation Notes* |
 | **Key Arguments** | Thesis, evidence, assumptions, and counterarguments. Source selection: full text, summary, or AI knowledge. Supports section scope |
+| **Counterarguments** | Prosecutes the case against the work: steelmanned opposing positions, the argument's weakest links, what would falsify it, and who disagrees and why. (Key Arguments maps the argument; this one argues back.) Source selection: full text, summary, or AI knowledge. Supports section scope. Saved as an artifact |
 | **Discussion Questions** | Comprehension, analytical, and interpretive prompts. Source selection: full text, summary, or AI knowledge. Supports section scope |
-| **Quiz** | Interactive comprehension quiz, one question at a time with answer selection, scoring, and review. Multiple choice (auto-graded), short answer and essay (self-graded). Triggered automatically at chapter ends (configurable) or manually from Quick Actions with scope picker. Question types, count, and difficulty configurable in Settings. Result saved as artifact. Source selection: full text, summary, or AI knowledge. Supports section scope |
+| **Quiz** | Interactive comprehension quiz, one question at a time with answer selection, scoring, and review. Multiple choice (auto-graded), short answer and discussion (self-graded). Triggered automatically at chapter ends (configurable) or manually from Quick Actions with scope picker. Question types, count, and difficulty configurable in Settings. Result saved as artifact. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Reading Guide** | Spoiler-free guide to what's ahead: threads in motion, patterns to notice, helpful background, how to approach the rest. Uses reading position to stay safe. Source selection: full text, summary, or AI knowledge. Supports section scope |
 | **Document Analysis** | Deep analysis: thesis, structure, key insights, audience. Saved as an Analysis artifact. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
 | **Document Summary** | Comprehensive summary. Saved as a Summary artifact, which other actions can use as their document source. Supports section scope. ⚠️ *Requires: Allow Text Extraction* |
@@ -737,6 +764,7 @@ These actions analyze your actual reading content. They require specific privacy
 | **Next Read** | Library catalog + engagement groups (recently finished, stalled, briefly started) | Enable Library Scanning + folders configured; Allow Advanced Stats (optional, enhances with engagement data) |
 | **Discover New** | Library catalog + engagement groups (deep reads, recently finished) | Enable Library Scanning + folders configured; Allow Advanced Stats (optional) |
 | **Analyze Library** | Library catalog + all engagement groups | Enable Library Scanning + folders configured; Allow Advanced Stats (optional) |
+| **Challenge My Taste** | Library catalog + all engagement groups | Enable Library Scanning + folders configured; Allow Advanced Stats (optional) |
 
 > ⚠️ **Privacy settings required:** These actions won't have access to your reading data unless you enable the corresponding setting in **Settings → Privacy & Data**. Without text extraction enabled, actions with source selection show "AI knowledge only" as the available option. For other actions, the AI gracefully falls back to its training knowledge, with a "*Response generated without: ...*" notice in the chat. **Exception:** X-Ray requires text extraction and blocks generation without it: use X-Ray (Simple) for a prose overview from AI knowledge.
 
@@ -765,7 +793,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **Chat about this**: from any detail view, launch a chat with the entry as context to ask follow-up questions. Opens with a curated set of actions (Explain, Elaborate, ELI5, Fact Check, Connect by default) since the context is AI-generated analysis. Actions requiring document text (Explain in Context, Thematic Connection) are excluded when no book is open. The entry text is prefixed with a note clarifying it's from an analysis, not the work itself. Customize which actions appear via the gear icon → "Choose and Sort Actions"
 - **AI Wiki**: from any item's detail view (same categories as Chapter Appearances), generate a Wikipedia-style encyclopedia entry about the item using AI knowledge. The button passes only the item's name to the AI, with the X-Ray description provided as disambiguation context, so "Jim" is understood as "Jim Hawkins from Treasure Island" without biasing the output. Entries are cached per-item and per-category in the existing cache file. Button shows "AI Wiki" when no entry exists, "View AI Wiki" when cached. The viewer provides Delete and Regenerate options. Cached wiki entries are automatically cleared when the X-Ray cache is deleted.
 - **Text selection**: hold to select text in detail views: 1-3 words opens dictionary, 4+ copies to clipboard
-- **Options menu**: info (model, progress, date, fiction/non-fiction/academic type), delete, close
+- **Options menu** (☰): info (model, progress, date, fiction/non-fiction/academic type), **Previous versions (N)…** (main X-Ray only, when archived versions exist, see [X-Ray version history](#x-ray-version-history) below), delete, close
 
 > **Model selection for X-Ray:** X-Ray generates detailed structured JSON (for the X-Ray browser to work) that can be large (10K-30K+ tokens of output), and it is a complex task for the AI. The action requests up to 64K output tokens to avoid truncation. Weaker models can struggle to follow these instructions, and even if they manage it, will produce low quality content for the actual analysis, and models with low output caps (e.g., some Groq models at 8K) will produce shorter, potentially truncated results, so use larger models with higher output limits for best results. If you find a model that produces great X-Rays, you can lock it in for this action while keeping your global model for everything else, see the tip below.
 
@@ -774,7 +802,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 > 2. Long-press the action (e.g., X-Ray) → **"Edit Settings"**
 > 3. Scroll to **Advanced** → set **Provider** and **Model**
 >
-> Your global model continues to be used for all other actions. This is useful for mixing cost and quality: for example, use a fast model (Gemini 2.5 Flash, Haiku, small Mistral models, etc.) as your global default for quick lookups and chat, while assigning a more capable model (Gemini 3.1 Pro, Sonnet, large Mistral models, etc.) specifically to X-Ray or Deep Analysis where quality matters most. See [Tuning Built-in Actions](#tuning-built-in-actions) for more examples. You can of course also momentarily change you global model to run an action and then change back if you don't want to tie an action to a model. 
+> Your global model continues to be used for all other actions. This is useful for mixing cost and quality: for example, use a fast model (Gemini 3.5 Flash, Haiku, small Mistral models, etc.) as your global default for quick lookups and chat, while assigning a more capable model (Gemini 3.1 Pro, Sonnet, large Mistral models, etc.) specifically to X-Ray or Deep Analysis where quality matters most. See [Tuning Built-in Actions](#tuning-built-in-actions) for more examples. You can of course also momentarily change you global model to run an action and then change back if you don't want to tie an action to a model. 
 
 > **Tip:** If your device supports emoji fonts, enable **Emoji Menu Icons** in Settings → Display Settings → Emoji for visual category icons in the X-Ray browser (e.g., characters, locations, themes). See [Emoji Menu Icons](#display-settings).
 
@@ -798,7 +826,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 >
 > Without highlights, X-Ray still works fully: you just won't see the Reader Engagement category or highlight mentions in entries.
 
-> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), more **reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated: the AI produces more thorough entries and fewer omissions. Set the global reasoning **stance to Maximum**, or override your current model's reasoning to a high level (Settings → Advanced → Reasoning, or the Quick Settings Reasoning chip). This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
+> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), more **reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated: the AI produces more thorough entries and fewer omissions. Set the global reasoning **stance to Maximum**, or override your current model's reasoning to a high level (Settings → Advanced → Reasoning, or the Quick Settings Reasoning chip, or the input dialog's Quick (⚡) chip for a one-shot per-chat override). This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
 
 <a id="x-ray-modes"></a>
 
@@ -810,11 +838,11 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **With text extraction** (recommended): AI analyzes actual book content. Produces accurate, book-specific results. Results are cached and labeled "Based on extracted document text."
 - **Without text extraction** (default): AI uses only the title/author and its training knowledge. Works reasonably for well-known titles but produces generic results. Results are labeled "Based on AI training data knowledge."
 
-> **Tip:** Enable **Recap Reminder** in Settings → KOReader Integration to get a prompt to run Recap when you open a book you haven't read in a while (off by default). See [KOReader Integration](#koreader-integration).
+> **Tip:** Enable **Recap Reminder** in Settings → Reading & Library to get a prompt to run Recap when you open a book you haven't read in a while (off by default).
 
 **Two-track X-Ray:** When generating a new X-Ray, you choose between two tracks:
 
-- **Incremental** (default): Spoiler-free: extracts text only up to your current reading position. Produces a **Current State** (fiction) or **Current Position** (non-fiction) section capturing active conflicts, open questions, and narrative momentum. Supports incremental updates as you read further: only new content is sent, and the AI's additions are diff-merged into the existing analysis. Updates are fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration). You can also **Update to 100%** to extend the incremental X-Ray to the end of the book using the same spoiler-free prompt. The scope popup offers: "Generate X-Ray (to 42%)" for a new incremental X-Ray, or "Update X-Ray (to 100%)" for an existing one.
+- **Incremental** (default): Spoiler-free: extracts text only up to your current reading position. Produces a **Current State** (fiction) or **Current Position** (non-fiction) section capturing active conflicts, open questions, and narrative momentum. Supports incremental updates as you read further: only new content is sent, and the AI's additions are diff-merged into the existing analysis. Updates are fast and cheap (~200-500 output tokens vs 2000-4000 for full regeneration). You can also **Update to 100%** to extend the incremental X-Ray to the end of the book using the same spoiler-free prompt. The scope popup offers: "Generate X-Ray (to 42%)" for a new incremental X-Ray, or "Update X-Ray (to 100%)" for an existing one. The incremental track is also the only one that supports [background auto-update](#x-ray-auto-update).
 - **Complete** (entire document): Holistic: extracts and analyzes the entire document in one pass. Produces a **Conclusion** section with resolutions, themes resolved (fiction) or key findings, implications (non-fiction). Always generates fresh: no incremental updates, no diff-merging. Best for articles, research papers, short works, or finished books where spoiler-free scoping isn't needed. The scope popup offers: "Generate Complete X-Ray".
 
 The track is chosen at initial generation and cannot be converted. To switch tracks, delete the cache and regenerate. Both tracks use the same browsable category menu, the same JSON structure for all shared categories (characters, locations, themes, etc.), and the same privacy gates. The only structural difference is the final status section (Current State/Current Position vs Conclusion).
@@ -827,6 +855,34 @@ When an X-Ray cache covers 100% (whether from a complete generation, an incremen
 
 > ⚠️ **To enable text extraction:** Go to Settings → Privacy & Data → Text Extraction → Allow Text Extraction. This is OFF by default to avoid unexpected token costs.
 
+<a id="x-ray-version-history"></a>
+
+**X-Ray version history:** Every time an X-Ray is updated or redone, the version it replaces is archived automatically, so an update or a full regeneration never silently destroys your previous analysis. To browse the archive:
+
+- From the **X-Ray popup** (open book or file browser) or the X-Ray browser's **☰ menu**, tap **"Previous versions (N)…"** (main X-Ray only, sections have no history).
+- Versions are listed newest first, labeled by coverage and age (e.g., "43% · 3 days ago").
+- For each archived version: **View** it (opens read-only in the full X-Ray browser, titled "X-Ray Version"), **Restore** it (swaps it back in as the live X-Ray; the version it replaces takes the freed archive slot, so a restore never grows the archive), or **Delete** it.
+- Archived versions also appear as a **"Previous X-Ray Versions (N)"** group on every View Artifacts surface (Quick Actions, file browser long-press, the input dialog's Artifacts button, the cross-book Artifact Browser, and chat/artifact viewers), inserted right under the main X-Ray row.
+
+How many versions are kept per book is set by **Settings → Reading & Library → X-Ray Versions to Keep** (default 5, range 0-20; oldest dropped first). Setting it to 0 stops archiving *new* versions; already-archived ones stay until you delete them or delete the X-Ray itself (deleting the X-Ray clears its version history and AI Wiki entries too).
+
+> **Re-reader shortcut:** If you jump back in a book so your live X-Ray covers more than you've re-read, the X-Ray popup offers a **"View earlier version (NN% · …)"** row that opens the nearest archived version at or below your current position, and the version list marks that entry "(latest before your position)". This handles the one case where a live, ahead-of-you X-Ray could otherwise spoil a re-read.
+
+<a id="x-ray-auto-update"></a>
+
+**Background X-Ray auto-update (opt-in):** KOAssistant can quietly keep an existing incremental X-Ray up to your reading position in the background as you read, so you never face one giant catch-up extraction on a long book. It is **off by default** and requires a **double opt-in**: first enable **Settings → Reading & Library → X-Ray → Auto-update X-Ray while reading**, then opt in each book individually from its X-Ray popup ("Auto-update while reading (this book)") or from [Book Settings](#book-settings).
+
+Spend guards keep it conservative and predictable:
+
+- It only **updates** an existing incremental X-Ray, it never creates one (unless auto-create below is also enabled), and never touches complete, AI-knowledge, legacy, or section X-Rays.
+- It fires at most once per **cooldown** (default 15 minutes) and only when the progress gap since the last update falls inside a configurable **window** (default 5%-25%). Gaps bigger than the maximum stay manual, so a big jump always goes through the popup that shows you the extraction size first.
+- It runs only when **WiFi is already on**, it never toggles the radio, and it never prompts.
+- It sends exactly what a manual "Update to X%" sends (the cached result + entity index + only the newly-read text) to your configured provider, and it re-checks text-extraction consent (or a trusted provider) at fire time, just like a manual update. Revoking consent silently stops it.
+
+Failures are silent (surfaced only in the X-Ray popup's coverage line and the debug console); enable **Notify on Auto-Update** for a brief notification when a background update starts and completes. Tunable dials (minimum/maximum progress gap, cooldown) live under the master toggle. This is currently **EPUB-only** (page-based PDFs don't show the opt-in row). This is the only KOAssistant feature that makes API calls without an explicit tap, so leave it off if you want every request to be deliberate.
+
+**Background X-Ray auto-create (opt-in):** A companion toggle, **Auto-create X-Ray (early in a book)** (nested under the auto-update master), lets opted-in books with *no* X-Ray yet get their first one created in the background once you've read past the minimum gap, and only while you're still early in the book (the maximum gap caps it, so a large first extraction stays a manual, size-shown choice). Books that already have a non-incremental X-Ray (complete, AI-knowledge, legacy) are never auto-created. It uses the same consent gate and per-book opt-in as auto-update (the no-X-Ray popup shows an "Auto-create & update while reading (this book)" row when both toggles are on).
+
 <a id="section-x-rays"></a>
 
 **Section X-Rays**: focused X-Rays for individual chapters, parts, or sections of a book. Unlike the main X-Ray (which covers the whole document), Section X-Rays analyze only a specific page range chosen from the book's table of contents. You can have multiple Section X-Rays per book alongside the main X-Ray, each is independent and stored separately.
@@ -834,7 +890,7 @@ When an X-Ray cache covers 100% (whether from a complete generation, an incremen
 **How to create a Section X-Ray:**
 1. From the X-Ray scope popup, tap **"Generate Section X-Ray…"**
 2. A hierarchical TOC picker shows all chapters/parts, tap the section you want
-3. Optionally rename it (defaults to the TOC entry title, 30-character limit)
+3. Optionally rename it (defaults to the TOC entry title, 80-character limit)
 4. The AI analyzes only the text within that page range and produces a complete X-Ray
 
 **How to browse Section X-Rays:**
@@ -846,7 +902,7 @@ When an X-Ray cache covers 100% (whether from a complete generation, an incremen
 **Section X-Ray browsing differences:**
 - **Title** shows "X-Ray § [Section Name]" instead of "X-Ray"
 - **Scope gating** replaces spoiler gating: chapters outside the section's page range are dimmed (not unread-based). Tap to reveal with a scope warning
-- **Complete-only**: no incremental updates, section scope is fully analyzed in one pass
+- **Complete-only**: no incremental updates and no version history, section scope is fully analyzed in one pass
 - **Reading position marker** only shown when your current page falls within the section's scope
 - **Options menu** shows "Regenerate" (no Update variants) and section-specific info (scope, page range, model)
 
@@ -858,11 +914,11 @@ When an X-Ray cache covers 100% (whether from a complete generation, an incremen
 
 <a id="section-support"></a>
 
-**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. Scope and source are combined in a single unified popup: tap "Pick section…" to choose via a hierarchical TOC picker. For X-Ray, the action's own popup offers section options (see [Section X-Rays](#section-x-rays)). Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser. When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the action popup. Naming a section with the same page range as an existing one replaces the old entry. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Section scoping respects KOReader's custom/handmade TOC: create custom chapter boundaries to define your own scopes.
+**Section support:** Most text-extraction book actions can be focused on a specific chapter or part instead of the full document. Scope and source are combined in a single unified popup: tap "Pick section…" to choose via a hierarchical TOC picker, or "Pick section range…" / "From section… (to current position)" for multi-section spans. For X-Ray, the action's own popup offers section options (see [Section X-Rays](#section-x-rays)). Section artifacts are stored independently (e.g., "Section Summary: Chapter 5") and appear as groups in the Artifact Browser. When you're reading within a section's page range, a quick-access "View" button for that section appears directly in the action popup. Naming a section with the same page range as an existing one replaces the old entry. Supported actions: Document Summary, Document Analysis, Key Arguments, Discussion Questions, Quiz, Extract Key Insights (plus X-Ray via [Section X-Rays](#section-x-rays) above). Section scoping respects KOReader's custom/handmade TOC: create custom chapter boundaries to define your own scopes.
 
-> **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#custom-actions) for details.
+> **Tip:** Create specialized versions for your workflow. Copy a built-in action, customize the prompt for your field (e.g., "Focus on methodology and statistical claims" for scientific papers), and pair it with a matching domain. Disable built-ins you don't use via Action Manager (tap to toggle). See [Custom Actions](#creating-actions) for details.
 
-> **Artifact Caching**: All artifact actions cache results per book. For incremental X-Rays with a partial cache, a popup lets you **View** the cached result (with coverage and age), **Update** it to your current position, or **Update to 100%**. Complete X-Rays and incremental caches at 100% go directly to the browser viewer, Redo is available in the options menu. See [Document Artifacts](#document-artifacts) for details.
+> **Artifact Caching**: All artifact actions cache results per book. For incremental X-Rays with a partial cache, a popup lets you **View** the cached result (with coverage and age), **Update** it to your current position, or **Update to 100%**. Complete X-Rays and incremental caches at 100% go directly to the browser viewer, Redo is available in the options menu. Updating or redoing an X-Ray archives the version it replaces (see [X-Ray version history](#x-ray-version-history)). See [Document Artifacts](#document-artifacts) for details.
 
 **Reading Mode vs File Browser:**
 
@@ -889,6 +945,7 @@ The library dialog splits actions into two zones with their own management butto
 | **Next Read** | What to read next from your library, including books worth revisiting or picking back up. Based on reading patterns, what you've finished, and what's been sitting unread. With Advanced Stats enabled, includes engagement context (stalled reads, briefly started books) |
 | **Discover New** | Suggests new books based on your library, identifies your taste and recommends works you don't have, including a few picks outside your comfort zone ("Expand your horizons"). With Advanced Stats enabled, includes deep reads and recently finished books for better taste inference |
 | **Analyze Library** | Analyzes your library to identify genres and authors you gravitate toward, completion patterns, and gaps in your collection. With Advanced Stats enabled, includes full engagement data for richer pattern analysis |
+| **Challenge My Taste** | Critiques your reading pattern rather than celebrating it: where your library is one-sided, which voices are missing, and what a sharp critic of your shelf would say — ending with a few books that would argue with it. With Advanced Stats enabled, includes engagement patterns |
 
 **Items zone**: selection-based actions with an **Items ▾** button for book management (presets, browse history, add folder, clear). Require 2+ books selected:
 | Action | Description |
@@ -918,16 +975,49 @@ A free-form conversation without specific document context. If started while a b
 |--------|-------------|
 | **News Update** | Get today's top news stories from Al Jazeera with links ⚠️ *Requires: Web Search* |
 
+> **Tip:** General-context actions can now see their own recent saved results via the `{previous_results_section}` placeholder. This lets you build "repeating" actions that continue from where they left off (e.g., a running journal or a rolling news digest). It reads the assistant turns of your most recent saved general chats for that same action — so you need to have saved chats for it. See [Utility Placeholders](#utility-placeholders).
+
 #### Managing the Input Dialog
 
-All input dialogs (highlight, book, library, general) show a configurable set of actions that you can customize per context. The top row has **[Web ON/OFF] [Domain] [Send]**, followed by action buttons in rows of 2. The title bar has a close X on the right and a gear icon on the left. Long-press any action button to see its description.
+All input dialogs (highlight, book, library, general) show a configurable set of actions that you can customize per context, plus a **session chips row** above the input field for controlling *this chat only*. The title bar has a close X on the right and a gear icon on the left. Below the chips come the action buttons in rows of 2, then **Send**. Long-press any action button to see its description.
+
+#### Session Controls (Chips)
+
+The old fixed top row (`[Web ON/OFF] [Domain] [Send]`) and the pile of checkboxes have been replaced by a single row of tappable **chips**, followed by **Send**. Each chip controls one aspect of the request. The canonical order is fixed — **Domain · Web · Tools · Quick · Scope · Attach · Spoiler** — but you choose which chips are shown. Most chips follow the same pattern: **tap toggles/changes the value for this chat**, and **long-press opens the persistent (per-book / global) defaults picker** behind it.
+
+| Chip | Tap | Long-press |
+|------|-----|-----------|
+| **Domain** 🏛️ | Opens the domain picker (subject expertise) for this chat | (same picker; choose "For this book" / "Global") |
+| **Web** 🌐 | Toggles [web search](#web-search) for this chat (session-only — it no longer changes your saved global setting). If your provider can't search, tapping explains instead of toggling | Opens the For-this-book / Global web-search picker |
+| **Tools** 🔍 | Toggles [AI Book Tools](#ai-book-tools-experimental) for this chat | Opens the tools posture picker (Off / Manual / Auto, For-this-book or Global) |
+| **Quick** ⚡ | Toggles the one-shot **Quick Answer** posture for this chat | Opens the Quick controls menu (one-shot reasoning / model override, "Quick answer default…" for the per-book/global starting state, plus "Preset settings…") |
+| **Scope** 🎯 | Book chats: pick a text range to attach; highlight chats: set the surrounding-context mode for this chat | Book chats: same picker; highlight chats: opens the persistent per-book/global surrounding-context default picker (different from the tap menu) |
+| **Attach** 📎 | Stage extra material (notebook / artifact / chat / file / note) for this chat | Manage the staged attachments |
+| **Spoiler** | Toggles [spoiler-free mode](#spoiler-free-mode) for this chat | Opens the For-this-book / Global spoiler-free picker |
+
+Details on each:
+
+- **Domain chip** — shows the active domain name (or "Domain"); opens the [domain](#domains) picker with a For-this-book / Global target toggle.
+- **Web chip** — the label reflects the current on/off state. This is now a **session** toggle: it applies to freeform Send and to actions launched from this dialog, but does not persist as your global web-search default. Long-press opens the per-book / global picker. Unsupported providers get an explanation on tap rather than a silent toggle.
+- **Tools chip** — only shown in book/highlight contexts with a book open. Reads "ON/OFF" when tools are usable; shows **N/A** when the session can't run tools (tap explains why — e.g. text-extraction consent needed, unsupported provider, or an X-Ray chat where tools are excluded by design), and a locked **OFF** when the tools posture is off (long-press to turn on). It also reads N/A when a Scope pick is active, because an attached scope already supplies book text (the chip wins over tools for that send).
+- **Quick chip** — tap applies a one-shot **Quick Answer** posture for the chat (see below); the label shows **ON**, **SET** (a one-shot reasoning/model override is active), or **OFF**. Long-press opens the Quick controls menu. A separate "Quick answer default…" entry in that menu (and the per-book Book Settings screen) sets whether the ⚡ chip starts ON for this book (or globally) on a fresh dialog open — like the Web/Tools/Spoiler chips' persistent pickers, this doesn't change the current chat's session state.
+- **Scope chip** (book contexts) — attaches a slice of the book's text to your freeform message: **Current page** (works without text-extraction consent), **Up to current position (NN%)**, **From section… (to current position)**, **Pick section range…**, or **Choose section…**. Everything except "Current page" needs "Allow Text Extraction" (or a trusted provider). Picks that reach beyond your current position are rejected/clamped when spoiler-free is on. The pick is resolved into text at Send (a Cancel on the large-extraction warning keeps your typed input intact), and it is session-only — a fresh dialog open clears it.
+- **Scope chip** (highlight contexts) — instead of a book range, it sets the **surrounding-context** mode for this chat (Off / Sentence / Paragraph / Characters), overriding the ambient highlight-context default. Long-press opens the persistent per-book / global picker.
+- **Attach chip** — stages extra context that rides *alongside* your messages (as its own context message, not as your question). Types: **Notebook (this book)** (needs Notebook sharing consent), **Artifact…** (any saved/pinned artifact — the current book's first, with an "All books…" option), **Chat…** (a saved chat), **Text file…** (a `.txt`/`.md` file), and **Note…** (a free-text note, e.g. "this is the 2nd edition" or "I'm reading this for a course"). The label shows the count. Long-press manages/removes staged items. Works in every input context, including X-Ray chat.
+- **Spoiler chip** — only shown in book/highlight contexts; toggles [spoiler-free mode](#spoiler-free-mode) for the session. Long-press opens the per-book / global picker. This chip **replaces** the old "Show Spoiler-free Chat Checkbox" setting (that setting was migrated into chip membership).
+
+> **Tip: Quick Answer & its preset.** Tapping the **⚡ Quick** chip applies a configurable bundle for that chat: a concise-answer nudge, reasoning off, web search off, and book tools off (each part can be turned off in the preset). You can also switch models just for Quick Answer chats. Long-press the chip for one-shot **Reasoning** (Follow / Off / On) and **Model** (provider → model, filtered to providers you have keys for) overrides, for **"Quick answer default…"** (the per-book/global setting for whether the chip starts ON), and for **Preset settings…**. Configure the preset in **Settings → Chat & Export Settings → Quick Answer Preset** (Quick Answer On by Default, Concise Answer Nudge, Turn Reasoning Off, Turn Web Search Off, Turn Book Tools Off, and the model mode: Keep current / Fastest for provider / a tier / a pinned model). A one-shot pick from the chip's menu always overrides the preset for that chat.
+
+> **Tip: Choosing which chips appear.** Tap the gear icon → **Toolbar Buttons…** to toggle which chips are shown. Only membership is configurable — the order is fixed. Your choice persists in `features.session_chips`. Chips that don't apply to the current context are hidden automatically (e.g. Tools/Scope/Spoiler need a book open).
+
+#### Actions in the Input Dialog
 
 **Default actions per context:**
 
 | Context | Default Actions |
 |---------|----------------|
-| **Highlight** | Translate, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, Explain in Context |
-| **Book** | About, X-Ray (Simple), Find Similar, Key Arguments, Extract Key Insights, Discussion Questions, About Author, Reviews |
+| **Highlight** | Translate, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, Counterpoint, Explain in Context |
+| **Book** | About, X-Ray (Simple), Find Similar, Key Arguments, Counterarguments, Extract Key Insights, Discussion Questions, About Author, Reviews |
 | **Book (file browser)** | About, X-Ray (Simple), Find Similar, Analyze Notes, Related Thinkers, About Author, Historical Context, Reviews, Suggest from Library |
 | **X-Ray Chat** | Explain, Elaborate, ELI5, Fact Check, Connect |
 | **General** | *(none, use Send button for freeform chat)* |
@@ -946,21 +1036,23 @@ The general input dialog shows only actions you've explicitly added. By default,
 3. Long-press any action
 4. Tap **"Add to General Input"**
 
-Actions like News Update that require [web search](#web-search) are available in the gesture menu by default but not in the input dialog. This avoids showing web-dependent actions to users who haven't configured a web-search-capable provider. Add them to the input dialog (Manage Actions -> long press a general context action -> Add to General Input) if you use Anthropic, Gemini, or OpenRouter, the latter of which support web search for models from other providers that KOAssistant currently doesn't have dedicated web support for, e.g. OpenAI, XAI models.
+Actions like News Update that require [web search](#web-search) are available in the gesture menu by default but not in the input dialog. This avoids showing web-dependent actions to users who haven't configured a web-search-capable provider. Add them to the input dialog (Manage Actions -> long press a general context action -> Add to General Input) if you use Anthropic, Gemini, OpenAI, xAI, Perplexity, or OpenRouter.
 
 > **Tip:** News Update demonstrates per-action web search override (`enable_web_search = true`). Even if web search is globally disabled, this action will use it. See [Web Search](#web-search) for more on per-action overrides.
 
 ### Quick UI Features
 
 - **Action Descriptions**: Long-press any action button to see what it does. Works everywhere: input dialog, Quick Actions panel, highlight menu, and file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books).
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **More Actions** (access enabled actions not shown in the grid), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
-- **Web Search Toggle (Input)**: The input dialog has a **Web ON/OFF** button (top row) to toggle web search before running an action. This is a persistent toggle: the setting sticks across sessions. Action button labels update to reflect web search status.
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with Font Size, Alignment, Reset to Defaults, Show Reasoning (when available), and Show/Hide Debug
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **More Actions** (access enabled actions not shown in the grid), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
+- **Session Chips (Input)**: The row of chips above the input field controls this chat only — Domain, Web search, Book Tools, Quick Answer, Scope, Attach, and Spoiler. Tap to change the value for this chat; long-press to open the persistent (per-book / global) picker behind it. See [Managing the Input Dialog](#managing-the-input-dialog) for details on each chip. (These replaced the old fixed Web/Domain top row and the checkbox pile.)
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (left / justify / right), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
+- **Show Sources**: When a response used [web search](#web-search) or [AI Book Tools](#ai-book-tools-experimental), a **Show Sources** viewer lists the web URLs and queries and/or the book lookups the AI performed. Per-message indicators also appear inline ("Searched the web", "Searched the book — N lookups"). Pre-search prose is preserved behind an inline `*[Searched the web]*` marker rather than being discarded. The Sources and Reasoning viewers support text selection, Copy, and Export like the main chat.
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout: reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, toggle button to show or hide the highlighted text quote (useful for long selections)
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
+- **Add to reply**: In the chat viewer's text-selection popup, when a reply is open you can send the selected text into the reply as a quote — useful for asking a follow-up about a specific sentence in the answer.
 - **Link Handling**: Tapping a link in the chat viewer opens KOReader's external link dialog: Copy, Show QR code, Open in browser, and any registered plugin actions (e.g., Add to Wallabag). When no book is open, a basic version of the dialog is shown.
-- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Long-pressing 1 word or selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options. Consistent across all viewer types (chat, X-Ray browser, compact, dictionary, translate views). Can also be extended to KOReader's own viewers (dictionary, Wikipedia, bookmarks, etc.) via **Settings → KOReader Integration → Enhance Text Selection**. See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
+- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Long-pressing 1 word or selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options (plus **Add to reply** when a reply is open). Consistent across all viewer types (chat, X-Ray browser, compact, dictionary, translate views). Can also be extended to KOReader's own viewers (dictionary, Wikipedia, bookmarks, etc.) via **Settings → Menus & Buttons → Text selection in viewers → Enhance text selection** (requires restart). See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Spoiler-Free Mode
@@ -971,13 +1063,10 @@ Prevents the AI from revealing events beyond your current reading position when 
 
 > **With [AI Book Tools](#ai-book-tools-experimental) enabled**, this setting also controls the tools' reading scope *structurally*: spoiler-free **on** → the tools can only read up to your current page (the AI physically cannot read ahead); **off** → they can read the whole document. That's a stronger guarantee than the prompt instruction alone.
 
-**Two independent settings** (both off by default):
-- **Spoiler-free Chat** (`Settings → Chat & Export Settings`): Global toggle: when on, all book/highlight freeform chats get spoiler awareness
-- **Show Spoiler-free Chat Checkbox** (`Settings → Chat & Export Settings`): Shows a session checkbox in the input dialog: lets you flip spoiler-free chat per-session without changing the global setting
-
-You can enable either or both. The checkbox starts checked when the global toggle is on, but can be unchecked per-session.
-
-**Per-book override:** Spoiler-free can also be set per book in **Book Settings** (Follow global / On / Off); the per-book value seeds the session toggle when you open the book.
+**How to turn it on:**
+- **Global toggle** — **Settings → Chat & Export Settings → Spoiler-free Chat**: when on, all book/highlight freeform chats get spoiler awareness by default. Off by default.
+- **Per-chat (Spoiler chip)** — enable the **Spoiler** chip via the input dialog's gear menu → **Toolbar Buttons…**, then tap it to flip spoiler-free for the current chat without changing your global setting. (This chip replaces the old "Show Spoiler-free Chat Checkbox" setting, which was migrated into chip membership.) The chip starts in whatever state your per-book / global default resolves to, and can be flipped per chat.
+- **Per-book override** — in **[Book Settings](#book-settings)** you can set spoiler-free per book (Follow global / On / Off); the per-book value seeds the chip when you open the book. Long-press the Spoiler chip to reach the per-book / global picker directly.
 
 **Reading progress source:**
 - **Open book**: Live progress from the reader
@@ -1025,6 +1114,75 @@ When working with highlighted text, the **Save to Note** button lets you save th
 - Annotate with AI-generated insights that become part of your reading notes
 
 **Note:** The Save to Note button only appears for highlight context chats (where you've selected text). It's not available for book, library, or general chat contexts.
+
+---
+
+## Image Generation
+
+KOAssistant can turn a passage you highlight into an AI-generated image — visualize a character, a described setting, a diagram, or a scene straight from the text you are reading.
+
+> **Tip:** Image generation is a paid feature that uses your own provider API key, just like chat. Each image costs whatever the provider charges per image (this is separate from, and usually more expensive than, text generation), so use it deliberately.
+
+### How to Generate an Image
+
+1. Highlight a passage in your book (any length — the selected text becomes the image description/prompt).
+2. In the highlight menu, tap **Generate Image (KOA)**.
+3. A progress window appears ("Generating image with … / …", with an elapsed-seconds counter). Tap **Stop** to cancel a request in flight.
+4. When it finishes, the image opens full-screen in KOReader's built-in image viewer. It is also saved automatically (see [Where Images Are Stored](#where-images-are-stored)).
+
+The **Generate Image** button only appears when the resolved image provider is one that supports image generation **and** you have an API key configured for it. If no supported provider is available, the button is hidden.
+
+### Supported Providers and Models
+
+Three providers offer image generation, each with its own models (the first is the default):
+
+| Provider | Models | Notes |
+|----------|--------|-------|
+| **OpenAI** | `gpt-image-1-mini` (default, fast ~15 s, cheapest), `gpt-image-1.5`, `gpt-image-2` (flagship quality, slow ~60 s), `gpt-image-1`, `chatgpt-image-latest` | Supports **size** (1024x1024, landscape, portrait) and **quality** (low / medium / high) settings. |
+| **xAI (Grok)** | `grok-imagine-image` (default, fast ~7 s), `grok-imagine-image-quality` (higher quality) | Supports an **aspect ratio** setting (1:1, 16:9, 9:16, 3:2, 2:3). |
+| **Gemini** | `gemini-3.1-flash-image` (default, "Nano Banana"), `gemini-3-pro-image` | No extra size/quality parameters. |
+
+> **Note:** Anthropic (Claude), DeepSeek, and the other chat providers do not have image APIs, so they cannot generate images. If Claude is your main provider, either pick a dedicated image provider (below) or the button stays hidden.
+
+### Choosing the Image Provider and Model
+
+Image generation has its **own** provider and model selection, independent of your main chat provider, so you can (for example) chat with Claude but generate images with OpenAI. Configure this under **Settings → Advanced → Image Generation**:
+
+- **Provider** — `Follow main provider` (default; uses your current chat provider when it supports images) or an explicit choice of **OpenAI**, **xAI (Grok)**, or **Gemini**. Picking one explicitly makes image generation work regardless of which chat provider is active, using that provider's own API key.
+- **Model** — a per-provider model picker (OpenAI / xAI / Gemini), each defaulting to `Default` (the provider's first/recommended model).
+- **OpenAI size** and **OpenAI quality** — dimensions and quality tier (OpenAI only).
+- **Aspect ratio** — output aspect ratio (xAI only).
+- **Generated images…** — opens the [gallery](#the-generated-images-gallery) directly from settings.
+
+Any parameter left at **Default** is omitted from the request, letting the provider decide.
+
+<a id="where-images-are-stored"></a>
+### Where Images Are Stored
+
+Generated images are **kept** (not temporary) in `data_dir/koassistant_images` — for example `~/.config/koreader/koassistant_images` on desktop, or the equivalent under your KOReader data directory on a device. Each file is named with its creation date/time plus a snippet of the prompt, so images are self-describing on disk. They are treated as your data: preserved across plugin updates and covered by backup/restore.
+
+### The Generated Images Gallery
+
+<a id="the-generated-images-gallery"></a>Open the gallery from **Settings → Advanced → Image Generation → Generated images…**, or from any **View Artifacts** surface (see below).
+
+- **Tap** an image to view it full-screen.
+- **Hold** an image to delete it (with confirmation).
+- **Delete all** — the title-bar menu (top-left) clears every image (or, in a per-book view, just that book's images).
+
+Images are listed newest-first, with their file size shown.
+
+### Per-Book Association and Artifacts
+
+When you generate an image while reading a book, KOAssistant records which book it came from (in a small index kept inside the images folder). This gives you:
+
+- A **per-book gallery** — filtered to just the images generated for that document.
+- A **Generated Images (N)** entry that appears on **every View Artifacts surface**: the file-browser long-press menu, the open-book artifact viewer, the input dialog's *View Artifacts*, the chat viewer's Artifacts switcher, the X-Ray browser's *Other Artifacts*, and the cross-book **Artifact Browser** (where books that only have images still show up). Selecting it opens the gallery filtered to that book.
+
+Images follow their book: if you move a book in the file manager, its image associations move with it; if you delete the book, the images are kept but become global-only (they still appear in the full gallery, just no longer tied to a book). Deleting an image from a per-book view also keeps this index in sync.
+
+### Showing or Hiding the Button
+
+The highlight-menu button is on by default. Toggle it under **Settings → Menus & Buttons → Show Generate Image button**. (The toggle takes effect the next time the highlight menu opens; the button also self-hides whenever no supported image provider with a key is available.)
 
 ---
 
@@ -1080,7 +1238,7 @@ All three can contain instructions to the AI, and deciding what to put where can
 
 ## Actions
 
-Actions define what you're asking the AI to do. Each action has a prompt template, and can optionally override behavior, domain, language, temperature, reasoning, and provider/model settings. See [How the AI Prompt Works](#how-the-ai-prompt-works) for how actions fit into the full request.
+Actions define what you're asking the AI to do. Each action has a prompt template, and can optionally override behavior, domain, language, temperature, reasoning, web search, and provider/model settings. See [How the AI Prompt Works](#how-the-ai-prompt-works) for how actions fit into the full request.
 
 When you select an action and start a chat, you can optionally add your own input (a question, additional context, or specific request) which gets combined with the action's prompt template.
 
@@ -1100,6 +1258,7 @@ When you select an action and start a chat, you can optionally add your own inpu
 - **★** = Custom action (editable)
 - **⚙** = Built-in action with modified settings
 - **📄🔖📝📓📚📊🌐** = Data access indicators (when [Emoji Data Access Indicators](#display-settings) enabled): 📄 document text, 🔖 highlights only, 📝 annotations (includes highlights), 📓 notebook, 📚 library, 📊 advanced stats, 🌐 web search. These suffixes appear on action names in menus, showing at a glance what sensitive data each action accesses. Visible in action manager, highlight/dictionary menus, Quick Actions, and file browser buttons.
+- **(🔍)** = Smart retrieval available (shown only when the action has `smart_retrieval = true` and the session is tools-capable)
 
 **Editing built-in actions:** Long-press any built-in action → "Edit Settings" to customize its advanced settings without creating a new action. Use "Reset to Default" to restore original settings.
 
@@ -1121,11 +1280,11 @@ Don't like how a built-in action behaves? Clone and customize it:
      - **Fast/cheap models** for Dictionary, Quick Define, Translate (speed matters, task is simple)
      - **Standard models** for Explain, Summarize, ELI5 (balanced quality and cost)
      - **Reasoning models** for Deep Analysis, Key Arguments, academic tasks (complex thinking)
-   - **Examples:** Haiku/GPT-5.4-nano/llama3.2:3b for lookups; Sonnet/GPT-5.4-mini/llama3.3 for general use; Opus/GPT-5.5/deepseek-r1 for analysis
+   - **Examples:** claude-haiku-4-5/gpt-5.4-nano/llama3.2:3b for lookups; claude-sonnet-5/gpt-5.4-mini/llama3.3 for general use; claude-opus-4-8/gpt-5.5/deepseek-v4-pro for analysis
 
 3. **Want action without domain/language?**
    - **Example:** Translate action giving unexpected results due to your domain
-   - **Fix:** Edit action → Name & Context → Check "Skip domain"
+   - **Fix:** Edit action → Settings → Check "Skip domain"
    - **Why:** Domain context can alter translation style/register
 
 4. **Compare different approaches?**
@@ -1146,14 +1305,18 @@ Don't like how a built-in action behaves? Clone and customize it:
 
 The action wizard walks through 3 steps:
 
-1. **Name & Context**: Set button text, where it appears (highlight, book, library, general), and configure a domain selector. Options:
-   - *View Mode*: Choose how results display: Standard (full chat), Dictionary (full-size with dictionary buttons), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
+1. **Name & Context**: Set the button text and choose where the action appears (highlight, book, library, general). For highlight-context actions, you can also tick **Highlight Menu** and/or **Dictionary Popup** here to place it for quick access.
+2. **Action Prompt**: The instruction template, with an **Insert** button for adding placeholders (see [Template Variables](#template-variables)).
+3. **Settings**: Everything else, laid out two-per-row:
+   - *Provider* / *Model*: Force a specific provider/model for this action (or leave Global)
+   - *Behavior*: Use a preset behavior, a custom one, "None", or the global default
+   - *Domain*: Select a specific domain, skip domain, or use the global/per-book default
+   - *Temperature* / *Reasoning*: Per-action overrides (see [Reasoning/Thinking](#reasoningthinking))
+   - *Web*: Force web search Always / Never, or follow Global
+   - *View* (highlight contexts only): How results display — Standard (full chat), Dictionary (full-size with dictionary buttons), Dictionary Compact (minimal popup), or Translate (translation-focused UI)
+   - *Skip language*: Don't send your language preferences (useful when the prompt already specifies a target language)
    - *Include book info*: Send title/author with highlight actions
-   - *Skip language instruction*: Don't send your language preferences (useful when prompt already specifies target language)
-   - *Domain*: Select a specific domain, skip domain, or use global default
-   - *Add to Highlight Menu* / *Add to Dictionary Popup*: Quick-access placement
-2. **Action Prompt**: The instruction template with placeholder insertion (see [Template Variables](#template-variables))
-3. **Advanced**: Provider, Model, Temperature, Reasoning/Thinking overrides, and AI behavior override
+   - Data-access checkboxes for text extraction, highlights/annotations, notebook, library, advanced stats, etc. (these are the per-action half of [double-gating](#text-extraction-and-double-gating))
 
 ### Template Variables
 
@@ -1177,6 +1340,8 @@ Insert these in your action prompt to reference dynamic values:
 | `{stalled_section}` | Library | Same as above with "Books I started but haven't returned to:" label, or empty | Allow Advanced Stats |
 | `{briefly_started}` | Library | Briefly started books (opened but barely read) | Allow Advanced Stats |
 | `{briefly_started_section}` | Library | Same as above with "Books I opened briefly:" label, or empty | Allow Advanced Stats |
+| `{previous_results}` | General | This action's own recent results (assistant replies from your last 3 saved general-context chats of this action), raw with no label | — (your own AI output; no privacy gate) |
+| `{previous_results_section}` | General | Same as above, wrapped in a labeled "Previous results from earlier runs of this action…" block that includes an avoid-repeating hint, or empty | — (your own AI output; no privacy gate) |
 | `{translation_language}` | Any | Target language from settings | — |
 | `{dictionary_language}` | Any | Dictionary response language from settings | — |
 | `{context}` | Highlight | Surrounding text context (sentence/paragraph/characters) | — |
@@ -1207,11 +1372,12 @@ Insert these in your action prompt to reference dynamic values:
 | `{analyze_cache_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
 | `{summary_cache}` | Book (reading) | Cached document summary (if available) | Allow Text Extraction |
 | `{summary_cache_section}` | Book (reading) | Same as above with label | Allow Text Extraction |
-| `{document_context}` / `{document_context_section}` | Book (reading) | Resolves to full text, a cached summary, or nothing — set by the source you choose when an action has source selection enabled | Allow Text Extraction (for full text/summary) |
+| `{document_context_section}` | Book (reading) | Unified source block — resolves to full text, a cached summary, targeted passages (Smart retrieval), or nothing, based on the source you choose when an action has source selection enabled | Allow Text Extraction (for full text/summary) |
 
 **Context notes:**
 - **Book** = Available in both reading mode and file browser
 - **Highlight** = Always reading mode (you can't highlight without an open book)
+- **General** = Standalone chat, not tied to an open book
 - **(reading)** = Reading mode only, requires an open book. Book actions using these placeholders are automatically hidden in file browser
 - **Privacy Setting** = The setting that must be enabled in Settings → Privacy & Data for this variable to have content. If disabled, the variable returns empty (section placeholders disappear gracefully)
 
@@ -1229,19 +1395,22 @@ Insert these in your action prompt to reference dynamic values:
 - `{xray_cache_section}` → "Previous X-Ray (as of X%):\n[content]" or "" if empty
 - `{analyze_cache_section}` → "Document analysis:\n[content]" or "" if empty
 - `{summary_cache_section}` → "Document summary:\n[content]" or "" if empty
+- `{previous_results_section}` → "Previous results from earlier runs of this action…:\n[content]" or "" if empty
 - `{library_section}` → "My library:\n[content]" or "" if empty
 - `{deep_reads_section}` → "Books I read extensively:\n[content]" or "" if empty
 - `{recently_finished_section}` → "Books I recently finished:\n[content]" or "" if empty
 - `{stalled_section}` → "Books I started but haven't returned to:\n[content]" or "" if empty
 - `{briefly_started_section}` → "Books I opened briefly:\n[content]" or "" if empty
 
-"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{page_text}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`, `{library}`, `{deep_reads}`, `{recently_finished}`, `{stalled}`, `{briefly_started}`) give you just the content with no label, useful when you want custom labeling in your prompt.
+"Raw" placeholders (`{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, `{surrounding_context}`, `{page_text}`, `{xray_cache}`, `{analyze_cache}`, `{summary_cache}`, `{previous_results}`, `{library}`, `{deep_reads}`, `{recently_finished}`, `{stalled}`, `{briefly_started}`) give you just the content with no label, useful when you want custom labeling in your prompt.
 
 **Tip:** Use section placeholders in most cases. They prevent dangling references. If you write "Look at my highlights: {highlights}" in your prompt but highlights is empty, the AI sees confusing instructions about nonexistent content. Section placeholders include the label only when content exists.
 
 > **Privacy note:** Section placeholders adapt to [privacy settings](#privacy--data). If a data type is disabled (or not yet enabled), the corresponding placeholder returns empty and section variants disappear gracefully. For example, `{highlights_section}` is empty unless you enable **Allow Highlights** (or **Allow Annotation Notes**, which implies highlights). You don't need to modify actions to match your privacy preferences; they adapt automatically.
 
 > **Double-gating (for custom actions):** When creating custom actions from scratch, sensitive data requires BOTH a global privacy setting AND a per-action permission flag. This prevents accidental data leakage: if you enable "Allow Text Extraction" globally, your new custom actions still need "Allow text extraction" checked to actually use it. Built-in actions already have appropriate flags set, and copied actions inherit them. Document cache placeholders require the same permissions as their source: `{xray_cache}` needs text extraction, plus highlights only if the cache was built with highlights included; `{analyze_cache}` and `{summary_cache}` only need text extraction. See [Text Extraction and Double-gating](#text-extraction-and-double-gating) for the full reference table.
+
+> **Note on `{previous_results_section}`:** This one is *not* privacy-gated because the content is the AI's own earlier output, returning to the provider. It lets a recurring general-context action (e.g. a custom "daily news roundup" cloned from an existing action) see its own last few results so it stops repeating items. It reads the assistant replies from your newest 3 saved general-context chats that ran this same action, so it **requires saved chats** — with **Auto-save All Chats** on (the default) this happens automatically. It is a general-context stopgap; book/library history is not covered.
 
 #### Utility Placeholders
 
@@ -1255,9 +1424,9 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 | `{spoiler_free_nudge}` | "The reader is currently at {reading_progress} of this book. IMPORTANT: Do not reveal..." (with progress) or "The reader has not finished this book. Do not reveal plot twists, endings..." (without progress) | **Conditional**: only appears when spoiler-free mode is active; invisible otherwise |
 
 **Why use these?**
-- **`{conciseness_nudge}`**: Some AI models (notably Claude Sonnet 4.6) tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in 21 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
+- **`{conciseness_nudge}`**: Some AI models tend to produce verbose responses. This provides a standard instruction to reduce verbosity without sacrificing quality. Used in around 20 built-in actions including Explain, Summarize, ELI5, and the context-aware analysis actions.
 - **`{hallucination_nudge}`**: Prevents AI from fabricating information when it doesn't recognize a book or author. When web search is active, the nudge encourages the AI to search the web to verify before falling back. Used in many built-in actions including About, Find Similar, Connect, Historical Context, and all library actions (Next Read, Discover New, Analyze Library, Suggest from Library, Recommend).
-- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge, and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in 9 built-in actions: Explain in Context, Analyze in Context, Thematic Connection, Recap, Key Arguments, Discussion Questions, Quiz, Extract Key Insights, Reading Guide. X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
+- **`{text_fallback_nudge}`**: Enables graceful degradation for actions that use document text extraction. When text extraction is disabled or yields no content, this nudge appears to guide the AI to use its training knowledge, and to say so honestly if it doesn't recognize the work. When document text IS present, the placeholder expands to nothing (zero overhead). Used in roughly ten built-in actions including Explain in Context, Analyze in Context, Thematic Connection, Recap, Key Arguments, Discussion Questions, Quiz, Extract Key Insights, Reading Guide, and Counterarguments. (Note: "Counterarguments" is a distinct book-level action from the highlight action "Counterpoint," which does not use this nudge.) X-Ray, Document Analysis, and Document Summary block generation without text extraction rather than degrading gracefully. For actions with source selection, the fallback nudge activates when "AI knowledge only" is chosen.
 - **`{spoiler_free_nudge}`**: Adds a spoiler prevention instruction when spoiler-free mode is active (see [Spoiler-Free Mode](#spoiler-free-mode)). When reading progress is available, the nudge tells the AI the reader's exact position and forbids revealing anything beyond it. When progress is unavailable (e.g., file browser with no saved progress), a generic "has not finished" variant is used. When spoiler-free mode is inactive, the placeholder expands to nothing. Not used by any built-in actions (freeform chat injects this via the system prompt instead), but available for custom actions that want spoiler awareness.
 
 **For custom actions:** Add these placeholders at the end of your prompts where appropriate. The placeholders are replaced with the actual text at runtime, so you can also use the raw text directly if you prefer. `{text_fallback_nudge}` is especially useful in custom actions that use `{full_document_section}` or `{book_text_section}`. It ensures your action produces useful results even when text extraction is disabled.
@@ -1275,7 +1444,7 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
   - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Add `source_selection = true` and `use_summary_cache = true` to let users choose between full text, summary, or AI knowledge at runtime. Or use `{document_context_section}` as a unified placeholder that resolves based on the user's source choice.
   - **Supplement**: Add a cache reference as bonus context alongside other data. For example, append `{xray_cache_section}` to a custom action so the AI has the character/concept reference available if it exists. The placeholder vanishes if no cache exists, so there's no downside.
 
-  > *Planned feature: the ability to append files, caches, and other resources to chats and actions, including referencing one book's cache in an action on another book (e.g., comparing an X-Ray across volumes in a series).*
+  > *Tip: The [Attach chip](#managing-the-input-dialog) in the input dialog also lets you attach a notebook, a saved artifact, a chat, a file, or a note to a chat on the fly, so you can pull one book's cached artifact into a chat about another (e.g., comparing an X-Ray across volumes in a series).*
 - **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage. This is live extraction (not cached), hard-capped at 2000 characters. Particularly useful for **custom dictionary-like actions** that need sentence context for single-word lookups; look at the built-in `quick_define`, `dictionary`, and `deep` actions for inspiration. Uses your Dictionary Settings for context mode (sentence, paragraph, or character count).
 
 ### File-Based Actions
@@ -1323,13 +1492,18 @@ return {
 - `use_advanced_stats`: Include reading engagement groups (`{deep_reads}`, `{stalled}`, `{recently_finished}`, `{briefly_started}` and their section variants) and per-book engagement labels in library output. Double-gated: requires both Allow Advanced Stats (global) and this per-action flag. Used by library scan actions (Next Read, Discover New, Analyze Library).
 - `use_notebook`: Include content from the book's KOAssistant notebook
 - `use_surrounding_context`: Include surrounding text for highlight actions (auto-inferred from `{surrounding_context}` placeholder)
-- `include_book_context`: Add book info to highlight actions
+- `use_page_text`: Include the text of the current visible page (`{page_text_section}`). Single page, so no text-extraction gate; auto-inferred from the placeholder.
+- `use_library`: Include the library catalog (`{library_section}`). Requires Enable Library Scanning plus configured scan folders (triple-gated).
+- `use_summary_cache` / `use_xray_cache` / `use_analyze_cache`: Allow the matching document-cache placeholder to resolve (double-gated; see [Document caches](#tips-for-custom-actions) above).
 - `cache_as_xray`: Save this action's result to the X-Ray cache (for other actions to reference)
 - `cache_as_analyze`: Save this action's result to the document analysis cache
 - `cache_as_summary`: Save this action's result to the document summary cache
+- `source_selection`: Show a scope/source popup (full text / summary / AI knowledge, plus "Up to current position (NN%)" for whole-document actions) so the reader picks what feeds `{document_context_section}` at runtime.
+- `smart_retrieval`: Adds a "Smart retrieval" source option (when the session is tools-capable) that has the AI look up only the passages it needs rather than sending the whole document. Used by context-aware actions like Explain in Context and Analyze in Context. See [AI Book Tools](#ai-book-tools-experimental).
+- `accept_quick_answer`: Opt this action into the session [Quick Answer](#managing-the-input-dialog) posture (brevity nudge, reasoning/web/tools off) when it's launched from the input dialog. Never applies to artifact/JSON actions.
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
-- `domain`: Force a specific domain by ID (overrides per-book and global domain selection; file-only, no UI for this yet)
+- `domain`: Force a specific domain by ID (overrides per-book and global domain selection). Settable via the file (`custom_actions.lua`) or through the wizard/Edit Settings screen's Domain picker (Settings → Actions & Prompts → Manage Actions).
 - `enable_web_search`: Override global web search setting (true=force on, false=force off, nil=follow global)
 
 **Per-provider reasoning config.** This is the top reasoning layer — it wins over your global stance and any per-model override (see [Reasoning/Thinking](#reasoningthinking)).
@@ -1360,8 +1534,11 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 6. **Summarize**: Condense the passage to its essential points
 7. **Connect**: Draw connections to other works, thinkers, and broader context
 8. **Fact Check**: Verify claims using web search
+9. **AI Wiki**: Encyclopedia-style entry on the selected term or subject
+10. **Grammar**: Linguistic/grammatical analysis of the selected text
+11. **Counterpoint**: Argue the other side of a claim in the passage
 
-**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Current Context, AI Wiki, Grammar, Dictionary, Quick Define, Deep Analysis
+**Other built-in actions you can add**: Connect (With Notes), Explain in Context, Analyze in Context, Thematic Connection, Current Context, Dictionary, Quick Define, Deep Analysis
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1372,14 +1549,14 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 Actions appear as "KOA: Explain", "KOA: Translate", etc. in the highlight popup. Long-press any action to see its description.
 
 **Managing actions**:
-- Use **Settings → Highlight Settings → Highlight Menu Actions** to view all enabled actions
+- Use **Settings → Menus & Buttons → Highlight Menu Actions** to view all enabled actions (up to 15 shown)
 - Tap an action to move it up/down or remove it
 - Default actions can be removed (they won't auto-reappear)
 - Freeform chat is always available via the Send button in the input dialog
 
-**Note**: Changes require an app restart since the highlight menu is built at startup.
+**Note**: Changes take effect the next time the highlight menu opens.
 
-> **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → KOReader Integration**. "Show in Highlight Menu" (the main button) and "Show Highlight Quick Actions" (shortcuts like Translate, Explain) have separate toggles.
+> **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → Menus & Buttons**. "Show Chat/Action button" (the main button) and "Show quick actions" (shortcuts like Translate, Explain) have separate toggles, alongside toggles for the Add to Notebook and Generate Image buttons.
 
 ---
 
@@ -1391,9 +1568,9 @@ KOAssistant integrates with KOReader's dictionary system, providing AI-powered w
 
 > **Tip:** For best results, duplicate a built-in dictionary action and customize it for your language pair. Set a light model (e.g. Haiku) for speed, and make it your bypass action for one-tap lookups.
 
-> **Don't need dictionary integration?** Disable it entirely via **Settings → KOReader Integration → Show in Dictionary Popup**.
+> **Don't need dictionary integration?** Disable it entirely via **Settings → Menus & Buttons → Dictionary popup → Show AI buttons**.
 
-> **Want Translate and Copy for text in dictionary results?** Enable **Settings → KOReader Integration → Enhance Text Selection** to add action popups (Copy, Dictionary, Translate) when selecting multiple words or long-pressing a single word in KOReader's dictionary, Wikipedia, and other viewers. See [Extend to KOReader Viewers](#extend-to-koreader-viewers).
+> **Want Translate and Copy for text in dictionary results?** Enable **Settings → Menus & Buttons → Text selection in viewers → Enhance text selection** to add action popups (Copy, Dictionary, Translate) when selecting multiple words or long-pressing a single word in KOReader's dictionary, Wikipedia, and other viewers. See [Extend to KOReader Viewers](#extend-to-koreader-viewers).
 
 ### How It Works
 
@@ -1402,13 +1579,14 @@ When you select a word in a document, KOReader normally shows its dictionary pop
 1. **Add AI actions to the dictionary popup**: Tap "Dictionary (KOA)" or another Action button from KOReader's Dictionary popup
 2. **Bypass the dictionary entirely**: Skip KOReader's dictionary and go directly to your selected KOAssistant Dictionary Action for word lookups
 
-**Default dictionary popup actions** (4 included):
+**Default dictionary popup actions** (4 AI actions included, plus one conditional local lookup):
 1. **Dictionary**: Full entry: definition, etymology, synonyms, usage
 2. **Quick Define**: Minimal: brief definition only
 3. **Deep Analysis**: Linguistic deep-dive: morphology, word family, cognates
 4. **AI Wiki**: Wikipedia-style encyclopedia entry about the word
+5. **Look up in X-Ray** (conditional): Appears only when the current book has an X-Ray cache. This is a local lookup (no AI call, works offline) that shows the word's X-Ray entry if it exists.
 
-You can add or substitute other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"** or manage the actions centrally from Dictionary Settings.
+You can add or substitute other highlight actions to this menu via **Manage Actions → hold action → "Add to Dictionary Popup"** or manage the actions centrally from **Settings → Menus & Buttons → Dictionary popup → Dictionary Popup Actions**.
 
 ### Dictionary Settings
 
@@ -1416,22 +1594,24 @@ You can add or substitute other highlight actions to this menu via **Manage Acti
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **AI Buttons in Dictionary Popup** | Show selected Action buttons in KOReader's dictionary popup | On |
 | **Response Language** | Language for definitions. Can follow Translation Language (`↵T`) or be set independently | `↵T` |
-| **Context Mode** | Surrounding text sent with lookup: None, Sentence, Paragraph, or Characters | None (Context is available on the demand in the popup)|
+| **Context Mode** | Surrounding text sent with lookup: None, Sentence, Paragraph, or Characters | None (Context is available on demand in the popup)|
 | **Context Characters** | Character count when using "Characters" mode | 100 |
-| **Disable Auto-save** | Don't auto-save dictionary lookups to chat history | On |
+| **Disable Auto-save for Dictionary** | Don't auto-save dictionary lookups to chat history | On |
+| **Copy Content** | What to include when copying in dictionary view (follow global / ask / full / question + response / definition only / everything) | Definition only |
+| **Note Content** | What to include when saving a dictionary result to a note (same options as Copy Content) | Definition only |
 | **Enable Streaming** | Stream responses in real-time (shows text as it generates) | On |
-| **Dictionary Popup Actions** | Configure which actions appear in the AI menu (reorder, add custom) | 4 built-in |
 | **Bypass KOReader Dictionary** | Skip native dictionary, go directly to your selected bypass Action | Off |
 | **Bypass Action** | Which action triggers on bypass (try Quick Define for speed) | Dictionary |
-| **Bypass: Follow Vocab Builder** | Respect KOReader's Vocabulary Builder auto-add setting during bypass | On |
+| **Bypass: Follow Vocab Builder Auto-add** | Respect KOReader's Vocabulary Builder auto-add setting during bypass | On |
+
+> **Note:** The dictionary popup visibility toggle (**Show AI buttons**) and the **Dictionary Popup Actions** manager now live under **Settings → Menus & Buttons → Dictionary popup**, alongside the other menu/button placement toggles. The settings above control dictionary *behavior*.
 
 > **Tip:** Test different dictionary actions and context modes in the [web inspector](#testing-your-setup) to find what works best for your reading. Consider creating custom dictionary actions for your specific language pair.
 
 ### Dictionary Popup Actions (4 included by default)
 
-When "AI Buttons in Dictionary Popup" is enabled, KOAssistant Dictionary Actions are added to KOReader's dictionary popup. Four built-in actions are included by default:
+When "Show AI buttons" is enabled (**Settings → Menus & Buttons → Dictionary popup**), KOAssistant Dictionary Actions are added to KOReader's dictionary popup. Four built-in AI actions are included by default:
 
 | Action | Purpose | Includes |
 |--------|---------|----------|
@@ -1440,10 +1620,12 @@ When "AI Buttons in Dictionary Popup" is enabled, KOAssistant Dictionary Actions
 | **Deep Analysis** | Linguistic deep-dive | Morphology (roots, affixes), word family, etymology path, cognates |
 | **AI Wiki** | Encyclopedia entry | Wikipedia-style overview: definition, history, key facts, significance |
 
+A fifth entry, **Look up in X-Ray**, appears conditionally when the current book has an X-Ray cache. It is a local, offline lookup (no AI call) that opens the tapped word's X-Ray entry when one exists.
+
 Dictionary (KOA) is the default if you turn on Bypass mode. You can set any action as the **Bypass Action** for instant one-tap lookups.
 
 **Configure this menu:**
-1. **Settings → Dictionary Settings → Dictionary Popup Actions**
+1. **Settings → Menus & Buttons → Dictionary popup → Dictionary Popup Actions**
 2. Enable/disable actions, reorder them, or add custom actions
 3. Consider setting "Quick Define" as bypass action for faster responses
 
@@ -1495,7 +1677,7 @@ For the best results, **create custom dictionary actions tailored to your specif
 1. **Settings → Actions & Prompts → Manage Actions**
 2. Find "Dictionary" or "Quick Define" and tap to **duplicate**
 3. Edit the duplicate with prompts specific to your language pair or learning style
-4. **Settings → Dictionary Settings → Dictionary Popup Actions**: add your custom action
+4. **Settings → Menus & Buttons → Dictionary popup → Dictionary Popup Actions**: add your custom action
 5. Set it as the **Bypass Action** for one-tap access
 6. Consider changing the bypass action to "Quick Define" for faster responses, or to your custom action
 
@@ -1519,6 +1701,8 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 2. Settings → Dictionary Settings → Bypass Action → choose action (default: Dictionary)
 
 **Recommended setup:** Set "Quick Define" or a custom lightweight action as your bypass action for faster responses. Use the full "Dictionary" action when you need etymology and synonyms.
+
+> **Tip:** You can also set the bypass action to **Look up in X-Ray**. In that mode, a tapped word that has an X-Ray entry opens it directly, and any other word falls through to KOReader's normal dictionary.
 
 **Toggle via gesture:** Assign "KOAssistant: Toggle Dictionary Bypass" to a gesture for quick on/off switching. These settings are also available in the recommended Quick Settings panel.
 
@@ -1606,7 +1790,7 @@ Skip the highlight menu when selecting text. Useful when you always want the sam
 **How it works:**
 1. Select text by long-pressing and dragging
 2. Instead of highlight menu → AI action triggers immediately
-3. Response appears in **full view** (standard chat viewer)
+3. Response appears in the action's view (Translate uses Translate View; most other actions use the full standard chat viewer)
 
 **Configure:** Settings → Highlight Settings → Enable Highlight Bypass
 
@@ -1648,7 +1832,7 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 
 **Why only book and general?** Highlight actions require selected text and cannot be triggered via gestures.
 
-**Note:** Changes require restart because KOReader's gesture system loads available actions at startup. To disable all custom action gestures at once, use **Settings → KOReader Integration → Show in Gesture Menu**. Built-in utility gestures (Quick Settings, Chat History, etc.) are not affected by this toggle.
+**Note:** Changes require restart because KOReader's gesture system loads available actions at startup. To disable all custom action gestures at once, use **Settings → Menus & Buttons → Gestures → Register gesture actions**. Built-in utility gestures (Quick Settings, Chat History, etc.) are not affected by this toggle.
 
 ### Available Gesture Actions
 
@@ -1734,14 +1918,14 @@ Behavior defines the AI's personality, communication style, and response guideli
 - **Perplexity Style** (Mini, Standard, Full): Research-focused with source transparency
 
 **Reading-focused:**
-- **Reader Assistant** (~350 tokens): Reading companion persona (used by X-Ray, Recap, Analyze Notes, Connect with Notes)
+- **Reader Assistant** (~350 tokens): Reading companion persona -- a general reading-focused style, well suited to book actions like X-Ray, Recap, Analyze Notes, and Connect With Notes, though those actions currently just use whichever behavior you have selected globally rather than forcing this one
 
 **General utility:**
 - **Concise** (~55 tokens): Brevity-focused, minimal guidance for direct responses
 
 **Specialized (used by specific actions, hidden from quick pickers):**
 - **Direct Dictionary** (~30 tokens): Minimal guidance for dictionary lookups (used by Dictionary action)
-- **Linguistic Analysis** (~30 tokens): Guidance for detailed linguistic analysis (used by Deep Analysis action)
+- **Linguistic Analysis** (~35 tokens): Guidance for detailed linguistic analysis (used by Deep Analysis action)
 - **Direct Translator** (~80 tokens): Direct translation without commentary (used by Translate action)
 
 **Changing the default:** Settings → Actions & Prompts → Manage Behaviors, tap to select. Or use Quick Settings (gear icon or gesture) → Behavior.
@@ -1846,7 +2030,9 @@ See [domains.sample/](domains.sample/) for examples including classical language
 
 ### Selecting Domains
 
-Select a domain via the **Domain & Research** button in the chat input dialog, or through Quick Settings. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None". The same picker also contains the [Research Mode](#research-mode) toggle (see below the domain list).
+Select a domain via the **Domain chip** in the chat input dialog's session controls row, or through Quick Settings. Tapping the Domain chip opens the **Domain & Research** picker. Once selected, the domain **stays active** for all subsequent chats until you change it or select "None". The same picker also contains the [Research Mode](#research-mode) toggle (see below the domain list).
+
+> **Tip:** The Domain chip is part of the configurable session controls row (Domain, Web, Tools, Quick, Scope, Attach, Spoiler). Choose which chips appear via the input dialog's gear menu → "Toolbar Buttons…". See [Managing the Input Dialog](#managing-the-input-dialog) for the full row.
 
 #### Per-Book Domains
 
@@ -1859,11 +2045,11 @@ When a book is open (or targeted via file browser/artifacts), the Domain & Resea
 
 **Resolution order:** Action-level domain override > per-book domain > global domain.
 
-The Domain button shows a `(book)` suffix when a per-book domain is active. General and library contexts use the global domain only.
+The Domain chip shows the active domain's name (with a 🏛️ icon when emoji icons are enabled). Inside the picker, a per-book domain is marked with a `(book)` suffix. General and library contexts use the global domain only.
 
 The target toggle (For this book / Global) is shared between domain selection and Research Mode; both use the same target for the current session.
 
-> The per-book domain is one of several per-book overrides. The full set (domain, research, spoiler-free, book info, AI title/author, quiz, languages) lives in the dedicated [Book Settings](#book-settings) screen.
+> The per-book domain is one of several per-book overrides. The full set (domain, research mode, spoiler-free chat, AI Book Tools posture, web search, quick answer default, book info, X-Ray auto-update, highlight context, dictionary context, AI title/author, quiz, languages) lives in the dedicated [Book Settings](#book-settings) screen.
 
 **Note**: Keep the sticky behavior in mind. If you set a global domain for one task, it will apply to all following actions (including quick actions that don't open the input dialog, unless they have been set to Skip Domain) until you clear it. Per-book domains take priority over global when reading that book. You can change the domain through the input dialog, Quick Settings, or gesture actions.
 
@@ -1896,25 +2082,44 @@ Chat History → hamburger menu → **View by Domain**
 | **File browser** | Long-press a book → **Book Settings (KOA)**. |
 | **Chat input dialog** | The gear (⚙) menu → **Book Settings** (book/highlight chats). |
 
-> The **Domain** and **Research Mode** for a book are also reachable from the quick **Domain & Research** picker (the Domain button in the input dialog, and the Domain chip in Quick Settings). Book Settings is the full per-book screen; the quick picker is the fast domain/research switch. Both write the same per-book values.
+> Several of these per-book values are also reachable from the faster **hold** menus on the input dialog's session chips: hold the **Domain** chip for the quick **Domain & Research** picker, hold **Web** for web search, hold **Tools** for the AI Book Tools posture, hold **Spoiler** for spoiler-free, and hold **Scope** for highlight context — each of those pickers offers a "For this book / Global" target toggle. Book Settings is the full per-book screen; the chip hold-menus are the fast single-setting switches. Both write the same per-book values. See [Managing the Input Dialog](#managing-the-input-dialog).
 
 ### What you can set per book
 
-Each row shows its current value and opens a small picker; **Follow global** is always an option inside each.
+Each row shows its current value and opens a small picker; **Follow global** is always an option inside each. The screen groups its rows under **AI behavior**, **Identity**, and **More** headers (two buttons per row), so it can get long — everything you can set is listed below.
+
+**AI behavior**
 
 | Setting | Options | Notes |
 |---|---|---|
 | **Domain** | Follow global / None / a specific domain | Same per-book domain as the quick picker. See [Per-Book Domains](#per-book-domains). |
 | **Research mode** | Follow global / On / Off | See [Research Mode](#research-mode). "Off" suppresses it even when a DOI is detected. |
 | **Spoiler-free chat** | Follow global / On / Off | See [Spoiler-Free Mode](#spoiler-free-mode). |
-| **Book info** | Follow global / None / Title & author / Title, author & position | Controls the generic book-info block KOAssistant attaches to actions and freeform chat (see below). |
+| **AI Book Tools** | Follow global / Off / Manual / Auto | Per-book posture for the [AI Book Tools](#ai-book-tools-experimental) workflows (search/read the book). Drives the Tools chip's starting state and visibility for this book. |
+| **Web search** | Follow global / On / Off | Per-book override for [Web Search](#web-search). Layered under the per-chat Web chip. |
+| **Quick answer default** | Follow global / On / Off | Whether the ⚡ **Quick** chip starts *on* for a fresh chat on this book (brevity nudge + reasoning/web/tools off). The session chip still wins once you tap it. |
+| **Book info** | Follow global / None / Title only / Title & author / Title, author & position | Controls the generic book-info block KOAssistant attaches to actions and freeform chat (see below). |
+| **X-Ray auto-update** | On / Off | Opt this book in to background X-Ray auto-updates while reading. This is a plain per-book opt-in (no "Follow global" state): the global **Auto-update X-Ray while reading** (Settings → Reading & Library) must be enabled first, then you turn it on per book. |
+| **Highlight context** | Follow global / None / Sentence / Paragraph(s) / Characters | How much surrounding text is attached automatically to highlight chats/actions on this book (ambient surrounding context). |
+| **Dictionary context** | Follow global / None / Sentence / Paragraph(s) / Characters | Same, for dictionary lookups on this book (the `{context}` channel). |
+
+**Identity**
+
+| Setting | Options | Notes |
+|---|---|---|
 | **AI title** | Use real metadata / Custom… / Send empty | What the AI is told the book is *called*. |
 | **AI author** | Use real metadata / Custom… / Send empty | What the AI is told the *author* is. |
+
+**More**
+
+| Setting | Options | Notes |
+|---|---|---|
 | **Quiz settings ▸** | Per-book quiz overrides (sub-screen) | See below. |
 | **Languages ▸** | Per-book response/translation/dictionary language (sub-screen) | See below. |
 
 **Book info** decides how much book context is auto-attached:
 - **None** — no automatic "Book: …" line. Useful if document metadata clutters your context. Explicit `{title}`/`{author}` placeholders in a custom action still resolve, so artifact actions like X-Ray keep working.
+- **Title only** — book title without the author.
 - **Title & author** (default) — the usual "Book: *Title* by Author" line.
 - **Title, author & position** — also appends reading progress, current chapter, and page (requires **Allow Basic Stats**).
 
@@ -1925,7 +2130,7 @@ Each row shows its current value and opens a small picker; **Follow global** is 
 
 ### Quiz settings (per book)
 
-Overrides for the [chapter-end quiz and the Quiz action](#quiz) on this book; each defaults to **Follow global**:
+Overrides for the [chapter-end quiz and the Quiz action](#chapter-quiz) on this book; each defaults to **Follow global**:
 
 - **Chapter-end quiz** — *Follow global* or *Off for this book*. This is **suppress-only**: it can silence the automatic chapter-end prompt for one book, but cannot turn it on when the global "Quiz on Chapter End" is off.
 - **Question count**, **Difficulty**, **Multiple choice / Short answer / Discussion** — same options as the global quiz settings.
@@ -2002,14 +2207,16 @@ When you tap Export on a chat, you can choose:
 - **Copy to Clipboard**: Copy the formatted chat text
 - **Save to File**: Save as a markdown (.md) or text (.txt) file
 
-**Content options** (Settings → Chat & Export Settings → Content Format → Chat History Export):
-- **Ask every time** (default): Shows a picker dialog to choose what to include
+**Content options** (Settings → Chat & Export Settings → Content Format):
 - **Follow Copy Content**: Uses the global Copy Content setting
-- Fixed formats (4 types):
-  - **Response only**: Just the AI response
+- **Ask every time**: Shows a picker dialog to choose what to include
+- Fixed formats:
+  - **Last response only**: Just the most recent AI response
   - **Question + Response**: Highlighted text + question + AI response (minimal context)
   - **Full (metadata + chat)**: Book metadata header + question + response (no context messages)
   - **Everything (debug)**: Book metadata + all context messages + all messages
+
+There are two related settings here: **Save to File Content** (used when you Save to File; default *Follow Copy Content*) and **Chat History Export** (used when you export from the Chat History browser; default *Ask every time*). Both offer the same format list above.
 
 **Directory options** for Save to File (Settings → Chat & Export Settings → Save Location):
 - **KOAssistant exports folder** (default): Central `koassistant_exports/` in KOReader data directory
@@ -2064,6 +2271,8 @@ The em dash naming avoids conflicts with the popular `obsidian-koreader-highligh
 
 #### Saving to a Notebook
 
+**From the reader highlight menu**: Select text in the book → tap **Add to notebook (KOA)** in the highlight menu. The selected text is appended straight to this book's notebook (creating it if needed) with a timestamp and page info, no AI call. This button can be toggled in Settings → Menus & Buttons → Highlight menu (**Show Add to Notebook button**, default ON) and takes effect the next time the menu opens — no restart needed.
+
 **From chat viewer**: Tap the **Notebook** button in the toolbar. A popup offers:
 - **Add Chat to Notebook**: Append the current AI response (with context) to the notebook
 - **View Notebook**: Open notebook in view mode (on top of the chat viewer)
@@ -2071,12 +2280,12 @@ The em dash naming avoids conflicts with the popular `obsidian-koreader-highligh
 
 If no notebook exists yet, only "Add Chat to Notebook" is shown (creates the notebook automatically).
 
-**From text selection**: Select 2+ words in any KOAssistant viewer → tap **Add to Notebook** in the popup. Appends the selected text with a timestamp header. Works across chat viewer, X-Ray browser, and all view modes.
+**From text selection**: Select 2+ words in any book-scoped KOAssistant viewer → tap **Add to Notebook** in the popup. Appends the selected text with a timestamp header. This is available across the chat viewer, the X-Ray browser, the Sources and Reasoning viewers, and — with enhanced text selection — KOReader's own text viewer and dictionary popup. (General and library chats have no single book to target, so the button is hidden there.) A toast names the book it was added to, which matters when the viewer's content belongs to a different book than the one currently open.
 
 **What gets saved** (Settings → Notebook Settings → Content Format):
 - **Response only**: Just the AI response
 - **Q&A**: Highlighted text + your question + AI response
-- **Full Q&A** (recommended, default): Same as Q&A for notebooks
+- **Full Q&A** (recommended, default): All context messages + highlighted text + question + response
 
 Each entry includes timestamp, page number, progress percentage, and chapter title.
 
@@ -2104,7 +2313,7 @@ The default viewer can be changed in Settings → Notebook Settings → Viewer M
 
 - **Flexible storage**: Alongside book (travels with files), central folder, or custom folder (Obsidian vault)
 - **Obsidian-ready**: YAML frontmatter, standard markdown, descriptive filenames
-- **Multiple entry points**: Chat viewer button, text selection popup, file browser, gestures
+- **Multiple entry points**: Reader highlight menu, chat viewer button, text selection popup, file browser, gestures
 - **Cumulative**: New entries append to existing content
 - **Portable markdown**: Standard `.md` files editable with any text editor
 - **Auto-migration**: Changing save location moves all notebooks with frontmatter add/strip as needed
@@ -2142,6 +2351,8 @@ This means:
 - **"Hash-based"**: content-hash based storage
 
 All per-book data (chats, cache, notebook, pinned artifacts, X-Ray aliases) works across all three modes. If you switch storage modes, sidecar files are automatically migrated to the new location on first access.
+
+> **Data indexes:** KOAssistant keeps lightweight indexes that map book paths to their chats, artifacts, and images. If a synced library ever gets out of step (e.g. files copied outside KOReader), indexes are healed automatically when you open an affected book, and a folder-scoped **Rebuild Data Indexes** action is available to re-scan a library folder. See [Backup & Restore](#backup--restore).
 
 **Migration**: If you're upgrading from an older version, your existing chats will be automatically migrated to the new storage system on first launch. The old chat files are backed up to `koassistant_chats.backup/`.
 
@@ -2186,17 +2397,20 @@ Two complementary features for making important content easily available:
 
 **Tools → KOAssistant → Settings**
 
+> The Settings menu is also reachable as a standalone **"More Settings"** entry from the Reader and FileManager gesture/panel shortcuts, and from the Quick Settings panel.
+
 ### Quick Actions
-- **New Book Chat/Action**: Start a conversation about the current book or access book actions
+These launch entries sit at the top of the menu:
+- **Book Chat/Action**: Start a conversation about the current book or access book actions
 - **General Chat/Action**: Start a context-free conversation or run a general action
-- **Library Chat/Action**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Analyze Library) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
+- **Library Chat/Action**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Analyze Library, Challenge My Taste) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
 
 ### Provider & Model
 - **Provider**: Select AI provider (19 built-in + custom providers)
-  - Tap to select from built-in providers
+  - Tap to select from built-in providers. The picker lists only providers that have an API key configured, plus local/no-key providers (Ollama, custom local presets) — set a key in **API Keys** to make a provider appear
   - Custom providers appear with ★ prefix (see [Adding Custom Providers](#adding-custom-providers))
   - Long-press "Add custom provider..." to create your own
 - **Model**: Select model for the chosen provider
@@ -2209,6 +2423,9 @@ Two complementary features for making important content easily available:
 - Shows status indicators: `[set]` for GUI-entered keys, `(file)` for keys from apikeys.lua
 - GUI keys take priority over file-based keys
 - Tap a provider to enter, view (masked), or clear its key
+
+### Temperature
+- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.
 
 ### Display Settings
 
@@ -2233,16 +2450,22 @@ Two complementary features for making important content easily available:
   - **Chat viewer**: ↩️ Reply, 🏷️ Tag, 📌/⭐ Pin/Star, 🔍 Web search toggle
   - **Streaming**: 🔍 web search indicator
   - Requires **emoji font support** (see [Emoji Font Setup](#emoji-font-setup) for installation instructions). If icons appear as question marks or blank squares, your device doesn't have a compatible emoji font installed.
+- **Emoji Panel Icons**: Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support. (default: off)
 - **Emoji Data Access Indicators**: Show emoji suffixes on action names indicating what sensitive data they access. Off by default. Independent from Emoji Menu Icons: you can enable either or both. When enabled:
   - 📄 = document text (book text, X-Ray/Recap/Summary caches)
   - 🔖 = highlights only (no personal notes)
   - 📝 = annotations (highlights with personal notes)
   - 📓 = notebook
+  - 📚 = library catalog
+  - 📊 = advanced stats (reading engagement groups)
   - 🌐 = web search forced on
   - Visible in: action manager, quick actions, highlight/dictionary menus, file browser buttons
   - Helps you see at a glance which actions send personal data to AI providers. See [Privacy & Data](#privacy--data) for details on what gets shared.
   - Requires **emoji font support** (see [Emoji Font Setup](#emoji-font-setup)).
-- **Emoji Panel Icons**: Show emoji icons on Quick Settings and Quick Actions panel buttons (🔗 Provider, 🎭 Behavior, 📜 Chat History, etc.). Requires emoji font support. (default: off)
+
+#### Panel Alignment (sub-menu)
+- **Align Quick Settings**: Left-align (instead of center) the button text in the Quick Settings panel (default: on; also reachable from the panel's gear menu).
+- **Align Quick Actions**: Left-align (instead of center) the button text in the Quick Actions panel (default: on; also reachable from the panel's gear menu).
 
 #### Highlights (sub-menu)
 - **Hide Highlighted Text**: Don't show selection in responses
@@ -2251,15 +2474,13 @@ Two complementary features for making important content easily available:
 
 #### Other
 - **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or one of 24 translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
-- **Panel Alignment**: Left-align (instead of center) the button text in the Quick Settings and Quick Actions panels (default: on; also reachable from each panel's gear menu).
 
 ### Chat & Export Settings
-- **Spoiler-free Chat**: Instructs the AI not to reveal events beyond your current reading position in book and highlight chats (default: OFF). See [Spoiler-Free Mode](#spoiler-free-mode).
-- **Show Spoiler-free Chat Checkbox**: Show a session checkbox in the book/highlight input dialog to toggle spoiler-free chat on the fly (default: OFF). When the global setting above is on, the checkbox starts checked but can be unchecked per session.
-- **Book Info in Chat**: Default book context sent with freeform chats and book-aware actions — None / Title & author (default) / Title, author & position (adds reading progress, chapter, and page when Basic Stats are on). Overridable per book in Book Settings.
 - **Auto-save All Chats**: Automatically save every new conversation
 - **Auto-save Continued Chats**: Only save when continuing from history
 - **Scroll to Last Message (Experimental)**: When resuming or replying to a chat, scroll to show your last question. Off by default (old behavior: top for new chats, bottom for replies)
+- **Spoiler-free Chat**: Instructs the AI not to reveal events beyond your current reading position in book and highlight chats (default: OFF). See [Spoiler-Free Mode](#spoiler-free-mode). For a per-chat toggle, enable the **Spoiler** chip via the input dialog's gear menu → Toolbar Buttons (the old "Show Spoiler-free Chat Checkbox" setting was replaced by this chip).
+- **Book Info in Chat**: Default book context sent with freeform chats and book-aware actions — None / Title only / Title & author (default) / Title, author & position (adds reading progress, chapter, and page when Basic Stats are on). Overridable per book in Book Settings.
 
 #### Streaming (sub-menu)
 - **Enable Streaming**: Show responses as they generate in real-time
@@ -2269,11 +2490,21 @@ Two complementary features for making important content easily available:
 - **Stream Poll Interval (ms)**: How often to check for new stream data (default: 125ms, range: 25-1000ms). Lower values are snappier but use more battery.
 - **Display Refresh Interval (ms)**: How often to refresh the display during streaming (default: 250ms, range: 100-500ms). Higher values improve performance on slower devices.
 
+#### Quick Answer Preset (sub-menu)
+Controls what the **Quick Answer** (⚡) chip applies when you tap it on for a chat. Also editable from the ⚡ chip's hold-menu → "Preset settings…". See [Session Chips](#session-controls-chips).
+- **Quick Answer On by Default**: Start new chats with the ⚡ button already on (default: OFF). Still overridable per chat, and per book from Book Settings or the ⚡ menu.
+- **Concise Answer Nudge**: Ask for a short, direct reply (a few sentences, no preamble) while Quick Answer is on (default: ON)
+- **Turn Reasoning Off**: Disable model reasoning/thinking for Quick Answer chats — models that can't disable it drop to their lowest level (default: ON). A one-shot reasoning pick in the ⚡ menu overrides this.
+- **Turn Web Search Off**: Disable web search while Quick Answer is on (default: ON)
+- **Turn Book Tools Off**: Disable AI Book Tools while Quick Answer is on (default: ON)
+- **Model override**: Optionally switch models while Quick Answer is on (that chat only; your default model is untouched). Options: Keep current (default), Fastest for provider, a tier of the active provider, or a pinned specific model. Custom providers keep the current model. A one-shot model pick in the ⚡ menu overrides this.
+
 ### Content Format (within Chat & Export Settings)
 - **Export Style**: Format for Copy, Note, and Save to File: Markdown (default) or Plain Text
 - **Copy Content**: What to include when copying: Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
 - **Note Content**: What to include when saving to note: Ask every time, Full, Question + Response, Response only (default), or Everything (debug)
-- **History Export**: What to include when exporting from Chat History: Ask every time (default), Follow Copy Content, Full, Q+A, Response only, or Everything (debug)
+- **Save to File Content**: What to include when saving a chat to a file: Follow Copy Content, Ask every time, Full, Q+A, Response only, or Everything (debug)
+- **Chat History Export**: What to include when exporting from Chat History: Ask every time (default), Follow Copy Content, Full, Q+A, Response only, or Everything (debug)
 
 When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
 
@@ -2285,12 +2516,13 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 - **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
 - **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
 
-### Reading & Library (within Chat & Export Settings)
+### Reading & Library
+This top-level section consolidates chapter quiz, background X-Ray, recap reminder, end-of-book, and library scanning settings.
 
-#### Quiz
+#### Chapter Quiz
 - **Quiz on Chapter End**: Offer a comprehension quiz when you finish reading a chapter. Requires a book with a table of contents. (default: OFF)
 - **Quiz Chapter Level**: Which TOC level counts as a 'chapter' for end-of-chapter quizzes: Auto-detect (default — picks the deepest level whose chapters meet the minimum length below), Top level (Level 1), Level 2, Level 3, or All TOC headings (follows KOReader's TOC tick settings)
-- **Minimum Chapter Length**: Skip the chapter-end quiz prompt for chapters shorter than this many pages, so short or skimmed sections don't prompt (0 = no minimum; range 0-30, default: 5). Also sets the threshold 'Auto-detect' uses to pick the chapter level.
+- **Minimum Chapter Length (pages)**: Skip the chapter-end quiz prompt for chapters shorter than this many pages, so short or skimmed sections don't prompt (0 = no minimum; range 0-30, default: 5). Also sets the threshold 'Auto-detect' uses to pick the chapter level.
 - **Minimum Reading Time (minutes)**: Skip the chapter-end quiz unless you spent at least this many minutes reading the chapter (0 = no minimum, default: 3). Catches flipping quickly through a long chapter; uses KOReader's reading statistics, and the quiz is still offered if those are unavailable. Overridable per book in Book Settings.
 - **Question Count**: Total number of questions per quiz (3-15, default: 8)
 - **Difficulty**: Easy (straightforward recall), Medium (comprehension and application, default), or Hard (analysis and synthesis)
@@ -2301,6 +2533,16 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
 All of these (including a per-book *suppress* of the chapter-end auto-quiz) can be overridden for an individual book in [Book Settings](#book-settings) ▸ Quiz settings.
 
 The **Quiz** action is also available manually from the Quick Actions panel, opening the standard scope picker (full document or specific section). The quiz uses structured JSON output from the AI, parsed into an interactive one-at-a-time viewer with navigation, scoring, and Copy/Export/Notebook on the results screen. Result is saved as an artifact (View/Redo from Quick Actions). If JSON parsing fails, the raw response is shown as a fallback.
+
+#### X-Ray
+Background X-Ray settings keep a book's X-Ray current as you read (all off by default; each book must also be opted in from its X-Ray popup or Book Settings). See [X-Ray](#x-ray).
+- **Auto-update X-Ray while reading**: Quietly bring an opted-in book's X-Ray up to your reading position in the background. Spend guards: never *creates* an X-Ray (unless Auto-create below is on), fires at most once per cooldown, only for progress gaps inside the window below, and only when WiFi is already on. Makes API calls without a tap — leave off if every request should be explicit. (default: OFF)
+- **Auto-create X-Ray (early in a book)**: For opted-in books with no X-Ray yet, quietly create the first one in the background once you've read past the minimum gap. The maximum gap still caps it. Books with an existing non-incremental X-Ray are never touched. (shown once Auto-update X-Ray while reading is enabled above) (default: OFF)
+- **Minimum Progress Gap (%)**: Don't auto-update until you've read at least this much past the X-Ray's position. Lower = more frequent, smaller updates; higher = fewer, larger ones.
+- **Maximum Progress Gap (%)**: Gaps bigger than this never auto-update — run the update manually from the X-Ray popup, which shows the size first.
+- **Cooldown (minutes)**: Minimum time between background attempts (0 = no cooldown).
+- **Notify on Auto-Update**: Show a brief notification when a background X-Ray update starts and completes. Off = fully silent.
+- **X-Ray Versions to Keep**: Whenever an update or redo overwrites the X-Ray, the outgoing version is archived — browse, view, or restore them via "Previous versions" in the X-Ray popup and browser menu. Sets how many are kept per book (oldest dropped first; 0 stops archiving new versions).
 
 #### Recap Reminder
 - **Remind to Recap on Book Open**: Show a reminder to run AI Recap when you open a book you haven't read in a while (default: OFF)
@@ -2384,8 +2626,7 @@ This setup means: AI knows you understand English and Spanish, responds in Engli
 This setup means: AI responds in English by default, translates to Spanish, defines words in Spanish (useful when reading Spanish texts). Latin available for translation if needed.
 
 ### Dictionary Settings
-See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
-- **AI Button in Dictionary Popup**: Show AI Dictionary button (opens menu with 5 built-in actions)
+Behavior settings for AI dictionary lookups. (The **AI buttons in the dictionary popup** and the **Dictionary Popup Actions** manager now live in **[Menus & Buttons](#koreader-integration) → Dictionary popup**.) See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
 - **Response Language**: Language for definitions (`↵T` follows Translation Language by default). Can be overridden per book in [Book Settings](#book-settings) ▸ Languages.
 - **Context Mode**: Surrounding text to include: None (default), Sentence, Paragraph, or Characters
 - **Context Characters**: Character count for Characters mode (default: 100)
@@ -2393,9 +2634,8 @@ See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass
 - **Copy Content**: What to include when copying in compact dictionary view: Follow global setting, Ask every time, Full, Question + Response, or Definition only (default)
 - **Note Content**: What to include when saving dictionary results to a note via the +Note button, same options as Copy Content, defaults to Definition only
 - **Enable Streaming**: Stream dictionary responses in real-time
-- **Dictionary Popup Actions**: Configure which actions appear in the AI menu (reorder, add custom)
 - **Bypass KOReader Dictionary**: Skip dictionary popup, go directly to AI
-- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary). Consider "Quick Define" or a custom action for faster responses
+- **Bypass Action**: Which action to trigger when bypass is enabled (default: Dictionary). Consider "Quick Define" or a custom action for faster responses. With **X-Ray Lookup**, a tapped word that has an X-Ray entry opens it directly; any other word falls through to the normal dictionary.
 - **Bypass: Follow Vocab Builder Auto-add**: Follow KOReader's Vocabulary Builder auto-add in bypass mode
 
 > **Tip:** Create custom dictionary actions tailored to your language pair for best results. See [Custom Dictionary Actions](#custom-dictionary-actions).
@@ -2406,6 +2646,7 @@ See [Translate View](#translate-view) for details on the specialized translation
 - **Translation Target**: Pick from your languages or enter a custom target (when above is disabled)
 - **Disable Auto-Save for Translate**: Don't auto-save translations (default: on). Save manually via → Chat button
 - **Enable Streaming**: Stream translation responses in real-time (default: on)
+- **Include Surrounding Context**: Send the text around the highlight along with translations, so the AI can resolve pronouns, tone, and ambiguous words. Uses the Surrounding Context mode from Highlight Settings (sentence when that is off). Never applies to full-page translation.
 - **Copy Content**: What to include when copying in translate view: Follow global setting, Ask every time, Full, Question + Response, or Translation only (default). Replaces the old "Copy Translation Only" toggle.
 - **Note Content**: What to include when saving to note in translate view, same options as Copy Content, defaults to Translation only
 
@@ -2415,42 +2656,59 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
 
 ### Highlight Settings
-See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
+Behavior settings for highlight actions. (The highlight-menu **visibility toggles** and the **Highlight Menu Actions** manager now live in **[Menus & Buttons](#koreader-integration) → Highlight menu**.) See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
+- **Surrounding Context**: Automatically send the text around a highlight with highlight questions and actions, so the AI sees the passage in context (None (default), Sentence, Paragraph(s), or Characters). Capped at 2000 characters. Dictionary lookups and actions with their own scope selection are unaffected. Can be overridden per book in Book Settings, and per-chat via the **Scope** chip's highlight facet.
+- **Context Paragraphs**: Number of paragraphs to include on each side when Surrounding Context is 'Paragraph(s)' (1 = just the highlight's paragraph; range 1-5)
+- **Context Characters**: Number of characters before/after when Surrounding Context is 'Characters' (default: 100)
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
-- **Highlight Menu Actions**: View and reorder actions in the highlight popup menu (10 defaults: Translate, Look up in X-Ray, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, AI Wiki, Grammar)
 
-### Quick Settings Settings
-Configure the Quick Settings panel (available via gesture or gear icon in input dialog).
-- **QS Panel Utilities**: Show/hide and reorder buttons in the Quick Settings panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon in the Quick Settings panel title bar.
-  - Provider, Model, Behavior, Domain, Temperature, Reasoning
-  - Web Search, Language, Translation Language, Dictionary Language
-  - H.Bypass, D.Bypass, Text Extraction
-  - Chat History, Browse Notebooks, Browse Artifacts, Library Chat/Action
-  - General Chat/Action, Continue Last Chat, New Book Chat/Action
-  - Manage Actions, Quick Actions, More Settings
-  - All buttons are enabled by default. Disable any you don't use to streamline the panel.
+<a id="menus--buttons"></a>
+<a id="koreader-integration"></a>
+### Menus & Buttons
+Control where KOAssistant appears in KOReader's menus, panels, and buttons. This submenu (added 2026-07-16) consolidates the placement toggles that used to be scattered across "KOReader Integration", "Highlight Settings", "Dictionary Settings", "Quick Settings", and "Quick Actions". To customize which *actions* appear in each surface, use **Action Manager → hold action** as well.
 
-### Quick Actions Settings
+#### Highlight menu
+- **Show Chat/Action button**: Add the main "Chat/Action" button to the highlight menu (takes effect next time the menu opens)
+- **Show quick actions**: Add action shortcuts (Explain, Translate, etc.) to the highlight menu
+- **Show Add to Notebook button**: Add an "Add to notebook" button that saves the selected text straight to this book's notebook
+- **Show Generate Image button**: Add a "Generate Image" button that visualizes the selected text. Only shown when the provider supports image generation (OpenAI, xAI, Gemini). See [Image Generation](#image-generation).
+- **Highlight Menu Actions**: Choose which actions appear in the highlight menu (up to 15 shown; defaults: Translate, Look up in X-Ray, Explain, ELI5, Elaborate, Summarize, Connect, Fact Check, AI Wiki, Grammar, Counterpoint)
 
-Configure the Quick Actions panel (available via gesture in reader mode).
-- **Panel Actions**: Reorder or remove actions from the Quick Actions panel. Add new actions via Action Manager → hold action → "Add to Quick Actions". Also accessible via the gear icon in the Quick Actions panel title bar → Panel Actions.
-- **QA Panel Utilities**: Show/hide and reorder utility buttons that appear below actions in the panel. Tap to toggle visibility, hold to move up/down. Also accessible via the gear icon → Panel Utilities.
-  - Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action
-  - Chat History, Notebook (View/Edit popup), View Artifacts (opens picker when any artifacts exist), [Book Settings](#book-settings), Quick Settings
-  - All utilities are enabled by default. Disable any you don't use to streamline the panel.
+#### Dictionary popup
+- **Show AI buttons**: Add AI buttons to KOReader's dictionary popup
+- **Dictionary Popup Actions**: Configure which actions appear in the AI dictionary menu (reorder, add custom)
+
+#### File browser
+- **Show KOAssistant actions**: Add KOAssistant buttons to file browser context menus (requires restart)
+- **Show Notebook button**: Show a "Notebook" button when long-pressing books in the file browser
+- **Only for books with notebooks**: Only show the button if a notebook already exists (disable to allow creating notebooks from the file browser)
+- **File Browser Actions**: Choose which actions appear in the file browser long-press menu
+
+#### Quick panels
+- **Panel Actions**: Choose which actions appear on the Quick Actions panel (reader mode). Add new ones via Action Manager → hold action → "Add to Quick Actions". Also reachable from the panel's gear icon.
+- **Panel Utilities**: Choose and order the utility buttons on the Quick Actions panel (Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Book Settings, Quick Settings). Also reachable from the panel's gear icon.
+- **Quick Settings Items**: Choose and order the tiles on the Quick Settings panel (Provider, Model, Behavior, Domain, Temperature, Reasoning, Web Search, Book Tools, Language, Translation/Dictionary Language, bypass toggles, Text Extraction, Chat History, Browse Notebooks/Artifacts, Library/General/Book Chat, Continue Last Chat, Manage Actions, Quick Actions, More Settings). Also reachable from the panel's gear icon.
+
+#### Gestures
+- **Register gesture actions**: Register KOAssistant actions in KOReader's gesture dispatcher (requires restart). Only affects actions added via "Add to Gesture Menu" in Action Manager. Built-in gestures (Chat History, Quick Settings, toggles, etc.) are always available.
+
+#### Text selection in viewers
+- **Enhance text selection**: Add dictionary lookup and an action popup to text selection in KOReader's own viewers (Dictionary popup, TextViewer, etc.). Single word → dictionary; long-press single word or multi-word → popup with Copy, Dictionary, Translate (default: OFF, requires restart)
+
+#### Input dialog
+- Action rows and toolbar chips are configured from the input dialog's own gear menu ("Toolbar Buttons…" / "Chat Buttons…"). See [Session Chips](#session-controls-chips) and [Input Dialog Actions](#input-dialog).
+
+**Note:** File browser, gesture menu, and Enhance Text Selection changes require a KOReader restart since they are registered at plugin startup. Highlight menu and dictionary popup changes take effect the next time the menu opens.
 
 ### Actions & Prompts
 - **Manage Actions**: See [Actions](#actions) section for full details
 - **Manage Behaviors**: Select or create AI behavior styles (see [Behaviors](#behaviors))
 - **Manage Domains**: Create and manage knowledge domains (see [Domains](#domains))
+- **Domain & Research**: The default domain and research mode for AI requests. Individual books can override both in Book Settings.
 
 ### Notebook Settings
 - **Browse Notebooks...**: Open the Notebook Manager to view all notebooks
-- **Save Location**: Where notebook files are stored
-  - **Alongside book** (default): In the book's sidecar folder (`.sdr/koassistant_notebook.md`). Travels with the book automatically.
-  - **KOAssistant notebooks folder**: Central `koassistant_notebooks/` folder. Files named `Author — Title.md` with YAML frontmatter.
-  - **Custom folder**: User-selected directory (e.g., Obsidian vault folder). Same naming and frontmatter as central. Selecting this opens a path picker; re-selecting reopens the picker.
 - **Content Format**: What to include when saving to notebook
   - **Response only**: Just the AI response
   - **Q&A**: Highlighted text + question + response
@@ -2458,15 +2716,18 @@ Configure the Quick Actions panel (available via gesture in reader mode).
 - **Viewer Mode**: Choose how notebooks open (default: Chat Viewer)
   - **Chat Viewer**: Opens in the plugin's viewer with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
   - **KOReader**: Opens as a full document in KOReader's reader with page navigation
-- **Show in file browser menu**: Show "Notebook (KOA)" button when long-pressing books (default: on)
-- **Only for books with notebooks**: Only show button if notebook already exists (default: on). Disable to allow creating notebooks from file browser.
-- **Allow Notebook sharing** (Privacy): Controls whether notebook content is sent to the AI via `{notebook}` placeholder
+- **Save Location**: Where notebook files are stored
+  - **Alongside book** (default): In the book's sidecar folder (`.sdr/koassistant_notebook.md`). Travels with the book automatically.
+  - **KOAssistant notebooks folder**: Central `koassistant_notebooks/` folder. Files named `Author — Title.md` with YAML frontmatter.
+  - **Custom folder**: User-selected directory (e.g., Obsidian vault folder). Same naming and frontmatter as central. Selecting this opens a path picker; re-selecting reopens the picker.
 
 Changing save location prompts to migrate existing notebooks. Vault/central filenames use `Author — Title.md` pattern with sanitization and collision handling.
 
+> The notebook **entry-point toggles** (Show Add to Notebook button in the highlight menu, Show Notebook button in the file browser, Only for books with notebooks) now live in **[Menus & Buttons](#koreader-integration)**. The **Allow Notebook sharing** privacy toggle (controls whether notebook content is sent to the AI via `{notebook}`) lives in **[Privacy & Data](#privacy--data)**.
+
 ### Privacy & Data
 See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers and the reasoning behind these defaults.
-- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass all data sharing controls AND text extraction (all data types are available without toggling individual settings)
+- **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass all data sharing controls AND text extraction AND the library-scanning toggle (a scan folder is still required) — all data types are available without toggling individual settings
 - **Preset: Default**: Recommended balance: progress and chapter info shared, personal content private
 - **Preset: Minimal**: Maximum privacy: only question and book metadata sent
 - **Preset: Full**: Enable all data sharing for full functionality (does not enable text extraction)
@@ -2475,55 +2736,58 @@ See [Privacy & Data](#privacy--data) for background on what gets sent to AI prov
   - **Allow Highlights**: Send your highlighted text passages without notes (default: OFF). Grayed out when annotations enabled.
   - **Allow Notebook**: Send notebook entries (default: OFF)
   - **Allow Basic Stats**: Send reading progress percentage, chapter title, chapters read count, time since last opened (default: ON)
+  - **Allow Library Scanning**: Enables library actions that analyze your book collection (mirrors the toggle in Reading & Library)
   - **Allow Advanced Stats**: Share reading engagement data derived from KOReader's Statistics plugin: curated groups based on reading time and completion patterns (default: OFF)
 - **Text Extraction** (submenu): Settings for extracting book content for AI analysis
-  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs and a tip about using Hidden Flows to save tokens.
+  - **Allow Text Extraction**: Master toggle for text extraction (off by default). When enabled, actions can extract and send book text to the AI. Used by X-Ray, Recap, Explain in Context, Analyze in Context, AI Book Tools, and actions with text placeholders (`{book_text}`, `{full_document}`, etc.). Enabling shows an informational notice about token costs and a tip about using Hidden Flows to save tokens.
   - **Max Text Characters**: Maximum characters to extract (100,000-10,000,000, default 4,000,000 ~1M tokens). The default covers most books with Gemini's 1M-token context; lower it for smaller models
   - **Max Pages (PDF, DJVU, CBZ…)**: Maximum pages to extract from page-based formats (100-5,000, default 2,000)
   - **Don't warn about truncated extractions**: When unchecked (default), a blocking warning dialog appears before sending requests where extracted text was truncated to fit the character limit. It shows the coverage percentage so you know how much of the document was included. The warning offers Cancel, Continue Anyway, or Don't warn again
   - **Don't warn about large extractions**: When unchecked (default), a warning dialog appears before sending requests with over 500K characters (~125K tokens) of extracted text. Most models except Gemini will struggle at this size. The warning offers Cancel, Continue, or Don't warn again
-  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes, Key Arguments, Discussion Questions, Quiz, Insights, Reading Guide) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
-
-### KOReader Integration
-Control where KOAssistant appears in KOReader's menus. All toggles default to ON; disable any to reduce UI presence.
-- **Show in File Browser**: Add KOAssistant buttons to file browser context menus (requires restart)
-- **Show in Highlight Menu**: Add the main "Chat/Action" button to the highlight popup (requires restart)
-- **Show Highlight Quick Actions**: Add Explain, Translate, and other action shortcuts to the highlight popup (requires restart)
-- **Show in Dictionary Popup**: Add AI buttons to KOReader's dictionary popup
-- **Enhance Text Selection**: Add dictionary lookup and action popup to text selection in KOReader's own viewers (Dictionary popup, TextViewer, etc.). Same behavior as KOAssistant viewers: single word → dictionary, long-press single word or multi-word → popup with Copy, Dictionary, Translate (default: OFF, requires restart)
-- **Show in Gesture Menu**: Register custom action gestures in KOReader's gesture dispatcher (requires restart). Only affects actions added via "Add to Gesture Menu" in Action Manager. Built-in gestures (Chat History, Quick Settings, toggles, etc.) are always available.
-
-**Note:** File browser, highlight menu, gesture menu, and Enhance Text Selection changes require a KOReader restart since they are registered at plugin startup. Dictionary popup changes take effect immediately. To customize which actions appear in each menu, use **Action Manager → hold action** to add/remove from specific menus.
-
-> Recap Reminder and End of Book settings have moved to **Chat & Export Settings → Reading & Library**.
-
-### Temperature
-- **Temperature**: Response creativity (0.0-2.0, Anthropic max 1.0). Top-level setting for quick access.
+  - **Clear Action Cache**: Clear cached artifact responses (X-Ray, X-Ray (Simple), Recap, Summary, Analysis, About, Analyze Notes, Key Arguments, Counterarguments, Discussion Questions, Quiz, Insights, Reading Guide) for the current book (requires book to be open). To clear just one action, use the delete button in the artifact viewer instead.
 
 ### Backup & Reset
-Backup and restore functionality, plus reset options. See [Backup & Restore](#backup--restore) for full details.
+Backup and restore functionality, index maintenance, plus reset options. See [Backup & Restore](#backup--restore) for full details.
 - **Create Backup**: Save settings, API keys, custom content, and chat history
 - **Restore from Backup**: Restore from a previous backup
 - **View Backups**: Manage existing backups and restore points
-- **Reset Settings**: Re-run Setup Wizard, Quick resets (Settings only, Actions only, Fresh start), Custom reset checklist, Clear chat history
+- **Validate Data Indexes**: Check chat history, artifact, notebook, and pinned indexes for stale entries (books moved/deleted outside KOReader) and fix count mismatches. Runs automatically per-entry while browsing; run a full pass here if needed.
+- **Rebuild Data Indexes**: Find books whose KOAssistant data (artifacts, chats, notebooks, pinned) exists on disk but doesn't show in this device's browsers — e.g. after syncing sidecar files from another device, restoring a backup, or migrating devices. Checks your reading history, KOReader's sidecar locations, and the scan folders below; may take a while on large libraries. See [Index Heal/Rebuild](#data-indexes-validate--rebuild).
+- **Index Scan Folders**: Folders to scan during a rebuild — point this at your synced book folders (only these are scanned, and only when a rebuild runs). Note: a settings reset clears this list.
+- **Auto-Rebuild on Startup**: Also run the rebuild automatically after KOReader starts, at most once per day, quietly in the background (only when scan folders are configured)
+- **Reset Settings**: Re-run Setup Wizard; Quick resets (Settings only, Actions only, Fresh start); Custom reset checklist; Clear all chat history
 
 ### Advanced
-- **Reasoning/Thinking**: Per-model reasoning control. See [Reasoning/Thinking](#reasoningthinking) for the full explanation.
+- **Reasoning**: Per-model reasoning control. See [Reasoning/Thinking](#reasoningthinking) for the full explanation.
   - **Global stance**: Minimal / Default / Maximum — one dial applied to every model, as far as each allows (default: **Default** = each model's normal behavior). "Minimal" turns reasoning off where the model supports it (otherwise its lowest setting); "Maximum" requests the deepest reasoning.
   - **Per-model reasoning**: Browse a provider's models and override any individual model — Follow global / Off / a specific level. Only configurable models are listed.
   - **Show Indicator in Chat**: Display "*[Reasoning was used]*" in chat when reasoning is active (default: on). The full reasoning is always viewable via the "Show Reasoning" button regardless.
+  - There is no global reasoning on/off switch — reasoning is per-model. A one-shot per-chat reasoning override is also available via the ⚡ **Quick** chip's hold-menu (Follow / Off / On).
 - **Web Search**: Allow AI to search the web for current information:
-  - **Enable Web Search**: Global toggle (default: off). Supported by Anthropic, Gemini, and OpenRouter. Perplexity always searches the web (no toggle needed).
-  - **Max Searches per Query**: 1-10 searches per query (Anthropic only, default: 5)
-  - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on)
-- **AI Book Tools (Experimental)**: Let the AI search and read the open book on demand to ground its answers in the actual text (default: **off**). Supported on Gemini, Claude (Anthropic), OpenAI, and OpenRouter (Claude/GPT/Gemini models); other providers fall back to normal chat. Requires "Allow Text Extraction". No streaming while the AI looks things up. See [AI Book Tools](#ai-book-tools-experimental).
-  - **AI Book Tools: Show Lookups (debug)**: Append the AI's tool lookups and raw results to each answer, for debugging (default: off). Can include book-text snippets.
+  - **Enable Web Search**: Global default (default: off). Supported by Anthropic (all models), Gemini (Search-grounding-capable models), OpenAI (GPT-5 models via the Responses API), xAI (Grok-4 models via the Responses API), OpenRouter (any model via the `:online` suffix), and Perplexity (always searches, no toggle needed). Other providers ignore this. This is a global default — per-request toggles (the input dialog's **Web** chip, the chat viewer) adapt to the active provider, and it can be overridden per book.
+  - **Web Search Effort**: How much searching the AI may do per question — Light (fewest searches), Standard (provider defaults), or Thorough (most searches). Applies where the provider offers control: Anthropic (up to 2/5/10 searches), OpenAI and Perplexity (search context size), OpenRouter (3/5/10 results). Gemini and xAI decide automatically.
+  - **Show Indicator in Chat**: Display "*[Web search was used]*" in chat when search is used (default: on). Sources (URLs, queries) are viewable via the chat menu's "Show Sources" entry.
+- **Image Generation**: Generate images from highlighted text. See [Image Generation](#image-generation).
+  - The submenu opens with a note that this generates images from highlighted text via the "Generate Image" highlight-menu button — there is no separate enable toggle here; the on/off control is the "Show Generate Image button" toggle documented under Menus & Buttons → Highlight menu.
+  - **Provider**: Follow main provider / OpenAI / xAI / Gemini. "Follow main provider" uses your current chat provider when it supports images; picking one explicitly lets image generation work regardless of the active chat provider (using that provider's own API key). The button only appears when the resolved provider has an API key.
+  - **Model**: Image model for the chosen provider (from the built-in image-model lists)
+  - **Size** (OpenAI): Default / 1024x1024 / 1536x1024 (landscape) / 1024x1536 (portrait)
+  - **Quality** (OpenAI): Default / Low / Medium / High (higher is slower and costs more)
+  - **Aspect ratio** (xAI): Default / 1:1 / 16:9 / 9:16 / 3:2 / 2:3
+  - **Generated images…**: Browse, view, and delete the images generated so far (also opens from the Quick Actions "View Artifacts" and the Artifact Browser). Images are kept in `data_dir/koassistant_images`.
 - **Provider Settings**:
-  - **Qwen Region**: Select your Alibaba Cloud region (International/China/US). API keys are region-specific and not interchangeable.
-  - **Z.AI Region**: Select endpoint (International/China). Same API key works on both endpoints.
+  - **Z.AI Region**: Select endpoint (International: api.z.ai / China: open.bigmodel.cn). Same API key works on both.
+  - **Qwen Region**: Select your Alibaba Cloud region (International: Singapore / China: Beijing / US: Virginia). API keys are region-specific and NOT interchangeable.
+- **AI Book Tools (Experimental)**: Let the AI search and read the open book on demand to ground its answers in the actual text. See [AI Book Tools](#ai-book-tools-experimental). Supported on Gemini, Claude (Anthropic), OpenAI, OpenRouter (Claude/GPT/Gemini models), plus DeepSeek, Mistral, Groq, and xAI; other providers fall back to normal chat. Requires "Allow Text Extraction".
+  - **AI Book Tools** (posture): Off (no tool use anywhere; the Tools chip disappears) / Manual (the Tools chip in book chats starts OFF) / Auto (default; the Tools chip starts ON — the AI still decides per question whether to actually search). Predefined actions never use tools unless they explicitly offer smart retrieval. Overridable per book, and per-chat via the **Tools** chip.
+  - **Book Tools Mode**: Gather then answer (default; the AI quietly collects passages first, then answers as a normal streamed request with web search available) or Interactive (the original agentic loop; no streaming or web search while tools run).
+  - **Book Tools Lookup Effort**: Quick (up to 4 lookups in 2 rounds) / Standard (up to 8 in 4 rounds) / Thorough (up to 16 in 6 rounds, larger passage budget).
+  - **AI Book Tools: Show Indicator in Chat**: Show "*[Searched the book — N lookups]*" when tools ran (default: on). Individual lookups are always viewable via "Show Sources".
+  - **AI Book Tools: Show Lookups (debug)**: Append the AI's tool lookups and raw results to each answer, for debugging (default: off). Can include book-text snippets.
 - **Console Debug**: Enable terminal/console debug logging. When enabled, also shows token usage (input, output, cache hits) in the terminal after each API response.
 - **Show Debug in Chat**: Display debug info in chat viewer
 - **Debug Detail Level**: Verbosity (Minimal/Names/Full)
+- **Truncate Large Content (debug)**: Truncate long content (book text, cached responses) in debug output — shows the first and last ~1500 characters with a truncation notice
 - **Test Connection**: Verify API credentials work
 
 ### About
@@ -2542,11 +2806,13 @@ KOAssistant can update itself with one tap. [Implementation](https://github.com/
 When KOAssistant detects a new version (automatically on startup, or via a manual check), the release notes dialog includes an **"Update Now"** button. Tap it and the plugin handles everything:
 
 1. Downloads the release zip from GitHub
-2. Extracts and verifies the new version
+2. Extracts it to a staging folder and verifies the new version (checks `_meta.lua`/`main.lua` exist and the version matches)
 3. Preserves your configuration files (`apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders)
-4. Swaps in the new version
-5. Restores your configuration files
+4. Swaps the old plugin folder aside and moves the new version into place (if the swap fails, the previous version is automatically restored)
+5. Restores your configuration files into the new version
 6. Prompts you to restart KOReader
+
+The list of files preserved during an update is **derived from the plugin's storage registry** (a single source of truth for everything KOAssistant owns on disk), the same list that drives backups and resets — so nothing you've created is missed.
 
 The "Update Now" button appears in both the original and translated release notes viewers, so you can read the notes in your language and update from the same dialog.
 
@@ -2558,7 +2824,7 @@ Your settings and data are **not affected** by updates (automatic or manual):
 - **All settings** (provider, model, features, privacy, etc.) are stored outside the plugin folder
 - **API keys entered via Settings menu** are stored outside the plugin folder
 - **Chat history, notebooks, caches** are all stored in KOReader's settings/sidecar files
-- **Backups** (created via Settings → Backup & Restore) are stored outside the plugin folder
+- **Backups, exports, and generated images** are stored outside the plugin folder (in `koassistant_backups/`, `koassistant_exports/`, and `koassistant_images/` under KOReader's data directory)
 
 The auto-updater also preserves the optional configuration files that live inside the plugin folder: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders.
 
@@ -2608,7 +2874,7 @@ cd /path/to/koreader/plugins/koassistant.koplugin
 git pull
 ```
 
-This gives you the latest development version (may include unreleased changes). The auto-updater detects git-based installs and disables itself to avoid overwriting your repository.
+This gives you the latest development version (may include unreleased changes). The auto-updater detects git-based installs (presence of a `.git` folder) and disables itself to avoid overwriting your repository.
 
 ---
 
@@ -2621,24 +2887,27 @@ KOAssistant includes both automatic and manual update checking to keep you infor
 By default, KOAssistant automatically checks for updates **at most once a day**, about 20 seconds after KOReader starts (only when Wi-Fi is on) — deferred so it never competes with opening your book.
 
 **How it works:**
-1. Shortly after KOReader starts, KOAssistant checks for updates silently in the background (no notification for auto-checks); if a check succeeded within the last 24 hours, it's skipped entirely
-2. The check runs in the background without blocking your workflow (8 second timeout)
+1. Roughly 20 seconds after KOReader starts, KOAssistant checks for updates silently in the background (no notification for auto-checks). If a check already succeeded within the last 24 hours, it's skipped before any network work happens
+2. The check runs in a subprocess without blocking your workflow (8-second timeout); if Wi-Fi is off, it's skipped entirely
 3. If a new version is available, a dialog appears with:
    - Current version and latest version
    - Full release notes in formatted markdown with clickable links
-   - **"Update Now"** button to install the update directly (see [Automatic Update](#automatic-update-one-tap))
+   - **"Update Now"** button to install the update directly (see [Automatic Update](#automatic-update-one-tap)) — hidden for git-based installs and when no zip asset is attached to the release
    - "Visit Release Page" button to view on GitHub (opens in browser if device supports it)
-   - "Translate" button to translate release notes to your language (only shown if non-English)
+   - "Translate" button to translate release notes to your language (only shown if you have non-English interaction languages configured)
    - "Later" button to dismiss
+
+If a response is streaming when an update is found, the popup is deferred until streaming finishes.
 
 **What's checked:**
 - Compares your installed version against GitHub releases
 - Includes both stable releases and pre-releases (alpha/beta)
-- Uses semantic versioning (handles version strings like "0.6.0-beta")
-- Checks at most once a day (and once per session); a failed check is retried on the next start
+- Uses semantic versioning (handles version strings like "0.6.0-beta", and strips `v`/`v.` prefixes from tags)
+- Picks the highest release by comparing versions (not by list order)
+- Checks at most once a day (and once per session); a failed check is retried on the next start (the timestamp is only recorded on success)
 
 **To disable automatic checking:**
-- Go to **Settings → About → Auto-check for updates on startup** and toggle it off
+- Go to **Settings → Auto-check for updates on startup** and toggle it off (this option lives near the bottom of the Settings menu, alongside "About KOAssistant" and "Check for Updates")
 - Or add to your `configuration.lua`:
   ```lua
   features = {
@@ -2650,16 +2919,18 @@ By default, KOAssistant automatically checks for updates **at most once a day**,
 
 You can manually check for updates any time via:
 
-**Tools → KOAssistant → Settings → About → Check for Updates**
+**Tools → KOAssistant → Settings → Check for Updates**
 
-Manual checks always show a result (whether update is available or you're already on the latest version).
+Manual checks always show a result (whether an update is available or you're already on the latest version) and use a longer 15-second timeout.
 
 ### Version Comparison
 
 The update checker intelligently compares versions:
-- **Newer version available** → Shows release notes dialog
+- **Newer version available** → Shows the release notes dialog
 - **Already on latest** → "You are running the latest version" message
-- **Development version** (newer than latest release) → "You are running a development version" message
+- **Development version** (newer than the latest release) → "You are running a development version" message
+
+Pre-release ordering is handled too (alpha < beta < rc < release, and a final release outranks its own pre-releases).
 
 ---
 
@@ -2683,6 +2954,9 @@ return {
         openai = {
             base_url = "https://your-proxy.example.com/v1/chat/completions",
         },
+        anthropic = {
+            base_url = "https://your-proxy.example.com/v1/messages",
+        },
         gemini = {
             -- Gemini base_url is the prefix; the handler appends /{model}:generateContent
             base_url = "https://your-proxy.example.com/v1beta/models",
@@ -2702,6 +2976,8 @@ return {
 }
 ```
 
+The sample file (`configuration.lua.sample`) documents additional feature keys you can set here (display, translation, streaming, behavior, web search, debug, and more), but all of them are optional — uncomment only what you need.
+
 **Priority:** Settings UI > configuration.lua > built-in defaults. Once you change a setting in the UI, the UI value takes precedence over configuration.lua.
 
 > **Proxy services vs. custom providers:** If you use a proxy or relay service that speaks each provider's native API format (e.g., an OpenAI-compatible endpoint for OpenAI, an Anthropic-compatible endpoint for Anthropic), use `provider_settings` to override the `base_url` for each provider. Don't add it as a custom provider. Custom providers (Settings → Provider → Add custom provider) are for services with their own model catalog that use the OpenAI-compatible API format.
@@ -2710,7 +2986,7 @@ return {
 
 ## Backup & Restore
 
-KOAssistant includes comprehensive backup and restore functionality to protect your settings, custom content, and optionally API keys and chat history.
+KOAssistant includes comprehensive backup and restore functionality to protect your settings, custom content, and optionally API keys and chat history. The lists of what gets backed up, restored, and reset all derive from the plugin's **storage registry** (a single source of truth for every file, folder, and setting the plugin owns), so the three flows stay in sync.
 
 **Access:** Tools → KOAssistant → Settings → Backup & Reset
 
@@ -2720,11 +2996,11 @@ Backups are selective: choose what to include:
 
 | Category | What's Included | Default |
 |----------|----------------|---------|
-| **Core Settings** | Provider/model, behaviors, domains, temperature, languages, all toggles, custom providers, custom models, action menu customizations | Always included |
+| **Core Settings** | Provider/model, behaviors, domains, temperature, languages, all toggles, custom providers, custom models, action menu customizations, and general/library pinned artifacts | Always included |
 | **API Keys** | Your API keys (encrypted storage planned for future) | ⚠️ Excluded by default |
-| **Configuration Files** | configuration.lua, custom_actions.lua (if they exist) | Included if files exist |
-| **Domains & Behaviors** | Custom domains and behaviors from your folders | Included |
-| **Chat History** | All saved conversations | Excluded (can be large) |
+| **Configuration Files** | configuration.lua, custom_actions.lua (and apikeys.lua only if "Include API Keys" is on), if they exist | Included if files exist |
+| **Domains & Behaviors** | Custom domains and behaviors from your folders (`.md`/`.txt` files) | Included |
+| **Chat History** | All saved conversations (book, general, and library chats) | Excluded (can be large) |
 
 **Security note:** API keys are stored in plain text in backups. Only enable "Include API Keys" if you control access to your backup files.
 
@@ -2734,9 +3010,9 @@ Backups are selective: choose what to include:
 1. Settings → Backup & Reset → Create Backup
 2. Choose what to include (checkboxes for each category)
 3. Tap "Create Backup"
-4. Backup saved to `koassistant_backups/` folder with timestamp
+4. Backup saved to `koassistant_backups/` folder with a timestamp
 
-**Backup format:** `.koa` files (KOAssistant Archive) are tar.gz archives containing your settings and content.
+**Backup format:** `.koa` files (KOAssistant Archive) are tar.gz archives containing your settings, content, and a `manifest.json` (records what's included, the plugin version, and item counts).
 
 **When to create backups:**
 - Before major plugin updates
@@ -2756,7 +3032,7 @@ Backups are selective: choose what to include:
    - **Merge** (advanced): Intelligently merges backup with current settings
 6. Tap "Restore Now"
 
-**Automatic restore point:** A restore point is automatically created before every restore operation, so you can undo if needed.
+**Automatic restore point:** A restore point is automatically created before every restore operation, so you can undo if needed. If a restore fails midway, KOAssistant automatically rolls back to that restore point.
 
 **After restore:** Restart KOReader for all settings to take full effect.
 
@@ -2820,17 +3096,28 @@ The restore system validates settings and handles edge cases:
 **What's validated:**
 - **Custom actions**: Skips actions with missing required fields
 - **Action overrides**: Skips overrides for actions that no longer exist or have changed
-- **Version compatibility**: Warns if backup was created with different plugin version
+- **Version compatibility**: Warns if the backup was created with a different plugin version
+- **Missing documents**: Chats for books that no longer exist on this device are skipped (rather than restoring dead entries)
 
 **If issues found:** Warnings are shown after restore completes. Invalid items are skipped but valid items are restored successfully.
 
-### Validate Data Indexes
+### Data Indexes (Validate & Rebuild)
 
-Settings → Backup & Reset → **Validate Data Indexes** checks the chat-history, artifact, notebook, and pinned indexes for stale entries (books moved or deleted outside KOReader) and repairs count mismatches. Indexes self-heal per entry as you browse; run this for a one-pass cleanup of all four at once.
+KOAssistant's global browsers (artifacts, chats, notebooks, pinned) run on lightweight device-local indexes, while the data itself travels with the book in its `.sdr` sidecar. If you move or delete books outside KOReader, or sync sidecar files between devices, those indexes can drift out of sync with what's actually on disk. Two maintenance tools under **Settings → Backup & Reset** keep them accurate, and a lightweight self-heal runs automatically.
+
+**Automatic self-heal:** Each time you open a book, KOAssistant quietly refreshes that book's entries in all four indexes shortly after the book loads. This means synced or restored sidecar data becomes visible in the browsers simply through normal reading — no manual step needed for books you actually open.
+
+**Validate Data Indexes** — Settings → Backup & Reset → **Validate Data Indexes** checks the chat-history, artifact, notebook, and pinned indexes for **stale** entries (books moved or deleted outside KOReader) and repairs count mismatches. It removes entries whose book file no longer exists. Indexes also self-heal per entry as you browse; run this for a one-pass cleanup of all four at once.
+
+**Rebuild Data Indexes** — Settings → Backup & Reset → **Rebuild Data Indexes** does the reverse: it **finds** books whose KOAssistant data exists on disk but isn't showing in this device's browsers — e.g. after syncing sidecar files from another device, restoring a backup, or migrating devices. It discovers candidate books from your reading history, KOReader's central sidecar locations, and the scan folders you've configured (see below), heals their index entries, and then prunes stale ones — a full add-and-remove pass that never wipes an index. Books on unmounted storage get pruned; run again with the storage mounted to re-add them. This can take a while on large libraries. When it finishes, it reports how many books were checked, how many had KOAssistant data, per-index totals, how many stale entries were removed, and how many synced sidecars couldn't be matched to a local book.
+
+**Index Scan Folders** — Settings → Backup & Reset → **Index Scan Folders** lets you point the rebuild at your synced book folders (add/remove folders here). Only these folders are ever scanned, and only when a rebuild runs; folders that don't exist on this device are skipped. This is a purely local scan (no data leaves the device) and is deliberately separate from the privacy-gated Library scan folders. Note that a settings reset clears this list.
+
+**Auto-Rebuild on Startup** — an optional toggle (Settings → Backup & Reset → **Auto-Rebuild on Startup**, off by default) that also runs the rebuild automatically after KOReader starts: at most once per day, quietly in the background, and only when scan folders are configured.
 
 ### Reset Settings
 
-**Access:** Settings → Backup & Reset → Reset Settings
+**Access:** Settings → Backup & Reset → Reset Settings...
 
 #### Setup Wizard
 
@@ -2845,13 +3132,13 @@ Three preset options that cover most needs:
 - Keeps: API keys, all actions, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
 **Quick: Actions only**
-- Resets all action-related settings (custom actions, edits to built-in actions, disabled actions, all action menus: highlight, dictionary, quick actions, general, file browser)
+- Resets all action-related settings (custom actions, edits to built-in actions, disabled actions, and all action menus: highlight, dictionary, quick actions, general, file browser)
 - Keeps: All settings, API keys, custom behaviors/domains, custom providers/models, gesture registrations, chat history
 
 **Quick: Fresh start**
-- Resets everything except API keys and chat history (all settings, all actions, custom behaviors/domains, custom providers/models, gesture registrations)
+- Resets everything except API keys and chat history (all settings, all actions, custom behaviors/domains, custom providers/models)
 - Also clears the setup wizard flag, so the wizard will re-run on next launch to help reconfigure
-- Keeps: API keys, chat history only
+- Keeps: API keys, gesture registrations, chat history only
 
 #### Custom Reset
 
@@ -2868,7 +3155,7 @@ Tap each item to toggle between "✗ Keep" and "✓ Reset", then tap "Reset Sele
 
 #### Clear Chat History
 
-Separate option to delete all saved conversations across all books. This cannot be undone.
+Separate option ("Clear all chat history") to delete all saved conversations across all books. This cannot be undone.
 
 #### Action Manager Menu
 
@@ -2896,15 +3183,26 @@ Works with all providers that support streaming.
 
 ### AI Book Tools (Experimental)
 
-When chatting about an open book, the AI can call **local tools to look things up in the book on demand**, instead of answering only from book metadata and its own training knowledge. This grounds answers in what you've actually read, with real page references. **Off by default** — opt in via **Settings → Advanced → AI Book Tools (Experimental)**.
+When chatting about an open book, the AI can call **local tools to look things up in the book on demand**, instead of answering only from book metadata and its own training knowledge. This grounds answers in what you've actually read, with real page references. Configured via **Settings → Advanced → AI Book Tools**.
 
-- **What it does**: gives the AI three local tools — `search_book` (fuzzy text search), `read_around` (read a specific page range), and `toc` (table of contents) — and lets it call them in a short loop before answering. The search and extraction run **on your device**; only the AI's own tool requests and the bounded text excerpts it asks for are sent to the provider (far less than dumping the whole book).
-- **Providers**: currently **Gemini**, **Claude (Anthropic)**, **OpenAI**, and **OpenRouter** (Claude/GPT/Gemini models). Other providers automatically fall back to normal chat.
+- **What it does**: gives the AI three local tools — `search_book` (fuzzy text search), `read_around` (read a specific page range), and `toc` (table of contents) — and lets it call them before answering. The search and extraction run **on your device**; only the AI's own tool requests and the bounded text excerpts it asks for are sent to the provider (far less than dumping the whole book).
+- **Two modes** (Settings → Advanced → AI Book Tools → mode):
+  - **Gather-then-generate** (default): the AI quietly collects the passages it needs in a first phase (a small status window shows "Consulting book tools…" then "Searching the book…"), then **streams a normal answer** with those passages injected. Web search stays available during the answer. This is the recommended mode — you get grounded answers *and* streaming.
+  - **Interactive**: the original agentic loop — the AI narrates as it searches and reads. Responses don't stream during the tool turns and web search is off, so expect a short wait before the answer appears.
+- **Activation posture** (off / manual / auto):
+  - **Off** — tools are never offered anywhere (this also disables Smart retrieval, below).
+  - **Manual** — the **Tools** chip appears in the input dialog's session chips row unchecked; one tap enables tools for that chat.
+  - **Auto** (default for fresh installs) — tools are offered on every eligible book chat and the model decides per-question whether to actually look anything up (a question answerable from knowledge triggers zero lookups). Existing users are migrated based on their previous setting: those who had the old experimental tool-workflows toggle ON land on Auto; everyone else (off or never set) lands on Manual — either way, behavior is unchanged from before the migration.
+
+  Set the posture globally in Settings, or **per book** (Book Settings, or hold the Tools chip for a For-this-book / Global picker). The per-book value wins over the global one; the Tools chip wins for the current chat once you tap it.
+- **Lookup effort dial** (quick / standard / thorough): caps how many lookups the AI may make per question — **quick** (2 turns / 4 calls), **standard** (4 / 8), **thorough** (6 / 16) — and tells the model its remaining budget so it plans its searches (broad → narrow) instead of being cut off mid-search.
+- **Providers**: **Gemini**, **Claude (Anthropic)**, **OpenAI**, and **OpenRouter**, plus **DeepSeek, Mistral, Groq, and xAI** on tool-capable models. Providers/models without tool support automatically fall back to normal chat.
 - **Requires** "Allow Text Extraction" — the tools read book text (see [Text Extraction and Double-gating](#text-extraction-and-double-gating)). A trusted provider also satisfies this.
-- **Where it applies**: freeform chat and replies about an **open book** (book/highlight context). Not predefined actions like X-Ray or Summary (those already extract their own context), and not general or library chat.
+- **Where it applies**: freeform chat and replies about an **open book** (book/highlight context), plus **Smart retrieval** for two context-aware actions (below). Not predefined artifact actions like X-Ray or Summary (those extract their own context and are deliberately kept tools-free, including their follow-up replies), and not general, library, or X-Ray chat.
+- **Smart retrieval (as an action source)**: two highlight-context actions — **Explain in Context** and **Analyze in Context** — offer "Smart retrieval (AI searches the book)" as a fourth source in the scope/source popup (alongside full text / summary / AI knowledge). The AI gathers the passages relevant to your highlight and question, then answers from them. It is **preselected** when your session is tools-capable; the row is shown grayed with the reason when it isn't (unsupported provider, extraction consent off, tools posture Off, or a non-full scope). Direct entry points (highlight long-press, dictionary) run the same gather silently, with no popup.
 - **Spoiler-aware, structurally**: the tools respect your [Spoiler-Free Mode](#spoiler-free-mode) setting *in code*. When spoiler-free is on, they can only read **up to your current page** — the AI physically cannot read ahead. When it's off, they can read the **whole document** (useful for research papers, non-fiction, and finished books, where you *want* forward references).
-- **No streaming**: responses don't stream while the AI is looking things up (it needs each complete tool result to decide its next step), so expect a short wait before the answer appears.
-- **Experimental**: work in progress; behavior may change. For debugging, **Settings → Advanced → AI Book Tools: Show Lookups** appends what the AI searched/read to each answer (off by default; can include book-text snippets).
+- **Trust signal**: after tools run you'll see a "Searched the book — N lookups" indicator on the answer (per-message; toggleable, on by default), and the exact searches and page ranges are viewable via **Show Sources** in the chat viewer's gear menu — the same surface as web-search sources (see [Web Search](#web-search)).
+- **Experimental**: work in progress; behavior may change. A **"Show Lookups (debug)"** toggle (Settings → Advanced → AI Book Tools) appends the tool lookups, raw tool results, and token usage directly to each answer — off by default; leave it off for clean production answers (the raw results can include book-text snippets).
 
 ### Prompt Caching
 
@@ -2926,7 +3224,7 @@ Prompt caching reduces costs and latency by reusing previously processed prompt 
 
 ### Document Artifacts
 
-Twelve actions produce **document artifacts**: persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source. Actions with source selection let you choose the compact summary (~few thousand tokens) instead of full document text (~100K+ tokens).
+Thirteen actions produce **document artifacts**: persistent, per-book outputs you can browse anytime without re-running the action. All artifact types are viewable as standalone reference guides. The **Summary** artifact is additionally reusable as a document source. Actions with source selection let you choose the compact summary (~few thousand tokens) instead of full document text (~100K+ tokens).
 
 **Artifact types:**
 
@@ -2940,20 +3238,21 @@ Twelve actions produce **document artifacts**: persistent, per-book outputs you 
 | **About** | About action | Reader-oriented overview from AI knowledge | **Text viewer**, background, reception, and reading context. No text extraction needed. Uses web search when enabled for current information. |
 | **Analyze Notes** | Analyze Notes action | Analysis of your highlights and annotations | **Text viewer**, patterns in what you've been noting, reading engagement analysis. Updates as you add more notes. |
 | **Key Arguments** | Key Arguments action | Thesis, evidence, assumptions, counterarguments | **Text viewer**, source selection (full text / summary / AI knowledge). Supports section scope. |
+| **Counterarguments** | Counterarguments action | Prosecutes the case against the work: steelmanned opposing positions, the argument's weakest links, what would falsify it, and who disagrees and why | **Text viewer**, source selection (full text / summary / AI knowledge). Supports section scope. The adversarial counterpart to Key Arguments — that one maps the argument, this one argues back. |
 | **Discussion Questions** | Discussion Questions action | Comprehension, analytical, interpretive, personal questions | **Text viewer**, source selection. Supports section scope. |
 | **Quiz** | Quiz action | Interactive one-at-a-time viewer with scoring | **Quiz viewer**, source selection. Supports section scope. Auto-trigger at chapter ends. |
 | **Reading Guide** | Reading Guide action | Spoiler-free guide: threads, patterns, context, approach | **Text viewer**, source selection. Supports section scope. Updates as you read further. |
 | **Key Insights** | Extract Key Insights action | Important takeaways, novel perspectives, actionable conclusions | **Text viewer**, source selection. Supports section scope. |
 
-Beyond these twelve generated artifacts, **AI Wiki** entries (generated from the X-Ray browser or from highlighted text) are also stored as cached artifacts and appear in the Artifact Browser. You can also **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
+Beyond these thirteen generated artifacts, **AI Wiki** entries (generated from the X-Ray browser or from highlighted text) are also stored as cached artifacts and appear in the Artifact Browser. **Generated images** are indexed per book and surfaced alongside artifacts as a "Generated Images" group. You can also **pin any chat's last response as a named pseudo-artifact** using the Pin / ★ button in the chat viewer. Pinned artifacts appear alongside generated ones in the Artifact Browser and artifact cross-navigation, using your chosen name. See [Starring & Pinning](#starring--pinning) for details.
 
 **Viewing artifacts:**
 - **Quick Actions** → Tap any artifact action. If a cache exists, a View/Update/Regenerate popup appears; if not, generation starts directly. "View Artifacts" button appears when any artifacts exist, opening a picker.
 - **File Browser** → Long-press a book → "View Artifacts (KOA)" → pick any cached artifact
 - **Artifact Browser** → Browse all documents with cached/pinned artifacts. Access from Chat History or Notebook browser hamburger menus (☰), or Settings → Quick Actions → Browse Artifacts.
   - **Top sections**: General Pinned and Library Pinned appear at the top when pinned artifacts exist in those contexts
-  - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts
-  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus section groups ("View Section X-Rays (N)", "View Section Summaries (N)", etc.), "AI Wiki Entries (N)", and "Pinned Artifacts (N)" when they exist, plus "Open Book". Group popups (sections, AI Wiki, Pinned) layer over the artifact selector; dismiss to return to the selector
+  - **Per-book entries**: Show combined count of generated artifacts + pinned artifacts (a book with only generated images also appears, via the images index)
+  - **Tap** → Artifact selector popup: Summary, X-Ray, etc., plus section groups ("View Section X-Rays (N)", "View Section Summaries (N)", etc.), **"Previous X-Ray Versions (N)"** (archived X-Ray snapshots, shown right under the X-Ray row when history exists — see [X-Ray version history](#reading-analysis-actions)), **"Generated Images (N)"** (opens the gallery filtered to this book), "AI Wiki Entries (N)", and "Pinned Artifacts (N)" when they exist, plus "Open Book". Group popups (sections, versions, images, AI Wiki, Pinned) layer over the artifact selector; dismiss to return to the selector
   - **Hold** → Options popup: "View", "Delete All", "Cancel"
   - **Hamburger menu** (☰) → Navigate to Chat History or Browse Notebooks
 - **Gesture** → Add artifact actions to gesture menu via Action Manager (hold action → "Add to Gesture Menu")
@@ -2965,7 +3264,7 @@ Beyond these twelve generated artifacts, **AI Wiki** entries (generated from the
 
 **→ Chat:** Tapping "→ Chat" opens a reply box on top of the artifact viewer. Type your question and hit Send. The artifact viewer closes and a direct chat opens with the AI, using the artifact content as context. The AI knows this is a previously generated artifact (not the book text itself). The resulting chat saves as a regular book chat with full Reply, Save, and Export capabilities.
 
-X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes, Reading Guide) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, About, Key Arguments, etc.) show "Regenerate".
+X-Ray artifacts open in a **browsable category menu** (see [Reading Analysis Actions](#reading-analysis-actions) for details); all other artifacts open in the text viewer. Legacy markdown X-Rays fall back to the text viewer. Position-relevant artifacts (X-Ray, X-Ray Simple, Recap, Analyze Notes, Reading Guide) show "Update" in the viewer and popup; position-irrelevant artifacts (Summary, Analysis, About, Key Arguments, Counterarguments, etc.) show "Regenerate".
 
 > **Cache source tracking:** Each artifact records metadata about how it was generated: data source (extracted text vs AI training knowledge), model used, generation date, and whether reasoning or web search was used. The Info button in the artifact viewer shows all metadata. Artifacts built without text extraction use the AI's training knowledge. This works well for popular books but may be less accurate for obscure works. You can always regenerate with text extraction enabled for higher quality.
 
@@ -2991,6 +3290,8 @@ All artifact results are cached per book. X-Ray and Recap additionally support *
 
 **Stale X-Ray notification:** When you open the X-Ray browser and your reading has advanced >5% past the cached progress, a popup shows the gap (e.g., "X-Ray covers to 29% — You're now at 39%") with **Update** and **Don't remind me this session** buttons. This also appears when looking up items via "Look up in X-Ray" from highlight/dictionary. You can also update anytime from the browser's options menu (☰). Stale notifications don't appear for 100% caches.
 
+> **Automatic X-Ray upkeep (opt-in):** X-Ray can also **auto-update in the background** as you read (a silent request path that keeps the cache close to your position without prompting) and **auto-create** the first X-Ray early in a book. Prior X-Ray states are archived to a rolling **version history** — browse, restore, or delete earlier versions (with a configurable keep-count), which is handy for re-reads. These are opt-in; see [Reading Analysis Actions](#reading-analysis-actions).
+
 **X-Ray format:** X-Ray results are stored as structured JSON with type-specific categories (fiction, non-fiction, or academic, see [Reading Analysis Actions](#reading-analysis-actions)) plus status sections (Current State/Current Position/Conclusion). The JSON is rendered to readable markdown for chat display and `{xray_cache_section}` placeholders, while the raw JSON powers the browsable menu UI. Legacy markdown X-Rays from older versions are still viewable but will be replaced with JSON on the next run. Academic type is automatically selected when [Research Mode](#research-mode) detects a DOI.
 
 > **X-Ray (Simple) caching:** X-Ray (Simple) results are cached as a separate artifact alongside X-Ray. Unlike X-Ray, it doesn't support incremental updates; every generation is fresh. When your reading position advances, the "View/Update" popup lets you update (regenerate at the new position). Both X-Ray and X-Ray (Simple) can coexist for the same book.
@@ -3009,7 +3310,7 @@ All artifact results are cached per book. X-Ray and Recap additionally support *
 - Actions requiring text extraction (X-Ray, Document Summary, Document Analysis, Recap) must be run from reading mode (not file browser)
 - Sidecar-eligible actions (X-Ray Simple, Analyze Notes, etc.) can be run from file browser; they read highlights, annotations, notebook, and progress from disk
 - Progress must advance by at least 1% to trigger an incremental update (incremental track only)
-- X-Ray, Document Summary, and Document Analysis require text extraction; Key Arguments, Discussion Questions, Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
+- X-Ray, Document Summary, and Document Analysis require text extraction; Key Arguments, Counterarguments, Discussion Questions, Quiz, Reading Guide, and Extract Key Insights support source selection (full text / summary / AI knowledge); Recap and Analyze Notes work without text extraction
 
 **Limitations:**
 - Only X-Ray and Recap support incremental caching (all other artifact actions cache results but regenerate fresh). Reading Guide tracks reading progress ("Update to X%") but regenerates fully each time
@@ -3028,7 +3329,7 @@ The summary artifact enables a "generate once, use many times" workflow. For med
 2. **Actions with source selection** let you choose the summary as the document source
 3. **Result**: Massive token savings AND often better responses for repeated queries
 
-When you trigger an action with source selection, a unified popup lets you choose scope (full document or a specific section) and source (extract text, use summary, or AI knowledge only). See [Highlight Mode](#highlight-mode) for the full list of actions and details.
+When you trigger an action with source selection, a unified popup lets you choose scope (full document or a specific section) and source (extract text, use summary, or AI knowledge only). Tools-capable sessions add a fourth **Smart retrieval** source for the two context-aware pilot actions (see [AI Book Tools](#ai-book-tools-experimental)). See [Highlight Mode](#highlight-mode) for the full list of actions and details.
 
 **Creating custom actions with source selection:**
 Add `source_selection = true` and `use_summary_cache = true` to your action, and use `{document_context_section}` as the unified placeholder. It resolves automatically based on the user's source choice.
@@ -3062,7 +3363,7 @@ If you haven't run X-Ray yet, the placeholder renders empty and the action still
 - The 4M default handles most books with Gemini's 1M-token context. For smaller models (Claude ~200K tokens, GPT-5.4-mini ~128K tokens), you may want to lower it, or rely on the large extraction warning (see below)
 - **The extraction limit is not the bottleneck, your model's context window is.** If the extracted text exceeds what your model can handle, the API will reject the request. A **large extraction warning** dialog appears before sending requests over 500K characters (~125K tokens), giving you a chance to cancel. You can dismiss it permanently via the dialog or in Settings → Privacy & Data → Text Extraction → Don't warn about large extractions
 - **Truncation warning:** If extracted text exceeds the character limit and gets truncated, a blocking dialog appears before sending, showing the coverage range (e.g., "covers 0%–85% of the document") with Cancel, Continue Anyway, or Don't warn again. The truncation warning fires before the large extraction warning; each is independent and has its own suppress setting. You can also dismiss it permanently in Settings → Privacy & Data → Text Extraction → Don't warn about truncated extractions
-- **Use KOReader's Hidden Flows** to exclude front matter, appendices, endnotes, and other irrelevant content. This reduces token usage and improves AI results without lowering extraction limits. See the [Hidden flows support](#x-ray-browser) note above
+- **Use KOReader's Hidden Flows** to exclude front matter, appendices, endnotes, and other irrelevant content. This reduces token usage and improves AI results without lowering extraction limits. See the [Hidden flows support](#reading-analysis-actions) note above
 - **Two extraction types:** `{book_text_section}` extracts from start to current position (spoiler-safe, used by X-Ray/Recap only), `{full_document_section}` extracts the entire document regardless of position (used by all other text extraction actions)
 
 #### Context Windows and Extraction Limits
@@ -3100,6 +3401,7 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 - **Use Hidden Flows**, KOReader's Hidden Flows feature lets you exclude front matter, appendices, endnotes, and other irrelevant content from extraction. This saves tokens and improves AI results without lowering extraction limits. Particularly useful for collected works, annotated editions, or books with lengthy apparatus
 - **Use response caching**, run X-Ray/Recap early in your reading. Subsequent runs send only new content since the last cached position, not the entire book again. Starting X-Ray at 80% on a long novel sends the whole 80% at once; starting at 10% and running periodically keeps each request small
 - **Choose "Document summary" as source**, actions with source selection let you use the cached summary (~2-8K tokens) instead of raw book text (~100K+ tokens). Since each follow-up resends the full conversation history, a smaller initial context leaves much more room for extended discussions and keeps per-turn costs low
+- **Use Smart retrieval**, on tools-capable sessions the AI can pull just the passages it needs for a targeted question instead of loading the whole document (see [AI Book Tools](#ai-book-tools-experimental))
 - **Lower the extraction limit** if your model is small, Settings → Privacy & Data → Text Extraction → Max Text Characters. Match it to your model's context window rather than leaving it at the default
 - **The max limit (10M chars) exists for future large-context models.** The default (4M chars) is sized for Gemini's 1M-token context. Most other models will never need more than 500k-800k chars. The large extraction warning at 500K chars helps you catch oversized requests before they fail
 - **Keep conversations focused**, each follow-up adds the AI's previous response and your new message to the history, and the entire history is resent every turn. For actions that used large context (full book text), consider starting a new chat rather than extending a very long conversation. The plugin warns you when conversation context exceeds ~50K tokens
@@ -3121,7 +3423,9 @@ Because the stance respects each model's capability, "Minimal" genuinely turns r
 
 The Reasoning chip in the Quick Settings panel shows the **effective** state for your current model (e.g. "Model default", "Off", "High") and opens a popup with the global stance plus a control for the model in front of you — plus an **"Other models…"** browser to reach any configurable model without leaving the panel.
 
-**Precedence** (highest wins): per-action setting → per-model override → global stance → the model's natural default.
+**One-shot session override:** the input dialog's **⚡ Quick** chip carries a one-shot reasoning override for the current chat — hold it and pick Follow / Off / On. This applies just to that chat and does not change your global stance or per-model settings (see [Managing the Input Dialog](#managing-the-input-dialog)).
+
+**Precedence** (highest wins): per-action setting → session one-shot (the ⚡ Quick chip) → per-model override → global stance → the model's natural default.
 
 **What each model can do:**
 
@@ -3135,7 +3439,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 | OpenAI GPT-5.4 family | Off by default (gated) | Off / effort (low…xhigh) |
 | OpenAI GPT-5.5 | Reasons by default | Effort (low/medium/high); can't be fully disabled |
 | DeepSeek V4, Z.AI GLM-4.7+, SambaNova DeepSeek-V3.x | Thinks by default | On / Off |
-| xAI Grok 4.3 / 4.20-reasoning | Reasons by default | Off / effort (low/medium/high) |
+| xAI Grok 4.5 / 4.3 / 4.20-reasoning | Reasons by default | Off / effort (low/medium/high) |
 | Perplexity Sonar, Groq, Together, Fireworks reasoning models | Always reason | Effort only (low/medium/high) |
 | Mistral Magistral | Always reasons, no control | — (thinking is extracted and viewable) |
 
@@ -3143,7 +3447,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 
 **Viewing reasoning:** When a model returns its thinking (Anthropic, Gemini, DeepSeek, Z.AI, Mistral, and R1-style `<think>`-tag models on Groq/Together/Fireworks/SambaNova/Ollama/Perplexity), it's captured and viewable via the **Show Reasoning** button in the chat viewer gear menu. A "*[Reasoning was used]*" indicator appears in chat when enabled (Settings → Advanced → Reasoning → Show Indicator in Chat).
 
-**Per-action overrides:** Any action can override reasoning for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This is the top layer — it wins over the global stance and per-model overrides. Several built-in actions (e.g. Translate, Quick Define, Dictionary, Summarize) deliberately force reasoning off because the task doesn't benefit from it. See [Tuning Built-in Actions](#tuning-built-in-actions).
+**Per-action overrides:** Any action can override reasoning for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This is the top layer — it wins over the global stance, per-model overrides, and session one-shots. Several built-in actions (e.g. Translate, Quick Define, Dictionary, Summarize) deliberately force reasoning off because the task doesn't benefit from it. See [Tuning Built-in Actions](#tuning-built-in-actions).
 
 ### Web Search
 
@@ -3151,50 +3455,60 @@ Supported providers can search the web to include current information in their r
 
 | Provider | Feature | Notes |
 |----------|---------|-------|
-| **Anthropic** | `web_search_20250305` tool | Configurable max searches (1-10) |
-| **Gemini** | Google Search grounding | Automatic search count |
-| **OpenRouter** | Exa search via `:online` suffix | Works with all models ($0.02/search) |
+| **Anthropic** | `web_search_20250305` tool | All models; the effort dial sets max searches (2 / 5 / 10) |
+| **OpenAI** | Native web search (Responses API) | GPT-5 models; the effort dial sets search context size |
+| **Gemini** | Google Search grounding | Search-grounding-capable models; search count automatic |
+| **xAI** | Live search (Responses API) | Grok-4 models (search decided automatically) |
+| **OpenRouter** | Exa search via `:online` suffix | Works with all models (~$0.02/search); effort sets result count (3 / 5 / 10) |
 | **Perplexity** | Built-in Sonar web search | Always-on, every response includes citations |
 
+Other providers currently ignore web search and fall back to normal responses.
+
 **How it works:**
-1. Enable in Settings → Advanced → Web Search → Enable Web Search
-2. When enabled, the AI can search the web during responses
-3. During streaming, you'll see "Searching the web..." indicator (with 🔍 prefix when [Emoji Menu Icons](#display-settings) enabled)
-4. After completion, "*[Web search was used]*" appears in chat and artifact viewers (if indicator enabled)
+1. Set a global default in Settings → Advanced → Web Search → Enable Web Search, or toggle it per chat with the **Web** chip in the input dialog.
+2. When active, the AI can search the web during its response.
+3. During streaming, you'll see a "Searching the web..." indicator (with 🔍 prefix when [Emoji Menu Icons](#display-settings) enabled). Any prose the AI writes before searching stays visible, followed by an inline **"*[Searched the web]*"** marker so you can see where the search happened.
+4. After completion, "*[Web search was used]*" appears in chat and artifact viewers (if the indicator is enabled), and the actual URLs and search queries are viewable via **Show Sources** in the chat viewer's gear menu.
+
+**Web Search Effort dial** (Settings → Advanced → Web Search): **Light** (fewest searches — fastest, cheapest), **Standard** (provider defaults), or **Thorough** (most searches and context — slower, costlier). It maps to each provider's own control where one exists: Anthropic max searches, OpenAI and Perplexity search context size, OpenRouter result count. Gemini and xAI decide automatically.
+
+**Show Sources / provenance:** when a response used web search, the sources it consulted (page titles + URLs) and the queries it ran are captured and persist with the chat. Open **Show Sources** from the chat viewer's gear menu (the same surface that lists AI Book Tools lookups) — right next to **Show Reasoning**.
 
 **Settings:**
-- **Enable Web Search**: Global toggle (default: OFF)
-- **Max Searches per Query**: 1-10 (Anthropic only, default: 5)
+- **Enable Web Search**: Global default (default: OFF)
+- **Web Search Effort**: Light / Standard / Thorough (default: Standard)
 - **Show Indicator in Chat**: Show "*[Web search was used]*" after responses (default: ON)
 
 **Quick Toggle:**
-- **Input dialog**: Web ON/OFF button (top row, 🔍 prefix with [Emoji Menu Icons](#display-settings)) toggles the persistent global web search setting. Action button labels update immediately: forced web search shows 🌐, global-follows shows (🌐) to distinguish per-action overrides from the global toggle.
-- **Chat viewer**: Web ON/OFF toggle button (second row) overrides web search for the current session without changing your global setting.
+- **Web chip** (input dialog session chips row): **tap** toggles web search for the current chat only — it no longer flips your persistent global setting. **Hold** opens a For-this-book / Global picker so you can pin web search on or off for a specific book. Action button labels reflect the effective state: forced-on actions show 🌐, actions that follow the effective setting show (🌐).
+- **Chat viewer**: the reply Quick controls include a web-search override for the current session, without changing your global default.
 
 **Per-Action Override:**
-Custom actions can override the global setting:
+Custom actions can override the effective setting:
 - `enable_web_search = true` → Force web search on (example: **News Update** built-in action)
 - `enable_web_search = false` → Force web search off
-- `enable_web_search = nil` → Follow global setting (default)
+- `enable_web_search = nil` → Follow the effective setting (default)
 
-The built-in **News Update** action demonstrates this. It uses `enable_web_search = true` to fetch current news even when web search is globally disabled. See [General Chat](#general-chat) for how to add it to your input dialog.
+The built-in **News Update** action demonstrates this. It uses `enable_web_search = true` to fetch current news even when web search is otherwise off. See [General Chat](#general-chat) for how to add it to your input dialog.
 
-**Research Mode override:** When a DOI is detected ([Research Mode](#research-mode)), actions like X-Ray and Summarize that normally force web search off (`enable_web_search = false`) are changed to follow your global web search setting instead. If you have web search enabled globally, academic papers automatically get web-enriched analysis. See [Research Mode](#research-mode).
+**Layering** (highest wins): per-action flag → per-chat Web chip → per-book override → global default.
+
+**Research Mode override:** When a DOI is detected ([Research Mode](#research-mode)), actions like X-Ray and Summarize that normally force web search off (`enable_web_search = false`) are changed to follow your web search setting instead. If you have web search enabled, academic papers automatically get web-enriched analysis. See [Research Mode](#research-mode).
 
 **Best for:** Questions about current events, recent developments, fact-checking, research topics.
 
-**Note:** Perplexity always searches the web. The toggle has no effect on Perplexity (web search is inherent to all Sonar models). For other providers, web search increases token usage and may add latency. Unsupported providers silently ignore this setting.
+**Note:** Perplexity always searches the web (web search is inherent to all Sonar models), so the toggle has no effect there. For other providers, web search increases token usage and may add latency. Unsupported providers silently ignore this setting.
 
 **Troubleshooting OpenRouter:**
 - OpenRouter routes requests to many different backend providers, each with their own streaming behavior
-- If you experience choppy streaming or unusual behavior with web search enabled, try disabling web search for that session (Web OFF toggle)
+- If you experience choppy streaming or unusual behavior with web search enabled, try turning web search off for that session (Web chip)
 - See [Meta-Providers Note](#meta-providers-note) for more details
 
 ---
 
 ## Supported Providers + Settings
 
-KOAssistant supports **19 AI providers**. Please test and give feedback -- fixes are quickly implemented
+KOAssistant supports **19 built-in AI providers**, plus any number of custom OpenAI-compatible providers you add yourself. Please test and give feedback -- fixes are quickly implemented
 
 | Provider | Description | Get API Key |
 |----------|-------------|-------------|
@@ -3213,7 +3527,7 @@ KOAssistant supports **19 AI providers**. Please test and give feedback -- fixes
 | **Requesty** | OpenAI-compatible model router | [requesty.ai](https://requesty.ai/) |
 | **Cohere** | Command models | [dashboard.cohere.com](https://dashboard.cohere.com/) |
 | **Qwen** | Alibaba's Qwen models | [dashscope.console.aliyun.com](https://dashscope.console.aliyun.com/) |
-| **Kimi** | Moonshot, 256K context | [platform.moonshot.cn](https://platform.moonshot.cn/) |
+| **Kimi** | Moonshot models | [platform.moonshot.cn](https://platform.moonshot.cn/) |
 | **Doubao** | ByteDance Volcano Engine | [console.volcengine.com](https://console.volcengine.com/) |
 | **Z.AI** | GLM models, free tier available | [z.ai](https://z.ai/) |
 | **Perplexity** | Sonar models, built-in web search with citations | [perplexity.ai](https://www.perplexity.ai/settings/api) |
@@ -3229,7 +3543,9 @@ KOAssistant supports **19 AI providers**. Please test and give feedback -- fixes
 >
 > See details below.
 
-> **Experimental — AI Book Tools**: **Gemini** and **Claude (Anthropic)** can use local tools to search and read the open book on demand, for grounded, page-referenced answers. Off by default; enable via Settings → Advanced. See [AI Book Tools](#ai-book-tools-experimental).
+> **Tip:** Provider and model pickers only list providers you've actually configured an API key for (plus keyless/local providers like Ollama and any custom provider you marked as not needing a key). Once you've added at least one key, the rest are tucked behind a **"Show all providers"** row so the picker stays short. Add keys in **Settings → API Keys**.
+
+> **Experimental — AI Book Tools**: **Gemini**, **Claude (Anthropic)**, **OpenAI**, and **OpenRouter** — plus **DeepSeek**, **Mistral**, **Groq**, and **xAI** — can use local tools to search and read the open book on demand, for grounded, page-referenced answers. Availability and default behavior are controlled by a per-chat **Tools** chip and a 3-state posture (off / manual / auto; fresh installs default to *auto*). See [AI Book Tools](#ai-book-tools-experimental).
 
 ### Free Tier Providers
 
@@ -3238,7 +3554,7 @@ Several providers offer free tiers for testing or budget-conscious users:
 | Provider | Free Tier Details |
 |----------|-------------------|
 | **Groq** | All models free with rate limits (250K tokens/min, 1K requests/min) |
-| **Gemini** | `gemini-3.5-flash` has free tier; other models have free quota |
+| **Gemini** | `gemini-3.5-flash` and `gemini-3.1-flash-lite` have free tiers; other models have free quota |
 | **SambaNova** | Free tier available for open-source models |
 | **Ollama** | Completely free (runs locally on your hardware) |
 | **Mistral** | Open-weight models free: `mistral-small-latest`, `magistral-small-latest` (Apache 2.0) |
@@ -3336,16 +3652,42 @@ Override the system default model for any provider with your preferred choice.
 
 The provider will revert to using the system default.
 
+### Current Default Models
+
+The first model in each provider's list is its default. Current defaults (subject to change as providers update — the live source of truth is `koassistant_model_lists.lua`):
+
+| Provider | Default | Notable alternatives |
+|----------|---------|----------------------|
+| **Anthropic** | `claude-sonnet-5` | `claude-opus-4-8` (most capable / reasoning), `claude-haiku-4-5` (fast), `claude-sonnet-4-6` (1M context) |
+| **OpenAI** | `gpt-5.5` | `gpt-5.4`, `gpt-5.4-mini`, `gpt-5.4-nano` |
+| **DeepSeek** | `deepseek-v4-pro` | `deepseek-v4-flash` (V4, 1M context, thinking on by default) |
+| **Gemini** | `gemini-3.5-flash` | `gemini-3.1-pro-preview` (flagship), `gemini-3.1-flash-lite` (ultrafast), `gemini-2.5-flash/pro` |
+| **Groq** | `llama-3.3-70b-versatile` | `llama-3.1-8b-instant`, `openai/gpt-oss-120b`, `groq/compound` |
+| **Mistral** | `mistral-large-latest` | `mistral-medium-latest`, `mistral-small-latest`, `magistral-medium-latest` (reasoning) |
+| **xAI** | `grok-4.5` | `grok-4.3`, `grok-4.20-0309-reasoning`/`-non-reasoning` |
+| **Perplexity** | `sonar-pro` | `sonar-reasoning-pro`, `sonar-deep-research`, `sonar` |
+| **Z.AI** | `glm-5.2` | `glm-5.1`, `glm-5`, `glm-4.7` (reasoning), `glm-4.7-flash` (free) |
+| **Cohere** | `command-a-plus-05-2026` | `command-a-reasoning-08-2025`, `command-r7b-12-2024` (fast) |
+| **Kimi** | `kimi-k2.6` | `kimi-k2.6-thinking` (reasoning), `kimi-k2-turbo-preview` (fast) |
+| **Qwen** | `qwen3-max` | `qwen3.5-plus`, `qwen3.5-flash`, `qwen-turbo` |
+| **Doubao** | `doubao-seed-2.0-pro-32k` | `doubao-seed-2.0-pro-256k`, `doubao-seed-2.0-lite` |
+| **Ollama** | `llama4` | `qwen3.5`, `deepseek-v4`, `gemma4`, `mistral`, `phi4`, `tinyllama` |
+
+> **Note:** OpenRouter, Requesty, Together, Fireworks, and SambaNova use provider-prefixed or vendor-specific model IDs (e.g. `anthropic/claude-sonnet-5` on OpenRouter, `deepseek-ai/DeepSeek-V4-Pro` on Together) — see the provider's own catalog for exact strings.
+
 ### Provider Quirks
 
-- **Anthropic**: Temperature capped at 1.0; Extended thinking forces temp to exactly 1.0; Opus 4.7/4.8 and Sonnet 5 reject all sampling params (temperature is stripped entirely)
-- **OpenAI**: Reasoning models (GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`
-- **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models use `thinkingBudget` (0=off, -1=dynamic, 128-24576=specific), 3 models use `thinkingLevel`; streaming may arrive in larger chunks than other providers
-- **Ollama**: Local only; for remote instances, set the endpoint via Settings → Provider → Quick setup: Local provider, or in `configuration.lua`
-- **OpenRouter**: Requires HTTP-Referer header (handled automatically)
+- **Anthropic**: Temperature capped at 1.0; Extended/adaptive thinking forces temp to exactly 1.0; Opus 4.7/4.8 and Sonnet 5 reject all sampling params (temperature is stripped entirely); explicit prompt caching gives up to 90% savings on repeated context
+- **OpenAI**: Reasoning models (GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`; **native web search** rides the Responses API (`/v1/responses`) for capable models — Chat Completions has no native search, so a web-search request on an unsupported model simply runs without it
+- **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models use `thinkingBudget` (0=off, -1=dynamic, 128-24576=specific), 3.x models use `thinkingLevel`; web search uses Google Search grounding; streaming may arrive in larger chunks than other providers (cosmetic)
+- **Ollama**: Local only; NDJSON streaming (not SSE); for remote instances, set the endpoint via Settings → Provider → Quick setup: Local provider, or in `configuration.lua`
+- **OpenRouter**: Requires HTTP-Referer header (handled automatically); web search uses OpenRouter's own Exa integration via the `:online` suffix
 - **Requesty**: OpenAI-compatible model router; uses `provider/model` naming (e.g. `openai/gpt-4o-mini`); sends optional HTTP-Referer/X-Title headers (handled automatically)
 - **Cohere**: Uses v2/chat endpoint with different response format
-- **DeepSeek**: V4 supports a `thinking` toggle for both `deepseek-v4-pro` and `deepseek-v4-flash` (on by default); controlled by the reasoning stance / per-model override (see [Reasoning/Thinking](#reasoningthinking))
+- **DeepSeek**: V4 supports a `thinking` toggle for both `deepseek-v4-pro` and `deepseek-v4-flash` (on by default); 1M context with up to 384K output; controlled by the reasoning stance / per-model override (see [Reasoning/Thinking](#reasoningthinking))
+- **xAI**: Grok models (4.5 = 500K context, 4.3/4.20 = 1M); native **live web search** rides the Responses API (`/v1/responses`) for capable Grok models; reasoning toggle is baked into some slugs (`grok-4.20-...-reasoning` vs `-non-reasoning`)
+- **Z.AI**: Regional endpoints; GLM-4.7+ thinking via the `thinking` param (default on — must be explicitly disabled); GLM-5.x is the current flagship generation
+- **Perplexity**: Always-on web search with citations on every Sonar model (not toggleable — a request always reports web search as used); `sonar-pro` output is capped at 8K tokens; `sonar-reasoning-pro` emits its reasoning inside `<think>` tags
 
 ### Meta-Providers Note
 
@@ -3363,7 +3705,7 @@ The provider will revert to using the system default.
 
 **Troubleshooting OpenRouter:**
 - If streaming appears choppy or unusual, it's likely the backend provider's characteristic, not a KOAssistant bug
-- Try a different underlying model (e.g., switch from `x-ai/grok-4.3` to `anthropic/claude-sonnet-4.6`)
+- Try a different underlying model (e.g., switch from `x-ai/grok-4.3` to `anthropic/claude-sonnet-5`)
 - Disable web search if it causes issues with specific models
 - Perplexity models through OpenRouter work but may have different streaming patterns
 
@@ -3401,6 +3743,8 @@ KOAssistant offers two view modes for displaying AI responses:
 **How to switch:**
 - **On the fly**: Tap **MD ON / TXT ON** button in chat viewer (bottom row)
 - **Permanently**: Settings → Display Settings → Rendering → View Mode
+
+> **Tip:** The chat viewer remembers your text alignment and font size between opens, so you only set them once.
 
 ### Reply Draft Saving
 
@@ -3465,8 +3809,11 @@ Text selection works consistently across all KOAssistant viewers: chat viewer, X
 | **Dictionary** | KOReader offline dictionary lookup |
 | **Translate** | Translate via KOAssistant's Translate action |
 | **Add to Notebook** | Append text with timestamp to the book's notebook (auto-creates if needed) |
+| **Add to reply** | Quote the selected text into an open Reply draft (full chat viewer only, when a reply is in progress) |
 
-Buttons are conditional: Dictionary requires an open book with dictionary support, Translate requires the plugin, Add to Notebook requires book context (not available for general/library chats). The popup is dismissable by tapping outside.
+Buttons are conditional: Dictionary requires an open book with dictionary support, Translate requires the plugin, Add to Notebook requires book context (not available for general/library chats), and Add to reply appears only in the full chat viewer while a reply is being composed. The popup is dismissable by tapping outside.
+
+> **Tip:** Selection, Copy, and Export are also available inside the "Show Sources" and "Show Reasoning" viewers, so you can pull a cited URL or a reasoning excerpt straight out of those panels.
 
 **Highlight clearing**: Selected text highlight clears automatically after any action or when dismissing the popup.
 
@@ -3474,7 +3821,7 @@ Buttons are conditional: Dictionary requires an open book with dictionary suppor
 
 #### Extend to KOReader Viewers
 
-Enable **Settings → KOReader Integration → Enhance Text Selection** to bring this same behavior to KOReader's own viewers: dictionary popups, Wikipedia results, bookmark viewer, and any other TextViewer in KOReader. Same rules: single word → dictionary, long-press single word or multi-word → action popup. Off by default; requires restart.
+Enable **Settings → Menus & Buttons → Text selection in viewers → Enhance text selection** to bring this same behavior to KOReader's own viewers: dictionary popups, Wikipedia results, bookmark viewer, and any other TextViewer in KOReader. Same rules: single word → dictionary, long-press single word or multi-word → action popup. Off by default; requires restart.
 
 ### Document Metadata
 
@@ -3508,9 +3855,11 @@ If actions like Analyze Notes, Connect with Notes, X-Ray, or Recap seem to ignor
 
 > **Note:** Actions that use document text still work when text extraction is disabled; they don't fail or return errors. Instead, the AI is explicitly guided to use its training knowledge and to be honest about what it doesn't recognize. For well-known books, this often produces reasonable results. For obscure works or research papers, enable text extraction for meaningful output.
 
+> **Tip:** With **AI Book Tools** enabled and a text-extraction-capable provider, some context-aware actions can fetch the passages they need on demand instead of relying on a full extraction. See [AI Book Tools](#ai-book-tools-experimental).
+
 **Quick fix:** Use **Preset: Full** to enable all data sharing at once, or enable individual settings as needed.
 
-**See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 🔖 📝 📓 🌐).
+**See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 🔖 📝 📓 📚 📊 🌐).
 
 ### Text Extraction Not Working
 
@@ -3604,6 +3953,8 @@ Plain Text mode includes markdown stripping that preserves readability: headers 
 ### "API key missing" error
 Edit `apikeys.lua` and add your key for the selected provider.
 
+> **Tip:** Provider pickers now list only providers that actually have an API key configured (plus local/no-key providers such as Ollama). If a provider is missing from the list, add its key in `apikeys.lua` or via Settings → AI Provider & Model.
+
 ### No response / timeout
 1. Check internet connection
 2. Enable Debug Mode to see the actual error
@@ -3616,6 +3967,8 @@ Edit `apikeys.lua` and add your key for the selected provider.
 ### Wrong model showing
 1. Check Settings → AI Provider & Model
 2. When switching providers, the model resets to that provider's default
+
+> **Tip:** A per-chat model or reasoning override (set via the ⚡ Quick chip's hold menu) applies only to that chat and does not change your global model. If a chat is using an unexpected model, check whether a session override is active there.
 
 ### Chats not saving
 1. Check Settings → Chat & Export Settings → Auto-save settings
@@ -3666,7 +4019,7 @@ Shows:
 
 - KOReader
 - Internet connection
-- At least one API key
+- At least one API key (or a local, no-key provider such as Ollama, LM Studio, or llama.cpp)
 
 ---
 
