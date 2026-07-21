@@ -655,6 +655,24 @@ end
 -- otherwise call query_fn directly. Lets all chat reply paths share one call site
 -- without each caller knowing about the runner.
 function BookToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
+    -- ⚡ quick-answer retry (input safety net S3): the stream's ⚡ button makes
+    -- queryChatGPT call back with the sentinel err. Intercept it here — this layer owns
+    -- `cfg`, the caller's send-site config, which the answer's on_complete uses for chat
+    -- attribution AND which the viewer adopts for replies. Rebuild THAT config IN PLACE
+    -- with quick posture (reasoning off / web off / tools off / preset model, via the
+    -- shared, tested applyQuickReplyOverrides) and re-run, so the fast answer is correctly
+    -- attributed and quick persists on replies. tools-off makes the re-run a plain send.
+    -- Works for BOTH gather (the sentinel propagates up through run()'s finish) and direct.
+    local function wrapped(success, answer, err, ...)
+        if err == require("koassistant_constants").QUICK_RETRY_SENTINEL then
+            cfg.features = cfg.features or {}
+            cfg.features._session_quick_answer = true
+            cfg.features._quick_reply_orig = nil  -- fresh baseline for the transform
+            require("koassistant_dialogs").applyQuickReplyOverrides(cfg, plugin)
+            return BookToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
+        end
+        return callback(success, answer, err, ...)
+    end
     if BookToolRunner.shouldUse(cfg, ui) then
         return BookToolRunner.run({
             query_fn = query_fn,
@@ -662,10 +680,10 @@ function BookToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
             config = cfg,
             settings = plugin and plugin.settings,
             ui = ui,
-            on_complete = callback,
+            on_complete = wrapped,
         })
     end
-    return query_fn(messages, cfg, callback, plugin and plugin.settings)
+    return query_fn(messages, cfg, wrapped, plugin and plugin.settings)
 end
 
 function BookToolRunner.run(params)

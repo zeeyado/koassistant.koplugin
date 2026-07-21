@@ -17,6 +17,12 @@ local _ = require("koassistant_gettext")
 
 local Constants = {}
 
+-- Internal sentinel: queryChatGPT's stream on_complete returns this as `err` when the ⚡
+-- quick-answer retry button was tapped, so BookToolRunner.queryWith intercepts it and
+-- re-runs the send with quick posture instead of treating it as a failure (input safety
+-- net S3). Never user-visible.
+Constants.QUICK_RETRY_SENTINEL = "__koassistant_quick_retry__"
+
 -- Context types (used in actions, message building, dialogs)
 -- These are the four standard contexts for AI interactions
 Constants.CONTEXTS = {

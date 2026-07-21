@@ -813,6 +813,27 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
         }
     }
 
+    -- Quick-answer retry (input safety net S3): abandon this streamed answer and resend
+    -- with quick posture (reasoning off / web off / tools off / preset model). Always
+    -- present when a retry is possible; the ONLY disable is when the run is ALREADY quick
+    -- (nothing to speed up). The resend itself is handled by queryChatGPT, which reads
+    -- self.quick_retry_requested off this handler instance when the stream finishes.
+    if settings and settings.quick_retry_available then
+        table.insert(dialog_buttons[1], {
+            text = settings.enable_emoji_icons and "\u{26A1}" or _("Quick"),
+            id = "quick_retry",
+            enabled = not settings.quick_already_active,
+            callback = function()
+                self.quick_retry_requested = true
+                UIManager:show(require("ui/widget/infomessage"):new{
+                    text = _("Quick answer — resending…"),
+                    timeout = 2,
+                })
+                _closeStreamDialog()
+            end,
+        })
+    end
+
     -- Add Show/Hide toggle for hidden streaming actions (e.g. quiz)
     if hidden_streaming then
         table.insert(dialog_buttons[1], 2, {

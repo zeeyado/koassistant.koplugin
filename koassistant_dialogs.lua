@@ -461,6 +461,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         features.tool_lookup_effort = BookSettings.resolveToolEffort(eff_ds, features)
         features.web_search_effort = BookSettings.resolveWebEffort(eff_ds, features)
     end
+
+    -- ⚡ quick-answer retry eligibility (S3): the stream window offers a quick retry only
+    -- for freeform sends (action == nil) and actions that opted into quick
+    -- (accept_quick_answer). Artifact/JSON actions (X-Ray, Summarize, …) would break under
+    -- the brevity posture, so no ⚡ on their streams. Read into stream_settings by queryChatGPT.
+    features._quick_eligible = (action == nil) or (action.accept_quick_answer == true)
     -- Quick Answer preset: web search off for this request unless the preset
     -- component is disabled or the action forces web on (explicit action flag
     -- wins — matrix §10).
@@ -7109,36 +7115,37 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- in this Send (bake, queries, viewer, replies, model-info) must
                     -- see the same overridden config.
                     do
+                        -- ALWAYS rebind `configuration` to a private per-Send copy (shallow
+                        -- 2-level, createTempConfig's shape; inline to stay under this closure's
+                        -- 60-upvalue cap). Every later use in this Send — bake, queries, viewer,
+                        -- replies, model-info, AND the ⚡ quick-retry's applyQuickReplyOverrides
+                        -- (input safety net S3) — then mutates the copy, never the shared module
+                        -- config. (Previously this copy happened only when a session override
+                        -- already existed, leaving a plain Send on the shared config; the ⚡
+                        -- retry would then leak quick posture globally.)
                         local shared_features = configuration.features
+                        local copy = {}
+                        for k, v in pairs(configuration) do
+                            if type(v) ~= "table" then
+                                copy[k] = v
+                            else
+                                copy[k] = {}
+                                for k2, v2 in pairs(v) do
+                                    copy[k][k2] = v2
+                                end
+                            end
+                        end
+                        configuration = copy
                         if shared_features._session_quick_answer
                             or shared_features._session_reasoning
                             or shared_features._session_model then
-                            -- Inline shallow-2-level copy (createTempConfig's shape) on
-                            -- purpose: referencing the file-local helper here would add
-                            -- an upvalue to a closure at LuaJIT's 60-upvalue cap.
-                            local copy = {}
-                            for k, v in pairs(configuration) do
-                                if type(v) ~= "table" then
-                                    copy[k] = v
-                                else
-                                    copy[k] = {}
-                                    for k2, v2 in pairs(v) do
-                                        copy[k][k2] = v2
-                                    end
-                                end
-                            end
-                            configuration = copy
                             local cf = configuration.features
                             cf._quick_answer_active = shared_features._session_quick_answer
                             cf._reasoning_override_active = shared_features._session_reasoning
                             cf._model_override_active = shared_features._session_model
-                            -- Keep the _session_* state on the chat's private
-                            -- copy (2026-07-20 — maintainer device report: the
-                            -- reply ⚡ chip showed OFF on a quick chat): it is
-                            -- the chat's live control state — the reply chip
-                            -- reads it, the reply hold-menu edits it, and
-                            -- applyQuickReplyOverrides re-applies it
-                            -- idempotently. Only the SHARED table is cleared.
+                            -- Keep the _session_* state on the chat's private copy (2026-07-20
+                            -- maintainer report: the reply ⚡ chip showed OFF on a quick chat) —
+                            -- it is the chat's live control state; only the SHARED table is cleared.
                             shared_features._session_quick_answer = nil
                             shared_features._session_reasoning = nil
                             shared_features._session_model = nil
@@ -7233,14 +7240,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             showResponseDialog(_("Chat"), history, highlighted_text, addMessage, configuration, document_path, plugin, book_metadata, launch_context, ui_instance)
                         else
                             closeLoadingDialog()
-                            -- Input safety net S2: on a genuine failure (not a user cancel)
-                            -- point at the gear recovery, so a lost long prompt is obviously
-                            -- recoverable rather than gone. Reuses this error message =
-                            -- maximally discoverable (no separate toast to miss).
-                            local err_text = _("Error: ") .. (err or "Unknown error")
+                            -- Input safety net S2: on a failure OR a user cancel, point at
+                            -- the gear recovery so the typed input is obviously recoverable
+                            -- rather than gone (maintainer 2026-07-21: show on cancel too).
+                            -- Reuses this message = maximally discoverable (no separate toast).
+                            local is_cancel = err == _("Request cancelled by user.")
+                            local err_text = is_cancel and (err or "")
+                                or (_("Error: ") .. (err or "Unknown error"))
                             local recoverable = plugin and plugin._last_input
                                 and plugin._last_input ~= ""
-                                and err ~= _("Request cancelled by user.")
                             if recoverable then
                                 err_text = err_text .. "\n\n" .. _("Your typed input was saved. Reopen this dialog and tap the gear \u{2699}, then \"Restore last input\".")
                             end

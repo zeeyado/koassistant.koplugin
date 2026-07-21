@@ -3,6 +3,7 @@ local api_key = nil
 local CONFIGURATION = nil
 local Defaults = require("koassistant_api.defaults")
 local ConfigHelper = require("koassistant_config_helper")
+local Constants = require("koassistant_constants")
 local logger = require("logger")
 local ffi = require("ffi")
 local ffiutil = require("ffi/util")
@@ -483,6 +484,15 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             enable_emoji_icons = config.features and config.features.enable_emoji_icons == true,
             debug = config.features and config.features.debug,
             hidden_streaming = config.features and config.features.hidden_streaming,
+            -- Quick-answer retry (input safety net S3): a ⚡ button in the stream window
+            -- that aborts + resends with quick posture. Shown only for quick-ELIGIBLE runs
+            -- (freeform sends + actions that opted into quick via accept_quick_answer; NOT
+            -- artifact/JSON actions like X-Ray, whose output would break under the brevity
+            -- posture) and not for hidden/spoiler streams (quiz); grayed when this run is
+            -- already quick (nothing to speed up).
+            quick_retry_available = (config.features and config.features._quick_eligible == true)
+                and not (config.features and config.features.hidden_streaming) or false,
+            quick_already_active = config.features and config.features._session_quick_answer == true,
         }
 
         -- Streaming is async - show dialog and call on_complete when done
@@ -492,6 +502,17 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             config.model,
             stream_settings,
             function(stream_success, content, err, reasoning_content, stream_web_search_used, usage)
+                -- Quick-answer retry (S3): the ⚡ button aborted this stream. Signal it UP to
+                -- the caller (BookToolRunner.queryWith) via the sentinel err — that layer owns
+                -- the send-site config used for chat attribution AND the viewer's reply config,
+                -- so IT rebuilds the request with quick posture and re-runs. Rebuilding here
+                -- would only change the wire, not the viewer state (and in gather mode the
+                -- attribution config lives upstream of us entirely). Checked BEFORE
+                -- user_interrupted (the ⚡ button set both flags).
+                if stream_handler.quick_retry_requested then
+                    if on_complete then on_complete(false, nil, Constants.QUICK_RETRY_SENTINEL) end
+                    return
+                end
                 if stream_handler.user_interrupted then
                     if on_complete then on_complete(false, nil, "Request cancelled by user.") end
                     return
