@@ -1960,11 +1960,9 @@ function ChatGPTViewer:init()
     callback = function()
       self:saveToNote()
     end,
+    -- Long-press: pick the note content/format (parity with the main viewer).
     hold_callback = function()
-      UIManager:show(Notification:new{
-        text = _("Save translation as note on highlighted text"),
-        timeout = 2,
-      })
+      self:saveToNote(true)
     end,
   })
 
@@ -5161,88 +5159,98 @@ end
 
 -- Show viewer settings dialog (font size, text alignment)
 function ChatGPTViewer:showViewerSettings()
-  local dialog
+  local dialog  -- declared first so the button closures below capture this local
+
+  local buttons = {
+    {
+      {
+        text = _("Font Size") .. ": " .. self.markdown_font_size,
+        callback = function()
+          UIManager:close(dialog)
+          self:showFontSizeSpinner()
+        end,
+      },
+    },
+    {
+      {
+        text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
+        callback = function()
+          self:cycleAlignment()
+          -- Reopen settings to show updated label
+          UIManager:close(dialog)
+          self:showViewerSettings()
+        end,
+      },
+    },
+    {
+      {
+        text = _("Reset to Defaults"),
+        callback = function()
+          UIManager:close(dialog)
+          self:resetViewerSettings()
+        end,
+      },
+    },
+  }
+
+  -- Export on the gear is for chat-style views only: it exports the CONVERSATION
+  -- (showExportDialog needs chat history). Artifact (simple_view) viewers have no
+  -- history AND their own Export button, so the gear entry is skipped there (it
+  -- would otherwise fail with "No chat to export"). Slice (e) note B.
+  if not self.simple_view then
+    table.insert(buttons, {
+      {
+        text = _("Export"),
+        callback = function()
+          UIManager:close(dialog)
+          self:showExportDialog()
+        end,
+      },
+    })
+  end
+
+  table.insert(buttons, {
+    {
+      text = _("Show Reasoning"),
+      enabled_func = function()
+        return self:hasReasoningContent()
+      end,
+      callback = function()
+        UIManager:close(dialog)
+        self:showReasoningViewer()
+      end,
+    },
+  })
+  table.insert(buttons, {
+    {
+      text = _("Show Sources"),
+      enabled_func = function()
+        return self:hasProvenanceContent()
+      end,
+      callback = function()
+        UIManager:close(dialog)
+        self:showProvenanceViewer()
+      end,
+    },
+  })
+  table.insert(buttons, {
+    {
+      text_func = function()
+        return self.show_debug_in_chat and _("Hide Debug") or _("Show Debug")
+      end,
+      callback = function()
+        UIManager:close(dialog)
+        self:toggleDebugMode()
+      end,
+    },
+  })
+
   dialog = ButtonDialog:new{
     shrink_unneeded_width = true,
     anchor = self._titlebar and self._titlebar.left_button and function()
         return self._titlebar.left_button.image.dimen, true
     end or nil,
-    buttons = {
-      {
-        {
-          text = _("Font Size") .. ": " .. self.markdown_font_size,
-          callback = function()
-            UIManager:close(dialog)
-            self:showFontSizeSpinner()
-          end,
-        },
-      },
-      {
-        {
-          text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
-          callback = function()
-            self:cycleAlignment()
-            -- Reopen settings to show updated label
-            UIManager:close(dialog)
-            self:showViewerSettings()
-          end,
-        },
-      },
-      {
-        {
-          text = _("Reset to Defaults"),
-          callback = function()
-            UIManager:close(dialog)
-            self:resetViewerSettings()
-          end,
-        },
-      },
-      {
-        {
-          -- Moved from row 2 in the 2026-07 layout pass (occasional action).
-          text = _("Export"),
-          callback = function()
-            UIManager:close(dialog)
-            self:showExportDialog()
-          end,
-        },
-      },
-      {
-        {
-          text = _("Show Reasoning"),
-          enabled_func = function()
-            return self:hasReasoningContent()
-          end,
-          callback = function()
-            UIManager:close(dialog)
-            self:showReasoningViewer()
-          end,
-        },
-      },
-      {
-        {
-          text = _("Show Sources"),
-          enabled_func = function()
-            return self:hasProvenanceContent()
-          end,
-          callback = function()
-            UIManager:close(dialog)
-            self:showProvenanceViewer()
-          end,
-        },
-      },
-      {
-        {
-          text_func = function()
-            return self.show_debug_in_chat and _("Hide Debug") or _("Show Debug")
-          end,
-          callback = function()
-            UIManager:close(dialog)
-            self:toggleDebugMode()
-          end,
-        },
-      },
-    },
+    buttons = buttons,
   }
   UIManager:show(dialog)
 end
