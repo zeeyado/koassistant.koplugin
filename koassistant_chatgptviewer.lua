@@ -28,7 +28,6 @@ local Notification = require("ui/widget/notification")
 local ScrollTextWidget = require("ui/widget/scrolltextwidget")
 local ScrollHtmlWidget = require("ui/widget/scrollhtmlwidget")
 local Size = require("ui/size")
-local TextViewer = require("ui/widget/textviewer")
 local TitleBar = require("ui/widget/titlebar")
 local UIManager = require("ui/uimanager")
 local VerticalGroup = require("ui/widget/verticalgroup")
@@ -518,7 +517,7 @@ end
 -- @param title string Dialog title
 -- @param is_translate boolean Whether this is for translate view (different labels)
 -- @param callback function(content) Called with selected content type
-local function showContentPicker(title, is_translate, callback)
+local function showContentPicker(title, is_translate, callback, anchor)
     local content_dialog
     local options = {
         { value = "full", label = _("Full (metadata + chat)") },
@@ -550,6 +549,7 @@ local function showContentPicker(title, is_translate, callback)
 
     content_dialog = ButtonDialog:new{
         title = title,
+        anchor = anchor,
         buttons = buttons,
     }
     UIManager:show(content_dialog)
@@ -566,6 +566,12 @@ local function copyWithPicker(viewer, is_translate)
     end
     local features = viewer.configuration and viewer.configuration.features or {}
     local style = features.export_style or "markdown"
+    -- Anchor the picker to the Copy button (slice (e) note A); its id differs by view.
+    local copy_anchor = viewer.button_table and function()
+        local bt = viewer.button_table
+        local btn = bt:getButtonById("copy_chat") or bt:getButtonById("copy_cache")
+        return btn and btn.dimen, true
+    end or nil
     showContentPicker(_("Copy Content"), is_translate, function(selected_content)
         local Export = require("koassistant_export")
         local book_metadata = features.book_metadata
@@ -574,7 +580,7 @@ local function copyWithPicker(viewer, is_translate)
         local text = Export.format(data, selected_content, style)
         Device.input.setClipboardText(text)
         UIManager:show(Notification:new{ text = _("Copied"), timeout = 2 })
-    end)
+    end, copy_anchor)
 end
 
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
@@ -1268,11 +1274,9 @@ function ChatGPTViewer:init()
         callback = function()
           self:toggleMarkdown()
         end,
+        -- Long-press the MD/TXT toggle for quick display settings (slice (e) note E)
         hold_callback = function()
-          UIManager:show(Notification:new{
-            text = _("Toggle between markdown and plain text display"),
-            timeout = 2,
-          })
+          self:showRenderingQuickSettings()
         end,
       },
       {
@@ -2433,7 +2437,7 @@ function ChatGPTViewer:init()
           and self.configuration.features.enable_emoji_icons == true
         local chat_input
         chat_input = InputDialog:new{
-          title = _("Chat about this artifact"),
+          title = self.launch_chat_title or _("Chat about this artifact"),
           input = "",
           input_type = "text",
           input_hint = _("What would you like to discuss?"),
@@ -2481,7 +2485,7 @@ function ChatGPTViewer:init()
       end,
       hold_callback = function()
         UIManager:show(Notification:new{
-          text = _("Start a new chat about this artifact"),
+          text = self.launch_chat_hold_hint or _("Start a new chat about this artifact"),
           timeout = 2,
         })
       end,
@@ -2497,7 +2501,10 @@ function ChatGPTViewer:init()
     callback = function()
       self:toggleMarkdown()
     end,
-    hold_callback = self.default_hold_callback,
+    -- Long-press for quick display settings (slice (e) note E)
+    hold_callback = function()
+      self:showRenderingQuickSettings()
+    end,
   })
   -- Info button (shows metadata popup) - in Row 2 for balanced button distribution
   if self._info_text then
@@ -3945,6 +3952,13 @@ function ChatGPTViewer:toggleMarkdown()
     self.settings_callback("features.render_markdown", self.render_markdown)
   end
 
+  self:rebuildScrollWidget()
+end
+
+-- Rebuild the scroll widget for the CURRENT render mode (markdown or plain text).
+-- Extracted from toggleMarkdown so other display-setting changes (strip-markdown in
+-- text mode, slice (e) note E) can re-render in place without flipping the mode.
+function ChatGPTViewer:rebuildScrollWidget()
   -- Rebuild the scroll widget with new rendering mode
   local textw_height = self.textw:getSize().h
   
@@ -4124,7 +4138,7 @@ function ChatGPTViewer:saveToNote(force_picker)
   -- Long-press forces the picker even when a fixed note_content default is set
   -- (parity with Copy's hold -- 2026-07 layout pass).
   if force_picker or content == "ask" then
-    showContentPicker(_("Note Content"), self.translate_view, doSave)
+    showContentPicker(_("Note Content"), self.translate_view, doSave, self:_anchorToButton("save_to_note"))
   else
     doSave(content)
   end
@@ -4156,6 +4170,16 @@ function ChatGPTViewer:showNotebookPopup()
     end,
   }})
 
+  -- Choose the format on the fly (Response only vs Question + Response) instead of
+  -- the notebook_content_format default (controls parity slice (e) item 5).
+  table.insert(buttons, {{
+    text = _("Add (choose format)..."),
+    callback = function()
+      UIManager:close(self_ref._notebook_dialog)
+      self_ref:chooseNotebookFormatAndSave()
+    end,
+  }})
+
   if notebook_exists then
     table.insert(buttons, {{
       text = _("View Notebook"),
@@ -4177,12 +4201,13 @@ function ChatGPTViewer:showNotebookPopup()
   end
 
   self._notebook_dialog = ButtonDialog:new{
+    anchor = self:_anchorToButton("save_to_notebook"),
     buttons = buttons,
   }
   UIManager:show(self._notebook_dialog)
 end
 
-function ChatGPTViewer:saveToNotebook()
+function ChatGPTViewer:saveToNotebook(format_override)
   -- Save chat to per-book notebook file
   local Notebook = require("koassistant_notebook")
   local document_path = self.configuration and self.configuration.document_path
@@ -4209,9 +4234,10 @@ function ChatGPTViewer:saveToNotebook()
   local ReaderUI = require("apps/reader/readerui")
   local reader_ui = ReaderUI.instance
 
-  -- Get content format setting (default: qa)
+  -- Content format: an explicit pick (Add (choose format)...) wins over the
+  -- notebook_content_format setting default.
   local features = self.configuration and self.configuration.features or {}
-  local content_format = features.notebook_content_format or "qa"
+  local content_format = format_override or features.notebook_content_format or "qa"
 
   -- Save to notebook
   local model_name = self.configuration and self.configuration.model
@@ -4237,6 +4263,42 @@ function ChatGPTViewer:saveToNotebook()
       timeout = 3,
     })
   end
+end
+
+--- Small format picker for the notebook popup's "Add (choose format)..." row (item
+--- 5). The notebook formatter only distinguishes "response" (answer only) from "qa"
+--- (highlighted text + user input + response), so a focused two-way pick is clearer
+--- than the four-option content picker used for Copy/Save-to-Note.
+function ChatGPTViewer:chooseNotebookFormatAndSave()
+  local ButtonDialog = require("ui/widget/buttondialog")
+  local self_ref = self
+  local dialog
+  dialog = ButtonDialog:new{
+    title = _("Add to notebook as:"),
+    buttons = {
+      {{
+        text = _("Question + Response"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:saveToNotebook("qa")
+        end,
+      }},
+      {{
+        text = _("Response only"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:saveToNotebook("response")
+        end,
+      }},
+      {{
+        text = _("Cancel"),
+        callback = function()
+          UIManager:close(dialog)
+        end,
+      }},
+    },
+  }
+  UIManager:show(dialog)
 end
 
 function ChatGPTViewer:showRegenerateFreshDialog()
@@ -4762,38 +4824,46 @@ function ChatGPTViewer:hasReasoningContent()
   return entries and #entries > 0
 end
 
--- Build a read-only TextViewer for the Reasoning / Sources viewers, adding what a bare
--- TextViewer lacks (#94 report): a text-selection popup (Copy selection / Dictionary /
--- Translate) plus a Copy-whole-content + Export button row above the default Find/Close row.
-function ChatGPTViewer:showToolTextViewer(title, text, export_basename)
-  local viewer
-  local function clear_highlight()
-    if viewer and viewer.scroll_text_w and viewer.scroll_text_w.text_widget then
-      local tw = viewer.scroll_text_w.text_widget
-      if tw.clearHighlight and tw:clearHighlight() then
-        tw:redrawHighlight()
-      end
-    end
+-- Read-only viewer for the Reasoning / Sources content (controls parity slice (e)
+-- item 6). Renders through the same markdown+link pipeline the main chat viewer uses
+-- via a minimal simple_view instance, so source URLs formatted as [title](url) are
+-- TAPPABLE (open the link dialog) and the lists/headers are formatted -- a plain
+-- TextViewer could do neither. The simple_view instance also brings the
+-- text-selection popup (Copy / Dictionary / Translate / Add to notebook) and the
+-- MD/TXT toggle for free. With no artifact callbacks the buttons stay minimal:
+-- Row 1 = Copy / Export / scroll, Row 2 = MD/TXT / Close.
+-- @param render_mode string|nil "markdown" forces markdown ON (Sources -- so the
+--   [title](url) links stay tappable); "plain" forces it OFF (Reasoning -- preserves
+--   its line breaks, matching the old plain-text viewer); nil follows the global
+--   text-mode. Either way the user can still toggle MD/TXT in-viewer.
+function ChatGPTViewer:showToolTextViewer(title, text, export_basename, render_mode)
+  -- Shallow-copy the config so forcing a mode never mutates the parent viewer's
+  -- shared configuration (CLAUDE.md config-copy rule).
+  local parent_config = self.configuration or {}
+  local sub_config = {}
+  for k, v in pairs(parent_config) do sub_config[k] = v end
+  sub_config.features = {}
+  for k, v in pairs(parent_config.features or {}) do sub_config.features[k] = v end
+  if render_mode == "markdown" then
+    sub_config.features.render_markdown = true
+  elseif render_mode == "plain" then
+    sub_config.features.render_markdown = false
   end
 
-  local copy_button = {
-    text = _("Copy"),
-    callback = function()
-      if Device:hasClipboard() then
-        Device.input.setClipboardText(text)
-        UIManager:show(Notification:new{ text = _("Copied to clipboard.") })
-      end
-    end,
-  }
+  local book_title = sub_config.features.book_metadata
+    and sub_config.features.book_metadata.title or nil
 
-  local export_button = {
-    text = _("Export"),
-    callback = function()
+  local viewer = ChatGPTViewer:new{
+    title = title,
+    text = text,
+    _ui = self._ui,
+    _plugin = self._plugin,
+    configuration = sub_config,
+    simple_view = true,
+    on_export = function()
       local PathChooser = require("ui/widget/pathchooser")
       local Export = require("koassistant_export")
       local DataStorage = require("datastorage")
-      local features = self.configuration and self.configuration.features or {}
-      local book_title = features.book_metadata and features.book_metadata.title or nil
       UIManager:show(PathChooser:new{
         title = _("Select export folder"),
         path = DataStorage:getDataDir(),
@@ -4810,29 +4880,6 @@ function ChatGPTViewer:showToolTextViewer(title, text, export_basename)
             UIManager:show(InfoMessage:new{ text = T(_("Export failed: %1"), err or "unknown error") })
           end
         end,
-      })
-    end,
-  }
-
-  viewer = TextViewer:new{
-    title = title,
-    text = text,
-    width = self.width,
-    height = self.height,
-    add_default_buttons = true,
-    buttons_table = { { copy_button, export_button } },
-    text_selection_callback = function(sel_text, _hold_duration)
-      ChatGPTViewer.buildTextSelectionPopup(sel_text, {
-        ui = self._ui,
-        plugin = self._plugin,
-        configuration = self.configuration,
-        -- Source book of this chat (popup hides the notebook button for
-        -- general/library chats via its own sentinel guard)
-        document_path = self.configuration and self.configuration.document_path,
-        append_to_notebook = function(snippet_text)
-          self:appendSelectionToNotebook(snippet_text)
-        end,
-        clear_highlight = clear_highlight,
       })
     end,
   }
@@ -4883,7 +4930,9 @@ function ChatGPTViewer:showReasoningViewer()
 
   local title = has_viewable_content and _("AI Reasoning") or _("Reasoning Status")
 
-  self:showToolTextViewer(title, table.concat(content_parts), _("reasoning"))
+  -- Plain mode: reasoning traces can carry meaningful single line breaks that markdown
+  -- would collapse (the old TextViewer was always plain); user can still toggle to MD.
+  self:showToolTextViewer(title, table.concat(content_parts), _("reasoning"), "plain")
 end
 
 -- Check if there's any response provenance (web sources / book lookups) to view
@@ -4916,54 +4965,64 @@ function ChatGPTViewer:showProvenanceViewer()
     return
   end
 
+  -- Markdown-formatted so source URLs render as tappable [title](url) links in the
+  -- viewer (controls parity slice (e) item 6). The "## Response #N" header only
+  -- appears when the chat has more than one response (noise for the common single).
   local content_parts = {}
+  local multi = #entries > 1
   for _idx, entry in ipairs(entries) do
-    table.insert(content_parts, string.format("--- Response #%d ---\n", entry.msg_num))
+    if multi then
+      table.insert(content_parts, string.format("## Response #%d\n\n", entry.msg_num))
+    end
 
     if entry.web_search_used then
       if entry.queries and #entry.queries > 0 then
-        table.insert(content_parts, _("Web search queries:") .. "\n")
+        table.insert(content_parts, "**" .. _("Web search queries:") .. "**\n\n")
         for _q, query in ipairs(entry.queries) do
-          table.insert(content_parts, "  • " .. query .. "\n")
+          table.insert(content_parts, "- " .. query .. "\n")
         end
+        table.insert(content_parts, "\n")
       end
       if entry.sources and #entry.sources > 0 then
-        table.insert(content_parts, _("Web sources:") .. "\n")
+        table.insert(content_parts, "**" .. _("Web sources:") .. "**\n\n")
         for i, source in ipairs(entry.sources) do
-          -- Gemini grounding returns opaque, expiring Google redirect URLs — the
-          -- domain title is the only human-usable part, so don't print the blob
+          -- Gemini grounding returns opaque, expiring Google redirect URLs; the
+          -- domain title is the only human-usable part, so don't link the blob
           -- (the full URL stays stored on the message; this is display-only)
           local is_google_redirect = type(source.url) == "string"
             and source.url:find("^https://vertexaisearch%.cloud%.google%.com/") ~= nil
           if is_google_redirect then
-            table.insert(content_parts, string.format("  %d. %s\n", i,
+            table.insert(content_parts, string.format("%d. %s\n", i,
               source.title or _("(Google search result)")))
-          elseif source.title then
-            table.insert(content_parts, string.format("  %d. %s\n     %s\n", i, source.title, source.url))
+          elseif source.title and source.title ~= "" then
+            -- Strip brackets/newlines from the title so they can't break the
+            -- [title](url) link parse.
+            local safe_title = tostring(source.title):gsub("[%[%]\n]", " ")
+            table.insert(content_parts, string.format("%d. [%s](%s)\n", i, safe_title, source.url))
           else
-            table.insert(content_parts, string.format("  %d. %s\n", i, source.url))
+            table.insert(content_parts, string.format("%d. %s\n", i, source.url))
           end
         end
+        table.insert(content_parts, "\n")
       end
       if (not entry.sources or #entry.sources == 0) and (not entry.queries or #entry.queries == 0) then
-        table.insert(content_parts, _("Web search was used, but this provider/response did not report sources.") .. "\n")
+        table.insert(content_parts, _("Web search was used, but this provider/response did not report sources.") .. "\n\n")
       end
     end
 
     if entry.book_tools_used then
       local n = tonumber(entry.lookups) or 0
-      table.insert(content_parts, T(_("Book lookups: %1"), n) .. "\n")
+      table.insert(content_parts, "**" .. T(_("Book lookups: %1"), n) .. "**\n\n")
       if entry.trace and #entry.trace > 0 then
         for _t, line in ipairs(entry.trace) do
-          table.insert(content_parts, "  • " .. line .. "\n")
+          table.insert(content_parts, "- " .. line .. "\n")
         end
+        table.insert(content_parts, "\n")
       end
     end
-
-    table.insert(content_parts, "\n")
   end
 
-  self:showToolTextViewer(_("Sources & Lookups"), table.concat(content_parts), _("sources"))
+  self:showToolTextViewer(_("Sources & Lookups"), table.concat(content_parts), _("sources"), "markdown")
 end
 
 -- Internal function to handle rotation/resize recreation
@@ -5194,6 +5253,73 @@ function ChatGPTViewer:showViewerSettings()
           end,
         },
       },
+    },
+  }
+  UIManager:show(dialog)
+end
+
+-- Anchor helper (slice (e) note A): returns a ButtonDialog `anchor` function pointing
+-- at a button in the viewer's button row by id, so the popup opens next to its
+-- triggering button. Returns nil when the button row is absent (dialog then centers);
+-- the returned function tolerates a not-yet-laid-out button (nil dimen -> centers too).
+function ChatGPTViewer:_anchorToButton(button_id)
+  if not self.button_table then return nil end
+  return function()
+    local btn = self.button_table:getButtonById(button_id)
+    return btn and btn.dimen, true
+  end
+end
+
+-- Quick display settings, opened by long-pressing the MD/TXT toggle (slice (e) note
+-- E): a focused subset of the gear's rendering controls, anchored to the toggle
+-- button. Font size and alignment apply to markdown rendering; strip-markdown applies
+-- to plain-text mode -- each takes effect in its relevant mode.
+function ChatGPTViewer:showRenderingQuickSettings()
+  local dialog
+  dialog = ButtonDialog:new{
+    shrink_unneeded_width = true,
+    anchor = self:_anchorToButton("toggle_markdown"),
+    title = _("Display"),
+    buttons = {
+      {{
+        text = _("Font Size") .. ": " .. self.markdown_font_size,
+        callback = function()
+          UIManager:close(dialog)
+          self:showFontSizeSpinner()
+        end,
+      }},
+      {{
+        text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
+        callback = function()
+          -- Cycle: left -> justify -> right -> left (same order as the gear)
+          local order = {"left", "justify", "right"}
+          local current = self.text_align or "justify"
+          local idx = 1
+          for i, v in ipairs(order) do
+            if v == current then idx = i; break end
+          end
+          local next_align = order[(idx % #order) + 1]
+          self.text_align = next_align
+          self:persistFeatureSetting("text_align", next_align)
+          self:refreshMarkdownDisplay()
+          UIManager:close(dialog)
+          self:showRenderingQuickSettings()
+        end,
+      }},
+      {{
+        text = _("Strip markdown in text mode") .. ": "
+          .. (self.strip_markdown_in_text_mode and _("On") or _("Off")),
+        callback = function()
+          self.strip_markdown_in_text_mode = not self.strip_markdown_in_text_mode
+          self:persistFeatureSetting("strip_markdown_in_text_mode", self.strip_markdown_in_text_mode)
+          -- Only affects plain-text mode; re-render in place when that mode is active.
+          if not self.render_markdown then
+            self:rebuildScrollWidget()
+          end
+          UIManager:close(dialog)
+          self:showRenderingQuickSettings()
+        end,
+      }},
     },
   }
   UIManager:show(dialog)

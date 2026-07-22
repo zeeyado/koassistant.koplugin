@@ -688,6 +688,12 @@ function MessageHistory:createResultText(highlightedText, config)
     local show_book_tools_indicator = config and config.features and config.features.show_book_tools_indicator
     if show_book_tools_indicator == nil then show_book_tools_indicator = true end  -- Default to showing indicator
 
+    -- One-time "tap the gear to review" hint (controls parity slice (e) item 7):
+    -- added once, on the first response that shows a reasoning/web/tools indicator,
+    -- so users learn the full reasoning/sources live behind the gear. Tied to the
+    -- indicator toggles above (all off -> no hint); display-only, like the indicators.
+    local gear_hint_added = false
+
     -- Show conversation (non-context messages)
     -- In compact mode (dictionary lookups), hide prefixes for cleaner display
     local hide_prefixes = config and config.features and (config.features.compact_view or config.features.dictionary_view)
@@ -741,6 +747,16 @@ function MessageHistory:createResultText(highlightedText, config)
                 else
                     table.insert(result, "*[Book tools were used]*\n\n")
                 end
+            end
+
+            -- Once, after the first visible indicator: point users at the gear where
+            -- the full reasoning and sources live (item 7).
+            if not gear_hint_added and msg.role == self.ROLES.ASSISTANT
+                    and ((show_reasoning_indicator and msg.reasoning)
+                        or (show_web_search_indicator and msg.web_search_used)
+                        or (show_book_tools_indicator and msg.book_tools_used)) then
+                table.insert(result, "*[Tap the gear icon to review details]*\n\n")
+                gear_hint_added = true
             end
 
             table.insert(result, prefix .. msg.content .. "\n\n")

@@ -15514,6 +15514,20 @@ function AskGPT:openNotebookInChatViewer(notebook_path, document_path)
     UIManager:show(path_chooser)
   end
 
+  -- Resolve book title/author for the "→ Chat" context (best-effort; the book may
+  -- not be open when the notebook is viewed from the file browser / notebook manager).
+  local book_title, book_author
+  if self_ref.ui and self_ref.ui.document and self_ref.ui.document.file == document_path then
+    local props = self_ref.ui.doc_props
+    book_title = props and (props.display_title or props.title)
+    book_author = props and props.authors
+  else
+    local props = getRawDocProps(document_path)
+    book_title = props and (props.display_title or props.title)
+    book_author = props and props.authors
+  end
+  book_title = book_title or book_name
+
   local viewer = ChatGPTViewer:new{
     title = title,
     text = content,
@@ -15522,6 +15536,11 @@ function AskGPT:openNotebookInChatViewer(notebook_path, document_path)
     on_edit = on_edit,
     on_open_reader = on_open_reader,
     on_export = on_export,
+    -- Chat directly about the notebook content (controls parity slice (e) note C),
+    -- reusing the artifact viewer's → Chat launcher with notebook-specific wording.
+    on_launch_chat = self_ref:_buildLaunchChatCallback(document_path, book_title, book_author, content, _("Notebook")),
+    launch_chat_title = _("Chat about this notebook"),
+    launch_chat_hold_hint = _("Start a new chat about this notebook"),
     _plugin = self_ref,
     _ui = self_ref.ui,
   }
