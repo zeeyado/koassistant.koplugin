@@ -585,6 +585,13 @@ local function copyWithPicker(viewer, is_translate)
 end
 
 -- Pre-process markdown tables to HTML (luamd doesn't support tables)
+-- Tables with more columns than this are rendered as stacked "Header: value"
+-- blocks instead of a grid: MuPDF's HTML engine can't shrink a wide table below
+-- the sum of its column minimum widths (it ignores table-layout:fixed and
+-- word-wrap), so many-column grids run off the right edge with no way to scroll
+-- back. Stacked blocks always fit the viewer width. Tune this to taste.
+local WIDE_TABLE_COLS = 3
+
 local function preprocessMarkdownTables(text)
     if not text then return text end
 
@@ -608,7 +615,6 @@ local function preprocessMarkdownTables(text)
 
         if is_table_row and is_separator then
             -- Found a markdown table, parse it
-            local table_html = {"<table>"}
 
             -- Parse header row
             local header_cells = {}
@@ -634,19 +640,11 @@ local function preprocessMarkdownTables(text)
                 end
             end
 
-            -- Generate header HTML
-            table.insert(table_html, "<thead><tr>")
-            for j, cell in ipairs(header_cells) do
-                local align = alignments[j] or "left"
-                table.insert(table_html, string.format('<th style="text-align:%s">%s</th>', align, cell))
-            end
-            table.insert(table_html, "</tr></thead>")
-
             -- Skip header and separator rows
             i = i + 2
 
-            -- Parse body rows
-            table.insert(table_html, "<tbody>")
+            -- Collect body rows (each is a list of cell strings)
+            local body_rows = {}
             while i <= #lines do
                 local body_line = lines[i]
 
@@ -667,21 +665,50 @@ local function preprocessMarkdownTables(text)
                         table.insert(body_cells, trimmed)
                     end
                 end
-
-                -- Generate row HTML
-                table.insert(table_html, "<tr>")
-                for j, cell in ipairs(body_cells) do
-                    local align = alignments[j] or "left"
-                    -- Skip empty cells that are just whitespace from leading/trailing |
-                    if cell ~= "" then
-                        table.insert(table_html, string.format('<td style="text-align:%s">%s</td>', align, cell))
-                    end
-                end
-                table.insert(table_html, "</tr>")
+                table.insert(body_rows, body_cells)
 
                 i = i + 1
             end
-            table.insert(table_html, "</tbody></table>")
+
+            local table_html = {}
+            if #header_cells > WIDE_TABLE_COLS then
+                -- Too wide for MuPDF to fit -- stack each row as labeled blocks.
+                for _r, cells in ipairs(body_rows) do
+                    table.insert(table_html,
+                        '<div style="margin:0.6em 0; padding-left:0.6em; border-left:2px solid #ccc">')
+                    for j = 1, #header_cells do
+                        local val = cells[j]
+                        if val and val ~= "" then
+                            table.insert(table_html, string.format(
+                                '<p style="margin:0.15em 0"><b>%s:</b> %s</p>', header_cells[j], val))
+                        end
+                    end
+                    table.insert(table_html, '</div>')
+                end
+            else
+                -- Narrow enough for a normal grid.
+                table.insert(table_html, "<table>")
+                table.insert(table_html, "<thead><tr>")
+                for j, cell in ipairs(header_cells) do
+                    local align = alignments[j] or "left"
+                    table.insert(table_html, string.format('<th style="text-align:%s">%s</th>', align, cell))
+                end
+                table.insert(table_html, "</tr></thead>")
+
+                table.insert(table_html, "<tbody>")
+                for _r, cells in ipairs(body_rows) do
+                    table.insert(table_html, "<tr>")
+                    for j, cell in ipairs(cells) do
+                        local align = alignments[j] or "left"
+                        -- Skip empty cells that are just whitespace from leading/trailing |
+                        if cell ~= "" then
+                            table.insert(table_html, string.format('<td style="text-align:%s">%s</td>', align, cell))
+                        end
+                    end
+                    table.insert(table_html, "</tr>")
+                end
+                table.insert(table_html, "</tbody></table>")
+            end
 
             table.insert(result, table.concat(table_html, "\n"))
         else
@@ -843,11 +870,15 @@ p {
 table {
     border-collapse: collapse;
     margin: 0.5em 0;
+    width: 100%%;
+    table-layout: fixed;
 }
 
 td, th {
     border: 1px solid #ccc;
     padding: 0.3em 0.5em;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 th {
@@ -4648,14 +4679,13 @@ function ChatGPTViewer:toggleDebugMode()
   -- Toggle debug display (not console logging - that's controlled separately in settings)
   self.show_debug_in_chat = not self.show_debug_in_chat
 
-  -- Update configuration
+  -- Session-only: update this viewer's in-memory config so the current chat
+  -- (including replies) reflects the toggle, but deliberately do NOT persist it.
+  -- The Settings menu item (features.show_debug_in_chat on disk) stays the
+  -- untouched default; this gear toggle is a temporary peek that resets when the
+  -- viewer/session goes away, rather than staying on across chats and restarts.
   if self.configuration.features then
     self.configuration.features.show_debug_in_chat = self.show_debug_in_chat
-  end
-
-  -- Save display preference to settings
-  if self.settings_callback then
-    self.settings_callback("features.show_debug_in_chat", self.show_debug_in_chat)
   end
 
   -- If debug display was toggled and we have update_debug_callback, call it
