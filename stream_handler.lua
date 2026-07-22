@@ -392,6 +392,29 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                    -- web_prov.sources as they harvest; cleared with the phase
     local web_query_block_idx = nil  -- Anthropic server_tool_use block streaming the query
     local web_query_parts = nil      -- Accumulated input_json_delta fragments for it
+    -- Accumulated search queries this phase (2026-07-22): providers can issue many
+    -- searches per question (OpenAI especially, uncapped) -- show them piling up instead
+    -- of a single line that flashes and replaces itself. web_current_query is the
+    -- in-progress Anthropic query (streams incrementally), committed to web_queries on
+    -- content_block_stop; OpenAI queries arrive complete and append directly.
+    local web_queries = {}
+    local web_current_query = nil
+    local function rebuildWebSearchStatus()
+        local emoji = settings and settings.enable_emoji_icons
+        local lines, seen = {}, {}
+        for _idx, q in ipairs(web_queries) do
+            if not seen[q] then seen[q] = true; table.insert(lines, "• " .. q) end
+        end
+        if type(web_current_query) == "string" and web_current_query ~= "" and not seen[web_current_query] then
+            table.insert(lines, "• " .. web_current_query)
+        end
+        if #lines > 0 then
+            web_search_status = Constants.getEmojiText("🔍", _("Searching the web:"), emoji)
+                .. "\n" .. table.concat(lines, "\n")
+        else
+            web_search_status = Constants.getEmojiText("🔍", _("Searching the web..."), emoji)
+        end
+    end
     local web_search_used = false  -- Track if web search was ever used during this stream
     local segment_start_idx = 1  -- First result_buffer index of the current prose segment
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
@@ -1222,31 +1245,36 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                         and type(event.delta.partial_json) == "string" then
                                     table.insert(web_query_parts, event.delta.partial_json)
                                     -- Tolerant extract: matches once the closing quote of the
-                                    -- query value has streamed in; until then keep the generic line
+                                    -- query value has streamed in; show it as the in-progress
+                                    -- query (committed to the accumulated list on block-stop)
                                     local query = table.concat(web_query_parts):match('"query"%s*:%s*"(.-)"%s*[,}]')
                                     if query and #query > 0 then
-                                        web_search_status = Constants.getEmojiText("🔍",
-                                            T(_("Searching the web: %1"), query),
-                                            settings and settings.enable_emoji_icons)
+                                        web_current_query = query
+                                        rebuildWebSearchStatus()
                                         if in_web_search_phase then scheduleUIUpdate() end
                                     end
                                 elseif event.type == "content_block_stop" then
+                                    -- Commit the finished query to the accumulated list
+                                    if type(web_current_query) == "string" and web_current_query ~= "" then
+                                        table.insert(web_queries, web_current_query)
+                                        web_current_query = nil
+                                        rebuildWebSearchStatus()
+                                    end
                                     web_query_block_idx = nil
                                     web_query_parts = nil
                                 end
                             end
 
                             -- OpenAI Responses: the completed web_search_call item carries
-                            -- its query — upgrade the generic status line (display-only)
+                            -- its query — append it to the accumulated list (display-only)
                             if event.type == "response.output_item.done"
                                     and type(event.item) == "table"
                                     and event.item.type == "web_search_call"
                                     and type(event.item.action) == "table"
                                     and type(event.item.action.query) == "string"
                                     and event.item.action.query ~= "" then
-                                web_search_status = Constants.getEmojiText("🔍",
-                                    T(_("Searching the web: %1"), event.item.action.query),
-                                    settings and settings.enable_emoji_icons)
+                                table.insert(web_queries, event.item.action.query)
+                                rebuildWebSearchStatus()
                                 if in_web_search_phase then scheduleUIUpdate() end
                             end
 
@@ -1290,10 +1318,10 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     end
                                     -- Display-only status, rendered as a suffix by scheduleUIUpdate
                                     -- so throttled repaints keep it visible (never enters
-                                    -- result_buffer). A new search resets to the generic line;
-                                    -- Anthropic upgrades it with the live query (see the
-                                    -- input_json_delta accumulation above).
-                                    web_search_status = Constants.getEmojiText("🔍", _("Searching the web..."), settings and settings.enable_emoji_icons)
+                                    -- result_buffer). Shows the accumulated query list (the
+                                    -- provider handlers above append each search); this just
+                                    -- ensures the header appears the moment a search starts.
+                                    rebuildWebSearchStatus()
                                     scheduleUIUpdate()
                                 else
                                     -- If transitioning from web search or reasoning to answer, clear display
@@ -1301,6 +1329,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                         in_web_search_phase = false
                                         web_search_status = nil
                                         web_found_status = nil
+                                        web_queries = {}
+                                        web_current_query = nil
                                         streamDialog._input_widget:setText("", true)
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
