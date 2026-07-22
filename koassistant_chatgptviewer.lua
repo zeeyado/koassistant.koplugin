@@ -548,6 +548,7 @@ local function showContentPicker(title, is_translate, callback, anchor)
     })
 
     content_dialog = ButtonDialog:new{
+        shrink_unneeded_width = true,
         title = title,
         anchor = anchor,
         buttons = buttons,
@@ -1184,11 +1185,9 @@ function ChatGPTViewer:init()
       callback = function()
         self:showNotebookPopup()
       end,
+      -- Long-press opens the same popup as tap (some users hold buttons by habit).
       hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Add chat to notebook, view, or edit"),
-          timeout = 2,
-        })
+        self:showNotebookPopup()
       end,
     },
   }
@@ -4181,6 +4180,7 @@ function ChatGPTViewer:showNotebookPopup()
   }})
 
   if notebook_exists then
+    -- One button per row (anchored popup reads as a narrow vertical list).
     table.insert(buttons, {{
       text = _("View Notebook"),
       callback = function()
@@ -4189,7 +4189,8 @@ function ChatGPTViewer:showNotebookPopup()
           self_ref._plugin:openNotebookForFile(document_path)
         end
       end,
-    }, {
+    }})
+    table.insert(buttons, {{
       text = _("Edit Notebook"),
       callback = function()
         UIManager:close(self_ref._notebook_dialog)
@@ -4201,6 +4202,7 @@ function ChatGPTViewer:showNotebookPopup()
   end
 
   self._notebook_dialog = ButtonDialog:new{
+    shrink_unneeded_width = true,
     anchor = self:_anchorToButton("save_to_notebook"),
     buttons = buttons,
   }
@@ -4274,6 +4276,7 @@ function ChatGPTViewer:chooseNotebookFormatAndSave()
   local self_ref = self
   local dialog
   dialog = ButtonDialog:new{
+    shrink_unneeded_width = true,
     title = _("Add to notebook as:"),
     buttons = {
       {{
@@ -4284,7 +4287,7 @@ function ChatGPTViewer:chooseNotebookFormatAndSave()
         end,
       }},
       {{
-        text = _("Response only"),
+        text = _("Last response only"),
         callback = function()
           UIManager:close(dialog)
           self_ref:saveToNotebook("response")
@@ -5178,21 +5181,7 @@ function ChatGPTViewer:showViewerSettings()
         {
           text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
           callback = function()
-            -- Cycle: left -> justify -> right -> left
-            local order = {"left", "justify", "right"}
-            local current = self.text_align or "justify"
-            local idx = 1
-            for i, v in ipairs(order) do
-              if v == current then idx = i; break end
-            end
-            local next_align = order[(idx % #order) + 1]
-            self.text_align = next_align
-            self:persistFeatureSetting("text_align", next_align)
-            self:refreshMarkdownDisplay()
-            UIManager:show(Notification:new{
-              text = T(_("Alignment: %1"), getAlignmentDisplayName(next_align)),
-              timeout = 2,
-            })
+            self:cycleAlignment()
             -- Reopen settings to show updated label
             UIManager:close(dialog)
             self:showViewerSettings()
@@ -5258,6 +5247,48 @@ function ChatGPTViewer:showViewerSettings()
   UIManager:show(dialog)
 end
 
+-- Cycle text alignment left -> justify -> right -> left, persist, re-render, and toast.
+-- Shared by the gear (showViewerSettings) and the MD/TXT quick menu so both behave
+-- identically; each caller reopens its own dialog afterward.
+function ChatGPTViewer:cycleAlignment()
+  local order = {"left", "justify", "right"}
+  local current = self.text_align or "justify"
+  local idx = 1
+  for i, v in ipairs(order) do
+    if v == current then idx = i; break end
+  end
+  local next_align = order[(idx % #order) + 1]
+  self.text_align = next_align
+  self:persistFeatureSetting("text_align", next_align)
+  self:refreshMarkdownDisplay()
+  UIManager:show(Notification:new{
+    text = T(_("Alignment: %1"), getAlignmentDisplayName(next_align)),
+    timeout = 2,
+  })
+end
+
+-- Re-apply the auto-RTL-for-chat setting to THIS viewer after it is toggled from the
+-- MD/TXT quick menu (note E). Mirrors the detection init runs on open: when enabled and
+-- the content is dominantly RTL, force RTL paragraph direction + plain text (RTL renders
+-- poorly through the markdown/HTML path); otherwise restore LTR auto-direction and the
+-- user's markdown preference. Then rebuild in place.
+function ChatGPTViewer:reapplyRtlMode()
+  local features = self.configuration and self.configuration.features or {}
+  local rtl_enabled = features.rtl_chat_text_mode ~= false
+  local is_rtl = rtl_enabled and self.text and hasDominantRTL(self.text, 10000)
+  if is_rtl then
+    self.para_direction_rtl = true
+    self.auto_para_direction = false
+    self.render_markdown = false
+  else
+    self.para_direction_rtl = false
+    self.auto_para_direction = true
+    -- Restore the user's markdown preference (init treats nil as the default: on).
+    self.render_markdown = features.render_markdown ~= false
+  end
+  self:rebuildScrollWidget()
+end
+
 -- Anchor helper (slice (e) note A): returns a ButtonDialog `anchor` function pointing
 -- at a button in the viewer's button row by id, so the popup opens next to its
 -- triggering button. Returns nil when the button row is absent (dialog then centers);
@@ -5291,17 +5322,8 @@ function ChatGPTViewer:showRenderingQuickSettings()
       {{
         text = _("Alignment") .. ": " .. getAlignmentDisplayName(self.text_align),
         callback = function()
-          -- Cycle: left -> justify -> right -> left (same order as the gear)
-          local order = {"left", "justify", "right"}
-          local current = self.text_align or "justify"
-          local idx = 1
-          for i, v in ipairs(order) do
-            if v == current then idx = i; break end
-          end
-          local next_align = order[(idx % #order) + 1]
-          self.text_align = next_align
-          self:persistFeatureSetting("text_align", next_align)
-          self:refreshMarkdownDisplay()
+          -- Shared with the gear's Alignment row (identical behavior).
+          self:cycleAlignment()
           UIManager:close(dialog)
           self:showRenderingQuickSettings()
         end,
@@ -5316,6 +5338,19 @@ function ChatGPTViewer:showRenderingQuickSettings()
           if not self.render_markdown then
             self:rebuildScrollWidget()
           end
+          UIManager:close(dialog)
+          self:showRenderingQuickSettings()
+        end,
+      }},
+      {{
+        text = _("Auto RTL mode for Chat") .. ": "
+          .. ((self.configuration and self.configuration.features
+               and self.configuration.features.rtl_chat_text_mode ~= false) and _("On") or _("Off")),
+        callback = function()
+          local features = self.configuration and self.configuration.features or {}
+          local enabled = features.rtl_chat_text_mode ~= false
+          self:persistFeatureSetting("rtl_chat_text_mode", not enabled)
+          self:reapplyRtlMode()
           UIManager:close(dialog)
           self:showRenderingQuickSettings()
         end,
