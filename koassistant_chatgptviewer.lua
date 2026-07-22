@@ -523,7 +523,7 @@ local function showContentPicker(title, is_translate, callback)
     local options = {
         { value = "full", label = _("Full (metadata + chat)") },
         { value = "qa", label = _("Question + Response") },
-        { value = "response", label = is_translate and _("Translation only") or _("Response only") },
+        { value = "response", label = is_translate and _("Translation only") or _("Last response only") },
         { value = "everything", label = _("Everything (debug)") },
     }
 
@@ -692,13 +692,16 @@ end
 local function autoLinkUrls(text)
     if not text then return text end
 
-    -- Step 1: Protect existing markdown links by storing them
+    -- Step 1: Protect existing markdown links by storing them. The URL group is a
+    -- balanced-paren match (%b()) so links whose URL contains parentheses survive
+    -- intact (Wikipedia disambiguation, e.g. Mercury_(planet)) -- a plain [^%)]+
+    -- stopped at the first ')' and truncated them.
     local links = {}
     local link_count = 0
-    local result = text:gsub("%[([^%]]+)%]%(([^%)]+)%)", function(link_text, url)
+    local result = text:gsub("%[([^%]]+)%](%b())", function(link_text, paren)
         link_count = link_count + 1
         local placeholder = "XURLLINKX" .. link_count .. "XURLLINKX"
-        links[link_count] = "[" .. link_text .. "](" .. url .. ")"
+        links[link_count] = "[" .. link_text .. "](" .. paren:sub(2, -2) .. ")"
         return placeholder
     end)
 
@@ -740,18 +743,19 @@ end
 local function preprocessBrackets(text)
     if not text then return text end
 
-    -- Strategy: Preserve real markdown links [text](url) but escape other brackets
-    -- Real links have the pattern: [text](url) where url starts with http/https/mailto/# or is a relative path
-
-    -- First, temporarily replace real markdown links with placeholders
+    -- Convert real markdown links to HTML <a> tags OURSELVES, before luamd runs:
+    -- luamd's own link parser truncates the URL at the first ')', so a link like
+    -- [Mercury](https://en.wikipedia.org/wiki/Mercury_(planet)) renders with an
+    -- empty href and the tail leaks as plain text. We emit the anchor with a
+    -- balanced-paren (%b()) URL match, and luamd passes inline HTML through
+    -- untouched. The generated anchors are stashed behind placeholders so the
+    -- bracket-escaping below can't touch the href/text.
     local links = {}
     local link_count = 0
-
-    -- Match [text](url) pattern - url can be http, https, mailto, #anchor, or relative path
-    local protected_text = text:gsub("%[([^%]]+)%]%(([^%)]+)%)", function(link_text, url)
+    local protected_text = text:gsub("%[([^%]]+)%](%b())", function(link_text, paren)
         link_count = link_count + 1
         local placeholder = "XMDLINKX" .. link_count .. "XMDLINKX"
-        links[link_count] = "[" .. link_text .. "](" .. url .. ")"
+        links[link_count] = string.format('<a href="%s">%s</a>', paren:sub(2, -2), link_text)
         return placeholder
     end)
 
@@ -759,7 +763,7 @@ local function preprocessBrackets(text)
     protected_text = protected_text:gsub("%[", "&#91;")
     protected_text = protected_text:gsub("%]", "&#93;")
 
-    -- Restore the real links from placeholders
+    -- Restore the generated anchors from placeholders
     for i = 1, link_count do
         local placeholder = "XMDLINKX" .. i .. "XMDLINKX"
         protected_text = protected_text:gsub(placeholder, function() return links[i] end)
@@ -1097,40 +1101,16 @@ function ChatGPTViewer:init()
   local enable_emoji = self.configuration and self.configuration.features
                        and self.configuration.features.enable_emoji_icons
   -- First row: Main actions
+  -- Row 1 = actions on the response (2026-07 layout pass). Save moved to row 2,
+  -- Tag to the end of row 1, the web toggle removed (it lives in the reply chip row).
   local first_row = {
     {
       text = Constants.getEmojiText("↩️", _("Reply"), enable_emoji),
+      font_bold = true,  -- primary action
       id = "ask_another_question",
       callback = function()
         self:askAnotherQuestion()
       end,
-    },
-    {
-      text_func = function()
-        -- Show "Autosaved" when auto-save is active for this chat:
-        -- auto_save_all_chats, OR auto_save_chats + already saved once
-        local features = self.configuration and self.configuration.features
-        local auto_save = features and (
-          features.auto_save_all_chats or
-          (features.auto_save_chats ~= false and features.chat_saved)
-        )
-        local skip_save = features and features.storage_key == "__SKIP__"
-        local expanded_from_skip = features and features.expanded_from_skip
-        return (auto_save and not skip_save and not expanded_from_skip) and _("Autosaved") or _("Save")
-      end,
-      id = "save_chat",
-      callback = function()
-        if self.save_callback then
-          self.save_callback()
-        else
-          local Notification = require("ui/widget/notification")
-          UIManager:show(Notification:new{
-            text = _("Save function not available"),
-            timeout = 2,
-          })
-        end
-      end,
-      hold_callback = self.default_hold_callback,
     },
     {
       text = _("Copy"),
@@ -1185,10 +1165,8 @@ function ChatGPTViewer:init()
         self:saveToNote()
       end,
       hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Save response as note on highlighted text"),
-          timeout = 2,
-        })
+        -- Long-press: pick the note content/format for this save (parity with Copy).
+        self:saveToNote(true)
       end,
     },
     {
@@ -1207,58 +1185,37 @@ function ChatGPTViewer:init()
         })
       end,
     },
-    {
-      text = Constants.getEmojiText("🏷️", "#", enable_emoji),
-      id = "tag_chat",
-      callback = function()
-        if self.tag_callback then
-          self.tag_callback()
-        else
-          UIManager:show(Notification:new{
-            text = _("Tag function not available"),
-            timeout = 2,
-          })
-        end
-      end,
-      hold_callback = function()
-        UIManager:show(Notification:new{
-          text = _("Add or manage tags for this chat"),
-          timeout = 2,
-        })
-      end,
-    },
   }
 
-  -- Web search state helpers (used by Row 2 toggle)
-  -- Session override > global setting
-  local ConfigHelper = require("koassistant_config_helper")
-  local web_search_supported = ConfigHelper:supportsWebSearch(self.configuration)
-  local function getWebSearchState()
-    if self.session_web_search_override ~= nil then
-      return self.session_web_search_override
-    end
-    local cfg = self.configuration
-    -- Baked per-request override (action flag / per-chat toggle / per-book override),
-    -- set by buildUnifiedRequestConfig — reflects what this chat actually uses
-    if cfg and cfg.enable_web_search ~= nil then
-      return cfg.enable_web_search == true
-    end
-    -- Fall through to the global setting
-    if cfg and cfg.features and cfg.features.enable_web_search then
-      return true
-    end
-    return false
-  end
-  -- Helper to get web search button text with optional emoji
-  local function getWebSearchButtonText(state)
-    -- Unsupported provider/model: show N/A (tap explains, doesn't toggle)
-    local label = (not web_search_supported) and _("N/A")
-                  or (state and _("ON") or _("OFF"))
-    if enable_emoji then
-      return Constants.getEmojiText("🔍", label, enable_emoji)
-    end
-    return "Web " .. label
-  end
+  -- Save/Autosaved chat button -- moved to row 2 in the 2026-07 layout pass
+  -- (row 1 = response actions; row 2 = chat state + display + nav).
+  local save_chat_button = {
+    text_func = function()
+      -- Show "Autosaved" when auto-save is active for this chat:
+      -- auto_save_all_chats, OR auto_save_chats + already saved once
+      local features = self.configuration and self.configuration.features
+      local auto_save = features and (
+        features.auto_save_all_chats or
+        (features.auto_save_chats ~= false and features.chat_saved)
+      )
+      local skip_save = features and features.storage_key == "__SKIP__"
+      local expanded_from_skip = features and features.expanded_from_skip
+      return (auto_save and not skip_save and not expanded_from_skip) and _("Autosaved") or _("Save")
+    end,
+    id = "save_chat",
+    callback = function()
+      if self.save_callback then
+        self.save_callback()
+      else
+        local Notification = require("ui/widget/notification")
+        UIManager:show(Notification:new{
+          text = _("Save function not available"),
+          timeout = 2,
+        })
+      end
+    end,
+    hold_callback = self.default_hold_callback,
+  }
 
   -- Pin / Star button (end of first row)
   table.insert(first_row, {
@@ -1276,11 +1233,33 @@ function ChatGPTViewer:init()
       })
     end,
   })
+  -- Tag button -- moved to the end of row 1 in the 2026-07 layout pass.
+  table.insert(first_row, {
+    text = Constants.getEmojiText("🏷️", "#", enable_emoji),
+    id = "tag_chat",
+    callback = function()
+      if self.tag_callback then
+        self.tag_callback()
+      else
+        UIManager:show(Notification:new{
+          text = _("Tag function not available"),
+          timeout = 2,
+        })
+      end
+    end,
+    hold_callback = function()
+      UIManager:show(Notification:new{
+        text = _("Add or manage tags for this chat"),
+        timeout = 2,
+      })
+    end,
+  })
 
   local default_buttons = {
     first_row,
-    -- Second row: Controls and toggles
+    -- Second row: chat state + display + navigation (2026-07 layout pass)
     {
+      save_chat_button,
       {
         text_func = function()
           return self.render_markdown and "MD ON" or "TXT ON"
@@ -1292,47 +1271,6 @@ function ChatGPTViewer:init()
         hold_callback = function()
           UIManager:show(Notification:new{
             text = _("Toggle between markdown and plain text display"),
-            timeout = 2,
-          })
-        end,
-      },
-      {
-        text_func = function()
-          local state = getWebSearchState()
-          return getWebSearchButtonText(state)
-        end,
-        id = "toggle_web_search",
-        callback = function()
-          -- Gate: unsupported providers can't search — explain instead of toggling
-          if not web_search_supported then
-            local provider = (self.configuration and self.configuration.provider) or _("this provider")
-            UIManager:show(InfoMessage:new{
-              text = T(_("Web search isn't currently available for %1.\n\nSupported providers: %2."),
-                provider, ConfigHelper:getWebSearchProvidersLabel()),
-            })
-            return
-          end
-          -- Toggle web search override for this session
-          local current_state = getWebSearchState()
-          self.session_web_search_override = not current_state
-          -- Update button text (force re-init to handle truncation avoidance)
-          local button = self.button_table:getButtonById("toggle_web_search")
-          if button then
-            local new_state = getWebSearchState()
-            button.did_truncation_tweaks = true  -- Force full re-init with truncation check
-            button:setText(getWebSearchButtonText(new_state), button.width)
-          end
-          -- Refresh display
-          UIManager:setDirty(self, function()
-            return "ui", self.frame.dimen
-          end)
-        end,
-        hold_callback = function()
-          local msg = web_search_supported
-            and _("Toggle web search for this session")
-            or _("Web search isn't available for this provider")
-          UIManager:show(Notification:new{
-            text = msg,
             timeout = 2,
           })
         end,
@@ -1352,19 +1290,6 @@ function ChatGPTViewer:init()
         hold_callback = function()
           UIManager:show(Notification:new{
             text = _("Toggle highlighted text display in chat"),
-            timeout = 2,
-          })
-        end,
-      },
-      {
-        text = _("Export"),
-        id = "export_chat",
-        callback = function()
-          self:showExportDialog()
-        end,
-        hold_callback = function()
-          UIManager:show(Notification:new{
-            text = _("Save chat to file"),
             timeout = 2,
           })
         end,
@@ -4100,7 +4025,7 @@ function ChatGPTViewer:toggleMarkdown()
   end)
 end
 
-function ChatGPTViewer:saveToNote()
+function ChatGPTViewer:saveToNote(force_picker)
   -- Save AI response as a note on the highlighted text
   if not self.selection_data then
     UIManager:show(Notification:new{
@@ -4196,7 +4121,9 @@ function ChatGPTViewer:saveToNote()
     end
   end
 
-  if content == "ask" then
+  -- Long-press forces the picker even when a fixed note_content default is set
+  -- (parity with Copy's hold -- 2026-07 layout pass).
+  if force_picker or content == "ask" then
     showContentPicker(_("Note Content"), self.translate_view, doSave)
   else
     doSave(content)
@@ -5219,6 +5146,16 @@ function ChatGPTViewer:showViewerSettings()
           callback = function()
             UIManager:close(dialog)
             self:resetViewerSettings()
+          end,
+        },
+      },
+      {
+        {
+          -- Moved from row 2 in the 2026-07 layout pass (occasional action).
+          text = _("Export"),
+          callback = function()
+            UIManager:close(dialog)
+            self:showExportDialog()
           end,
         },
       },
