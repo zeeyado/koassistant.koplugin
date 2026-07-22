@@ -142,6 +142,37 @@ local function harvestWebSources(event, prov)
     end
 end
 
+--- Compact "Found: <domains>" line for the live web-search status (better live output,
+--- 2026-07-22): turns harvested sources into a short, deduped domain list so the wait
+--- shows what's turning up, not just the query. Google/Vertex redirect blobs are opaque,
+--- so those fall back to their title. Display-only; the full source list rides provenance
+--- ("Show Sources"). Returns nil until something usable is harvested.
+local function webSourcesFoundLine(prov, enable_emoji)
+    if not prov or type(prov.sources) ~= "table" or #prov.sources == 0 then return nil end
+    local labels, seen = {}, {}
+    for _idx, src in ipairs(prov.sources) do
+        local label
+        local url = src.url
+        if type(url) == "string" and not url:find("^https://vertexaisearch%.cloud%.google%.com/") then
+            label = url:match("^https?://([^/]+)")
+            if label then label = label:gsub("^www%.", "") end
+        end
+        label = label or src.title  -- redirect blob or no host: use the title instead
+        if type(label) == "string" and label ~= "" and not seen[label] then
+            seen[label] = true
+            table.insert(labels, label)
+        end
+    end
+    if #labels == 0 then return nil end
+    local shown = {}
+    for i = 1, math.min(#labels, 6) do shown[i] = labels[i] end
+    local text = table.concat(shown, ", ")
+    if #labels > 6 then
+        text = T(_("%1 (+%2 more)"), text, #labels - 6)
+    end
+    return Constants.getEmojiText("\u{1F517}", T(_("Found: %1"), text), enable_emoji)
+end
+
 --- Close the current prose segment when a web search starts (report 3(b) decision,
 --- 2026-07-12): substantive prose the model wrote before searching is KEPT behind an
 --- inline marker (it is a completed text block the model composed knowing it stays
@@ -357,6 +388,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local in_web_search_phase = false  -- Track if web search tool is executing
     local web_search_status = nil  -- Display-only "Searching the web…" line, rendered as a
                                    -- suffix by scheduleUIUpdate; never enters result_buffer
+    local web_found_status = nil   -- Display-only "Found: <domains>" line, refreshed from
+                                   -- web_prov.sources as they harvest; cleared with the phase
     local web_query_block_idx = nil  -- Anthropic server_tool_use block streaming the query
     local web_query_parts = nil      -- Accumulated input_json_delta fragments for it
     local web_search_used = false  -- Track if web search was ever used during this stream
@@ -746,9 +779,14 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                         and table.concat(reasoning_buffer) or table.concat(result_buffer)
                     if in_web_search_phase and web_search_status then
                         -- Keep the search status visible across throttled repaints
-                        -- (display-only suffix; result_buffer is never touched)
-                        display = #display > 0 and (display .. "\n\n" .. web_search_status)
-                            or web_search_status
+                        -- (display-only suffix; result_buffer is never touched). The
+                        -- "Found: <domains>" line hangs under the query line.
+                        local status_suffix = web_search_status
+                        if web_found_status then
+                            status_suffix = status_suffix .. "\n" .. web_found_status
+                        end
+                        display = #display > 0 and (display .. "\n\n" .. status_suffix)
+                            or status_suffix
                     end
                 end
                 iw:setText(display, true)
@@ -1159,8 +1197,15 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 web_search_used = true
                             end
 
-                            -- Capture web-search source details for "Show Sources"
+                            -- Capture web-search source details for "Show Sources".
+                            -- When a new source lands, refresh the live "Found: <domains>"
+                            -- line and repaint so the wait shows what is turning up.
+                            local prev_source_count = #web_prov.sources
                             harvestWebSources(event, web_prov)
+                            if #web_prov.sources ~= prev_source_count then
+                                web_found_status = webSourcesFoundLine(web_prov, settings and settings.enable_emoji_icons)
+                                if in_web_search_phase then scheduleUIUpdate() end
+                            end
 
                             -- Anthropic streams the search query as input_json_delta
                             -- fragments on the server_tool_use block: accumulate them and
@@ -1255,6 +1300,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                     if in_web_search_phase then
                                         in_web_search_phase = false
                                         web_search_status = nil
+                                        web_found_status = nil
                                         streamDialog._input_widget:setText("", true)
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
