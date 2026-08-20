@@ -295,6 +295,31 @@ ModelConstraints.capabilities = {
             "grok-4",
         },
     },
+    -- NVIDIA (build.nvidia.com). Every entry below was probed live 2026-08-20.
+    -- NO web-search capability by design: the chat wire 400s on any non-`function`
+    -- tool type, and the Responses endpoint silently DISCARDS {type="web_search"}
+    -- (200, but empty annotations and the model says it has no internet access).
+    nvidia = {
+        -- reasoning_effort verified HONOURED on the nemotron-3 family: low ~140
+        -- chars of reasoning_content vs high ~540 on one prompt, 3 samples each,
+        -- and "none" returns 0. "nvidia/nemotron-3" is the family prefix and
+        -- covers ultra/super/lightning/nano-30b (nemotron-3.5 included).
+        reasoning = {
+            "nvidia/nemotron-3",
+        },
+        -- Function calling: plain AND forced (tool_choice="required") both 200.
+        -- Deliberately EXCLUDES nvidia/nvidia-nemotron-nano-9b-v2 (plain 200 but
+        -- forced 500s — the Z.AI wave-1.5 failure class, where a bare tools probe
+        -- passes and the book-tools gather phase then breaks) and
+        -- nvidia/llama-3.3-nemotron-super-49b-v1.5 (hung during the probe).
+        tools = {
+            "nvidia/nemotron-3",
+            "openai/gpt-oss-20b",
+            "minimaxai/minimax-m3",
+            "meta/llama-3.1-70b-instruct",
+            "stepfun-ai/step-3.7-flash",
+        },
+    },
     perplexity = {
         -- Reasoning models (always-on, but effort is controllable)
         -- sonar-reasoning-pro uses <think> tags, sonar-deep-research also supports effort
@@ -910,6 +935,13 @@ ModelConstraints.reasoning_profiles = {
         { match = "", generic = true, axis = "effort", default_state = "off", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+    },
+    nvidia = {
+        -- Probed 2026-08-20: on by default (reasoning_content present with no
+        -- param), effort honoured, and reasoning_effort="none" fully disables.
+        { match = "nvidia/nemotron-3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
     },
     groq = {
         { match = "openai/gpt-oss-120b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
@@ -1890,7 +1922,7 @@ end
 ModelConstraints.REASONING_WIRE_KEYS = {
     "thinking", "output_config", "reasoning", "thinking_budget", "thinking_level",
     "deepseek_thinking", "zai_thinking", "sambanova_thinking", "kimi_thinking",
-    "openrouter_reasoning", "requesty_reasoning", "groq_reasoning",
+    "openrouter_reasoning", "requesty_reasoning", "groq_reasoning", "nvidia_reasoning",
     "together_reasoning", "fireworks_reasoning", "xai_reasoning",
     "perplexity_reasoning", "custom_reasoning", "_reasoning",
 }
@@ -1968,6 +2000,10 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
     elseif provider == "requesty" then
         if on then api_params.requesty_reasoning = { effort = decision.effort }
         else api_params.requesty_reasoning = { enabled = false } end
+    elseif provider == "nvidia" then
+        -- "none" fully disables (probed); nvidia.lua puts either onto reasoning_effort.
+        if on then api_params.nvidia_reasoning = { effort = decision.effort }
+        elseif decision.off_option then api_params.nvidia_reasoning = { effort = decision.off_option } end
     elseif provider == "groq" then
         if on then api_params.groq_reasoning = { effort = decision.effort } end
     elseif provider == "together" then

@@ -2872,6 +2872,7 @@ function AskGPT:getProviderDisplayName(provider_id)
   end
   -- Community-set ids whose display casing isn't first-letter-capitalize
   local special = {
+    nvidia = "NVIDIA",
     minimax = "MiniMax",
     deepinfra = "DeepInfra",
     novita = "Novita AI",

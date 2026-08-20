@@ -132,6 +132,13 @@ return {
     -- Get from: https://app.hyperbolic.xyz/
     hyperbolic = "YOUR_HYPERBOLIC_API_KEY",
 
+    -- NVIDIA (build.nvidia.com / NIM) -- GENEROUS FREE TIER: joining the free
+    -- NVIDIA Developer Program takes an email only (no credit card, no identity
+    -- check) and grants ~1000 inference credits, up to 5000 on request.
+    -- Get from: https://build.nvidia.com/ -> profile menu -> Settings -> API Keys
+    -- (the key looks like "nvapi-...")
+    nvidia = "YOUR_NVIDIA_API_KEY",
+
     -- Nebius AI Studio (open-model host)
     -- Get from: https://studio.nebius.com/
     nebius = "YOUR_NEBIUS_API_KEY",

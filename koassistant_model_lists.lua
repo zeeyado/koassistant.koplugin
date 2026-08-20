@@ -394,6 +394,27 @@ local ModelLists = {
     hyperbolic = {
         "meta-llama/Llama-3.3-70B-Instruct",        -- seed (unverified)
     },
+    -- NVIDIA (build.nvidia.com / NIM). CURATED FROM A LIVE PROBE 2026-08-20:
+    -- of 77 chat ids in their public /v1/models, only 21 answered — 47 returned
+    -- 404 and 9 accepted the connection and never sent a byte (a silent hang
+    -- with no error to render, e.g. deepseek-ai/deepseek-v4-flash-0731 and
+    -- meta/llama-3.3-70b-instruct). ONLY add ids here after they answer live;
+    -- their catalog is aspirational and "Fetch models" will re-import the dead.
+    nvidia = {
+        "nvidia/nemotron-3-super-120b-a12b",        -- default: tools + forced tools + effort all probed
+        "nvidia/nemotron-3-ultra-550b-a55b",
+        "nvidia/nemotron-3.5-lightning-30b-a3b",
+        "nvidia/nemotron-3-nano-30b-a3b",
+        "nvidia/nvidia-nemotron-nano-9b-v2",        -- fastest (~0.5s); forced tool use 500s, so no tools grant
+        "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        "openai/gpt-oss-20b",
+        "minimaxai/minimax-m3",
+        "meta/llama-3.1-70b-instruct",
+        "meta/llama-3.1-8b-instruct",
+        "stepfun-ai/step-3.7-flash",
+        "mistralai/mistral-nemotron",
+        "nvidia/nemotron-mini-4b-instruct",
+    },
     nebius = {
         "meta-llama/Llama-3.3-70B-Instruct",        -- seed (unverified)
         "deepseek-ai/DeepSeek-V4",                  -- seed (unverified)
@@ -519,6 +540,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5.2",
             perplexity = "sonar-pro",
+            nvidia = "nvidia/nemotron-3-ultra-550b-a55b",
         },
 
         -- Balanced performance and cost
@@ -541,6 +563,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5",
             perplexity = "sonar",
+            nvidia = "nvidia/nemotron-3-super-120b-a12b",
         },
 
         -- Optimized for speed and lower cost
@@ -563,6 +586,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
             perplexity = "sonar",
+            nvidia = "nvidia/nemotron-3.5-lightning-30b-a3b",
         },
 
         -- Smallest/cheapest models for basic tasks
@@ -585,6 +609,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
             perplexity = "sonar",
+            nvidia = "nvidia/nvidia-nemotron-nano-9b-v2",  -- ~0.5s; no tools grant (forced tool use 500s)
         },
     },
 
@@ -697,6 +722,10 @@ local ModelLists = {
         hyperbolic = {
             api_list = "https://api.hyperbolic.xyz/v1/models",
             docs = "https://docs.hyperbolic.xyz/",
+        },
+        nvidia = {
+            api_list = "https://integrate.api.nvidia.com/v1/models",
+            docs = "https://build.nvidia.com/",
         },
         nebius = {
             api_list = "https://api.studio.nebius.com/v1/models",

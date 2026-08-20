@@ -293,6 +293,12 @@ local ProviderDefaults = {
         base_url = "https://api.hyperbolic.xyz/v1/chat/completions",
         additional_parameters = { temperature = 0.7, max_tokens = 4096 }
     },
+    nvidia = {
+        provider = "nvidia",
+        model = getDefaultModel("nvidia"),
+        base_url = "https://integrate.api.nvidia.com/v1/chat/completions",
+        additional_parameters = { temperature = 0.7, max_tokens = 4096 }
+    },
     nebius = {
         provider = "nebius",
         model = getDefaultModel("nebius"),

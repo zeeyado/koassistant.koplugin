@@ -220,6 +220,9 @@ ToolWire.adapters.fireworks = ToolWire.adapters.openai
 -- Community set (M1): plain OpenAI chat wire, parser key "openai" (shared
 -- _tool_calls extraction). The capability half of the runner's gate comes from
 -- the derived layer ("Test this provider") or user grants — never curated.
+-- NVIDIA (curated 2026-08-20): plain OpenAI chat wire, tool calls probed live.
+ToolWire.adapters.nvidia = ToolWire.adapters.openai
+
 ToolWire.adapters.cerebras = ToolWire.adapters.openai
 ToolWire.adapters.minimax = ToolWire.adapters.openai
 ToolWire.adapters.deepinfra = ToolWire.adapters.openai

@@ -527,6 +527,11 @@ local DISCOVERY = {
         end,
     },
     xai = { headers = bearerHeaders, parse = parseOpenAIShapedList },
+    -- NVIDIA lists ~100 ids of which most are NOT served: probed live 2026-08-20,
+    -- 47 of 77 chat ids returned 404 and 9 accepted the connection then never
+    -- answered (a silent hang the UI cannot render). Treat every "+ NEW" here as
+    -- a CANDIDATE ONLY and --probe it before adding to the curated array.
+    nvidia = { headers = bearerHeaders, parse = parseOpenAIShapedList },
     -- zai's list endpoint OMITS some serving ids (glm-4.7-flash probed alive
     -- 2026-07-25 while absent from the list) - soften REMOVED to verify-first.
     zai = { headers = bearerHeaders, parse = parseOpenAIShapedList, incomplete_list = true },
