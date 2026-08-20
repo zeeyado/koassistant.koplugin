@@ -511,6 +511,65 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local perplexity_citations = nil  -- Capture Perplexity citations from SSE events
     local web_prov = { sources = {}, queries = {}, seen = {} }  -- Web-search provenance ("Show Sources")
     local was_truncated = false  -- Track if response was truncated (max tokens)
+    -- INPUT truncation, the mirror of the above: the server cut the PROMPT to
+    -- fit its context window and answered from the remainder. Ollama reports
+    -- the prompt tokens it actually evaluated, so this is proof, not a guess.
+    local input_truncation = nil
+
+    -- A prompt longer than the server's context window is not refused, it is
+    -- trimmed from the front and answered from what is left, which reads exactly
+    -- like a complete answer (device 2026-08-20: a recap of a whole book came
+    -- back confident and built on a third of it). Ollama's done chunk reports
+    -- prompt_eval_count, so compare it with what the request actually carried.
+    -- The chars/6 threshold sits well below any real tokenizer ratio (that same
+    -- log measured 4.4 chars per token), so only provable cuts are reported.
+    local function noteInputTruncation(event)
+        local evaluated = tonumber(event and event.prompt_eval_count)
+        local chars = tonumber(settings and settings.prompt_chars)
+        if not (evaluated and chars) or chars <= 0 then return end
+        if evaluated >= chars / 6 then return end
+        input_truncation = { evaluated = evaluated, chars = chars }
+        -- Teach the handler what this server actually allows, so the NEXT
+        -- oversized request is warned about before it is sent instead of after
+        -- it has streamed for minutes.
+        if (settings and settings.provider_name) == "ollama" then
+            local ok, OllamaHandler = pcall(require, "koassistant_api.ollama")
+            if ok and OllamaHandler and OllamaHandler.recordObservedContext then
+                OllamaHandler.recordObservedContext(model, evaluated)
+            end
+        end
+        logger.warn(string.format(
+            "KOAssistant: the server evaluated only %d prompt tokens of ~%d characters sent"
+            .. " — the prompt was truncated to fit its context window",
+            evaluated, chars))
+    end
+
+    -- Said out loud, and left on screen: this is the difference between an
+    -- answer the reader can trust and one they cannot, so it does not expire on
+    -- a timeout the way a toast does. Unattended work (background X-Ray builds,
+    -- hidden streams) logs it and stays quiet.
+    local function showInputTruncationNotice()
+        if not input_truncation then return end
+        if settings and settings.hidden_streaming then return end
+        local est_tokens = math.max(1, math.floor(input_truncation.chars / 4.4))
+        local pct = math.max(1, math.floor((input_truncation.evaluated / est_tokens) * 100 + 0.5))
+        local text
+        if (settings and settings.provider_name) == "ollama" then
+            text = T(_([[Only part of this request reached the model.
+
+Ollama read about %1% of it (%2 tokens) and answered from that part. The rest, usually the earliest book text, was cut to fit the context window.
+
+To send more, raise Ollama's context window: set OLLAMA_CONTEXT_LENGTH on the server, or add PARAMETER num_ctx to the model. KOAssistant can also size it per request (model menu, "Context window"). A larger window uses more memory on the machine running Ollama.]]),
+                tostring(pct), tostring(input_truncation.evaluated))
+        else
+            text = T(_([[Only part of this request reached the model.
+
+The provider read about %1% of it (%2 tokens) and answered from that part. The rest was cut to fit the model's context window. Try a smaller scope, or a model with a larger context.]]),
+                tostring(pct), tostring(input_truncation.evaluated))
+        end
+        local InfoMessage = require("ui/widget/infomessage")
+        UIManager:show(InfoMessage:new{ text = text })  -- no timeout: tap to dismiss
+    end
     local interrupted_detail    -- Provider error that ended the stream early (not a token limit)
     -- Hidden streaming: accumulate data but show placeholder (for quiz etc.)
     local hidden_streaming = settings and settings.hidden_streaming
@@ -853,6 +912,8 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                 "bytes, occurrence:", read_pos_occurrence or 1)
         end
         if on_complete then on_complete(true, result, nil, reasoning_content, search_used, usage_data) end
+
+        showInputTruncationNotice()
 
         -- Show any pending update popup (deferred during streaming)
         local ok, UpdateChecker = pcall(require, "koassistant_update_checker")
@@ -1767,6 +1828,7 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
                                 if event.done_reason == "length" then
                                     was_truncated = true
                                 end
+                                noteInputTruncation(event)
                                 partial_data = data:sub(pos)
                                 completed = true
                                 finishStream()

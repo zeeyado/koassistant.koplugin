@@ -594,6 +594,22 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             enable_emoji_icons = config.features and config.features.enable_emoji_icons == true,
             debug = config.features and config.features.debug,
             hidden_streaming = config.features and config.features.hidden_streaming,
+            -- Input-truncation detection: ollama reports how many prompt tokens
+            -- it actually evaluated, so comparing that against what we sent
+            -- PROVES a prompt was cut to fit the server's context window,
+            -- instead of guessing from a token estimate.
+            provider_name = provider,
+            prompt_chars = (function()
+                local n = 0
+                if config.system and type(config.system.text) == "string" then
+                    n = n + #config.system.text
+                end
+                for _idx = 1, #(message_history or {}) do
+                    local m = message_history[_idx]
+                    if m and type(m.content) == "string" then n = n + #m.content end
+                end
+                return n
+            end)(),
             -- Round 27: the label/note round 26 added rode config.features but
             -- were never copied into stream_settings, so every hidden stream
             -- still announced itself as quiz generation on the device

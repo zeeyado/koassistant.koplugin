@@ -2038,6 +2038,60 @@ function AskGPT:getOllamaCachedModels()
   return cache.models
 end
 
+-- Context-window policy for ollama requests (features.ollama_num_ctx, read in
+-- koassistant_api/ollama.lua). nil (the default) = send no num_ctx, so the
+-- server's own Modelfile / OLLAMA_CONTEXT_LENGTH decides: the window is memory
+-- on the machine running ollama, and a request num_ctx overrides a Modelfile
+-- PARAMETER, so choosing one for the reader would overrule a deliberately tuned
+-- server. A NUMBER = fit num_ctx to each request, never above that many tokens.
+-- Either way the stream handler reports a prompt that came back truncated.
+AskGPT.OLLAMA_CONTEXT_CHOICES = { 131072, 65536, 32768, 16384, 8192 }
+
+function AskGPT:getOllamaContextPref()
+  local features = self.settings:readSetting("features") or {}
+  local pref = features.ollama_num_ctx
+  if type(pref) == "number" then return pref end
+  return nil
+end
+
+function AskGPT:ollamaContextLabel()
+  local pref = self:getOllamaContextPref()
+  if pref then return T(_("fit, max %1K"), math.floor(pref / 1024)) end
+  return _("server decides")
+end
+
+function AskGPT:setOllamaContextPref(value)
+  local features = self.settings:readSetting("features") or {}
+  features.ollama_num_ctx = value
+  self.settings:saveSetting("features", features)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+end
+
+-- Radio submenu for the row above.
+function AskGPT:buildOllamaContextMenu()
+  local self_ref = self
+  local items = {
+    {
+      text = _("Server decides (default)"),
+      help_text = _("Send no context size, so your Modelfile setting or OLLAMA_CONTEXT_LENGTH is in charge. Ollama's own default is 4096 tokens; if a request comes back cut, KOAssistant says so."),
+      checked_func = function() return self_ref:getOllamaContextPref() == nil end,
+      radio = true,
+      callback = function() self_ref:setOllamaContextPref(nil) end,
+    },
+  }
+  for _idx, cap in ipairs(self.OLLAMA_CONTEXT_CHOICES) do
+    table.insert(items, {
+      text = T(_("Fit to request, max %1K"), math.floor(cap / 1024)),
+      help_text = _("KOAssistant asks for a window sized to each request, never larger than this. Ollama reserves the memory for whatever it is given, so on a large model a large window can push it onto the CPU or stop it loading."),
+      checked_func = function() return self_ref:getOllamaContextPref() == cap end,
+      radio = true,
+      callback = function() self_ref:setOllamaContextPref(cap) end,
+    })
+  end
+  return items
+end
+
 -- Per-server model memory: remember the last deliberate model pick for each
 -- server (keyed by root url, the virtual localhost default included) so
 -- switching servers restores the model you actually use there (phone runs a
@@ -4129,6 +4183,17 @@ function AskGPT:buildModelMenu(simplified, provider_override)
         callback = function(touchmenu_instance)
           self_ref:showOllamaServerManager(menuRefresher(touchmenu_instance))
         end,
+      })
+      -- Ollama sizes its context window PER REQUEST and truncates anything
+      -- longer without a word, so the plugin sends a fitted num_ctx. The cap
+      -- is the VRAM dial for that (and the way out for a tuned local setup).
+      table.insert(items, {
+        text_func = function()
+          return T(_("Context window: %1"), self_ref:ollamaContextLabel())
+        end,
+        help_text = _("Ollama gives each request a context window and quietly cuts anything longer. By default your server decides how big it is; KOAssistant can instead fit one to each request, up to a limit you set here."),
+        keep_menu_open = true,
+        sub_item_table_func = function() return self_ref:buildOllamaContextMenu() end,
       })
     end
 

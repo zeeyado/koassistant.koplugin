@@ -666,11 +666,26 @@ function BaseHandler:backgroundRequest(url, headers, body)
                             self.PROTOCOL_NON_200, err_msg))
                 elseif code ~= 200 then
                     logger.warn("Background request non-200:", code, "status:", status, "url:", url)
-                    local status_text = status and status:match("^HTTP/%S+%s+%d+%s+(.+)$") or status or "Request failed"
-                    local numeric_code = tonumber(code) or 0
-                    ffiutil.writeToFD(child_write_fd,
-                        string.format("\r\n%sError %d: %s\n\n",
-                            self.PROTOCOL_NON_200, numeric_code, status_text))
+                    local numeric_code = tonumber(code)
+                    if not numeric_code then
+                        -- luasocket signals a transport failure as nil + an error
+                        -- STRING, and socket.skip shifts that string into `code`.
+                        -- Coercing it to 0 turned "connection refused" into
+                        -- "Error 0: Request failed" on screen, hiding the only
+                        -- fact that mattered (device 2026-08-20: a stopped local
+                        -- server was indistinguishable from a broken request).
+                        -- The address goes with it: for a local provider, WHICH
+                        -- server is unreachable is half the diagnosis.
+                        ffiutil.writeToFD(child_write_fd,
+                            string.format("\r\n%sCannot reach %s: %s\n\n",
+                                self.PROTOCOL_NON_200, tostring(url), tostring(code)))
+                    else
+                        local status_text = status and status:match("^HTTP/%S+%s+%d+%s+(.+)$")
+                            or status or "Request failed"
+                        ffiutil.writeToFD(child_write_fd,
+                            string.format("\r\n%sError %d: %s\n\n",
+                                self.PROTOCOL_NON_200, numeric_code, status_text))
+                    end
                 end
             end
         end)
