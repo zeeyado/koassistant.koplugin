@@ -32,7 +32,7 @@ Note: This README is the main documentation for now, and is being migrated to th
 - **Notebooks** → per-book markdown notebooks for curating AI insights and personal notes (including one-tap "Add to Notebook" from the highlight menu and other selection popups), with Obsidian vault integration (three save locations: alongside book, central folder, or custom folder like an Obsidian vault)
 - **Library** → scan-based actions (what to read next, reading patterns, discover new books), multi-book comparison, collection analysis, with an end-of-book suggestion popup
 - **General chat** → AI without book/document context
-- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenAI, xAI, Perplexity, OpenRouter), with an effort dial (quick / standard / thorough)
+- **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenAI, OpenAI Subscription, xAI, Perplexity, OpenRouter, Z.AI, Qwen), with an effort dial (light / standard / thorough)
 - **AI Book Tools** → let the AI search and read the open book on demand to ground its answers (gather-then-generate by default, or an interactive agentic loop)
 - **Multilingual** → chat in any of 47 languages the AI understands, and use the KOAssistant UI in 26 languages
 
@@ -107,12 +107,12 @@ Note: This README is the main documentation for now, and is being migrated to th
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
-  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let the AI (Gemini/Claude/OpenAI/OpenRouter/Ollama, plus DeepSeek/Mistral/Groq/xAI) search & read the open book on demand (off by default)
+  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let the AI (Gemini/Claude/OpenAI/OpenRouter/Ollama, plus DeepSeek/Mistral/Groq/xAI/Fireworks/Qwen/Kimi) search & read the open book on demand (off by default)
   - [Prompt Caching](#prompt-caching)
   - [Document Artifacts](#document-artifacts): 13 cacheable artifacts, AI Wiki, pinned, → Chat, incremental caching
   - [Response Provenance (Show Sources)](#web-search): Web URLs, search queries, and book-tool lookups
   - [Reasoning/Thinking](#reasoningthinking)
-  - [Web Search](#web-search): AI searches the web for current information (Anthropic, Gemini, OpenAI, xAI, Perplexity, OpenRouter)
+  - [Web Search](#web-search): AI searches the web for current information (Anthropic, Gemini, OpenAI, OpenAI Subscription, xAI, Perplexity, OpenRouter, Z.AI, Qwen)
 - [Supported Providers + Settings](#supported-providers--settings) - Choose your model, etc
   - [Free Tier Providers](#free-tier-providers)
   - [Using a Subscription Instead of API Credits](#using-a-subscription-instead-of-api-credits): ChatGPT-plan login available now; coding-plan subscriptions planned
@@ -295,7 +295,7 @@ KOAssistant provides two distinct quick-access panels for different purposes:
 Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-column settings panel with commonly used options:
 - **Provider & Model**: Quick switching between AI providers and models
 - **Behavior & Domain**: Change communication style, knowledge context, and Research Mode
-- **Temperature & Reasoning**: Adjust creativity level, and set the reasoning stance (Minimal/Default/Maximum) or override the current model's reasoning (reasoning is per-model — the stance is a global preference each model honors as far as it can)
+- **Reasoning**: Set the reasoning stance (Minimal/Default/Maximum) or override the current model's reasoning (reasoning is per-model — the stance is a global preference each model honors as far as it can). Temperature is no longer a tile; it lives in Settings → Advanced
 - **Web Search**: Toggle AI web search on or off (this sets the global default; per-chat control lives in the input dialog's Web chip). Annotated "N/A" when the active provider can't search
 - **Book Tools**: Turn AI Book Tools on or off for the current book or globally (off by default), so the AI can look things up in the book to answer
 - **Language**: Set the primary response language
@@ -307,11 +307,14 @@ Assign "KOAssistant: Quick Settings" to a gesture for one-tap access to a two-co
 - **General Chat/Action**: Start a context-free conversation or run a general action
 - **Continue Last Chat**: Resume your most recent conversation
 - **Manage Actions**: Edit and configure your actions
+- **Quick Answer**: Toggle the Quick Answer posture for the next chat; hold for its preset settings
+- **Spoiler Protection**: Toggle it globally; hold for the per-book / global picker
+- **Minimal Popup**: Turn the chrome-less anchored response popup on or off; hold for its mode and action list
+- **Groups**: Open the Book Groups manager
 - **More Settings...**: Open the full settings menu
 
-In reader mode, two additional buttons appear (items naturally shift to accommodate):
-- **Book Chat/Action**: Start a chat about the current book or access book actions
-- **Quick Actions...**: Switch to the Quick Actions panel for reading features
+In reader mode, one additional button appears (items naturally shift to accommodate):
+- **Quick Actions...**: Switch to the Quick Actions panel for reading features. Book Chat/Action lives there as a utility; it is no longer a Quick Settings tile
 
 The panel has a **gear icon** (top-left) that opens a small menu with **Sort Items** (reorder and show/hide the tiles) and **Align Buttons** (left-align vs. centered). The same tile manager is also reachable via **Settings → Menus & Buttons → Quick panels → Quick Settings Items**.
 
@@ -321,7 +324,7 @@ The panel has a **gear icon** (top-left) that opens a small menu with **Sort Ite
 
 Assign "KOAssistant: Quick Actions" to a gesture for fast access to reading-related actions:
 - **Default actions**: X-Ray, Recap, About, Document Summary, Analyze Notes, Extract Key Insights, Key Arguments, Discussion Questions, Quiz, Suggest from Library
-- **Artifact button**: "View Artifacts" appears when any artifacts exist, opening a picker showing each cached artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)"). The picker aggregates the per-action artifacts (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Analyze Notes) plus any pinned artifacts, a **Generated Images** entry (opens the per-book image gallery), and a **Previous X-Ray Versions** entry (archived X-Ray snapshots) when those exist
+- **Artifact button**: "View Artifacts" appears when any artifacts exist, opening a picker showing each cached artifact with progress % and age (e.g., "X-Ray (100%, 3d ago)"). The picker aggregates the twelve per-action artifacts (X-Ray, X-Ray (Simple), Summary, Analysis, Recap, About, Notes Analysis, Key Arguments, Discussion Questions, Quiz, Key Insights, Reading Guide) plus any section-scoped groups, any pinned artifacts, a **Generated Images** entry (opens the per-book image gallery), and a **Previous X-Ray Versions** entry (archived X-Ray snapshots) when those exist
 - **Utilities**: Translate Page, Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Group (when the book is in one), Book Hub, Book Settings, Quick Settings
 
 You can add any book action to Quick Actions via **Action Manager → hold action → "+ Quick Actions"**. The panel has a **gear icon** (top-left) that lets you choose between managing **Panel Actions** (reorder/remove actions) or **Panel Utilities** (show/hide/reorder utility buttons). These managers are also reachable via the hamburger menu in **Manage Actions** and via **Settings → Menus & Buttons → Quick panels**. Defaults can also be removed.
@@ -832,7 +835,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 - **Manage an entry**: from any entry's **More…** popup, rename it (the old name becomes an alias so matching keeps working), merge it with another entry, link it to a group member's entry across books, or walk **"History through checkpoints…"** to see how that one entry changed across the versions you have built.
 - **Find duplicate entities**: a mechanical scan (browser ☰ menu) for the same entity under two names, offering merge (alias absorb), merge keeping both texts, an AI-combined description, or "never merge these two". Committed merges are replayed into checkpoints you have already built.
 - **AI Wiki**: from any item's detail view (same categories as Chapter Appearances), generate a Wikipedia-style encyclopedia entry about the item using AI knowledge. The button passes only the item's name to the AI, with the X-Ray description provided as disambiguation context, so "Jim" is understood as "Jim Hawkins from Treasure Island" without biasing the output. Entries are cached per-item and per-category in the existing cache file. Button shows "AI Wiki" when no entry exists, "View AI Wiki" when cached. The viewer provides Delete and Regenerate options. Cached wiki entries are automatically cleared when the X-Ray cache is deleted.
-- **Text selection**: hold to select text in detail views. One word on a short hold opens the dictionary; anything else opens a popup with Copy, Dictionary, Translate, and Add to notebook
+- **Text selection**: hold to select text in detail views. One word on a short hold opens the dictionary; anything else opens a popup with Copy, Dictionary, Wikipedia, Translate, Look up in X-Ray, and Add to notebook
 - **Options menu** (☰): info (model, progress, date, work type, checkpoint provenance), **Extend… / Rebuild…**, the version rows (install a built checkpoint, switch to the complete version, switch back to your position), **All versions (N)…** (main X-Ray only, see [X-Ray version history](#x-ray-version-history) below), merges (section X-Rays, another book's X-Ray, duplicate entities), a **→ Group** row when the book is in a group, archive or delete, close
 
 **X-Ray in the book text** (all on by default, per-book overridable via the X-Ray popup's "Marking & lookup…" or Book Settings → X-Ray):
@@ -870,7 +873,7 @@ The X-Ray action produces a structured JSON analysis that opens in a **browsable
 
 > **Note:** X-Ray ships with reasoning pinned **off** at the action level, and an action's own setting outranks every stance. To let the settings below reach it, go to Manage Actions → hold **X-Ray** → Edit Settings → Advanced → Reasoning and set it to **Global (use setting)**. Analyze (Full Document) has no such pin.
 >
-> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), more **reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated: the AI produces more thorough entries and fewer omissions. Set the global reasoning **stance to Maximum**, or override your current model's reasoning to a high level (Settings → Advanced → Reasoning, or the Quick Settings Reasoning chip, or the input dialog's Quick (⚡) chip for a one-shot per-chat override). This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
+> **Tip: Reasoning for complex tasks.** For short, dense works (research papers, academic chapters, technical documents under ~100 pages), more **reasoning** can significantly improve X-Ray quality and depth. The additional processing time is worthwhile when the text is concentrated: the AI produces more thorough entries and fewer omissions. Set the global reasoning **stance to Maximum**, or override your current model's reasoning to a high level (Settings → Advanced → Reasoning, or the Quick Settings Reasoning tile). This also applies to Document Analysis and other complex one-off tasks. See [Reasoning/Thinking](#reasoningthinking).
 
 <a id="x-ray-modes"></a>
 
@@ -1107,14 +1110,14 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Action Descriptions**: Long-press any action button to see what it does. Works everywhere: input dialog, Quick Actions panel, highlight menu, and file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books).
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **More Actions** (access enabled actions not shown in the grid), **Restore last input** (appears only when a send failed or was cancelled — puts your typed text back), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Session Chips (Input)**: The row of chips above the input field controls this chat only — Domain, Web search, Book Tools, Quick Answer, Scope, Attach, and Spoiler. Tap to change the value for this chat; long-press to open the persistent (per-book / global) picker behind it. See [Managing the Input Dialog](#managing-the-input-dialog) for details on each chip. (These replaced the old fixed Web/Domain top row and the checkbox pile.)
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Window Size** (Standard / Expanded, the same setting as Display Settings; not offered on compact dictionary popups), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), **Export**, and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
 - **Show Sources**: When a response used [web search](#web-search) or [AI Book Tools](#ai-book-tools-experimental), a **Show Sources** viewer lists the web URLs and queries and/or the book lookups the AI performed. Per-message indicators also appear inline ("Searched the web", "Searched the book — N lookups"). Pre-search prose is preserved behind an inline `*[Searched the web]*` marker rather than being discarded. The Sources and Reasoning viewers support text selection, Copy, and Export like the main chat.
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout: reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, tap to show or hide the highlighted text quote for this chat (useful for long selections). Long-press the button for the global defaults: hide quotes by default, and auto-hide long quotes
 - **Save to Note**: For highlight context chats, tap the **Save to Note** button to save the AI response directly as a note attached to your highlighted text (see [Save to Note](#save-to-note) below)
 - **Add to reply**: In the chat viewer's text-selection popup, when a reply is open you can send the selected text into the reply as a quote — useful for asking a follow-up about a specific sentence in the answer.
 - **Link Handling**: Tapping a link in the chat viewer opens KOReader's external link dialog: Copy, Show QR code, Open in browser, and any registered plugin actions (e.g., Add to Wallabag). When no book is open, a basic version of the dialog is shown.
-- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Long-pressing 1 word or selecting 2+ words opens a popup with Copy, Dictionary, Translate, and Add to Notebook options (plus **Add to reply** when a reply is open). Consistent across all viewer types (chat, X-Ray browser, quiz, compact, dictionary, translate views). Can also be extended to KOReader's own viewers (dictionary, Wikipedia, bookmarks, etc.) via **Settings → Menus & Buttons → Text selection in viewers → Enhance text selection** (requires restart). See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
+- **Text Selection**: Selecting 1 word in any viewer triggers a dictionary lookup. Long-pressing 1 word or selecting 2+ words opens a popup with Copy, Dictionary, Wikipedia, Translate, Look up in X-Ray, and Add to Notebook options (plus **Add to reply** when a reply is open). Consistent across all viewer types (chat, X-Ray browser, quiz, compact, dictionary, translate views). Can also be extended to KOReader's own viewers (dictionary, Wikipedia, bookmarks, etc.) via **Settings → Menus & Buttons → Text selection in viewers → Enhance text selection** (requires restart). See [Text Selection in Chat Viewer](#text-selection-in-chat-viewer).
 - **Other**: Turn on off Text/Markdown view, Debug view mode, add Tags, Change Domain, etc
 
 ### Minimal Popup
@@ -2267,7 +2270,7 @@ Track a series or a multi-book project as a named, **ordered** group of books. O
 - **New group from folder…** — pick a folder; every book in it joins in filename order (the name is prefilled from the folder).
 - **Series suggestion** — when a book's metadata carries a series tag, a **"New group from series …"** row creates the group named after the series with the book in it, then offers to find the rest: **Look in a folder…** or **Look in a collection…**. Matches are confirmed before joining, and the group sorts itself by series index.
 
-**Group kinds** tune what carries between books: **Series** (ordered; knowledge flows from earlier volumes into later ones), **Project** (books share a subject; folding picks an explicit target), and **Plain** (just a list; nothing carries). Groups are ordered by default; a per-group checkbox turns ordering off.
+**Group kinds** tune what carries between books: **Series** (ordered; knowledge flows from earlier volumes into later ones), **Project** (books share a subject; folding picks an explicit target), and **Plain** (just a list; nothing carries). Only **Series** groups are ordered; picking Project or Plain turns the sequencing off, so the ordering-dependent behavior (predecessor seeding, series chains, the "book N of M" labels) stands down with it.
 
 **What groups enable:**
 - **Cross-book X-Ray knowledge**: fold an earlier book's X-Ray into the next one, or run the whole chain oldest → newest, from the group screen or the X-Ray popup's merge rows. Merges are mechanically lossless: the target's existing entries survive verbatim, and what the earlier book knew is attached per entry as sourced background.
@@ -2283,7 +2286,7 @@ Groups are stored in KOAssistant's settings folder (not inside the books), survi
 One full-screen page per book that gathers everything KOAssistant knows about it:
 
 - Every **artifact** with live status (X-Ray first — an open book without one gets a create route), tap any row to view it.
-- 💬 **Chat/Action**, 📜 **Chat History** (with count), 📓 **Notebook** (tap to view, hold to edit), 🗂️ **Group** (tap for members, hold to manage, "Add to group…" when ungrouped), and 📕 **Book Settings** ("N customized").
+- 💬 **Chat/Action**, 🔍 **Search in book** (open book; hands off to KOReader's fulltext search), 📖 **Open Book** (on closed-book views), 📜 **Chat History** (with count), 📓 **Notebook** (tap to view, hold to edit), 🗂️ **Group** (tap for members, hold to manage, "Add to group…" when ungrouped), and 📕 **Book Settings** ("N customized").
 - Rows refresh in place as you generate things.
 - The title-bar menu (☰): **Refresh index**, **Export all artifacts** (to a folder, in your chosen format), **Browse all books** (the cross-book artifact browser), and **Delete all** (with a confirmation naming what's covered).
 
@@ -2409,10 +2412,11 @@ The em dash naming avoids conflicts with the popular `obsidian-koreader-highligh
 
 **From chat viewer**: Tap the **Notebook** button in the toolbar. A popup offers:
 - **Add Chat to Notebook**: Append the current AI response (with context) to the notebook
+- **Add (choose format)…**: The same, but pick the content format for this one save, overriding the Content Format default
 - **View Notebook**: Open notebook in view mode (on top of the chat viewer)
 - **Edit Notebook**: Open notebook in text editor (on top of the chat viewer)
 
-If no notebook exists yet, only "Add Chat to Notebook" is shown (creates the notebook automatically).
+If no notebook exists yet, only the two Add rows are shown (the first save creates the notebook automatically); View and Edit appear once it exists.
 
 **From text selection**: Select 2+ words in any book-scoped KOAssistant viewer → tap **Add to Notebook** in the popup. Appends the selected text with a timestamp header. This is available across the chat viewer, the X-Ray browser, the Sources and Reasoning viewers, and — with enhanced text selection — KOReader's own text viewer and dictionary popup. (General and library chats have no single book to target, so the button is hidden there.) A toast names the book it was added to, which matters when the viewer's content belongs to a different book than the one currently open.
 
@@ -2535,11 +2539,13 @@ Two complementary features for making important content easily available:
 ### Quick Actions
 These launch entries sit at the top of the menu:
 - **Book Chat/Action**: Start a conversation about the current book or access book actions
+- **Book Hub**: Open the current book's hub — artifacts, chats, notebook, group and settings in one view (shown with a book open). See [Book Hub](#book-hub)
 - **General Chat/Action**: Start a context-free conversation or run a general action
 - **Library Chat/Action**: Open the library dialog with scan-based and selection-based actions. Scan-based actions (Next Read, Discover New, Analyze Library, Challenge My Taste) work immediately when library scanning is enabled. Selection-based actions (Compare, Recommend, etc.) require adding books via presets or history browser
 - **Chat History**: Browse saved conversations
 - **Browse Notebooks**: Open the Notebook Manager to view all notebooks
 - **Browse Artifacts**: Open the Artifact Browser to view all cached artifacts
+- **Groups**: Open the Book Groups manager. See [Book Groups](#book-groups)
 
 ### Provider & Model
 - **Model: <model> (<Provider>)**: one row for both. Tap it to open the provider and model hub (28 built-in providers + custom)
@@ -2579,6 +2585,7 @@ gemini = {
 - **OpenAI Subscription** is managed here too, but opens a Connect / Disconnect dialog instead of key entry (device login with your ChatGPT plan). See [Quick Setup, Option C](#2-add-your-api-key)
 
 ### Display Settings
+- **Window Size**: How much of the screen chat, artifact, translate, dictionary and quiz windows take — **Standard** (default) or **Expanded**, which leaves only a hairline around them (and keeps KOReader's status bar visible while a book is open). Fits more text, less room to tap outside. Also on each window's gear menu; compact dictionary popups are unaffected.
 
 #### Rendering (sub-menu)
 - **View Mode**: Choose between Markdown (formatted) or Plain Text display
@@ -2586,6 +2593,7 @@ gemini = {
   - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
 - **Plain Text Options**: Settings for Plain Text mode
   - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, `_italics_` (underscores) become bold, lists become `•`, code becomes `'quoted'`. Includes BiDi support for mixed RTL/LTR content. Disable to show raw markdown. (default: on)
+- **Latest Reply on New Page**: Present the newest reply from the top of a fresh page (default: on). Markdown chats get a real page break before it; Plain Text chats align the view so the reply starts the screen. Chat viewer only.
 - **Text Mode for Dictionary**: Always use Plain Text mode for dictionary popup, regardless of global view mode setting. Better font support for non-Latin scripts. (default: off)
 - **Text Mode for RTL Dictionary**: Automatically use Plain Text mode for dictionary popup when dictionary language is RTL. Grayed out when Text Mode for Dictionary is enabled. (default: on)
 - **Text Mode for RTL Translate**: Automatically use Plain Text mode for translate popup when translation language is RTL. (default: on)
@@ -2625,7 +2633,7 @@ gemini = {
 - **Long Highlight Threshold**: Character limit before collapsing (default: 280)
 
 #### Other
-- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or one of 24 translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
+- **Plugin UI Language**: Language for plugin menus and dialogs. Does not affect AI responses. Options: Match KOReader (default), English, or one of 26 translations. Use this to switch the plugin UI to a language you're learning without changing KOReader's language, or to force English if you find the translations inaccurate. Requires restart.
 
 ### Chat & Export Settings
 - **Auto-save All Chats**: Automatically save every new conversation
@@ -2636,6 +2644,7 @@ gemini = {
 #### Streaming (sub-menu)
 - **Enable Streaming**: Show responses as they generate in real-time
 - **Auto-scroll Streaming**: Follow new text during streaming (on by default)
+- **Keep Reading Position**: If auto-scroll is off or paused and you keep reading while a response streams, the finished chat opens where you were rather than at the newest reply (default: on).
 - **Page-based Scroll (e-ink)**: Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink devices. When disabled, falls back to continuous bottom-scrolling. Default: on. Requires Auto-scroll.
 - **Large Stream Dialog**: Use full-screen streaming window
 - **Stream Poll Interval (ms)**: How often to check for new stream data (default: 125ms, range: 25-1000ms). Lower values are snappier but use more battery.
@@ -2668,7 +2677,7 @@ When "Ask every time" is selected, a picker dialog appears letting you choose wh
   - **Custom folder**: User-specified fixed directory
   - **Ask every time**: PathChooser dialog on each save
 - **Save book chats alongside books**: When enabled, book chats go to `[book_folder]/chats/` subfolder (default: OFF)
-- **Set Custom Folder**: Set the custom directory path (appears when Custom folder is selected)
+- Picking **Custom folder** in Save Location opens the folder picker straight away; there is no separate row for it (appears when Custom folder is selected)
 
 ### Reading & Library
 This top-level section consolidates chapter quiz, background X-Ray, recap reminder, end-of-book, and library scanning settings.
@@ -2814,11 +2823,17 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 - **Long Text Threshold**: Character count for "Hide Long" mode (default: 280)
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
 
+### Minimal Popup
+- **Minimal Popup View**: Show responses from the actions below in a small popup anchored next to the highlighted text — just the response, no buttons. **Off** / **When it fits** (default; longer responses open the full window instead) / **Always** (trimmed with an ellipsis). Tap the popup for the full window, tap outside to dismiss. Streaming is skipped for these requests, and full-page translation never uses it.
+- **Minimal Popup Actions**: Which highlight actions open this way (Translate, Quick Define and Quick Explain by default). Also reachable from the popup's own quick settings.
+
 ### Highlight Settings
 Behavior settings for highlight actions. (The highlight-menu **visibility toggles** and the **Highlight Menu Actions** manager now live in **[Menus & Buttons](#koreader-integration) → Highlight menu**.) See [Bypass Modes](#bypass-modes) and [Highlight Menu Actions](#highlight-menu-actions).
 - **Surrounding Context**: Automatically send the text around a highlight with highlight questions and actions, so the AI sees the passage in context (None (default), Sentence, Paragraph(s), or Characters). Capped at 2000 characters. Dictionary lookups and actions with their own scope selection are unaffected. Can be overridden per book in Book Settings, and per-chat via the **Scope** chip's highlight facet.
 - **Context Paragraphs**: Number of paragraphs to include on each side when Surrounding Context is 'Paragraph(s)' (1 = just the highlight's paragraph; range 1-5)
 - **Context Characters**: Number of characters before/after when Surrounding Context is 'Characters' (default: 100)
+- **Context Direction**: Which side of the selection context is taken from — **Both sides** (default) or **Before the selection only**. Also applies to dictionary context.
+- **Context Under Spoiler Protection**: How far past the selection context may reach while spoiler protection is on — Nothing after the selection / To the end of its sentence / **To the end of its paragraph** (default) / No limit. Since spoiler protection is on by default, this shapes what is sent in the normal case. Also settable per chat from the Ctx chip.
 - **Enable Highlight Bypass**: Immediately trigger action when selecting text (skip menu)
 - **Bypass Action**: Which action to trigger when bypass is enabled (default: Translate)
 
@@ -2838,10 +2853,15 @@ Control where KOAssistant appears in KOReader's menus, panels, and buttons. This
 - **Dictionary Popup Actions**: Configure which actions appear in the AI dictionary menu (reorder, add custom)
 
 #### File browser
+Listed in the order the buttons appear in the long-press popup. All eight default to ON.
 - **Show KOAssistant actions**: Add KOAssistant buttons to file browser context menus (changes apply the next time the menu opens)
-- **Show Book Hub button**: Show the "Book Hub (KOA)" button when long-pressing books (default: ON)
+- **Show Chat/Action button**: The main "Chat/Action (KOA)" button
 - **Show Notebook button**: Show a "Notebook" button when long-pressing books in the file browser
 - **Only for books with notebooks**: Only show the button if a notebook already exists (disable to allow creating notebooks from the file browser)
+- **Show Chat History button**: Open that book's saved chats straight from the popup
+- **Show View Artifacts button**: Open that book's cached artifacts straight from the popup
+- **Show Book Hub button**: Show the "Book Hub (KOA)" button when long-pressing books
+- **Show Book Settings button**: Open that book's per-book settings straight from the popup
 - **File Browser Items**: Choose which actions appear in the file browser long-press menu (book_info is the only default)
 
 #### Quick panels
@@ -2926,6 +2946,8 @@ Backup and restore functionality, index maintenance, plus reset options. See [Ba
   - **Per-model reasoning**: Browse a provider's models and override any individual model — Follow global / Off / a specific level. Only configurable models are listed.
   - **Show Indicator in Chat**: Display "*[Reasoning/Thinking was used]*" in chat when reasoning is active (default: on). The full reasoning is always viewable via the "Show Reasoning" button regardless.
   - There is no global reasoning on/off switch — reasoning is per-model. The **Quick Answer** preset turns reasoning off for Quick chats (its "Turn Reasoning Off" component, on by default).
+- **Faster Models for Quick Actions**: Let actions carrying a speed hint (Translate, Quick Define) run on a faster model from the same provider (default: on). Turning it off disables the per-action speed-tier mechanism entirely; explicit model pins always win either way.
+- **Tier Models (Global)**: Pin a provider+model to a speed tier (ultrafast / fast / standard / flagship) for every tier-hinted request, across providers. Unset tiers fall back to the current provider's own tier ladder.
 - **Web Search**: Allow AI to search the web for current information:
   - **Enable Web Search**: Global default (default: off). Supported by Anthropic (all models), Gemini (Search-grounding-capable models), OpenAI and OpenAI Subscription (GPT-5 models via the Responses API), xAI (Grok-4 models via the Responses API), OpenRouter (any model via the `:online` suffix), Z.AI (all models, with a search-engine picker below), Qwen (all models; no source list comes back), and Perplexity (searches by default; turning this off now genuinely disables it). Other providers ignore this. This is a global default — per-request toggles (the input dialog's **Web** chip, the chat viewer) adapt to the active provider, and it can be overridden per book.
   - **Web Search Effort**: How much searching the AI may do per question — Light (fewest searches), Standard (provider defaults), or Thorough (most searches). Applies where the provider offers control: Anthropic (up to 2/5/10 searches), OpenAI and Perplexity (search context size), OpenRouter (3 results on Light, provider default on Standard, 10 on Thorough), Z.AI (result count and snippet size). Gemini and xAI decide automatically. Also settable **per book**: hold the Web chip and use the "Search depth" row.
@@ -2943,7 +2965,7 @@ Backup and restore functionality, index maintenance, plus reset options. See [Ba
   - **Z.AI Search Engine**: Which engine Z.AI's web search uses (Jina/Bing international, or Chinese-web engines; default: Jina — the API's own default returns poor sources for non-Chinese queries).
   - **Qwen Region**: Select your Alibaba Cloud region (International: Singapore / China: Beijing / US: Virginia). API keys are region-specific and NOT interchangeable.
   - **Kimi Region**: Select the Kimi (Moonshot) platform your key was issued on (International: api.moonshot.ai / China: api.moonshot.cn). Keys are not interchangeable.
-- **AI Book Tools (Experimental)**: Let the AI search and read the open book on demand to ground its answers in the actual text. See [AI Book Tools](#ai-book-tools-experimental). Supported on Gemini, Claude (Anthropic), OpenAI (API or Subscription), OpenRouter (Claude/GPT/Gemini models), plus DeepSeek, Mistral, Groq, xAI, Fireworks, Qwen (`qwen3-max`), and Ollama; other providers fall back to normal chat. Requires "Allow Text Extraction".
+- **AI Book Tools (Experimental)**: Let the AI search and read the open book on demand to ground its answers in the actual text. See [AI Book Tools](#ai-book-tools-experimental). Supported on Gemini, Claude (Anthropic), OpenAI (API or Subscription), OpenRouter (Claude/GPT/Gemini models), plus DeepSeek, Mistral, Groq, xAI, Fireworks, Qwen (`qwen3-max`), Kimi (`kimi-k2.6`), and Ollama; other providers fall back to normal chat. Requires "Allow Text Extraction".
   - **AI Book Tools**: On/Off toggle (default: **off**). Sets whether the **Tools** chip in book chats starts ON; you can flip it per chat regardless, and the AI still decides per question whether to actually search. Predefined actions never use tools unless they explicitly offer smart retrieval. Overridable per book. (Users of the earlier three-way posture are migrated: "auto" becomes on, "manual"/"off" become off.)
   - **Book Tools Mode**: Gather then answer (default; the AI quietly collects passages first, then answers as a normal streamed request with web search available) or Interactive (the original agentic loop; no streaming or web search while tools run).
   - **Book Tools Lookup Effort**: Quick (up to 4 lookups in 2 rounds) / Standard (up to 8 in 4 rounds) / Thorough (up to 16 in 6 rounds, larger passage budget).
@@ -3737,7 +3759,7 @@ KOAssistant supports **28 built-in AI providers** — a **curated set** the main
 
 > **Tip:** Provider and model pickers only list providers you've actually configured an API key for (plus keyless/local providers like Ollama and any custom provider you marked as not needing a key). Once you've added at least one key, the rest are tucked behind a **"Show all providers"** row so the picker stays short. Add keys in **Settings → API Keys & Auth**.
 
-> **Experimental — AI Book Tools**: **Gemini**, **Claude (Anthropic)**, **OpenAI** (API or Subscription), and **OpenRouter** — plus **DeepSeek**, **Mistral**, **Groq**, **xAI**, and **Ollama** (local models with derived tool support) — can use local tools to search and read the open book on demand, for grounded, page-referenced answers. Availability is controlled by a per-chat **Tools** chip; the underlying setting is a simple on/off toggle (off by default) for whether the chip starts ON, overridable per book or globally. See [AI Book Tools](#ai-book-tools-experimental).
+> **Experimental — AI Book Tools**: **Gemini**, **Claude (Anthropic)**, **OpenAI** (API or Subscription), and **OpenRouter** — plus **DeepSeek**, **Mistral**, **Groq**, **xAI**, **Fireworks**, **Qwen**, **Kimi**, and **Ollama** (local models with derived tool support) — can use local tools to search and read the open book on demand, for grounded, page-referenced answers. Availability is controlled by a per-chat **Tools** chip; the underlying setting is a simple on/off toggle (off by default) for whether the chip starts ON, overridable per book or globally. See [AI Book Tools](#ai-book-tools-experimental).
 
 > **Multiple keys per provider:** you can store more than one API key for the same provider (e.g. a personal key and a spending-capped one) and switch between them from the model menu's **"API keys (N)…"** row or the main **API Keys & Auth** menu — tap a key to use it, hold to rename or remove. See [API Keys](#api-keys).
 
@@ -4034,7 +4056,9 @@ Text selection works consistently across all KOAssistant viewers: chat viewer, X
 |--------|--------|
 | **Copy** | Copy to clipboard |
 | **Dictionary** | KOReader offline dictionary lookup |
+| **Wikipedia** | KOReader's Wikipedia lookup (when the reader offers it) |
 | **Translate** | Translate via KOAssistant's Translate action |
+| **Look up in X-Ray** | Search the book's X-Ray for the selected text. The only entity lookup available from a chat opened out of the file browser, and the only one that handles multi-word names |
 | **Add to Notebook** | Append text with timestamp to the book's notebook (auto-creates if needed) |
 | **Add to reply** | Quote the selected text into an open Reply draft (full chat viewer only, when a reply is in progress) |
 
