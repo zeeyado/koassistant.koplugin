@@ -20,7 +20,7 @@ Note: This README is the main documentation for now, and is being migrated to th
 
 - **Highlight text** → translate, explain, define words, analyze passages, connect ideas, save content directly to KOReader's highlight notes/annotations
 - **Minimal popup** → short answers (Translate, Quick Define, Quick Explain by default) land in a small chrome-less popup anchored at your selection instead of the full-screen viewer, when they fit; tap it to expand into the full chat
-- **Generate images** → turn a highlight into an image using OpenAI, xAI, or Gemini image models; generated images are kept on-device in a browsable **Generated Images** gallery (tap to view, hold to delete) and associated with the book they came from
+- **Quick answer presets** → One click to run Quick Mode to stop model reasoning, web search, and other things that make the response slower
 - **While reading** → reference guides (summaries, browsable X-Ray with character tracking, cross-references, chapter distribution, Section X-Rays for focused chapter/part analysis, AI Wiki for per-item encyclopedia entries, local (offline) X-Ray lookup, X-Ray (Simple) prose overview from AI knowledge, recap, book info, notes analysis), analyze your highlights/annotations, explore the book/document (author, context, arguments, similar works), generate discussion questions
 - **X-Ray that keeps up** → optional **Automatic X-Ray** (per-book or global: background auto-update as you read, auto-create early in a book), **checkpoints** (pre-build spoiler-safe X-Ray versions for the whole book, snapped to chapter ends, silently swapped in as you read), and **version history** (browse, restore, or delete earlier X-Ray snapshots, with a keep-count setting)
 - **X-Ray in the text** → known entity names get dotted underlines as you read; tap one for a compact identification card (footnote panel or anchored popup), tap through for the full entry; selecting or dictionary-looking-up an exact name opens its entry directly; a Mentions view maps appearances over your table of contents and jumps into the book at any occurrence; new X-Rays can be narrowed to just people / places / ideas / terms / events
@@ -35,6 +35,7 @@ Note: This README is the main documentation for now, and is being migrated to th
 - **Web search** → AI can search the web for current information (Anthropic, Gemini, OpenAI, OpenAI Subscription, xAI, Perplexity, OpenRouter, Z.AI, Qwen), with an effort dial (light / standard / thorough)
 - **AI Book Tools** → let the AI search and read the open book on demand to ground its answers (gather-then-generate by default, or an interactive agentic loop)
 - **Multilingual** → chat in any of 47 languages the AI understands, and use the KOAssistant UI in 26 languages
+- **Generate images** → turn a highlight into an image using OpenAI, xAI, or Gemini image models; generated images are kept on-device in a browsable **Generated Images** gallery (tap to view, hold to delete) and associated with the book they came from
 
 [28 built-in providers](#supported-providers--settings) (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. OpenAI can also be used without an API key by signing in with your ChatGPT plan (OpenAI Subscription). Fully configurable: custom actions, behaviors, domains, per-action model overrides. Reasoning/thinking is configured per model (stance dial + per-model overrides). **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in, not sent to the AI unless you enable it.
 
@@ -150,8 +151,6 @@ Note: This README is the main documentation for now, and is being migrated to th
 2. **[Privacy Settings](#privacy--data)**: Some features require opt-in; configure what data you share
 3. **[Recommended Setup](#recommended-setup)**: Configure gestures and explore key features (10 minutes)
 4. **[Free Tiers](#free-tier-providers)**: Don't want to pay? See free provider options
-
-You can also [test your setup](#testing-your-setup): Web inspector for experimenting
 
 **Want to go deeper?** The rest of this README covers all features in detail.
 
@@ -364,23 +363,31 @@ After basic setup, explore these features to get the most out of KOAssistant:
 
 | Feature | What it does | Where to configure |
 |---------|--------------|-------------------|
+| **[Session Chips](#session-controls-chips)** | The row above the input field controls *this chat only*: Domain, Web, Tools, Quick, Scope/Ctx, Attach, Spoiler. Tap changes it for the chat, long-press opens the per-book/global default behind it | Input dialog gear icon → Toolbar Buttons… (choose which chips show) |
+| **[Quick Answer](#session-controls-chips)** ⚡ | One tap for a fast, brief reply: brevity nudge on, reasoning off, web search and book tools off. Every part of the bundle is configurable (nudge strength, behavior, model tier, skipping the domain lens) | ⚡ chip (tap = this chat, long-press = default + preset), Settings → Chat & Export Settings → Quick Answer Preset |
+| **[Minimal Popup](#minimal-popup)** | Short answers (Translate, Quick Define, Quick Explain by default) land in a small chrome-less popup anchored at your selection instead of the full-screen viewer; tap it to expand | Settings → Minimal Popup |
 | **[Behaviors](#behaviors)** | Control response style (concise, detailed, custom) | Settings → Actions & Prompts → Manage Behaviors |
 | **[Domains](#domains)** | Add project-like context to conversations | Settings → Actions & Prompts → Manage Domains |
 | **[Actions](#actions)** | Create your own prompts and workflows | Settings → Actions & Prompts → Manage Actions |
 | **Quick Actions** | Fast access to reading actions while in a book or document | Gesture → "KOAssistant: Quick Actions" |
-| **[Research Mode](#research-mode)** | Automatic academic enhancements when DOI detected (academic X-Ray, web search, research prompts) | Automatic, no configuration needed |
-| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, version history, chapter tracking | Quick Actions → X-Ray |
-| **Spoiler Protection** | On by default: replies and X-Ray checkpoint installs stay clamped to your reading position | Spoiler chip in the input dialog, Book Settings per book, or Settings → Chat & Export |
-| **[Book Hub](#book-hub)** | One page for everything about the current book: artifacts, chat, history, notebook, group, settings | File browser long-press → Book Hub, Quick Actions, or a gesture |
-| **[Book Groups](#book-groups)** | Track a series or project as an ordered list of books; carry X-Ray knowledge forward | Main menu → Groups, or Book Settings → Group |
 | **[Highlight Menu](#highlight-menu-actions)** | Actions in highlight popup (8 defaults including Translate, Explain, Quick Explain) | Settings → Menus & Buttons → Highlight Menu Actions |
-| **[Image Generation](#image-generation)** | Turn a highlighted passage into an AI-generated illustration | Highlight menu → Generate Image |
-| **[Notebooks](#notebooks-per-book-notes)** | Per-book markdown notes with Obsidian vault support | Settings → Notebook Settings |
 | **[Dictionary Integration](#dictionary-integration)** | AI-powered word lookups when selecting single words | Settings → Dictionary Settings |
 | **[Bypass Modes](#bypass-modes)** | Instant AI actions without menus | Settings → Dictionary/Highlight Settings |
+| **[X-Ray Browser](#reading-analysis-actions)** | Browsable reference guide with Section X-Rays, AI Wiki, checkpoints and version history, chapter appearances | Quick Actions → X-Ray |
+| **[X-Ray in the Text](#reading-analysis-actions)** | Entity names get a dotted underline as you read; tap for a compact identification card, tap through for the full entry. Selecting or looking up an exact name opens its entry instead of the dictionary | X-Ray popup → "Marking & lookup…", Settings → Reading & Library → X-Ray, or per book |
+| **[Spoiler Protection](#spoiler-protection)** | On by default: replies and X-Ray checkpoint installs stay clamped to your reading position | Spoiler chip in the input dialog, Book Settings per book, or Settings → Chat & Export |
+| **[Chapter Quiz](#chapter-quiz)** | Comprehension quiz offered when you finish a chapter, or run manually with a scope picker | Settings → Reading & Library → Chapter Quiz |
+| **[Research Mode](#research-mode)** | Automatic academic enhancements when DOI detected (academic X-Ray, web search, research prompts) | Automatic, no configuration needed |
+| **[AI Book Tools](#ai-book-tools-experimental)** | Let the AI search and read the open book on demand instead of sending the whole text (off by default) | Tools chip in the input dialog, or Settings → Advanced |
+| **[Web Search](#web-search)** | Let the AI search the web for current information, with a light/standard/thorough effort dial | Web chip in the input dialog, or Settings → Advanced |
+| **[Book Hub](#book-hub)** | One page for everything about the current book: artifacts, chat, history, notebook, group, settings | File browser long-press → Book Hub, Quick Actions, or a gesture |
+| **[Book Groups](#book-groups)** | Track a series or project as an ordered list of books; carry X-Ray knowledge forward | Main menu → Groups, or Book Settings → Group |
+| **[Book Settings](#book-settings)** | Per-book overrides for nearly everything: domain, background note, research, spoiler protection, X-Ray, privacy, quiz, languages | Input dialog gear icon → Book Settings, or Book Hub → Book Settings |
+| **[Image Generation](#image-generation)** | Turn a highlighted passage into an AI-generated illustration | Highlight menu → Generate Image |
+| **[Notebooks](#notebooks-per-book-notes)** | Per-book markdown notes with Obsidian vault support | Settings → Notebook Settings |
 | **Reasoning/Thinking** | Per-model reasoning depth, via a global stance (Minimal/Default/Maximum) or per-model overrides | Settings → Advanced → Reasoning |
-| **Backup & Reset** | Backup settings, restore, and reset options | Settings → Backup & Reset |
 | **Languages** | Configure multilingual responses (native script pickers) | Settings → AI Language Settings |
+| **Backup & Reset** | Backup settings, restore, and reset options | Settings → Backup & Reset |
 
 See detailed sections below for each feature.
 
@@ -394,7 +401,9 @@ See detailed sections below for each feature.
 
 ---
 
-## Testing Your Setup
+## Testing Your Setup (out of date)
+
+Aug 2026: The test inspector is not actively maintained
 
 The test suite includes an interactive web inspector that lets you test and experiment with KOAssistant without launching KOReader:
 
