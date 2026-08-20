@@ -37,7 +37,7 @@ Note: This README is the main documentation for now, and is being migrated to th
 - **Multilingual** → chat in any of 47 languages the AI understands, and use the KOAssistant UI in 26 languages
 - **Generate images** → turn a highlight into an image using OpenAI, xAI, or Gemini image models; generated images are kept on-device in a browsable **Generated Images** gallery (tap to view, hold to delete) and associated with the book they came from
 
-[28 built-in providers](#supported-providers--settings) (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. OpenAI can also be used without an API key by signing in with your ChatGPT plan (OpenAI Subscription). Fully configurable: custom actions, behaviors, domains, per-action model overrides. Reasoning/thinking is configured per model (stance dial + per-model overrides). **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in, not sent to the AI unless you enable it.
+[29 built-in providers](#supported-providers--settings) (Anthropic, OpenAI, Gemini, Ollama, and more) plus custom OpenAI-compatible providers. OpenAI can also be used without an API key by signing in with your ChatGPT plan (OpenAI Subscription). Fully configurable: custom actions, behaviors, domains, per-action model overrides. Reasoning/thinking is configured per model (stance dial + per-model overrides). **One-tap auto-update** keeps the plugin current. Personal reading data (highlights, annotations, notebooks) is opt-in, not sent to the AI unless you enable it.
 
 **Status:** Active development. [issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions), and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and don't want to wait for tested releases, you can run off main branch to get the latest features. Breakage may happen. Also see [Assistant Plugin](https://github.com/omer-faruq/assistant.koplugin); both can run side by side.
 
@@ -217,7 +217,7 @@ Edit `apikeys.lua` and add your API key(s):
 return {
     anthropic = "your-key-here",  -- console.anthropic.com
     openai = "",                  -- platform.openai.com
-    -- See apikeys.lua.sample for all 28 providers
+    -- See apikeys.lua.sample for all 29 providers
 }
 ```
 
@@ -2557,7 +2557,7 @@ These launch entries sit at the top of the menu:
 - **Groups**: Open the Book Groups manager. See [Book Groups](#book-groups)
 
 ### Provider & Model
-- **Model: <model> (<Provider>)**: one row for both. Tap it to open the provider and model hub (28 built-in providers + custom)
+- **Model: <model> (<Provider>)**: one row for both. Tap it to open the provider and model hub (29 built-in providers + custom)
   - Providers unfold into their own model panel. Entering a provider switches nothing; the provider and model change together when you pick a model. The list shows only providers with an API key configured, plus local/no-key providers (Ollama, custom local presets) — set a key in **API Keys & Auth** to make a provider appear
   - Custom providers appear with ★ prefix (see [Adding Custom Providers](#adding-custom-providers))
   - Long-press "Add custom provider..." to create your own
@@ -3178,6 +3178,23 @@ The sample file (`configuration.lua.sample`) documents additional feature keys y
 
 **Priority:** Settings UI > configuration.lua > built-in defaults. Once you change a setting in the UI, the UI value takes precedence over configuration.lua.
 
+> ⚠️ **`configuration.lua` is not actively maintained.** Development has moved to the
+> Settings UI, and this file has drifted behind it. `provider_settings` (custom endpoints)
+> and the documented `features` keys are the supported, exercised path. Beyond those,
+> some settings silently do not apply -- a few parts of the plugin read their values
+> straight from the saved settings rather than from this file, so a key you set here can
+> be accepted without ever taking effect.
+>
+> One confirmed example: **`features.custom_providers` does not work here.** Defining a
+> custom provider in `configuration.lua` has no effect on an existing install (it is only
+> picked up on a first run, before any settings have been saved). Add custom providers
+> through **Settings → Model: … → Add custom provider** instead.
+>
+> **If something you set here does not take effect, please
+> [open an issue](https://github.com/zeeyado/koassistant.koplugin/issues) describing what you set
+> and what happened.** These are fixable one key at a time, and a concrete report is what
+> gets it fixed -- there is no audit of the whole file, so unreported gaps stay broken.
+
 > **Proxy services vs. custom providers:** If you use a proxy or relay service that speaks each provider's native API format (e.g., an OpenAI-compatible endpoint for OpenAI, an Anthropic-compatible endpoint for Anthropic), use `provider_settings` to override the `base_url` for each provider. Don't add it as a custom provider. Custom providers (Settings → Model: … → Add custom provider) are for services with their own model catalog that use the OpenAI-compatible API format.
 
 ---
@@ -3714,7 +3731,7 @@ The built-in **News Update** action demonstrates this. It uses `enable_web_searc
 
 ## Supported Providers + Settings
 
-KOAssistant supports **28 built-in AI providers** — a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin and *Docs-based* below) implemented from provider documentation — plus any number of custom OpenAI-compatible providers you add yourself (OpenAI is listed twice below: once for API keys, once for ChatGPT-subscription login). Please test and give feedback -- fixes are quickly implemented. If you use a Docs-based provider and want it properly verified, you can also send a limited/spending-capped API key to the contact email on the maintainer's GitHub profile -- live probing is exactly what promotes a provider into the tested set
+KOAssistant supports **29 built-in AI providers** — a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin and *Docs-based* below) implemented from provider documentation — plus any number of custom OpenAI-compatible providers you add yourself (OpenAI is listed twice below: once for API keys, once for ChatGPT-subscription login). Please test and give feedback -- fixes are quickly implemented. If you use a Docs-based provider and want it properly verified, you can also send a limited/spending-capped API key to the contact email on the maintainer's GitHub profile -- live probing is exactly what promotes a provider into the tested set
 
 | Provider | Description | Status | Get API Key |
 |----------|-------------|--------|-------------|
@@ -3738,6 +3755,7 @@ KOAssistant supports **28 built-in AI providers** — a **curated set** the main
 | **Doubao** | ByteDance Volcano Engine | Docs-based* | [console.volcengine.com](https://console.volcengine.com/) |
 | **Z.AI** | GLM models, free tier available | Tested | [z.ai](https://z.ai/) |
 | **Perplexity** | Sonar models, built-in web search with citations | Tested | [perplexity.ai](https://www.perplexity.ai/settings/api) |
+| **NVIDIA** | Nemotron family + hosted open models; generous free tier, no card. Book tools on selected models; **no web search** (NVIDIA's API provides none) | Tested | [build.nvidia.com](https://build.nvidia.com/) |
 | **Cerebras** | Very fast open-model inference (hosts gpt-oss) | Docs-based* | [cloud.cerebras.ai](https://cloud.cerebras.ai/) |
 | **MiniMax** | MiniMax M-series models | Docs-based* | [platform.minimax.io](https://platform.minimax.io/) |
 | **DeepInfra** | Many open models, low prices | Docs-based* | [deepinfra.com](https://deepinfra.com/) |
@@ -3782,6 +3800,7 @@ Several providers offer free tiers for testing or budget-conscious users. Detail
 | **Groq** | Nearly all models free, no card needed. Limits are per model, roughly 30 requests/min and 6-30K tokens/min (up to ~14K requests/day on small models; limits are shared across your whole account). Also hosts OpenAI's open-weight `gpt-oss-120b`/`gpt-oss-20b` on the free tier |
 | **OpenAI (ChatGPT account)** | The **OpenAI Subscription** provider works with a **free ChatGPT account** (verified August 2026) -- no API key, no card: sign in with a device code and chat on your account's quota. Experimental/unofficial, and the free-account limits are not documented, so expect them to be modest. Setup: connect via [Quick Setup, Option C](#2-add-your-api-key); device code access must be enabled for your ChatGPT account (the verification page at `auth.openai.com/codex/device` explains how). Models served on a free account: `gpt-5.6-terra` (the default), `gpt-5.6-luna`, `gpt-5.5`, `gpt-5.4-mini`; the rest of the list is refused on free accounts with a clear error (paid plans may serve more) |
 | **Gemini** | Flash and Flash-Lite class models free (`gemini-3.7-flash` (the plugin default), `gemini-3.6-flash`, `gemini-3.5-flash`, the flash-lite variants, 2.5-flash family), no card needed; per-model daily limits are LOW on the newest flashes (~20 requests/day observed on 3.x flash) with more room on 2.5 models. Pro models are paid-only (removed from the free tier April 2026). **The 2.5 family is unavailable on new Google accounts** (roughly mid-2026 onward): requests return "no longer available to new users", even with paid credits. **Web search (grounding) does not work on free keys with Gemini 3.x models** -- those requests fail instantly with a "quota exceeded" 429 while plain requests work; use a 2.5 model for web search (older accounts only) or turn it off (the error dialog offers a one-tap retry without it); paid credits lift this limit (verified). Caution: enabling billing on the Google Cloud project removes the free tier for that project -- keep your free key on a project without billing. Going paid is its own maze: new billed projects use prepaid credits bought inside Google AI Studio (minimum $10; Google Cloud trial credits explicitly do NOT apply), and AI Studio access may require age verification in the EEA. If AI Studio cannot create the key itself, create the project in the Cloud Console first, then create the key in AI Studio against that project |
+| **NVIDIA** | Joining the free NVIDIA Developer Program needs only an email -- **no credit card, no identity check** -- and grants ~1,000 inference credits (up to 5,000 on request). Hosts NVIDIA's own Nemotron family plus `gpt-oss-20b`, Llama and others. Get a key at [build.nvidia.com](https://build.nvidia.com/) → profile menu → Settings → API Keys. Caveat: NVIDIA's public model catalog lists far more models than it actually serves, so KOAssistant ships a hand-verified list rather than the full catalog -- prefer the listed models over ids fetched via "Fetch models" |
 | **Ollama** | Completely free (runs locally on your hardware) |
 | **Mistral** | Free tier ("free mode" / Experiment plan) covers **all** La Plateforme models, roughly 1B tokens/month; phone verification required, no card. The catch is a very low request rate (~2 requests/min -- fine for chat, slow for multi-request builds); Mistral no longer publishes exact numbers, check Admin Console → Limits. (Separately, `mistral-small-latest` and `magistral-small-latest` are Apache 2.0 open-weight -- you can also self-host them via Ollama) |
 | **OpenRouter** | `:free` model variants (rotating roster -- DeepSeek, Llama, `gpt-oss`, and more): 20 requests/min and 50 requests/day account-wide; a one-time $10 credit purchase permanently raises that to 1,000 requests/day |

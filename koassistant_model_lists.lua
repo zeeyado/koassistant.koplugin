@@ -403,7 +403,6 @@ local ModelLists = {
     nvidia = {
         "nvidia/nemotron-3-super-120b-a12b",        -- default: tools + forced tools + effort all probed
         "nvidia/nemotron-3-ultra-550b-a55b",
-        "nvidia/nemotron-3.5-lightning-30b-a3b",
         "nvidia/nemotron-3-nano-30b-a3b",
         "nvidia/nvidia-nemotron-nano-9b-v2",        -- fastest (~0.5s); forced tool use 500s, so no tools grant
         "nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -412,8 +411,14 @@ local ModelLists = {
         "meta/llama-3.1-70b-instruct",
         "meta/llama-3.1-8b-instruct",
         "stepfun-ai/step-3.7-flash",
-        "mistralai/mistral-nemotron",
         "nvidia/nemotron-mini-4b-instruct",
+        -- EXCLUDED, do not re-add without re-probing (device round 2026-08-20):
+        --   nvidia/nemotron-3.5-lightning-30b-a3b -- reasoning never terminates on
+        --     constraint-shaped prompts ("translate this", "answer in N words"):
+        --     content comes back byte-identical to reasoning_content with no answer
+        --     after it, on every sample. Only reasoning_effort="none" works, and our
+        --     default stance sends nothing, so reasoning is ON by default.
+        --   mistralai/mistral-nemotron -- 2 of 3 reachability probes timed out.
     },
     nebius = {
         "meta-llama/Llama-3.3-70B-Instruct",        -- seed (unverified)
@@ -586,7 +591,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
             perplexity = "sonar",
-            nvidia = "nvidia/nemotron-3.5-lightning-30b-a3b",
+            nvidia = "nvidia/nemotron-3-nano-30b-a3b",  -- lightning pulled: see the array note
         },
 
         -- Smallest/cheapest models for basic tasks

@@ -302,20 +302,31 @@ ModelConstraints.capabilities = {
     nvidia = {
         -- reasoning_effort verified HONOURED on the nemotron-3 family: low ~140
         -- chars of reasoning_content vs high ~540 on one prompt, 3 samples each,
-        -- and "none" returns 0. "nvidia/nemotron-3" is the family prefix and
-        -- covers ultra/super/lightning/nano-30b (nemotron-3.5 included).
+        -- and "none" returns 0.
         reasoning = {
             "nvidia/nemotron-3",
         },
-        -- Function calling: plain AND forced (tool_choice="required") both 200.
-        -- Deliberately EXCLUDES nvidia/nvidia-nemotron-nano-9b-v2 (plain 200 but
-        -- forced 500s — the Z.AI wave-1.5 failure class, where a bare tools probe
-        -- passes and the book-tools gather phase then breaks) and
-        -- nvidia/llama-3.3-nemotron-super-49b-v1.5 (hung during the probe).
+        -- Function calling. EXACT ids, never a family prefix: within the very same
+        -- nemotron-3 family some models emit structured tool_calls under
+        -- tool_choice="required" while others answer with the call as PROSE JSON
+        -- in `content` (tool_calls null, finish_reason "stop"), which the
+        -- book-tools gather phase cannot consume.
+        --
+        -- Granted only where BOTH auto and forced returned real tool_calls across
+        -- repeated samples (device round 2026-08-20). An HTTP 200 proves nothing
+        -- here: the prose answers are all 200s, so the probe must inspect
+        -- message.tool_calls itself. The first pass got this backwards by
+        -- status-code alone.
+        --
+        -- Withheld, with the reason, so nobody widens this again:
+        --   nvidia/nemotron-3-super-120b-a12b  forced -> prose, every sample
+        --   nvidia/nemotron-3-ultra-550b-a55b  forced -> prose intermittently
+        --   openai/gpt-oss-20b                 auto   -> prose intermittently
+        --   minimaxai/minimax-m3               rate-limited, inconclusive
         tools = {
-            "nvidia/nemotron-3",
-            "openai/gpt-oss-20b",
-            "minimaxai/minimax-m3",
+            "nvidia/nemotron-3-nano-30b-a3b",
+            "nvidia/nvidia-nemotron-nano-9b-v2",
+            "nvidia/llama-3.3-nemotron-super-49b-v1.5",
             "meta/llama-3.1-70b-instruct",
             "stepfun-ai/step-3.7-flash",
         },

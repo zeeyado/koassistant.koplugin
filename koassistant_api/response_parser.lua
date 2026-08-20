@@ -1046,6 +1046,66 @@ local RESPONSE_TRANSFORMERS = {
         return false, "Unexpected response format"
     end,
 
+    -- NVIDIA (build.nvidia.com). OpenAI chat wire + reasoning_content, PLUS a
+    -- duplication guard: several nemotron models return `content` that repeats
+    -- reasoning_content verbatim (device 2026-08-20 --
+    -- nemotron-3.5-lightning-30b-a3b did it on every constraint-shaped prompt,
+    -- content == reasoning byte-for-byte with no answer after it). Without the
+    -- strip the reader gets raw chain-of-thought presented as the answer.
+    nvidia = function(response)
+        if response.error then
+            return false, response.error.message or response.error.type or "Unknown error"
+        end
+        if response.choices and response.choices[1] and response.choices[1].message then
+            local message = response.choices[1].message
+            local content = message.content
+            -- Tool-call messages carry content:null -> luajson's truthy function sentinel
+            if type(content) ~= "string" then content = nil end
+
+            local calls = extractOpenAIToolCalls(message)
+            if calls then
+                return true, {
+                    _tool_calls = true,
+                    calls = calls,
+                    raw_assistant_turn = message,
+                }
+            end
+
+            local reasoning = type(message.reasoning_content) == "string"
+                and message.reasoning_content or nil
+
+            -- Duplication guard. Plain-substring prefix check (no patterns: the
+            -- reasoning is arbitrary user-facing text and would be read as a Lua
+            -- pattern). Whole-duplicate leaves no answer at all -- say so rather
+            -- than rendering the thinking, which reads as a broken reply.
+            if reasoning and content then
+                if content == reasoning then
+                    content = nil
+                elseif #content > #reasoning and content:sub(1, #reasoning) == reasoning then
+                    content = content:sub(#reasoning + 1)
+                end
+                if content then
+                    content = content:gsub("^%s+", "")
+                    if content == "" then content = nil end
+                end
+            end
+
+            local finish_reason = response.choices[1].finish_reason
+            if not content or content == "" then
+                -- Reasoning ran to the token ceiling without producing an answer.
+                return true, ResponseParser.interruptedNotice(
+                    "the model returned only its reasoning"), reasoning
+            end
+            if finish_reason == "length" then
+                content = content .. ResponseParser.TRUNCATION_NOTICE
+            end
+
+            local clean_content, think_reasoning = extractThinkTags(content)
+            return true, clean_content, reasoning or think_reasoning
+        end
+        return false, "Unexpected response format"
+    end,
+
     sambanova = function(response)
         if response.error then
             return false, response.error.message or response.error.type or "Unknown error"
