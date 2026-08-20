@@ -1334,7 +1334,7 @@ Do not use emojis. {hallucination_nudge}]],
         enable_web_search = false,
         doi_web_override = true,  -- When DOI: follow global setting instead of forcing off
         text = _("X-Ray"),
-        description = _("Builds a structured reference guide (characters, themes, locations, timeline) up to your current reading position. Completely spoiler-free. When highlights are shared, adds a reader engagement section analyzing what catches your attention. Updates incrementally as you read further. Can also target a specific section from the table of contents."),
+        description = _("Builds a structured reference guide (characters, themes, locations, timeline) up to your current reading position, from the book text alone. Completely spoiler-free. Updates incrementally as you read further. Can also target a specific section from the table of contents."),
         context = "book",
         requires = {"book_text"},       -- Block if text extraction is off
         blocked_hint = _("Or use X-Ray (Simple) for an overview based on AI knowledge."),
@@ -1435,7 +1435,7 @@ CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY va
         skip_spoiler = true,
         doi_web_override = true,
         text = _("X-Ray (Simple)"),
-        description = _("A prose companion guide from AI knowledge: characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers. Highlights add personal context when shared."),
+        description = _("A prose companion guide from AI knowledge: characters, themes, settings, key terms. No text extraction needed. Uses reading progress to avoid spoilers."),
         context = "book",
         use_reading_progress = true,    -- For spoiler avoidance
         -- NO use_book_text — intentionally omitted

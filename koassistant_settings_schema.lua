@@ -1181,7 +1181,7 @@ local SettingsSchema = {
                             max = 20,
                             step = 1,
                             precision = "%d",
-                            help_text = _("Whenever an update or redo overwrites the X-Ray, the outgoing version is archived: browse, view, or restore them via \"All versions\" in the X-Ray popup and browser menu. This sets how many are kept per book (oldest dropped first). 0 stops archiving new versions; already-archived ones stay until you delete them or the X-Ray itself. Checkpoints are stored separately and are never trimmed by this."),
+                            help_text = _("Whenever an update or redo overwrites the X-Ray, the outgoing version is archived: browse, view, or restore them via \"All versions\" in the X-Ray popup and browser menu. This sets how many are kept per book; the versions covering the least of the book are dropped first, oldest first among equally covering ones. 0 stops archiving new versions; already-archived ones stay until you delete them or the X-Ray itself. Checkpoints are stored separately and are never trimmed by this."),
                             separator = true,
                         },
                         {
@@ -2049,7 +2049,7 @@ local SettingsSchema = {
                     text = _("Allow Highlights"),
                     path = "features.enable_highlights_sharing",
                     default = false,
-                    help_text = _("Share your highlighted text passages with the AI. Used by X-Ray, Recap, and actions with {highlights} placeholders. Does not include personal notes."),
+                    help_text = _("Share your highlighted text passages with the AI. Used by Recap, Analyze Notes, and actions with {highlights} placeholders. Does not include personal notes. X-Ray does not send them: it only matches them locally, to offer them on an entity page."),
                     enabled_func = function(plugin)
                         -- Grayed out when annotations is enabled (annotations implies highlights)
                         local f = plugin.settings:readSetting("features") or {}
