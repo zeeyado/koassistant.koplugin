@@ -400,13 +400,29 @@ function BaseHandler.keyFingerprint(key)
     return mask .. ":" .. #key .. ":" .. h
 end
 
+--- Reduce a user-supplied key to the bytes an HTTP auth header can carry:
+--- printable ASCII, no whitespace anywhere. Anything else came from the way the
+--- key was ENTERED, never from the provider.
+---
+--- Kindle is the recurring case (discussion #54): the device has no system
+--- clipboard, so users copy the key out of a text file opened in KOReader, and a
+--- key long enough to wrap picks up the line break in the MIDDLE of the string.
+--- The 2026-03 fix only trimmed the ENDS, and only ASCII `%s` at that, so an
+--- interior break (or a NBSP / zero-width space / BOM anywhere) sailed through
+--- and the pasted key 401s while the same key in apikeys.lua works.
+function BaseHandler.sanitizeKey(key)
+    if type(key) ~= "string" then return "" end
+    return (key:gsub("[^\33-\126]", ""))
+end
+
 -- Fold one provider's store value (legacy string, array of strings, or array of
 -- { key, alias } tables) into `out` as { key, alias, source } entries. Keys are
--- trimmed (Kindle clipboard adds trailing whitespace) and placeholders dropped.
+-- sanitized on READ (so a key already saved with junk in it heals itself on the
+-- next request, with no migration) and placeholders dropped.
 local function foldKeyEntries(out, value, source)
     local function addOne(key, alias)
         if type(key) ~= "string" then return end
-        key = key:match("^%s*(.-)%s*$")
+        key = BaseHandler.sanitizeKey(key)
         if key == "" or BaseHandler.isPlaceholderKey(key) then return end
         out[#out + 1] = { key = key, alias = alias, source = source }
     end
@@ -453,12 +469,18 @@ function BaseHandler.getApiKey(provider, settings)
         if selected and selected ~= "" then
             for _idx, entry in ipairs(keys) do
                 if BaseHandler.keyFingerprint(entry.key) == selected then
+                    logger.dbg("KOAssistant: api key for", provider, "= selected",
+                        entry.source, "entry, length", #entry.key)
                     return entry.key
                 end
             end
             -- Stale selection (key deleted / file edited): fall through to default.
         end
     end
+    -- Source + LENGTH only, never the key: a wrong length in a user's crash.log
+    -- is what tells GUI-entry corruption apart from a genuinely wrong key.
+    logger.dbg("KOAssistant: api key for", provider, "= first", keys[1].source,
+        "entry of", #keys, "length", #keys[1].key)
     return keys[1].key
 end
 

@@ -122,6 +122,34 @@ TestRunner.assert(
     Base.keyFingerprint("file-key-A-1234567890") ~= Base.keyFingerprint("file-key-B-1234567890"),
     "hash separates same-mask same-length keys")
 
+-- Sanitizing (Kindle GUI paste, discussion #54) --------------------------------
+-- A key copied out of a text file opened in KOReader wraps, so the line break
+-- lands INSIDE the key. The old end-trim could not reach it.
+TestRunner.assert(Base.sanitizeKey("AIzaSyAbCd\nEfGhIjKlMnOp1234567") == "AIzaSyAbCdEfGhIjKlMnOp1234567",
+    "interior newline stripped")
+TestRunner.assert(Base.sanitizeKey(" sk-ant-\194\160api03-abcdefghij \t") == "sk-ant-api03-abcdefghij",
+    "NBSP and surrounding ASCII whitespace stripped")
+TestRunner.assert(Base.sanitizeKey("sk-\226\128\139or-v1-abcdefghij\239\187\191") == "sk-or-v1-abcdefghij",
+    "zero-width space and BOM stripped")
+TestRunner.assert(Base.sanitizeKey("sk-Ab_9.xyz-QRS=~") == "sk-Ab_9.xyz-QRS=~",
+    "every printable ASCII character a key may use survives untouched")
+TestRunner.assert(Base.sanitizeKey(nil) == "" and Base.sanitizeKey(42) == "",
+    "non-strings sanitize to empty")
+
+-- Sanitizing happens on READ, so a key already SAVED with junk in it heals
+-- without a migration, and its fingerprint matches the cleaned form.
+setFileKeys(nil)
+local s5 = settingsWith({ api_keys = { gemini = { { key = "AIzaSy-dirty\n-1234567890" } } } })
+TestRunner.assert(Base.getApiKey("gemini", s5) == "AIzaSy-dirty-1234567890",
+    "already-stored dirty key heals on resolution")
+local s6 = settingsWith({
+    api_keys = { gemini = { { key = "AIzaSy-dirty\n-1234567890" } },
+                 openai = "sk-plain-1234567890" },
+    api_key_selected = { gemini = Base.keyFingerprint("AIzaSy-dirty-1234567890") },
+})
+TestRunner.assert(Base.getApiKey("gemini", s6) == "AIzaSy-dirty-1234567890",
+    "selection fingerprint is computed over the SANITIZED key")
+
 -- Cleanup: leave no fake apikeys module for later test files in the same run
 package.loaded["apikeys"] = nil
 

@@ -4993,11 +4993,13 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
           text = _("Save"),
           is_enter_default = true,
           callback = function()
-            local new_key = input_dialog:getInputText()
-            -- Trim whitespace (Kindle clipboard often adds trailing spaces/newlines)
-            if new_key then
-              new_key = new_key:match("^%s*(.-)%s*$")
-            end
+            local raw_key = input_dialog:getInputText() or ""
+            -- Strip everything an auth header cannot carry: whitespace ANYWHERE
+            -- (not just the ends) plus NBSP / zero-width / BOM. On Kindle the key
+            -- is usually copied out of a text file opened in KOReader, and a key
+            -- long enough to wrap arrives with the line break inside it.
+            local new_key = require("koassistant_api.base").sanitizeKey(raw_key)
+            local removed = #(raw_key:gsub("^%s*(.-)%s*$", "%1")) - #new_key
             if new_key and new_key ~= "" then
               local f = self_ref.settings:readSetting("features") or {}
               f.api_keys = f.api_keys or {}
@@ -5022,6 +5024,11 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
                 f.api_keys[provider] = new_key
               end
               local message = T(_("%1 API key saved"), display_name)
+              if removed > 0 then
+                -- Never silent: the user typed/pasted something we changed.
+                message = T(_("%1 API key saved (%2 stray character(s) removed)"),
+                  display_name, removed)
+              end
               -- Auto-select provider if this is the first API key
               if is_first_key then
                 f.provider = provider
@@ -5081,7 +5088,7 @@ function AskGPT:showApiKeyManager(provider, display_name, key_optional, on_chang
     for idx, entry in ipairs(list) do
       local key = type(entry) == "string" and entry or entry.key
       if type(key) == "string"
-          and Base.keyFingerprint(key:match("^%s*(.-)%s*$")) == fp then
+          and Base.keyFingerprint(Base.sanitizeKey(key)) == fp then
         -- Normalize the touched entry to table shape so fn can set fields
         if type(entry) == "string" then
           entry = { key = entry }
