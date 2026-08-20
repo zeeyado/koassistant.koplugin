@@ -9,7 +9,7 @@
 
 > **New to KOAssistant?** The [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki) has short getting-started guides. [Help expand it.](https://github.com/zeeyado/koassistant.koplugin/wiki/Contributing-to-this-Wiki)
 
-Note: This README is the main documentation for now, and is being migrated to the [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki). It was substantially refreshed in July 2026 to match the current code; if you spot anything out of date, or want to help with the wiki migration and docs cleanup, contributions are appreciated. The README currently tracks the main branch. This means that some features may not yet be in the latest release.
+Note: This README is the main documentation for now, and is being migrated to the [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki). It was substantially refreshed in August 2026 to match the current code; if you spot anything out of date, or want to help with the wiki migration and docs cleanup, contributions are appreciated. The README currently tracks the main branch. This means that some features may not yet be in the latest release.
 
 <p align="center">
   <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>
@@ -110,7 +110,7 @@ Note: This README is the main documentation for now, and is being migrated to th
 - [Backup & Restore](#backup--restore)
 - [Technical Features](#technical-features)
   - [Streaming Responses](#streaming-responses)
-  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let the AI (Gemini/Claude/OpenAI/OpenRouter/Ollama, plus DeepSeek/Mistral/Groq/xAI/Fireworks/Qwen/Kimi) search & read the open book on demand (off by default)
+  - [AI Book Tools (Experimental)](#ai-book-tools-experimental): Let the AI (Gemini/Claude/OpenAI or Subscription/OpenRouter/Ollama, plus DeepSeek/Mistral/Groq/xAI/Fireworks/Qwen/Kimi) search & read the open book on demand (off by default)
   - [Prompt Caching](#prompt-caching)
   - [Document Artifacts](#document-artifacts): 13 cacheable artifacts, AI Wiki, pinned, → Chat, incremental caching
   - [Response Provenance (Show Sources)](#web-search): Web URLs, search queries, and book-tool lookups
@@ -191,7 +191,7 @@ koreader
         └── ...
 ```
 
-> **Tip**: Delete unneccesary folders like `screenshot/` and `tests/` to save space if installing manually. These extra folders are not part of release zips.
+> **Tip**: Delete unnecessary folders like `screenshots/` and `tests/` to save space if installing manually. These extra folders are not part of release zips.
 
 > **This is the only time you need to install manually.** After this, KOAssistant updates itself: when a new version is available, you'll see release notes with an "Update Now" button. One tap and it handles everything (download, install, preserve your settings). See [Updating the Plugin](#updating-the-plugin) for details.
 
@@ -825,7 +825,7 @@ These actions analyze your actual reading content. They require specific privacy
 
 The X-Ray action produces a structured JSON analysis that opens in a **browsable category menu** rather than a plain text document. The initial browsable menu concept was inspired by [X-Ray Plugin for KOReader by 0zd3m1r](https://github.com/0zd3m1r/koreader-xray-plugin). Chapter distribution, linkable connections, and local lookup features were informed by [Dynamic X-Ray by smartscripts-nl](https://github.com/smartscripts-nl/dynamic-xray), a comprehensive manual X-Ray system with curated character databases, live page markers, and a custom histogram widget. Our approach differs: KOAssistant uses AI generation instead of manual curation, and menu-based navigation instead of custom widgets, but DX demonstrated the value of per-item chapter tracking and cross-reference linking. The browser provides:
 
-- **Category navigation**: Cast, World, Ideas, Lexicon, Story Arc, Current State/Conclusion (fiction) or Key Figures, Core Concepts, Arguments, Terminology, Argument Development, Current Position/Conclusion (non-fiction) or Key Concepts, Foundations, Methodology, Findings, Referenced Works, Technical Terms, Figures & Data, Current Position/Conclusion (academic, see [Research Mode](#research-mode)), with item counts. Current State/Current Position appears for incremental (spoiler-free) X-Rays; Conclusion appears for complete (entire document) X-Rays, see [two-track design](#x-ray-modes) below.
+- **Category navigation**: Cast, World, Ideas, Lexicon, Story Arc, Current State/Conclusion (fiction) or Key Figures, Locations, Core Concepts, Arguments, Terminology, Argument Development, Current Position/Conclusion (non-fiction) or Key Concepts, Foundations, Methodology, Findings, Referenced Works, Technical Terms, Figures & Data, Current Position/Conclusion (academic, see [Research Mode](#research-mode)), with item counts. Current State/Current Position appears for incremental (spoiler-free) X-Rays; Conclusion appears for complete (entire document) X-Rays, see [two-track design](#x-ray-modes) below.
 - **Item detail**: descriptions, AI-provided aliases (e.g., "Lizzy", "Miss Bennet", shown for all categories), connection buttons, and an **AI Wiki** button. Everything else lives behind the page's **More…** popup: the full connection list, "Your highlights (N)…" for the passages mentioning this item, custom search terms, "History through checkpoints…", and the rename / merge / link operations
 - **Linkable references**: character connections and cross-category references (locations → characters, themes → characters, etc.) are tappable buttons that navigate directly to the referenced item's detail view. References are resolved across all categories using name, alias, and substring matching. The number of boxes is capped by **Settings → Reading & Library → X-Ray → Connection Buttons per Entry** (default 9, range 0-30): past the cap the last box becomes an **"All connections (N)…"** overflow row, and at or under it the full list is also in the entry's More… popup. Repeated links to the same entity are always collapsed.
 - **Mentions**: unified chapter-navigable text matching. Opens showing every entry's mentions up to your position (**"To p. N"**), with comparison bars, counts, and category tags; a chapter picker at the top narrows the scope to any chapter or part (KOReader-style hierarchical TOC with expand/collapse, current chapter bolded). Includes an **"Entire document (to p. N)"** aggregate that scans from page 1 to your coverage boundary, plus **"Entire document"**, which reveals the whole book behind one confirmation. Chapters beyond the greater of X-Ray coverage and reading position are dimmed with tap-to-reveal spoiler protection, and a chapter that crosses your position is clipped at it ("up to p. N"). For complete X-Rays, all chapters are available with no spoiler gating. Books without a TOC fall back to page-range chunks. Excludes event-based categories (timeline, argument development) whose descriptive names produce misleading matches. Uses word-boundary matching against names and aliases.
@@ -914,7 +914,7 @@ Tapping X-Ray always opens its popup, whatever the coverage: it leads with **Vie
 - From the **X-Ray popup** (open book or file browser) or the X-Ray browser's **☰ menu**, tap **"All versions (N)…"** (main X-Ray only, sections have no history). The list holds both archived *previous* versions and any [checkpoint](#x-ray-version-ladder) versions — which can sit *ahead* of your reading position, hence "All".
 - The list is split into **"— Archived versions —"** and **"— Prepared checkpoints —"**, newest first within each. A row carries its coverage, when it was **built** ("built 3 days ago"), and where relevant "archived …", "edited", "· checkpoint", and a **(current)** or **(ahead)** marker.
 - For each archived version: **View** it (opens read-only in the full X-Ray browser, titled "X-Ray Version"), **Restore** it (swaps it back in as the live X-Ray; the version it replaces takes the freed archive slot, so a restore never grows the archive), or **Delete** it.
-- Archived versions also appear as a **"Previous X-Ray Versions (N)"** group on every View Artifacts surface (Quick Actions, file browser long-press, the input dialog's Artifacts button, the cross-book Artifact Browser, and chat/artifact viewers), inserted right under the main X-Ray row (titled **"Archived X-Ray Versions (N)"** when no live X-Ray remains).
+- Archived versions also appear as a **"Previous X-Ray Versions (N)"** group on every View Artifacts surface (Quick Actions, file browser long-press, the input dialog's Artifacts button, the Book Hub, the cross-book Artifact Browser, and chat/artifact viewers), inserted right under the main X-Ray row (titled **"Archived X-Ray Versions (N)"** when no live X-Ray remains).
 
 How many versions are kept per book is set by **Settings → Reading & Library → X-Ray → X-Ray Versions to Keep** (default 5, range 0-20; the versions covering the least of the book are dropped first, oldest first among equally covering ones). Setting it to 0 stops archiving *new* versions; already-archived ones stay until you delete them or delete the X-Ray itself (deleting an X-Ray that has archived versions asks first: **"Archive X-Ray (keep N versions)"** keeps them reachable under "Archived X-Ray Versions", **"Delete X-Ray and N versions"** takes them with it. AI Wiki entries and prepared checkpoints go either way).
 
@@ -1111,9 +1111,9 @@ Actions like News Update that require [web search](#web-search) are available in
 ### Quick UI Features
 
 - **Action Descriptions**: Long-press any action button to see what it does. Works everywhere: input dialog, Quick Actions panel, highlight menu, and file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books).
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **More Actions** (access enabled actions not shown in the grid), **Restore last input** (appears only when a send failed or was cancelled — puts your typed text back), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **Show More Actions…** (expands the grid to every enabled action for this context; becomes **Show Fewer Actions** once expanded), **Restore last input** (appears only when a send failed or was cancelled — puts your typed text back), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Session Chips (Input)**: The row of chips above the input field controls this chat only — Domain, Web search, Book Tools, Quick Answer, Scope, Attach, and Spoiler. Tap to change the value for this chat; long-press to open the persistent (per-book / global) picker behind it. See [Managing the Input Dialog](#managing-the-input-dialog) for details on each chip. (These replaced the old fixed Web/Domain top row and the checkbox pile.)
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Window Size** (Standard / Expanded, the same setting as Display Settings; not offered on compact dictionary popups), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), **Export**, and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Window Size** (Standard / Expanded, the same setting as Display Settings; not offered on compact dictionary popups), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), **Export** (writes a file; use Copy for the clipboard — the copy-or-save chooser belongs to the Chat History browser), and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
 - **Show Sources**: When a response used [web search](#web-search) or [AI Book Tools](#ai-book-tools-experimental), a **Show Sources** viewer lists the web URLs and queries and/or the book lookups the AI performed. Per-message indicators also appear inline ("Searched the web", "Searched the book — N lookups"). Pre-search prose is preserved behind an inline `*[Searched the web]*` marker rather than being discarded. The Sources and Reasoning viewers support text selection, Copy, and Export like the main chat.
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout: reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, tap to show or hide the highlighted text quote for this chat (useful for long selections). Long-press the button for the global defaults: hide quotes by default, and auto-hide long quotes
@@ -1257,7 +1257,7 @@ Images are listed newest-first, with their file size shown.
 When you generate an image while reading a book, KOAssistant records which book it came from (in a small index kept inside the images folder). This gives you:
 
 - A **per-book gallery** — filtered to just the images generated for that document.
-- A **Generated Images (N)** entry that appears on **every View Artifacts surface**: the file-browser long-press menu, the open-book artifact viewer, the input dialog's *View Artifacts*, the chat viewer's Artifacts switcher, the X-Ray browser's *Other Artifacts*, and the cross-book **Artifact Browser** (where books that only have images still show up). Selecting it opens the gallery filtered to that book.
+- A **Generated Images (N)** entry that appears on **every View Artifacts surface**: the file-browser long-press menu, the open-book artifact viewer, the input dialog's *View Artifacts*, the Book Hub, the chat viewer's Artifacts switcher, the X-Ray browser's *Other Artifacts*, and the cross-book **Artifact Browser** (where books that only have images still show up). Selecting it opens the gallery filtered to that book.
 
 Images follow their book: if you move a book in the file manager, its image associations move with it; if you delete the book, the images are kept but become global-only (they still appear in the full gallery, just no longer tied to a book). Deleting an image from a per-book view also keeps this index in sync.
 
@@ -2238,7 +2238,7 @@ Overrides for the [chapter-end quiz and the Quiz action](#chapter-quiz) on this 
 
 - **Chapter-end quiz** — *Follow global* or *Off for this book*. This is **suppress-only**: it can silence the automatic chapter-end prompt for one book, but cannot turn it on when the global "Quiz on Chapter End" is off.
 - **Question count**, **Difficulty**, **Multiple choice / Short answer / Discussion** — same options as the global quiz settings.
-- **Chapter depth** — which TOC levels trigger the auto-quiz for this book.
+- **Chapter level** — which single TOC level counts as a chapter for this book's auto-quiz (or follow the global setting).
 - **Min chapter length** — skip the chapter-end prompt for chapters shorter than N pages (so short or skimmed chapters don't prompt). *No minimum* / *Follow global* / a page count.
 
 ### Languages (per book)
@@ -2439,7 +2439,7 @@ The notebook browser has a **hamburger menu** (☰) for navigating to Chat Histo
 #### Viewing vs Editing
 
 - **Tap** a notebook in the browser → Options popup: View, Edit, Open Book, Delete Notebook
-  - **View** → Opens in Chat Viewer (default) with Copy, Export, MD/TXT toggle, Open in Reader, and Edit buttons
+  - **View** → Opens in Chat Viewer (default) with Copy, Export, MD/TXT toggle, → Chat, Info, Open in Reader, and Edit buttons
   - **Edit** → Opens in text editor for direct editing
   - **Open Book** → Opens the book in the reader
 - **Open in Reader** button (in Chat Viewer) → Opens the notebook in KOReader's full reader (markdown rendering, page navigation)
@@ -2868,7 +2868,7 @@ Listed in the order the buttons appear in the long-press popup. All eight defaul
 #### Quick panels
 - **Panel Actions**: Choose which actions appear on the Quick Actions panel (reader mode). Add new ones via Action Manager → hold action → **+ Quick Actions**. Also reachable from the panel's gear icon.
 - **Panel Utilities**: Choose and order the utility buttons on the Quick Actions panel (Translate Page, New Book Chat/Action, Continue Last Chat, General Chat/Action, Chat History, Notebook, View Artifacts, Group, Book Hub, Book Settings, Quick Settings). Also reachable from the panel's gear icon.
-- **Quick Settings Items**: Choose and order the tiles on the Quick Settings panel (Provider, Model, Behavior, Domain, Reasoning, Web Search, Book Tools, Spoiler Protection, Minimal Popup, Language, Translation/Dictionary Language, bypass toggles, Text Extraction, Chat History, Browse Notebooks/Artifacts, Book Groups, Library/General/Book Chat, Continue Last Chat, Manage Actions, Quick Actions, More Settings). Also reachable from the panel's gear icon.
+- **Quick Settings Items**: Choose and order the tiles on the Quick Settings panel (Provider, Model, Behavior, Domain, Reasoning, Web Search, Book Tools, Quick Answer, Spoiler Protection, Minimal Popup, Language, Translation/Dictionary Language, bypass toggles, Text Extraction, Chat History, Browse Notebooks/Artifacts, Book Groups, Library and General Chat, Continue Last Chat, Manage Actions, Quick Actions, More Settings). Also reachable from the panel's gear icon.
 
 #### Gestures
 - **Shortcuts**: See and change the gestures bound to KOAssistant's panels and actions — every action with its current binding, assign or clear from one screen. Assignments apply immediately, no restart needed.
@@ -4038,7 +4038,7 @@ If the action uses Dictionary view directly (e.g., Deep Analysis), step 1 is ski
 
 ### Text Selection
 
-**Shorter tap duration** makes text selection easier. Go to **Settings → Taps and Gestures → Long-press interval** and reduce it (default is often 1.0s). This makes highlighting text for KOAssistant much more responsive.
+**Shorter tap duration** makes text selection easier. Go to **Settings → Taps and Gestures → Long-press interval** and reduce it (KOReader's default is 500 ms). This makes highlighting text for KOAssistant much more responsive.
 
 ### Text Selection in Chat Viewer
 
@@ -4093,7 +4093,7 @@ If actions like Analyze Notes, Connect with Notes, X-Ray, or Recap seem to ignor
 |---------------------|---------------------|
 | Analyze Notes shows nothing | Allow Annotation Notes |
 | Connect with Notes ignores your notes | Allow Annotation Notes + Allow Notebook |
-| X-Ray/Recap missing your highlights | Allow Highlights (or Allow Annotation Notes) |
+| Recap missing your highlights | Allow Highlights (or Allow Annotation Notes). X-Ray does not use highlights: it reads book text only |
 | X-Ray blocked ("requires text extraction") | Allow Text Extraction (in Text Extraction submenu), or use X-Ray (Simple) instead |
 | Document Analysis/Summary blocked | Allow Text Extraction (in Text Extraction submenu) |
 | Recap uses only book title | Allow Text Extraction (in Text Extraction submenu) |
@@ -4109,7 +4109,7 @@ If actions like Analyze Notes, Connect with Notes, X-Ray, or Recap seem to ignor
 
 > **Tip:** With **AI Book Tools** enabled and a text-extraction-capable provider, some context-aware actions can fetch the passages they need on demand instead of relying on a full extraction. See [AI Book Tools](#ai-book-tools-experimental).
 
-**Quick fix:** Use **Preset: Full** to enable all data sharing at once, or enable individual settings as needed.
+**Quick fix:** Use **Preset: Full** to enable all data sharing at once, then enable **Allow Text Extraction** separately — the preset deliberately leaves it alone, and it is what most of the rows above need.
 
 **See what actions need:** Enable **[Emoji Data Access Indicators](#display-settings)** to see emoji suffixes on action names showing what data each action accesses (📄 🔖 📝 📓 📚 📊 🌐).
 
@@ -4205,7 +4205,7 @@ Plain Text mode includes markdown stripping that preserves readability: headers 
 ### "API key missing" error
 Edit `apikeys.lua` and add your key for the selected provider.
 
-> **Tip:** Provider pickers now list only providers that actually have an API key configured (plus local/no-key providers such as Ollama). If a provider is missing from the list, add its key in `apikeys.lua` or via Settings → AI Provider & Model.
+> **Tip:** Provider pickers (inside the **Model: … (Provider)** row) list only providers that actually have an API key configured (plus local/no-key providers such as Ollama). If a provider is missing from the list, add its key in `apikeys.lua` or via Settings → AI Provider & Model.
 
 ### No response / timeout
 1. Check internet connection
@@ -4217,10 +4217,10 @@ Edit `apikeys.lua` and add your key for the selected provider.
 2. Some providers may have different streaming support
 
 ### Wrong model showing
-1. Check Settings → AI Provider & Model
+1. Check the **Model: … (Provider)** row at the top of Settings
 2. When switching providers, the model resets to that provider's default
 
-> **Tip:** If a chat is using an unexpected model, check Settings → AI Provider & Model for the current global default, then check whether a per-action Tier hint, a global tier pin (Settings → Advanced → Tier Models (Global)), or the Quick Answer preset's model mode is redirecting that request to a different model.
+> **Tip:** If a chat is using an unexpected model, check the **Model: … (Provider)** row at the top of Settings for the current global default, then check whether a per-action Tier hint, a global tier pin (Settings → Advanced → Tier Models (Global)), or the Quick Answer preset's model mode is redirecting that request to a different model.
 
 ### Chats not saving
 1. Check Settings → Chat & Export Settings → Auto-save settings
@@ -4255,7 +4255,9 @@ See [Reset Settings](#reset-settings) for detailed descriptions of each option.
 
 ### Debug Mode
 
-Enable in Settings → Advanced → Console Debug
+Enable in **Settings → Advanced → Console Debug**.
+
+**For a bug report, this is the switch that fills `crash.log`.** KOAssistant's own tracing is silent by default; Console Debug turns it on without raising KOReader's global log level, so the log stays readable instead of drowning in core's per-repaint output. KOReader's own verbose logging (gear → Help → Developer options) also turns our tracing on, so a log collected that way includes it — but the request and response dumps below come from Console Debug alone.
 
 Shows:
 - Full request body sent to API
@@ -4263,7 +4265,7 @@ Shows:
 - Configuration details (provider, model, temperature, etc.)
 - **Token usage** per request in the terminal: input tokens, output tokens, total, and cache hits (cache_read/cache_write) when applicable. Works for all providers (Anthropic, OpenAI, Gemini, Ollama, Cohere, and compatible). Displayed for both streaming and non-streaming responses.
 
-> **Note:** Debug view and export features (particularly the "Everything (debug)" content level) are under review for consistency improvements. Some metadata may not appear as expected in exports. See [Track 0.7](https://github.com/zeeyado/koassistant.koplugin) in the development roadmap.
+> **Note:** Debug view and export features (particularly the "Everything (debug)" content level) are under review for consistency improvements. Some metadata may not appear as expected in exports.
 
 ---
 
