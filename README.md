@@ -401,9 +401,7 @@ See detailed sections below for each feature.
 
 ---
 
-## Testing Your Setup (out of date)
-
-Aug 2026: The test inspector is not actively maintained
+## Testing Your Setup
 
 The test suite includes an interactive web inspector that lets you test and experiment with KOAssistant without launching KOReader:
 
@@ -418,15 +416,29 @@ The test suite includes an interactive web inspector that lets you test and expe
 - **Send multi-turn conversations** with a **full chat interface** and conversation history
 
 **Requirements:**
-- Lua 5.3+ with LuaSocket, LuaSec, and dkjson
-- **Clone from GitHub** (Tests are excluded from release zips to keep downloads small)
+- Lua 5.3 or newer with LuaSocket, LuaSec, and dkjson
+- **Clone from GitHub** (tests are excluded from release zips to keep downloads small)
 - See [tests/README.md](tests/README.md) for full setup instructions
 
 **Quick Start:**
 ```bash
 cd /path/to/koassistant.koplugin
+
+# Put the rocks on Lua's path first, matching your `lua -v`.
+# Without this the web UI fails at startup with a setoption error.
+eval "$(luarocks --lua-version 5.5 path)"
+
 lua tests/inspect.lua --web
 # Then open http://localhost:8080 in a browser
+```
+
+The command-line modes need no browser and are the quickest way to see what a change does to a request:
+
+```bash
+lua tests/inspect.lua --list                 # providers available for inspection
+lua tests/inspect.lua --inspect anthropic    # the request for one provider
+lua tests/inspect.lua --compare openai gemini
+lua tests/inspect.lua --export anthropic     # the same thing as JSON
 ```
 
 **Tip:** The web inspector reads from your actual KOAssistant settings (`koassistant_settings.lua`), so run KOReader on the same device/computer first to load your full configuration (languages, behavior, temperature, etc.).
