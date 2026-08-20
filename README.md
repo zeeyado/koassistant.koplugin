@@ -54,7 +54,6 @@ Note: This README is the main documentation for now, and is being migrated to th
   - [Text Extraction and Double-gating](#text-extraction-and-double-gating): Enable document content analysis (off by default)
 - [How to Use KOAssistant](#how-to-use-koassistant): Contexts & Built-in Actions
   - [Highlight Mode](#highlight-mode)
-  - [Image Generation](#image-generation): Turn a highlight into an image
   - [Book/Document Mode](#bookdocument-mode)
     - [Research Mode](#research-mode): Automatic academic enhancements for papers with DOI
     - [Reading Analysis Actions](#reading-analysis-actions): X-Ray, X-Ray (Simple), Recap, Document Summary, Document Analysis, About, Analyze Notes
@@ -62,9 +61,10 @@ Note: This README is the main documentation for now, and is being migrated to th
   - [General Chat](#general-chat)
   - [Input Dialog Actions](#managing-the-input-dialog): Per-context action sorting, gear menu
   - [Session Controls (Chips)](#session-controls-chips): Domain, Web, Tools, Quick, Scope, Attach, Spoiler
-  - [Spoiler Protection](#spoiler-protection): Prevent AI from revealing events beyond your reading position (on by default)
   - [Minimal Popup](#minimal-popup): Short answers in a small popup anchored at your selection
+  - [Spoiler Protection](#spoiler-protection): Prevent AI from revealing events beyond your reading position (on by default)
   - [Save to Note](#save-to-note)
+- [Image Generation](#image-generation): Turn a highlight into an image
 - [How the AI Prompt Works](#how-the-ai-prompt-works): Behavior + Domain + Language system
 - [Actions](#actions)
   - [Managing Actions](#managing-actions)
@@ -74,13 +74,16 @@ Note: This README is the main documentation for now, and is being migrated to th
     - [Utility Placeholders](#utility-placeholders): Reusable prompt fragments (conciseness, hallucination nudges)
   - [Highlight Menu Actions](#highlight-menu-actions)
 - [Dictionary Integration](#dictionary-integration): Compact view, on demand context mode
-- [Bypass Modes](#bypass-modes): Skip menus, direct AI actions
   - [Dictionary Bypass](#dictionary-bypass)
-  - [Highlight Bypass](#highlight-bypass)
+  - [Dictionary View Modes](#dictionary-view-modes)
   - [Translate View](#translate-view)
+- [Bypass Modes](#bypass-modes): Skip menus, direct AI actions
+  - [Highlight Bypass](#highlight-bypass)
+  - [Bypass Action Selection](#bypass-action-selection)
+  - [Gesture Toggles](#gesture-toggles)
   - [Custom Action Gestures](#custom-action-gestures)
   - [Available Gesture Actions](#available-gesture-actions)
-  - [Translate Page](#translate-page)
+    - [Translate Page](#translate-page)
 - [Behaviors](#behaviors): Customize AI personality
   - [Built-in Behaviors](#built-in-behaviors)
   - [Sample Behaviors](#sample-behaviors)
@@ -1663,7 +1666,7 @@ KOAssistant integrates with KOReader's dictionary system, providing AI-powered w
 
 > **Want Translate and Copy for text in dictionary results?** Enable **Settings → Menus & Buttons → Text selection in viewers → Enhance text selection** to add action popups (Copy, Dictionary, Translate) when selecting multiple words or long-pressing a single word in KOReader's dictionary, Wikipedia, and other viewers. See [Extend to KOReader Viewers](#extend-to-koreader-viewers).
 
-### How It Works
+### How Dictionary Integration Works
 
 When you select a word in a document, KOReader normally shows its dictionary popup. With KOAssistant's dictionary integration, you can:
 
@@ -1841,6 +1844,24 @@ Both dictionary view modes share the same button layout:
 
 **RTL-aware rendering**: When viewing dictionary results for RTL languages, both dictionary view modes automatically use Plain Text mode (if enabled in settings) and apply correct bidirectional text alignment for proper display of RTL content.
 
+### Translate View
+
+All translation actions (Highlight Bypass with Translate, Translate Page, highlight menu Translate) use a specialized **Translate View**, a minimal UI focused on translations.
+
+**Button layout:**
+- **Row 1:** MD ON/TXT ON (toggle markdown), Copy, Save to Note (when highlighting)
+- **Row 2:** → Chat (expand to full chat), Show/Hide Original, Language, Close
+
+**Key features:**
+- **Language button** re-runs translation with a different target language (picks from your configured languages)
+- **Save to Note button** saves translation directly to a highlight note (closes translate view after save)
+- **Auto-save disabled** by default (translations are ephemeral like dictionary lookups)
+- **Copy/Note Content** options: choose what to include: full, question + response, or translation only
+- **Configurable original text visibility**: follow global setting, always hide, hide long text, or never hide
+- **→ Chat button** expands to full chat view with all options (continue conversation, save, etc.)
+
+**Configure:** Settings → Translate Settings
+
 ### Vocabulary Builder Integration
 
 When using dictionary lookups in compact view, KOAssistant integrates with KOReader's Vocabulary Builder:
@@ -1865,16 +1886,7 @@ Dictionary lookups are **not auto-saved** by default (`Disable Auto-save` is on)
 
 Bypass modes let you skip menus and immediately trigger AI actions.
 
-### Dictionary Bypass
-
-Skip KOReader's dictionary popup when selecting words. Useful for language learners who want instant AI definitions.
-
-**How it works:**
-1. Select a word in the document
-2. Instead of dictionary popup → AI action triggers immediately
-3. Response appears in the [minimal popup](#minimal-popup) next to the word when it fits, otherwise in the action's configured view mode (compact view by default, see [Dictionary View Modes](#dictionary-view-modes))
-
-**Configure:** Settings → Dictionary Settings → Bypass KOReader Dictionary
+**Dictionary bypass** is documented with the rest of the dictionary features: see [Dictionary Bypass](#dictionary-bypass). In short, selecting a word skips KOReader's dictionary popup and runs your chosen AI action instead.
 
 ### Highlight Bypass
 
@@ -1951,33 +1963,15 @@ Actions with gestures show a `[gesture]` indicator in the Action Manager list.
 - Book actions → Reader Only; General actions → Available in both contexts
 - Includes artifact actions (X-Ray, Recap, Document Summary, etc.), utility actions, and your own custom actions
 
-### Translate Page
+#### Translate Page
 
 A special gesture action to translate all visible text on the current page:
 
 **Gesture:** KOAssistant: Translate Page
 
-This extracts all text from the visible page/screen and sends it to the Translate action. Uses Translate View (see below) for a focused translation experience.
+This extracts all text from the visible page/screen and sends it to the Translate action. Uses [Translate View](#translate-view) for a focused translation experience.
 
 **Works with:** PDF, EPUB, DjVu, and other supported document formats.
-
-### Translate View
-
-All translation actions (Highlight Bypass with Translate, Translate Page, highlight menu Translate) use a specialized **Translate View**, a minimal UI focused on translations.
-
-**Button layout:**
-- **Row 1:** MD ON/TXT ON (toggle markdown), Copy, Save to Note (when highlighting)
-- **Row 2:** → Chat (expand to full chat), Show/Hide Original, Language, Close
-
-**Key features:**
-- **Language button** re-runs translation with a different target language (picks from your configured languages)
-- **Save to Note button** saves translation directly to a highlight note (closes translate view after save)
-- **Auto-save disabled** by default (translations are ephemeral like dictionary lookups)
-- **Copy/Note Content** options: choose what to include: full, question + response, or translation only
-- **Configurable original text visibility**: follow global setting, always hide, hide long text, or never hide
-- **→ Chat button** expands to full chat view with all options (continue conversation, save, etc.)
-
-**Configure:** Settings → Translate Settings
 
 > 📖 **Quick Reference: Bypass Mode Use Cases**
 >
@@ -2071,7 +2065,7 @@ Individual actions can override the global behavior:
 
 Domains provide **project-like context** for AI conversations. When selected, the domain context is sent **after** behavior in the system message. See [How the AI Prompt Works](#how-the-ai-prompt-works) for the full picture.
 
-### How It Works
+### How Domains Work
 
 The domain text is included in the system message after behavior and before language instruction. The AI uses it as background knowledge for the conversation. You can have very small, focused domains, or large, detailed, interdisciplinary ones. Both behavior and domain benefit from prompt caching (50-90% cost reduction on repeated queries, depending on provider).
 
@@ -2255,7 +2249,7 @@ Three per-book language overrides, each **Follow global** by default:
 - **Translation language** — target language for the Translate action on this book.
 - **Dictionary language** — definition language for dictionary lookups on this book.
 
-> AI response language is distinct from translation/dictionary: it changes the AI's *default reply* language for all actions, whereas the other two only affect the Translate and Dictionary actions. All three are also settable globally in [AI Language Settings](#ai-language-settings) / [Translate Settings](#translate-settings) / [Dictionary Settings](#dictionary-settings).
+> AI response language is distinct from translation/dictionary: it changes the AI's *default reply* language for all actions, whereas the other two only affect the Translate and Dictionary actions. All three are also settable globally in [AI Language Settings](#ai-language-settings) / [Translate Settings](#translate-settings) / [Dictionary Settings](#dictionary-settings-reference).
 
 ### Resolution and reset
 
@@ -2668,7 +2662,7 @@ Controls what the **Quick Answer** (⚡) chip applies when you tap it on for a c
 - **Behavior**: Optionally change the AI behavior while Quick Answer is on: keep the current one (default), swap to its Mini variant, use the built-in Terse, pin a specific behavior, or send none at all
 - **Model override**: Optionally switch models while Quick Answer is on (that chat only; your default model is untouched). Options: Keep current (default), Fastest for provider, a tier of the active provider, or a pinned specific model. Custom providers keep the current model unless you've given them tier placements.
 
-### Content Format (within Chat & Export Settings)
+#### Content Format
 - **Export Style**: Format for Copy, Note, and Save to File: Markdown (default) or Plain Text
 - **Copy Content**: What to include when copying: Ask every time, Full (metadata + chat), Question + Response, Response only, or Everything (debug)
 - **Note Content**: What to include when saving to note: Ask every time, Full (metadata + chat), Question + Response (default), Last response only, or Everything (debug)
@@ -2677,7 +2671,7 @@ Controls what the **Quick Answer** (⚡) chip applies when you tap it on for a c
 
 When "Ask every time" is selected, a picker dialog appears letting you choose what to include before proceeding.
 
-### Save Location (within Chat & Export Settings)
+#### Save Location
 - **Save Location**: Where to save exported files
   - **KOAssistant exports folder** (default): Central `koassistant_exports/` folder with subfolders for book/general/library chats
   - **Custom folder**: User-specified fixed directory
@@ -2799,6 +2793,7 @@ This setup means: AI knows you understand English and Spanish, responds in Engli
 
 This setup means: AI responds in English by default, translates to Spanish, defines words in Spanish (useful when reading Spanish texts). Latin available for translation if needed.
 
+<a id="dictionary-settings-reference"></a>
 ### Dictionary Settings
 Behavior settings for AI dictionary lookups. (The **AI buttons in the dictionary popup** and the **Dictionary Popup Actions** manager now live in **[Menus & Buttons](#koreader-integration) → Dictionary popup**.) See [Dictionary Integration](#dictionary-integration) and [Bypass Modes](#bypass-modes) for details.
 - **Response Language**: Language for definitions (`↵T` follows Translation Language by default). Can be overridden per book in [Book Settings](#book-settings) ▸ Languages.
@@ -2829,7 +2824,7 @@ When "Ask every time" is selected (or inherited from global), a picker dialog ap
 - **Long Text Threshold**: Character count for "Hide Long" mode (default: 280)
 - **Hide for Full Page Translate**: Always hide original when translating full page (default: on)
 
-### Minimal Popup
+### Minimal Popup Settings
 - **Minimal Popup View**: Show responses from the actions below in a small popup anchored next to the highlighted text — just the response, no buttons. **Off** / **When it fits** (default; longer responses open the full window instead) / **Always** (trimmed with an ellipsis). Tap the popup for the full window, tap outside to dismiss. Streaming is skipped for these requests, and full-page translation never uses it.
 - **Minimal Popup Actions**: Which highlight actions open this way (Translate, Quick Define and Quick Explain by default). Also reachable from the popup's own quick settings.
 
@@ -2913,7 +2908,7 @@ Changing save location prompts to migrate existing notebooks. Vault/central file
 
 > The notebook **entry-point toggles** (Show Add to Notebook button in the highlight menu, Show Notebook button in the file browser, Only for books with notebooks) now live in **[Menus & Buttons](#koreader-integration)**. The **Allow Notebook sharing** privacy toggle (controls whether notebook content is sent to the AI via `{notebook}`) lives in **[Privacy & Data](#privacy--data)**.
 
-### Privacy & Data
+### Privacy & Data Settings
 See [Privacy & Data](#privacy--data) for background on what gets sent to AI providers and the reasoning behind these defaults.
 - **Trusted Providers**: Mark providers (e.g., local Ollama) that bypass all data sharing controls AND text extraction AND the library-scanning toggle (a scan folder is still required) — all data types are available without toggling individual settings
 - **Preset: Default**: Recommended balance: progress and chapter info shared, personal content private
@@ -3313,7 +3308,7 @@ KOAssistant's global browsers (artifacts, chats, notebooks, pinned) run on light
 
 **Access:** Settings → Backup & Reset → Reset Settings...
 
-#### Setup Wizard
+#### Re-run Setup Wizard
 
 **Re-run Setup Wizard**: Run the initial setup wizard again to reconfigure language, emoji settings, and gesture assignments. The wizard detects your current configuration and only offers to change what's needed.
 
