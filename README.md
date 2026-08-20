@@ -1295,7 +1295,7 @@ There are two ways book metadata (title, author) can be included in a request:
 Some actions skip parts of the system message because they'd interfere:
 
 - **Translate** and **Dictionary** actions skip both **Domain** and **Language instruction** by default. Domain context can significantly alter translation/definition results since the AI follows domain instructions. The target language is already specified directly in the prompt template.
-- Custom actions can toggle these via the **"Skip domain"** and **"Skip language instruction"** checkboxes in the action wizard.
+- Custom actions control these from the wizard's **Domain:** row (pick **"None (no domain)"**) and the **"Skip language"** checkbox. There is also a separate **Background:** row for the per-book background note.
 - By default, an action that skips Domain also skips your per-book **Background** note (Background follows the same on/off as Domain unless the action sets its own `skip_background` gate).
 
 > **Tip:** When creating custom actions, experiment with domain on and off to see what produces better results for your use case. For precise linguistic tasks (translation, grammar checking), skipping domain usually helps. For analytical tasks (explaining concepts in a field), domain context improves results.
@@ -1366,7 +1366,7 @@ Don't like how a built-in action behaves? Clone and customize it:
 
 3. **Want action without domain/language?**
    - **Example:** Translate action giving unexpected results due to your domain
-   - **Fix:** Edit action → Settings → Check "Skip domain"
+   - **Fix:** Edit action → Settings → **Domain:** → **"None (no domain)"**
    - **Why:** Domain context can alter translation style/register
 
 4. **Compare different approaches?**
@@ -1517,19 +1517,19 @@ Utility placeholders provide reusable prompt fragments that can be inserted into
 
 ### Tips for Custom Actions
 
-- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Enable "Skip domain" in the action wizard for these, unless you are translating something that would benefit from the context added by a domain.
+- **Skip domain** for linguistic tasks: Translation, grammar checking, dictionary lookups work better without domain context influencing the output. Set the wizard's **Domain:** row to **"None (no domain)"** for these, unless you are translating something that would benefit from the context added by a domain.
 - **Skip language instruction** when the prompt already specifies a target language (using `{translation_language}` or `{dictionary_language}` placeholders), to avoid conflicting instructions.
 - **Put task-specific instructions in the action prompt**, not in behavior. Behavior applies globally; action prompts are specific. Use a standard behavior and detailed action prompts for most custom actions.
 - **Temperature matters**: Lower (0.3-0.5) for deterministic tasks (translation, definitions). Higher (0.7-0.9) for creative tasks (elaboration, recommendations).
 - **Experiment with domains**: Try running the same action with and without a domain to see what works for your use case. Some actions benefit from domain context (analysis, explanation), others don't (translation, grammar).
 - **Test before deploying**: Use the [web inspector](#testing-your-setup) to test your custom actions before using them on your e-reader. You can try different settings combinations and see exactly what's sent to the AI.
-- **Reading-mode placeholders**: Book actions using `{reading_progress}`, `{book_text}`, `{full_document}`, `{highlights}`, `{annotations}`, `{notebook}`, or `{chapter_title}` are **automatically hidden** in File Browser mode because these require an open book. This filtering is automatic: if your custom book action uses these placeholders, it will only appear when reading. Highlight actions are always reading-mode (you can't highlight without an open book). The action wizard shows a `[reading]` indicator for such actions.
+- **Reading-mode placeholders**: what hides in File Browser mode is decided by an action's *flags*, not by its placeholders. An action hides when it sets `use_book_text`, `use_page_text`, `use_reading_stats` or `source_selection` — the things that need a live document. `{highlights}`, `{annotations}` and `{notebook}` map to sidecar flags and are read from the book's saved data on disk, so those actions stay available from the file browser on purpose; `{reading_progress}` has a sidecar fallback too. Text extraction is never inferred from a placeholder: if your action uses `{book_text_section}` or `{full_document_section}`, tick **Allow text extraction** in the wizard yourself, or the flag will not be set. The Action Manager shows a `[reading]` marker on the actions that need an open book. Highlight actions are always reading-mode (you can't highlight without an open book).
 - **Document caches**: Three cache types are available as placeholders: `{summary_cache_section}`, `{xray_cache_section}`, and `{analyze_cache_section}`. All require `use_book_text = true` since the cached content derives from book text. The **summary cache** is the primary one for custom actions: it's a neutral, comprehensive representation of the document designed to be reused. The **X-Ray cache** can also be useful as supplementary context (structured character/concept reference). The **analyze cache** is more specialized: it's an opinionated analysis, so avoid using it as input for another analysis (you'd be analyzing an analysis, a decaying game of telephone where each layer loses nuance). Cache placeholders disappear when empty, so including them is always safe. Two usage patterns:
   - **Replace**: Use `{summary_cache_section}` INSTEAD of raw book text for token savings on long books. Add `source_selection = true` and `use_summary_cache = true` to let users choose between full text, summary, or AI knowledge at runtime. Or use `{document_context_section}` as a unified placeholder that resolves based on the user's source choice.
   - **Supplement**: Add a cache reference as bonus context alongside other data. For example, append `{xray_cache_section}` to a custom action so the AI has the character/concept reference available if it exists. The placeholder vanishes if no cache exists, so there's no downside.
 
   > *Tip: The [Attach chip](#managing-the-input-dialog) in the input dialog also lets you attach a notebook, a saved artifact, a chat, a file, or a note to a chat on the fly, so you can pull one book's cached artifact into a chat about another (e.g., comparing an X-Ray across volumes in a series).*
-- **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage. This is live extraction (not cached), hard-capped at 2000 characters. Particularly useful for **custom dictionary-like actions** that need sentence context for single-word lookups; look at the built-in `quick_define`, `dictionary`, and `deep` actions for inspiration. Uses **Settings → Highlight Settings → Surrounding Context** for the mode (sentence, paragraph, or character count), plus its direction and amount — overridable per book in Book Settings and per chat with the Ctx chip. (Dictionary lookups use their own context setting under Dictionary Settings.)
+- **Surrounding context**: Use `{surrounding_context_section}` in highlight actions to include text around the highlighted passage. This is live extraction (not cached), hard-capped at 2000 characters. Particularly useful for **custom dictionary-like actions** that need sentence context for single-word lookups; note that the built-in `quick_define`, `dictionary` and `deep` actions do **not** use this placeholder: they set `use_surrounding_context = false` and take their passage from the separate dictionary channel (`{context_section}`), driven by Settings → Dictionary Settings. Copy them only if you want that channel. Uses **Settings → Highlight Settings → Surrounding Context** for the mode (sentence, paragraph, or character count), plus its direction and amount — overridable per book in Book Settings and per chat with the Ctx chip. (Dictionary lookups use their own context setting under Dictionary Settings.)
 
 ### File-Based Actions
 
@@ -1566,8 +1566,14 @@ return {
 - `reasoning_config`: Per-provider reasoning settings (see below)
 - `extended_thinking`: Legacy: "off" to disable, "on" to enable (Anthropic only)
 - `thinking_budget`: Legacy: Token budget when extended_thinking="on" (1024-32000)
-- `enabled`: Set to `false` to hide
+- `enabled`: **ignored in file-based actions.** The loader overwrites it from the Action Manager's own enable/disable state on every load, so a value written here has no effect. Disable the action in Manage Actions instead.
 - `requires`: Array of requirement types that block execution if unmet: `{"book_text"}`, `{"highlights"}`, `{"library"}`. Shows user-facing error identifying which gate (per-action or global) is the problem, with optional `blocked_hint` suggestion.
+- `description`: Text shown when the action is long-pressed in the managers and menus
+- `use_response_caching`: Store the result as a per-action artifact, with the View / Update / Redo popup
+- `update_prompt`: The prompt used when an artifact is updated incrementally rather than regenerated
+- `api_params`: Raw parameters merged into the request — the only route to `max_tokens`
+- `include_book_context`: Send the book identity block with this action
+- `compact_view` / `dictionary_view` / `translate_view` / `minimal_buttons`: View mode for the response window
 - `blocked_hint`: Suggestion text shown when action is blocked (e.g., `_("Or use X-Ray (Simple) for an overview based on AI knowledge.")`)
 - `use_book_text`: Allow text extraction for this action (acts as permission gate; also requires global "Allow Text Extraction" setting enabled). The actual extraction is triggered by placeholders in the prompt: `{book_text_section}` extracts to current position, `{full_document_section}` extracts entire document. Also gates access to analysis cache placeholders.
 - `use_highlights`: Include document highlights (text only, no notes). Requires Allow Highlights or Allow Annotation Notes.
@@ -1584,7 +1590,7 @@ return {
 - `cache_as_analyze`: Save this action's result to the document analysis cache
 - `cache_as_summary`: Save this action's result to the document summary cache
 - `source_selection`: Show a scope/source popup so the reader picks what feeds `{document_context_section}` at runtime: full text, a cached summary, AI knowledge, plus scope rows ("Up to current position (NN%)", "From section…", "Pick section range…"; highlight actions get them too). With spoiler protection on, the popup pre-selects "Up to current position" and asks before running a scope that reaches past your position.
-- `smart_retrieval`: Adds a "Smart retrieval" source option (when the session is tools-capable) that has the AI look up only the passages it needs rather than sending the whole document. Used by context-aware actions like Explain in Context and Analyze in Context. See [AI Book Tools](#ai-book-tools-experimental).
+- `smart_retrieval`: Has the AI look up only the passages it needs instead of sending the whole document. On **highlight** actions this appears as a "Smart retrieval" row in the source popup — shown greyed with the reason when the session is not tools-capable, and pre-selected when it is. On book or library actions there is no row: the flag makes the action gather passages silently. Used by context-aware actions like Explain in Context and Analyze in Context. See [AI Book Tools](#ai-book-tools-experimental).
 - `accept_quick_answer`: Opt this action into the [Quick Answer](#managing-the-input-dialog) posture (brevity nudge, reasoning/web/tools off, plus whatever else the preset includes). Launched from the input dialog it follows the Quick chip; launched directly (highlight menu, dictionary popup, gesture, Quick Actions) it follows your per-book/global Quick Answer default. Never applies to artifact/JSON actions.
 - `skip_language_instruction`: Don't include language instruction in system message (default: off; Translate/Dictionary use true since target language is in the prompt)
 - `skip_domain`: Don't include domain context in system message (default: off; Translate/Dictionary use true)
@@ -1621,7 +1627,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 7. **Dictionary**: Fuller dictionary-style entry
 8. **Generate Image**: Illustrate the passage (only appears when an image-capable provider is configured)
 
-Existing installs keep whatever is already in their menu; these defaults apply to fresh installs and after a reset.
+Propagation runs one way. A built-in that gains a default placement **is** injected into an existing install's menu at its default position on the next read, unless that install had previously removed it (removals are remembered). A built-in that *loses* its default placement stays where it is; only ids that no longer resolve at all are pruned.
 
 **Other built-in actions you can add**: ELI5, Elaborate, Connect, Connect (With Notes), Fact Check, AI Wiki, Grammar, Counterpoint, Explain in Context, Analyze in Context, Thematic Connection, Current Context, Deep Analysis
 
@@ -2149,9 +2155,9 @@ Chat History → hamburger menu → **View by Domain**
 
 ### Tips
 
-- **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can toggle "Skip domain" for any custom action in the action wizard (see [Actions](#actions)).
+- **Domain can be skipped per-action**: Actions like Translate and Dictionary skip domain by default because domain instructions alter their output. You can set the **Domain:** row to "None (no domain)" for any custom action in the action wizard (see [Actions](#actions)).
 - **Domain vs Behavior overlap**: Both are sent in the system message. Behavior = communication style, Domain = knowledge context. Sometimes content could fit in either. Rule of thumb: if it's about *how to respond*, put it in behavior. If it's about *what to know*, put it in a domain.
-- **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, use "Skip domain" in that action's settings.
+- **Domains affect all actions in a chat**: Once selected, the domain applies to every message in that conversation. If an action doesn't benefit from domain context, set its **Domain:** row to "None (no domain)" in that action's settings.
 - **Per-book domains persist**: A domain set "For this book" is saved in the book's metadata and restored every time you open it, even from file browser or artifact views. Set "None" on the book target to explicitly opt a book out of your global domain.
 - **Cost considerations**: Large domains increase token usage on every request. Keep domains focused. Most major providers (Anthropic, OpenAI, Gemini, DeepSeek) cache system prompts automatically (50-90% cost reduction on repeated domain context).
 - **Preview domain effects**: Use the [web inspector](#testing-your-setup) to see how domains affect request structure and AI responses before using them on your e-reader.

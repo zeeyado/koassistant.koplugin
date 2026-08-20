@@ -23,7 +23,8 @@
 --   api_params      - Optional API overrides: { temperature, max_tokens }
 --   include_book_context - Include book title/author with highlight (default false)
 --   domain          - Lock to specific domain (optional)
---   enabled         - Default enabled state (default true)
+--   (note: an `enabled` field here is IGNORED -- the loader takes enabled/disabled
+--    from the Action Manager's own state on every load. Disable actions there.)
 
 return {
     -----------------------------------------------------------------------
@@ -127,7 +128,6 @@ return {
         context = "general",
         behavior_variant = "full",
         prompt = "This is a test action.",
-        enabled = false,  -- Won't appear in menus
     },
 
     -----------------------------------------------------------------------
