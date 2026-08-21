@@ -261,7 +261,7 @@ Actions.highlight = {
         description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
         template = "explain",
-        in_highlight_menu = 3,  -- Default in highlight menu
+        in_highlight_menu = 2,  -- Default in highlight menu
         -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
@@ -280,7 +280,7 @@ Actions.highlight = {
         -- Joined the menu defaults + DEFAULT_MINIMAL_POPUP_ACTIONS in the A9
         -- follow-up 2026-08-17 (maintainer): the minimal-popup registry needs a
         -- launch surface, and this is the popup's natural resident.
-        in_highlight_menu = 4,
+        in_highlight_menu = 3,
         text = _("Quick Explain"),
         description = _("A two-or-three-sentence plain-language explanation of the selection, on a fast model."),
         context = "highlight",
@@ -327,7 +327,7 @@ Actions.highlight = {
             temperature = 0.4,  -- More deterministic for summaries
         },
         include_book_context = true,
-        in_highlight_menu = 5,  -- A9 pare-down 2026-08-17 (was 6; 5 since quick_explain joined at 4)
+        in_highlight_menu = 4,  -- A9 pare-down 2026-08-17 (2026-08-21: shifted up, the conditional xray_lookup moved to the tail)
         builtin = true,
     },
     elaborate = {
@@ -682,7 +682,7 @@ Use plain language first, adding the technical term in parentheses when it helps
         local_handler = "xray_lookup",
         requires_open_book = true,
         requires_xray_cache = true,
-        in_highlight_menu = 2,
+        in_highlight_menu = 7,  -- 2026-08-21: second-to-last, beside image_gen — it is conditional (maintainer)
         in_dictionary_popup = 6,
         exclude_from_compact = true,
         no_duplicate = true,
@@ -2308,7 +2308,7 @@ Actions.special = {
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         use_surrounding_context = false,  -- {context_section} channel already carries the passage
         in_dictionary_popup = 2,  -- Default order in dictionary popup
-        in_highlight_menu = 6,    -- A9 pare-down 2026-08-17: dict pair joins the menu
+        in_highlight_menu = 5,    -- A9 pare-down 2026-08-17: dict pair joins the menu
         prompt = [[Define "{highlighted_text}"
 
 Write entirely in {dictionary_language}. Only the headword stays in original language.
@@ -2341,7 +2341,7 @@ One line only. No etymology, no synonyms. No headers.]],
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         use_surrounding_context = false,  -- {context_section} channel already carries the passage
         in_dictionary_popup = 1,  -- Default order in dictionary popup
-        in_highlight_menu = 7,    -- A9 pare-down 2026-08-17: dict pair joins the menu
+        in_highlight_menu = 6,    -- A9 pare-down 2026-08-17: dict pair joins the menu
         prompt = [[Dictionary entry for "{highlighted_text}"
 
 Write entirely in {dictionary_language}. Only the headword, lemma, and synonyms stay in original language.

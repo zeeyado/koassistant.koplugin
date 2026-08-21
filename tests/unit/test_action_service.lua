@@ -743,15 +743,19 @@ local function runInputInjectionTests()
         TestRunner:assertEqual(result[2], "translate", "user order kept")
     end)
 
-    -- Fresh-install highlight-menu default order (A9 pare-down 2026-08-17).
+    -- Fresh-install highlight-menu default order (A9 pare-down 2026-08-17;
+    -- conditional rows moved to the tail 2026-08-21).
     -- buildDefaultFromFlags sorts by the numeric in_highlight_menu values with
     -- no tiebreaker, so a future duplicate/gap in those hand-edited literals
     -- would ship a nondeterministic order silently — this pins the exact set.
-    TestRunner:test("fresh highlight-menu defaults match the pared A9 order", function()
+    TestRunner:test("fresh highlight-menu defaults keep the conditional rows last", function()
         local service = createService({})
         local result = service:getHighlightMenuActions()
-        local expected = { "translate", "xray_lookup", "explain", "quick_explain",
-            "summarize", "quick_define", "dictionary", "image_gen" }
+        -- xray_lookup (requires_xray_cache) and image_gen (requires_image_provider)
+        -- are conditional, so they sit at the end where a hidden row cannot skew
+        -- the positions of the always-present ones.
+        local expected = { "translate", "explain", "quick_explain", "summarize",
+            "quick_define", "dictionary", "xray_lookup", "image_gen" }
         TestRunner:assertEqual(#result, #expected, "exactly " .. #expected .. " default rows")
         for i, id in ipairs(expected) do
             TestRunner:assertEqual(result[i], id, "row " .. i .. " is " .. id)
