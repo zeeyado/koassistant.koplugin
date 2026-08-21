@@ -9,7 +9,7 @@
 
 > **New to KOAssistant?** The [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki) has short getting-started guides. [Help expand it.](https://github.com/zeeyado/koassistant.koplugin/wiki/Contributing-to-this-Wiki)
 
-Note: This README is the main documentation for now, and is being migrated to the [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki). It was substantially refreshed in August 2026 to match the current code; if you spot anything out of date, or want to help with the wiki migration and docs cleanup, contributions are appreciated. The README currently tracks the main branch. This means that some features may not yet be in the latest release.
+Note: This README is the main documentation for now, and is being migrated to the [Wiki](https://github.com/zeeyado/koassistant.koplugin/wiki). It was substantially refreshed in August 2026 to match the current code; if you spot anything out of date, or want to help with the wiki migration and docs cleanup, contributions are appreciated. **The README currently tracks the main branch. This means that some features may not yet be in the latest release, and you have to use the latest code from main branch to get it.**
 
 <p align="center">
   <a href="screenshots/ELI5highlightchat.png"><img src="screenshots/ELI5highlightchat.png" width="180" alt="AI explains highlighted text"></a>
