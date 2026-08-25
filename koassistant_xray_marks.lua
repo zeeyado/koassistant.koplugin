@@ -79,7 +79,7 @@ local SCAN_SETTLE_S = 0.3
 --   term_hits = {},    -- term text (lower) -> { by_page = {[page] = {{start, e},...}},
 --                      -- pages = sorted unique page list } — whole-book,
 --                      -- searched at most once per term per session
---   page_marks,        -- current page: { {x,y,w,h, name}, ... } — FULL word
+--   page_marks,        -- current page: { {x,y,w,h, name, text}, ... } — FULL word
 --                      -- boxes, the tap targets (round 2, d2)
 --   paint_boxes,       -- same-line-merged union rects the strips paint from
 --                      -- (round 3: overlapping strips double-painted each
@@ -517,7 +517,11 @@ function XrayMarks._scanTick(plugin, pageno, token, hay)
               local bucket = th.by_page[p]
               if bucket then
                 for _k, h in ipairs(bucket) do
-                  page_hits[#page_hits + 1] = h
+                  -- The matched TEXT rides with the hit: a mark tap must
+                  -- open the card on the words the reader tapped, never on
+                  -- the entry name (an alias mark printing the entry name
+                  -- revealed the alias link on sight)
+                  page_hits[#page_hits + 1] = { h = h, text = term.text }
                 end
               end
             end
@@ -539,7 +543,8 @@ function XrayMarks._scanTick(plugin, pageno, token, hay)
             and (pageno - prev_page) < st.spacing
         if #page_hits > 0 and not suppressed then
           local ent_done = false
-          for _k, h in ipairs(page_hits) do
+          for _k, ph in ipairs(page_hits) do
+            local h = ph.h
             -- Off-view positions return no/off-screen boxes; y-filter drops
             local bok, bxs = pcall(ui.document.getScreenBoxesFromPositions,
               ui.document, h.start, h.e, true)
@@ -549,7 +554,7 @@ function XrayMarks._scanTick(plugin, pageno, token, hay)
                 if box.y and box.y >= 0 and box.h and box.h > 0 then
                   marks[#marks + 1] = { x = box.x, y = box.y,
                     w = box.w, h = box.h, name = ent.name,
-                    ahead = ent.ahead }
+                    text = ph.text, ahead = ent.ahead }
                   added = true
                 end
               end
@@ -683,7 +688,9 @@ function XrayMarks.tapTarget(plugin, ges)
   for _i, m in ipairs(marks) do
     if tx >= m.x - pad and tx <= m.x + m.w + pad
         and ty >= m.y - pad and ty <= m.y + m.h + pad then
-      return m.name, { x = m.x, y = m.y, w = m.w, h = m.h }
+      -- The tapped TEXT (name or alias as it stands in the book), so the
+      -- card resolves it like a long-press would and shows what was tapped
+      return m.text or m.name, { x = m.x, y = m.y, w = m.w, h = m.h }
     end
   end
   return nil

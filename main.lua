@@ -19143,7 +19143,7 @@ function AskGPT:syncXrayMarks()
         name, box = require("koassistant_xray_marks").tapTarget(self_ref, ges)
       end
       if name then
-        logger.dbg("KOAssistant: X-Ray mark tap - opening entity: " .. name)
+        logger.dbg("KOAssistant: X-Ray mark tap - opening card for tapped text: " .. name)
         -- The word box anchors the floating-popup card style
         self_ref:openXrayCard(name, box and { sboxes = { box } } or nil)
         return true
