@@ -877,8 +877,38 @@ end
 -- back. Stacked blocks always fit the viewer width. Tune this to taste.
 local WIDE_TABLE_COLS = 3
 
+-- B066: two cheap robustness pre-passes ahead of luamd, one chokepoint for
+-- every MD() call site. (The third, footnote escaping, is unnecessary:
+-- preprocessBrackets already entity-escapes "[^1]" — probed 2026-08-25.)
+--  1. Fence heal: an odd number of ``` fences (a response cut short inside a
+--     code block) makes luamd throw (md.lua:280, match on nil) and the whole
+--     viewer falls back to plain text; append the closing fence instead.
+--  2. Math protection: inside $...$ / $$...$$ spans, luamd's emphasis pass
+--     pairs underscores/asterisks ACROSS spans ("$a_1$ and $b_2$" -> <em>);
+--     entity-escape them so the math text renders literally and intact
+--     (nothing renders LaTeX on MuPDF anyway; T10 survey).
+local function healMarkdown(text)
+    if not text then return text end
+    -- 1. fence heal
+    local fences = 0
+    for line in text:gmatch("[^\n]*") do
+        if line:match("^%s*```") then fences = fences + 1 end
+    end
+    if fences % 2 == 1 then
+        text = text .. "\n```\n"
+    end
+    -- 2. math protection ($$...$$ first, then single-$ spans on one line)
+    local function shield(body)
+        return (body:gsub("_", "&#95;"):gsub("%*", "&#42;"))
+    end
+    text = text:gsub("%$%$(.-)%$%$", function(body) return "$$" .. shield(body) .. "$$" end)
+    text = text:gsub("%$([^%$\n]-%S)%$", function(body) return "$" .. shield(body) .. "$" end)
+    return text
+end
+
 local function preprocessMarkdownTables(text)
     if not text then return text end
+    text = healMarkdown(text)
 
     local lines = {}
     for line in text:gmatch("([^\n]*)\n?") do

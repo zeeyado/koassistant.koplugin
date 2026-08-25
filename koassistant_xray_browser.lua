@@ -4634,9 +4634,21 @@ function XrayBrowser:showMentions(chapter)
         return
     end
 
-    -- Section X-Rays: default to entire scope instead of current chapter
+    -- Section X-Rays: default to entire scope instead of current chapter.
+    -- A book marked Finished likewise defaults to the whole book (B030):
+    -- the gate already stands down for it, so the chapter default would
+    -- only hide the rest behind one more tap.
     if chapter == nil and self.scope then
         chapter = "all"
+    elseif chapter == nil then
+        local BookSettings = require("koassistant_book_settings")
+        local SafeDocSettings = require("koassistant_doc_settings")
+        local ds = SafeDocSettings.resolve(self.metadata and self.metadata.book_file, self.ui)
+        local features = self.metadata and self.metadata.configuration
+            and self.metadata.configuration.features
+        if BookSettings.resolveSpoilerPosture(ds, features).reason == "finished" then
+            chapter = "all"
+        end
     end
 
     -- Determine notification text

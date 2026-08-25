@@ -960,7 +960,7 @@ local SettingsSchema = {
                             max = 120,
                             step = 1,
                             precision = "%d",
-                            help_text = _("Minimum time between background checkpoint builds (0 = no cooldown)."),
+                            help_text = _("Minimum wait before retrying an automatic checkpoint after one was declined, failed or cancelled (0 = no cooldown). A completed build does not wait."),
                             depends_on = { id = "xray_auto_update", value = true },
                         },
                         {

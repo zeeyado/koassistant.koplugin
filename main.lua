@@ -13559,7 +13559,7 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
   end
   if XrayAuto.isInFlight() then return end
   if not XrayAuto.cooldownElapsed(state.cooldown_s, os.time()) then
-    if state.debug then logger.info("KOAssistant: automatic X-Ray declined: cooldown") end
+    logger.dbg("KOAssistant: automatic X-Ray declined: cooldown")
     return
   end
   -- No-request-in-flight gate (plan §3 #9): don't contend with a user's streamed
@@ -13764,6 +13764,7 @@ function AskGPT:_fireXrayAutoCheckpoints(opts)
   -- book this session; any explicit engine start clears the pause
   if opts and opts.explicit then
     XrayAuto.clearAutoSuppression(file)
+    XrayAuto.clearScheduled()
   elseif XrayAuto.isAutoSuppressed(file) then
     return
   end
@@ -15141,6 +15142,9 @@ function AskGPT:_fireXrayLadderRung()
           })
         end
         self_ref:_refreshXrayAutoState()
+        -- B261: a completed chain lifts the cooldown — the next due
+        -- checkpoint may fire on the next page turn
+        XrayAuto.clearScheduled()
         if not installed_pct then
           -- Bring the live X-Ray up to the reader's position for free
           self_ref:_fireXrayLadderPromotion()

@@ -36,6 +36,43 @@ local _ = require("koassistant_gettext")
 
 local XrayCard = {}
 
+-- Terminator tokens that are abbreviations, not sentence ends (case-folded).
+local ABBREV = {
+    mr = true, mrs = true, ms = true, dr = true, prof = true, sr = true, jr = true,
+    st = true, mt = true, ft = true, vs = true, etc = true, jan = true, feb = true,
+    mar = true, apr = true, jun = true, jul = true, aug = true, sep = true, sept = true,
+    oct = true, nov = true, dec = true, no = true, vol = true, op = true, ch = true,
+    ed = true, gen = true, col = true, capt = true, lt = true, sgt = true, rev = true,
+    hon = true, sen = true, rep = true, gov = true, pres = true, inc = true, co = true,
+    ltd = true, univ = true, dept = true, approx = true, cf = true, e = true, i = true,
+    ie = true, eg = true, al = true, ph = true,
+}
+
+--- Position of the first sentence terminator that really ends a sentence,
+--- or nil. Skips abbreviations ("Mr.", "H.S.", "etc."): a period whose
+--- preceding token is a single letter, an initial chain ("H.S", "U.S.A") or
+--- a listed abbreviation, or whose next word starts lowercase, is not a
+--- sentence end. "?"/"!" and the Arabic marks always end one.
+function XrayCard.sentenceEnd(s)
+    local pos = 1
+    while true do
+        local cut = s:find("[%.!%?]%s", pos)
+        local acut = s:find("؟%s", pos) or s:find("۔%s", pos)
+        if acut and (not cut or acut < cut) then return acut + 1 end
+        if not cut then return nil end
+        if s:sub(cut, cut) ~= "." then return cut end
+        local before = s:sub(1, cut - 1):match("([%w%.]*)$") or ""
+        local token = before:gsub("%.", ""):lower()
+        local nxt = s:sub(cut + 1):match("^%s*(.)")
+        local abbrev = before:find("%.") ~= nil       -- initial chain "H.S" / "U.S"
+            or #token == 1                            -- single initial "J."
+            or ABBREV[token] ~= nil
+            or (nxt ~= nil and nxt:find("%l") ~= nil) -- next word lowercase
+        if not abbrev then return cut end
+        pos = cut + 1
+    end
+end
+
 --- First sentence of a description, capped — the identification line.
 --- Pure (unit-testable). Sentence end = period/question/exclamation (ASCII +
 --- Arabic ؟ / ۔) followed by whitespace; falls back to a word-boundary cap.
@@ -45,7 +82,7 @@ function XrayCard.firstSentence(desc)
     if type(desc) ~= "string" then return "" end
     local s = desc:match("^%s*(.-)%s*$") or ""
     if s == "" then return "" end
-    local cut = s:find("[%.!%?]%s") or s:find("؟%s") or s:find("۔%s")
+    local cut = XrayCard.sentenceEnd(s)
     local first = cut and s:sub(1, cut) or s
     if #first > 220 then
         first = first:sub(1, 220):gsub("%s+%S*$", "") .. "…"

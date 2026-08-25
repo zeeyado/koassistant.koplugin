@@ -3581,7 +3581,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             -- quick, exactly like a dialog-launched quick chat.
             if prompt and prompt.accept_quick_answer == true
                 and require("koassistant_book_settings")
-                    .resolveQuickAnswerDefault(ui and ui.doc_settings, tf) then
+                    .resolveQuickAnswerDefault(
+                        require("koassistant_doc_settings").resolve((tf.book_metadata or {}).file, ui)
+                            or (ui and ui.doc_settings), tf) then
                 tf._quick_answer_active = true
                 tf._session_quick_answer = true
             end
@@ -6709,7 +6711,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local qa_ds
             if not (configuration.features.is_general_context
                 or configuration.features.is_library_context) then
-                qa_ds = ui_instance and ui_instance.doc_settings or nil
+                -- Resolve the TARGET book (closed-book / X-Ray chat / Book
+                -- Hub launches carry it in book_metadata.file), not the
+                -- open one (injection_gating_audit #55).
+                qa_ds = require("koassistant_doc_settings").resolve(
+                    (configuration.features.book_metadata or {}).file, ui_instance)
+                    or (ui_instance and ui_instance.doc_settings) or nil
             end
             configuration.features._session_quick_answer =
                 BookSettings.resolveQuickAnswerDefault(qa_ds, configuration.features)
@@ -8441,8 +8448,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 })
                             end,
                             on_close = function()
-                                local qa_ds = chips_book_or_highlight and ui_instance
-                                    and ui_instance.doc_settings or nil
+                                local qa_ds = chips_book_or_highlight
+                                    and (require("koassistant_doc_settings").resolve(
+                                        (configuration.features.book_metadata or {}).file,
+                                        ui_instance)
+                                    or (ui_instance and ui_instance.doc_settings)) or nil
                                 local was_on = configuration.features._session_quick_answer == true
                                 local now_on = BookSettings.resolveQuickAnswerDefault(qa_ds,
                                     configuration.features) and true or nil

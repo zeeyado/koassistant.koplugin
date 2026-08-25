@@ -299,6 +299,16 @@ local function blockingAffix(s)
   return false
 end
 
+--- B265: crengine reports a suffix for any match that does not end on a
+--- visible word end, so a term ending in punctuation ("D.B.", "Jr.") gets
+--- the NEXT word as its suffix on every occurrence and was never marked.
+--- When the term's own edge is a non-word char, the affix on that side
+--- describes a neighbour, not a mid-word leftover; ignore it.
+local function edgeIsWordChar(term_text, side)
+  local ch = side == "prefix" and term_text:sub(1, 1) or term_text:sub(-1)
+  return ch ~= "" and (ch:find("%w") ~= nil or ch:find("[\128-\255]") ~= nil)
+end
+
 --- Whole-doc hit index for one term: hits bucketed per page plus the sorted
 --- page list (the spacing window walks it for the nearest previous hit).
 --- Memoized by the caller; runs at most once per term per session — this is
@@ -323,8 +333,9 @@ local function searchTerm(document, term)
   if res then
     for _i, r in ipairs(res) do
       local keep = true
-      if not term.regex and (blockingAffix(r.matched_word_prefix)
-          or blockingAffix(r.matched_word_suffix)) then
+      if not term.regex
+          and ((edgeIsWordChar(term.text, "prefix") and blockingAffix(r.matched_word_prefix))
+            or (edgeIsWordChar(term.text, "suffix") and blockingAffix(r.matched_word_suffix))) then
         keep = false
       end
       if keep then

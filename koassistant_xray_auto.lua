@@ -95,6 +95,15 @@ end
 
 --- Stamp the rate limit at SCHEDULE time (several page turns can pass the gates
 --- inside the deferral window; only the first may schedule).
+--- B261: the inverse of markScheduled. The stamp was set at every schedule
+--- AND chain start but never cleared, so a completed chain left the
+--- page-turn trigger declining silently for a whole cooldown. Cooldown now
+--- means "minimum time between ATTEMPTS after a decline/failure/cancel":
+--- a chain that completes clears it, and an explicit enable clears it.
+function XrayAuto.clearScheduled()
+  last_attempt = nil
+end
+
 function XrayAuto.markScheduled(now)
   last_attempt = now
 end

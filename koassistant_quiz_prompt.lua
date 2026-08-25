@@ -54,6 +54,10 @@ function QuizPrompt.build(quiz)
         -- the model's own placement bias is irrelevant. The explanation must not
         -- name a letter, though -- it would contradict the reassigned layout.
         table.insert(rules, '- In "explanation", identify the correct option by its content, never by its letter')
+        -- Length tell (sibling of #99): the correct option tends to be the
+        -- longest and most specific. Nothing mechanical can fix content, so
+        -- the prompt asks for parity.
+        table.insert(rules, '- Keep all four options similar in length, specificity and style, so the correct one cannot be spotted by being the longest or most detailed')
     end
     if sa then
         table.insert(type_list, "short_answer")
