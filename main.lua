@@ -10852,10 +10852,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       one_label = cr.coverage == "whole" and _("In one request now (update to 100%)")
         or _("In one request now (update to your position)")
     else
-      one_label = (cr.coverage == "whole" and not pick_rebuild)
-          and _("In one request now (analyzed as a whole)")
-        or cr.coverage == "whole" and _("In one request now (analyzed as a whole, fresh)")
-        or _("In one request now")
+      one_label = _("In one request now")
     end
     local del_rows = {
       { { text = one_label,
@@ -10911,86 +10908,15 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     }
     table.insert(vgroup, del_table)
 
-    -- Spacing slice (2026-08-14): the up-front spacing ask lives HERE — a
-    -- checkpoint-family delivery pick shows the sticky per-book spacing with
-    -- its change affordance (picker writes KEY_XRAY_SPACING; step counts and
-    -- the auto engine re-resolve through _xrayLadderSpacing, and a change
-    -- only affects rungs planned from now on — plans start at the ladder top)
-    if flowing and (cr.delivery == "checkpoints" or cr.delivery == "follow") then
-      local sp_now = self_ref:_xrayLadderSpacing()
-      local ButtonTableS = require("ui/widget/buttontable")
-      local sp_table = ButtonTableS:new{
-        width = content_width,
-        buttons = {{
-          {
-            -- Verb-first so it reads as a BUTTON, not a state line (device
-            -- round 2: "not clear that it is a button"; no dashes in UI text)
-            text = T(_("Change checkpoint spacing (every %1%)…"),
-              self_ref:_xraySpacingPctLabel(sp_now)),
-            callback = function()
-              UIManager:close(current_dialog)
-              self_ref:_showXraySpacingPicker{
-                current = sp_now,
-                override = self_ref.ui and self_ref.ui.doc_settings
-                  and require("koassistant_book_settings").xraySpacingOverride(
-                    self_ref.ui.doc_settings) or nil,
-                title = _("Checkpoint spacing for this book:"),
-                count_for = function(s)
-                  local rungs = XrayAuto.planBuildRungs(
-                    (mode == "extend" and not pickIsRebuild()) and base_progress or 0,
-                    s, goalFor(), decimal)
-                  return #rungs
-                end,
-                on_pick = function(s)
-                  if self_ref.ui and self_ref.ui.doc_settings then
-                    self_ref.ui.doc_settings:saveSetting(
-                      require("koassistant_book_settings").KEY_XRAY_SPACING, s)
-                    self_ref.ui.doc_settings:flush()
-                    -- A sticky per-book write must never be silent — a stray
-                    -- tap on "Every 50%" here is how the 2026-08-14 device
-                    -- round ended up planning one giant rung to 100%
-                    UIManager:show(Notification:new{
-                      text = T(_("Checkpoint spacing for this book: every %1%"),
-                        self_ref:_xraySpacingPctLabel(s)),
-                    })
-                  end
-                  fixDelivery()
-                  buildAndShow()
-                end,
-                on_reset = function()
-                  if self_ref.ui and self_ref.ui.doc_settings then
-                    self_ref.ui.doc_settings:saveSetting(
-                      require("koassistant_book_settings").KEY_XRAY_SPACING, nil)
-                    self_ref.ui.doc_settings:flush()
-                    UIManager:show(Notification:new{
-                      text = T(_("Checkpoint spacing for this book: recommended (every %1%)"),
-                        self_ref:_xraySpacingPctLabel(self_ref:_xrayLadderSpacing())),
-                    })
-                  end
-                  fixDelivery()
-                  buildAndShow()
-                end,
-                on_back = function() buildAndShow() end,
-              }
-            end,
-          },
-        }},
-        zero_sep = true,
-        show_parent = self_ref,
-      }
-      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-      table.insert(vgroup, sp_table)
-    end
-
     -- Gray hint under the Build group — every pick explains itself up front
     -- (round 22, §25(f); previously only the follow pick had one)
     local hint
     -- Item 50(c): the forward story every extendable one-request pick carries
     local later_line = _("You can update it manually anytime, or turn on automatic updates later; both build on top of what you have.")
     if cr.delivery == "follow" and followIdle() then
-      hint = _("Automatic building is already on and caught up — there is nothing to start right now. The next checkpoint builds by itself as you read on.")
+      hint = _("Automatic building is on and caught up. The next checkpoint builds by itself as you read on.")
     elseif cr.delivery == "follow" then
-      hint = _("Builds checkpoints in the background as you read, always keeping the next one ready ahead of you. Each checkpoint is one small request. Missing checkpoints up to your position build right away.")
+      hint = _("Builds checkpoints in the background as you read, keeping the next one ready ahead of you. Missing checkpoints up to your position build right away.")
       if cr.coverage == "whole" then
         hint = hint .. " " .. _("Coverage reaches 100% when you finish the book.")
       elseif cr.coverage == "target" and cr.target_label then
@@ -11002,10 +10928,10 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       -- INDIVIDUAL-requests-stay-small fact, plainly (the total text read is
       -- the same; only each request shrinks).
       hint = (mode == "extend" and not pick_rebuild)
-        and _("Continues from your current coverage in background steps. Each step reads only a bounded slice of text, though steps grow somewhat as the X-Ray they build on grows, and each yields a spoiler-safe version. You can keep reading, cancel anytime, and resume later.")
-        or _("Covers the range in background steps. Each step reads only a bounded slice of text, though steps grow somewhat as the X-Ray they build on grows, and each yields a spoiler-safe version up to its position. A usable X-Ray installs after the first step; you can keep reading, cancel anytime, and resume later.")
+        and _("Continues from your current coverage in bounded background steps, each a spoiler-safe version. Keep reading, cancel anytime, resume later.")
+        or _("Covers the range in bounded background steps, each a spoiler-safe version up to its position. A usable X-Ray installs after the first step; keep reading, cancel anytime, resume later.")
     elseif cr.delivery == "one_bg" then
-      hint = _("The same single request, run in the background: you can keep reading, and a notification arrives when the X-Ray is ready. The book must stay open.")
+      hint = _("The same single request in the background; a notification arrives when it is ready. The book must stay open.")
       if cr.coverage ~= "whole" then
         hint = hint .. " " .. later_line
       end
@@ -11016,22 +10942,22 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         hint = _("Updates your existing X-Ray up to your position in a single request.")
           .. " " .. later_line
       else
-        hint = _("Updates your existing X-Ray to the end of the chosen section in one background request. You can keep reading; a notification arrives when it is ready.")
+        hint = _("Updates your existing X-Ray to the end of the chosen section in one background request; a notification arrives when it is ready.")
       end
     elseif cr.coverage == "whole" then
-      hint = _("Analyzes the whole book in a single request, shown as it streams in. Large for long books, with no spoiler-safe intermediate versions.")
+      hint = _("Analyzes the whole book in a single request, shown as it streams in. Large for long books, no spoiler-safe intermediate versions.")
     elseif cr.coverage == "position" then
       hint = _("Reads the book up to your position in a single request, shown as it streams in.")
         .. " " .. later_line
     else
-      hint = _("Reads the book up to the end of the chosen section in one background request. You can keep reading; a notification arrives when it is ready.")
+      hint = _("Reads the book up to the end of the chosen section in one background request; a notification arrives when it is ready.")
         .. " " .. later_line
     end
     -- Round 24: rebuild picks carry the replacement fact in the hint too
     -- (forced rebuilds skip it — "already covered" would be wrong for a
     -- whole-book force, and the state line above already names replacement)
     if pick_rebuild and mode == "extend" and not force_rebuild then
-      hint = hint .. " " .. _("This range is already covered, so the X-Ray is rebuilt from scratch and replaces the current one (the outgoing version is archived).")
+      hint = hint .. " " .. _("Rebuilds from scratch and replaces the current X-Ray (the outgoing version is archived).")
     end
     -- With a checkpoint already built ahead, "update to where I am" can read
     -- as the mechanical/free install (device 2026-08-14) — say plainly that
@@ -11039,7 +10965,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     if mode == "extend" and not pick_rebuild and cr.coverage == "position"
         and (base_progress or 0) > decimal + 0.005 then
       hint = (hint and (hint .. " ") or "")
-        .. T(_("Note: this runs a fresh AI request — it does not use the checkpoint already built to %1%, which still installs for free as you read past it."),
+        .. T(_("Note: this is a fresh AI request; the checkpoint already built to %1% still installs for free as you read past it."),
           math.floor((base_progress or 0) * 100 + 0.5))
     end
     if hint then
@@ -11050,43 +10976,93 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       })
     end
 
-    -- Categories (presets v0.21): only on picks that START a lineage — a
-    -- plain extend continues the artifact's own category stamp and offers no
-    -- pick (categories cannot be added incrementally). Sticky per-book write
-    -- via the shared picker; the row label re-reads it on return. Sits at
-    -- the BOTTOM of the form, a bold line right above the action buttons
-    -- (2026-08-25, ref #90: a mid-form button was easy to miss, and a
-    -- narrowed default must be visible on every create).
-    if force_rebuild or mode ~= "extend" or pickIsRebuild() then
-      local cat_value = BookSettings.resolveXrayCategories(self.ui.doc_settings,
-        self.settings and self.settings:readSetting("features"))
-      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-      table.insert(vgroup, TextBoxWidget:new{
-        text = T(_("X-Ray categories: %1"), BookSettings.xrayCategoriesNames(cat_value)),
-        face = info_face, bold = true, width = content_width,
-      })
-      local ButtonTableC = require("ui/widget/buttontable")
-      local cat_table = ButtonTableC:new{
-        width = content_width,
-        buttons = {{
-          {
-            text = _("Change categories…"),
-            callback = function()
-              UIManager:close(current_dialog)
-              BookSettings.showXrayCategoriesPicker({
-                ui = self_ref.ui, plugin = self_ref,
-                on_close = function() buildAndShow() end,
-              })
-            end,
-          },
-        }},
-        zero_sep = true,
-        show_parent = self_ref,
-      }
-      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-      table.insert(vgroup, cat_table)
-    end
-
+    -- Options row (2026-08-25 redesign, ref #90): the two sticky per-book
+    -- settings the form can change sit on ONE small-font row right above
+    -- the action buttons, always visible, grayed when the current pick
+    -- cannot use them. Checkpoint spacing (spacing slice 2026-08-14: picker
+    -- writes KEY_XRAY_SPACING; step counts and the auto engine re-resolve
+    -- through _xrayLadderSpacing, a change only affects rungs planned from
+    -- now on) applies to checkpoint-family picks; categories (presets
+    -- v0.21) to picks that START a lineage — a plain extend continues the
+    -- artifact's own stamp (categories cannot be added incrementally).
+    local sp_now = self_ref:_xrayLadderSpacing()
+    local spacing_on = flowing and (cr.delivery == "checkpoints" or cr.delivery == "follow")
+    local categories_on = force_rebuild or mode ~= "extend" or pickIsRebuild()
+    local cat_value = BookSettings.resolveXrayCategories(self.ui.doc_settings,
+      self.settings and self.settings:readSetting("features"))
+    local ButtonTableO = require("ui/widget/buttontable")
+    local options_row = ButtonTableO:new{
+      width = content_width,
+      buttons = {{
+        {
+          text = T(_("Checkpoints every %1%…"), self_ref:_xraySpacingPctLabel(sp_now)),
+          font_size = 16, font_bold = false,
+          enabled = spacing_on,
+          callback = function()
+            UIManager:close(current_dialog)
+            self_ref:_showXraySpacingPicker{
+              current = sp_now,
+              override = self_ref.ui and self_ref.ui.doc_settings
+                and require("koassistant_book_settings").xraySpacingOverride(
+                  self_ref.ui.doc_settings) or nil,
+              title = _("Checkpoint spacing for this book:"),
+              count_for = function(s)
+                local rungs = XrayAuto.planBuildRungs(
+                  (mode == "extend" and not pickIsRebuild()) and base_progress or 0,
+                  s, goalFor(), decimal)
+                return #rungs
+              end,
+              on_pick = function(s)
+                if self_ref.ui and self_ref.ui.doc_settings then
+                  self_ref.ui.doc_settings:saveSetting(
+                    require("koassistant_book_settings").KEY_XRAY_SPACING, s)
+                  self_ref.ui.doc_settings:flush()
+                  -- A sticky per-book write must never be silent — a stray
+                  -- tap on "Every 50%" here is how the 2026-08-14 device
+                  -- round ended up planning one giant rung to 100%
+                  UIManager:show(Notification:new{
+                    text = T(_("Checkpoint spacing for this book: every %1%"),
+                      self_ref:_xraySpacingPctLabel(s)),
+                  })
+                end
+                fixDelivery()
+                buildAndShow()
+              end,
+              on_reset = function()
+                if self_ref.ui and self_ref.ui.doc_settings then
+                  self_ref.ui.doc_settings:saveSetting(
+                    require("koassistant_book_settings").KEY_XRAY_SPACING, nil)
+                  self_ref.ui.doc_settings:flush()
+                  UIManager:show(Notification:new{
+                    text = T(_("Checkpoint spacing for this book: recommended (every %1%)"),
+                      self_ref:_xraySpacingPctLabel(self_ref:_xrayLadderSpacing())),
+                  })
+                end
+                fixDelivery()
+                buildAndShow()
+              end,
+              on_back = function() buildAndShow() end,
+            }
+          end,
+        },
+        {
+          text = T(_("Categories: %1…"), BookSettings.xrayCategoriesLabel(cat_value)),
+          font_size = 16, font_bold = false,
+          enabled = categories_on,
+          callback = function()
+            UIManager:close(current_dialog)
+            BookSettings.showXrayCategoriesPicker({
+              ui = self_ref.ui, plugin = self_ref,
+              on_close = function() buildAndShow() end,
+            })
+          end,
+        },
+      }},
+      zero_sep = true,
+      show_parent = self_ref,
+    }
+    table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+    table.insert(vgroup, options_row)
 
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
     local action_buttons = ButtonTable:new{
