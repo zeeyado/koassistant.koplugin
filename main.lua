@@ -13505,7 +13505,7 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
       elseif prev_page and math.abs(pageno - prev_page) <= XrayAuto.JUMP_GUARD_PAGES then
         for _idx, rp in ipairs(state.rung_progress) do
           if rp > state.live_progress + XrayAuto.LADDER_TOLERANCE
-              and rp <= pos + XrayAuto.LADDER_TOLERANCE then
+              and rp <= pos + XrayAuto.PROMOTE_TOLERANCE then
             self:_scheduleXrayLadderPromotion()
             break
           end

@@ -275,6 +275,13 @@ end
 
 XrayAuto.LADDER_SPACING = 0.10   -- rung boundaries every 10% (baseline; formula below can widen OR narrow)
 XrayAuto.LADDER_TOLERANCE = 0.005
+-- Promotion reach (2026-08-25 device round, ref #90): a rung may install only
+-- once the reader has REACHED its coverage. Rung positions are snapped to
+-- three decimals, so half a snap unit is the whole allowance for "reached
+-- exactly"; LADDER_TOLERANCE here installed rungs up to half a percent
+-- (a few pages) ahead of the reader, and an alias folded from those pages
+-- went live before the reader met it.
+XrayAuto.PROMOTE_TOLERANCE = 0.0005
 XrayAuto.LADDER_MIN_RUNG_PAGES = 45  -- P2(a) floor: a rung must cover at least ~this many pages
                                      -- (round 10: 30 -> 45 — every rung pays a fixed re-send
                                      -- overhead, so short books get fewer, larger calls;
@@ -577,7 +584,7 @@ function XrayAuto.pickPromotableRung(ladder, live_progress, position, opts)
   for _idx, rung in ipairs(ladder or {}) do
     local p = tonumber(rung.progress_decimal)
     if p and not rung.full_document
-        and (ahead_ok or p <= position + XrayAuto.LADDER_TOLERANCE)
+        and (ahead_ok or p <= position + XrayAuto.PROMOTE_TOLERANCE)
         and p > (tonumber(live_progress) or 0) + XrayAuto.LADDER_TOLERANCE then
       if not best_p or p > best_p then
         best, best_p = rung, p

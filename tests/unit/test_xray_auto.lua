@@ -907,8 +907,10 @@ TestRunner:test("pickPromotableRung: at-or-below position, ahead of live, comple
     TestRunner:assertEqual(pick and pick.progress_decimal, 0.4, "highest rung <= position, ahead of live")
     TestRunner:assertEqual(XrayAuto.pickPromotableRung(ladder, 0.4, 0.45), nil,
         "live already at the covering rung -> nothing")
-    pick = XrayAuto.pickPromotableRung(ladder, 0.4, 0.599)
-    TestRunner:assertEqual(pick and pick.progress_decimal, 0.6, "half-percent tolerance at the boundary")
+    TestRunner:assertEqual(XrayAuto.pickPromotableRung(ladder, 0.4, 0.599), nil,
+        "a rung a tenth of a percent ahead of the reader does not install (ref #90)")
+    pick = XrayAuto.pickPromotableRung(ladder, 0.4, 0.5996)
+    TestRunner:assertEqual(pick and pick.progress_decimal, 0.6, "snap-unit tolerance at the boundary")
     TestRunner:assertEqual(XrayAuto.pickPromotableRung(ladder, 0.6, 1.0), nil,
         "full-document rungs never promote")
     pick = XrayAuto.pickPromotableRung(ladder, nil, 0.25)
