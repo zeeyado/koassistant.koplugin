@@ -10526,7 +10526,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     if cr.delivery == "follow" and cr.coverage == "position" then
       cr.delivery = "one"
     end
-    if cr.delivery == "checkpoints" and stepsFor() <= 1 then
+    if cr.delivery == "checkpoints" and stepsFor() < 1 then
       cr.delivery = "one"
     end
     -- one_bg needs the ladder machinery (flowing); target coverage's "one"
@@ -10877,12 +10877,16 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         provider = "one_bg", checked = cr.delivery == "one_bg" } }
     end
     local n_steps = stepsFor()
-    if n_steps > 1 then
+    if n_steps >= 1 then
       -- From-nothing/rebuild checkpoint builds start with the introductory
       -- step (round 20); extend picks never do (rounds 23/24) — the shown
-      -- count must match the build confirm's plan
-      del_rows[#del_rows + 1] = { { text = T(_("In checkpoints, now (%1 background steps)"),
-          n_steps + (planIntroStep() and 1 or 0)),
+      -- count must match the build confirm's plan. A ONE-step plan stays
+      -- pickable (2026-08-25, maintainer): wide spacing on a short range is
+      -- still the ladder path, the count says so
+      local shown = n_steps + (planIntroStep() and 1 or 0)
+      del_rows[#del_rows + 1] = { { text = shown == 1
+          and _("In checkpoints, now (1 background step)")
+          or T(_("In checkpoints, now (%1 background steps)"), shown),
         provider = "checkpoints", checked = cr.delivery == "checkpoints" } }
     end
     if flowing and (cr.coverage == "whole" or cr.coverage == "target") then
