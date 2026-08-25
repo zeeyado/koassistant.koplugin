@@ -264,8 +264,11 @@ end
 --- not data shown). Cap: 5000 hits per term (very common terms clip there).
 --- Context: 10 words per side (round 9 — the 3-line snippet rows can afford
 --- more than the search dialog's default).
+--- exclude = XrayParser.containingHandles output (B266): a hit whose context
+--- spells another entity's longer handle around it is that entity's mention
+--- and is dropped here, so counts, tree and lists agree by construction.
 --- @return table hits Array of {page?, xp?, display_page, row_text, term, order}
-local function gatherMentionHits(ui, terms)
+local function gatherMentionHits(ui, terms, exclude)
     local TextBoxWidget = require("ui/widget/textboxwidget")
     local is_pages = ui.document.info and ui.document.info.has_pages
     local hits, seen = {}, {}
@@ -295,7 +298,13 @@ local function gatherMentionHits(ui, terms)
                     page = ui.document:getPageFromXPointer(r.start)
                     key = tostring(r.start)
                 end
-                if page and not seen[key] then
+                if page and not seen[key] and exclude
+                    and XrayParser.hitInsideHandle(r.prev_text,
+                        (r.matched_word_prefix or "") .. (r.matched_text or term.text)
+                            .. (r.matched_word_suffix or ""),
+                        r.next_text, exclude) then
+                    seen[key] = true -- inside a longer entity's name: not this entity
+                elseif page and not seen[key] then
                     seen[key] = true
                     -- Bold-match snippet (readersearch.lua idiom);
                     -- ellipsized both ends — rows are mid-text fragments
@@ -5402,6 +5411,7 @@ function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapte
     local terms = collectSearchTerms(item, item_title)
     if #terms == 0 then return end
     local pre_hits = opts and opts.hits
+    local exclude = XrayParser.containingHandles(self.xray_data, item)
     if not pre_hits and not ui.document.findAllText then return end
     local no_clip = opts and opts.no_clip
 
@@ -5503,7 +5513,7 @@ function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapte
     else
         UIManager:show(Notification:new{ text = _("Finding mentions…") })
         UIManager:scheduleIn(0.1, function()
-            render(gatherMentionHits(ui, terms))
+            render(gatherMentionHits(ui, terms, exclude))
         end)
     end
 end
@@ -5633,7 +5643,8 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
         end
 
         -- ONE native pass: every hit, whole book (display gating comes later)
-        local hits = gatherMentionHits(ui, terms)
+        local hits = gatherMentionHits(ui, terms,
+            XrayParser.containingHandles(self.xray_data, item))
 
         -- Per-page prefix sums → a node's count is one subtraction, at any depth
         local total_pages = ui.document.info.number_of_pages or 0

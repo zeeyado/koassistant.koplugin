@@ -271,6 +271,32 @@ local function ensureIndex(plugin, pageno)
   if art then addFrom(art.result) end
   for _idx, s in ipairs(st.sections or {}) do addFrom(s.data.result) end
   if st.ahead then addFrom(st.ahead.result, true) end
+  -- Cross-entity containment (B266): an entity whose term sits inside
+  -- another entity's longer handle ("Kubrick" in "Vivian Kubrick") records
+  -- those entities; the paint pass drops its hits that lie inside theirs.
+  -- Index-time only, so the per-turn scan pays nothing for it.
+  for i, a in ipairs(ents) do
+    local longer
+    for j, b in ipairs(ents) do
+      if i ~= j then
+        local hit = false
+        for _ta, ta in ipairs(a.terms) do
+          for _tb, tb in ipairs(b.terms) do
+            if XrayParser.handleContainsWord(tb.norm, ta.norm) then
+              hit = true
+              break
+            end
+          end
+          if hit then break end
+        end
+        if hit then
+          longer = longer or {}
+          longer[#longer + 1] = b.name
+        end
+      end
+    end
+    a.longer = longer
+  end
   st.entities = #ents > 0 and ents or nil
   st.artifact_key = key
   local function tally(t)
@@ -504,10 +530,12 @@ function XrayMarks._scanTick(plugin, pageno, token, hay)
     local paint_t = time.now()
     local dbg = st.debug and { marked = {} } or nil
     local marks = {}
+    -- Pass 1: hits on this page per entity (pageno+1 covers two-page
+    -- spreads) and, for the spacing window, the entity's nearest hit page
+    -- BEFORE this page
+    local per_ent, hits_by_name = {}, {}
     for _i, ent in ipairs(st.entities) do
       if not st.families or st.families[ent.family] then
-        -- Hits on this page (pageno+1 covers two-page spreads) and, for the
-        -- spacing window, the entity's nearest hit page BEFORE this page
         local page_hits = {}
         local prev_page
         for _j, term in ipairs(ent.terms) do
@@ -536,6 +564,35 @@ function XrayMarks._scanTick(plugin, pageno, token, hay)
             end
           end
         end
+        per_ent[#per_ent + 1] = { ent = ent, hits = page_hits, prev_page = prev_page }
+        hits_by_name[ent.name] = page_hits
+      end
+    end
+    -- Pass 2: containment (B266) — a hit lying inside a longer entity's hit
+    -- on this page is that entity's mention (xpointer range comparison on
+    -- the memo, no box work); then spacing + boxes
+    for _i, pe in ipairs(per_ent) do
+      local ent, page_hits, prev_page = pe.ent, pe.hits, pe.prev_page
+      if ent.longer and #page_hits > 0 then
+        local kept = {}
+        for _k, ph in ipairs(page_hits) do
+          local inside = false
+          for _l, lname in ipairs(ent.longer) do
+            for _m, lh in ipairs(hits_by_name[lname] or {}) do
+              local ok1, c1 = pcall(ui.document.compareXPointers, ui.document, lh.h.start, ph.h.start)
+              local ok2, c2 = pcall(ui.document.compareXPointers, ui.document, ph.h.e, lh.h.e)
+              if ok1 and ok2 and c1 and c2 and c1 >= 0 and c2 >= 0 then
+                inside = true
+                break
+              end
+            end
+            if inside then break end
+          end
+          if not inside then kept[#kept + 1] = ph end
+        end
+        page_hits = kept
+      end
+      do
         -- Spacing window: the entity appeared within the last N pages —
         -- stay quiet (math.huge = first appearance only). Measured from
         -- book positions, so it is deterministic under back-jumps too.

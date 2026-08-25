@@ -354,6 +354,47 @@ TestRunner:test("Arabic: article-stripped QUERY matches unstripped handle (searc
     TestRunner:ok(not XrayParser.matchExactHandle(set2, "نار"))
 end)
 
+TestRunner:suite("B266 — cross-entity containment")
+local B266_DATA = {
+    characters = {
+        { name = "Stanley Kubrick", aliases = { "Kubrick" } },
+        { name = "Vivian Kubrick" },
+        { name = "Christiane Kubrick", aliases = { "Mrs. Kubrick" } },
+        { name = "Jack" },
+    },
+    timeline = { { event = "Kubrick Estate sale" } }, -- excluded category
+}
+TestRunner:test("containingHandles: other entities' longer handles, own forms excluded", function()
+    local h = XrayParser.containingHandles(B266_DATA, B266_DATA.characters[1])
+    local set = {}
+    for _i, x in ipairs(h) do set[x] = true end
+    TestRunner:ok(set["vivian kubrick"])
+    TestRunner:ok(set["christiane kubrick"])
+    TestRunner:ok(set["mrs. kubrick"])
+    TestRunner:ok(not set["stanley kubrick"]) -- own long form
+    TestRunner:ok(not set["kubrick estate sale"]) -- timeline never counts
+    TestRunner:eq(XrayParser.containingHandles(B266_DATA, B266_DATA.characters[4]), nil)
+end)
+TestRunner:test("countItemOccurrences: hits inside a longer handle are the other entity's", function()
+    local text = "kubrick spoke. vivian kubrick filmed it, and christiane kubrick painted. kubrick left."
+    local item = B266_DATA.characters[1]
+    TestRunner:eq(XrayParser.countItemOccurrences(item, text), 4)
+    TestRunner:eq(XrayParser.countItemOccurrences(item, text,
+        XrayParser.containingHandles(B266_DATA, item)), 2)
+    -- The longer entity keeps its own count
+    TestRunner:eq(XrayParser.countItemOccurrences(B266_DATA.characters[2], text), 1)
+end)
+TestRunner:test("hitInsideHandle: prev/next context completes the handle at word boundaries", function()
+    local handles = { "vivian kubrick", "mrs. kubrick" }
+    TestRunner:ok(XrayParser.hitInsideHandle("and Vivian", "Kubrick", "filmed it", handles))
+    TestRunner:ok(XrayParser.hitInsideHandle("Mrs.", "Kubrick", "painted", handles))
+    TestRunner:ok(not XrayParser.hitInsideHandle("director", "Kubrick", "left", handles))
+    -- "Olivian Kubrick" does not spell "Vivian Kubrick"
+    TestRunner:ok(not XrayParser.hitInsideHandle("Olivian", "Kubrick", "", handles))
+    TestRunner:ok(not XrayParser.hitInsideHandle(nil, "Kubrick", nil, handles))
+    TestRunner:ok(not XrayParser.hitInsideHandle("Vivian", "Kubrick", "", nil))
+end)
+
 TestRunner:suite("slice 2 — collectSearchTerms / buildMarkEntities")
 TestRunner:test("terms: parenthetical strip, dedupe, substring-minimal set", function()
     local terms, dropped = XrayParser.collectSearchTerms({

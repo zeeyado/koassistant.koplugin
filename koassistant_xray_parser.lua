@@ -683,8 +683,10 @@ end
 --- and returns the total unique matches (union semantics, same as regex OR).
 --- @param item table An X-Ray item entry (must have name/term/event and optionally aliases)
 --- @param text_lower string Already-lowered text to search
+--- @param exclude_handles table|nil XrayParser.containingHandles output: spans inside an
+---   occurrence of another entity's longer handle are not counted (B266)
 --- @return number count Unique match count across name and all aliases (0 if not found or name ≤2 chars)
-function XrayParser.countItemOccurrences(item, text_lower)
+function XrayParser.countItemOccurrences(item, text_lower, exclude_handles)
     local name = getItemSearchName(item)
     if not name or #name <= 2 then return 0 end
 
@@ -737,6 +739,31 @@ function XrayParser.countItemOccurrences(item, text_lower)
         local spans = XrayParser._collectMatchSpans(text_lower, term)
         for _idx2, span in ipairs(spans) do
             all_spans[#all_spans + 1] = span
+        end
+    end
+
+    -- Cross-entity containment (B266): a span sitting inside an occurrence
+    -- of another entity's longer handle is that entity's mention
+    if exclude_handles and #exclude_handles > 0 and #all_spans > 0 then
+        local ex = {}
+        for _idx, h in ipairs(exclude_handles) do
+            for _idx2, span in ipairs(XrayParser._collectMatchSpans(text_lower, h)) do
+                ex[#ex + 1] = span
+            end
+        end
+        if #ex > 0 then
+            local kept = {}
+            for _idx, span in ipairs(all_spans) do
+                local inside = false
+                for _idx2, x in ipairs(ex) do
+                    if span[1] >= x[1] and span[2] <= x[2] then
+                        inside = true
+                        break
+                    end
+                end
+                if not inside then kept[#kept + 1] = span end
+            end
+            all_spans = kept
         end
     end
 
@@ -1969,6 +1996,8 @@ end
 --- Find all X-Ray items appearing in chapter text
 --- @param data table Parsed X-Ray data
 --- @param chapter_text string The chapter text content
+--- Counts honor cross-entity containment (B266): the exclusion list is
+--- built per item from the same data.
 --- @return table results Array of {item, category_key, category_label, count} sorted by count desc
 function XrayParser.findItemsInChapter(data, chapter_text)
     if not chapter_text or chapter_text == "" then return {} end
@@ -1982,7 +2011,8 @@ function XrayParser.findItemsInChapter(data, chapter_text)
     for _idx, cat in ipairs(categories) do
         if not TEXT_MATCH_EXCLUDED[cat.key] then
             for _idx2, item in ipairs(cat.items) do
-                local count = XrayParser.countItemOccurrences(item, text_lower)
+                local count = XrayParser.countItemOccurrences(item, text_lower,
+                    XrayParser.containingHandles(data, item))
                 if count > 0 then
                     table.insert(results, {
                         item = item,
@@ -2017,7 +2047,8 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     local results = {}
 
     for _idx, char in ipairs(characters) do
-        local best_count = XrayParser.countItemOccurrences(char, text_lower)
+        local best_count = XrayParser.countItemOccurrences(char, text_lower,
+            XrayParser.containingHandles(data, char))
         if best_count > 0 then
             table.insert(results, { item = char, count = best_count })
         end
@@ -2153,6 +2184,104 @@ end
 --- @return number count
 function XrayParser._countOccurrences(text, needle)
     return #XrayParser._collectMatchSpans(text, needle)
+end
+
+--- Handle normalization shared by the cross-entity containment layer (B266):
+--- lowercase, Arabic-folded, NBSP and whitespace runs collapsed, trimmed.
+function XrayParser.normalizeHandle(s)
+    if type(s) ~= "string" then return "" end
+    local h = XrayParser.normalizeArabic(s:lower())
+    h = h:gsub("\194\160", " "):gsub("%s+", " ")
+    return h:match("^%s*(.-)%s*$") or ""
+end
+
+--- Does normalized handle `h` contain normalized term `t` as whole words?
+function XrayParser.handleContainsWord(h, t)
+    if not (h and t) or #t == 0 or #t >= #h then return false end
+    return #XrayParser._collectMatchSpans(h, t) > 0
+end
+
+--- Cross-entity containment (B266): the normalized handles of OTHER entities
+--- that contain one of this item's search terms as whole words ("Vivian
+--- Kubrick" for the entity "Kubrick"). An occurrence of such a handle is the
+--- other entity's mention, so every counting/mention surface drops the
+--- inner hit. Minimized: a handle containing another listed handle is
+--- dropped (one subtraction per occurrence). Own handles never qualify.
+--- @return table|nil handles Array of normalized strings, nil when none
+function XrayParser.containingHandles(data, item)
+    if not (data and item) then return nil end
+    local own_min, own_long = XrayParser.collectSearchTerms(item, nil)
+    local own = {}
+    for _idx, t in ipairs(own_min) do own[XrayParser.normalizeHandle(t.text)] = true end
+    for _idx, t in ipairs(own_long) do own[XrayParser.normalizeHandle(t.text)] = true end
+    if next(own) == nil then return nil end
+    local found, seen = {}, {}
+    for _idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
+        if not TEXT_MATCH_EXCLUDED[cat.key] then
+            for _idx2, other in ipairs(cat.items) do
+                if other ~= item then
+                    local t1, t2 = XrayParser.collectSearchTerms(other, nil)
+                    for _idx3, t in ipairs(t2) do t1[#t1 + 1] = t end
+                    for _idx3, t in ipairs(t1) do
+                        local h = XrayParser.normalizeHandle(t.text)
+                        if h ~= "" and not own[h] and not seen[h] then
+                            for own_t in pairs(own) do
+                                if XrayParser.handleContainsWord(h, own_t) then
+                                    seen[h] = true
+                                    found[#found + 1] = h
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if #found == 0 then return nil end
+    local minimal = {}
+    for i, h in ipairs(found) do
+        local contains_other = false
+        for j, u in ipairs(found) do
+            if i ~= j and XrayParser.handleContainsWord(h, u) then
+                contains_other = true
+                break
+            end
+        end
+        if not contains_other then minimal[#minimal + 1] = h end
+    end
+    return minimal
+end
+
+--- Does a native-search hit sit INSIDE one of the containing handles? The
+--- hit's own text plus its prev/next context must spell the handle around
+--- it, at word boundaries ("Vivian" + "Kubrick" completes "vivian kubrick").
+--- Pure; used by the mention list / chapter appearances (B266).
+function XrayParser.hitInsideHandle(prev_text, matched, next_text, handles)
+    if not handles or #handles == 0 then return false end
+    local m = XrayParser.normalizeHandle(matched)
+    if m == "" then return false end
+    local before = XrayParser.normalizeHandle(prev_text)
+    local after = XrayParser.normalizeHandle(next_text)
+    for _idx, h in ipairs(handles) do
+        local pos = 1
+        while true do
+            local s, e = h:find(m, pos, true)
+            if not s then break end
+            local lp, ls = h:sub(1, s - 1), h:sub(e + 1)
+            if (lp == "" or lp:sub(-1) == " ") and (ls == "" or ls:sub(1, 1) == " ") then
+                lp = lp:gsub("%s+$", "")
+                ls = ls:gsub("^%s+", "")
+                local ok_before = lp == "" or (#before >= #lp and before:sub(-#lp) == lp
+                    and (#before == #lp or not isWordCharAt(before, #before - #lp, true)))
+                local ok_after = ls == "" or (#after >= #ls and after:sub(1, #ls) == ls
+                    and (#after == #ls or not isWordCharAt(after, #ls + 1, false)))
+                if ok_before and ok_after then return true end
+            end
+            pos = s + 1
+        end
+    end
+    return false
 end
 
 --- Build a compact entity index listing existing names per category.
