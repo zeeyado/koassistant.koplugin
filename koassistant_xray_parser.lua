@@ -566,6 +566,24 @@ function XrayParser.parse(text)
         return data, nil
     end
 
+    -- Attempt 4b: a key missing its opening quote (`themes_resolved": [`), a
+    -- one-character defect that failed a whole 166K-token build on 2026-08-25.
+    -- Line-anchored, so it never touches string contents; layered with the
+    -- quote repair for responses carrying both.
+    local keyed = JsonRepair.quoteBareKeys(candidate)
+    if keyed ~= candidate then
+        ok, data = pcall(json.decode, keyed)
+        if not (ok and isValidXrayData(data)) then
+            ok, data = pcall(json.decode, JsonRepair.escapeInnerQuotes(keyed))
+        end
+        if ok and isValidXrayData(data) then
+            logger.dbg("XrayParser: parsed via bare-key repair")
+            normalizeShapes(data)
+            return data, nil
+        end
+        candidate = keyed
+    end
+
     -- Attempt 5: drop stray closing braces/brackets (2026-08-18, from a live
     -- rejected checkpoint rung): one extra `}`/`]` in an otherwise-valid
     -- response crashes the bundled decoder with the state.lua:81 'active'

@@ -63,6 +63,21 @@ end
 --- to a clean syntax error and truncation must not be papered over).
 --- @param text string
 --- @return string
+--- Restore a key's missing OPENING quote: `\n    themes_resolved": [` (seen live
+--- 2026-08-25 on a 166K-token flash-lite build; one such key fails the whole
+--- artifact). Only a bare identifier that sits at the start of a line (after
+--- optional whitespace) and is immediately followed by `":` qualifies, so text
+--- inside string values is never touched. Also covers the fully unquoted form
+--- `\n    key: ` when the value that follows is structural or a string.
+--- @param text string
+--- @return string
+function JsonRepair.quoteBareKeys(text)
+    if type(text) ~= "string" then return text end
+    local out = text:gsub('(\n[ \t]*)([%a_][%w_]*)("%s*:)', '%1"%2%3')
+    out = out:gsub('(\n[ \t]*)([%a_][%w_]*)(%s*:%s*[%[{"])', '%1"%2"%3')
+    return out
+end
+
 function JsonRepair.dropExtraClosers(text)
     if type(text) ~= "string" or text == "" then return text end
     local out = {}

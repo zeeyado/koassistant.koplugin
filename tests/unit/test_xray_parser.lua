@@ -54,6 +54,30 @@ TestRunner:test("repair does not corrupt valid X-Ray", function()
     TestRunner:ok(d); TestRunner:ok(d.key_figures)
 end)
 
+TestRunner:suite("bare-key repair (2026-08-25 large-text bench failure)")
+TestRunner:test("a key missing its opening quote is recovered", function()
+    local txt = '{\n  "characters": [\n    {"name": "Alice", "description": "a girl"}\n  ],\n  "conclusion": {\n    themes_resolved": ["pride"]\n  }\n}'
+    local d, e = XrayParser.parse(txt)
+    TestRunner:ok(d, "should recover via bare-key repair: " .. tostring(e))
+    TestRunner:ok(d and d.conclusion and d.conclusion.themes_resolved, "the repaired key is present")
+end)
+TestRunner:test("a fully unquoted key before a structural value is recovered", function()
+    local txt = '{\n  characters: [\n    {"name": "Alice", "description": "a girl"}\n  ]\n}'
+    local d = XrayParser.parse(txt)
+    TestRunner:ok(d and d.characters and d.characters[1].name == "Alice")
+end)
+TestRunner:test("line-anchored: identifiers inside string values are untouched", function()
+    local JsonRepair = require("koassistant_json_repair")
+    local s = '{"characters":[{"name":"Alice","description":"she said\nquote\": no"}]}'
+    TestRunner:eq(JsonRepair.quoteBareKeys('{"a": 1}'), '{"a": 1}')
+    -- A bare word at line start followed by `":` IS the defect shape; inside a
+    -- value it can only appear after a newline the model put in the string,
+    -- which strict parsing already rejects. Valid JSON is never changed:
+    local valid = '{\n  "name": "x",\n  "list": ["a", "b"]\n}'
+    TestRunner:eq(JsonRepair.quoteBareKeys(valid), valid)
+    TestRunner:ok(#JsonRepair.quoteBareKeys(s) >= #s)
+end)
+
 TestRunner:suite("round 28 — parse-time shape normalization (#90 field report)")
 TestRunner:test("timeline of plain strings becomes {event} objects (fixes 'Unknown' rows)", function()
     local d = XrayParser.parse('{"characters":[{"name":"Jack"}],"timeline":["Jack arrives","The snow falls"]}')
