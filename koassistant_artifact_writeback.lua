@@ -52,6 +52,7 @@ local BASE_CONTINUITY_FIELDS = {
     -- Category stamp (presets v0.21): a dedup/browser-edit/merge commit rewrites
     -- the same lineage — the stamp must survive it
     "xray_categories",
+    "xray_depth",
 }
 
 --- Reconcile permission/provenance metadata for a write that merges new

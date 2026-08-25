@@ -212,6 +212,10 @@ BookSettings.KEY_XRAY_AHEAD_CARD = "koassistant_book_xray_ahead_card"           
 -- follows its cache STAMP (xray_categories on the entry), never this key —
 -- categories cannot be added incrementally (the text is only read once).
 BookSettings.KEY_XRAY_CATEGORIES = "koassistant_book_xray_categories"
+-- Depth rung for NEW X-Rays (docs/xray_depth_axis_plan.md): "light" | "standard"
+-- | "deep" | nil (follow global). An explicit "standard" pins Standard under a
+-- narrowed global, the categories "full" sentinel's role.
+BookSettings.KEY_XRAY_DEPTH = "koassistant_book_xray_depth"
 --- Effective X-Ray marking & lookup config for a book: book override > global
 --- > default. Pure. Read pattern must match the schema defaults (marking ON,
 --- tap ON, density "10", families "all", ahead ON, intercept ON, card
@@ -756,6 +760,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_XRAY_CARD_LENGTH,
     BookSettings.KEY_XRAY_AHEAD_CARD,
     BookSettings.KEY_XRAY_CATEGORIES,
+    BookSettings.KEY_XRAY_DEPTH,
     -- (KEY_XRAY_COVERAGE_ASKED is deliberately NOT here: a stamp, not an
     -- override — it must not count as "customized" nor block on reset;
     -- registered as its own storage-registry entry like the last-opened stamp)
@@ -1864,6 +1869,58 @@ function BookSettings.resolveXrayCategories(doc_settings, features)
     return nil, nil
 end
 
+--- Depth rung for NEW X-Rays: book pick > global default > standard.
+--- Values are the prompt assembly's ids; "standard" is returned as nil for the
+--- prompt (nil = the shipped wording) but the LAYER still says who decided.
+--- @param doc_settings table|nil
+--- @param features table|nil
+--- @return string|nil depth ("light"/"deep"; nil = standard), string|nil layer ("book"/"global")
+function BookSettings.resolveXrayDepth(doc_settings, features)
+    local Actions = require("prompts.actions")
+    local raw = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_DEPTH)
+    if raw == "standard" then return nil, "book" end
+    local d = Actions.normalizeXrayDepth(raw)
+    if d then return d, "book" end
+    local g = Actions.normalizeXrayDepth(features and features.xray_default_depth)
+    if g then return g, "global" end
+    return nil, nil
+end
+
+--- Label for a depth value (nil/"standard" = Standard).
+function BookSettings.xrayDepthLabel(v)
+    if v == "light" then return _("Light")
+    elseif v == "deep" then return _("Deep") end
+    return _("Standard")
+end
+
+--- Depth picker for new X-Rays: the canonical two-layer spec (For this book /
+--- Global). Book: Follow global (X) / Light / Standard / Deep (KEY_XRAY_DEPTH);
+--- Global: features.xray_default_depth. Option descriptions stay one line so
+--- the popup never scrolls (the categories picker's lesson).
+--- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showXrayDepthPicker(opts)
+    BookSettings.showLayeredPicker({
+        title = _("Depth of new X-Rays") .. "\n"
+            .. _("How much each entry carries. Applies to new builds and rebuilds; checkpoints and updates keep the depth the X-Ray was started with."),
+        key = BookSettings.KEY_XRAY_DEPTH,
+        field = "xray_default_depth",
+        global = function(f)
+            return require("prompts.actions").normalizeXrayDepth(f.xray_default_depth) or "standard"
+        end,
+        read_book = function(ds)
+            local raw = ds:readSetting(BookSettings.KEY_XRAY_DEPTH)
+            if raw == "standard" then return "standard" end
+            return require("prompts.actions").normalizeXrayDepth(raw)
+        end,
+        options = {
+            { value = "light", label = _("Light (one line per entry, recurring figures and turning points only)") },
+            { value = "standard", label = _("Standard (a few sentences per entry, everything the reader meets)") },
+            { value = "deep", label = _("Deep (longer entries, every figure and development, richer connections)") },
+        },
+        value_label = BookSettings.xrayDepthLabel,
+    }, opts)
+end
+
 --- Short label for a stored category selection (row/button text).
 --- @param value string|nil raw stored value (normalized internally)
 --- @return string "All" / "Characters only" / "Characters and story" / "Reference" / "N of 5"
@@ -2777,6 +2834,22 @@ function BookSettings.showXrayConfig(opts)
             picker = ButtonDialog:new{ title = title, buttons = rows,
                 tap_close_callback = function() BookSettings.showXrayConfig(opts) end }
             UIManager:show(picker)
+        end }})
+
+    -- Depth for NEW X-Rays (depth axis 2026-08-25): same shape as categories.
+    local depth_val, depth_layer = BookSettings.resolveXrayDepth(doc_settings, features)
+    table.insert(buttons, {{ text = T(_("New X-Ray depth: %1"),
+            depth_layer == "book" and BookSettings.xrayDepthLabel(depth_val)
+                or T(_("Follow global (%1)"), BookSettings.xrayDepthLabel(depth_val))),
+        callback = function()
+            closeDialog()
+            BookSettings.showXrayDepthPicker({
+                ui = ui, document_path = opts.document_path, plugin = plugin,
+                on_close = function()
+                    syncConfig()
+                    BookSettings.showXrayConfig(opts)
+                end,
+            })
         end }})
 
     -- Categories for NEW X-Rays (presets v0.21): the sticky per-book pick the

@@ -4315,7 +4315,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- default apply)
         local xr_sel = require("koassistant_book_settings")
             .resolveXrayCategories(xr_ds, config.features)
-        if xr_sel then
+        -- Depth rung (docs/xray_depth_axis_plan.md): same book > global > standard
+        -- chain; nil = the shipped wording, so a nil/nil pair leaves the prompt
+        -- untouched
+        local xr_depth = require("koassistant_book_settings")
+            .resolveXrayDepth(xr_ds, config.features)
+        if xr_sel or xr_depth then
             if not prompt._is_copy then
                 local original_prompt = prompt
                 prompt = {}
@@ -4324,9 +4329,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
             prompt.prompt = PromptsActions.buildXrayCategoryPrompt(xr_sel,
                 (config.features and config.features._full_document_xray)
-                    and "complete" or "partial")
+                    and "complete" or "partial", xr_depth)
             message_data._xray_categories_applied = xr_sel
-            logger.dbg("KOAssistant: X-Ray create narrowed to categories:", xr_sel)
+            message_data._xray_depth_applied = xr_depth
+            logger.dbg("KOAssistant: X-Ray create narrowed to categories:", xr_sel,
+                "depth:", xr_depth)
         end
     end
 
@@ -4946,6 +4953,19 @@ if prune_book_text then
                     end
                     message_data._xray_categories_applied =
                         PromptsActions.normalizeXrayCategories(cached_entry.xray_categories)
+                    -- Depth is lineage truth too (change only at lineage start):
+                    -- the update carries the stamp and tells the model the
+                    -- per-entry budget it must keep, so Light lineages do not
+                    -- grow Standard-sized entries on every update
+                    local cached_depth = PromptsActions.normalizeXrayDepth(cached_entry.xray_depth)
+                    message_data._xray_depth_applied = cached_depth
+                    if cached_depth == "light" then
+                        prompt.prompt = prompt.prompt
+                            .. "\n\nThis X-Ray is kept LIGHT: one sentence per entry (two for the central few), only figures who return or shape what happens, only turning points in the timeline, connections only where needed to follow the work. Write new and re-emitted entries at that depth."
+                    elseif cached_depth == "deep" then
+                        prompt.prompt = prompt.prompt
+                            .. "\n\nThis X-Ray is kept DEEP: 3-5 sentences for major entries and 1-2 for minor ones including why they matter, every figure the reader encounters, every development in the timeline, connections carrying the relationship and what it changes. Write new and re-emitted entries at that depth."
+                    end
                 end
 
                 -- Get incremental book text (from cached to current position)
@@ -5495,6 +5515,7 @@ if prune_book_text then
                       -- guidelines re-invited every dropped category. The X-Ray
                       -- twin, promotions and ring restores already carry it.
                       xray_categories = message_data._xray_categories_applied,
+                      xray_depth = message_data._xray_depth_applied,
                       unavailable_data_text = unavailable_text }
                 )
                 if save_success then
@@ -5562,6 +5583,7 @@ if prune_book_text then
                         producer = xray_producer,
                         base_timestamp = xray_base_ts,
                         xray_categories = message_data._xray_categories_applied,
+                      xray_depth = message_data._xray_depth_applied,
                     })
                     if rung_ok then
                         logger.dbg("KOAssistant: ladder rung saved at", progress)
@@ -5600,6 +5622,7 @@ if prune_book_text then
                         timestamp = xray_fold_ts,
                         unavailable_data_text = unavailable_text,
                         xray_categories = message_data._xray_categories_applied,
+                      xray_depth = message_data._xray_depth_applied,
                     }
                     -- Archive the pre-overwrite snapshot (ring of 5; incremental updates
                     -- AND redos/regenerations, manual AND background — xray_ecosystem_plan.md

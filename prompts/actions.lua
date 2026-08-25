@@ -867,7 +867,7 @@ local XRAY_DEPTH_ORDER = { "light", "standard", "deep" }
 
 local FICTION_GUIDANCE_BY_DEPTH = {
     light = {
-        people = "- **Characters**: Include the characters the reader needs to place: anyone who returns later or whose actions shape what happens. Leave out figures who appear once and carry nothing forward. One sentence per entry stating who they are and where they stand now; the central few may take two. Always include aliases; connections only where a relationship is needed to follow the story.",
+        people = "- **Characters**: Include the characters the reader needs to place: anyone who returns later or whose actions shape what happens. Leave out figures who appear once and carry nothing forward. How many that is follows the text, whether five or fifty; the rule decides, not a count. One sentence per entry stating who they are and where they stand now; the central few may take two. Always include aliases; connections only where a relationship is needed to follow the story.",
         places = "- **Locations**: Only settings where something that matters happens. One sentence each.",
         ideas = "- **Themes**: Only the ideas the story keeps returning to. One sentence each on how the text carries them.",
         terms = "- **Lexicon**: Only terms the reader cannot follow the text without. One-line definitions.",
@@ -878,13 +878,13 @@ local FICTION_GUIDANCE_BY_DEPTH = {
         places = "- **Locations**: Every setting the reader encounters. For significant ones, 2-3 sentences on atmosphere, what unfolds there, and what the place means to the characters; minor ones get a sentence. Include references to characters or items associated with each location.",
         ideas = "- **Themes**: Themes, motifs, images, and recurring ideas, central and peripheral. For major themes, 2-3 sentences tracing them through specific characters, conflicts, and events, and how they have shifted so far; minor motifs get a sentence. Include references to characters or items that embody each theme.",
         terms = "- **Lexicon**: Every in-world term, cultural reference, or specialized usage a reader might pause on, with a definition and a note on how the text uses it.",
-        events = "- **Timeline**: Every development that moves the situation: plot events, revelations, decisions, and character moments that change how someone stands. In order, each with its significance and the characters involved.",
+        events = "- **Timeline**: Every development that moves the situation: plot events, revelations, decisions, and character moments that change how someone stands. In order, each with its significance and the characters involved. The timeline's length follows the text's developments; it is not limited by the entry budgets above.",
     },
 }
 
 local NONFICTION_GUIDANCE_BY_DEPTH = {
     light = {
-        people = "- **Key Figures**: Include the figures the reader needs to place: anyone the author returns to or whose work shapes the argument. Leave out names cited once in passing. One sentence per entry: who they are and how the author uses them; the central few may take two. Always include aliases; connections only where a relationship is needed to follow the argument.",
+        people = "- **Key Figures**: Include the figures the reader needs to place: anyone the author returns to or whose work shapes the argument. Leave out names cited once in passing. How many that is follows the text, whether five or fifty; the rule decides, not a count. One sentence per entry: who they are and how the author uses them; the central few may take two. Always include aliases; connections only where a relationship is needed to follow the argument.",
         places = "- **Locations**: Only places whose role in the subject matters. One sentence each.",
         ideas = "- **Core Concepts**: Only the concepts the argument depends on. One sentence each on what they mean here.\n- **Arguments**: Only the claims the work stands on. One sentence each stating the claim and its main support.",
         terms = "- **Terminology**: Only terms the reader cannot follow the text without. One-line definitions.",
@@ -895,7 +895,7 @@ local NONFICTION_GUIDANCE_BY_DEPTH = {
         places = "- **Locations**: Every place discussed. Significant ones get 2-3 sentences on what they are, their significance to the subject, and the developments tied to them; minor ones a sentence. Include references to key figures or concepts associated with each place.",
         ideas = "- **Core Concepts**: Every concept, theory, framework, or distinction the author uses, central and peripheral. For central concepts, 2-3 sentences on what they mean, how the author develops them through evidence and reasoning, and how they relate to the other concepts; peripheral ones a sentence. Include references to key figures or other items that develop each concept.\n- **Arguments**: Every claim the author advances, engages with, or rejects. For major arguments, 2-3 sentences on the claim, the evidence, counter-arguments addressed, and what rests on it; supporting arguments a sentence. Include references to key figures or concepts involved.",
         terms = "- **Terminology**: Every specialized term, with a definition and how the author uses it, including where the usage departs from the ordinary meaning.",
-        events = "- **Argument Development**: Every step in the argument: developments, case studies, objections raised and answered, shifts in framing. In order, each with how it advances or complicates the discussion and the figures or concepts involved.",
+        events = "- **Argument Development**: Every step in the argument: developments, case studies, objections raised and answered, shifts in framing. In order, each with how it advances or complicates the discussion and the figures or concepts involved. Its length follows the text's developments; it is not limited by the entry budgets above.",
     },
 }
 

@@ -834,7 +834,7 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_background missing from SIDECAR_KEYS (book_background_plan.md)")
     TestRunner:assertEqual(found[BookSettings.KEY_XRAY_SPACING] == true, true,
         "koassistant_book_xray_spacing missing from SIDECAR_KEYS (spacing slice)")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 36, "36 per-book keys expected (incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories; xray highlights removed with reader engagement 2026-08-18)")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 37, "37 per-book keys expected (incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25); xray highlights removed with reader engagement 2026-08-18)")
 end)
 
 TestRunner:suite("resolveXrayMarking (2026-08-15: popup edits the book layer)")
@@ -1365,6 +1365,31 @@ TestRunner:test("resolveResearch: DOI layer sits between book and global", funct
         true, "global fallthrough without DOI")
     TestRunner:assertEqual(
         BookSettings.resolveResearch(nil, nil), false, "nothing set = off")
+end)
+
+TestRunner:suite("resolveXrayDepth (book > global default > standard)")
+TestRunner:test("nothing set = standard, no layer", function()
+    local d, layer = BookSettings.resolveXrayDepth(makeDocSettings({}), {})
+    TestRunner:assertEqual(d, nil, "depth"); TestRunner:assertEqual(layer, nil, "layer")
+end)
+TestRunner:test("global light applies when the book is unset", function()
+    local d, layer = BookSettings.resolveXrayDepth(makeDocSettings({}), { xray_default_depth = "light" })
+    TestRunner:assertEqual(d, "light", "depth"); TestRunner:assertEqual(layer, "global", "layer")
+end)
+TestRunner:test("book deep beats global light; explicit book standard pins standard", function()
+    local d, layer = BookSettings.resolveXrayDepth(
+        makeDocSettings({ [BookSettings.KEY_XRAY_DEPTH] = "deep" }), { xray_default_depth = "light" })
+    TestRunner:assertEqual(d, "deep", "depth"); TestRunner:assertEqual(layer, "book", "layer")
+    d, layer = BookSettings.resolveXrayDepth(
+        makeDocSettings({ [BookSettings.KEY_XRAY_DEPTH] = "standard" }), { xray_default_depth = "light" })
+    TestRunner:assertEqual(d, nil, "pinned standard"); TestRunner:assertEqual(layer, "book", "layer")
+end)
+TestRunner:test("junk values fall through; nil doc settings still honours the global", function()
+    local d = BookSettings.resolveXrayDepth(makeDocSettings({ [BookSettings.KEY_XRAY_DEPTH] = "huge" }), { xray_default_depth = "bogus" })
+    TestRunner:assertEqual(d, nil, "junk")
+    local d2, layer2 = BookSettings.resolveXrayDepth(nil, { xray_default_depth = "deep" })
+    TestRunner:assertEqual(d2, "deep", "nil ds"); TestRunner:assertEqual(layer2, "global", "layer")
+    TestRunner:assertEqual(BookSettings.xrayDepthLabel(nil), "Standard", "label")
 end)
 
 TestRunner:suite("resolveXrayCategories (book > global default > full)")

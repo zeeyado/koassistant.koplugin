@@ -988,6 +988,13 @@ local SettingsSchema = {
                             help_text = _("Which category groups a new X-Ray tracks by default: everything, or a narrower preset such as Reference (no timeline) or Characters only. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
                         },
                         {
+                            id = "xray_default_depth_picker",
+                            type = "action",
+                            text = _("Depth of New X-Rays"),
+                            callback = "showXrayDefaultDepthPicker",
+                            help_text = _("How much each X-Ray entry carries by default. Light: one line per entry, only recurring figures and turning points, about half the cost. Standard: a few sentences per entry, everything the reader meets. Deep: longer entries, every figure and development, richer connections. Applies when an X-Ray is created or rebuilt; checkpoints and updates keep the depth the X-Ray was started with. Individual books can pick their own depth in Book Settings."),
+                        },
+                        {
                             id = "xray_selection_intercept",
                             type = "toggle",
                             text = _("X-Ray Entry for Matching Selections"),

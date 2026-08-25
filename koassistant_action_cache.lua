@@ -365,6 +365,9 @@ local function saveCache(document_path, cache)
             if entry.xray_categories then
                 file:write(string.format("        xray_categories = %q,\n", entry.xray_categories))
             end
+            if entry.xray_depth then
+                file:write(string.format("        xray_depth = %q,\n", entry.xray_depth))
+            end
             if entry.edited_at then
                 file:write(string.format("        edited_at = %s,\n", tostring(entry.edited_at)))
             end
@@ -528,6 +531,9 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         -- csv of group ids; nil = full. The LINEAGE truth — updates and rung
         -- builds follow this stamp, never the sidecar preference.
         xray_categories = metadata and metadata.xray_categories,
+        -- Depth rung the lineage was built at (light/deep; nil = standard) — the
+        -- same lineage-truth role as xray_categories (docs/xray_depth_axis_plan.md)
+        xray_depth = metadata and metadata.xray_depth,
         -- Reader-modified marker (entity dedup); rides into the ring via
         -- CHECKPOINT_COPY_FIELDS so an archived version stays honest too
         edited_at = metadata and metadata.edited_at,
@@ -1479,7 +1485,7 @@ local CHECKPOINT_COPY_FIELDS = {
     "model", "full_document", "flow_visible_pages", "source_mode",
     "chapter_label", "intro",
     "coverage_spans", "producer", "base_timestamp", "merged_from_books",
-    "merged_from", "xray_categories", "edited_at",
+    "merged_from", "xray_categories", "xray_depth", "edited_at",
     "tokens_in", "tokens_out", "tokens_reasoning",
 }
 
@@ -1556,6 +1562,9 @@ local function writeCheckpointRing(path, ring)
         end
         if cp.xray_categories then
             file:write(string.format("        xray_categories = %q,\n", cp.xray_categories))
+        end
+        if cp.xray_depth then
+            file:write(string.format("        xray_depth = %q,\n", cp.xray_depth))
         end
         -- A stored version the reader has since altered (entity dedup sweeps
         -- built-but-uninstalled rungs so a later install cannot resurrect a
@@ -1801,6 +1810,7 @@ function ActionCache.restoreXrayCheckpoint(document_path, index, limit)
         merged_from_books = entry.merged_from_books,
         merged_from = entry.merged_from,
         xray_categories = entry.xray_categories,
+        xray_depth = entry.xray_depth,
     }
     local ok_doc = ActionCache.setXrayCache(document_path, entry.result, entry.progress_decimal or 0, meta)
     local ok_action = ActionCache.set(document_path, "xray", entry.result, entry.progress_decimal or 0, meta)
@@ -2104,6 +2114,7 @@ function ActionCache.promoteXrayLadderRung(document_path, rung, limit, opts)
         -- The rung's OWN category stamp (nil = built full) — never the live
         -- entry's: the field describes the artifact it rides with
         xray_categories = rung.xray_categories,
+        xray_depth = rung.xray_depth,
     }
     local ok_doc = ActionCache.setXrayCache(document_path, install_result, rung.progress_decimal or 0, meta)
     local ok_action = ActionCache.set(document_path, "xray", install_result, rung.progress_decimal or 0, meta)

@@ -11003,14 +11003,17 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     local categories_on = force_rebuild or mode ~= "extend" or pickIsRebuild()
     local cat_value = BookSettings.resolveXrayCategories(self.ui.doc_settings,
       self.settings and self.settings:readSetting("features"))
+    local depth_value = BookSettings.resolveXrayDepth(self.ui.doc_settings,
+      self.settings and self.settings:readSetting("features"))
     local ButtonTableO = require("ui/widget/buttontable")
-    local options_row = ButtonTableO:new{
-      width = content_width,
-      buttons = {{
-        {
-          text = T(_("Checkpoints every %1%…"), self_ref:_xraySpacingPctLabel(sp_now)),
+    -- Header line names the three dials, the buttons show VALUES only
+    -- (maintainer 2026-08-25); one-shot deliveries have no spacing, so the
+    -- header and the row both drop it rather than showing a grayed button.
+    local option_buttons = {}
+    if spacing_on then
+      option_buttons[#option_buttons + 1] = {
+          text = T(_("Every %1%…"), self_ref:_xraySpacingPctLabel(sp_now)),
           font_size = 16, font_bold = false,
-          enabled = spacing_on,
           callback = function()
             UIManager:close(current_dialog)
             self_ref:_showXraySpacingPicker{
@@ -11057,24 +11060,44 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
               on_back = function() buildAndShow() end,
             }
           end,
-        },
-        {
-          text = T(_("Categories: %1…"), BookSettings.xrayCategoriesLabel(cat_value)),
-          font_size = 16, font_bold = false,
-          enabled = categories_on,
-          callback = function()
-            UIManager:close(current_dialog)
-            BookSettings.showXrayCategoriesPicker({
-              ui = self_ref.ui, plugin = self_ref,
-              on_close = function() buildAndShow() end,
-            })
-          end,
-        },
-      }},
+      }
+    end
+    option_buttons[#option_buttons + 1] = {
+      text = BookSettings.xrayCategoriesLabel(cat_value) .. "…",
+      font_size = 16, font_bold = false,
+      enabled = categories_on,
+      callback = function()
+        UIManager:close(current_dialog)
+        BookSettings.showXrayCategoriesPicker({
+          ui = self_ref.ui, plugin = self_ref,
+          on_close = function() buildAndShow() end,
+        })
+      end,
+    }
+    option_buttons[#option_buttons + 1] = {
+      text = BookSettings.xrayDepthLabel(depth_value) .. "…",
+      font_size = 16, font_bold = false,
+      enabled = categories_on,
+      callback = function()
+        UIManager:close(current_dialog)
+        BookSettings.showXrayDepthPicker({
+          ui = self_ref.ui, plugin = self_ref,
+          on_close = function() buildAndShow() end,
+        })
+      end,
+    }
+    local options_row = ButtonTableO:new{
+      width = content_width,
+      buttons = { option_buttons },
       zero_sep = true,
       show_parent = self_ref,
     }
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+    table.insert(vgroup, TextBoxWidget:new{
+      text = spacing_on and _("Checkpoint spacing, categories, depth:") or _("Categories, depth:"),
+      face = info_face, width = content_width,
+      fgcolor = Blitbuffer.COLOR_DARK_GRAY,
+    })
     table.insert(vgroup, options_row)
 
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
@@ -20057,6 +20080,13 @@ end
 function AskGPT:showXrayDefaultCategoriesPicker()
   local BookSettings = require("koassistant_book_settings")
   BookSettings.showXrayCategoriesPicker({ target = "global", plugin = self })
+end
+
+-- Settings ▸ X-Ray ▸ "Depth of New X-Rays": the global depth rung (depth axis
+-- 2026-08-25; the shared two-layer picker opened on its Global tab).
+function AskGPT:showXrayDefaultDepthPicker()
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.showXrayDepthPicker({ plugin = self, ui = self.ui, target_override = "global" })
 end
 
 function AskGPT:showSetupWizardDev()
