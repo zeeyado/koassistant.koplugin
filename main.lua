@@ -18532,7 +18532,8 @@ function AskGPT:syncDictionaryBypass()
         -- full cache parse per tap — the #63 one-parse-per-tap cost is gone
         if i_file and self_ref:_xrayInterceptEnabled(i_file)
             and ActionCache.matchAnyXrayExact(i_file, word,
-              { include_ahead = self_ref:_xrayAheadEnabled(i_file) }) then
+              { include_ahead = self_ref:_xrayAheadEnabled(i_file),
+                position = self_ref:_xrayReaderPosition(i_file) }) then
           logger.dbg("KOAssistant: X-Ray intercept - word matches entity, opening X-Ray")
           local lookup_book = dict_self._koassistant_lookup_book
           dict_self._koassistant_non_reader_lookup = nil
@@ -18916,7 +18917,8 @@ function AskGPT:syncHighlightBypass()
         -- old full cache parse
         if i_file and self_ref:_xrayInterceptEnabled(i_file)
             and ActionCache.matchAnyXrayExact(i_file, sel,
-              { include_ahead = self_ref:_xrayAheadEnabled(i_file) }) then
+              { include_ahead = self_ref:_xrayAheadEnabled(i_file),
+                position = self_ref:_xrayReaderPosition(i_file) }) then
           logger.dbg("KOAssistant: X-Ray intercept - selection matches entity, opening X-Ray")
           -- Selection geometry anchors the floating-popup card style —
           -- captured as fresh copies BEFORE clear() releases the selection
@@ -19018,6 +19020,24 @@ function AskGPT:_xrayAheadEnabled(file)
   return require("koassistant_book_settings").resolveXrayMarking(ds, features).ahead
 end
 
+--- Reading position (0..1) for the ahead peek's rung pick (B269): the open
+--- book's live progress, else the sidecar's; nil = no peek possible.
+function AskGPT:_xrayReaderPosition(file)
+  if self.ui and self.ui.document and (not file or self.ui.document.file == file) then
+    local ok, prog = pcall(function()
+      return require("koassistant_context_extractor"):new(self.ui):getReadingProgress()
+    end)
+    if ok and type(prog) == "table" and type(prog.decimal) == "number" then
+      return prog.decimal
+    end
+  end
+  if file then
+    local sidecar = require("koassistant_context_extractor").readSidecarProgress(file)
+    if sidecar and type(sidecar.decimal) == "number" then return sidecar.decimal end
+  end
+  return nil
+end
+
 --- Effective selection-intercept toggle for a book (round 5, per book):
 --- book override > global, default ON. Both intercept sites read this per
 --- call; the install-time gates only decide whether the wrappers exist.
@@ -19041,7 +19061,8 @@ function AskGPT:openXrayCard(query, opts)
     or (self.ui and self.ui.document and self.ui.document.file)
   local XrayCard = require("koassistant_xray_card")
   local ok, hit = pcall(XrayCard.resolve, file, query,
-    { include_ahead = self:_xrayAheadEnabled(file) })
+    { include_ahead = self:_xrayAheadEnabled(file),
+      position = self:_xrayReaderPosition(file) })
   if not ok or not hit then
     -- The exact gate said yes but the resolver disagreed (disk moved,
     -- parse hiccup): the old path handles it — incl. its no-result flows
@@ -19081,8 +19102,11 @@ function AskGPT:openXrayCard(query, opts)
       reveal()
     end
   end
-  -- Round 5: landing + style resolve per book (book three-way > global pair)
-  local card_mode = self:_xrayCardMode(file)
+  -- Round 5: landing + style resolve per book (book three-way > global pair).
+  -- B269: the card-content dials ride the same resolver.
+  local ds_m = file and require("koassistant_doc_settings").resolve(file, self.ui) or nil
+  local marking = require("koassistant_book_settings").resolveXrayMarking(ds_m, features)
+  local card_mode = marking.card
   if card_mode == "full" then
     -- Full-entry landing (round 16): an AHEAD-ONLY entity still needs the
     -- reveal flow — the direct lookup searches the position tier and would
@@ -19096,6 +19120,8 @@ function AskGPT:openXrayCard(query, opts)
     ui = self.ui,
     sboxes = opts and opts.sboxes or nil,
     on_full = openFull,
+    card_length = marking.card_length,
+    ahead_card = marking.ahead_card,
   })
 end
 
@@ -19238,6 +19264,13 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
     T(_("Upcoming entities: %1 (%2)"),
       marking.ahead and _("On") or _("Off"),
       scopeTag(BookSettings.KEY_XRAY_AHEAD)), "ahead"))
+  -- B269: what upcoming-entity cards show (sub-dial of the peek)
+  if marking.ahead then
+    table.insert(buttons, pickerRow(
+      T(_("Upcoming entity cards: %1 (%2)"),
+        BookSettings.xrayAheadCardLabel(marking.ahead_card),
+        scopeTag(BookSettings.KEY_XRAY_AHEAD_CARD)), "ahead_card"))
+  end
   -- The long-press layer (independent of marking): a held selection that
   -- exactly matches an entity opens it, everything else falls through.
   -- Round 5 (maintainer: "yes per book"): canonical two-layer picker like
@@ -19254,6 +19287,13 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
     T(_("Exact hits open: %1 (%2)"),
       BookSettings.xrayCardModeLabel(marking.card),
       scopeTag(BookSettings.KEY_XRAY_CARD)), "card"))
+  -- B269: how much of an installed entry the card shows
+  if marking.card ~= "full" then
+    table.insert(buttons, pickerRow(
+      T(_("Card shows: %1 (%2)"),
+        BookSettings.xrayCardLengthLabel(marking.card_length),
+        scopeTag(BookSettings.KEY_XRAY_CARD_LENGTH)), "card_length"))
+  end
   if ds and marking.has_override then
     table.insert(buttons, row(
       _("Use global marking settings for this book"),
@@ -19265,6 +19305,8 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
         ds:delSetting(BookSettings.KEY_XRAY_AHEAD)
         ds:delSetting(BookSettings.KEY_XRAY_INTERCEPT)
         ds:delSetting(BookSettings.KEY_XRAY_CARD)
+        ds:delSetting(BookSettings.KEY_XRAY_CARD_LENGTH)
+        ds:delSetting(BookSettings.KEY_XRAY_AHEAD_CARD)
         if ds.flush then ds:flush() end
       end,
       function()

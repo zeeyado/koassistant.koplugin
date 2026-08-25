@@ -870,6 +870,32 @@ TestRunner:test("snapLadderRungs: chapter-end snap, window, dedup, final rung su
     ActionCache.clearXrayLadder(DOC_PATH)
 end)
 
+TestRunner:test("pickAheadRung (B269): the LOWEST built rung past live that reaches the position", function()
+    local ladder = {
+        { progress_decimal = 0.2, result = "{}", timestamp = 1 },
+        { progress_decimal = 0.4, result = "{}", timestamp = 2 },
+        { progress_decimal = 0.6, result = "{}", timestamp = 3 },
+        { progress_decimal = 0.8, result = "{}", timestamp = 4 },
+        { progress_decimal = 1.0, result = "{}", timestamp = 5, full_document = true },
+    }
+    -- installed 0.4, reader at 0.52 -> the 0.6 rung, never the 1.0 one
+    TestRunner:assertEqual(XrayAuto.pickAheadRung(ladder, 0.4, 0.52).timestamp, 3, "covering rung")
+    -- reader sitting exactly on a rung's coverage: that rung
+    TestRunner:assertEqual(XrayAuto.pickAheadRung(ladder, 0.4, 0.6).timestamp, 3, "exact coverage")
+    -- reader just past 0.6 -> 0.8
+    TestRunner:assertEqual(XrayAuto.pickAheadRung(ladder, 0.4, 0.61).timestamp, 4, "next rung")
+    -- rungs at or below live never qualify: live 0.6, reader 0.5 -> 0.8
+    TestRunner:assertEqual(XrayAuto.pickAheadRung(ladder, 0.6, 0.5).timestamp, 4, "past live")
+    -- the covering rung is not built yet (gap at 0.5..0.6) -> nothing; no position -> nothing
+    TestRunner:assertEqual(XrayAuto.pickAheadRung({ ladder[1], ladder[2] }, 0.4, 0.52), nil, "unbuilt")
+    TestRunner:assertEqual(XrayAuto.pickAheadRung(ladder, 0.4, nil), nil, "no position")
+    -- intro rungs / result-less rungs are skipped
+    TestRunner:assertEqual(XrayAuto.pickAheadRung({
+        { progress_decimal = 0.6, result = "{}", intro = true, timestamp = 9 },
+        { progress_decimal = 0.8, timestamp = 10 },
+        ladder[5] }, 0.4, 0.52).timestamp, 5, "skips intro and empty")
+end)
+
 TestRunner:test("pickPromotableRung: at-or-below position, ahead of live, complete excluded", function()
     local ladder = {
         { progress_decimal = 0.2, result = "a" },

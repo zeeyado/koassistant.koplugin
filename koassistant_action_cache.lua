@@ -2424,13 +2424,20 @@ local exact_route_index = nil -- { path, key, set }
 --- @param document_path string
 --- @param query string
 --- @return boolean
+--- B269 ladder-meta memo: rung coverages + stamps per ladder file stamp,
+--- so the per-tap rung pick is arithmetic (the full ladder loads only when
+--- the route index actually rebuilds)
+local ladder_meta_memo = nil -- { path, key, rungs = {{p, stamp, intro, has_result}} }
+
 function ActionCache.matchAnyXrayExact(document_path, query, opts)
     if not document_path or type(query) ~= "string" or query == "" then
         return false
     end
     -- P5: opts.include_ahead == false stands the ahead peek down (the
-    -- Upcoming Entities setting; default on — callers read it per call)
+    -- Upcoming Entities setting; default on — callers read it per call).
+    -- B269: the peek needs opts.position (0..1); without it there is none.
     local include_ahead = not (opts and opts.include_ahead == false)
+        and type(opts and opts.position) == "number"
     local path = ActionCache.getPath(document_path)
     if not path then return false end
     local attr = lfs.attributes(path)
@@ -2441,19 +2448,37 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
     if aattr then
         key = key .. "|" .. tostring(aattr.modification) .. "|" .. tostring(aattr.size)
     end
-    -- Point-4: the newest built checkpoint ahead of the live artifact joins
-    -- the route (the card's identification peek must FIRE for ahead-only
-    -- entities) — its file joins the stamp so a fresh rung re-indexes. The
+    -- Point-4: ONE built checkpoint ahead of the live artifact joins the
+    -- route (the card's identification peek must FIRE for ahead-only
+    -- entities). B269: the rung covering the reader's stretch, picked per
+    -- call from a per-ladder-stamp meta memo; the PICKED rung's stamp joins
+    -- the key, so moving into the next checkpoint's stretch re-indexes. The
     -- flag state joins the key either way, so a settings flip invalidates.
+    local ahead_stamp
     if include_ahead then
         local ladder_path = ActionCache.getXrayLadderPath(document_path)
         local lattr = ladder_path and lfs.attributes(ladder_path)
         if lattr then
-            key = key .. "|" .. tostring(lattr.modification) .. "|" .. tostring(lattr.size)
+            local lkey = tostring(lattr.modification) .. "|" .. tostring(lattr.size)
+            if not (ladder_meta_memo and ladder_meta_memo.path == ladder_path
+                    and ladder_meta_memo.key == lkey) then
+                local rungs = {}
+                for _idx, rg in ipairs(ActionCache.getXrayLadder(document_path)) do
+                    rungs[#rungs + 1] = { progress_decimal = rg.progress_decimal,
+                        full_document = rg.full_document, intro = rg.intro,
+                        result = rg.result and true or nil, stamp = tostring(rg.timestamp) }
+                end
+                ladder_meta_memo = { path = ladder_path, key = lkey, rungs = rungs }
+            end
+            local live_e = ActionCache.getXrayCache(document_path)
+            local live_p = live_e and (live_e.full_document and 1.0
+                or tonumber(live_e.progress_decimal)) or 0
+            local pick = require("koassistant_xray_auto").pickAheadRung(
+                ladder_meta_memo.rungs, live_p, opts.position)
+            ahead_stamp = pick and pick.stamp or nil
         end
-    else
-        key = key .. "|noahead"
     end
+    key = key .. (ahead_stamp and ("|ahead:" .. ahead_stamp) or "|noahead")
     if not (exact_route_index and exact_route_index.path == path
             and exact_route_index.key == key) then
         local XrayParser = require("koassistant_xray_parser")
@@ -2479,15 +2504,12 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
             end
         end
         local ahead
-        if include_ahead then
+        if ahead_stamp then
             for _idx, rg in ipairs(ActionCache.getXrayLadder(document_path)) do
-                local p = rg.full_document and 1.0 or tonumber(rg.progress_decimal) or 0
-                if rg.result and not rg.intro and p > live_p + 0.005 then
-                    if not ahead or p > ahead.p then ahead = { result = rg.result, p = p } end
-                end
+                if tostring(rg.timestamp) == ahead_stamp then ahead = rg end
             end
         end
-        if ahead then
+        if ahead and ahead.result then
             local data = XrayParser.parse(ahead.result)
             if data then
                 XrayParser.mergeUserAliases(data, user_aliases)

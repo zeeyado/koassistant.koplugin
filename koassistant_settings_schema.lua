@@ -1043,7 +1043,7 @@ local SettingsSchema = {
                             text = _("Upcoming Entities"),
                             path = "features.xray_show_ahead_entities",
                             default = true,
-                            help_text = _("Let marking, matching selections and entity cards recognize entities that first appear past your installed X-Ray coverage, using the checkpoint already built ahead of you. Identification only: such names get short-dash marks and a brief card, and the full entry stays behind a spoiler confirmation. Off = the plugin only knows entities up to your installed coverage."),
+                            help_text = _("Let marking, matching selections and entity cards recognize entities that first appear past your installed X-Ray coverage, using only the next checkpoint built past your reading position (never a later one). Identification only: such names get short-dash marks and a card that, by default, shows just the tapped name until you ask for the entry. Off = the plugin only knows entities up to your installed coverage."),
                             on_change = function(new_value, plugin)
                                 if plugin.syncXrayMarks then
                                     local UIManager = require("ui/uimanager")
@@ -1052,6 +1052,42 @@ local SettingsSchema = {
                                     end)
                                 end
                             end,
+                        },
+                        {
+                            id = "xray_ahead_card",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("Upcoming Entity Cards: %1"),
+                                    require("koassistant_book_settings").xrayAheadCardLabel(f.xray_ahead_card))
+                            end,
+                            path = "features.xray_ahead_card",
+                            default = "name",
+                            options = {
+                                { value = "name", text = _("Name only, tap to show the entry") },
+                                { value = "entry", text = _("Show the entry (one sentence)") },
+                            },
+                            help_text = _("What the card shows for an upcoming entity, known only from the checkpoint ahead of you. Name only shows the tapped name and where the entry comes from; the entry itself opens on a tap, behind a spoiler confirmation. The one-sentence option shows the entry's first sentence right away (it can reveal that a name is another character's alias). Can be overridden per book."),
+                            enabled_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return f.xray_show_ahead_entities ~= false
+                            end,
+                        },
+                        {
+                            id = "xray_card_length",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("Card Shows: %1"),
+                                    require("koassistant_book_settings").xrayCardLengthLabel(f.xray_card_length))
+                            end,
+                            path = "features.xray_card_length",
+                            default = "full",
+                            options = {
+                                { value = "full", text = _("Full entry") },
+                                { value = "sentence", text = _("First sentence only") },
+                            },
+                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. Full entry shows the whole description (the floating popup cuts it where it runs out of room). First sentence keeps the card to a one-line identification. Can be overridden per book."),
                         },
                         {
                             id = "xray_card_landing",

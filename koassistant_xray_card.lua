@@ -127,11 +127,37 @@ local function aheadLine(hit)
     end
 end
 
+--- B269 card content, one place for both styles. Ahead hits show the
+--- TAPPED handle as the name line (the entry's primary name may itself be
+--- the reveal — an alias folded onto the identity) and, in the default
+--- "name" mode, no description at all: just where the entry comes from and
+--- that a tap shows it. Non-ahead hits follow opts.card_length ("sentence"
+--- = the first sentence, else the whole description — the popup truncates
+--- naturally, the panel scrolls).
+--- @return name string, line string|nil (warning/provenance), body string
+local function cardContent(hit, opts)
+    opts = opts or {}
+    if hit.source == "ahead" then
+        local name = (type(hit.query) == "string" and hit.query ~= "") and hit.query or hit.name or ""
+        if opts.ahead_card == "entry" then
+            return name, aheadLine(hit), XrayCard.firstSentence(itemText(hit.item))
+        end
+        return name, "\u{26A0} " .. T(_("From the checkpoint covering up to %1%. Tap to show the entry (may contain spoilers)."),
+            math.floor((hit.ahead_progress or 0) * 100 + 0.5)), ""
+    end
+    local text = itemText(hit.item)
+    if opts.card_length == "sentence" then text = XrayCard.firstSentence(text) end
+    return hit.name or "", nil, text
+end
+
 --- Resolve an exact entity hit across the live main X-Ray, every section
---- X-Ray, and the newest built checkpoint AHEAD of the live one (in that
---- order — position truth first, the identification peek last).
+--- X-Ray, and ONE built checkpoint ahead of the live one (in that order —
+--- position truth first, the identification peek last). B269: the peek
+--- reads the rung covering the reader's current stretch (the lowest built
+--- rung past both live coverage and opts.position), never the newest.
 --- @param file string book path
 --- @param query string the tapped/selected text
+--- @param opts table|nil { include_ahead = false → no peek, position = 0..1 }
 --- @return table|nil hit { name, item, category_key, category_label,
 ---   source = "live"|"section"|"ahead", ahead_progress, query }
 function XrayCard.resolve(file, query, opts)
@@ -176,19 +202,17 @@ function XrayCard.resolve(file, query, opts)
             if r then return makeHit(r, "section") end
         end
     end
-    -- The identification peek: the newest built rung past the live coverage
-    -- (P5: stood down when the Upcoming Entities setting is off)
+    -- The identification peek (P5: stood down when the Upcoming Entities
+    -- setting is off; B269: the one rung covering the reader's stretch)
     if opts and opts.include_ahead == false then return nil end
-    local best
-    for _idx, rg in ipairs(ActionCache.getXrayLadder(file)) do
-        local p = rg.full_document and 1.0 or tonumber(rg.progress_decimal) or 0
-        if rg.result and not rg.intro and p > live_p + 0.005 then
-            if not best or p > best.p then best = { rung = rg, p = p } end
+    local rung = require("koassistant_xray_auto").pickAheadRung(
+        ActionCache.getXrayLadder(file), live_p, opts and opts.position)
+    if rung then
+        local r = findIn(rung.result)
+        if r then
+            return makeHit(r, "ahead", rung.full_document and 1.0
+                or tonumber(rung.progress_decimal) or 0)
         end
-    end
-    if best then
-        local r = findIn(best.rung.result)
-        if r then return makeHit(r, "ahead", best.p) end
     end
     return nil
 end
@@ -202,15 +226,14 @@ local function showPopupCard(hit, opts)
     local can_md = ok_v and Viewer and Viewer.stripMarkdown
     -- Ahead hits: the NAME line leads with the triangle too (device round
     -- 2026-08-17 — the warning line alone sat below where the eye lands)
-    local ahead = aheadLine(hit)
-    local head = can_md and ("**" .. (hit.name or "") .. "**") or (hit.name or "")
+    local name, ahead, ident = cardContent(hit, opts)
+    local head = can_md and ("**" .. name .. "**") or name
     if ahead then head = "\u{26A0} " .. head end
     local kind = kindLabel(hit)
     if kind ~= "" then head = head .. " · " .. kind end
     local parts = { head }
     -- Ahead warning ABOVE the description (2f: early placement)
     if ahead then parts[#parts + 1] = ahead end
-    local ident = XrayCard.firstSentence(itemText(hit.item))
     if ident ~= "" then parts[#parts + 1] = ident end
     local text = table.concat(parts, "\n\n")
     local rtl = nil
@@ -245,19 +268,21 @@ local function showFootnoteCard(hit, opts)
     local kind = kindLabel(hit)
     -- Ahead hits: the NAME line leads with the triangle too (device round
     -- 2026-08-17); the warning line below stays
-    local ahead = aheadLine(hit)
-    local html = "<div>" .. (ahead and "\u{26A0} " or "") .. "<b>" .. esc(hit.name or "") .. "</b>"
+    local name, ahead, ident = cardContent(hit, opts)
+    local html = "<div>" .. (ahead and "\u{26A0} " or "") .. "<b>" .. esc(name) .. "</b>"
         .. (kind ~= "" and (" · " .. esc(kind)) or "") .. "</div>"
     if ahead then
         html = html .. '<div class="koa-meta">' .. esc(ahead) .. "</div>"
     end
-    local ident = XrayCard.firstSentence(itemText(hit.item))
     if ident ~= "" then
-        html = html .. '<div class="koa-line">' .. esc(ident) .. "</div>"
+        html = html .. '<div class="koa-line">' .. (esc(ident):gsub("\n", "<br/>")) .. "</div>"
     end
     -- Affordance: stock footnote panels do nothing on an inside tap, ours
-    -- opens the full entry — say so, muted
-    html = html .. '<div class="koa-meta">' .. esc(_("Tap for the full entry")) .. "</div>"
+    -- opens the full entry — say so, muted (the name-only ahead line
+    -- already says it)
+    if ident ~= "" or not ahead then
+        html = html .. '<div class="koa-meta">' .. esc(_("Tap for the full entry")) .. "</div>"
+    end
 
     local ui = opts.ui
     local doc = ui and ui.document
@@ -316,7 +341,8 @@ local function showFootnoteCard(hit, opts)
 end
 
 --- Show the card. opts = { style ("footnote"|"popup"), ui, sboxes,
---- on_full(hit) } — on_full opens the full entry (router-owned).
+--- on_full(hit), card_length ("sentence"|"full"), ahead_card ("entry"|"name") }
+--- — on_full opens the full entry (router-owned).
 function XrayCard.show(hit, opts)
     opts = opts or {}
     if opts.style == "popup" then

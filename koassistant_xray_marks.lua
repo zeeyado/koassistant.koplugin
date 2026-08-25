@@ -191,20 +191,28 @@ local function ensureIndex(plugin, pageno)
     -- with it off the key drops its "|ahead:" part, so a flip rebuilds the
     -- index on the next sync/scan by itself. Round 3: book override > global
     -- via the marking resolver, like the other marking keys.
-    st.ahead = nil
+    -- B269: the ladder is loaded once per disk change; the ONE rung the
+    -- peek may read is re-picked below on every call, from the reader's
+    -- position (pure arithmetic — the index key carries the pick, so a
+    -- page turn into the next checkpoint's stretch rebuilds by itself)
+    st.ladder = nil
     local marks_feats = plugin.settings and plugin.settings:readSetting("features") or {}
     if require("koassistant_book_settings").resolveXrayMarking(
         plugin.ui and plugin.ui.doc_settings, marks_feats).ahead then
-      local live_p = st.live and (st.live.full_document and 1.0
-        or tonumber(st.live.progress_decimal)) or 0
-      for _idx, rg in ipairs(ActionCache.getXrayLadder(st.file)) do
-        local p = rg.full_document and 1.0 or tonumber(rg.progress_decimal) or 0
-        if rg.result and not rg.intro and p > live_p + 0.005 then
-          if not st.ahead or p > st.ahead.p then
-            st.ahead = { result = rg.result, p = p, stamp = tostring(rg.timestamp) }
-          end
-        end
-      end
+      st.ladder = ActionCache.getXrayLadder(st.file)
+    end
+  end
+  st.ahead = nil
+  if st.ladder and #st.ladder > 0 then
+    local live_p = st.live and (st.live.full_document and 1.0
+      or tonumber(st.live.progress_decimal)) or 0
+    local total = plugin.ui and plugin.ui.document and plugin.ui.document.info
+      and plugin.ui.document.info.number_of_pages
+    local position = (pageno and total and total > 0) and (pageno / total) or nil
+    local rg = require("koassistant_xray_auto").pickAheadRung(st.ladder, live_p, position)
+    if rg then
+      st.ahead = { result = rg.result, stamp = tostring(rg.timestamp),
+        p = rg.full_document and 1.0 or tonumber(rg.progress_decimal) or 0 }
     end
   end
   local art = pickArtifact()

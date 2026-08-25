@@ -202,6 +202,10 @@ BookSettings.KEY_XRAY_AHEAD = "koassistant_book_xray_ahead"                     
 -- landing+style PAIR into one three-way value.
 BookSettings.KEY_XRAY_INTERCEPT = "koassistant_book_xray_intercept"                -- true | false | nil (matching selections open entries)
 BookSettings.KEY_XRAY_CARD = "koassistant_book_xray_card"                          -- "footnote"|"popup"|"full" | nil (exact hits open)
+-- B269 (2026-08-25): what the card SHOWS — non-ahead entries whole or first
+-- sentence; ahead (upcoming) entries name-only-tap-to-show or one sentence.
+BookSettings.KEY_XRAY_CARD_LENGTH = "koassistant_book_xray_card_length"            -- "full"|"sentence" | nil
+BookSettings.KEY_XRAY_AHEAD_CARD = "koassistant_book_xray_ahead_card"              -- "name"|"entry" | nil
 -- Presets session (v0.21): categories a NEW X-Ray tracks — csv of group ids
 -- ("people,events"; canonical order people,places,ideas,terms,events), nil =
 -- full. The preference for future creates/rebuilds only: an existing lineage
@@ -213,8 +217,10 @@ BookSettings.KEY_XRAY_CATEGORIES = "koassistant_book_xray_categories"
 --- tap ON, density "10", families "all", ahead ON, intercept ON, card
 --- "footnote"). `card` folds the global xray_card_landing/_style PAIR into one
 --- three-way value ("footnote" | "popup" | "full").
+--- B269: `card_length` ("full" default | "sentence") and `ahead_card`
+--- ("name" default | "entry") ride the same pattern.
 --- @return table { enabled, density, families, tap, ahead, intercept, card,
----   has_override }
+---   card_length, ahead_card, has_override }
 function BookSettings.resolveXrayMarking(doc_settings, features)
     features = features or {}
     -- No and/or chain here: it would fold an explicit book-level FALSE into
@@ -232,6 +238,8 @@ function BookSettings.resolveXrayMarking(doc_settings, features)
     local b_ahead = rd(BookSettings.KEY_XRAY_AHEAD)
     local b_int = rd(BookSettings.KEY_XRAY_INTERCEPT)
     local b_card = rd(BookSettings.KEY_XRAY_CARD)
+    local b_len = rd(BookSettings.KEY_XRAY_CARD_LENGTH)
+    local b_acard = rd(BookSettings.KEY_XRAY_AHEAD_CARD)
     local enabled
     if b_on ~= nil then
         enabled = b_on ~= false
@@ -274,8 +282,13 @@ function BookSettings.resolveXrayMarking(doc_settings, features)
         ahead = ahead,
         intercept = intercept,
         card = card,
+        card_length = (b_len == "sentence" or b_len == "full") and b_len
+            or (features.xray_card_length == "sentence" and "sentence" or "full"),
+        ahead_card = (b_acard == "entry" or b_acard == "name") and b_acard
+            or (features.xray_ahead_card == "entry" and "entry" or "name"),
         has_override = b_on ~= nil or b_dens ~= nil or b_fam ~= nil
-            or b_tap ~= nil or b_ahead ~= nil or b_int ~= nil or b_card ~= nil,
+            or b_tap ~= nil or b_ahead ~= nil or b_int ~= nil or b_card ~= nil
+            or b_len ~= nil or b_acard ~= nil,
     }
 end
 
@@ -719,6 +732,8 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_XRAY_AHEAD,
     BookSettings.KEY_XRAY_INTERCEPT,
     BookSettings.KEY_XRAY_CARD,
+    BookSettings.KEY_XRAY_CARD_LENGTH,
+    BookSettings.KEY_XRAY_AHEAD_CARD,
     BookSettings.KEY_XRAY_CATEGORIES,
     -- (KEY_XRAY_COVERAGE_ASKED is deliberately NOT here: a stamp, not an
     -- override — it must not count as "customized" nor block on reset;
@@ -1788,6 +1803,16 @@ function BookSettings.xrayCardModeLabel(v)
     return _("Footnote panel")
 end
 
+function BookSettings.xrayCardLengthLabel(v)
+    if v == "sentence" then return _("First sentence") end
+    return _("Full entry")
+end
+
+function BookSettings.xrayAheadCardLabel(v)
+    if v == "entry" then return _("Show the entry") end
+    return _("Name only, tap to show")
+end
+
 -- Category groups for the X-Ray category picker (presets v0.21). Ids and
 -- per-type key mapping live in prompts/actions.lua (XRAY_CATEGORY_ORDER);
 -- the user-facing labels live here with the picker.
@@ -1998,7 +2023,7 @@ end
 -- consolidation P2 flagship (2026-08-16): the Marking & lookup popup's
 -- tap-cycles became these canonical pickers. One wrapper serves the seven
 -- keys via opts.kind: "enabled" | "density" | "families" | "tap" | "ahead" |
--- "intercept" | "card". Defaults mirror resolveXrayMarking (marking ON, tap
+-- "intercept" | "card" | "card_length" | "ahead_card" (B269). Defaults mirror resolveXrayMarking (marking ON, tap
 -- ON, density "10", families "all", ahead ON, intercept ON, card "footnote").
 -- @param opts table: { plugin, ui, document_path, on_close, target_override, kind }
 function BookSettings.showXrayMarkingPicker(opts)
@@ -2104,6 +2129,33 @@ function BookSettings.showXrayMarkingPicker(opts)
                 { value = "footnote", label = _("Footnote panel") },
                 { value = "popup", label = _("Floating popup") },
                 { value = "full", label = _("Full entry") },
+            },
+        }
+    elseif opts.kind == "card_length" then
+        -- B269: what the card shows for entries at or behind the position
+        spec = {
+            title = _("Card Shows"),
+            key = BookSettings.KEY_XRAY_CARD_LENGTH,
+            field = "xray_card_length",
+            global = function(f) return f.xray_card_length == "sentence" and "sentence" or "full" end,
+            value_label = BookSettings.xrayCardLengthLabel,
+            options = {
+                { value = "full", label = _("Full entry") },
+                { value = "sentence", label = _("First sentence") },
+            },
+        }
+    elseif opts.kind == "ahead_card" then
+        -- B269: the card for UPCOMING entities (the ahead peek); name-only by
+        -- default so an alias-folded identity never reveals on sight
+        spec = {
+            title = _("Upcoming Entity Cards"),
+            key = BookSettings.KEY_XRAY_AHEAD_CARD,
+            field = "xray_ahead_card",
+            global = function(f) return f.xray_ahead_card == "entry" and "entry" or "name" end,
+            value_label = BookSettings.xrayAheadCardLabel,
+            options = {
+                { value = "name", label = _("Name only, tap to show") },
+                { value = "entry", label = _("Show the entry (one sentence)") },
             },
         }
     else -- "enabled"
@@ -2293,7 +2345,8 @@ function BookSettings.show(opts)
         BookSettings.KEY_XRAY_MARKING, BookSettings.KEY_XRAY_MARKING_DENSITY,
         BookSettings.KEY_XRAY_MARKING_FAMILIES, BookSettings.KEY_XRAY_MARKING_TAP,
         BookSettings.KEY_XRAY_AHEAD, BookSettings.KEY_XRAY_INTERCEPT,
-        BookSettings.KEY_XRAY_CARD, BookSettings.KEY_XRAY_CATEGORIES,
+        BookSettings.KEY_XRAY_CARD, BookSettings.KEY_XRAY_CARD_LENGTH,
+        BookSettings.KEY_XRAY_AHEAD_CARD, BookSettings.KEY_XRAY_CATEGORIES,
     }), BookSettings.showXrayConfig))
     addButton(subScreenRow(_("Chat behavior"), groupCount({
         BookSettings.KEY_TOOLS, BookSettings.KEY_WEB_SEARCH,
@@ -2764,6 +2817,19 @@ function BookSettings.showXrayConfig(opts)
     table.insert(buttons, {{ text = T(_("Upcoming entities: %1"),
             boolLabel(b_ahead, features.xray_show_ahead_entities ~= false)),
         callback = function() markingPicker("ahead") end }})
+    -- B269: the two card-content dials
+    local b_acard = doc_settings:readSetting(BookSettings.KEY_XRAY_AHEAD_CARD)
+    table.insert(buttons, {{ text = T(_("Upcoming entity cards: %1"),
+            b_acard and BookSettings.xrayAheadCardLabel(b_acard)
+                or T(_("Follow global (%1)"),
+                    BookSettings.xrayAheadCardLabel(features.xray_ahead_card))),
+        callback = function() markingPicker("ahead_card") end }})
+    local b_len = doc_settings:readSetting(BookSettings.KEY_XRAY_CARD_LENGTH)
+    table.insert(buttons, {{ text = T(_("Card shows: %1"),
+            b_len and BookSettings.xrayCardLengthLabel(b_len)
+                or T(_("Follow global (%1)"),
+                    BookSettings.xrayCardLengthLabel(features.xray_card_length))),
+        callback = function() markingPicker("card_length") end }})
     -- Round 5 (maintainer: "yes per book"): the two lookup-side settings too
     local b_int = doc_settings:readSetting(BookSettings.KEY_XRAY_INTERCEPT)
     table.insert(buttons, {{ text = T(_("Matching selections open entries: %1"),

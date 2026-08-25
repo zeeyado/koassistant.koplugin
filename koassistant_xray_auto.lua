@@ -587,6 +587,36 @@ function XrayAuto.pickPromotableRung(ladder, live_progress, position, opts)
   return best
 end
 
+--- Pick the ONE rung the identification peek may read (B269, 2026-08-25):
+--- the LOWEST built rung that is past the live coverage AND whose coverage
+--- reaches the reading position — the checkpoint covering the stretch the
+--- reader is in right now. Never the newest: a ladder built to 100% used
+--- to identify an early minor character from the 100% entry, where they
+--- were already an alias of the revealed identity (issue #90). No position
+--- = no peek; a rung not built yet = the name is simply unknown for now.
+--- Shared by the card resolver, the marks index and the exact-route index
+--- so marked == resolvable holds.
+--- @param ladder table Rung array (any order)
+--- @param live_progress number|nil live cache progress 0..1
+--- @param position number|nil reading position 0..1
+--- @return table|nil rung entry
+function XrayAuto.pickAheadRung(ladder, live_progress, position)
+  if type(position) ~= "number" then return nil end
+  local live_p = tonumber(live_progress) or 0
+  local best, best_p
+  for _idx, rung in ipairs(ladder or {}) do
+    local p = rung.full_document and 1.0 or tonumber(rung.progress_decimal)
+    if p and rung.result and not rung.intro
+        and p > live_p + XrayAuto.LADDER_TOLERANCE
+        and p + XrayAuto.LADDER_TOLERANCE >= position then
+      if not best_p or p < best_p then
+        best, best_p = rung, p
+      end
+    end
+  end
+  return best
+end
+
 -- Build-chain session state (module-local, survives instance teardown like the
 -- flight state — though a book close cancels the chain anyway). One build at a
 -- time, plugin-wide.
