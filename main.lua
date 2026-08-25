@@ -11006,14 +11006,15 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     local depth_value = BookSettings.resolveXrayDepth(self.ui.doc_settings,
       self.settings and self.settings:readSetting("features"))
     local ButtonTableO = require("ui/widget/buttontable")
-    -- Header line names the three dials, the buttons show VALUES only
-    -- (maintainer 2026-08-25); one-shot deliveries have no spacing, so the
-    -- header and the row both drop it rather than showing a grayed button.
+    -- The row's header is its FIRST ROW inside the same table (maintainer
+    -- 2026-08-25: a floating label above the frame read as part of the hint
+    -- text); the buttons below show VALUES only, and every dial stays in place
+    -- grayed when the current pick cannot use it (the form's standing rule).
     local option_buttons = {}
-    if spacing_on then
-      option_buttons[#option_buttons + 1] = {
+    option_buttons[#option_buttons + 1] = {
           text = T(_("Every %1%…"), self_ref:_xraySpacingPctLabel(sp_now)),
           font_size = 16, font_bold = false,
+          enabled = spacing_on,
           callback = function()
             UIManager:close(current_dialog)
             self_ref:_showXraySpacingPicker{
@@ -11061,7 +11062,6 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
             }
           end,
       }
-    end
     option_buttons[#option_buttons + 1] = {
       text = BookSettings.xrayCategoriesLabel(cat_value) .. "…",
       font_size = 16, font_bold = false,
@@ -11081,23 +11081,22 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       callback = function()
         UIManager:close(current_dialog)
         BookSettings.showXrayDepthPicker({
-          ui = self_ref.ui, plugin = self_ref,
+          ui = self_ref.ui, plugin = self_ref, target_override = "book",
           on_close = function() buildAndShow() end,
         })
       end,
     }
     local options_row = ButtonTableO:new{
       width = content_width,
-      buttons = { option_buttons },
+      buttons = {
+        {{ text = _("Checkpoint spacing, categories, depth:"),
+           font_size = 16, font_bold = false, enabled = false }},
+        option_buttons,
+      },
       zero_sep = true,
       show_parent = self_ref,
     }
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-    table.insert(vgroup, TextBoxWidget:new{
-      text = spacing_on and _("Checkpoint spacing, categories, depth:") or _("Categories, depth:"),
-      face = info_face, width = content_width,
-      fgcolor = Blitbuffer.COLOR_DARK_GRAY,
-    })
     table.insert(vgroup, options_row)
 
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })

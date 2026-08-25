@@ -1932,7 +1932,7 @@ end
 function BookSettings.xrayCategoriesLabel(value)
     local Actions = require("prompts.actions")
     local sel = Actions.normalizeXrayCategories(value)
-    if not sel then return _("All") end
+    if not sel then return _("All categories") end
     if sel == "people" then return _("Characters only") end
     if sel == "people,events" then return _("Characters and story") end
     if sel == "people,places,ideas,terms" then return _("Reference") end
@@ -2037,6 +2037,33 @@ function BookSettings.showXrayCategoriesPicker(opts)
     local full_stored
     if is_global then full_stored = (stored == nil) else full_stored = (raw == "full") end
     local buttons = {}
+    -- Target toggle row [For this book] [Global], the layered-picker engine's
+    -- header (maintainer 2026-08-25: every two-layer picker carries it) — only
+    -- when a book is in scope; the Settings entry has none and shows no row
+    local book_in_scope = doc_settings ~= nil
+        or (is_global and resolveDocSettings(opts.ui, opts.document_path) ~= nil)
+    if book_in_scope then
+        buttons[#buttons + 1] = {
+            { text = dot(not is_global) .. _("For this book"),
+              callback = function()
+                  if not is_global then return end
+                  if dialog then UIManager:close(dialog); dialog = nil end
+                  local reopen = {}
+                  for k, v in pairs(opts) do reopen[k] = v end
+                  reopen.target = "book"
+                  BookSettings.showXrayCategoriesPicker(reopen)
+              end },
+            { text = dot(is_global) .. _("Global"),
+              callback = function()
+                  if is_global then return end
+                  if dialog then UIManager:close(dialog); dialog = nil end
+                  local reopen = {}
+                  for k, v in pairs(opts) do reopen[k] = v end
+                  reopen.target = "global"
+                  BookSettings.showXrayCategoriesPicker(reopen)
+              end },
+        }
+    end
     if not is_global then
         buttons[#buttons + 1] = {{ text = dot(raw == nil)
                 .. T(_("Follow global (%1)"),
@@ -2845,6 +2872,7 @@ function BookSettings.showXrayConfig(opts)
             closeDialog()
             BookSettings.showXrayDepthPicker({
                 ui = ui, document_path = opts.document_path, plugin = plugin,
+                target_override = "book",
                 on_close = function()
                     syncConfig()
                     BookSettings.showXrayConfig(opts)
