@@ -10696,6 +10696,8 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
         -- target_file, NOT ui.document.file: a cross-book lookup deleting the
         -- OPEN book's X-Ray would be silent data loss (2026-08-13)
         ActionCache.deleteXray(target_file, { keep_versions = keep_versions })
+        require("koassistant_book_settings").clearXrayLineageState(
+            SafeDocSettings.resolve(target_file, ui))
         UIManager:show(Notification:new{
             text = keep_versions and _("X-Ray deleted — archived versions kept")
                 or T(_("%1 deleted"), "X-Ray"),
@@ -11628,6 +11630,8 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             -- Same shared lineage delete as the other
                             -- XrayBrowser:show callback above (round 28)
                             ActionCache.deleteXray(ui.document.file, { keep_versions = keep_versions })
+                            require("koassistant_book_settings").clearXrayLineageState(
+                                SafeDocSettings.resolve(ui.document.file, ui))
                             UIManager:show(Notification:new{
                                 text = keep_versions and _("X-Ray deleted — archived versions kept")
                                     or T(_("%1 deleted"), "X-Ray"),

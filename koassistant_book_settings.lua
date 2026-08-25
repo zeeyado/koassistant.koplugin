@@ -298,6 +298,27 @@ function BookSettings.xrayPromotionHold(doc_settings)
     return (doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_PROMOTION)) == "position"
 end
 
+--- Forget the per-book state that described a DELETED X-Ray lineage: the
+--- coverage-ask stamp (a future from-nothing build should ask again), the
+--- promotion hold (it described the deleted timeline) and the Automatic X-Ray
+--- override (2026-08-25: an "as I read" pick left it ON, so a deleted book
+--- re-asked how to create on the next page turn; deleted = quiet until the
+--- reader creates again, and the form's pick turns it back on). ONE helper
+--- for every delete site (popup + both browser hamburgers). Flushes.
+function BookSettings.clearXrayLineageState(doc_settings)
+    if not doc_settings then return end
+    local keys = { BookSettings.KEY_XRAY_COVERAGE_ASKED, BookSettings.KEY_XRAY_PROMOTION,
+        BookSettings.KEY_XRAY_AUTO }
+    local any = false
+    for _idx, k in ipairs(keys) do
+        if doc_settings:readSetting(k) ~= nil then
+            doc_settings:delSetting(k)
+            any = true
+        end
+    end
+    if any then doc_settings:flush() end
+end
+
 --- Per-book checkpoint spacing override. Pure.
 --- @return number|nil ratio in (0, 0.5], or nil = follow the formula
 function BookSettings.xraySpacingOverride(doc_settings)

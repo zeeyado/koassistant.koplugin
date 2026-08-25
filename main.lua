@@ -7266,17 +7266,10 @@ function AskGPT:showCacheViewer(cache_info)
         -- prepared rung would resurrect the X-Ray), the archived versions only
         -- when the reader said so (delete_options below)
         ActionCache.deleteXray(file, { keep_versions = keep_versions })
-        -- Round 22 (D4): the coverage-ask stamp dies with the X-Ray — a
-        -- future from-nothing build should ask again. Round 5: so does the
-        -- promotion hold — it described the deleted timeline.
-        local BookSettings = require("koassistant_book_settings")
-        local ds = require("koassistant_doc_settings").resolve(file, self.ui)
-        if ds and (ds:readSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED) ~= nil
-            or ds:readSetting(BookSettings.KEY_XRAY_PROMOTION) ~= nil) then
-          ds:delSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED)
-          ds:delSetting(BookSettings.KEY_XRAY_PROMOTION)
-          ds:flush()
-        end
+        -- The per-book state describing the deleted lineage dies with it
+        -- (coverage-ask stamp, promotion hold, automatic override)
+        require("koassistant_book_settings").clearXrayLineageState(
+          require("koassistant_doc_settings").resolve(file, self.ui))
       elseif cache_key == "_analyze_cache" then
         ActionCache.clearAnalyzeCache(file)
         ActionCache.clear(file, "analyze_full_document")
@@ -10487,6 +10480,10 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
   local function planIntroStep()
     if pickIsRebuild() then return false end
     if mode == "extend" then return false end
+    -- To-position plans build no intro (2026-08-25): the chain ends AT the
+    -- reader's position whatever the spacing, and a premise-only step ahead of
+    -- a bounded plan the reader asked for is a spend they did not ask for
+    if cr.coverage == "position" then return false end
     return not has_intro_rung
   end
 
@@ -10591,7 +10588,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       elseif cr.delivery == "checkpoints" then
         local bo = { rebuild = rebuild_pick or nil }
         if cr.coverage == "position" then
-          bo.target = decimal
+          bo.target, bo.to_position = decimal, true
         elseif cr.coverage == "target" then
           bo.target, bo.target_label = cr.target, cr.target_label
         end
@@ -14619,7 +14616,10 @@ function AskGPT:_startXrayLadderBuild(build_opts)
   if chain_rebuild then
     resume, has_intro = false, true
   end
+  -- To-position chains (form, 2026-08-25) skip the intro too: the plan ends
+  -- at the reader's position, and the form's step count assumes no intro
   local plan_intro = base_progress == nil and not has_intro and not one_shot
+    and not (build_opts and build_opts.to_position)
   -- Round 19: a from-nothing build seeds its first checkpoint AT the reading
   -- position, so the reader gets a promotable (openable) X-Ray from the very
   -- first finished rung instead of waiting to cross the first spacing boundary
