@@ -725,6 +725,16 @@ TestRunner:test("planAutoWork: idle reasons — ahead, goal reached, no position
         ladder = {}, base_progress = nil,
         position = 0.45, goal = nil, is_json = isJSON }
     TestRunner:assertEqual(w.reason, "ahead", "live coverage ahead: idle")
+    -- Build lag: a just-installed rung stays "ahead" until the reader is
+    -- BUILD_LAG past it (time to edit before the next build bases on live)
+    w = XrayAuto.planAutoWork{ entry = { result = "{}", progress_decimal = 0.3 },
+        ladder = { { result = "{}", progress_decimal = 0.3 } }, base_progress = 0.3,
+        position = 0.302, goal = nil, is_json = isJSON }
+    TestRunner:assertEqual(w.reason, "ahead", "within the build lag past the newest rung: idle")
+    w = XrayAuto.planAutoWork{ entry = { result = "{}", progress_decimal = 0.3 },
+        ladder = { { result = "{}", progress_decimal = 0.3 } }, base_progress = 0.3,
+        position = 0.304, goal = nil, is_json = isJSON }
+    TestRunner:assertEqual(w.build, true, "past the build lag: build the next rung")
     w = XrayAuto.planAutoWork{ entry = nil,
         ladder = { { result = "{}", progress_decimal = 0.5 } }, base_progress = 0.5,
         position = 0.55, goal = 0.5, is_json = isJSON }

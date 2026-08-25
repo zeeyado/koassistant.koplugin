@@ -282,6 +282,13 @@ XrayAuto.LADDER_TOLERANCE = 0.005
 -- (a few pages) ahead of the reader, and an alias folded from those pages
 -- went live before the reader met it.
 XrayAuto.PROMOTE_TOLERANCE = 0.0005
+-- Build lag (2026-08-25, maintainer): the NEXT checkpoint starts building only
+-- once the reader is this far PAST the newest built one, i.e. after it has
+-- installed (PROMOTE_TOLERANCE) and the dedup ask has shown. The point is
+-- that install and build are never simultaneous, and that the build bases
+-- on the LIVE copy (edits ride into every later rung). A couple of page
+-- turns; 1% felt like too many on device.
+XrayAuto.BUILD_LAG = 0.003
 XrayAuto.LADDER_MIN_RUNG_PAGES = 45  -- P2(a) floor: a rung must cover at least ~this many pages
                                      -- (round 10: 30 -> 45 — every rung pays a fixed re-send
                                      -- overhead, so short books get fewer, larger calls;
@@ -530,17 +537,19 @@ function XrayAuto.planAutoWork(state)
     return out
   end
   -- One-ahead invariant: a built checkpoint (or live coverage) ahead of the
-  -- reader means there is nothing to do yet
+  -- reader means there is nothing to do yet. "Ahead" reaches BUILD_LAG behind
+  -- the reader: the next build waits until the newest rung has installed and
+  -- the reader moved a few pages past it.
   local ahead = false
   for _idx, r in ipairs(state.ladder or {}) do
     local p = tonumber(r.progress_decimal)
-    if p and r.result and not r.intro and p > pos + XrayAuto.LADDER_TOLERANCE then
+    if p and r.result and not r.intro and p + XrayAuto.BUILD_LAG > pos then
       ahead = true break
     end
   end
   if not ahead and entry and entry.result and not entry.intro then
     local p = tonumber(entry.progress_decimal)
-    if p and p > pos + XrayAuto.LADDER_TOLERANCE then ahead = true end
+    if p and p + XrayAuto.BUILD_LAG > pos then ahead = true end
   end
   if ahead then
     out.reason = "ahead"

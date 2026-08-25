@@ -13544,10 +13544,12 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
   local pos = pageno / total
   local goal_bound = state.goal or 1.0
   if pos >= goal_bound - 0.01 then return end
-  local ahead = (state.live_progress or 0) > pos + XrayAuto.LADDER_TOLERANCE
+  -- BUILD_LAG: the next build waits until the newest checkpoint has installed
+  -- and the reader is a few pages past it (edits made meanwhile ride along)
+  local ahead = (state.live_progress or 0) + XrayAuto.BUILD_LAG > pos
   if not ahead and state.rung_progress then
     for _idx, rp in ipairs(state.rung_progress) do
-      if rp > pos + XrayAuto.LADDER_TOLERANCE then ahead = true break end
+      if rp + XrayAuto.BUILD_LAG > pos then ahead = true break end
     end
   end
   if ahead then return end
@@ -14860,7 +14862,10 @@ function AskGPT:_fireXrayLadderRung()
   if entry and entry.result and not entry.full_document and not entry.intro
       and entry.source_mode ~= "ai_knowledge" and XrayParser.isJSON(entry.result) then
     local p = tonumber(entry.progress_decimal)
-    if p and (base_progress == nil or p > base_progress) then
+    -- Tie goes to LIVE (2026-08-25): after an install live is the rung's copy
+    -- plus whatever the reader renamed, linked or merged since; basing the
+    -- next rung on it carries those edits into every later checkpoint
+    if p and (base_progress == nil or p >= base_progress) then
       base, base_progress = entry, p
     end
   end
