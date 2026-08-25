@@ -10982,36 +10982,6 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       table.insert(vgroup, sp_table)
     end
 
-    -- Categories (presets v0.21): only on picks that START a lineage — a
-    -- plain extend continues the artifact's own category stamp and offers no
-    -- pick (categories cannot be added incrementally). Sticky per-book write
-    -- via the shared picker; the row label re-reads it on return.
-    if force_rebuild or mode ~= "extend" or pickIsRebuild() then
-      local cat_value = BookSettings.resolveXrayCategories(self.ui.doc_settings,
-        self.settings and self.settings:readSetting("features"))
-      local ButtonTableC = require("ui/widget/buttontable")
-      local cat_table = ButtonTableC:new{
-        width = content_width,
-        buttons = {{
-          {
-            text = T(_("Change X-Ray categories (%1)…"),
-              BookSettings.xrayCategoriesLabel(cat_value)),
-            callback = function()
-              UIManager:close(current_dialog)
-              BookSettings.showXrayCategoriesPicker({
-                ui = self_ref.ui, plugin = self_ref,
-                on_close = function() buildAndShow() end,
-              })
-            end,
-          },
-        }},
-        zero_sep = true,
-        show_parent = self_ref,
-      }
-      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
-      table.insert(vgroup, cat_table)
-    end
-
     -- Gray hint under the Build group — every pick explains itself up front
     -- (round 22, §25(f); previously only the follow pick had one)
     local hint
@@ -11079,6 +11049,44 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         fgcolor = Blitbuffer.COLOR_DARK_GRAY,
       })
     end
+
+    -- Categories (presets v0.21): only on picks that START a lineage — a
+    -- plain extend continues the artifact's own category stamp and offers no
+    -- pick (categories cannot be added incrementally). Sticky per-book write
+    -- via the shared picker; the row label re-reads it on return. Sits at
+    -- the BOTTOM of the form, a bold line right above the action buttons
+    -- (2026-08-25, ref #90: a mid-form button was easy to miss, and a
+    -- narrowed default must be visible on every create).
+    if force_rebuild or mode ~= "extend" or pickIsRebuild() then
+      local cat_value = BookSettings.resolveXrayCategories(self.ui.doc_settings,
+        self.settings and self.settings:readSetting("features"))
+      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+      table.insert(vgroup, TextBoxWidget:new{
+        text = T(_("X-Ray categories: %1"), BookSettings.xrayCategoriesNames(cat_value)),
+        face = info_face, bold = true, width = content_width,
+      })
+      local ButtonTableC = require("ui/widget/buttontable")
+      local cat_table = ButtonTableC:new{
+        width = content_width,
+        buttons = {{
+          {
+            text = _("Change categories…"),
+            callback = function()
+              UIManager:close(current_dialog)
+              BookSettings.showXrayCategoriesPicker({
+                ui = self_ref.ui, plugin = self_ref,
+                on_close = function() buildAndShow() end,
+              })
+            end,
+          },
+        }},
+        zero_sep = true,
+        show_parent = self_ref,
+      }
+      table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
+      table.insert(vgroup, cat_table)
+    end
+
 
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
     local action_buttons = ButtonTable:new{

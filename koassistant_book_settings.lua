@@ -1843,6 +1843,23 @@ function BookSettings.resolveXrayCategories(doc_settings, features)
     return nil, nil
 end
 
+--- Spelled-out label for a category selection ("People & characters,
+--- Places, Timeline & development"; Full = "Full (all five)") — the
+--- creation form's bold bottom line (2026-08-25, ref #90).
+--- @param value string|nil raw stored value (normalized internally)
+--- @return string
+function BookSettings.xrayCategoriesNames(value)
+    local Actions = require("prompts.actions")
+    local sel = Actions.normalizeXrayCategories(value)
+    if not sel then return _("Full (all five)") end
+    local set, names = {}, {}
+    for id in sel:gmatch("[^,]+") do set[id] = true end
+    for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do
+        if set[id] then names[#names + 1] = XRAY_CATEGORY_LABELS[id] or id end
+    end
+    return table.concat(names, ", ")
+end
+
 --- Short label for a stored category selection (row/button text).
 --- @param value string|nil raw stored value (normalized internally)
 --- @return string "Full" / "Character tracking" / "N of 5"

@@ -59,6 +59,14 @@ function XrayCard.sentenceEnd(s)
         local cut = s:find("[%.!%?]%s", pos)
         local acut = s:find("؟%s", pos) or s:find("۔%s", pos)
         if acut and (not cut or acut < cut) then return acut + 1 end
+        -- CJK full-width stops carry no following space (2026-08-25, ref #90:
+        -- a CJK description never found a sentence end and fell to the cap)
+        local ccut
+        for _idx, mark in ipairs({ "。", "！", "？" }) do  -- plain finds: a [] class would match bytes
+            local c = s:find(mark, pos, true)
+            if c and (not ccut or c < ccut) then ccut = c end
+        end
+        if ccut and (not cut or ccut < cut) then return ccut + 2 end
         if not cut then return nil end
         if s:sub(cut, cut) ~= "." then return cut end
         local before = s:sub(1, cut - 1):match("([%w%.]*)$") or ""
@@ -85,7 +93,15 @@ function XrayCard.firstSentence(desc)
     local cut = XrayCard.sentenceEnd(s)
     local first = cut and s:sub(1, cut) or s
     if #first > 220 then
-        first = first:sub(1, 220):gsub("%s+%S*$", "") .. "…"
+        first = first:sub(1, 220)
+        -- Never split a multibyte character (a CJK sentence has no spaces
+        -- for the word-boundary trim to find)
+        while #first > 0 and first:byte(-1) >= 0x80 and first:byte(-1) < 0xC0 do
+            first = first:sub(1, -2)
+        end
+        if #first > 0 and first:byte(-1) >= 0xC0 then first = first:sub(1, -2) end
+        if first:find("%s") then first = first:gsub("%s+%S*$", "") end
+        first = first .. "…"
     end
     return first
 end
@@ -127,6 +143,16 @@ local function aheadLine(hit)
     end
 end
 
+--- True when the tapped handle differs from the entry's own name (the hit
+--- came through an alias). Case- and whitespace-insensitive. Pure.
+function XrayCard.isAliasHit(hit)
+    local q = type(hit.query) == "string" and hit.query or ""
+    local n = type(hit.name) == "string" and hit.name or ""
+    if q == "" or n == "" then return false end
+    local function fold(x) return x:lower():gsub("%s+", " "):gsub("^ ", ""):gsub(" $", "") end
+    return fold(q) ~= fold(n)
+end
+
 --- B269 STAGED card content, one place for both styles.
 --- Ahead (upcoming) hits show the TAPPED handle as the name line (the
 --- entry's primary name may itself be the reveal — an alias folded onto the
@@ -135,14 +161,22 @@ end
 --- warning and a tap hint; stage "sentence" = role + first sentence; the
 --- next tap is the full entry (router-owned, behind its confirm). Installed
 --- hits start at the sentence stage (opts.card_length "full" = whole
---- description, opt-in).
+--- description, opt-in). An ahead hit reached through an ALIAS (the tapped
+--- handle is not the entry's own name — "A is actually B" folded in the
+--- next checkpoint) never gets the sentence stage: the sentence names B,
+--- so the next tap is the full entry behind its confirm (2026-08-25, ref #90).
 --- @return table { name, kind, line, body, hint, next_stage }
 local function cardContent(hit, opts)
     opts = opts or {}
     if hit.source == "ahead" then
         local name = (type(hit.query) == "string" and hit.query ~= "") and hit.query or hit.name or ""
-        local stage = opts.stage or (opts.ahead_card == "entry" and "sentence" or "name")
+        local alias_hit = XrayCard.isAliasHit(hit)
+        local stage = opts.stage or ((opts.ahead_card == "entry" and not alias_hit) and "sentence" or "name")
         if stage == "name" then
+            if alias_hit then
+                return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), body = "",
+                    hint = _("Tap for the full entry") }
+            end
             return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), body = "",
                 hint = _("Tap to show a one-line description"), next_stage = "sentence" }
         end
