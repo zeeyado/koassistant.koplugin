@@ -9665,14 +9665,19 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           })
         else
           -- Fully covered incremental (100%): "Extend" would be a lie; the row
-          -- reads "Rebuild X-Ray…" and the form's picks all rebuild from scratch
+          -- reads "Rebuild X-Ray…" and the form's picks all rebuild from scratch.
+          -- The 100% extend base rides the FORCED-rebuild form (2026-08-25):
+          -- unforced, the position row gated on "position past the base" and
+          -- vanished behind a complete X-Ray, so a short book at 34% could not
+          -- rebuild to position without deleting first
           local a_label = (a_mode == "rebuild" or a_mode == "extend")
             and _("Rebuild X-Ray…") or _("Create X-Ray…")
           table.insert(buttons, {{
             text = a_label,
             callback = function()
               UIManager:close(dialog)
-              self_ref:_showXrayCreationChooser(action, action_id, on_update, opts)
+              self_ref:_showXrayCreationChooser(action, action_id, on_update, opts,
+                a_mode == "extend" or nil)
             end,
           }})
         end
