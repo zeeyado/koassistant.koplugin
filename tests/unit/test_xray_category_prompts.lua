@@ -131,6 +131,28 @@ TestRunner:test("xrayCategoryKeysFor maps per type and unions unknown", function
     TestRunner:assertEqual(#Actions.xrayCategoryKeysFor("", "fiction"), 0, "empty selection")
 end)
 
+TestRunner:test("depth axis: nil and standard are the shipped wording, light/deep differ", function()
+    local base = Actions.buildXrayCategoryPrompt(nil, "partial")
+    TestRunner:assertEqual(Actions.buildXrayCategoryPrompt(nil, "partial", "standard"), base)
+    TestRunner:assertEqual(Actions.buildXrayCategoryPrompt(nil, "partial", "bogus"), base)
+    local light = Actions.buildXrayCategoryPrompt(nil, "partial", "light")
+    local deep = Actions.buildXrayCategoryPrompt(nil, "partial", "deep")
+    TestRunner:assertTrue(light ~= base and deep ~= base and light ~= deep)
+    TestRunner:assertTrue(light:find("Only turning points", 1, true) ~= nil)
+    TestRunner:assertTrue(deep:find("3-5 sentences", 1, true) ~= nil)
+    -- No marker leaks at any depth
+    for _i, p in ipairs({ base, light, deep }) do
+        TestRunner:assertTrue(not p:find("__[A-Z_]+__"))
+    end
+    -- Depth composes with the category axis
+    local lp = Actions.buildXrayCategoryPrompt("people", "complete", "light")
+    TestRunner:assertTrue(lp:find("Leave out figures who appear once", 1, true) ~= nil)
+    TestRunner:assertTrue(not lp:find('"timeline"', 1, true))
+    TestRunner:assertEqual(Actions.normalizeXrayDepth("deep"), "deep")
+    TestRunner:assertEqual(Actions.normalizeXrayDepth("standard"), nil)
+    TestRunner:assertEqual(#Actions.XRAY_DEPTH_ORDER, 3)
+end)
+
 TestRunner:test("section prompt stays full", function()
     local sec = Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false)
     for _g, key in pairs(FICTION_KEYS) do

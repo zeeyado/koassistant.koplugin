@@ -856,6 +856,76 @@ local NONFICTION_GUIDANCE_FRAGMENTS = {
     events = "- **Argument Development**: Track the intellectual progression across the work. Include developments, turning points, and shifts in each chapter or section — not just the main thesis but subsidiary arguments and case studies. Each entry should show how it advances or complicates the discussion. Include references to key figures or concepts involved.",
 }
 
+-- DEPTH AXIS (docs/xray_depth_axis_plan.md, 2026-08-25). Orthogonal to the
+-- category axis: categories say WHAT the X-Ray covers, depth says HOW MUCH per
+-- entry. "standard" IS the tables above, byte for byte (nil depth = standard).
+-- Depth never states totals — a book's cast size is the book's; every rung
+-- fixes only (a) the sentence budget per entry tier, (b) the inclusion RULE
+-- (what earns an entry), (c) timeline granularity as a rule, (d) how
+-- connections are written. All four scale with the text's own density.
+local XRAY_DEPTH_ORDER = { "light", "standard", "deep" }
+
+local FICTION_GUIDANCE_BY_DEPTH = {
+    light = {
+        people = "- **Characters**: Include the characters the reader needs to place: anyone who returns later or whose actions shape what happens. Leave out figures who appear once and carry nothing forward. One sentence per entry stating who they are and where they stand now; the central few may take two. Always include aliases; connections only where a relationship is needed to follow the story.",
+        places = "- **Locations**: Only settings where something that matters happens. One sentence each.",
+        ideas = "- **Themes**: Only the ideas the story keeps returning to. One sentence each on how the text carries them.",
+        terms = "- **Lexicon**: Only terms the reader cannot follow the text without. One-line definitions.",
+        events = "- **Timeline**: Only turning points: developments that change the situation for what follows. One line each, in order, with the characters involved.",
+    },
+    deep = {
+        people = "- **Characters**: Include everyone the reader encounters, including figures who appear only once when they place a scene or a relationship. For major characters write 3-5 sentences: personality, their arc so far, the moments that changed them, what they want now, and what the text implies but does not state. For minor characters, 1-2 sentences including why they matter. Always include aliases, and connections with the relationship and what it does to the story.",
+        places = "- **Locations**: Every setting the reader encounters. For significant ones, 2-3 sentences on atmosphere, what unfolds there, and what the place means to the characters; minor ones get a sentence. Include references to characters or items associated with each location.",
+        ideas = "- **Themes**: Themes, motifs, images, and recurring ideas, central and peripheral. For major themes, 2-3 sentences tracing them through specific characters, conflicts, and events, and how they have shifted so far; minor motifs get a sentence. Include references to characters or items that embody each theme.",
+        terms = "- **Lexicon**: Every in-world term, cultural reference, or specialized usage a reader might pause on, with a definition and a note on how the text uses it.",
+        events = "- **Timeline**: Every development that moves the situation: plot events, revelations, decisions, and character moments that change how someone stands. In order, each with its significance and the characters involved.",
+    },
+}
+
+local NONFICTION_GUIDANCE_BY_DEPTH = {
+    light = {
+        people = "- **Key Figures**: Include the figures the reader needs to place: anyone the author returns to or whose work shapes the argument. Leave out names cited once in passing. One sentence per entry: who they are and how the author uses them; the central few may take two. Always include aliases; connections only where a relationship is needed to follow the argument.",
+        places = "- **Locations**: Only places whose role in the subject matters. One sentence each.",
+        ideas = "- **Core Concepts**: Only the concepts the argument depends on. One sentence each on what they mean here.\n- **Arguments**: Only the claims the work stands on. One sentence each stating the claim and its main support.",
+        terms = "- **Terminology**: Only terms the reader cannot follow the text without. One-line definitions.",
+        events = "- **Argument Development**: Only turning points in the argument: developments that change what follows. One line each, in order, with the figures or concepts involved.",
+    },
+    deep = {
+        people = "- **Key Figures**: Include everyone discussed or cited, including one-off references when they place a claim or a school of thought. For central figures write 3-5 sentences: who they are, what they contribute, how the author engages with them, where they sit relative to other figures, and what the author leaves implicit. For briefly mentioned figures, 1-2 sentences including why they are cited. Always include aliases (alternate names, shortened forms, titles the text uses), and connections with the relationship and what it does to the argument.",
+        places = "- **Locations**: Every place discussed. Significant ones get 2-3 sentences on what they are, their significance to the subject, and the developments tied to them; minor ones a sentence. Include references to key figures or concepts associated with each place.",
+        ideas = "- **Core Concepts**: Every concept, theory, framework, or distinction the author uses, central and peripheral. For central concepts, 2-3 sentences on what they mean, how the author develops them through evidence and reasoning, and how they relate to the other concepts; peripheral ones a sentence. Include references to key figures or other items that develop each concept.\n- **Arguments**: Every claim the author advances, engages with, or rejects. For major arguments, 2-3 sentences on the claim, the evidence, counter-arguments addressed, and what rests on it; supporting arguments a sentence. Include references to key figures or concepts involved.",
+        terms = "- **Terminology**: Every specialized term, with a definition and how the author uses it, including where the usage departs from the ordinary meaning.",
+        events = "- **Argument Development**: Every step in the argument: developments, case studies, objections raised and answered, shifts in framing. In order, each with how it advances or complicates the discussion and the figures or concepts involved.",
+    },
+}
+
+-- Connection FORM by depth (the standard rule is built inline below; see its
+-- comment for why it states form only and never counts).
+local CONN_RULE_BY_DEPTH = {
+    light = "- **Connections and references**: give a connection only where the relationship is needed to follow the work. Every one carries its relationship in parentheses — `Name (short phrase, under 12 words)` — and a bare name with no parenthesis is not a connection, so leave it out. The name before the parenthesis must match another entry in this X-Ray exactly.",
+    deep = "- **Connections and references**: a connection is a relationship that helps the reader follow the work, not a record that two entries appeared together. Every one carries its relationship and what it does to the work in parentheses — `Name (relationship; what it changes)`, under 20 words — and a bare name with no parenthesis is not a connection, so leave it out. The name before the parenthesis must match another entry in this X-Ray exactly, including any parenthetical the entry's own name carries. This governs the FORM of connection lists only: it is never a reason to leave an entry out of the X-Ray or to shorten a description.",
+}
+
+-- The "Output size" bullet by depth; standard = the pre-depth text verbatim.
+local OUTPUT_SIZE_BY_DEPTH = {
+    fiction = {
+        light = "- **Output size**: This is a quick reference. Prefer fewer, sharper entries: hold every entry to its sentence budget and stop at what the reader needs to follow the text.",
+        standard = "- **Output size**: This is a reference companion, not a retelling. Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.",
+        deep = "- **Output size**: This is a thorough reference companion, not a retelling. Give detailed entries for significant items and real entries for minor ones; completeness over brevity, within the output limits.",
+    },
+    nonfiction = {
+        light = "- **Output size**: This is a quick reference. Prefer fewer, sharper entries: hold every entry to its sentence budget and stop at what the reader needs to follow the argument.",
+        standard = "- **Output size**: This is a reference companion, not a retelling. Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.",
+        deep = "- **Output size**: This is a thorough reference companion, not a retelling. Give detailed entries for significant items and real entries for minor ones; completeness over brevity, within the output limits.",
+    },
+}
+
+--- Normalize a stored depth value: "light" | "deep" | nil (= standard).
+local function normalizeXrayDepth(value)
+    if value == "light" or value == "deep" then return value end
+    return nil
+end
+
 --- Normalize a category selection to its canonical csv form.
 --- nil when the value is absent, malformed, empty, or names every group
 --- (full needs no marker — nil IS full everywhere in this feature).
@@ -878,7 +948,10 @@ end
 
 --- Assemble the four schema/guidance replacement strings for a selection.
 --- @param selection string|nil canonical csv (nil = full)
-local function assembleXraySchemaParts(selection)
+local function assembleXraySchemaParts(selection, depth)
+    depth = normalizeXrayDepth(depth)
+    local fguide = depth and FICTION_GUIDANCE_BY_DEPTH[depth] or FICTION_GUIDANCE_FRAGMENTS
+    local nguide = depth and NONFICTION_GUIDANCE_BY_DEPTH[depth] or NONFICTION_GUIDANCE_FRAGMENTS
     local set
     if selection then
         set = {}
@@ -888,9 +961,9 @@ local function assembleXraySchemaParts(selection)
     for _idx, id in ipairs(XRAY_CATEGORY_ORDER) do
         if not set or set[id] then
             fs[#fs + 1] = FICTION_SCHEMA_FRAGMENTS[id]
-            fg[#fg + 1] = FICTION_GUIDANCE_FRAGMENTS[id]
+            fg[#fg + 1] = fguide[id]
             ns[#ns + 1] = NONFICTION_SCHEMA_FRAGMENTS[id]
-            ng[#ng + 1] = NONFICTION_GUIDANCE_FRAGMENTS[id]
+            ng[#ng + 1] = nguide[id]
         end
     end
     -- Its OWN bullet, after the category guidance. Appending it to the people
@@ -912,13 +985,17 @@ local function assembleXraySchemaParts(selection)
     -- rest behind "All connections"). Never spend model behaviour on what code
     -- decides exactly.
     local conn_rule = "- **Connections and references**: a connection is a relationship that helps the reader follow the work, not a record that two entries appeared together. Every one carries its relationship in parentheses — `Name (short phrase, under 12 words)` — and a bare name with no parenthesis is not a connection, so leave it out. The name before the parenthesis must match another entry in this X-Ray exactly, including any parenthetical the entry's own name carries. This governs the FORM of connection lists only: it is never a reason to leave an entry out of the X-Ray, to shorten a description, or to write less than the category guidance above asks for."
+    if depth then conn_rule = CONN_RULE_BY_DEPTH[depth] end
     fg[#fg + 1] = conn_rule
     ng[#ng + 1] = conn_rule
+    local size_key = depth or "standard"
     return {
         __FICTION_SCHEMA__ = table.concat(fs, ",\n  ") .. ",",
         __FICTION_GUIDANCE__ = table.concat(fg, "\n"),
         __NONFICTION_SCHEMA__ = table.concat(ns, ",\n  ") .. ",",
         __NONFICTION_GUIDANCE__ = table.concat(ng, "\n"),
+        __FICTION_OUTPUT_SIZE__ = OUTPUT_SIZE_BY_DEPTH.fiction[size_key],
+        __NONFICTION_OUTPUT_SIZE__ = OUTPUT_SIZE_BY_DEPTH.nonfiction[size_key],
     }
 end
 
@@ -926,8 +1003,9 @@ end
 --- @param template string
 --- @param replacements table Scope replacement set (partial/complete/section)
 --- @param selection string|nil canonical csv (nil = full)
-local function assemble_xray_prompt(template, replacements, selection)
-    local merged = assembleXraySchemaParts(selection)
+--- @param depth string|nil "light" | "deep" (nil = standard)
+local function assemble_xray_prompt(template, replacements, selection, depth)
+    local merged = assembleXraySchemaParts(selection, depth)
     for k, v in pairs(replacements) do merged[k] = v end
     return build_xray_prompt(template, merged)
 end
@@ -952,7 +1030,7 @@ FOR FICTION, use this JSON schema:
 Guidance for fiction:
 __FICTION_GUIDANCE__
 - __FICTION_STATUS_GUIDANCE__
-- **Output size**: This is a reference companion, not a retelling. Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items the reader encounters, but keep minor entries concise to stay within output limits.
+__FICTION_OUTPUT_SIZE__
 
 ---
 
@@ -966,7 +1044,7 @@ FOR NON-FICTION, use this JSON schema:
 Guidance for non-fiction:
 __NONFICTION_GUIDANCE__
 - __NONFICTION_STATUS_GUIDANCE__
-- **Output size**: This is a reference companion, not a retelling. Prioritize depth over breadth. Give detailed entries for significant items and brief entries for minor ones. Include all items discussed in the text, but keep minor entries concise to stay within output limits.
+__NONFICTION_OUTPUT_SIZE__
 
 __CLOSING__
 
@@ -1183,12 +1261,19 @@ Actions.normalizeXrayCategories = normalizeXrayCategories
 --- Build a category-filtered X-Ray create prompt.
 --- @param selection string canonical csv from normalizeXrayCategories
 --- @param which string "partial" (to reading position) | "complete" (whole document)
+--- @param depth string|nil "light" | "deep" (nil = standard, the shipped wording)
 --- @return string prompt
-function Actions.buildXrayCategoryPrompt(selection, which)
+function Actions.buildXrayCategoryPrompt(selection, which, depth)
     local replacements = which == "complete"
         and XRAY_COMPLETE_REPLACEMENTS or XRAY_PARTIAL_REPLACEMENTS
-    return assemble_xray_prompt(XRAY_PROMPT_TEMPLATE, replacements, selection)
+    return assemble_xray_prompt(XRAY_PROMPT_TEMPLATE, replacements, selection, depth)
 end
+
+--- Depth rungs in picker order.
+Actions.XRAY_DEPTH_ORDER = XRAY_DEPTH_ORDER
+
+--- Normalize a stored depth ("light" | "deep" | nil = standard).
+Actions.normalizeXrayDepth = normalizeXrayDepth
 
 --- JSON keys a selection maps to for an artifact type (update-clause helper).
 --- @param selection string canonical csv

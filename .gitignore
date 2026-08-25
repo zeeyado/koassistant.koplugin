@@ -39,3 +39,4 @@ scripts/exports/
 
 # Python bytecode cache
 scripts/__pycache__/
+/tests/bench/
