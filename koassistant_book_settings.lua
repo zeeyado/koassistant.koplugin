@@ -283,7 +283,7 @@ function BookSettings.resolveXrayMarking(doc_settings, features)
         intercept = intercept,
         card = card,
         card_length = (b_len == "sentence" or b_len == "full") and b_len
-            or (features.xray_card_length == "sentence" and "sentence" or "full"),
+            or (features.xray_card_length == "full" and "full" or "sentence"),
         ahead_card = (b_acard == "entry" or b_acard == "name") and b_acard
             or (features.xray_ahead_card == "entry" and "entry" or "name"),
         has_override = b_on ~= nil or b_dens ~= nil or b_fam ~= nil
@@ -1804,12 +1804,12 @@ function BookSettings.xrayCardModeLabel(v)
 end
 
 function BookSettings.xrayCardLengthLabel(v)
-    if v == "sentence" then return _("First sentence") end
-    return _("Full entry")
+    if v == "full" then return _("Full entry") end
+    return _("First sentence")
 end
 
 function BookSettings.xrayAheadCardLabel(v)
-    if v == "entry" then return _("Show the entry") end
+    if v == "entry" then return _("First sentence") end
     return _("Name only, tap to show")
 end
 
@@ -2137,11 +2137,11 @@ function BookSettings.showXrayMarkingPicker(opts)
             title = _("Card Shows"),
             key = BookSettings.KEY_XRAY_CARD_LENGTH,
             field = "xray_card_length",
-            global = function(f) return f.xray_card_length == "sentence" and "sentence" or "full" end,
+            global = function(f) return f.xray_card_length == "full" and "full" or "sentence" end,
             value_label = BookSettings.xrayCardLengthLabel,
             options = {
-                { value = "full", label = _("Full entry") },
                 { value = "sentence", label = _("First sentence") },
+                { value = "full", label = _("Full entry") },
             },
         }
     elseif opts.kind == "ahead_card" then
@@ -2155,7 +2155,7 @@ function BookSettings.showXrayMarkingPicker(opts)
             value_label = BookSettings.xrayAheadCardLabel,
             options = {
                 { value = "name", label = _("Name only, tap to show") },
-                { value = "entry", label = _("Show the entry (one sentence)") },
+                { value = "entry", label = _("First sentence right away") },
             },
         }
     else -- "enabled"

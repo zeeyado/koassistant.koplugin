@@ -19093,7 +19093,7 @@ function AskGPT:openXrayCard(query, opts)
     if protected then
       local ConfirmBox = require("ui/widget/confirmbox")
       UIManager:show(ConfirmBox:new{
-        text = T(_("This entry comes from a checkpoint ahead of your reading position (%1%) and may contain spoilers.\n\nReveal the full entry?"),
+        text = T(_("This entry comes from the next checkpoint (to %1%), ahead of your reading position, and may contain spoilers.\n\nReveal the full entry?"),
           math.floor((h.ahead_progress or 0) * 100 + 0.5)),
         ok_text = _("Reveal"),
         ok_callback = reveal,

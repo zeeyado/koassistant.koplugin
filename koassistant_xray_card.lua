@@ -102,12 +102,12 @@ end
 --- "Category (Role)" — the classification half of the identity line.
 --- Role rides only when short (fiction-style "Protagonist"; the non-fiction
 --- schema allows sentence-length roles, which belong to the description).
-local function kindLabel(hit)
+local function kindLabel(hit, no_role)
     local label = type(hit.category_label) == "string" and hit.category_label or ""
     local role = type(hit.item) == "table" and type(hit.item.role) == "string"
         and hit.item.role or ""
     role = role:gsub("^%s+", ""):gsub("[%s%.]+$", "")
-    if role ~= "" and #role <= 48 then
+    if role ~= "" and #role <= 48 and not no_role then
         label = label ~= "" and (label .. " (" .. role .. ")") or role
     end
     return label
@@ -122,32 +122,52 @@ end
 --- truncation notices proved it); code-prepended so the msgid stays clean.
 local function aheadLine(hit)
     if hit.source == "ahead" and hit.ahead_progress then
-        return "\u{26A0} " .. T(_("From a future checkpoint (built to %1%), may contain spoilers"),
+        return "\u{26A0} " .. T(_("From the next checkpoint (to %1%), may contain spoilers"),
             math.floor(hit.ahead_progress * 100 + 0.5))
     end
 end
 
---- B269 card content, one place for both styles. Ahead hits show the
---- TAPPED handle as the name line (the entry's primary name may itself be
---- the reveal — an alias folded onto the identity) and, in the default
---- "name" mode, no description at all: just where the entry comes from and
---- that a tap shows it. Non-ahead hits follow opts.card_length ("sentence"
---- = the first sentence, else the whole description — the popup truncates
---- naturally, the panel scrolls).
---- @return name string, line string|nil (warning/provenance), body string
+--- B269 STAGED card content, one place for both styles.
+--- Ahead (upcoming) hits show the TAPPED handle as the name line (the
+--- entry's primary name may itself be the reveal — an alias folded onto the
+--- identity) and reveal in stages inside the card: stage "name" = category
+--- only (no role — roles are model-written and can spoil), the next-checkpoint
+--- warning and a tap hint; stage "sentence" = role + first sentence; the
+--- next tap is the full entry (router-owned, behind its confirm). Installed
+--- hits start at the sentence stage (opts.card_length "full" = whole
+--- description, opt-in).
+--- @return table { name, kind, line, body, hint, next_stage }
 local function cardContent(hit, opts)
     opts = opts or {}
     if hit.source == "ahead" then
         local name = (type(hit.query) == "string" and hit.query ~= "") and hit.query or hit.name or ""
-        if opts.ahead_card == "entry" then
-            return name, aheadLine(hit), XrayCard.firstSentence(itemText(hit.item))
+        local stage = opts.stage or (opts.ahead_card == "entry" and "sentence" or "name")
+        if stage == "name" then
+            return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), body = "",
+                hint = _("Tap to show a one-line description"), next_stage = "sentence" }
         end
-        return name, "\u{26A0} " .. T(_("From the checkpoint covering up to %1%. Tap to show the entry (may contain spoilers)."),
-            math.floor((hit.ahead_progress or 0) * 100 + 0.5)), ""
+        return { name = name, kind = kindLabel(hit), line = aheadLine(hit),
+            body = XrayCard.firstSentence(itemText(hit.item)), hint = _("Tap for the full entry") }
     end
     local text = itemText(hit.item)
-    if opts.card_length == "sentence" then text = XrayCard.firstSentence(text) end
-    return hit.name or "", nil, text
+    if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
+    return { name = hit.name or "", kind = kindLabel(hit), body = text,
+        hint = _("Tap for the full entry") }
+end
+
+--- The inside-tap action for a card: advance a staged card in place
+--- (close + re-show with the next stage — FootnoteWidget builds its HTML
+--- once, and the panel auto-sizes to the grown content, so this reads as
+--- an in-place expand) or hand off to the router's full entry.
+local function tapAction(hit, opts, content)
+    if content.next_stage then
+        local next_opts = {}
+        for k, v in pairs(opts or {}) do next_opts[k] = v end
+        next_opts.stage = content.next_stage
+        XrayCard.show(hit, next_opts)
+    elseif opts and opts.on_full then
+        opts.on_full(hit)
+    end
 end
 
 --- Resolve an exact entity hit across the live main X-Ray, every section
@@ -226,15 +246,18 @@ local function showPopupCard(hit, opts)
     local can_md = ok_v and Viewer and Viewer.stripMarkdown
     -- Ahead hits: the NAME line leads with the triangle too (device round
     -- 2026-08-17 — the warning line alone sat below where the eye lands)
-    local name, ahead, ident = cardContent(hit, opts)
-    local head = can_md and ("**" .. name .. "**") or name
+    local c = cardContent(hit, opts)
+    local ahead = c.line
+    local head = can_md and ("**" .. c.name .. "**") or c.name
     if ahead then head = "\u{26A0} " .. head end
-    local kind = kindLabel(hit)
-    if kind ~= "" then head = head .. " · " .. kind end
+    if c.kind ~= "" then head = head .. " · " .. c.kind end
     local parts = { head }
     -- Ahead warning ABOVE the description (2f: early placement)
     if ahead then parts[#parts + 1] = ahead end
-    if ident ~= "" then parts[#parts + 1] = ident end
+    if c.body ~= "" then parts[#parts + 1] = c.body end
+    -- The staged name-only card says what the tap does (the popup's own
+    -- expand affordance is the tap itself)
+    if c.next_stage then parts[#parts + 1] = c.hint end
     local text = table.concat(parts, "\n\n")
     local rtl = nil
     if can_md then
@@ -247,7 +270,7 @@ local function showPopupCard(hit, opts)
         ui = opts.ui,
         para_direction_rtl = rtl,
         on_expand = function()
-            if opts.on_full then opts.on_full(hit) end
+            tapAction(hit, opts, c)
         end,
     }
     UIManager:show(popup)
@@ -265,24 +288,21 @@ local function showFootnoteCard(hit, opts)
     local function esc(s)
         return s:gsub("&", "&amp;"):gsub("<", "&lt;"):gsub(">", "&gt;")
     end
-    local kind = kindLabel(hit)
     -- Ahead hits: the NAME line leads with the triangle too (device round
     -- 2026-08-17); the warning line below stays
-    local name, ahead, ident = cardContent(hit, opts)
-    local html = "<div>" .. (ahead and "\u{26A0} " or "") .. "<b>" .. esc(name) .. "</b>"
-        .. (kind ~= "" and (" · " .. esc(kind)) or "") .. "</div>"
+    local c = cardContent(hit, opts)
+    local ahead = c.line
+    local html = "<div>" .. (ahead and "\u{26A0} " or "") .. "<b>" .. esc(c.name) .. "</b>"
+        .. (c.kind ~= "" and (" · " .. esc(c.kind)) or "") .. "</div>"
     if ahead then
         html = html .. '<div class="koa-meta">' .. esc(ahead) .. "</div>"
     end
-    if ident ~= "" then
-        html = html .. '<div class="koa-line">' .. (esc(ident):gsub("\n", "<br/>")) .. "</div>"
+    if c.body ~= "" then
+        html = html .. '<div class="koa-line">' .. (esc(c.body):gsub("\n", "<br/>")) .. "</div>"
     end
     -- Affordance: stock footnote panels do nothing on an inside tap, ours
-    -- opens the full entry — say so, muted (the name-only ahead line
-    -- already says it)
-    if ident ~= "" or not ahead then
-        html = html .. '<div class="koa-meta">' .. esc(_("Tap for the full entry")) .. "</div>"
-    end
+    -- advances the card / opens the full entry — say so, muted
+    html = html .. '<div class="koa-meta">' .. esc(c.hint) .. "</div>"
 
     local ui = opts.ui
     local doc = ui and ui.document
@@ -314,7 +334,7 @@ local function showFootnoteCard(hit, opts)
     local popup
     params.follow_callback = function() -- swipe west / Press key
         if popup then UIManager:close(popup) end
-        if opts.on_full then opts.on_full(hit) end
+        tapAction(hit, opts, c)
     end
     local ok_new
     ok_new, popup = pcall(FootnoteWidget.new, FootnoteWidget, params)
@@ -334,15 +354,16 @@ local function showFootnoteCard(hit, opts)
             return true
         end
         UIManager:close(fw)
-        if opts.on_full then opts.on_full(hit) end
+        tapAction(hit, opts, c)
         return true
     end
     UIManager:show(popup)
 end
 
 --- Show the card. opts = { style ("footnote"|"popup"), ui, sboxes,
---- on_full(hit), card_length ("sentence"|"full"), ahead_card ("entry"|"name") }
---- — on_full opens the full entry (router-owned).
+--- on_full(hit), card_length ("sentence"|"full"), ahead_card ("entry"|"name"),
+--- stage (internal: the staged card's current stage) } — on_full opens the
+--- full entry (router-owned).
 function XrayCard.show(hit, opts)
     opts = opts or {}
     if opts.style == "popup" then

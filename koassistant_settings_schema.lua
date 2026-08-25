@@ -1064,10 +1064,10 @@ local SettingsSchema = {
                             path = "features.xray_ahead_card",
                             default = "name",
                             options = {
-                                { value = "name", text = _("Name only, tap to show the entry") },
-                                { value = "entry", text = _("Show the entry (one sentence)") },
+                                { value = "name", text = _("Name only, tap to show a one-line description") },
+                                { value = "entry", text = _("First sentence right away") },
                             },
-                            help_text = _("What the card shows for an upcoming entity, known only from the checkpoint ahead of you. Name only shows the tapped name and where the entry comes from; the entry itself opens on a tap, behind a spoiler confirmation. The one-sentence option shows the entry's first sentence right away (it can reveal that a name is another character's alias). Can be overridden per book."),
+                            help_text = _("What the card shows first for an upcoming entity, known only from the next checkpoint built ahead of you. Name only shows the tapped name and its category; a tap on the card adds the entry's first sentence, and another tap opens the full entry behind a spoiler confirmation. First sentence right away skips the first step (it can reveal that a name is another character's alias). Can be overridden per book."),
                             enabled_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 return f.xray_show_ahead_entities ~= false
@@ -1082,12 +1082,12 @@ local SettingsSchema = {
                                     require("koassistant_book_settings").xrayCardLengthLabel(f.xray_card_length))
                             end,
                             path = "features.xray_card_length",
-                            default = "full",
+                            default = "sentence",
                             options = {
-                                { value = "full", text = _("Full entry") },
                                 { value = "sentence", text = _("First sentence only") },
+                                { value = "full", text = _("Full entry") },
                             },
-                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. Full entry shows the whole description (the floating popup cuts it where it runs out of room). First sentence keeps the card to a one-line identification. Can be overridden per book."),
+                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. First sentence keeps the card to a one-line identification, with the full entry a tap away. Full entry shows the whole description (swipe to scroll the footnote panel; the floating popup cuts it where it runs out of room). Can be overridden per book."),
                         },
                         {
                             id = "xray_card_landing",
