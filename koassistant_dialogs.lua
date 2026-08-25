@@ -5133,7 +5133,11 @@ if prune_book_text then
         existing_history, plugin, additional_input, on_complete, book_metadata }
 
     -- Get response from AI with callback for async streaming
-    local function handleResponse(success, answer, err, reasoning, web_search_used)
+    local function handleResponse(success, answer, err, reasoning, web_search_used, usage)
+        -- Token usage rides on message_data (a captured table; no new upvalue for the
+        -- nested cache-write closures) and is stamped into every artifact cache entry
+        -- (tokens_in/out/reasoning) so builds can be compared afterwards
+        message_data._usage = type(usage) == "table" and usage or nil
         -- Smart retrieval (D3): the gather ran standalone before this request — fold its
         -- lookups into this response's provenance (per-message indicator + Show Sources)
         if success and message_data._smart_retrieval_lookups then
@@ -5467,6 +5471,9 @@ if prune_book_text then
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided,
                       used_highlights = highlights_were_provided,
                       used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                      tokens_in = message_data._usage and message_data._usage.input_tokens or nil,
+                      tokens_out = message_data._usage and message_data._usage.output_tokens or nil,
+                      tokens_reasoning = message_data._usage and message_data._usage.reasoning_tokens or nil,
                       web_search_used = web_search_flag,
                       used_research_mode = research_mode_active or nil,
                       updated_by_auto = message_data._background_request or nil,
@@ -5577,6 +5584,9 @@ if prune_book_text then
                         used_highlights = used_highlights,
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        tokens_in = message_data._usage and message_data._usage.input_tokens or nil,
+                        tokens_out = message_data._usage and message_data._usage.output_tokens or nil,
+                        tokens_reasoning = message_data._usage and message_data._usage.reasoning_tokens or nil,
                         web_search_used = web_search_flag,
                         used_research_mode = research_mode_active or nil,
                         updated_by_auto = message_data._background_request or nil,
@@ -5675,6 +5685,9 @@ if prune_book_text then
                         used_book_text = book_text_was_provided,
                         used_highlights = (message_data.highlights and message_data.highlights ~= "") or false,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        tokens_in = message_data._usage and message_data._usage.input_tokens or nil,
+                        tokens_out = message_data._usage and message_data._usage.output_tokens or nil,
+                        tokens_reasoning = message_data._usage and message_data._usage.reasoning_tokens or nil,
                         web_search_used = web_search_flag,
                         full_document = true,
                         source_mode = source_mode,
@@ -5701,6 +5714,9 @@ if prune_book_text then
                         model = model_name,
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        tokens_in = message_data._usage and message_data._usage.input_tokens or nil,
+                        tokens_out = message_data._usage and message_data._usage.output_tokens or nil,
+                        tokens_reasoning = message_data._usage and message_data._usage.reasoning_tokens or nil,
                         web_search_used = web_search_flag,
                         flow_visible_pages = message_data.flow_visible_pages,
                         unavailable_data_text = unavailable_text,
@@ -5718,6 +5734,9 @@ if prune_book_text then
                         language = temp_config.features and temp_config.features.translation_language or "English",
                         used_book_text = book_text_was_provided,
                         used_reasoning = (reasoning ~= nil and reasoning ~= ""),
+                        tokens_in = message_data._usage and message_data._usage.input_tokens or nil,
+                        tokens_out = message_data._usage and message_data._usage.output_tokens or nil,
+                        tokens_reasoning = message_data._usage and message_data._usage.reasoning_tokens or nil,
                         web_search_used = web_search_flag,
                         flow_visible_pages = message_data.flow_visible_pages,
                         unavailable_data_text = unavailable_text,

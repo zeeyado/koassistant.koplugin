@@ -302,6 +302,11 @@ local function saveCache(document_path, cache)
             if entry.web_search_used then
                 file:write(string.format("        web_search_used = %s,\n", tostring(entry.web_search_used)))
             end
+            for _idx, tk in ipairs({ "tokens_in", "tokens_out", "tokens_reasoning" }) do
+                if type(entry[tk]) == "number" then
+                    file:write(string.format("        %s = %d,\n", tk, entry[tk]))
+                end
+            end
             if entry.used_research_mode then
                 file:write(string.format("        used_research_mode = %s,\n", tostring(entry.used_research_mode)))
             end
@@ -473,6 +478,10 @@ function ActionCache.set(document_path, action_id, result, progress_decimal, met
         -- Track reasoning and web search usage
         used_reasoning = metadata and metadata.used_reasoning,
         web_search_used = metadata and metadata.web_search_used,
+        -- Token usage of the request that wrote this entry (build-cost comparisons)
+        tokens_in = metadata and metadata.tokens_in,
+        tokens_out = metadata and metadata.tokens_out,
+        tokens_reasoning = metadata and metadata.tokens_reasoning,
         -- Track research mode at generation time (for update prompt track consistency)
         used_research_mode = metadata and metadata.used_research_mode,
         -- True when the last write came from a background auto-update (scope-popup trace)
@@ -1471,6 +1480,7 @@ local CHECKPOINT_COPY_FIELDS = {
     "chapter_label", "intro",
     "coverage_spans", "producer", "base_timestamp", "merged_from_books",
     "merged_from", "xray_categories", "edited_at",
+    "tokens_in", "tokens_out", "tokens_reasoning",
 }
 
 local function buildCheckpointEntry(source)
@@ -1553,6 +1563,11 @@ local function writeCheckpointRing(path, ring)
         -- read as a pristine build of its checkpoint.
         if cp.edited_at then
             file:write(string.format("        edited_at = %s,\n", tostring(cp.edited_at)))
+        end
+        for _tk, tk in ipairs({ "tokens_in", "tokens_out", "tokens_reasoning" }) do
+            if type(cp[tk]) == "number" then
+                file:write(string.format("        %s = %d,\n", tk, cp[tk]))
+            end
         end
         writeMergedFrom(file, cp.merged_from, "        ")
         local result_text = cp.result or ""

@@ -86,6 +86,9 @@ local FULL_METADATA = {
     full_document = true,
     used_reasoning = true,
     web_search_used = true,
+    tokens_in = 120000,
+    tokens_out = 9500,
+    tokens_reasoning = 3000,
     used_research_mode = true,
     updated_by_auto = true,
     -- 50(f) FULL-posture ahead-install stamp (revert provenance)

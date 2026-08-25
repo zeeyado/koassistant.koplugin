@@ -6806,6 +6806,13 @@ local function buildInfoPopupText(cached_entry, progress_str)
   if cached_entry.web_search_used then
     table.insert(info_lines, _("Web search:") .. " " .. _("Yes"))
   end
+  if cached_entry.tokens_in or cached_entry.tokens_out then
+    local tok = T(_("%1 in, %2 out"), cached_entry.tokens_in or 0, cached_entry.tokens_out or 0)
+    if cached_entry.tokens_reasoning and cached_entry.tokens_reasoning > 0 then
+      tok = tok .. " " .. T(_("(%1 thinking)"), cached_entry.tokens_reasoning)
+    end
+    table.insert(info_lines, _("Tokens:") .. " " .. tok)
+  end
   return table.concat(info_lines, "\n")
 end
 
