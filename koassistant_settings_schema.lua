@@ -985,7 +985,7 @@ local SettingsSchema = {
                             type = "action",
                             text = _("Categories for New X-Rays"),
                             callback = "showXrayDefaultCategoriesPicker",
-                            help_text = _("Which category groups a new X-Ray tracks by default: everything, or a narrower pick like character tracking. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
+                            help_text = _("Which category groups a new X-Ray tracks by default: everything, or a narrower preset such as Reference (no timeline) or Characters only. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
                         },
                         {
                             id = "xray_selection_intercept",

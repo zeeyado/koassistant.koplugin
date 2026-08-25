@@ -1866,13 +1866,19 @@ end
 
 --- Short label for a stored category selection (row/button text).
 --- @param value string|nil raw stored value (normalized internally)
---- @return string "Full" / "Character tracking" / "N of 5"
+--- @return string "All" / "Characters only" / "Characters and story" / "Reference" / "N of 5"
+--- Preset names (2026-08-25, depth-axis session): "All" frees "Full" for the
+--- document scope; "Light" left this axis because the timeline is the single
+--- heaviest block of an X-Ray (bench: 25-32 events at Standard depth), so a
+--- people+events preset is a PURPOSE preset, not a cheap one. Cost now lives on
+--- the depth dial. "Reference" = every static entry, no timeline.
 function BookSettings.xrayCategoriesLabel(value)
     local Actions = require("prompts.actions")
     local sel = Actions.normalizeXrayCategories(value)
-    if not sel then return _("Full") end
-    if sel == "people" then return _("Character tracking") end
-    if sel == "people,events" then return _("Light") end
+    if not sel then return _("All") end
+    if sel == "people" then return _("Characters only") end
+    if sel == "people,events" then return _("Characters and story") end
+    if sel == "people,places,ideas,terms" then return _("Reference") end
     local n = 0
     for _id in sel:gmatch("[^,]+") do n = n + 1 end
     return T(_("%1 of %2"), n, #Actions.XRAY_CATEGORY_ORDER)
@@ -1978,20 +1984,19 @@ function BookSettings.showXrayCategoriesPicker(opts)
                 reshow()
             end }}
     end
-    buttons[#buttons + 1] = {{ text = dot(full_stored) .. _("Full (all categories)"),
+    buttons[#buttons + 1] = {{ text = dot(full_stored) .. _("All categories"),
         callback = function()
             for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = true end
             save()
             reshow()
         end }}
-    -- Light (maintainer 2026-08-18): who + what happened. people + events =
-    -- cast/key figures and story arc/argument development (the current-state
-    -- singleton always rides regardless of selection). Deliberately NOT
-    -- including places or ideas: ideas is the depth sink with the largest
-    -- model variance, and a reader who wants either is one checkbox away.
-    -- Presets stay meaningfully distinct at 1 / 2 / 5 groups.
+    -- Characters and story (maintainer 2026-08-18, renamed 2026-08-25): who +
+    -- what happened. people + events = cast/key figures and story arc/argument
+    -- development (the current-state singleton always rides regardless of
+    -- selection). A purpose preset: the timeline is the heaviest block, so it
+    -- is not the cheap pick; Reference below is.
     buttons[#buttons + 1] = {{ text = dot(stored == "people,events")
-            .. _("Light (characters and story arc)"),
+            .. _("Characters and story (people, timeline)"),
         callback = function()
             for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = nil end
             set.people = true
@@ -1999,8 +2004,19 @@ function BookSettings.showXrayCategoriesPicker(opts)
             save()
             reshow()
         end }}
+    -- Reference (2026-08-25, from the bench): every static entry, no timeline.
+    -- places + ideas + terms together cost a fraction of the event log, so this
+    -- is the cheap preset that still answers who / where / what.
+    buttons[#buttons + 1] = {{ text = dot(stored == "people,places,ideas,terms")
+            .. _("Reference (everything except the timeline)"),
+        callback = function()
+            for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = true end
+            set.events = nil
+            save()
+            reshow()
+        end }}
     buttons[#buttons + 1] = {{ text = dot(stored == "people")
-            .. _("Character tracking (people only)"),
+            .. _("Characters only"),
         callback = function()
             for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = nil end
             set.people = true
