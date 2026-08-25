@@ -1968,8 +1968,14 @@ function BookSettings.showXrayCategoriesPicker(opts)
         return n
     end
     local function dot(active) return active and "● " or "○ " end
-    -- Toggle idiom shared with the quick-preset pickers (dialogs): ✓ / ○
-    local function mark(active) return active and "✓ " or "○ " end
+    -- Category toggles are ✓ / ✗ (maintainer 2026-08-25): the presets above
+    -- them are a radio group (● / ○), and a shared hollow circle made the two
+    -- unrelated row kinds read as one list.
+    local function mark(active) return active and "✓ " or "✗ " end
+    -- Group labels (disabled rows) separate the radio presets from the
+    -- one-by-one picks; the Book Settings screens retired disabled header
+    -- rows, this popup is the deliberate exception (two row kinds, one list).
+    local function header(text) return {{ text = text, enabled = false }} end
 
     local full_stored
     if is_global then full_stored = (stored == nil) else full_stored = (raw == "full") end
@@ -1984,6 +1990,7 @@ function BookSettings.showXrayCategoriesPicker(opts)
                 reshow()
             end }}
     end
+    buttons[#buttons + 1] = header(_("Presets"))
     buttons[#buttons + 1] = {{ text = dot(full_stored) .. _("All categories"),
         callback = function()
             for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = true end
@@ -2023,6 +2030,7 @@ function BookSettings.showXrayCategoriesPicker(opts)
             save()
             reshow()
         end }}
+    buttons[#buttons + 1] = header(_("Pick one by one"))
     for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do
         buttons[#buttons + 1] = {{ text = mark(set[id]) .. XRAY_CATEGORY_LABELS[id],
             callback = function()
