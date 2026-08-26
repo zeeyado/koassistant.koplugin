@@ -242,6 +242,20 @@ function Export.fromSavedChat(chat)
     }
 end
 
+--- Cut a string to at most max_bytes WITHOUT splitting a UTF-8 sequence
+-- (issue #90, 2026-08-26: a CJK title cut at byte 30 produced an invalid
+-- filename that the Kindle filesystem refused with "Invalid argument").
+local function cutUtf8(s, max_bytes)
+    if #s <= max_bytes then return s end
+    local n = max_bytes
+    while n > 0 do
+        local b = s:byte(n + 1)
+        if not b or b < 0x80 or b >= 0xC0 then break end
+        n = n - 1
+    end
+    return s:sub(1, n)
+end
+
 --- Sanitize a string for use in filenames
 -- @param str string Input string
 -- @param max_len number Maximum length (default 30)
@@ -263,7 +277,7 @@ local function sanitizeForFilename(str, max_len)
 
     -- Truncate if too long, try to break at underscore
     if #safe > max_len then
-        safe = safe:sub(1, max_len)
+        safe = cutUtf8(safe, max_len)
         -- Remove partial word if we cut mid-word
         local last_underscore = safe:match(".*()_")
         if last_underscore and last_underscore > (max_len / 2) then
@@ -621,7 +635,7 @@ function Export.getCacheFilename(book_title, cache_type, cache_timestamp)
         safe_title = safe_title:gsub("%s+", "_")
         -- Limit length
         if #safe_title > 30 then
-            safe_title = safe_title:sub(1, 30)
+            safe_title = cutUtf8(safe_title, 30)
         end
         safe_title = safe_title .. "_"
     end
