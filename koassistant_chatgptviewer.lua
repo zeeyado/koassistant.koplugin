@@ -887,6 +887,39 @@ local WIDE_TABLE_COLS = 3
 --     pairs underscores/asterisks ACROSS spans ("$a_1$ and $b_2$" -> <em>);
 --     entity-escape them so the math text renders literally and intact
 --     (nothing renders LaTeX on MuPDF anyway; T10 survey).
+--  3. List continuation join (#90, 2026-08-26, from an exported Recap): a
+--     bullet whose body sits on the NEXT indented line ("* **label**:\n  body")
+--     is standard lazy continuation, but luamd closes the <li> at the line
+--     end and emits the body as a <p> SIBLING inside the <ul>, which MuPDF
+--     renders as an empty bullet (Text mode showed the bodies). Join such
+--     lines onto their item; nested items, blank lines and fences are kept.
+local function joinListContinuations(text)
+    local lines = {}
+    for line in text:gmatch("([^\n]*)\n?") do lines[#lines + 1] = line end
+    if #lines > 0 and lines[#lines] == "" then lines[#lines] = nil end
+    local out, in_fence, i = {}, false, 1
+    local function isItem(l)
+        return l:match("^%s*[%*%-%+]%s") or l:match("^%s*%d+[%.%)]%s")
+    end
+    while i <= #lines do
+        local line = lines[i]
+        if line:match("^%s*```") then in_fence = not in_fence end
+        if not in_fence and isItem(line) then
+            local j = i + 1
+            while lines[j] and lines[j]:match("^%s%s+%S") and not isItem(lines[j])
+                and not lines[j]:match("^%s*```") do
+                line = line:gsub("%s+$", "") .. " " .. lines[j]:gsub("^%s+", "")
+                j = j + 1
+            end
+            i = j
+        else
+            i = i + 1
+        end
+        out[#out + 1] = line
+    end
+    return table.concat(out, "\n")
+end
+
 local function healMarkdown(text)
     if not text then return text end
     -- 1. fence heal
@@ -903,6 +936,8 @@ local function healMarkdown(text)
     end
     text = text:gsub("%$%$(.-)%$%$", function(body) return "$$" .. shield(body) .. "$$" end)
     text = text:gsub("%$([^%$\n]-%S)%$", function(body) return "$" .. shield(body) .. "$" end)
+    -- 3. list continuation join
+    text = joinListContinuations(text)
     return text
 end
 
