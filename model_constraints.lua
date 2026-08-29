@@ -323,12 +323,10 @@ ModelConstraints.capabilities = {
         --   nvidia/nemotron-3-ultra-550b-a55b  forced -> prose intermittently
         --   openai/gpt-oss-20b                 auto   -> prose intermittently
         --   minimaxai/minimax-m3               rate-limited, inconclusive
+        -- nano-9b-v2, llama-3.3-nemotron-super-49b, llama-3.1-70b and
+        -- step-3.7-flash were retired by NVIDIA 2026-08-26 (HTTP 410).
         tools = {
             "nvidia/nemotron-3-nano-30b-a3b",
-            "nvidia/nvidia-nemotron-nano-9b-v2",
-            "nvidia/llama-3.3-nemotron-super-49b-v1.5",
-            "meta/llama-3.1-70b-instruct",
-            "stepfun-ai/step-3.7-flash",
         },
     },
     perplexity = {

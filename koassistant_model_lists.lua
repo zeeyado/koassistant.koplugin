@@ -404,21 +404,26 @@ local ModelLists = {
         "nvidia/nemotron-3-super-120b-a12b",        -- default: tools + forced tools + effort all probed
         "nvidia/nemotron-3-ultra-550b-a55b",
         "nvidia/nemotron-3-nano-30b-a3b",
-        "nvidia/nvidia-nemotron-nano-9b-v2",        -- fastest (~0.5s); forced tool use 500s, so no tools grant
-        "nvidia/llama-3.3-nemotron-super-49b-v1.5",
+        "openai/gpt-oss-120b",                      -- answers live 2026-08-29 (reachability only)
         "openai/gpt-oss-20b",
         "minimaxai/minimax-m3",
-        "meta/llama-3.1-70b-instruct",
-        "meta/llama-3.1-8b-instruct",
-        "stepfun-ai/step-3.7-flash",
-        "nvidia/nemotron-mini-4b-instruct",
+        -- RETIRED BY NVIDIA (HTTP 410 Gone, end of life 2026-08-26/28, re-probed
+        -- 2026-08-29; the reader-visible "HTTP 400/404" report on 0.21.2):
+        --   nvidia/nvidia-nemotron-nano-9b-v2, nvidia/llama-3.3-nemotron-super-49b-v1.5,
+        --   meta/llama-3.1-70b-instruct, meta/llama-3.1-8b-instruct,
+        --   stepfun-ai/step-3.7-flash, nvidia/nemotron-mini-4b-instruct
+        -- CANDIDATES that answered a reachability call 2026-08-29 but have NOT
+        -- had the model_audit battery: moonshotai/kimi-k3 (~3s),
+        -- nvidia/nemotron-3-nano-omni-30b-a3b-reasoning (~0.8s),
+        -- mistralai/mistral-nemotron (~0.5s; 2 of 3 probes timed out on 08-20),
+        -- deepseek-ai/deepseek-v4-flash-0731 (~15s, content null beside
+        -- reasoning_content). deepseek-ai/deepseek-v4-pro-0813 still hangs.
         -- EXCLUDED, do not re-add without re-probing (device round 2026-08-20):
         --   nvidia/nemotron-3.5-lightning-30b-a3b -- reasoning never terminates on
         --     constraint-shaped prompts ("translate this", "answer in N words"):
         --     content comes back byte-identical to reasoning_content with no answer
         --     after it, on every sample. Only reasoning_effort="none" works, and our
         --     default stance sends nothing, so reasoning is ON by default.
-        --   mistralai/mistral-nemotron -- 2 of 3 reachability probes timed out.
     },
     nebius = {
         "meta-llama/Llama-3.3-70B-Instruct",        -- seed (unverified)
@@ -614,7 +619,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
             perplexity = "sonar",
-            nvidia = "nvidia/nvidia-nemotron-nano-9b-v2",  -- ~0.5s; no tools grant (forced tool use 500s)
+            nvidia = "openai/gpt-oss-20b",  -- nano-9b-v2 retired by NVIDIA 2026-08-26 (410)
         },
     },
 

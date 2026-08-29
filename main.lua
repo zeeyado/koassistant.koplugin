@@ -2760,6 +2760,21 @@ function AskGPT:testProvider(provider_id)
           return false, T(_("auth failed (HTTP %1) - check the API key"), n)
         end
         if not n then return false, T(_("network error: %1"), tostring(body)) end
+        -- Surface the server's own explanation when it gives one: NVIDIA
+        -- retires models with a 410 whose body names the end-of-life date,
+        -- which "check base URL" would hide.
+        local detail
+        if type(body) == "string" then
+          local ok, parsed = pcall(json.decode, body)
+          if ok and type(parsed) == "table" then
+            local err = parsed.error
+            detail = parsed.detail or parsed.message
+                or (type(err) == "table" and err.message) or (type(err) == "string" and err)
+          end
+        end
+        if type(detail) == "string" and detail ~= "" then
+          return false, T(_("HTTP %1 - %2"), n, detail:sub(1, 200))
+        end
         return false, T(_("HTTP %1 - check base URL and model id"), n)
       end },
     { label = _("Streaming (SSE)"), run = function()
