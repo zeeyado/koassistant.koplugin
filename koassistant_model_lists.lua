@@ -404,6 +404,7 @@ local ModelLists = {
         "nvidia/nemotron-3-super-120b-a12b",        -- default: tools + forced tools + effort all probed
         "nvidia/nemotron-3-ultra-550b-a55b",
         "nvidia/nemotron-3-nano-30b-a3b",
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- ultrafast (~0.5-1s); battery 2026-08-29: effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant
         "openai/gpt-oss-120b",                      -- answers live 2026-08-29 (reachability only)
         "openai/gpt-oss-20b",
         "minimaxai/minimax-m3",
@@ -412,12 +413,13 @@ local ModelLists = {
         --   nvidia/nvidia-nemotron-nano-9b-v2, nvidia/llama-3.3-nemotron-super-49b-v1.5,
         --   meta/llama-3.1-70b-instruct, meta/llama-3.1-8b-instruct,
         --   stepfun-ai/step-3.7-flash, nvidia/nemotron-mini-4b-instruct
-        -- CANDIDATES that answered a reachability call 2026-08-29 but have NOT
-        -- had the model_audit battery: moonshotai/kimi-k3 (~3s),
-        -- nvidia/nemotron-3-nano-omni-30b-a3b-reasoning (~0.8s),
-        -- mistralai/mistral-nemotron (~0.5s; 2 of 3 probes timed out on 08-20),
-        -- deepseek-ai/deepseek-v4-flash-0731 (~15s, content null beside
-        -- reasoning_content). deepseek-ai/deepseek-v4-pro-0813 still hangs.
+        -- PROBED 2026-08-29 AND WITHHELD (model_audit has no nvidia adapter yet;
+        -- legs run by hand):
+        --   moonshotai/kimi-k3 -- answers, but 429 on every follow-up call even
+        --     paced 20s apart (roughly one request per minute on our tier).
+        --   mistralai/mistral-nemotron -- HTTP 500 on 5 of 8 calls.
+        --   deepseek-ai/deepseek-v4-flash-0731 -- 15-45s for a one-word answer,
+        --     one 529; deepseek-v4-pro-0813 still hangs.
         -- EXCLUDED, do not re-add without re-probing (device round 2026-08-20):
         --   nvidia/nemotron-3.5-lightning-30b-a3b -- reasoning never terminates on
         --     constraint-shaped prompts ("translate this", "answer in N words"):
@@ -619,7 +621,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
             perplexity = "sonar",
-            nvidia = "openai/gpt-oss-20b",  -- nano-9b-v2 retired by NVIDIA 2026-08-26 (410)
+            nvidia = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",  -- ~0.5-1s; nano-9b-v2 retired by NVIDIA 2026-08-26 (410); no tools grant (forced tool use 503s)
         },
     },
 
