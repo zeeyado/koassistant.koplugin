@@ -1018,6 +1018,67 @@ TestRunner:test("intro rung: disk round-trip, resume-point exclusion (round 20)"
     ActionCache.clearXrayLadder(DOC_PATH)
 end)
 
+TestRunner:test("promoteXrayLadderRung: outgoing-only ledger stubs survive the install (F1, B278)", function()
+    local XrayParser = require("koassistant_xray_parser")
+    ActionCache.clearXrayLadder(DOC_PATH)
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    ActionCache.clearXrayCache(DOC_PATH)
+    ActionCache.clear(DOC_PATH, "xray")
+
+    -- Live: a manual state (a fold landed after the rung below was built) —
+    -- the ledger holds Elias (only here) and Orrin (whom the rung names)
+    local live_json = [[{
+      "type": "fiction",
+      "characters": [{"name": "Tamsin", "description": "live"}],
+      "__dormant": [
+        {"name": "Elias", "category": "characters", "source": "Vol 2",
+         "description": "A ferryman.", "aliases": ["the ferryman"]},
+        {"name": "Orrin", "category": "characters", "source": "Vol 2",
+         "description": "A smuggler."}
+      ]
+    }]]
+    ActionCache.setXrayCache(DOC_PATH, live_json, 0.4,
+        { model = "m-live", used_book_text = true, progress_page = 40 })
+    ActionCache.set(DOC_PATH, "xray", live_json, 0.4, { model = "m-live" })
+    -- The built-ahead rung: a chain ledger without Elias, and Orrin arrives
+    ActionCache.pushXrayLadderRung(DOC_PATH, {
+        result = [[{
+          "type": "fiction",
+          "characters": [
+            {"name": "Tamsin", "description": "rung"},
+            {"name": "Orrin", "description": "Arrives in this stretch."}
+          ]
+        }]],
+        progress_decimal = 0.7, progress_page = 70, timestamp = 1700000070,
+        used_book_text = true, model = "m-70",
+    })
+    local ladder = ActionCache.getXrayLadder(DOC_PATH)
+    local ok = ActionCache.promoteXrayLadderRung(DOC_PATH, ladder[1], 5)
+    TestRunner:assertEqual(ok, true, "install succeeds")
+    local live = ActionCache.getXrayCache(DOC_PATH)
+    local data = XrayParser.parse(live.result)
+    local ledger = data[XrayParser.DORMANT_KEY] or {}
+    TestRunner:assertEqual(#ledger, 1, "the outgoing-only stub survived the install")
+    TestRunner:assertEqual(ledger[1].name, "Elias", "and it is that stub")
+    TestRunner:assertEqual(ledger[1].aliases and ledger[1].aliases[1], "the ferryman",
+        "the alias on the stub survived too")
+    local orrin
+    for _i, c in ipairs(data.characters or {}) do if c.name == "Orrin" then orrin = c end end
+    TestRunner:assertTrue(orrin ~= nil, "the arriving entity is live from the rung")
+    TestRunner:assertEqual(orrin.description, "Arrives in this stretch.",
+        "the rung's description owns the entry")
+    TestRunner:assertEqual(orrin.background and orrin.background[1] and orrin.background[1].source,
+        "Vol 2", "his carried history woke onto him at the doorway")
+    TestRunner:assertEqual(live.timestamp, 1700000070, "rung identity kept (timestamp)")
+    TestRunner:assertEqual(ActionCache.getXrayLadder(DOC_PATH)[1].result:find("__dormant", 1, true),
+        nil, "the ladder still holds the pure rung")
+
+    ActionCache.clearXrayLadder(DOC_PATH)
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    ActionCache.clearXrayCache(DOC_PATH)
+    ActionCache.clear(DOC_PATH, "xray")
+end)
+
 TestRunner:test("promoteXrayLadderRung: copy semantics, conditional ring push, flag fallback", function()
     ActionCache.clearXrayLadder(DOC_PATH)
     ActionCache.clearXrayCheckpoints(DOC_PATH)

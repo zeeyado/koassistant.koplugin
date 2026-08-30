@@ -846,6 +846,78 @@ function XrayMerge.carryActiveBackground(prev_parsed, parsed)
     return added
 end
 
+--- F1 (B278, 2026-08-30, docs/xray_cross_book_lookup_plan.md §2.4): the
+--- promotion doorway carried only ACTIVE background carriers (above), so a
+--- stub that lived ONLY in the outgoing artifact's ledger — a fold made after
+--- the rung was built, a late seed, an alias the reader edited onto a stub —
+--- died with the swap, while the rebuild path has copied the outgoing ledger
+--- across first since round 25. Union the outgoing ledger into the incoming
+--- one BY NAME: a stub present in both takes the outgoing (newer) version —
+--- category/source/file/description where set, the rung's as fallback — with
+--- aliases and background lines unioned; a stub the incoming lacks is
+--- appended. Runs BEFORE carryActiveBackground and the wake-pass, which
+--- re-wakes anything the rung already named (fill-gaps-only background, so
+--- nothing duplicates): idempotent. A stub the reader REMOVED from the
+--- outgoing ledger is absent here and cannot return through this union; the
+--- rung's own copy still brings it back (tombstones out of scope, documented).
+--- @param prev_parsed table The outgoing X-Ray
+--- @param parsed table The incoming rung (mutated: ledger unioned)
+--- @return number added, number refreshed
+function XrayMerge.unionLedger(prev_parsed, parsed)
+    local XrayParser = require("koassistant_xray_parser")
+    if type(prev_parsed) ~= "table" or type(parsed) ~= "table" then return 0, 0 end
+    local DK = XrayParser.DORMANT_KEY
+    local prev_ledger = prev_parsed[DK]
+    if type(prev_ledger) ~= "table" or #prev_ledger == 0 then return 0, 0 end
+    local ledger = type(parsed[DK]) == "table" and parsed[DK] or {}
+    local by_name = {}
+    for i, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" then
+            by_name[stub.name:lower()] = i
+        end
+    end
+    local added, refreshed = 0, 0
+    for _idx, stub in ipairs(prev_ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            local key = stub.name:lower()
+            local at = by_name[key]
+            if at then
+                local old = ledger[at]
+                local merged = {
+                    name = stub.name,
+                    category = stub.category or old.category,
+                    source = stub.source or old.source,
+                    file = stub.file or old.file,
+                    description = stub.description or old.description,
+                    background = XrayParser.mergeBackground(old.background, stub.background),
+                }
+                -- Aliases: the outgoing list first (the reader's edits live
+                -- there), then whatever the rung's copy had that it lacks
+                local aliases, seen = {}, {}
+                local function fold(list)
+                    for _idx2, a in ipairs(type(list) == "table" and list or {}) do
+                        if type(a) == "string" and a ~= "" and not seen[a:lower()] then
+                            seen[a:lower()] = true
+                            aliases[#aliases + 1] = a
+                        end
+                    end
+                end
+                fold(stub.aliases)
+                fold(old.aliases)
+                if #aliases > 0 then merged.aliases = aliases end
+                ledger[at] = merged
+                refreshed = refreshed + 1
+            else
+                ledger[#ledger + 1] = stub
+                by_name[key] = #ledger
+                added = added + 1
+            end
+        end
+    end
+    if #ledger > 0 then parsed[DK] = ledger end
+    return added, refreshed
+end
+
 --- Round 28 (#90 device report: doubled self-labeled Vol-4 lines, background
 --- order 4,2,1,3): write-time reconciliation of every mechanical background
 --- array against the book's group(s).

@@ -2063,7 +2063,7 @@ function ActionCache.promoteXrayLadderRung(document_path, rung, limit, opts)
     -- the carry must never block a promotion.
     local install_result = rung.result
     if live and live.result and live.result ~= rung.result then
-        local ok_carry, carried_out, carried_n, woken_n = pcall(function()
+        local ok_carry, carried_out, carried_n, woken_n, ledger_n = pcall(function()
             local XrayParser = require("koassistant_xray_parser")
             if not XrayParser.isJSON(live.result) or not XrayParser.isJSON(rung.result) then
                 return nil
@@ -2072,17 +2072,22 @@ function ActionCache.promoteXrayLadderRung(document_path, rung, limit, opts)
             if type(prev_parsed) ~= "table" or prev_parsed.error then return nil end
             local parsed = XrayParser.parse(rung.result)
             if type(parsed) ~= "table" or parsed.error then return nil end
-            local n = require("koassistant_xray_merge")
-                .carryActiveBackground(prev_parsed, parsed)
+            local XrayMerge = require("koassistant_xray_merge")
+            -- F1 (B278, 2026-08-30): the outgoing LEDGER first — stubs only
+            -- the live artifact held (a fold made after this rung was built,
+            -- an alias edited onto a stub) died with the swap; the rebuild
+            -- path has carried the outgoing ledger across since round 25
+            local u_added, u_refreshed = XrayMerge.unionLedger(prev_parsed, parsed)
+            local n = XrayMerge.carryActiveBackground(prev_parsed, parsed)
             local woken = XrayParser.wakeDormant(parsed)
-            if n == 0 and #woken == 0 then return nil end
-            return XrayParser.serialize(parsed), n, #woken
+            if u_added == 0 and u_refreshed == 0 and n == 0 and #woken == 0 then return nil end
+            return XrayParser.serialize(parsed), n, #woken, u_added + u_refreshed
         end)
         if ok_carry and type(carried_out) == "string" then
             install_result = carried_out
             logger.dbg("KOAssistant ActionCache: promotion carried background of",
-                tostring(carried_n), "entit(y/ies),", tostring(woken_n),
-                "woken, from the outgoing X-Ray")
+                tostring(carried_n), "entit(y/ies),", tostring(woken_n), "woken,",
+                tostring(ledger_n), "ledger stub(s) unioned, from the outgoing X-Ray")
         end
     end
 

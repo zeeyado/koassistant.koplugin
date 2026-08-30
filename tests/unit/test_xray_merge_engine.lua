@@ -1203,6 +1203,99 @@ TestRunner:test("wakeDormant: drift WITHIN a family still bridges", function()
         "carried history landed on the term")
 end)
 
+TestRunner:test("unionLedger: outgoing-only stubs join the incoming ledger (F1, B278)", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local prev = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Tamsin", "description": "live"}],
+      "__dormant": [
+        {"name": "Dorrit", "category": "characters", "source": "Vol 2", "file": "/b/vol2.epub",
+         "description": "A ferry clerk.", "aliases": ["the clerk"]},
+        {"name": "Saltmere", "category": "locations", "source": "Vol 2", "description": "A port."}
+      ]
+    }]])
+    local rung = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Tamsin", "description": "rung"}],
+      "__dormant": [
+        {"name": "Saltmere", "category": "locations", "source": "Vol 2", "description": "A port."}
+      ]
+    }]])
+    local added, refreshed = XrayMerge.unionLedger(prev, rung)
+    TestRunner:assertEqual(added, 1, "the fold-after-build stub joins")
+    TestRunner:assertEqual(refreshed, 1, "the stub present in both is refreshed")
+    local ledger = rung[XrayParser.DORMANT_KEY]
+    TestRunner:assertEqual(#ledger, 2, "no duplicates")
+    local dorrit
+    for _i, s in ipairs(ledger) do if s.name == "Dorrit" then dorrit = s end end
+    TestRunner:assertTrue(dorrit ~= nil, "the outgoing-only stub is in the incoming ledger")
+    TestRunner:assertEqual(dorrit.description, "A ferry clerk.", "stub content intact")
+    TestRunner:assertEqual(dorrit.aliases[1], "the clerk", "aliases intact")
+    TestRunner:assertEqual(dorrit.file, "/b/vol2.epub", "identity key intact")
+end)
+
+TestRunner:test("unionLedger: a stub in both takes the outgoing version, aliases and background unioned", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local prev = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Tamsin", "description": "live"}],
+      "__dormant": [
+        {"name": "Elias", "category": "characters", "source": "Vol 2", "description": "NEWER text.",
+         "aliases": ["the ferryman"],
+         "background": [{"source": "Vol 1", "text": "from vol 1"}]}
+      ]
+    }]])
+    local rung = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Tamsin", "description": "rung"}],
+      "__dormant": [
+        {"name": "elias", "category": "characters", "source": "Vol 2", "description": "older text.",
+         "aliases": ["Eli"],
+         "background": [{"source": "Vol 0", "text": "from vol 0"}]}
+      ]
+    }]])
+    local added, refreshed = XrayMerge.unionLedger(prev, rung)
+    TestRunner:assertEqual(added, 0, "nothing new")
+    TestRunner:assertEqual(refreshed, 1, "case-insensitive name match refreshes")
+    local s = rung[XrayParser.DORMANT_KEY][1]
+    TestRunner:assertEqual(s.name, "Elias", "outgoing spelling wins")
+    TestRunner:assertEqual(s.description, "NEWER text.", "outgoing description wins")
+    TestRunner:assertEqual(#s.aliases, 2, "aliases unioned")
+    TestRunner:assertEqual(s.aliases[1], "the ferryman", "the reader's alias edit leads")
+    TestRunner:assertEqual(s.aliases[2], "Eli", "the rung's alias kept")
+    TestRunner:assertEqual(#s.background, 2, "background lines from both sources")
+end)
+
+TestRunner:test("unionLedger: no outgoing ledger is a no-op; the wake-pass after it is idempotent", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local prev0 = XrayParser.parse('{"type":"fiction","characters":[{"name":"A","description":"x"}]}')
+    local rung0 = XrayParser.parse('{"type":"fiction","characters":[{"name":"A","description":"y"}]}')
+    local a, r = XrayMerge.unionLedger(prev0, rung0)
+    TestRunner:assertEqual(a + r, 0, "nothing to union")
+    TestRunner:assertEqual(rung0[XrayParser.DORMANT_KEY], nil, "no ledger conjured")
+    -- The rung already NAMED (and woke) a stub the outgoing live still carries:
+    -- the union re-adds it, the wake-pass folds it again with fill-gaps-only
+    -- background — one line, no duplicate, stub gone
+    local prev = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Tamsin", "description": "live"}],
+      "__dormant": [{"name": "Orrin", "category": "characters", "source": "Vol 2",
+        "description": "A smuggler."}]
+    }]])
+    local rung = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Orrin", "description": "This book's read.",
+        "background": [{"source": "Vol 2", "text": "A smuggler."}]}]
+    }]])
+    XrayMerge.unionLedger(prev, rung)
+    TestRunner:assertEqual(#rung[XrayParser.DORMANT_KEY], 1, "re-added before the wake-pass")
+    local woken = XrayParser.wakeDormant(rung)
+    TestRunner:assertEqual(#woken, 1, "woken again")
+    TestRunner:assertEqual(rung[XrayParser.DORMANT_KEY], nil, "and gone from the ledger")
+    TestRunner:assertEqual(#rung.characters[1].background, 1, "no duplicate background line")
+    TestRunner:assertEqual(rung.characters[1].description, "This book's read.", "description untouched")
+end)
+
 TestRunner:test("carryActiveBackground: a rebuild keeps folded background", function()
     local XrayParser = require("koassistant_xray_parser")
     local prev = XrayParser.parse([[{
