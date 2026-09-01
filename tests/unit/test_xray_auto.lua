@@ -1186,6 +1186,18 @@ TestRunner:test("ladder stop record: per-file, superseded by a chain (re)start",
     XrayAuto.endLadderBuild()
 end)
 
+TestRunner:test("matchAnyXrayExact: carried stubs route without the ahead peek (S1/Q8, ref #90)", function()
+    local route_json = '{"characters":[{"name":"Live Guy"}],"__dormant":[{"name":"Carried Gal","aliases":["the walker"],"category":"characters","description":"d","source":"Vol 1","file":"/b/v1.epub"}]}'
+    ActionCache.set(DOC_PATH, "xray", route_json, 0.4, { model = "m" })
+    ActionCache.setXrayCache(DOC_PATH, route_json, 0.4, { model = "m" })
+    TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Carried Gal"), true, "stub name routes")
+    TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "THE WALKER"), true, "stub alias routes")
+    TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Live Guy"), true, "live still routes")
+    TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Nobody Here"), false, "miss stays a miss")
+    TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Carried Gal", { include_ahead = false }),
+        true, "Upcoming Entities off keeps the carried route (Q8)")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

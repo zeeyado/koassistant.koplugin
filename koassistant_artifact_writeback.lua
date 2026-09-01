@@ -393,6 +393,46 @@ function WriteBack.commitXray(document_path, cache_json, progress_decimal, meta,
     return (ok_doc and ok_action) == true
 end
 
+--- Parse the live X-Ray, apply one mutation, re-serialize, commit (S1,
+--- ref #90): the shared write path for reader-asserted ledger/entity edits
+--- from OUTSIDE the browser (alias-on-stub today; the browser's
+--- _commitDormantOp delegates here and keeps its UI messages). The outgoing
+--- version ring-archives per commitXray's rules (opts.limit = 0 skips it,
+--- for once-per-session callers). Timestamp restamps to now; progress and
+--- permission metadata carry over unchanged.
+--- @param document_path string
+--- @param apply_fn function(data) -> boolean  Mutate parsed data; false = stale
+--- @param opts table|nil { limit, features, refresh_fn }
+--- @return boolean ok
+--- @return string|nil err "no_xray"|"parse"|"stale"|"serialize"|"commit"
+--- @return table|nil data The mutated parsed data (on success)
+function WriteBack.editLiveXray(document_path, apply_fn, opts)
+    opts = opts or {}
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    local entry = ActionCache.getXrayCache(document_path)
+    if not (entry and entry.result) then return false, "no_xray" end
+    local data = XrayParser.parse(entry.result)
+    if not data or data.error then return false, "parse" end
+    if not apply_fn(data) then return false, "stale" end
+    local json = require("json")
+    local okj, cache_json = pcall(json.encode, data, { pretty = true, indent = true })
+    if not okj or type(cache_json) ~= "string" then return false, "serialize" end
+    local meta = {}
+    for k, v in pairs(entry) do meta[k] = v end
+    meta.result = nil
+    meta.timestamp = nil
+    meta.progress_decimal = nil
+    local ok = WriteBack.commitXray(document_path, cache_json, entry.progress_decimal or 0, meta, {
+        prev = entry,
+        limit = opts.limit,
+        features = opts.features or {},
+        refresh_fn = opts.refresh_fn,
+    })
+    if not ok then return false, "commit" end
+    return true, nil, data
+end
+
 --- The one-call form: parse → merge → reconcile → commit.
 --- IMPORTANT: metadata reconciliation and the coverage floor need a CACHE
 --- ENTRY for the base. Passing `base` as a parsed table or raw JSON string

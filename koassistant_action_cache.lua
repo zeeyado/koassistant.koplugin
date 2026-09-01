@@ -2524,6 +2524,12 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
             if data then
                 XrayParser.mergeUserAliases(data, user_aliases)
                 XrayParser.foldExactHandles(data, set)
+                -- Carried tier (S1, ref #90): the ledger's stub handles join
+                -- the route UNCONDITIONALLY — earlier books are already-read
+                -- content, so the Upcoming Entities flag never gates them (Q8).
+                -- The ledger lives inside the cache file, so the existing
+                -- stamp key already invalidates on every ledger edit.
+                XrayParser.foldLedgerHandles(data, set)
             end
         end
         for _idx, sec in ipairs(ActionCache.getSectionXrays(document_path)) do

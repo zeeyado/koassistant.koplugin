@@ -10749,6 +10749,96 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
     return XrayBrowser
 end
 
+-- S1 (ref #90): the carried tier for lookups — the MAIN artifact's dormant
+-- ledger. Parsed lazily: the searched artifact may be a section, which never
+-- holds a ledger; when the caller already parsed the main artifact, reuse it.
+local function mainLedgerData(document_path, maybe_main_data, best)
+    if best and not best.is_section and maybe_main_data then return maybe_main_data end
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    local main = ActionCache.getXrayCache(document_path)
+    if not (main and main.result and XrayParser.isJSON(main.result)) then return nil end
+    local data = XrayParser.parse(main.result)
+    if not data or data.error then return nil end
+    XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(document_path))
+    return data
+end
+
+-- Land on one carried stub's page: browser root (main artifact) under the
+-- carried list under the stub — its natural group, mirroring the exact
+-- landing's stacked-on-home-category rule.
+local function openCarriedStubDetail(ui, main_data, config, plugin, book_metadata,
+        cleanup_widgets, document_path, stub_idx, stub)
+    local ActionCache = require("koassistant_action_cache")
+    local main = ActionCache.getXrayCache(document_path)
+    if not (main and main.result) then return end
+    local XrayBrowser = openXrayBrowserFromCache(ui, main_data, main, config, plugin,
+        book_metadata, { entry = main }, cleanup_widgets, document_path)
+    XrayBrowser:showDormantList()
+    local rows = XrayBrowser:_dormantRows()
+    local display_i
+    for ri, r in ipairs(rows) do
+        if r.idx == stub_idx then
+            display_i = ri
+            break
+        end
+    end
+    XrayBrowser:showDormantDetail(stub_idx, stub,
+        display_i and { rows = rows, index = display_i } or nil)
+end
+
+-- The carried tier's miss handling, shared by the lookup's no-result seams:
+-- an exact stub goes straight to its page (a chooser when several share the
+-- handle across families); substring-only stubs land on the main results
+-- list, where the carried group renders. Returns true when it presented
+-- something (the caller's own no-results UI stands down).
+local function carriedLookupHandled(ui, mdata, query, config, plugin,
+        book_metadata, cleanup_widgets, document_path)
+    local XrayParser = require("koassistant_xray_parser")
+    local cw = cleanup_widgets and #cleanup_widgets > 0 and cleanup_widgets or nil
+    local ex = XrayParser.searchLedger(mdata, query, { exact = true })
+    if #ex == 1 then
+        openCarriedStubDetail(ui, mdata, config, plugin, book_metadata, cw,
+            document_path, ex[1].stub_idx, ex[1].stub)
+        return true
+    end
+    if #ex > 1 then
+        local chooser
+        local rows = {}
+        for _idx, s in ipairs(ex) do
+            local captured = s
+            rows[#rows + 1] = { {
+                text = captured.stub.name .. "  ·  " .. T(_("Carried from %1"),
+                    captured.source_title or _("earlier books")),
+                align = "left",
+                callback = function()
+                    UIManager:close(chooser)
+                    openCarriedStubDetail(ui, mdata, config, plugin, book_metadata, cw,
+                        document_path, captured.stub_idx, captured.stub)
+                end,
+            } }
+        end
+        rows[#rows + 1] = { { text = _("Close"), callback = function() UIManager:close(chooser) end } }
+        chooser = ButtonDialog:new{
+            title = T(_("\"%1\" matches %2 carried entries"), query, #ex),
+            buttons = rows,
+        }
+        UIManager:show(chooser)
+        return true
+    end
+    if #XrayParser.searchLedger(mdata, query, { skip_description = true }) > 0 then
+        local ActionCache = require("koassistant_action_cache")
+        local main = ActionCache.getXrayCache(document_path)
+        if main and main.result then
+            local XrayBrowser = openXrayBrowserFromCache(ui, mdata, main, config, plugin,
+                book_metadata, { entry = main }, cw, document_path)
+            XrayBrowser:showSearchResults(query, true)
+            return true
+        end
+    end
+    return false
+end
+
 -- Show cross-section X-Ray search results as a standalone picker Menu.
 -- @param grouped_results table From ActionCache.searchAllXrays()
 -- @param query string The search query
@@ -10756,7 +10846,7 @@ end
 -- @param config table Configuration
 -- @param plugin table Plugin reference
 -- @param book_metadata table Book metadata
-local function showCrossSectionResults(grouped_results, query, ui, config, plugin, book_metadata, cleanup_widgets, document_path)
+local function showCrossSectionResults(grouped_results, query, ui, config, plugin, book_metadata, cleanup_widgets, document_path, carried)
     local Menu = require("ui/widget/menu")
     local XrayParser = require("koassistant_xray_parser")
 
@@ -10826,6 +10916,30 @@ local function showCrossSectionResults(grouped_results, query, ui, config, plugi
         end
     end
 
+    -- Carried group (S1, ref #90): the main ledger's matches, one section
+    -- like the artifact groups; a row opens the stub's carried-detail page
+    if carried and carried.hits and #carried.hits > 0 then
+        table.insert(items, {
+            text = _("Carried from earlier books"),
+            bold = true,
+            dim = false,
+            separator = true,
+            callback = function() end,
+        })
+        for _idx2, sh in ipairs(carried.hits) do
+            local captured_sh = sh
+            table.insert(items, {
+                text = "  " .. captured_sh.stub.name,
+                mandatory = captured_sh.source_title or "",
+                mandatory_dim = true,
+                callback = function()
+                    openCarriedStubDetail(ui, carried.data, config, plugin, book_metadata,
+                        cleanup_widgets, document_path, captured_sh.stub_idx, captured_sh.stub)
+                end,
+            })
+        end
+    end
+
     local title = T(_("Results for \"%1\" (%2 across %3)"),
         query, total_results, #grouped_results)
 
@@ -10872,7 +10986,44 @@ local function showAliasTargetPicker(ctx)
             table.insert(alias_cats, cat)
         end
     end
-    if #alias_cats == 0 then
+    -- Carried stubs (S1, ref #90) are alias targets too — the write goes
+    -- onto the STUB in the live artifact's ledger (D6/Q3), never the
+    -- user-aliases sidecar (that store attaches by a live entry's primary
+    -- name and would dangle for a stub). Stubs always come from the MAIN
+    -- artifact, whatever artifact ctx.data is.
+    local main_ledger
+    do
+        local main = ActionCache.getXrayCache(document_path)
+        local mdata = main and main.result and XrayParser.isJSON(main.result)
+            and XrayParser.parse(main.result) or nil
+        if type(mdata) == "table" and not mdata.error
+            and type(mdata[XrayParser.DORMANT_KEY]) == "table" then
+            main_ledger = mdata[XrayParser.DORMANT_KEY]
+        end
+    end
+    local function commitStubAlias(stub)
+        local WriteBack = require("koassistant_artifact_writeback")
+        local ok, err, new_data = WriteBack.editLiveXray(document_path, function(d)
+            return XrayParser.addStubAlias(d, stub.name, query)
+        end, {})
+        if not ok then
+            UIManager:show(InfoMessage:new{
+                text = err == "stale"
+                    and _("The carried list changed on disk. Reopen it and try again.")
+                    or _("Could not save the alias."),
+                timeout = 3,
+            })
+            return
+        end
+        UIManager:show(InfoMessage:new{
+            text = T(_("Added \"%1\" as alias of %2."), query, stub.name),
+            timeout = 3,
+        })
+        if ctx.on_stub_committed then
+            ctx.on_stub_committed(stub, new_data)
+        end
+    end
+    if #alias_cats == 0 and not (main_ledger and #main_ledger > 0) then
         UIManager:show(InfoMessage:new{
             text = _("This X-Ray has no entries an alias could be added to."),
             timeout = 3,
@@ -10898,7 +11049,7 @@ local function showAliasTargetPicker(ctx)
         end
     end
 
-    local show_target_picker, show_category_pick, show_entity_page
+    local show_target_picker, show_category_pick, show_entity_page, show_stub_page
 
     -- Word-overlap suggestions first (a reintroduced character usually
     -- keeps part of the name), manual category pick as the fallback
@@ -10916,6 +11067,44 @@ local function showAliasTargetPicker(ctx)
                         commitAlias(s_item, s_cat)
                     end,
                 } }
+            end
+        end
+        -- Carried stubs sharing a word with the query rank alongside
+        if main_ledger then
+            local q_words = {}
+            for w in query:lower():gmatch("%S+") do
+                if #w > 2 then q_words[#q_words + 1] = w end
+            end
+            local added = 0
+            for _s_i, stub in ipairs(main_ledger) do
+                if added >= 4 then break end
+                if type(stub) == "table" and type(stub.name) == "string" and #q_words > 0 then
+                    local hay = stub.name:lower()
+                    if type(stub.aliases) == "table" then
+                        for _a_idx, a in ipairs(stub.aliases) do
+                            if type(a) == "string" then hay = hay .. "\n" .. a:lower() end
+                        end
+                    end
+                    local hit = false
+                    for _w_idx, w in ipairs(q_words) do
+                        if hay:find(w, 1, true) then
+                            hit = true
+                            break
+                        end
+                    end
+                    if hit then
+                        local captured = stub
+                        rows[#rows + 1] = { {
+                            text = captured.name .. "  ·  " .. T(_("Carried from %1"),
+                                captured.source or _("earlier books")),
+                            callback = function()
+                                UIManager:close(pd)
+                                commitStubAlias(captured)
+                            end,
+                        } }
+                        added = added + 1
+                    end
+                end
             end
         end
         if #rows == 0 then
@@ -10948,9 +11137,65 @@ local function showAliasTargetPicker(ctx)
                 end,
             } }
         end
+        if main_ledger and #main_ledger > 0 then
+            rows[#rows + 1] = { {
+                text = T(_("Carried from earlier books (%1)"), #main_ledger),
+                callback = function()
+                    UIManager:close(pd)
+                    show_stub_page(1)
+                end,
+            } }
+        end
         rows[#rows + 1] = { { text = _("Cancel"), callback = function() UIManager:close(pd) end } }
         pd = ButtonDialog:new{
             title = T(_("Add \"%1\" as an alias of which entry?"), query),
+            buttons = rows,
+        }
+        UIManager:show(pd)
+    end
+
+    show_stub_page = function(page)
+        local pd
+        local per_page = 8
+        local stubs = main_ledger or {}
+        local total_pages = math.max(1, math.ceil(#stubs / per_page))
+        page = math.max(1, math.min(page, total_pages))
+        local rows = {}
+        for i = (page - 1) * per_page + 1, math.min(page * per_page, #stubs) do
+            local stub = stubs[i]
+            if type(stub) == "table" and type(stub.name) == "string" then
+                local captured = stub
+                rows[#rows + 1] = { {
+                    text = captured.name .. "  ·  " .. T(_("Carried from %1"),
+                        captured.source or _("earlier books")),
+                    callback = function()
+                        UIManager:close(pd)
+                        commitStubAlias(captured)
+                    end,
+                } }
+            end
+        end
+        local nav = {}
+        if total_pages > 1 then
+            table.insert(nav, { text = "◀", enabled = page > 1, callback = function()
+                UIManager:close(pd)
+                show_stub_page(page - 1)
+            end })
+        end
+        table.insert(nav, { text = _("Back"), callback = function()
+            UIManager:close(pd)
+            show_category_pick()
+        end })
+        if total_pages > 1 then
+            table.insert(nav, { text = "▶", enabled = page < total_pages, callback = function()
+                UIManager:close(pd)
+                show_stub_page(page + 1)
+            end })
+        end
+        rows[#rows + 1] = nav
+        pd = ButtonDialog:new{
+            title = T(_("Add \"%1\" as an alias of which entry?"), query)
+                .. (total_pages > 1 and ("  (" .. page .. "/" .. total_pages .. ")") or ""),
             buttons = rows,
         }
         UIManager:show(pd)
@@ -11067,6 +11312,13 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             -- Multiple X-Rays: search across all (name + alias only for lookup)
             local grouped = ActionCache.searchAllXrays(document_path, query, doc, { skip_description = true })
             if #grouped == 0 then
+                -- Carried tier (S1, ref #90): the main ledger answers before
+                -- "no results anywhere"
+                local mdata = mainLedgerData(document_path, nil, nil)
+                if mdata and carriedLookupHandled(ui, mdata, query, config, plugin,
+                        book_metadata, cleanup_widgets, document_path) then
+                    return
+                end
                 -- No results anywhere
                 UIManager:show(InfoMessage:new{
                     text = T(_("No results for \"%1\" across %2 X-Rays."), query, total_xrays),
@@ -11084,8 +11336,14 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                 -- Fall through to existing single-X-Ray handling below
             else
                 -- Results in multiple X-Rays: show cross-section results
+                -- (the carried group rides along — S1, ref #90)
+                local mdata = mainLedgerData(document_path, nil, nil)
+                local carried_hits = mdata
+                    and require("koassistant_xray_parser")
+                        .searchLedger(mdata, query, { skip_description = true }) or {}
                 showCrossSectionResults(grouped, query, ui, config, plugin, book_metadata,
-                    cleanup_widgets, document_path)
+                    cleanup_widgets, document_path,
+                    #carried_hits > 0 and { data = mdata, hits = carried_hits } or nil)
                 return
             end
         end
@@ -11156,6 +11414,21 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
     -- (F1, xray_marking_plan.md, ref #63)
     XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(document_path))
 
+    -- Carried card target (S1, ref #90): the card resolved a LEDGER stub —
+    -- open its carried-detail page directly (a stale target falls through)
+    if card_target and card_target.carried and card_target.name then
+        local ledger = data[XrayParser.DORMANT_KEY]
+        if type(ledger) == "table" then
+            for s_i, s in ipairs(ledger) do
+                if type(s) == "table" and s.name == card_target.name then
+                    openCarriedStubDetail(ui, data, config, plugin, book_metadata,
+                        #cleanup_widgets > 0 and cleanup_widgets or nil, document_path, s_i, s)
+                    return
+                end
+            end
+        end
+    end
+
     -- Card target (round 19): open the card's own entity, stacked on its
     -- category — no search at all. A stale target (entity renamed/removed
     -- since the card resolved) falls through to the normal flow.
@@ -11194,6 +11467,14 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
     end
 
     if #results == 0 then
+        -- Carried tier (S1, ref #90): stubs answer before the no-results
+        -- dialog (exact -> the stub's page; substring -> the results list,
+        -- which renders the carried group)
+        local carried_mdata = mainLedgerData(document_path, data, best)
+        if carried_mdata and carriedLookupHandled(ui, carried_mdata, query, config, plugin,
+                book_metadata, cleanup_widgets, document_path) then
+            return
+        end
         -- No results
         local msg = T(_("No results for \"%1\" in X-Ray."), query)
         if best.is_section and best.label then
@@ -11230,6 +11511,15 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                         data = data,
                         query = query,
                         document_path = document_path,
+                        on_stub_committed = function(stub, new_data)
+                            if not new_data then return end
+                            local s2, i2 = XrayParser.findDormantByIdentity(new_data, { stub.name })
+                            if s2 then
+                                openCarriedStubDetail(ui, new_data, config, plugin,
+                                    book_metadata, #cleanup_widgets > 0 and cleanup_widgets or nil,
+                                    document_path, i2, s2)
+                            end
+                        end,
                         on_committed = function(target_item, target_cat_key, target_name)
                             local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin,
                                 book_metadata, best, #cleanup_widgets > 0 and cleanup_widgets or nil, document_path)
@@ -11276,6 +11566,20 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             end
         end
 
+        -- Carried tier (S1, ref #90): exact stub handles join the exact set.
+        -- A same-handle stub in the SAME family cannot coexist with a live
+        -- entity (the wake-pass would have woken it); a different family can
+        -- (lexicon "Warden" vs a carried character) and the chooser shows both.
+        local carried_mdata = mainLedgerData(document_path, data, best)
+        local stub_exact = carried_mdata
+            and XrayParser.searchLedger(carried_mdata, query, { exact = true }) or {}
+        local carried_cw = #cleanup_widgets > 0 and cleanup_widgets or nil
+        if #exact == 0 and #stub_exact == 1 then
+            openCarriedStubDetail(ui, carried_mdata, config, plugin, book_metadata,
+                carried_cw, document_path, stub_exact[1].stub_idx, stub_exact[1].stub)
+            return
+        end
+
         -- Open X-Ray browser directly
         local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin, book_metadata, best,
             #cleanup_widgets > 0 and cleanup_widgets or nil, document_path)
@@ -11283,7 +11587,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         -- Exact only (device 2026-08-17): a LONE fuzzy hit used to auto-open
         -- too ("or #results == 1"), which read as landing on an unrelated
         -- entry — substring hits inside names are results-list material
-        if #exact == 1 then
+        if #exact == 1 and #stub_exact == 0 then
             -- One clear target: the entity page, stacked on its home
             -- category so the back arrow lands in the entry's natural group
             -- (not the search carousel — maintainer 2026-08-13)
@@ -11300,7 +11604,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             -- chrome the reader never opened; ← still reveals it for browsing
             XrayBrowser._direct_entry_exit = true
             XrayBrowser:showItemDetail(result.item, result.category_key, name)
-        elseif #exact > 1 then
+        elseif #exact + #stub_exact > 1 then
             -- Several entities share the exact handle (round 19, device: a
             -- place and a lexicon term under one name): a compact
             -- DISAMBIGUATION of just the exact matches, with the full search
@@ -11330,6 +11634,34 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                     end,
                 }}
             end
+            for _idx, s in ipairs(stub_exact) do
+                local captured = s
+                rows[#rows + 1] = {{
+                    text = captured.stub.name .. "  ·  " .. T(_("Carried from %1"),
+                        captured.source_title or _("earlier books")),
+                    align = "left",
+                    callback = function()
+                        UIManager:close(chooser)
+                        if best.is_section then
+                            openCarriedStubDetail(ui, carried_mdata, config, plugin,
+                                book_metadata, carried_cw, document_path,
+                                captured.stub_idx, captured.stub)
+                        else
+                            XrayBrowser:showDormantList()
+                            local d_rows = XrayBrowser:_dormantRows()
+                            local display_i
+                            for ri, r in ipairs(d_rows) do
+                                if r.idx == captured.stub_idx then
+                                    display_i = ri
+                                    break
+                                end
+                            end
+                            XrayBrowser:showDormantDetail(captured.stub_idx, captured.stub,
+                                display_i and { rows = d_rows, index = display_i } or nil)
+                        end
+                    end,
+                }}
+            end
             rows[#rows + 1] = {{
                 text = _("Full search results…"),
                 callback = function()
@@ -11338,7 +11670,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                 end,
             }}
             chooser = ButtonDialog:new{
-                title = T(_("\"%1\" matches %2 entries"), query, #exact),
+                title = T(_("\"%1\" matches %2 entries"), query, #exact + #stub_exact),
                 buttons = rows,
             }
             UIManager:show(chooser)

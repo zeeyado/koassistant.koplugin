@@ -104,5 +104,69 @@ TestRunner:test("missing query never counts", function()
     assert(XrayCard.isAliasHit({ name = "X" }) == false)
 end)
 
+-- ---- resolve-order tests (S1, ref #90): real ActionCache under the
+-- docsettings shim (test_xray_auto.lua pattern) — the card requires it
+-- lazily inside resolve, so the shim installs before the first call.
+TestRunner:suite("resolve — carried tier ordering (S1, ref #90)")
+local TMP_ROOT = "/tmp/koassistant_xray_card_test_" .. tostring(os.time()) .. "_" .. tostring(math.random(10000))
+local SIDECAR_DIR = TMP_ROOT .. "/book.sdr"
+os.execute(string.format("mkdir -p %q", SIDECAR_DIR))
+package.loaded["koassistant_action_cache"] = nil
+package.loaded["docsettings"] = nil
+package.loaded["util"] = nil
+package.loaded["luasettings"] = nil
+_G.G_reader_settings = {
+    _store = {},
+    readSetting = function(self, key, default)
+        local v = self._store[key]
+        if v == nil then return default end
+        return v
+    end,
+    saveSetting = function(self, key, value) self._store[key] = value end,
+    flush = function() end,
+}
+package.loaded["docsettings"] = {
+    getSidecarDir = function(_self, _doc_path, _force) return SIDECAR_DIR end,
+    isHashLocationEnabled = function() return false end,
+}
+package.loaded["util"] = {
+    makePath = function(dir) os.execute(string.format("mkdir -p %q", dir)) end,
+}
+package.loaded["luasettings"] = {
+    open = function() return { readSetting = function() return nil end, close = function() end } end,
+}
+local ActionCache = require("koassistant_action_cache")
+local DOC = TMP_ROOT .. "/book.epub"
+
+local LIVE_JSON = '{"characters":[{"name":"Tamsin Vael","description":"Keeps the light. Stubborn."}],'
+    .. '"__dormant":[{"name":"Orrin Blackwood","category":"characters","description":"Ferry master. Never asks twice.","source":"Vol 2","file":"/b/v2.epub"},'
+    .. '{"name":"Vex","aliases":["the grey cat"],"category":"characters","description":"A cat.","source":"Vol 2","file":"/b/v2.epub"}]}'
+local RUNG_JSON = '{"characters":[{"name":"Tamsin Vael","description":"Still here."},'
+    .. '{"name":"Orrin Blackwood","description":"Arrives inland."},'
+    .. '{"name":"Hester Lune","description":"Walks the salt line."}]}'
+assert(ActionCache.set(DOC, "xray", LIVE_JSON, 0.4, { model = "m", used_book_text = true }))
+assert(ActionCache.setXrayCache(DOC, LIVE_JSON, 0.4, { model = "m", used_book_text = true }))
+assert(ActionCache.pushXrayLadderRung(DOC, {
+    result = RUNG_JSON, progress_decimal = 0.7, timestamp = 1700000700 }))
+
+TestRunner:test("live beats carried; carried beats ahead; ahead still reachable", function()
+    local hit = XrayCard.resolve(DOC, "Tamsin Vael", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "live", "live tier first")
+    hit = XrayCard.resolve(DOC, "Orrin Blackwood", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "carried", "stub outranks the built-ahead rung (D1)")
+    TestRunner:eq(hit.source_title, "Vol 2", "provenance rides the hit")
+    TestRunner:eq(hit.stub_idx, 1, "ledger index rides the hit")
+    hit = XrayCard.resolve(DOC, "Hester Lune", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "ahead", "rung-only entity keeps the peek")
+end)
+TestRunner:test("Q8: include_ahead=false keeps the carried tier, kills the peek", function()
+    local hit = XrayCard.resolve(DOC, "the grey cat", { include_ahead = false })
+    TestRunner:eq(hit and hit.source, "carried", "alias hit through the ledger")
+    TestRunner:eq(hit.name, "Vex", "stub identity, not the tapped alias")
+    TestRunner:eq(XrayCard.resolve(DOC, "Hester Lune", { include_ahead = false }), nil,
+        "peek stood down")
+end)
+os.execute(string.format("rm -rf %q", TMP_ROOT))
+
 print(string.format("\n  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

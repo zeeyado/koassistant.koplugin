@@ -636,6 +636,73 @@ TestRunner:test("balanced input untouched", function()
     TestRunner:eq(JR.closeUnclosed(good), good, "no-op when nothing is open")
 end)
 
+TestRunner:suite("S1 — searchLedger / addStubAlias / ledger folds (ref #90)")
+local LEDGER_JSON = '{"characters":[{"name":"Tamsin Vael"}],"__dormant":['
+    .. '{"name":"Orrin Blackwood","category":"characters","description":"Runs the night ferry. Knows every sandbar.","source":"Vol 2","file":"/b/v2.epub"},'
+    .. '{"name":"Vex","aliases":["the grey cat"],"category":"characters","description":"A cat.","source":"Vol 2","file":"/b/v2.epub"},'
+    .. '{"name":"Saltmere","category":"locations","description":"Drowned town.","source":"Vol 1","file":"/b/v1.epub"}]}'
+TestRunner:test("searchLedger: exact by name/alias, substring, description gate", function()
+    local d = XrayParser.parse(LEDGER_JSON)
+    TestRunner:ok(d, "fixture parses")
+    local ex = XrayParser.searchLedger(d, "orrin blackwood", { exact = true })
+    TestRunner:eq(#ex, 1, "exact name hit")
+    TestRunner:eq(ex[1].stub.name, "Orrin Blackwood")
+    TestRunner:eq(ex[1].source_title, "Vol 2")
+    TestRunner:eq(#XrayParser.searchLedger(d, "Orrin", { exact = true }), 0, "exact means equality")
+    local al = XrayParser.searchLedger(d, "THE GREY CAT", { exact = true })
+    TestRunner:eq(#al, 1, "exact alias hit")
+    TestRunner:eq(al[1].match_field, "alias")
+    TestRunner:eq(#XrayParser.searchLedger(d, "ferry", { skip_description = true }), 0,
+        "skip_description holds")
+    local sub = XrayParser.searchLedger(d, "ferry")
+    TestRunner:eq(#sub, 1, "description substring hit")
+    TestRunner:eq(sub[1].match_field, "description")
+    TestRunner:eq(XrayParser.searchLedger(d, "salt")[1].category_key, "locations")
+end)
+TestRunner:test("addStubAlias: adds, no-ops on known, refuses missing; resolves after", function()
+    local d = XrayParser.parse(LEDGER_JSON)
+    TestRunner:ok(XrayParser.addStubAlias(d, "Orrin Blackwood", "the ferry master"))
+    TestRunner:eq(d.__dormant[1].aliases[1], "the ferry master")
+    TestRunner:ok(XrayParser.addStubAlias(d, "Orrin Blackwood", "THE FERRY MASTER"),
+        "known alias = no-op success")
+    TestRunner:eq(#d.__dormant[1].aliases, 1)
+    TestRunner:ok(not XrayParser.addStubAlias(d, "Nobody", "x"), "missing stub refused")
+    TestRunner:eq(#XrayParser.searchLedger(d, "the ferry master", { exact = true }), 1,
+        "the new alias resolves")
+end)
+TestRunner:test("foldLedgerHandles: stub handles join the exact route set", function()
+    local d = XrayParser.parse(LEDGER_JSON)
+    local set = {}
+    XrayParser.foldExactHandles(d, set)
+    TestRunner:ok(not XrayParser.matchExactHandle(set, "Vex"), "actives only before the fold")
+    XrayParser.foldLedgerHandles(d, set)
+    TestRunner:ok(XrayParser.matchExactHandle(set, "vex"), "stub name folds")
+    TestRunner:ok(XrayParser.matchExactHandle(set, "The Grey Cat"), "stub alias folds")
+    TestRunner:ok(XrayParser.matchExactHandle(set, "Tamsin Vael"), "live handles kept")
+    TestRunner:ok(not XrayParser.matchExactHandle(set, "grey"), "exact only")
+end)
+TestRunner:test("buildLedgerMarkEntities: mark shape, carried flag, families", function()
+    local d = XrayParser.parse(LEDGER_JSON)
+    local ents = XrayParser.buildLedgerMarkEntities(d)
+    TestRunner:eq(#ents, 3, "every stub marks")
+    TestRunner:eq(ents[1].name, "Orrin Blackwood")
+    TestRunner:ok(ents[1].carried, "carried flag set")
+    TestRunner:ok(ents[1].terms[1].norm, "terms normalized like buildMarkEntities")
+    TestRunner:eq(ents[1].family, XrayParser.CATEGORY_FAMILY["characters"])
+    local found_alias = false
+    for _idx, tm in ipairs(ents[2].terms) do
+        if tm.text == "the grey cat" then found_alias = true end
+    end
+    TestRunner:ok(found_alias, "stub aliases become mark terms")
+end)
+TestRunner:test("categoryLabel: own type, cross-type fallback, unknown key", function()
+    local d = XrayParser.parse(LEDGER_JSON)
+    TestRunner:ok(XrayParser.categoryLabel(d, "characters") ~= "characters",
+        "fiction label resolves")
+    TestRunner:ok(XrayParser.categoryLabel(d, "key_figures") ~= "", "cross-type key labels")
+    TestRunner:eq(XrayParser.categoryLabel(d, "bogus_cat"), "bogus_cat")
+end)
+
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))

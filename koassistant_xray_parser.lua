@@ -689,6 +689,34 @@ function XrayParser.getCharacters(data)
     return data[key] or {}
 end
 
+local category_label_cache
+--- Localized label for a category key ("characters" -> Cast). Scans this
+--- artifact's own type first, then the other type maps (a carried stub can
+--- hold a category from another book type — project groups bridge fiction
+--- and non-fiction); falls back to the key itself. (S1, ref #90.)
+--- @param data table|nil Parsed X-Ray data (for the type-local label)
+--- @param key string Category key
+--- @return string label
+function XrayParser.categoryLabel(data, key)
+    if type(key) ~= "string" or key == "" then return "" end
+    if type(data) == "table" then
+        for _idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
+            if cat.key == key then return cat.label end
+        end
+    end
+    if not category_label_cache then
+        category_label_cache = {}
+        for _idx, shape in ipairs({ { type = "fiction" }, { type = "nonfiction" }, { type = "academic" } }) do
+            for _idx2, cat in ipairs(XrayParser.getCategories(shape) or {}) do
+                if category_label_cache[cat.key] == nil then
+                    category_label_cache[cat.key] = cat.label
+                end
+            end
+        end
+    end
+    return category_label_cache[key] or key
+end
+
 --- Get the searchable name for an item (name, term, or event depending on type)
 --- @param item table An X-Ray item entry
 --- @return string|nil name The name to search for, or nil
@@ -1809,6 +1837,82 @@ function XrayParser.searchAll(data, query, opts)
     return results
 end
 
+--- Search the dormant ledger ("Carried from earlier books") the way
+--- searchAll searches the live categories (S1, ref #90): name, then
+--- aliases, then description (skipped under skip_description / exact);
+--- Arabic normalization plus the ال-stripped query variant; exact = handle
+--- equality, mirroring searchAll's exact mode. Read-only.
+--- @param data table Parsed X-Ray data
+--- @param query string
+--- @param opts table|nil { exact, skip_description }
+--- @return table Array of { stub, stub_idx, match_field, category_key,
+---   source_title }, sorted name > alias > description
+function XrayParser.searchLedger(data, query, opts)
+    if type(data) ~= "table" or type(query) ~= "string" or query == "" then return {} end
+    local ledger = data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return {} end
+    local skip_description = opts and opts.skip_description
+    local exact = opts and opts.exact
+    if exact then skip_description = true end
+    local normalize = XrayParser.normalizeArabic
+    local query_lower = normalize(query:lower())
+    local query_stripped = nil
+    if XrayParser.containsArabic(query_lower) then
+        local s = stripArabicArticle(query_lower)
+        if s ~= query_lower and #s > 4 then query_stripped = s end
+    end
+    local function matches(text)
+        if type(text) ~= "string" or text == "" then return false end
+        local t = normalize(text:lower())
+        if exact then
+            if t == query_lower then return true end
+            return (query_stripped and t == query_stripped) and true or false
+        end
+        if t:find(query_lower, 1, true) then return true end
+        return (query_stripped and t:find(query_stripped, 1, true)) and true or false
+    end
+    local results = {}
+    for i, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            local match_field
+            if matches(stub.name) then
+                match_field = "name"
+            else
+                local aliases = ensure_array(stub.aliases)
+                if aliases then
+                    for _idx, a in ipairs(aliases) do
+                        if matches(a) then
+                            match_field = "alias"
+                            break
+                        end
+                    end
+                end
+            end
+            if not match_field and not skip_description and matches(stub.description) then
+                match_field = "description"
+            end
+            if match_field then
+                results[#results + 1] = {
+                    stub = stub,
+                    stub_idx = i,
+                    match_field = match_field,
+                    category_key = type(stub.category) == "string" and stub.category or "characters",
+                    source_title = (type(stub.source) == "string" and stub.source ~= "")
+                        and stub.source or nil,
+                }
+            end
+        end
+    end
+    local priority = { name = 1, alias = 2, description = 3 }
+    table.sort(results, function(a, b)
+        if a.match_field ~= b.match_field then
+            return (priority[a.match_field] or 9) < (priority[b.match_field] or 9)
+        end
+        return a.stub_idx < b.stub_idx
+    end)
+    return results
+end
+
 -- One normalization for handle-vs-selection equality: lower + Arabic
 -- normalize + whitespace collapse + trim (selections and JSON handles both
 -- carry stray spacing).
@@ -1873,6 +1977,37 @@ function XrayParser.matchExactHandle(set, query)
         if s ~= q and #s > 4 and set[s] then return true end
     end
     return false
+end
+
+--- Fold the dormant ledger's stub handles (name + aliases) into a
+--- foldExactHandles set (S1, ref #90): carried entities join the exact
+--- route index UNCONDITIONALLY — the Upcoming Entities toggle gates only
+--- the ahead peek (Q8); an earlier book in the reading order is already-read
+--- content. Same fold rules (raw + parenthetical-stripped forms).
+--- @param data table Parsed X-Ray data
+--- @param set table Accumulator: normalized handle -> true
+function XrayParser.foldLedgerHandles(data, set)
+    local ledger = type(data) == "table" and data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return end
+    local function fold(h)
+        if type(h) ~= "string" or h == "" then return end
+        local k = exactKey(h)
+        if k ~= "" then set[k] = true end
+        local stripped = h:gsub("%s*%(.-%)%s*", " ")
+        if stripped ~= h then
+            k = exactKey(stripped)
+            if k ~= "" then set[k] = true end
+        end
+    end
+    for _idx, stub in ipairs(ledger) do
+        if type(stub) == "table" then
+            fold(stub.name)
+            local aliases = ensure_array(stub.aliases)
+            if aliases then
+                for _idx2, a in ipairs(aliases) do fold(a) end
+            end
+        end
+    end
 end
 
 --- Entity name + aliases as search terms: array of { text, regex } — regex =
@@ -1967,6 +2102,45 @@ function XrayParser.buildMarkEntities(data)
                         category_key = cat.key,
                         family = XrayParser.CATEGORY_FAMILY[cat.key] or cat.key,
                         terms = terms,
+                    })
+                end
+            end
+        end
+    end
+    return out
+end
+
+--- Mark-entity rows for the dormant ledger's stubs (S1, ref #90): the same
+--- shape as buildMarkEntities, so carried entities paint and tap like live
+--- ones (Q1: dotted — the identity is known and spoiler-safe; dashes stay
+--- "ahead / identification-only"). TEXT_MATCH_EXCLUDED categories never
+--- mark, mirroring the live rule.
+--- @param data table Parsed X-Ray data
+--- @return table Array of { name, category_key, family, terms, carried = true }
+function XrayParser.buildLedgerMarkEntities(data)
+    local out = {}
+    local ledger = type(data) == "table" and data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return out end
+    for _idx, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            local cat_key = type(stub.category) == "string" and stub.category or "characters"
+            if not TEXT_MATCH_EXCLUDED[cat_key] then
+                local terms, long_variants = XrayParser.collectSearchTerms(stub, nil)
+                for _idx2, lv in ipairs(long_variants) do
+                    table.insert(terms, lv)
+                end
+                table.sort(terms, function(a, b) return #a.text > #b.text end)
+                if #terms > 0 then
+                    for _idx2, tm in ipairs(terms) do
+                        tm.norm = XrayParser.normalizeArabic(tm.text:lower())
+                            :gsub("\194\160", " "):gsub("%s+", " ")
+                    end
+                    table.insert(out, {
+                        name = stub.name,
+                        category_key = cat_key,
+                        family = XrayParser.CATEGORY_FAMILY[cat_key] or cat_key,
+                        terms = terms,
+                        carried = true,
                     })
                 end
             end
@@ -2981,6 +3155,46 @@ function XrayParser.removeStub(data, stub_idx, stub_name)
     table.remove(ledger, stub_idx)
     if #ledger == 0 then data[XrayParser.DORMANT_KEY] = nil end
     return stub
+end
+
+--- Add an alias onto a CARRIED stub (S1, ref #90; D6/Q3: the write goes on
+--- the ledger stub, NOT the user-aliases sidecar — that store attaches by a
+--- live entry's primary name and would dangle for a stub; the wake-pass
+--- folds stub aliases onto the entity when it arrives). Dedupe against the
+--- stub's own name and aliases, case-insensitive; an already-known alias is
+--- a no-op success; ambiguous names refused (addItemAliases' guard family).
+--- Mutates data.
+--- @param data table Parsed X-Ray
+--- @param stub_name string The stub's exact name
+--- @param alias string The alias to add
+--- @return boolean ok
+function XrayParser.addStubAlias(data, stub_name, alias)
+    if type(data) ~= "table" or type(stub_name) ~= "string" or stub_name == ""
+        or type(alias) ~= "string" then
+        return false
+    end
+    alias = alias:match("^%s*(.-)%s*$") or ""
+    if alias == "" then return false end
+    local ledger = data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return false end
+    local at
+    for i, s in ipairs(ledger) do
+        if type(s) == "table" and s.name == stub_name then
+            if at then return false end -- ambiguous name — refuse
+            at = i
+        end
+    end
+    if not at then return false end
+    local stub = ledger[at]
+    local aliases = ensure_array(stub.aliases) or {}
+    local seen = { [stub_name:lower()] = true }
+    for _idx, a in ipairs(aliases) do
+        if type(a) == "string" then seen[a:lower()] = true end
+    end
+    if seen[alias:lower()] then return true end
+    aliases[#aliases + 1] = alias
+    stub.aliases = aliases
+    return true
 end
 
 --- Manual wake INTO an existing entity (series-identity round, 2026-08-06):

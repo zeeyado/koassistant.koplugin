@@ -1824,40 +1824,13 @@ end
 --- fresh parse → apply → re-encode → commitXray (pre-op version ring-archived
 --- once per browser session) → refresh the open root menu.
 function XrayBrowser:_commitDormantOp(apply_fn, success_text)
-    local ActionCache = require("koassistant_action_cache")
+    -- S1 (ref #90): the parse/apply/serialize/commit middle now lives in
+    -- WriteBack.editLiveXray (shared with the alias-on-stub write from the
+    -- lookup surfaces); this wrapper keeps the browser's UI messages and
+    -- session state.
     local WriteBack = require("koassistant_artifact_writeback")
-    local file = self.metadata.book_file
-    local entry = ActionCache.getXrayCache(file)
-    if not (entry and entry.result) then
-        UIManager:show(InfoMessage:new{ text = _("No main X-Ray found on disk."), timeout = 4 })
-        return false
-    end
-    local data = XrayParser.parse(entry.result)
-    if not data or data.error then
-        UIManager:show(InfoMessage:new{ text = _("The stored X-Ray could not be parsed."), timeout = 4 })
-        return false
-    end
-    if not apply_fn(data) then
-        UIManager:show(InfoMessage:new{
-            text = _("The carried list changed on disk. Reopen it and try again."),
-            timeout = 4,
-        })
-        return false
-    end
-    local json = require("json")
-    local okj, cache_json = pcall(json.encode, data, { pretty = true, indent = true })
-    if not okj or type(cache_json) ~= "string" then
-        UIManager:show(InfoMessage:new{ text = _("Failed to serialize the updated X-Ray."), timeout = 4 })
-        return false
-    end
-    local meta = {}
-    for k, v in pairs(entry) do meta[k] = v end
-    meta.result = nil
-    meta.timestamp = nil
-    meta.progress_decimal = nil
     local plugin_ref = self.metadata.plugin
-    local ok = WriteBack.commitXray(file, cache_json, entry.progress_decimal or 0, meta, {
-        prev = entry,
+    local ok, err, data = WriteBack.editLiveXray(self.metadata.book_file, apply_fn, {
         limit = self._dormant_archived and 0 or nil,
         features = (self.metadata.configuration and self.metadata.configuration.features) or {},
         refresh_fn = function()
@@ -1867,7 +1840,14 @@ function XrayBrowser:_commitDormantOp(apply_fn, success_text)
         end,
     })
     if not ok then
-        UIManager:show(InfoMessage:new{ text = _("Could not save the X-Ray."), timeout = 4 })
+        local msgs = {
+            no_xray = _("No main X-Ray found on disk."),
+            parse = _("The stored X-Ray could not be parsed."),
+            stale = _("The carried list changed on disk. Reopen it and try again."),
+            serialize = _("Failed to serialize the updated X-Ray."),
+            commit = _("Could not save the X-Ray."),
+        }
+        UIManager:show(InfoMessage:new{ text = msgs[err] or msgs.commit, timeout = 4 })
         return false
     end
     self._dormant_archived = true
@@ -5963,6 +5943,19 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
                     data = self_ref.xray_data,
                     query = captured_query,
                     document_path = self_ref.metadata.book_file,
+                    on_stub_committed = function(stub)
+                        -- Alias landed on a carried stub (S1): reload the
+                        -- artifact from disk, land on the stub's page
+                        self_ref:reloadLiveMain(self_ref.metadata.book_file)
+                        local d_rows = self_ref:_dormantRows()
+                        for ri, r in ipairs(d_rows) do
+                            if r.stub.name == stub.name then
+                                self_ref:showDormantDetail(r.idx, r.stub,
+                                    { rows = d_rows, index = ri })
+                                return
+                            end
+                        end
+                    end,
                     on_committed = function(target_item, target_cat_key, target_name)
                         self_ref:showItemDetail(target_item, target_cat_key, target_name)
                     end,
@@ -6034,6 +6027,45 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
         end
     end
 
+    -- Carried tier (S1, ref #90): ledger stubs matching the query join the
+    -- results as their own group; a row opens the stub's carried-detail page.
+    -- Section-scoped browsers hold no ledger, so the group appears only on
+    -- the main artifact's list — by construction, not by gate.
+    local stub_hits = XrayParser.searchLedger(self.xray_data, query)
+    if #stub_hits > 0 then
+        table.insert(items, {
+            text = _("Carried from earlier books"),
+            bold = true,
+            separator = true,
+            callback = function() end,
+        })
+        local dormant_rows = self:_dormantRows()
+        for _idx, sh in ipairs(stub_hits) do
+            local captured = sh
+            local mand = captured.source_title or ""
+            if captured.match_field == "alias" then
+                mand = mand ~= "" and (mand .. " (" .. _("alias") .. ")")
+                    or ("(" .. _("alias") .. ")")
+            end
+            table.insert(items, {
+                text = captured.stub.name,
+                mandatory = mand,
+                mandatory_dim = true,
+                callback = function()
+                    local display_i
+                    for ri, r in ipairs(dormant_rows) do
+                        if r.idx == captured.stub_idx then
+                            display_i = ri
+                            break
+                        end
+                    end
+                    self_ref:showDormantDetail(captured.stub_idx, captured.stub,
+                        display_i and { rows = dormant_rows, index = display_i } or nil)
+                end,
+            })
+        end
+    end
+
     -- "Search other X-Rays" button when others exist
     -- Skip when caller already performed cross-section search (e.g., "Look up in X-Ray")
     if not skip_cross_search and other_count > 0 then
@@ -6048,7 +6080,7 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
         })
     end
 
-    local title = T(_("Results for \"%1\" (%2)"), query, #results)
+    local title = T(_("Results for \"%1\" (%2)"), query, #results + #stub_hits)
     self:navigateForward(title, items)
 end
 

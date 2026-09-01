@@ -267,9 +267,26 @@ local function ensureIndex(plugin, pageno)
         skipped[cat.key] = (skipped[cat.key] or 0) + #cat.items
       end
     end
+    return data
   end
-  if art then addFrom(art.result) end
+  local main_data
+  if art then main_data = addFrom(art.result) end
   for _idx, s in ipairs(st.sections or {}) do addFrom(s.data.result) end
+  -- Carried tier (S1 D1/Q1, ref #90): the ledger's stubs mark DOTTED like
+  -- live entities — the identity is known and spoiler-safe — and OUTRANK the
+  -- ahead peek (first-writer-wins keeps an ahead duplicate from re-tagging
+  -- a carried name as dashed). Position in this chain: after the position
+  -- truth (main + sections), before the peek.
+  if main_data then
+    for _idx, e in ipairs(XrayParser.buildLedgerMarkEntities(main_data)) do
+      local nk = type(e.name) == "string" and e.name:lower() or nil
+      if not (nk and seen_names[nk]) then
+        if nk then seen_names[nk] = true end
+        ents[#ents + 1] = e
+        included[e.category_key] = (included[e.category_key] or 0) + 1
+      end
+    end
+  end
   if st.ahead then addFrom(st.ahead.result, true) end
   -- Cross-entity containment (B266): an entity whose term sits inside
   -- another entity's longer handle ("Kubrick" in "Vivian Kubrick") records

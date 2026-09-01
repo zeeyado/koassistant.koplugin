@@ -143,6 +143,16 @@ local function aheadLine(hit)
     end
 end
 
+--- Carried-tier provenance line (S1 D3, ref #90): plain "From <title>", no
+--- warning glyph — an earlier volume in the reading order is already-read
+--- content by the group's own definition.
+local function carriedLine(hit)
+    if hit.source == "carried" and type(hit.source_title) == "string"
+        and hit.source_title ~= "" then
+        return T(_("From %1"), hit.source_title)
+    end
+end
+
 --- True when the tapped handle differs from the entry's own name (the hit
 --- came through an alias). Case- and whitespace-insensitive. Pure.
 function XrayCard.isAliasHit(hit)
@@ -174,14 +184,24 @@ local function cardContent(hit, opts)
         local stage = opts.stage or ((opts.ahead_card == "entry" and not alias_hit) and "sentence" or "name")
         if stage == "name" then
             if alias_hit then
-                return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), body = "",
-                    hint = _("Tap for the full entry") }
+                return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), warn = true,
+                    body = "", hint = _("Tap for the full entry") }
             end
-            return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), body = "",
-                hint = _("Tap to show a one-line description"), next_stage = "sentence" }
+            return { name = name, kind = kindLabel(hit, true), line = aheadLine(hit), warn = true,
+                body = "", hint = _("Tap to show a one-line description"), next_stage = "sentence" }
         end
-        return { name = name, kind = kindLabel(hit), line = aheadLine(hit),
+        return { name = name, kind = kindLabel(hit), line = aheadLine(hit), warn = true,
             body = XrayCard.firstSentence(itemText(hit.item)), hint = _("Tap for the full entry") }
+    end
+    if hit.source == "carried" then
+        -- Carried stub (S1): known identity from an earlier book — the
+        -- provenance line rides the ahead-warning slot, without the glyph
+        local text = itemText(hit.item)
+        if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
+        local kind = kindLabel(hit)
+        kind = kind ~= "" and T(_("%1 (carried)"), kind) or _("carried")
+        return { name = hit.name or "", kind = kind, line = carriedLine(hit),
+            body = text, hint = _("Tap for the full entry") }
     end
     local text = itemText(hit.item)
     if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
@@ -213,7 +233,8 @@ end
 --- @param query string the tapped/selected text
 --- @param opts table|nil { include_ahead = false → no peek, position = 0..1 }
 --- @return table|nil hit { name, item, category_key, category_label,
----   source = "live"|"section"|"ahead", ahead_progress, query }
+---   source = "live"|"section"|"carried"|"ahead", ahead_progress, query;
+---   carried hits add source_title + stub_idx }
 function XrayCard.resolve(file, query, opts)
     if not file or type(query) ~= "string" or query == "" then return nil end
     local ActionCache = require("koassistant_action_cache")
@@ -243,17 +264,43 @@ function XrayCard.resolve(file, query, opts)
 
     local live = ActionCache.getXrayCache(file)
     local live_p = 0
+    local live_data
     if live and live.result then
         live_p = live.full_document and 1.0 or tonumber(live.progress_decimal) or 0
-        if live.source_mode ~= "ai_knowledge" then
-            local r = findIn(live.result)
-            if r then return makeHit(r, "live") end
+        if live.source_mode ~= "ai_knowledge" and XrayParser.isJSON(live.result) then
+            local data = XrayParser.parse(live.result)
+            if type(data) == "table" and not data.error then
+                XrayParser.mergeUserAliases(data, user_aliases)
+                live_data = data
+                local results = XrayParser.searchAll(data, query, { exact = true })
+                if results and #results > 0 then return makeHit(results[1], "live") end
+            end
         end
     end
     for _idx, sec in ipairs(ActionCache.getSectionXrays(file)) do
         if sec.data and sec.data.result then
             local r = findIn(sec.data.result)
             if r then return makeHit(r, "section") end
+        end
+    end
+    -- Carried tier (S1 D1, ref #90): the live artifact's own dormant ledger.
+    -- An earlier book's knowledge outranks the ahead peek, and the Upcoming
+    -- Entities toggle does not gate it (Q8) — already-read content is
+    -- spoiler-safe by construction.
+    if live_data then
+        local stubs = XrayParser.searchLedger(live_data, query, { exact = true })
+        if #stubs > 0 then
+            local s = stubs[1]
+            return {
+                name = s.stub.name,
+                item = s.stub,
+                category_key = s.category_key,
+                category_label = XrayParser.categoryLabel(live_data, s.category_key),
+                source = "carried",
+                source_title = s.source_title,
+                stub_idx = s.stub_idx,
+                query = query,
+            }
         end
     end
     -- The identification peek (P5: stood down when the Upcoming Entities
@@ -281,13 +328,13 @@ local function showPopupCard(hit, opts)
     -- Ahead hits: the NAME line leads with the triangle too (device round
     -- 2026-08-17 — the warning line alone sat below where the eye lands)
     local c = cardContent(hit, opts)
-    local ahead = c.line
     local head = can_md and ("**" .. c.name .. "**") or c.name
-    if ahead then head = "\u{26A0} " .. head end
+    if c.warn then head = "\u{26A0} " .. head end
     if c.kind ~= "" then head = head .. " · " .. c.kind end
     local parts = { head }
-    -- Ahead warning ABOVE the description (2f: early placement)
-    if ahead then parts[#parts + 1] = ahead end
+    -- Extra line ABOVE the description (2f early placement for the ahead
+    -- warning; the carried "From <title>" provenance rides the same slot)
+    if c.line then parts[#parts + 1] = c.line end
     if c.body ~= "" then parts[#parts + 1] = c.body end
     -- The staged name-only card says what the tap does (the popup's own
     -- expand affordance is the tap itself)
@@ -325,11 +372,10 @@ local function showFootnoteCard(hit, opts)
     -- Ahead hits: the NAME line leads with the triangle too (device round
     -- 2026-08-17); the warning line below stays
     local c = cardContent(hit, opts)
-    local ahead = c.line
-    local html = "<div>" .. (ahead and "\u{26A0} " or "") .. "<b>" .. esc(c.name) .. "</b>"
+    local html = "<div>" .. (c.warn and "\u{26A0} " or "") .. "<b>" .. esc(c.name) .. "</b>"
         .. (c.kind ~= "" and (" · " .. esc(c.kind)) or "") .. "</div>"
-    if ahead then
-        html = html .. '<div class="koa-meta">' .. esc(ahead) .. "</div>"
+    if c.line then
+        html = html .. '<div class="koa-meta">' .. esc(c.line) .. "</div>"
     end
     if c.body ~= "" then
         html = html .. '<div class="koa-line">' .. (esc(c.body):gsub("\n", "<br/>")) .. "</div>"

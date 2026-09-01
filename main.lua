@@ -19112,6 +19112,16 @@ function AskGPT:openXrayCard(query, opts)
   end
   local self_ref = self
   local function openFull(h)
+    if h.source == "carried" then
+      -- Carried stub (S1, ref #90): its full page is the browser's
+      -- carried-entity detail — threaded through the lookup the way live
+      -- card targets are (consume-once transient, stale target re-searches)
+      self_ref:_openXrayEntityDirect(h.query, {
+        document_path = opts and opts.document_path or nil,
+        target = { carried = true, name = h.name },
+      })
+      return
+    end
     if h.source ~= "ahead" then
       -- Live-main hits carry the resolved identity so "full entry" opens the
       -- entity the CARD showed — two entries sharing a handle used to dump

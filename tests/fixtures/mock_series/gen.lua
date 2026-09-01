@@ -9,7 +9,7 @@ in minutes — no real X-Ray runs, no API calls. Runs OFFLINE under the unit-tes
 mocks and writes through the REAL ActionCache APIs, so the files on disk are
 byte-authentic.
 
-Usage (from the repo root; needs `zip` on PATH):
+Usage (from the repo root; needs `zip` on PATH; run while KOReader is closed):
 
     lua tests/fixtures/mock_series/gen.lua --out <dir> [--base <target dir>]
 
@@ -269,6 +269,12 @@ local function plantBook(n)
         if not ActionCache.set(target, "xray", json, book.xray.progress, book.xray.meta) then
             fail(book.filename .. ": ActionCache.set failed")
         end
+        -- The live artifact lives under TWO keys (commitXray writes both):
+        -- the per-action entry above and the doc-level XRAY_CACHE_KEY that
+        -- the card/marks/route surfaces read via getXrayCache
+        if not ActionCache.setXrayCache(target, json, book.xray.progress, book.xray.meta) then
+            fail(book.filename .. ": setXrayCache failed")
+        end
     end
     for _idx, sec in ipairs(book.sections or {}) do
         local json = fillJSON(sec.json)
@@ -304,18 +310,27 @@ local function plantBook(n)
         end
     end
     if book.sidecar then
-        local lines = { "-- KOAssistant mock fixture (gen.lua); KOReader merges its own keys on first open", "return {" }
-        local keys = {}
-        for k in pairs(book.sidecar) do keys[#keys + 1] = k end
-        table.sort(keys)
-        for _idx, k in ipairs(keys) do
-            lines[#lines + 1] = string.format("    [%q] = %s,", k, serializeSidecarValue(book.sidecar[k]))
-        end
-        lines[#lines + 1] = "}"
-        lines[#lines + 1] = ""
-        os.execute(string.format("mkdir -p %q", sdr))
         local ext = book.filename:match("%.([^.]+)$") or "_"
-        writeFile(sdr .. "/metadata." .. ext .. ".lua", table.concat(lines, "\n"))
+        local metadata_path = sdr .. "/metadata." .. ext .. ".lua"
+        -- Never overwrite an EXISTING metadata file: after a first run,
+        -- KOReader owns it (reading position, per-book settings) and it
+        -- already carries these keys from the first plant. Fresh plants only.
+        local existing = io.open(metadata_path, "r")
+        if existing then
+            existing:close()
+        else
+            local lines = { "-- KOAssistant mock fixture (gen.lua); KOReader merges its own keys on first open", "return {" }
+            local keys = {}
+            for k in pairs(book.sidecar) do keys[#keys + 1] = k end
+            table.sort(keys)
+            for _idx, k in ipairs(keys) do
+                lines[#lines + 1] = string.format("    [%q] = %s,", k, serializeSidecarValue(book.sidecar[k]))
+            end
+            lines[#lines + 1] = "}"
+            lines[#lines + 1] = ""
+            os.execute(string.format("mkdir -p %q", sdr))
+            writeFile(metadata_path, table.concat(lines, "\n"))
+        end
     end
 end
 
@@ -333,6 +348,9 @@ local function verifyBook(n)
     if book.xray then
         local entry = getEntry(target, "xray")
         if not entry then fail(book.filename .. ": live entry did not load back") end
+        if not ActionCache.getXrayCache(target) then
+            fail(book.filename .. ": doc-level X-Ray entry did not load back")
+        end
         local parsed = XrayParser.parse(entry.result)
         if not parsed then fail(book.filename .. ": live entry did not re-parse") end
         local ledger = parsed[XrayParser.DORMANT_KEY]
