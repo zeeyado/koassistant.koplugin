@@ -569,6 +569,102 @@ function BaseHandler.fetchInSubprocess(url, opts)
     return tonumber(code), table.concat(chunks)
 end
 
+--- Non-blocking one-shot HTTP(S) fetch: fetchInSubprocess forked into a child,
+--- with the parent polling the pipe on the UI loop (the openai_codex_oauth
+--- pattern, generalized so other parent-side fetches — web-search backends —
+--- share one implementation instead of hand-copying the poll loop).
+--- The child ships {status_code, body} through the pipe as JSON.
+--- @param url string
+--- @param opts table: same fields as fetchInSubprocess (method, headers, body,
+---                    timeout); resolved_ip is filled here (parent-side DNS —
+---                    a forked child must NEVER resolve on macOS)
+--- @param on_done function(status_code|nil, body_or_error) — called once on the
+---        UI loop; never called after cancel. May be called synchronously when
+---        the subprocess cannot start.
+--- @return function|nil cancel: terminates the subprocess and suppresses on_done
+function BaseHandler.fetchAsync(url, opts, on_done)
+    opts = opts or {}
+    local resolved_ip = BaseHandler.resolveForSubprocess(url)
+    local fetch_fn = function(pid, child_write_fd)
+        if not pid or not child_write_fd then return end
+        local ok, status_code, body = pcall(BaseHandler.fetchInSubprocess, url, {
+            method = opts.method,
+            headers = opts.headers,
+            body = opts.body,
+            timeout = opts.timeout,
+            resolved_ip = resolved_ip,
+        })
+        local payload = ok
+            and json.encode({ status_code = status_code, body = body or "" })
+            or json.encode({ status_code = 0, body = tostring(status_code) })
+        BaseHandler.writeAllToFD(child_write_fd, payload)
+        ffi.C.close(child_write_fd)
+        pcall(function() ffi.C._exit(0) end)
+    end
+    local pid, read_fd = ffiutil.runInSubProcess(fetch_fn, true)
+    if not pid then
+        on_done(nil, "failed to start fetch subprocess")
+        return nil
+    end
+
+    local UIManager = require("ui/uimanager")
+    local cancelled = false
+    local chunk_size = 65536
+    local buffer = ffi.new("char[?]", chunk_size)
+    local pointer = ffi.cast("void*", buffer)
+    local parts = {}
+
+    local function finish()
+        ffi.C.close(read_fd)
+        if cancelled then return end
+        local raw = table.concat(parts)
+        local ok, decoded = pcall(json.decode, raw)
+        if ok and type(decoded) == "table" then
+            -- luajson decodes JSON null to a truthy sentinel — type-check both fields.
+            local status = type(decoded.status_code) == "number" and decoded.status_code or nil
+            local body = type(decoded.body) == "string" and decoded.body or ""
+            -- The child encodes a transport error as status 0 + message body.
+            if status == 0 then status = nil end
+            on_done(status, body)
+        else
+            on_done(nil, "failed to parse fetch subprocess response")
+        end
+    end
+
+    local function poll()
+        if cancelled then
+            ffi.C.close(read_fd)
+            return
+        end
+        while true do
+            local available = ffiutil.getNonBlockingReadSize(read_fd) or 0
+            if available > 0 then
+                local bytes = tonumber(ffi.C.read(read_fd, pointer, chunk_size))
+                if bytes and bytes > 0 then parts[#parts + 1] = ffi.string(pointer, bytes)
+                else finish() return end
+            elseif ffiutil.isSubProcessDone(pid) then
+                while true do
+                    local bytes = tonumber(ffi.C.read(read_fd, pointer, chunk_size))
+                    if not bytes or bytes <= 0 then break end
+                    parts[#parts + 1] = ffi.string(pointer, bytes)
+                end
+                finish()
+                return
+            else
+                UIManager:scheduleIn(0.15, poll)
+                return
+            end
+        end
+    end
+    UIManager:scheduleIn(0.15, poll)
+
+    return function()
+        if cancelled then return end
+        cancelled = true
+        pcall(ffiutil.terminateSubProcess, pid)
+    end
+end
+
 --- Socket read timeout for the request subprocess, in seconds (maintainer
 --- 2026-08-18). This is a BLOCK timeout — LuaSocket's set_timeout(block, -1)
 --- caps a single read, not the whole request — and a NON-streaming request is
