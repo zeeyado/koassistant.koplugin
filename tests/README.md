@@ -460,7 +460,10 @@ tests/
 ├── test_config.lua            # Config helpers (buildFullConfig)
 ├── local_config.lua.sample    # Local config template
 ├── fixtures/
-│   └── sample_context.lua     # Sample context data for tests
+│   ├── sample_context.lua     # Sample context data for tests
+│   └── mock_series/           # Offline mock-book generator (X-Ray/groups device fixture):
+│                              #   lua tests/fixtures/mock_series/gen.lua --out <dir> [--base <target>]
+│                              # 7 tiny invented EPUBs + real-API sidecar data (see gen.lua header)
 ├── lib/
 │   ├── mock_koreader.lua      # KOReader module mocks
 │   ├── constraint_utils.lua   # Plugin constraint utilities wrapper
