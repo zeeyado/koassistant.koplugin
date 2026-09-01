@@ -11249,6 +11249,74 @@ local function showAliasTargetPicker(ctx)
     show_target_picker()
 end
 
+-- The lookup's no-results dialog: message + "Add as alias of an entry…"
+-- (ref #63) — shared by the single-artifact seam AND the cross-section
+-- zero-hit (2026-09-01 device round: that seam was a bare InfoMessage, and
+-- on a book with section X-Rays it is the ONLY no-results surface the book
+-- ever shows, so the alias offer was unreachable there). data/cached/best
+-- describe the artifact the alias picker targets (the MAIN X-Ray at the
+-- cross-section seam); without them, or for a non-handle-shaped query, the
+-- message shows plain. The model can miss an identity the reader KNOWS —
+-- the live case was a reintroduction under a changed name that two of three
+-- runs failed to bridge; the shared picker (showAliasTargetPicker above,
+-- also reachable from the browser's search-results row) does the ranking
+-- and the write.
+local function showLookupNoResults(opts)
+    local ActionCache = require("koassistant_action_cache")
+    local query, msg = opts.query, opts.msg
+    if not (opts.data and opts.cached and opts.document_path
+            and #query > 2 and #query <= 120
+            and ActionCache.getUserAliasesPath(opts.document_path)) then
+        UIManager:show(InfoMessage:new{
+            text = msg,
+            timeout = 5,
+        })
+        return
+    end
+    local XrayParser = require("koassistant_xray_parser")
+    local ui, config, plugin = opts.ui, opts.config, opts.plugin
+    local book_metadata, document_path = opts.book_metadata, opts.document_path
+    local data, cached, best = opts.data, opts.cached, opts.best
+    local cw = opts.cleanup_widgets and #opts.cleanup_widgets > 0 and opts.cleanup_widgets or nil
+    local nores
+    nores = ButtonDialog:new{
+        title = msg,
+        buttons = {
+            { { text = _("Add as alias of an entry…"), callback = function()
+                UIManager:close(nores)
+                showAliasTargetPicker{
+                    data = data,
+                    query = query,
+                    document_path = document_path,
+                    on_stub_committed = function(stub, new_data)
+                        if not new_data then return end
+                        local s2, i2 = XrayParser.findDormantByIdentity(new_data, { stub.name })
+                        if s2 then
+                            openCarriedStubDetail(ui, new_data, config, plugin,
+                                book_metadata, cw, document_path, i2, s2)
+                        end
+                    end,
+                    on_committed = function(target_item, target_cat_key, target_name)
+                        local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin,
+                            book_metadata, best, cw, document_path)
+                        for _c_idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
+                            if cat.key == target_cat_key then
+                                XrayBrowser:showCategoryItems(cat)
+                                break
+                            end
+                        end
+                        -- Q6: direct entry — one X exits the browser
+                        XrayBrowser._direct_entry_exit = true
+                        XrayBrowser:showItemDetail(target_item, target_cat_key, target_name)
+                    end,
+                }
+            end } },
+            { { text = _("Close"), callback = function() UIManager:close(nores) end } },
+        },
+    }
+    UIManager:show(nores)
+end
+
 -- Handle local X-Ray lookup: search cached X-Ray data for the query
 -- @param override_best table|nil Pre-selected X-Ray result (from selection popup callback)
 local function handleLocalXrayLookup(ui, query, document_path, book_metadata, config, plugin, override_best)
@@ -11319,11 +11387,18 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                         book_metadata, cleanup_widgets, document_path) then
                     return
                 end
-                -- No results anywhere
-                UIManager:show(InfoMessage:new{
-                    text = T(_("No results for \"%1\" across %2 X-Rays."), query, total_xrays),
-                    timeout = 5,
-                })
+                -- No results anywhere: the shared dialog, so the alias
+                -- offer exists on multi-X-Ray books too. It targets the
+                -- MAIN artifact; without one the message shows plain.
+                showLookupNoResults{
+                    ui = ui, config = config, plugin = plugin,
+                    book_metadata = book_metadata, cleanup_widgets = cleanup_widgets,
+                    document_path = document_path, query = query,
+                    msg = T(_("No results for \"%1\" across %2 X-Rays."), query, total_xrays),
+                    data = mdata,
+                    cached = (main and main.result) and main or nil,
+                    best = (main and main.result) and { entry = main } or nil,
+                }
                 return
             elseif #grouped == 1 then
                 -- Results in only 1 X-Ray: use standard single-X-Ray flow
@@ -11485,60 +11560,14 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             local current_pct = math.floor(current_progress * 100 + 0.5)
             msg = msg .. "\n\n" .. T(_("X-Ray covers to %1% (you're at %2%). Updating may find this entry."), cache_pct, current_pct)
         end
-        -- "Add as alias of..." (ref #63): the model can miss an identity the
-        -- reader KNOWS — the live case was a reintroduction under a changed
-        -- name that two of three runs failed to bridge. The user-aliases
-        -- sidecar is the reader-asserted fix; the shared picker
-        -- (showAliasTargetPicker above, also reachable from the browser's
-        -- search-results row for the hits-but-not-this-entity case) does the
-        -- ranking and the write. Offered only when the selection looks like
-        -- a handle (the intercept's length gate).
-        if not (document_path and #query > 2 and #query <= 120
-                and ActionCache.getUserAliasesPath(document_path)) then
-            UIManager:show(InfoMessage:new{
-                text = msg,
-                timeout = 5,
-            })
-            return
-        end
-        local nores
-        nores = ButtonDialog:new{
-            title = msg,
-            buttons = {
-                { { text = _("Add as alias of an entry…"), callback = function()
-                    UIManager:close(nores)
-                    showAliasTargetPicker{
-                        data = data,
-                        query = query,
-                        document_path = document_path,
-                        on_stub_committed = function(stub, new_data)
-                            if not new_data then return end
-                            local s2, i2 = XrayParser.findDormantByIdentity(new_data, { stub.name })
-                            if s2 then
-                                openCarriedStubDetail(ui, new_data, config, plugin,
-                                    book_metadata, #cleanup_widgets > 0 and cleanup_widgets or nil,
-                                    document_path, i2, s2)
-                            end
-                        end,
-                        on_committed = function(target_item, target_cat_key, target_name)
-                            local XrayBrowser = openXrayBrowserFromCache(ui, data, cached, config, plugin,
-                                book_metadata, best, #cleanup_widgets > 0 and cleanup_widgets or nil, document_path)
-                            for _c_idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
-                                if cat.key == target_cat_key then
-                                    XrayBrowser:showCategoryItems(cat)
-                                    break
-                                end
-                            end
-                            -- Q6: direct entry — one X exits the browser
-                            XrayBrowser._direct_entry_exit = true
-                            XrayBrowser:showItemDetail(target_item, target_cat_key, target_name)
-                        end,
-                    }
-                end } },
-                { { text = _("Close"), callback = function() UIManager:close(nores) end } },
-            },
+        -- Shared no-results dialog (ref #63): message + the alias offer —
+        -- extracted to showLookupNoResults so the cross-section zero-hit
+        -- shows the same surface.
+        showLookupNoResults{
+            ui = ui, config = config, plugin = plugin, book_metadata = book_metadata,
+            cleanup_widgets = cleanup_widgets, document_path = document_path,
+            query = query, msg = msg, data = data, cached = cached, best = best,
         }
-        UIManager:show(nores)
     else
         -- Exact-identity fast path (device round 2026-08-13, ref #63): a query
         -- that IS an entity's name or alias goes straight to that entity —

@@ -75,7 +75,7 @@ local VOL2_XRAY = [[{
     {"name": "Elias Penrose", "role": "Deckhand", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's."},
     {"name": "Fenna Quill", "role": "Letter carrier", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early."},
     {"name": "Dorrit Hale", "role": "Innkeeper", "description": "Dorrit Hale keeps the ferry inn and hears everything twice. She trades in small kindnesses."},
-    {"name": "the Warden", "role": "Harbor official", "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown."},
+    {"name": "the Warden", "aliases": ["Warden"], "role": "Harbor official", "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown."},
     {"name": "Vex", "role": "Ship's cat", "aliases": ["the grey cat"], "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one."}
   ],
   "locations": [
@@ -108,7 +108,7 @@ local VOL3_XRAY = [[{
   ],
   "themes": [],
   "lexicon": [
-    {"name": "Warden", "description": "In the orchard counties a warden is the keeper of a flooded grove, not an official."}
+    {"term": "Warden", "definition": "In the orchard counties a warden is the keeper of a flooded grove, not an official."}
   ],
   "timeline": [
     {"event": "Tamsin takes the orchard post"},
@@ -120,7 +120,7 @@ local VOL3_XRAY = [[{
     {"name": "Elias Penrose", "category": "characters", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Cass Merrow", "category": "characters", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
     {"name": "Fenna Quill", "category": "characters", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "the Warden", "category": "characters", "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "the Warden", "category": "characters", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Saltmere", "category": "locations", "description": "Saltmere is the drowned market town across the bay, visited at low tide.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["}
   ]
@@ -142,7 +142,7 @@ local VOL3_RUNG_70 = [[{
   ],
   "themes": [],
   "lexicon": [
-    {"name": "Warden", "description": "In the orchard counties a warden is the keeper of a flooded grove, not an official."}
+    {"term": "Warden", "definition": "In the orchard counties a warden is the keeper of a flooded grove, not an official."}
   ],
   "timeline": [
     {"event": "Tamsin takes the orchard post"},
@@ -155,7 +155,7 @@ local VOL3_RUNG_70 = [[{
     {"name": "Elias Penrose", "category": "characters", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Cass Merrow", "category": "characters", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
     {"name": "Fenna Quill", "category": "characters", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "the Warden", "category": "characters", "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "the Warden", "category": "characters", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Saltmere", "category": "locations", "description": "Saltmere is the drowned market town across the bay, visited at low tide.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["}
   ]
@@ -198,7 +198,7 @@ local PROJ_A_XRAY = [[{
     {"name": "Commons outlast owners", "description": "Shared ground survives its stewards; deeds do not."}
   ],
   "terminology": [
-    {"name": "slack water", "description": "The pause between tides when the commons can be crossed."}
+    {"term": "slack water", "definition": "The pause between tides when the commons can be crossed."}
   ],
   "argument_development": [
     {"event": "The commons is defined"},
@@ -220,7 +220,7 @@ local PROJ_B_XRAY = [[{
   ],
   "arguments": [],
   "terminology": [
-    {"name": "salt road", "description": "A low-tide cart route across the flats."}
+    {"term": "salt road", "definition": "A low-tide cart route across the flats."}
   ],
   "argument_development": [
     {"event": "The salt roads are mapped"}
