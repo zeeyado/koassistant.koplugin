@@ -216,6 +216,13 @@ local function ensureIndex(plugin, pageno)
     end
   end
   local art = pickArtifact()
+  -- Predecessor tier (S2 Q4, ref #90): the nearest earlier X-Rayed book in
+  -- the group marks too — marked = findable, and the lookup/route surfaces
+  -- now answer from it. Memoized inside ActionCache (stamp-keyed), so the
+  -- steady-state cost here is stats, not parses. A book with NO artifacts
+  -- of its own still marks its predecessor's entities (the "never X-Rayed
+  -- this volume" case).
+  local pred = ActionCache.nearestPredecessorXray(st.file)
   -- Round 5: ALL section X-Rays fold in, range-free — the lookup/intercept
   -- surfaces search every section regardless of range (searchAllXrays), so
   -- a section-only entity was findable-but-never-marked outside its span
@@ -223,7 +230,7 @@ local function ensureIndex(plugin, pageno)
   -- Lloyd" matched lookups everywhere and marks nowhere). Marked = findable,
   -- one truth; the spoiler angle is covered by the round-7 ruling (installed
   -- content reveals through its coverage — sections are installed content).
-  if not art and #(st.sections or {}) == 0 then
+  if not art and #(st.sections or {}) == 0 and not pred then
     st.entities = nil
     st.artifact_key = nil
     return
@@ -236,6 +243,7 @@ local function ensureIndex(plugin, pageno)
     key = key .. "|ahead:" .. st.ahead.stamp
   end
   key = key .. "|" .. st.stamps
+  key = key .. "|pred:" .. (pred and pred.stamp or "-")
   if st.artifact_key == key and st.entities then return end
   local XrayParser = require("koassistant_xray_parser")
   local user_aliases = ActionCache.getUserAliases(st.file)
@@ -287,6 +295,28 @@ local function ensureIndex(plugin, pageno)
       end
     end
   end
+  -- Predecessor tier (S2 Q4, ref #90): the nearest earlier book's entities
+  -- and ITS carried list mark DOTTED like live ones (already-read content;
+  -- the card carries the "From <title>" provenance). After every local
+  -- source, before the peek — a local duplicate keeps its own style.
+  if pred then
+    for _idx, e in ipairs(XrayParser.buildMarkEntities(pred.data)) do
+      local nk = type(e.name) == "string" and e.name:lower() or nil
+      if not (nk and seen_names[nk]) then
+        if nk then seen_names[nk] = true end
+        ents[#ents + 1] = e
+        included[e.category_key] = (included[e.category_key] or 0) + 1
+      end
+    end
+    for _idx, e in ipairs(XrayParser.buildLedgerMarkEntities(pred.data)) do
+      local nk = type(e.name) == "string" and e.name:lower() or nil
+      if not (nk and seen_names[nk]) then
+        if nk then seen_names[nk] = true end
+        ents[#ents + 1] = e
+        included[e.category_key] = (included[e.category_key] or 0) + 1
+      end
+    end
+  end
   if st.ahead then addFrom(st.ahead.result, true) end
   -- Cross-entity containment (B266): an entity whose term sits inside
   -- another entity's longer handle ("Kubrick" in "Vivian Kubrick") records
@@ -330,6 +360,7 @@ local function ensureIndex(plugin, pageno)
   end
   logger.dbg("KOAssistant marks: index rebuilt from " .. src
     .. " +" .. tostring(#(st.sections or {})) .. " sections"
+    .. (pred and " +pred" or "")
     .. (st.ahead and (" +ahead@" .. math.floor(st.ahead.p * 100 + 0.5) .. "%") or "")
     .. ": " .. tally(included)
     .. (next(skipped) and (" | skipped: " .. tally(skipped)) or ""))

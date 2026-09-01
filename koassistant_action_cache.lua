@@ -2447,6 +2447,72 @@ end
 -- rebuilt only when the book's cache file or user-aliases sidecar changes on
 -- disk (mtime+size key — a stat per lookup instead of a full parse per tap).
 -- One book at a time: taps are reader-scoped, a different file swaps the slot.
+local pred_xray_memo = nil -- { file, stamp, res }
+
+--- Nearest earlier X-Rayed book in the current book's ORDERED group (S2,
+--- ref #90): its parsed main X-Ray (own user aliases merged) answers
+--- lookups/marks/cards when this book — carried list included — does not.
+--- READ-ONLY tier, so deliberately NO consent gate (nothing leaves the
+--- device at lookup time; the carry-in WRITE checks consent like the
+--- create-time seed). ai_knowledge/non-JSON lineages never answer, same
+--- rule as every other lookup source.
+--- Memoized on the cache-file AND user-aliases stamps of EVERY predecessor
+--- (a new X-Ray appearing on a NEARER book must re-pick), so steady state
+--- is one in-memory group read + two stats per predecessor.
+--- @param document_path string Current book
+--- @return table|nil { file, title, data, entry, more, stamp } — `more` =
+---   how many FURTHER predecessors have a cache file (the "Search all
+---   earlier books" row's visibility); `stamp` keys consumer memos.
+function ActionCache.nearestPredecessorXray(document_path)
+    if not document_path then return nil end
+    local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
+    if not ok_bg then return nil end
+    local preds = BookGroups.predecessorsOf(document_path)
+    if #preds == 0 then return nil end
+    local parts = {}
+    for i = 1, #preds do
+        local cp = ActionCache.getPath(preds[i])
+        local ca = cp and lfs.attributes(cp)
+        parts[#parts + 1] = ca and (tostring(ca.modification) .. ":" .. tostring(ca.size)) or "-"
+        local ap = ActionCache.getUserAliasesPath(preds[i])
+        local aa = ap and lfs.attributes(ap)
+        parts[#parts + 1] = aa and (tostring(aa.modification) .. ":" .. tostring(aa.size)) or "-"
+    end
+    local stamp = table.concat(parts, "|")
+    if pred_xray_memo and pred_xray_memo.file == document_path
+            and pred_xray_memo.stamp == stamp then
+        return pred_xray_memo.res
+    end
+    local XrayParser = require("koassistant_xray_parser")
+    local res
+    for i = #preds, 1, -1 do
+        local entry = ActionCache.getXrayCache(preds[i])
+        if entry and entry.result and entry.source_mode ~= "ai_knowledge"
+                and XrayParser.isJSON(entry.result) then
+            local data = XrayParser.parse(entry.result)
+            if data and not data.error then
+                XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(preds[i]))
+                local more = 0
+                for j = 1, i - 1 do
+                    local p2 = ActionCache.getPath(preds[j])
+                    if p2 and lfs.attributes(p2) then more = more + 1 end
+                end
+                res = {
+                    file = preds[i],
+                    title = BookGroups.displayTitle(preds[i]),
+                    data = data,
+                    entry = entry,
+                    more = more,
+                    stamp = stamp,
+                }
+                break
+            end
+        end
+    end
+    pred_xray_memo = { file = document_path, stamp = stamp, res = res }
+    return res
+end
+
 local exact_route_index = nil -- { path, key, set }
 
 --- Would searchAll's EXACT mode match this query in ANY of the book's X-Rays
@@ -2471,9 +2537,15 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
         and type(opts and opts.position) == "number"
     local path = ActionCache.getPath(document_path)
     if not path then return false end
+    -- S2 (ref #90): a book with NO cache file of its own can still route
+    -- through its group's nearest X-Rayed predecessor — the reporter's
+    -- "never X-Rayed this volume" case — so the missing-file return only
+    -- fires when there is no predecessor either.
     local attr = lfs.attributes(path)
-    if not attr or attr.mode ~= "file" then return false end
-    local key = tostring(attr.modification) .. "|" .. tostring(attr.size)
+    if attr and attr.mode ~= "file" then return false end
+    local pred = ActionCache.nearestPredecessorXray(document_path)
+    if not attr and not pred then return false end
+    local key = attr and (tostring(attr.modification) .. "|" .. tostring(attr.size)) or "-"
     local alias_path = ActionCache.getUserAliasesPath(document_path)
     local aattr = alias_path and lfs.attributes(alias_path)
     if aattr then
@@ -2510,6 +2582,11 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
         end
     end
     key = key .. (ahead_stamp and ("|ahead:" .. ahead_stamp) or "|noahead")
+    -- Predecessor tier (S2 Q4, ref #90): the nearest earlier X-Rayed book's
+    -- handles join the route so its entities intercept/tap like local ones.
+    -- Rank-free here by design — the SET only routes; the card router owns
+    -- the order (live -> sections -> carried -> predecessor -> ahead).
+    key = key .. "|pred:" .. (pred and pred.stamp or "-")
     if not (exact_route_index and exact_route_index.path == path
             and exact_route_index.key == key) then
         local XrayParser = require("koassistant_xray_parser")
@@ -2552,6 +2629,10 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
                 XrayParser.mergeUserAliases(data, user_aliases)
                 XrayParser.foldExactHandles(data, set)
             end
+        end
+        if pred then
+            XrayParser.foldExactHandles(pred.data, set)
+            XrayParser.foldLedgerHandles(pred.data, set)
         end
         exact_route_index = { path = path, key = key, set = set }
     end

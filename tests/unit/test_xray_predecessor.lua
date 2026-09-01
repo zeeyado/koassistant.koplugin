@@ -1,0 +1,236 @@
+--[[
+Unit tests: S2 predecessor tier (ref #90) — ActionCache.nearestPredecessorXray
+walk + memo, the route index's predecessor fold (no-cache books included),
+XrayCard.resolve's predecessor ordering (transitive source titles, the Q6
+also_ahead hint), and XrayMerge.carryOne.
+
+Real ActionCache + BookGroups under the docsettings shim (per-doc sidecar
+dirs — the multi-book variant of test_xray_card's harness).
+
+Run: lua tests/unit/test_xray_predecessor.lua  (auto-discovered by run_tests.lua --unit)
+]]
+
+local function setupPaths()
+    local info = debug.getinfo(1, "S")
+    local script_path = info.source:match("@?(.*)")
+    local unit_dir = script_path:match("(.+)/[^/]+$") or "."
+    local tests_dir = unit_dir:match("(.+)/[^/]+$") or "."
+    local plugin_dir = tests_dir:match("(.+)/[^/]+$") or "."
+
+    package.path = table.concat({
+        plugin_dir .. "/?.lua",
+        plugin_dir .. "/?/init.lua",
+        tests_dir .. "/?.lua",
+        tests_dir .. "/lib/?.lua",
+        package.path,
+    }, ";")
+end
+setupPaths()
+require("mock_koreader")
+
+local TestRunner = require("test_runner"):new()
+-- Per-file sugar (test_xray_parser/test_xray_card precedent)
+function TestRunner:suite(name) print(string.format("\n  [%s]", name)) end
+function TestRunner:eq(a, b, msg)
+    self:assertEqual(a, b, msg)
+end
+function TestRunner:ok(v, msg)
+    self:assertTrue(not not v, msg)
+end
+print("Running: test_xray_predecessor")
+print("")
+
+-- ---------------------------------------------------------------- harness
+local TMP_ROOT = "/tmp/koassistant_xray_pred_test_" .. tostring(os.time())
+    .. "_" .. tostring(math.random(10000))
+os.execute(string.format("mkdir -p %q", TMP_ROOT))
+os.execute("mkdir -p /tmp/koreader/settings")
+
+local VOL1 = TMP_ROOT .. "/vol1.epub"
+local VOL2 = TMP_ROOT .. "/vol2.epub"
+local VOL3 = TMP_ROOT .. "/vol3.epub"
+for _idx, doc in ipairs({ VOL1, VOL2, VOL3 }) do
+    os.execute(string.format("mkdir -p %q", doc .. ".sdr"))
+end
+
+package.loaded["koassistant_action_cache"] = nil
+package.loaded["koassistant_book_groups"] = nil
+package.loaded["koassistant_xray_card"] = nil
+package.loaded["docsettings"] = nil
+package.loaded["util"] = nil
+-- BookGroups' store needs real read/save/flush semantics, and the runner
+-- shares one Lua state: an earlier test file (test_xray_card) leaves a
+-- nil-returning luasettings stub behind. Install a functional in-memory
+-- one for this file; the original is restored at the end.
+local prior_luasettings = package.loaded["luasettings"]
+package.loaded["luasettings"] = {
+    open = function(_path)
+        local store = {}
+        local inst
+        inst = {
+            readSetting = function(_self, key, default)
+                local v = store[key]
+                if v == nil then return default end
+                return v
+            end,
+            saveSetting = function(_self, key, value)
+                store[key] = value
+                return inst
+            end,
+            delSetting = function(_self, key)
+                store[key] = nil
+                return inst
+            end,
+            flush = function() end,
+            close = function() end,
+        }
+        return inst
+    end,
+}
+_G.G_reader_settings = {
+    _store = {},
+    readSetting = function(self, key, default)
+        local v = self._store[key]
+        if v == nil then return default end
+        return v
+    end,
+    saveSetting = function(self, key, value) self._store[key] = value end,
+    flush = function() end,
+}
+package.loaded["docsettings"] = {
+    -- Per-doc sidecars: the multi-book point of this harness
+    getSidecarDir = function(_self, doc_path, _force) return doc_path .. ".sdr" end,
+    isHashLocationEnabled = function() return false end,
+    open = function() return { readSetting = function() end, close = function() end } end,
+}
+package.loaded["util"] = {
+    makePath = function(dir) os.execute(string.format("mkdir -p %q", dir)) end,
+}
+local ActionCache = require("koassistant_action_cache")
+local BookGroups = require("koassistant_book_groups")
+local XrayParser = require("koassistant_xray_parser")
+
+local VOL1_JSON = '{"characters":[{"name":"Zara Flint","description":"Dives for bells and never says who pays."}]}'
+local VOL2_JSON = '{"characters":[{"name":"Petra Lund","role":"Innkeeper","description":"Keeps the crossing inn and hears everything twice."}],'
+    .. '"lexicon":[{"term":"salt road","definition":"The low road that shows only at ebb."}],'
+    .. '"__dormant":[{"name":"Wick","category":"characters","description":"Lights the pier lamps.","source":"Volume One","file":"' .. VOL1 .. '"}]}'
+local VOL3_LIVE_JSON = '{"characters":[{"name":"Mira Voss","description":"Minds the orchard."}]}'
+local VOL3_RUNG_JSON = '{"characters":[{"name":"Hester Vane","description":"Walks the salt line."},'
+    .. '{"name":"Petra Lund","description":"Arrives inland with the inn sign."}]}'
+
+local group = BookGroups.create("Pred Walk Test Series")
+BookGroups.addBook(group.id, VOL1)
+BookGroups.addBook(group.id, VOL2)
+BookGroups.addBook(group.id, VOL3)
+
+TestRunner:suite("nearestPredecessorXray — walk, memo, more count")
+
+TestRunner:test("walks past non-X-Rayed books; memo re-picks when a nearer X-Ray appears", function()
+    -- Live X-Ray = BOTH keys: per-action "xray" AND doc-level _xray_cache
+    -- (getXrayCache reads the latter — the gen.lua two-key lesson)
+    assert(ActionCache.set(VOL1, "xray", VOL1_JSON, 1.0, { model = "m", used_book_text = true }))
+    assert(ActionCache.setXrayCache(VOL1, VOL1_JSON, 1.0, { model = "m", used_book_text = true }))
+    local pred = ActionCache.nearestPredecessorXray(VOL3)
+    TestRunner:ok(pred, "vol1-only: a predecessor resolves")
+    TestRunner:eq(pred.file, VOL1, "vol2 has no X-Ray, the walk lands on vol1")
+    TestRunner:eq(pred.more, 0, "nothing X-Rayed beyond the pick")
+    TestRunner:ok(type(pred.title) == "string" and pred.title ~= "", "title resolves")
+    -- A nearer book gains an X-Ray: the stamp changes, the memo re-picks
+    assert(ActionCache.set(VOL2, "xray", VOL2_JSON, 1.0, { model = "m", used_book_text = true }))
+    assert(ActionCache.setXrayCache(VOL2, VOL2_JSON, 1.0, { model = "m", used_book_text = true }))
+    pred = ActionCache.nearestPredecessorXray(VOL3)
+    TestRunner:eq(pred.file, VOL2, "nearest X-Rayed book wins")
+    TestRunner:eq(pred.more, 1, "vol1's cache file counts as a further book to sweep")
+    TestRunner:ok(pred.data and pred.data.characters, "parsed data rides the result")
+end)
+
+TestRunner:test("first book, unordered groups, ungrouped books: no predecessor", function()
+    TestRunner:eq(ActionCache.nearestPredecessorXray(VOL1), nil, "book 1 has no earlier books")
+    BookGroups.setOrdered(group.id, false)
+    TestRunner:eq(ActionCache.nearestPredecessorXray(VOL3), nil,
+        "unordered group: predecessorsOf stands down (Q5, series only)")
+    BookGroups.setOrdered(group.id, true)
+    TestRunner:eq(ActionCache.nearestPredecessorXray(TMP_ROOT .. "/lone.epub"), nil, "ungrouped book")
+end)
+
+TestRunner:suite("route index — predecessor fold (S2 Q4)")
+
+TestRunner:test("pred handles route from a book with NO cache file of its own", function()
+    TestRunner:eq(ActionCache.matchAnyXrayExact(VOL3, "Petra Lund"), true, "pred active routes")
+    TestRunner:eq(ActionCache.matchAnyXrayExact(VOL3, "salt road"), true, "pred term routes")
+    TestRunner:eq(ActionCache.matchAnyXrayExact(VOL3, "wick"), true, "pred ledger stub routes (transitive)")
+    TestRunner:eq(ActionCache.matchAnyXrayExact(VOL3, "Nobody Here"), false, "miss stays a miss")
+end)
+
+TestRunner:suite("card resolve — predecessor tier (D1 order, Q6 hint)")
+
+local XrayCard = require("koassistant_xray_card")
+
+TestRunner:test("live > predecessor > ahead; transitive stubs keep the original source", function()
+    assert(ActionCache.set(VOL3, "xray", VOL3_LIVE_JSON, 0.4, { model = "m", used_book_text = true }))
+    assert(ActionCache.setXrayCache(VOL3, VOL3_LIVE_JSON, 0.4, { model = "m", used_book_text = true }))
+    assert(ActionCache.pushXrayLadderRung(VOL3, {
+        result = VOL3_RUNG_JSON, progress_decimal = 0.7, timestamp = 1700000900 }))
+    local hit = XrayCard.resolve(VOL3, "Mira Voss", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "live", "live tier first")
+    hit = XrayCard.resolve(VOL3, "Petra Lund", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "predecessor", "pred beats the built-ahead rung")
+    TestRunner:eq(hit.pred_file, VOL2, "pred file rides the hit")
+    TestRunner:eq(hit.source_title, hit.pred_title, "active hit: provenance is the predecessor")
+    TestRunner:eq(hit.also_ahead, 0.7, "Q6: the next checkpoint also knows the name")
+    hit = XrayCard.resolve(VOL3, "Wick", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "predecessor", "pred's own ledger answers (transitive)")
+    TestRunner:eq(hit.pred_stub, true, "stub flag rides")
+    TestRunner:eq(hit.source_title, "Volume One", "transitive hit reports the ORIGINAL book")
+    TestRunner:eq(hit.also_ahead, nil, "no hint when the rung lacks the name")
+    hit = XrayCard.resolve(VOL3, "Hester Vane", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "ahead", "rung-only entity keeps the peek")
+end)
+
+TestRunner:test("Upcoming Entities off: pred tier stays, hint and peek stand down", function()
+    local hit = XrayCard.resolve(VOL3, "Petra Lund", { include_ahead = false, position = 0.5 })
+    TestRunner:eq(hit and hit.source, "predecessor", "pred is already-read content, not a peek")
+    TestRunner:eq(hit.also_ahead, nil, "hint respects the toggle")
+    TestRunner:eq(XrayCard.resolve(VOL3, "Hester Vane", { include_ahead = false, position = 0.5 }),
+        nil, "peek stood down")
+end)
+
+TestRunner:suite("carryOne — the manual single-entity seed (Q2)")
+
+TestRunner:test("carries actives and term-keyed entries; refreshes by name", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    local parsed = XrayParser.parse(VOL3_LIVE_JSON)
+    local petra = { name = "Petra Lund", role = "Innkeeper", aliases = { "the innkeeper" },
+        description = "Keeps the crossing inn." }
+    TestRunner:ok(XrayMerge.carryOne(parsed, petra, "characters",
+        { source = "Volume Two", file = VOL2 }), "carry succeeds")
+    local DK = XrayParser.DORMANT_KEY
+    TestRunner:eq(#parsed[DK], 1, "one stub")
+    TestRunner:eq(parsed[DK][1].name, "Petra Lund")
+    TestRunner:eq(parsed[DK][1].source, "Volume Two")
+    TestRunner:eq(parsed[DK][1].aliases[1], "the innkeeper", "aliases copy")
+    TestRunner:ok(XrayMerge.carryOne(parsed, petra, "characters",
+        { source = "Volume Two", file = VOL2 }), "re-carry ok")
+    TestRunner:eq(#parsed[DK], 1, "refreshed by name, never duplicated")
+    local term = { term = "salt road", definition = "The low road at ebb." }
+    TestRunner:ok(XrayMerge.carryOne(parsed, term, "lexicon", { source = "Volume Two", file = VOL2 }))
+    TestRunner:eq(parsed[DK][2].name, "salt road", "term-keyed name resolves")
+    TestRunner:eq(parsed[DK][2].description, "The low road at ebb.", "definition becomes the stub text")
+    TestRunner:ok(not XrayMerge.carryOne(parsed, { role = "x" }, "characters", nil),
+        "nameless item refused")
+    -- The carried stub resolves through the S1 machinery immediately
+    TestRunner:eq(#XrayParser.searchLedger(parsed, "the innkeeper", { exact = true }), 1,
+        "stub alias searchable after carry")
+end)
+
+-- ---------------------------------------------------------------- cleanup
+BookGroups.remove(group.id)
+os.execute(string.format("rm -rf %q", TMP_ROOT))
+package.loaded["luasettings"] = prior_luasettings
+package.loaded["koassistant_book_groups"] = nil
+package.loaded["koassistant_action_cache"] = nil
+
+print("")
+print(string.rep("-", 50))
+print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
+return TestRunner.failed == 0

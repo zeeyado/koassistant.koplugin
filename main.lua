@@ -19122,6 +19122,20 @@ function AskGPT:openXrayCard(query, opts)
       })
       return
     end
+    if h.source == "predecessor" then
+      -- Earlier book's entry (S2, ref #90): the read-only predecessor view
+      -- (provenance, "Open in <title>'s X-Ray", "Carry into this book").
+      -- No book_metadata here, so a carry just toasts; the lookup paths land
+      Dialogs.showPredecessorEntity{
+        ui = self_ref.ui,
+        plugin = self_ref,
+        config = configuration,
+        document_path = (opts and opts.document_path)
+          or (self_ref.ui and self_ref.ui.document and self_ref.ui.document.file),
+        hit = h,
+      }
+      return
+    end
     if h.source ~= "ahead" then
       -- Live-main hits carry the resolved identity so "full entry" opens the
       -- entity the CARD showed — two entries sharing a handle used to dump

@@ -6066,6 +6066,32 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
         end
     end
 
+    -- Earlier books (S2, ref #90): this list searches only the open
+    -- artifact and its carried list — the group's X-Rayed earlier books are
+    -- one row away (device step 13: reachable from a zero-hit browser
+    -- search too). Shown whenever any earlier book has an X-Ray.
+    local sweep_file = self.metadata and self.metadata.book_file
+    local sweep_pred = sweep_file and not self.scope
+        and require("koassistant_action_cache").nearestPredecessorXray(sweep_file)
+    if sweep_pred then
+        table.insert(items, {
+            text = _("Search all earlier books…"),
+            bold = true,
+            separator = true,
+            callback = function()
+                local Dialogs = require("koassistant_dialogs")
+                Dialogs.showEarlierBooksSweep{
+                    ui = self_ref.metadata.plugin and self_ref.metadata.plugin.ui,
+                    config = self_ref.metadata.configuration,
+                    plugin = self_ref.metadata.plugin,
+                    book_metadata = { title = self_ref.metadata.title },
+                    document_path = sweep_file,
+                    query = query,
+                }
+            end,
+        })
+    end
+
     -- "Search other X-Rays" button when others exist
     -- Skip when caller already performed cross-section search (e.g., "Look up in X-Ray")
     if not skip_cross_search and other_count > 0 then

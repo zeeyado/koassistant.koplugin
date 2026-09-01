@@ -10839,6 +10839,325 @@ local function carriedLookupHandled(ui, mdata, query, config, plugin,
     return false
 end
 
+-- Read-only view of an entry found in an EARLIER book's X-Ray (S2, ref
+-- #90): the card's full-detail body (provenance line + item detail +
+-- background lines) plus the two actions — open that book's X-Ray at the
+-- entry, or carry the entry into THIS book's carried list (the manual
+-- single-entity seed: consent-gated like the create-time seed, no model
+-- request, wake-pass merges it when an update later brings the entity).
+-- Reached from the card tap-through, the lookup's exact hits, the
+-- predecessor results list and the earlier-books sweep.
+-- @param opts table { ui, config, plugin, book_metadata, cleanup_widgets,
+--   document_path (CURRENT book), hit { name, item, category_key,
+--   category_label, source_title, pred_file, pred_title, pred_stub } }
+local function showPredecessorEntity(opts)
+    local ActionCache = require("koassistant_action_cache")
+    local XrayCard = require("koassistant_xray_card")
+    local XrayParser = require("koassistant_xray_parser")
+    local hit = opts.hit
+    hit.source = "predecessor" -- the shared provenance line renders off this
+    local pred_entry = hit.pred_file and ActionCache.getXrayCache(hit.pred_file) or nil
+    local viewer
+    local action_row = {}
+    if pred_entry and pred_entry.result and opts.plugin then
+        action_row[#action_row + 1] = {
+            text = T(_("Open in %1's X-Ray"), hit.pred_title or _("that book")),
+            callback = function()
+                UIManager:close(viewer)
+                if not hit.pred_stub then
+                    local aliases = {}
+                    if type(hit.item) == "table" and type(hit.item.aliases) == "table" then
+                        for _idx, a in ipairs(hit.item.aliases) do aliases[#aliases + 1] = a end
+                    end
+                    -- The members-popup jump recipe: land on the entity, one
+                    -- fallback level at a time (a stub target skips this and
+                    -- opens at the root — stubs live in the carried list)
+                    require("koassistant_xray_browser")._pending_navigate_to = {
+                        category_key = hit.category_key,
+                        item_name = hit.name,
+                        item_aliases = aliases,
+                        book_file = hit.pred_file,
+                        fallback = true,
+                    }
+                end
+                opts.plugin:showCacheViewer({ name = _("X-Ray"), key = "_xray_cache",
+                    data = pred_entry, book_title = hit.pred_title, file = hit.pred_file })
+            end,
+        }
+    end
+    local live = ActionCache.getXrayCache(opts.document_path)
+    if live and live.result and XrayParser.isJSON(live.result) then
+        action_row[#action_row + 1] = {
+            text = _("Carry into this book"),
+            callback = function()
+                local XrayMerge = require("koassistant_xray_merge")
+                local features = (opts.config and opts.config.features) or {}
+                local provider = opts.config and opts.config.provider
+                if pred_entry and not XrayMerge.consentOk({ pred_entry }, features,
+                        provider, hit.pred_file, opts.ui) then
+                    UIManager:show(InfoMessage:new{
+                        text = T(_("Carrying this entry needs text extraction allowed for %1 (Book Settings, Privacy) or a trusted provider."),
+                            hit.pred_title or _("that book")),
+                        timeout = 6,
+                    })
+                    return
+                end
+                local WriteBack = require("koassistant_artifact_writeback")
+                local ok, err, new_data = WriteBack.editLiveXray(opts.document_path,
+                    function(data)
+                        return XrayMerge.carryOne(data, hit.item, hit.category_key, {
+                            source = hit.source_title or hit.pred_title,
+                            file = hit.pred_stub and (hit.item.file or hit.pred_file)
+                                or hit.pred_file,
+                        })
+                    end, { features = features })
+                if not ok then
+                    UIManager:show(InfoMessage:new{
+                        text = err == "no_xray" and _("This book has no X-Ray to carry into.")
+                            or _("Could not save the X-Ray."),
+                        timeout = 4,
+                    })
+                    return
+                end
+                UIManager:close(viewer)
+                local Notification = require("ui/widget/notification")
+                UIManager:show(Notification:new{
+                    text = T(_("Carried into this book's X-Ray: %1"), hit.name),
+                })
+                -- Land on the fresh carried entry when the caller threaded
+                -- book_metadata (the lookup paths); the card path just toasts
+                if opts.book_metadata and new_data then
+                    local s2, i2 = XrayParser.findDormantByIdentity(new_data, { hit.name })
+                    if s2 then
+                        openCarriedStubDetail(opts.ui, new_data, opts.config, opts.plugin,
+                            opts.book_metadata,
+                            opts.cleanup_widgets and #opts.cleanup_widgets > 0
+                                and opts.cleanup_widgets or nil,
+                            opts.document_path, i2, s2)
+                    end
+                end
+            end,
+        }
+    end
+    local rows = {}
+    if #action_row > 0 then rows[#rows + 1] = action_row end
+    rows[#rows + 1] = { { text = _("Close"), callback = function() UIManager:close(viewer) end } }
+    viewer = XrayCard.showFullDetail(hit, { buttons_table = rows })
+end
+
+-- Grouped results Menu for earlier-book hits (S2): a "From <title>" header
+-- per book, rows open the read-only predecessor entry view. groups =
+-- { { file, title, entry, rows = { hit, ... } } }; opts.sweep_row adds the
+-- bottom "Search all earlier books…" row (nearest-book lists only).
+local showEarlierBooksSweep
+local function predGroupsMenu(opts, groups, title)
+    local Menu = require("ui/widget/menu")
+    local items = {}
+    for _g, g in ipairs(groups) do
+        table.insert(items, {
+            text = T(_("From %1"), g.title),
+            bold = true,
+            separator = true,
+            callback = function() end,
+        })
+        for _r, ghit in ipairs(g.rows) do
+            local captured = ghit
+            local match_label = captured.category_label or ""
+            if captured.match_field == "alias" then
+                match_label = match_label .. " (" .. _("alias") .. ")"
+            end
+            table.insert(items, {
+                text = "  " .. captured.name,
+                mandatory = match_label,
+                mandatory_dim = true,
+                callback = function()
+                    showPredecessorEntity{
+                        ui = opts.ui, config = opts.config, plugin = opts.plugin,
+                        book_metadata = opts.book_metadata,
+                        cleanup_widgets = opts.cleanup_widgets,
+                        document_path = opts.document_path,
+                        hit = captured,
+                    }
+                end,
+            })
+        end
+    end
+    if opts.sweep_row then
+        table.insert(items, {
+            text = _("Search all earlier books…"),
+            bold = true,
+            separator = true,
+            callback = function()
+                local next_opts = {}
+                for k, v in pairs(opts) do next_opts[k] = v end
+                next_opts.sweep_row = nil
+                showEarlierBooksSweep(next_opts)
+            end,
+        })
+    end
+    local results_menu = Menu:new{
+        title = title,
+        item_table = items,
+        is_borderless = true,
+        is_popout = false,
+        width = Screen:getWidth(),
+        height = Screen:getHeight(),
+        single_line = true,
+        items_font_size = 18,
+        items_mandatory_font_size = 14,
+    }
+    if opts.cleanup_widgets then
+        table.insert(opts.cleanup_widgets, results_menu)
+    end
+    UIManager:show(results_menu)
+end
+
+-- "Search all earlier books…" (S2 D5): walk EVERY earlier book in the
+-- group, newest first; one group per book with hits — the book's entries
+-- plus what it carries itself. One parse per X-Rayed book, on demand only
+-- (a true miss on a long chain is the priced-in worst case, which is why
+-- this is an extra step and never automatic).
+-- @param opts table { ui, config, plugin, book_metadata, cleanup_widgets,
+--   document_path, query }
+showEarlierBooksSweep = function(opts)
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    local BookGroups = require("koassistant_book_groups")
+    local preds = BookGroups.predecessorsOf(opts.document_path)
+    local groups = {}
+    local searched = 0
+    for i = #preds, 1, -1 do
+        local entry = ActionCache.getXrayCache(preds[i])
+        if entry and entry.result and entry.source_mode ~= "ai_knowledge"
+                and XrayParser.isJSON(entry.result) then
+            local data = XrayParser.parse(entry.result)
+            if data and not data.error then
+                XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(preds[i]))
+                searched = searched + 1
+                local title = BookGroups.displayTitle(preds[i])
+                local rows = {}
+                for _idx, r in ipairs(XrayParser.searchAll(data, opts.query,
+                        { skip_description = true })) do
+                    rows[#rows + 1] = {
+                        name = XrayParser.getItemName(r.item, r.category_key),
+                        item = r.item, category_key = r.category_key,
+                        category_label = r.category_label, match_field = r.match_field,
+                        source_title = title, pred_file = preds[i], pred_title = title,
+                    }
+                end
+                for _idx, s in ipairs(XrayParser.searchLedger(data, opts.query,
+                        { skip_description = true })) do
+                    rows[#rows + 1] = {
+                        name = s.stub.name, item = s.stub,
+                        category_key = s.category_key,
+                        category_label = XrayParser.categoryLabel(data, s.category_key),
+                        match_field = s.match_field,
+                        source_title = s.source_title or title,
+                        pred_file = preds[i], pred_title = title, pred_stub = true,
+                    }
+                end
+                if #rows > 0 then
+                    groups[#groups + 1] = { file = preds[i], title = title,
+                        entry = entry, rows = rows }
+                end
+            end
+        end
+    end
+    if #groups == 0 then
+        UIManager:show(InfoMessage:new{
+            text = T(_("No results for \"%1\" in %2 earlier books."), opts.query, searched),
+            timeout = 4,
+        })
+        return
+    end
+    predGroupsMenu(opts, groups, T(_("Results for \"%1\" in earlier books"), opts.query))
+end
+
+-- The predecessor tier's miss handling (S2), shared by the lookup's
+-- no-result seams the way carriedLookupHandled is: consulted only after a
+-- FULL local miss (live + sections + carried), per the design's strict
+-- ranking. Exact hit(s) -> the read-only predecessor view (a chooser when
+-- several share the handle); substring hits -> a "From <title>" results
+-- list with the whole-chain row when further X-Rayed books exist. Returns
+-- true when it presented something.
+local function predLookupHandled(ui, query, config, plugin, book_metadata,
+        cleanup_widgets, document_path)
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    local pred = ActionCache.nearestPredecessorXray(document_path)
+    if not pred then return false end
+    local show_opts = { ui = ui, config = config, plugin = plugin,
+        book_metadata = book_metadata, cleanup_widgets = cleanup_widgets,
+        document_path = document_path, query = query }
+    local function activeHit(r)
+        return { name = XrayParser.getItemName(r.item, r.category_key),
+            item = r.item, category_key = r.category_key,
+            category_label = r.category_label, match_field = r.match_field,
+            source_title = pred.title, pred_file = pred.file, pred_title = pred.title }
+    end
+    local function stubHit(s)
+        return { name = s.stub.name, item = s.stub, category_key = s.category_key,
+            category_label = XrayParser.categoryLabel(pred.data, s.category_key),
+            match_field = s.match_field,
+            source_title = s.source_title or pred.title,
+            pred_file = pred.file, pred_title = pred.title, pred_stub = true }
+    end
+    local hits = {}
+    for _idx, r in ipairs(XrayParser.searchAll(pred.data, query, { exact = true })) do
+        hits[#hits + 1] = activeHit(r)
+    end
+    for _idx, s in ipairs(XrayParser.searchLedger(pred.data, query, { exact = true })) do
+        hits[#hits + 1] = stubHit(s)
+    end
+    if #hits == 1 then
+        show_opts.hit = hits[1]
+        showPredecessorEntity(show_opts)
+        return true
+    end
+    if #hits > 1 then
+        local chooser
+        local rows = {}
+        for _idx, h in ipairs(hits) do
+            local captured = h
+            rows[#rows + 1] = { {
+                text = captured.name .. "  \u{00B7}  " .. T(_("From %1"),
+                    captured.source_title or pred.title),
+                align = "left",
+                callback = function()
+                    UIManager:close(chooser)
+                    show_opts.hit = captured
+                    showPredecessorEntity(show_opts)
+                end,
+            } }
+        end
+        rows[#rows + 1] = { { text = _("Close"),
+            callback = function() UIManager:close(chooser) end } }
+        chooser = ButtonDialog:new{
+            title = T(_("\"%1\" matches %2 entries in %3"), query, #hits, pred.title),
+            buttons = rows,
+        }
+        UIManager:show(chooser)
+        return true
+    end
+    local rows = {}
+    for _idx, r in ipairs(XrayParser.searchAll(pred.data, query,
+            { skip_description = true })) do
+        rows[#rows + 1] = activeHit(r)
+    end
+    for _idx, s in ipairs(XrayParser.searchLedger(pred.data, query,
+            { skip_description = true })) do
+        rows[#rows + 1] = stubHit(s)
+    end
+    if #rows > 0 then
+        show_opts.sweep_row = pred.more > 0
+        predGroupsMenu(show_opts,
+            { { file = pred.file, title = pred.title, entry = pred.entry, rows = rows } },
+            T(_("Results for \"%1\" (%2)"), query, #rows))
+        return true
+    end
+    return false
+end
+
 -- Show cross-section X-Ray search results as a standalone picker Menu.
 -- @param grouped_results table From ActionCache.searchAllXrays()
 -- @param query string The search query
@@ -11264,9 +11583,34 @@ end
 local function showLookupNoResults(opts)
     local ActionCache = require("koassistant_action_cache")
     local query, msg = opts.query, opts.msg
+    -- S2 (ref #90): the whole-chain sweep rides the no-results surface when
+    -- the group holds MORE X-Rayed books than the one already searched (the
+    -- nearest was consulted by predLookupHandled before any seam lands here)
+    local sweep_pred = ActionCache.nearestPredecessorXray(opts.document_path)
+    local sweep_ok = sweep_pred and sweep_pred.more > 0
     if not (opts.data and opts.cached and opts.document_path
             and #query > 2 and #query <= 120
             and ActionCache.getUserAliasesPath(opts.document_path)) then
+        if sweep_ok then
+            local plain
+            plain = ButtonDialog:new{
+                title = msg,
+                buttons = {
+                    { { text = _("Search all earlier books…"), callback = function()
+                        UIManager:close(plain)
+                        showEarlierBooksSweep{
+                            ui = opts.ui, config = opts.config, plugin = opts.plugin,
+                            book_metadata = opts.book_metadata,
+                            cleanup_widgets = opts.cleanup_widgets,
+                            document_path = opts.document_path, query = query,
+                        }
+                    end } },
+                    { { text = _("Close"), callback = function() UIManager:close(plain) end } },
+                },
+            }
+            UIManager:show(plain)
+            return
+        end
         UIManager:show(InfoMessage:new{
             text = msg,
             timeout = 5,
@@ -11279,9 +11623,8 @@ local function showLookupNoResults(opts)
     local data, cached, best = opts.data, opts.cached, opts.best
     local cw = opts.cleanup_widgets and #opts.cleanup_widgets > 0 and opts.cleanup_widgets or nil
     local nores
-    nores = ButtonDialog:new{
-        title = msg,
-        buttons = {
+    local nores_buttons = {}
+    nores_buttons[#nores_buttons + 1] =
             { { text = _("Add as alias of an entry…"), callback = function()
                 UIManager:close(nores)
                 showAliasTargetPicker{
@@ -11310,9 +11653,23 @@ local function showLookupNoResults(opts)
                         XrayBrowser:showItemDetail(target_item, target_cat_key, target_name)
                     end,
                 }
-            end } },
-            { { text = _("Close"), callback = function() UIManager:close(nores) end } },
-        },
+            end } }
+    if sweep_ok then
+        nores_buttons[#nores_buttons + 1] =
+            { { text = _("Search all earlier books…"), callback = function()
+                UIManager:close(nores)
+                showEarlierBooksSweep{
+                    ui = ui, config = config, plugin = plugin,
+                    book_metadata = book_metadata, cleanup_widgets = opts.cleanup_widgets,
+                    document_path = document_path, query = query,
+                }
+            end } }
+    end
+    nores_buttons[#nores_buttons + 1] =
+        { { text = _("Close"), callback = function() UIManager:close(nores) end } }
+    nores = ButtonDialog:new{
+        title = msg,
+        buttons = nores_buttons,
     }
     UIManager:show(nores)
 end
@@ -11369,10 +11726,20 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         local total_xrays = #sections + (main and main.result and 1 or 0)
 
         if total_xrays == 0 then
-            UIManager:show(InfoMessage:new{
-                text = _("No X-Ray found for this book. Generate one first via the X-Ray action."),
-                timeout = 4,
-            })
+            -- S2 (ref #90): a book with no X-Ray of its own still answers
+            -- from its group's earlier books — the reporter's "never
+            -- X-Rayed this volume" case. On a miss the shared no-results
+            -- surface offers the whole-chain sweep (no alias target here).
+            if predLookupHandled(ui, query, config, plugin, book_metadata,
+                    cleanup_widgets, document_path) then
+                return
+            end
+            showLookupNoResults{
+                ui = ui, config = config, plugin = plugin,
+                book_metadata = book_metadata, cleanup_widgets = cleanup_widgets,
+                document_path = document_path, query = query,
+                msg = _("No X-Ray found for this book. Generate one first via the X-Ray action."),
+            }
             return
         end
 
@@ -11385,6 +11752,12 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                 local mdata = mainLedgerData(document_path, nil, nil)
                 if mdata and carriedLookupHandled(ui, mdata, query, config, plugin,
                         book_metadata, cleanup_widgets, document_path) then
+                    return
+                end
+                -- Predecessor tier (S2, ref #90): the nearest earlier
+                -- X-Rayed book answers before "no results anywhere"
+                if predLookupHandled(ui, query, config, plugin, book_metadata,
+                        cleanup_widgets, document_path) then
                     return
                 end
                 -- No results anywhere: the shared dialog, so the alias
@@ -11548,6 +11921,12 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         local carried_mdata = mainLedgerData(document_path, data, best)
         if carried_mdata and carriedLookupHandled(ui, carried_mdata, query, config, plugin,
                 book_metadata, cleanup_widgets, document_path) then
+            return
+        end
+        -- Predecessor tier (S2, ref #90): the nearest earlier X-Rayed book
+        -- answers before the no-results dialog
+        if predLookupHandled(ui, query, config, plugin, book_metadata,
+                cleanup_widgets, document_path) then
             return
         end
         -- No results
@@ -12607,6 +12986,8 @@ return {
     -- Exported for the X-Ray browser's search-results "Add as alias…" row
     -- (inline require there — a top-level require would be circular)
     showAliasTargetPicker = showAliasTargetPicker,
+    showPredecessorEntity = showPredecessorEntity,
+    showEarlierBooksSweep = showEarlierBooksSweep,
     executeDirectAction = executeDirectAction,
     executeActionForResult = executeActionForResult,
     generateSummaryCache = generateSummaryCache,

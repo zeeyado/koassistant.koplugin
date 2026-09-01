@@ -1158,6 +1158,78 @@ function XrayMerge.seedDormant(file, parsed, features, provider, ui)
     return added, src.title
 end
 
+--- Carry ONE entry from an earlier book's X-Ray into a book's carried
+--- list (S2 Q2, ref #90): the reader-asserted single-entity form of the
+--- create-time seed — the same stub shape populateDormant builds, appended
+--- (or refreshed) by name. Pure on parsed data; the caller writes via
+--- WriteBack.editLiveXray and checks consent (same rule as the seed). A
+--- transitive pick (the predecessor's own stub) keeps its ORIGINAL
+--- provenance through `prov`. Reached only after a full local miss, so no
+--- already-active self-filter is needed here.
+--- @param parsed table Current book's parsed live X-Ray (mutated)
+--- @param item table The predecessor entry (active item or stub)
+--- @param category_key string
+--- @param prov table|nil { source, file } Provenance for the stub
+--- @return boolean ok
+function XrayMerge.carryOne(parsed, item, category_key, prov)
+    local XrayParser = require("koassistant_xray_parser")
+    if type(parsed) ~= "table" or type(item) ~= "table" then return false end
+    local name = XrayParser.getItemName(item, category_key)
+    if type(name) ~= "string" or name == "" then return false end
+    if name ~= item.name and name ~= item.term and name ~= item.event then
+        -- getItemName's translated "Unknown" fallback: nothing real to carry
+        return false
+    end
+    local aliases
+    if type(item.aliases) == "table" and #item.aliases > 0 then
+        aliases = {}
+        for _idx, a in ipairs(item.aliases) do aliases[#aliases + 1] = a end
+    end
+    local desc
+    for _idx, f in ipairs({ "description", "definition", "significance", "summary" }) do
+        if type(item[f]) == "string" and item[f] ~= "" then
+            desc = item[f]
+            break
+        end
+    end
+    local background
+    if type(item.background) == "table" then
+        for _idx, b in ipairs(item.background) do
+            if type(b) == "table" and type(b.text) == "string" and b.text ~= ""
+                and type(b.source) == "string" and b.source ~= "" then
+                background = background or {}
+                background[#background + 1] = { source = b.source, text = b.text,
+                    file = type(b.file) == "string" and b.file or nil }
+            end
+        end
+    end
+    local DK = XrayParser.DORMANT_KEY
+    local ledger = parsed[DK]
+    if type(ledger) ~= "table" then
+        ledger = {}
+        parsed[DK] = ledger
+    end
+    local stub = {
+        name = name,
+        aliases = aliases,
+        category = category_key,
+        description = desc,
+        source = prov and prov.source or nil,
+        file = prov and prov.file or nil,
+        background = background,
+    }
+    local key = name:lower()
+    for i, s in ipairs(ledger) do
+        if type(s) == "table" and type(s.name) == "string" and s.name:lower() == key then
+            stub.background = XrayParser.mergeBackground(s.background, stub.background)
+            ledger[i] = stub
+            return true
+        end
+    end
+    ledger[#ledger + 1] = stub
+    return true
+end
+
 --- Alias bridge for the CREATE request (carry layer 3(iii), 2026-08-06;
 --- REFRAMED 2026-08-07): IDENTITY HANDLES — names + up to two aliases, never
 --- content — of the predecessor's named entities, plus its dormant ledger's

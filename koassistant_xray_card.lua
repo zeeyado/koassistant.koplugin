@@ -143,13 +143,21 @@ local function aheadLine(hit)
     end
 end
 
---- Carried-tier provenance line (S1 D3, ref #90): plain "From <title>", no
---- warning glyph — an earlier volume in the reading order is already-read
---- content by the group's own definition.
+--- Carried/predecessor provenance line (S1 D3 + S2, ref #90): plain
+--- "From <title>", no warning glyph — an earlier volume in the reading
+--- order is already-read content by the group's own definition. Q6
+--- (maintainer 2026-09-01): when the next checkpoint ALSO knows the name,
+--- say so in one clause — the reader can then choose to update/install for
+--- this book's own take; the carried entry stays the one shown.
 local function carriedLine(hit)
-    if hit.source == "carried" and type(hit.source_title) == "string"
-        and hit.source_title ~= "" then
-        return T(_("From %1"), hit.source_title)
+    if (hit.source == "carried" or hit.source == "predecessor")
+        and type(hit.source_title) == "string" and hit.source_title ~= "" then
+        local line = T(_("From %1"), hit.source_title)
+        if hit.also_ahead then
+            line = line .. " \u{00B7} " .. T(_("Also in the next checkpoint (to %1%)"),
+                math.floor(hit.also_ahead * 100 + 0.5))
+        end
+        return line
     end
 end
 
@@ -203,6 +211,14 @@ local function cardContent(hit, opts)
         return { name = hit.name or "", kind = kind, line = carriedLine(hit),
             body = text, hint = _("Tap for the full entry") }
     end
+    if hit.source == "predecessor" then
+        -- Earlier book's entry (S2): identity + provenance; the tap-through
+        -- opens the read-only predecessor view (buttons live there)
+        local text = itemText(hit.item)
+        if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
+        return { name = hit.name or "", kind = kindLabel(hit), line = carriedLine(hit),
+            body = text, hint = _("Tap for the full entry") }
+    end
     local text = itemText(hit.item)
     if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
     return { name = hit.name or "", kind = kindLabel(hit), body = text,
@@ -233,8 +249,11 @@ end
 --- @param query string the tapped/selected text
 --- @param opts table|nil { include_ahead = false → no peek, position = 0..1 }
 --- @return table|nil hit { name, item, category_key, category_label,
----   source = "live"|"section"|"carried"|"ahead", ahead_progress, query;
----   carried hits add source_title + stub_idx }
+---   source = "live"|"section"|"carried"|"predecessor"|"ahead",
+---   ahead_progress, query; carried hits add source_title + stub_idx;
+---   predecessor hits add source_title (the ORIGINAL book for a transitive
+---   ledger hit) + pred_file + pred_title (+ pred_stub); carried and
+---   predecessor hits may add also_ahead (Q6 hint, 0..1) }
 function XrayCard.resolve(file, query, opts)
     if not file or type(query) ~= "string" or query == "" then return nil end
     local ActionCache = require("koassistant_action_cache")
@@ -283,6 +302,18 @@ function XrayCard.resolve(file, query, opts)
             if r then return makeHit(r, "section") end
         end
     end
+    -- One probe for the ahead rung, shared by the final peek tier and the
+    -- Q6 hint on carried/predecessor hits ("Also in the next checkpoint").
+    -- Respects the Upcoming Entities toggle and needs a position (B269).
+    local function aheadProbe()
+        if opts and opts.include_ahead == false then return nil end
+        local rung = require("koassistant_xray_auto").pickAheadRung(
+            ActionCache.getXrayLadder(file), live_p, opts and opts.position)
+        if not rung then return nil end
+        local r = findIn(rung.result)
+        if not r then return nil end
+        return r, rung.full_document and 1.0 or tonumber(rung.progress_decimal) or 0
+    end
     -- Carried tier (S1 D1, ref #90): the live artifact's own dormant ledger.
     -- An earlier book's knowledge outranks the ahead peek, and the Upcoming
     -- Entities toggle does not gate it (Q8) — already-read content is
@@ -291,7 +322,7 @@ function XrayCard.resolve(file, query, opts)
         local stubs = XrayParser.searchLedger(live_data, query, { exact = true })
         if #stubs > 0 then
             local s = stubs[1]
-            return {
+            local hit = {
                 name = s.stub.name,
                 item = s.stub,
                 category_key = s.category_key,
@@ -301,20 +332,52 @@ function XrayCard.resolve(file, query, opts)
                 stub_idx = s.stub_idx,
                 query = query,
             }
+            local _ar, ap = aheadProbe()
+            hit.also_ahead = ap
+            return hit
+        end
+    end
+    -- Predecessor tier (S2 D1/D5, ref #90): the nearest earlier X-Rayed
+    -- book in the group — its entries AND its own carried list, so one
+    -- read covers a seeded chain. Already-read content: no warning, ranks
+    -- under everything local and above the peek. A transitive (carried-in-
+    -- the-predecessor) hit reports the ORIGINAL book as source_title.
+    local pred = ActionCache.nearestPredecessorXray(file)
+    if pred then
+        local results = XrayParser.searchAll(pred.data, query, { exact = true })
+        if results and #results > 0 then
+            local hit = makeHit(results[1], "predecessor")
+            hit.source_title = pred.title
+            hit.pred_file = pred.file
+            hit.pred_title = pred.title
+            local _ar, ap = aheadProbe()
+            hit.also_ahead = ap
+            return hit
+        end
+        local stubs = XrayParser.searchLedger(pred.data, query, { exact = true })
+        if #stubs > 0 then
+            local s = stubs[1]
+            local hit = {
+                name = s.stub.name,
+                item = s.stub,
+                category_key = s.category_key,
+                category_label = XrayParser.categoryLabel(pred.data, s.category_key),
+                source = "predecessor",
+                source_title = s.source_title,
+                pred_file = pred.file,
+                pred_title = pred.title,
+                pred_stub = true,
+                query = query,
+            }
+            local _ar, ap = aheadProbe()
+            hit.also_ahead = ap
+            return hit
         end
     end
     -- The identification peek (P5: stood down when the Upcoming Entities
     -- setting is off; B269: the one rung covering the reader's stretch)
-    if opts and opts.include_ahead == false then return nil end
-    local rung = require("koassistant_xray_auto").pickAheadRung(
-        ActionCache.getXrayLadder(file), live_p, opts and opts.position)
-    if rung then
-        local r = findIn(rung.result)
-        if r then
-            return makeHit(r, "ahead", rung.full_document and 1.0
-                or tonumber(rung.progress_decimal) or 0)
-        end
-    end
+    local r, rp = aheadProbe()
+    if r then return makeHit(r, "ahead", rp) end
     return nil
 end
 
@@ -458,13 +521,16 @@ end
 --- lines, headed by checkpoint provenance. Still a TextViewer host — the
 --- browser stack renders the LIVE artifact and cannot hold this entity yet
 --- (browser-hosted ahead view = recorded follow-up).
-function XrayCard.showFullDetail(hit)
+function XrayCard.showFullDetail(hit, fd_opts)
     local TextViewer = require("ui/widget/textviewer")
     local XrayParser = require("koassistant_xray_parser")
     local parts = {}
     -- Same warning line as the cards (round 7: one wording everywhere)
     local ahead = aheadLine(hit)
     if ahead then parts[#parts + 1] = ahead end
+    -- Provenance line for earlier-book entries (S2): same wording as the card
+    local from = carriedLine(hit)
+    if from then parts[#parts + 1] = from end
     local ok_fmt, body = pcall(XrayParser.formatItemDetail, hit.item, hit.category_key)
     if ok_fmt and type(body) == "string" and body:match("%S") then
         parts[#parts + 1] = (body:gsub("%s+$", ""))
@@ -487,11 +553,14 @@ function XrayCard.showFullDetail(hit)
         end
     end
     if #parts == 0 then parts[1] = _("(no description)") end
-    UIManager:show(TextViewer:new{
+    local viewer = TextViewer:new{
         title = ahead and ("\u{26A0} " .. (hit.name or "")) or hit.name or "",
         text = table.concat(parts, "\n\n"),
         justified = false,
-    })
+        buttons_table = fd_opts and fd_opts.buttons_table or nil,
+    }
+    UIManager:show(viewer)
+    return viewer
 end
 
 return XrayCard
