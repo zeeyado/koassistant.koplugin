@@ -403,8 +403,8 @@ local ModelLists = {
     nvidia = {
         "nvidia/nemotron-3-super-120b-a12b",        -- default: tools + forced tools + effort all probed
         "nvidia/nemotron-3-ultra-550b-a55b",
-        "nvidia/nemotron-3-nano-30b-a3b",
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- ultrafast (~0.5-1s); battery 2026-08-29: effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant
+        "nvidia/nemotron-3-nano-30b-a3b",           -- ultrafast (~0.15s measured 2026-08-29, 3 samples)
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- fast (~1.2s); battery 2026-08-29: effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant
         "openai/gpt-oss-120b",                      -- answers live 2026-08-29 (reachability only)
         "openai/gpt-oss-20b",
         "minimaxai/minimax-m3",
@@ -598,7 +598,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
             perplexity = "sonar",
-            nvidia = "nvidia/nemotron-3-nano-30b-a3b",  -- lightning pulled: see the array note
+            nvidia = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",  -- ~1.2s; lightning pulled: see the array note
         },
 
         -- Smallest/cheapest models for basic tasks
@@ -621,7 +621,7 @@ local ModelLists = {
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
             perplexity = "sonar",
-            nvidia = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",  -- ~0.5-1s; nano-9b-v2 retired by NVIDIA 2026-08-26 (410); no tools grant (forced tool use 503s)
+            nvidia = "nvidia/nemotron-3-nano-30b-a3b",  -- ~0.15s measured (3 samples 2026-08-29); replaces the retired nano-9b-v2 (410, EOL 2026-08-26)
         },
     },
 
