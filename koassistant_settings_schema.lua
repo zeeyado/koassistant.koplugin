@@ -162,6 +162,18 @@ local SettingsSchema = {
                             help_text = _("Markdown renders formatting. Plain Text has better font support for Arabic/CJK."),
                         },
                         {
+                            id = "render_math",
+                            type = "toggle",
+                            text = _("Render Math Formulas"),
+                            path = "features.render_math",
+                            default = true,
+                            enabled_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return f.render_markdown ~= false
+                            end,
+                            help_text = _("Show LaTeX math from responses as readable formulas: Greek letters, operators, superscripts, vectors, fractions as a/b. Markdown view only. Saved chats, copies and exports keep the original notation, which Obsidian and similar apps render fully."),
+                        },
+                        {
                             id = "chat_exchange_page_breaks",
                             type = "toggle",
                             text = _("Latest Reply on New Page"),
