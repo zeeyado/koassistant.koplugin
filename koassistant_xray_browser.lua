@@ -1111,6 +1111,21 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
     else
         self._level_up = nil
     end
+    -- Cross-book jump way back (S4 Q16, device round 4): a browser opened
+    -- from ANOTHER book's X-Ray (→ Group, "Open in <title>'s X-Ray") returns
+    -- there on the up-arrow at root — the Book Hub convention, one level up
+    -- = where you came from; X just closes. Consumed once; `target` guards
+    -- a stale descriptor (a jump whose browser never opened) from attaching
+    -- to an unrelated browser later.
+    local rt = XrayBrowser._pending_return_to
+    XrayBrowser._pending_return_to = nil
+    if rt and rt.book_file and rt.target == metadata.book_file
+            and rt.book_file ~= metadata.book_file
+            and self._level_up then
+        self._return_to = rt
+    else
+        self._return_to = nil
+    end
     UIManager:show(self.menu)
 
     -- Auto-navigate to saved position (from file browser reopen or search return flow)
@@ -1596,6 +1611,13 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
                             book_file = stub.file,
                             fallback = true,
                         }
+                        -- Q16: the up-arrow at the other X-Ray's root comes
+                        -- back to this book's X-Ray
+                        XrayBrowser._pending_return_to = {
+                            target = stub.file,
+                            book_file = self_ref.metadata.book_file,
+                            title = self_ref.metadata.title,
+                        }
                         self_ref.metadata.plugin:showCacheViewer({ name = _("X-Ray"),
                             key = "_xray_cache", data = src.entry,
                             book_title = src_title, file = stub.file })
@@ -1640,6 +1662,10 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
                     if self_ref:_commitDormantOp(
                         function(data) return XrayParser.removeStub(data, stub_idx, stub.name) ~= nil end,
                         T(_("\"%1\" removed from the carried list."), stub.name)) then
+                        -- S4 tombstone: the automatic seed and checkpoint
+                        -- installs must not bring it back
+                        require("koassistant_action_cache").addRemovedStub(
+                            self_ref.metadata.book_file, stub.name)
                         self_ref:_refreshDormantPage()
                     end
                 end),
@@ -1998,6 +2024,24 @@ function XrayBrowser:navigateBack()
         local meta = self.metadata
         local ui = self.ui
         UIManager:close(self.menu)
+        if self._return_to and meta and meta.plugin then
+            local rt = self._return_to
+            local entry = require("koassistant_action_cache").getXrayCache(rt.book_file)
+            if entry and entry.result then
+                if rt.location and (rt.location.category_key or rt.location.item_name) then
+                    XrayBrowser._pending_navigate_to = {
+                        category_key = rt.location.category_key,
+                        item_name = rt.location.item_name,
+                        item_aliases = rt.location.item_aliases,
+                        book_file = rt.book_file,
+                        fallback = true,
+                    }
+                end
+                meta.plugin:showCacheViewer({ name = _("X-Ray"), key = "_xray_cache",
+                    data = entry, book_title = rt.title, file = rt.book_file })
+                return
+            end
+        end
         if self._level_up and meta then
             require("koassistant_book_page").show({
                 file = meta.book_file,
@@ -2442,6 +2486,9 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 local jump_location = self_ref.location
                 plugin_ref:_showGroupMembersPopup(group_file, "xray", {
                     location = jump_location,
+                    -- Q16: the other X-Ray's up-arrow at root returns here
+                    return_to = { book_file = group_file, title = self_ref.metadata.title,
+                        location = jump_location },
                     before_open = function()
                         self_ref:_dismissDetail(viewer)
                         if self_ref.menu then UIManager:close(self_ref.menu) end
@@ -6120,11 +6167,18 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
     -- one row away (device step 13: reachable from a zero-hit browser
     -- search too). Shown whenever any earlier book has an X-Ray.
     local sweep_file = self.metadata and self.metadata.book_file
-    local sweep_pred = sweep_file and not self.scope
-        and require("koassistant_action_cache").nearestPredecessorXray(sweep_file)
-    if sweep_pred then
+    local sweep_list = sweep_file and not self.scope
+        and require("koassistant_action_cache").groupXrays(sweep_file) or {}
+    if #sweep_list > 0 then
+        -- S4: the label follows the direction rule (later books while
+        -- unprotected, every member of a project)
+        local wide = false
+        for _idx, g in ipairs(sweep_list) do
+            if g.direction ~= "earlier" then wide = true end
+        end
         table.insert(items, {
-            text = _("Search all earlier books…"),
+            text = wide and _("Search the other books in the group…")
+                or _("Search all earlier books…"),
             bold = true,
             separator = true,
             callback = function()
@@ -6146,7 +6200,13 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
     if not skip_cross_search and other_count > 0 then
         local captured_query = query
         table.insert(items, {
-            text = T(_("Search other X-Rays (%1)"), other_count),
+            -- Q15 (device round 4): name what this searches — this book's
+            -- OTHER X-Rays: the section X-Rays from the main view, the main
+            -- one (plus other sections) from inside a section
+            text = self_ref.scope
+                and (other_count == 1 and _("Search the main X-Ray")
+                    or T(_("Search the main X-Ray and other sections (%1)"), other_count))
+                or T(_("Search this book's section X-Rays (%1)"), other_count),
             bold = true,
             separator = true,
             callback = function()
@@ -6527,6 +6587,9 @@ function XrayBrowser:showOptions()
                         -- volume opens at the same entity/category when it has
                         -- one (see _applyPendingLocation's fallback ladder)
                         location = self_ref.location,
+                        -- Q16: the other X-Ray's up-arrow at root returns here
+                        return_to = { book_file = group_file, title = self_ref.metadata.title,
+                            location = self_ref.location },
                         before_open = function()
                             if self_ref.menu then UIManager:close(self_ref.menu) end
                         end,

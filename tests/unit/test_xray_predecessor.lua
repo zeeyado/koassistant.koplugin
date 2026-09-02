@@ -1,5 +1,5 @@
 --[[
-Unit tests: S2 predecessor tier (ref #90) — ActionCache.nearestPredecessorXray
+Unit tests: S2 predecessor tier (ref #90) — ActionCache.nearestGroupXray
 walk + memo, the route index's predecessor fold (no-cache books included),
 XrayCard.resolve's predecessor ordering (transitive source titles, the Q6
 also_ahead hint), XrayMerge.carryOne, and the S3 whole-chain walk + carried-entry roles.
@@ -123,14 +123,14 @@ BookGroups.addBook(group.id, VOL1)
 BookGroups.addBook(group.id, VOL2)
 BookGroups.addBook(group.id, VOL3)
 
-TestRunner:suite("nearestPredecessorXray — walk, memo, more count")
+TestRunner:suite("nearestGroupXray — walk, memo, more count")
 
 TestRunner:test("walks past non-X-Rayed books; memo re-picks when a nearer X-Ray appears", function()
     -- Live X-Ray = BOTH keys: per-action "xray" AND doc-level _xray_cache
     -- (getXrayCache reads the latter — the gen.lua two-key lesson)
     assert(ActionCache.set(VOL1, "xray", VOL1_JSON, 1.0, { model = "m", used_book_text = true }))
     assert(ActionCache.setXrayCache(VOL1, VOL1_JSON, 1.0, { model = "m", used_book_text = true }))
-    local pred = ActionCache.nearestPredecessorXray(VOL3)
+    local pred = ActionCache.nearestGroupXray(VOL3)
     TestRunner:ok(pred, "vol1-only: a predecessor resolves")
     TestRunner:eq(pred.file, VOL1, "vol2 has no X-Ray, the walk lands on vol1")
     TestRunner:eq(pred.more, 0, "nothing X-Rayed beyond the pick")
@@ -138,19 +138,19 @@ TestRunner:test("walks past non-X-Rayed books; memo re-picks when a nearer X-Ray
     -- A nearer book gains an X-Ray: the stamp changes, the memo re-picks
     assert(ActionCache.set(VOL2, "xray", VOL2_JSON, 1.0, { model = "m", used_book_text = true }))
     assert(ActionCache.setXrayCache(VOL2, VOL2_JSON, 1.0, { model = "m", used_book_text = true }))
-    pred = ActionCache.nearestPredecessorXray(VOL3)
+    pred = ActionCache.nearestGroupXray(VOL3)
     TestRunner:eq(pred.file, VOL2, "nearest X-Rayed book wins")
     TestRunner:eq(pred.more, 1, "vol1's cache file counts as a further book to sweep")
     TestRunner:ok(pred.data and pred.data.characters, "parsed data rides the result")
 end)
 
 TestRunner:test("first book, unordered groups, ungrouped books: no predecessor", function()
-    TestRunner:eq(ActionCache.nearestPredecessorXray(VOL1), nil, "book 1 has no earlier books")
+    TestRunner:eq(ActionCache.nearestGroupXray(VOL1), nil, "book 1 has no earlier books")
     BookGroups.setOrdered(group.id, false)
-    TestRunner:eq(ActionCache.nearestPredecessorXray(VOL3), nil,
+    TestRunner:eq(ActionCache.nearestGroupXray(VOL3), nil,
         "unordered group: predecessorsOf stands down (Q5, series only)")
     BookGroups.setOrdered(group.id, true)
-    TestRunner:eq(ActionCache.nearestPredecessorXray(TMP_ROOT .. "/lone.epub"), nil, "ungrouped book")
+    TestRunner:eq(ActionCache.nearestGroupXray(TMP_ROOT .. "/lone.epub"), nil, "ungrouped book")
 end)
 
 TestRunner:suite("route index — predecessor fold (S2 Q4)")
@@ -225,18 +225,18 @@ end)
 
 TestRunner:suite("S3 — whole-chain walk, parsed memo, role on carried entries")
 
-TestRunner:test("predecessorXrays: every earlier X-Rayed book nearest first; parsedXrayFor memoizes", function()
-    local chain = ActionCache.predecessorXrays(VOL3)
+TestRunner:test("groupXrays: every earlier X-Rayed book nearest first; parsedXrayFor memoizes", function()
+    local chain = ActionCache.groupXrays(VOL3)
     TestRunner:eq(#chain, 2, "two earlier X-Rayed books")
     TestRunner:eq(chain[1].file, VOL2, "nearest first")
     TestRunner:eq(chain[2].file, VOL1, "then the book before it")
     TestRunner:ok(chain[1].data and chain[1].entry and chain[1].title, "parsed data, entry and title ride")
-    TestRunner:eq(#ActionCache.predecessorXrays(VOL1), 0, "first book: nothing earlier")
-    TestRunner:eq(#ActionCache.predecessorXrays(TMP_ROOT .. "/lone.epub"), 0, "ungrouped book")
+    TestRunner:eq(#ActionCache.groupXrays(VOL1), 0, "first book: nothing earlier")
+    TestRunner:eq(#ActionCache.groupXrays(TMP_ROOT .. "/lone.epub"), 0, "ungrouped book")
     TestRunner:eq(ActionCache.parsedXrayFor(TMP_ROOT .. "/nope.epub"), nil, "no cache file = nil")
     local a = ActionCache.parsedXrayFor(VOL2)
     TestRunner:ok(a ~= nil and a == ActionCache.parsedXrayFor(VOL2), "unchanged stamp = the memoized table")
-    TestRunner:ok(ActionCache.nearestPredecessorXray(VOL3).data == a.data, "nearest shares the same parse")
+    TestRunner:ok(ActionCache.nearestGroupXray(VOL3).data == a.data, "nearest shares the same parse")
 end)
 
 TestRunner:test("role rides on carried entries: carryOne, the seed, JSON round trip, promote and demote", function()
@@ -261,6 +261,123 @@ TestRunner:test("role rides on carried entries: carryOne, the seed, JSON round t
     TestRunner:ok(XrayParser.demoteToStub(again, "characters", "Petra Lund"), "demote")
     local st3 = XrayParser.findDormantByIdentity(again, { "Petra Lund" })
     TestRunner:eq(st3 and st3.role, "Innkeeper", "demote keeps the role")
+end)
+
+TestRunner:suite("S4 — direction rule, tombstones, alias-safe seed, automatic reseed")
+
+TestRunner:test("lookupBooksFor: ordered = earlier (then later when both ways); project = all; plain = none", function()
+    local rows = BookGroups.lookupBooksFor(VOL2, false)
+    TestRunner:eq(#rows, 1, "protected: earlier only")
+    TestRunner:eq(rows[1].file, VOL1)
+    TestRunner:eq(rows[1].direction, "earlier")
+    rows = BookGroups.lookupBooksFor(VOL2, true)
+    TestRunner:eq(#rows, 2, "unprotected: both directions")
+    TestRunner:eq(rows[1].file, VOL1, "earlier first")
+    TestRunner:eq(rows[2].file, VOL3, "then later")
+    TestRunner:eq(rows[2].direction, "later")
+    BookGroups.setKind(group.id, BookGroups.KIND_PROJECT)
+    rows = BookGroups.lookupBooksFor(VOL2, false)
+    TestRunner:eq(#rows, 2, "project: every other member, direction-free")
+    TestRunner:eq(rows[1].direction, nil)
+    BookGroups.setKind(group.id, BookGroups.KIND_PLAIN)
+    TestRunner:eq(#BookGroups.lookupBooksFor(VOL2, true), 0, "plain: nothing, even both ways")
+    BookGroups.setKind(group.id, BookGroups.KIND_SERIES)
+end)
+
+TestRunner:test("groupXrays + the card follow the injected direction resolver", function()
+    local both = false
+    ActionCache.setLookupDirectionResolver(function(_file) return both end)
+    local list, stamp = ActionCache.groupXrays(VOL2)
+    TestRunner:eq(#list, 1, "protected: the earlier book only")
+    TestRunner:ok(stamp:find("^earlier"), "stamp carries the direction")
+    both = true
+    local list2, stamp2 = ActionCache.groupXrays(VOL2)
+    TestRunner:eq(#list2, 2, "unprotected: vol 1 and vol 3")
+    TestRunner:eq(list2[2].direction, "later")
+    TestRunner:ok(stamp2 ~= stamp, "a protection flip changes the memo key")
+    -- Vol 3's own live entity answers a vol-2 lookup only while unprotected,
+    -- and then ranks as a later-book hit
+    local hit = XrayCard.resolve(VOL2, "Mira Voss", { position = 0.5 })
+    TestRunner:eq(hit and hit.source, "predecessor", "later book answers")
+    TestRunner:eq(hit and hit.direction, "later")
+    both = false
+    TestRunner:eq(XrayCard.resolve(VOL2, "Mira Voss", { position = 0.5 }), nil,
+        "protected: later books stay silent")
+    TestRunner:eq(ActionCache.matchAnyXrayExact(VOL2, "Mira Voss"), false, "route agrees")
+    both = true
+    TestRunner:eq(ActionCache.matchAnyXrayExact(VOL2, "Mira Voss"), true, "route follows the flip")
+    ActionCache.setLookupDirectionResolver(nil)
+end)
+
+TestRunner:test("tombstones: removed entries stay out of the seed and the install union; adding by hand clears", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    TestRunner:ok(ActionCache.addRemovedStub(VOL3, "Wick"), "record a removal")
+    TestRunner:ok(ActionCache.getRemovedStubs(VOL3)["wick"], "lowercased set")
+    TestRunner:ok(ActionCache.getUserAliases(VOL3)[ActionCache.REMOVED_STUBS_KEY], "lives in the aliases sidecar")
+    local skip = ActionCache.getRemovedStubs(VOL3)
+    local base = XrayParser.parse(VOL3_LIVE_JSON)
+    XrayMerge.populateDormant(base, nil, XrayParser.parse(VOL2_JSON), "Volume Two", VOL2,
+        "Volume Three", VOL3, skip)
+    TestRunner:eq(XrayParser.findDormantByIdentity(base, { "Wick" }), nil, "seed skips the removed name")
+    TestRunner:ok(XrayParser.findDormantByIdentity(base, { "Petra Lund" }), "others still seed")
+    local rung = XrayParser.parse(VOL3_LIVE_JSON)
+    local prev = XrayParser.parse(VOL2_JSON) -- its ledger holds Wick
+    XrayMerge.unionLedger(prev, rung, skip)
+    TestRunner:eq(XrayParser.findDormantByIdentity(rung, { "Wick" }), nil, "install union skips it too")
+    local holder = XrayParser.parse(VOL2_JSON)
+    TestRunner:eq(XrayParser.dropStubs(holder, skip), 1, "dropStubs removes the rung's own copy")
+    TestRunner:ok(ActionCache.clearRemovedStub(VOL3, "wick"), "clear (case-insensitive)")
+    TestRunner:eq(next(ActionCache.getRemovedStubs(VOL3)), nil, "gone")
+end)
+
+TestRunner:test("re-seed keeps a reader-added alias and reports refreshed only on change", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    local base = XrayParser.parse(VOL3_LIVE_JSON)
+    local src = XrayParser.parse(VOL2_JSON)
+    local added = XrayMerge.populateDormant(base, nil, src, "Volume Two", VOL2, "Volume Three", VOL3)
+    TestRunner:ok(added >= 1, "first seed adds")
+    TestRunner:ok(XrayParser.addStubAlias(base, "Petra Lund", "the innkeeper"), "reader alias")
+    local added2, refreshed2 = XrayMerge.populateDormant(base, nil, src, "Volume Two", VOL2, "Volume Three", VOL3)
+    TestRunner:eq(added2, 0, "nothing new")
+    TestRunner:eq(refreshed2, 0, "unchanged copy: no refresh reported")
+    local stub = XrayParser.findDormantByIdentity(base, { "the innkeeper" })
+    TestRunner:eq(stub and stub.name, "Petra Lund", "the alias survived the re-seed")
+    src.characters[1].description = "Sold the inn."
+    local _a3, refreshed3 = XrayMerge.populateDormant(base, nil, src, "Volume Two", VOL2, "Volume Three", VOL3)
+    TestRunner:eq(refreshed3, 1, "a changed source copy counts as a refresh")
+    TestRunner:eq(XrayParser.findDormantByIdentity(base, { "Petra Lund" }).description, "Sold the inn.")
+end)
+
+TestRunner:test("promoteStub keeps the earlier book's text as a background line (survives an install)", function()
+    local base = XrayParser.parse(VOL2_JSON) -- ledger: Wick from Volume One
+    local stub, idx = XrayParser.findDormantByIdentity(base, { "Wick" })
+    TestRunner:ok(stub, "stub present")
+    TestRunner:ok(XrayParser.promoteStub(base, idx, "Wick"), "promote")
+    local item = XrayParser.findByIdentity(base, { "Wick" }, "characters")
+    TestRunner:eq(item and item.background and item.background[1].source, "Volume One",
+        "background line from the stub's own text")
+    local XrayMerge = require("koassistant_xray_merge")
+    local incoming = XrayParser.parse(VOL3_LIVE_JSON)
+    TestRunner:eq(XrayMerge.carryActiveBackground(base, incoming), 1,
+        "an install re-stubs it instead of dropping it")
+    TestRunner:ok(XrayParser.findDormantByIdentity(incoming, { "Wick" }), "back on the carried list")
+end)
+
+TestRunner:test("reseedGroup: seeds every member in order, writes only on change, idempotent", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    local features = { enable_book_text_extraction = true }
+    local written, checked = XrayMerge.reseedGroup(group, features, nil, nil)
+    TestRunner:ok(checked >= 2, "vol 2 and vol 3 have sources")
+    TestRunner:ok(written >= 1, "at least one list written")
+    local v3 = XrayParser.parse(ActionCache.getXrayCache(VOL3).result)
+    TestRunner:ok(XrayParser.findDormantByIdentity(v3, { "Petra Lund" }) or
+        XrayParser.findByIdentity(v3, { "Petra Lund" }, "characters"),
+        "vol 3 knows vol 2's innkeeper (carried, or woken onto a live entry)")
+    TestRunner:ok(XrayParser.findDormantByIdentity(v3, { "Zara Flint" }),
+        "vol 1's diver reaches vol 3 through vol 2's list (chain in one run)")
+    local written2 = XrayMerge.reseedGroup(group, features, nil, nil)
+    TestRunner:eq(written2, 0, "second run: nothing to write")
+    TestRunner:eq(XrayMerge.reseedGroup(group, {}, nil, nil), 0, "no consent: nothing written")
 end)
 
 -- ---------------------------------------------------------------- cleanup

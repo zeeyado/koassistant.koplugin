@@ -633,10 +633,27 @@ end
 ---   back via the wake-pass)
 --- @param target_file string|nil The target book's file path (robust self-filter)
 --- @return number stubs newly added
+--- Case-insensitive alias union, first list's order first; nil when empty.
+local function unionAliases(a, b)
+    local out, seen = {}, {}
+    for _idx, list in ipairs({ a, b }) do
+        for _i, alias in ipairs(type(list) == "table" and list or {}) do
+            if type(alias) == "string" and alias ~= "" and not seen[alias:lower()] then
+                seen[alias:lower()] = true
+                out[#out + 1] = alias
+            end
+        end
+    end
+    return #out > 0 and out or nil
+end
+
+--- @param skip table|nil Lowercased-name set of carried entries the reader
+---   removed (S4 tombstones): never stashed
+--- @return number added, number refreshed (existing stubs whose copy changed)
 function XrayMerge.populateDormant(base_parsed, delta, source_parsed, source_title,
-        source_file, target_title, target_file)
+        source_file, target_title, target_file, skip)
     local XrayParser = require("koassistant_xray_parser")
-    if type(base_parsed) ~= "table" or type(source_parsed) ~= "table" then return 0 end
+    if type(base_parsed) ~= "table" or type(source_parsed) ~= "table" then return 0, 0 end
     local DK = XrayParser.DORMANT_KEY
     local target_norm = normTitle(target_title)
     -- Carried lines a stub may bring along: cleanly attributable, never the
@@ -691,15 +708,27 @@ function XrayMerge.populateDormant(base_parsed, delta, source_parsed, source_tit
             by_name[stub.name:lower()] = i
         end
     end
-    local added = 0
+    local added, refreshed = 0, 0
     local function stash(stub)
         local key = type(stub.name) == "string" and stub.name ~= ""
             and stub.name:lower() or nil
         if not key then return end
+        -- S4 tombstones: an entry the reader removed never comes back
+        if skip and skip[key] then return end
         local at = by_name[key]
         if at then
-            -- Newer source refreshes the stub; carried lines are unioned
-            stub.background = XrayParser.mergeBackground(ledger[at].background, stub.background)
+            -- Newer source refreshes the stub; carried lines AND aliases are
+            -- unioned (S4: an alias the reader added onto the stub survives
+            -- an automatic re-seed) and the role fills in from the old copy
+            local old = ledger[at]
+            stub.background = XrayParser.mergeBackground(old.background, stub.background)
+            stub.aliases = unionAliases(old.aliases, stub.aliases)
+            stub.role = stub.role or old.role
+            if stub.description ~= old.description or stub.role ~= old.role
+                or #(stub.aliases or {}) ~= #(old.aliases or {})
+                or #(stub.background or {}) ~= #(old.background or {}) then
+                refreshed = refreshed + 1
+            end
             ledger[at] = stub
         else
             ledger[#ledger + 1] = stub
@@ -786,7 +815,7 @@ function XrayMerge.populateDormant(base_parsed, delta, source_parsed, source_tit
         end
     end
     if #ledger > 0 then base_parsed[DK] = ledger end
-    return added
+    return added, refreshed
 end
 
 --- Round 26 (device audit — the round-25 rebuild carry was half a fix): a
@@ -868,7 +897,8 @@ end
 --- @param prev_parsed table The outgoing X-Ray
 --- @param parsed table The incoming rung (mutated: ledger unioned)
 --- @return number added, number refreshed
-function XrayMerge.unionLedger(prev_parsed, parsed)
+--- @param skip table|nil S4 tombstones (lowercased-name set): never unioned
+function XrayMerge.unionLedger(prev_parsed, parsed, skip)
     local XrayParser = require("koassistant_xray_parser")
     if type(prev_parsed) ~= "table" or type(parsed) ~= "table" then return 0, 0 end
     local DK = XrayParser.DORMANT_KEY
@@ -883,7 +913,8 @@ function XrayMerge.unionLedger(prev_parsed, parsed)
     end
     local added, refreshed = 0, 0
     for _idx, stub in ipairs(prev_ledger) do
-        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= ""
+                and not (skip and skip[stub.name:lower()]) then
             local key = stub.name:lower()
             local at = by_name[key]
             if at then
@@ -1155,13 +1186,125 @@ end
 --- @param provider string|nil Provider id (trusted-provider consent)
 --- @param ui table|nil
 --- @return number added, string|nil source_title
+--- Books this X-Ray's carried list is seeded from (S4, ref #90): an ordered
+--- group gives the nearest consented X-Rayed EARLIER book (its own carried
+--- list brings the rest along transitively); an unordered knowledge-sharing
+--- group (project) gives EVERY other consented X-Rayed member; a plain group
+--- none. Fresh parses — safe to mutate downstream.
+--- @return table sources { { file, title, entry, parsed }, ... }
+function XrayMerge.seedSources(file, features, provider, ui)
+    local out = {}
+    if type(file) ~= "string" or file == "" then return out end
+    local one = XrayMerge.seedSource(file, features, provider, ui)
+    if one then
+        out[1] = one
+        return out
+    end
+    local BookGroups = require("koassistant_book_groups")
+    local group = type(BookGroups.groupsFor) == "function" and BookGroups.groupsFor(file)[1] or nil
+    if not group or BookGroups.isOrdered(group) or not BookGroups.sharesKnowledge(group) then
+        return out
+    end
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    for _idx, p in ipairs(group.books) do
+        if p ~= file then
+            local entry = ActionCache.getXrayCache(p)
+            if entry and entry.result and entry.source_mode ~= "ai_knowledge"
+                and XrayParser.isJSON(entry.result)
+                and XrayMerge.consentOk({ entry }, features, provider, p, ui) then
+                local parsed = XrayParser.parse(entry.result)
+                if parsed and not parsed.error then
+                    out[#out + 1] = { file = p, title = BookGroups.displayTitle(p, ui),
+                        entry = entry, parsed = parsed }
+                end
+            end
+        end
+    end
+    return out
+end
+
+--- The reader's removals for a book, or nil when unreadable (tests without
+--- a sidecar shim, and nothing else, land here).
+local function removedStubsFor(file)
+    local ok, skip = pcall(function()
+        return require("koassistant_action_cache").getRemovedStubs(file)
+    end)
+    return ok and skip or nil
+end
+
 function XrayMerge.seedDormant(file, parsed, features, provider, ui)
     if type(parsed) ~= "table" then return 0, nil end
-    local src = XrayMerge.seedSource(file, features, provider, ui)
-    if not src then return 0, nil end
-    local added = XrayMerge.populateDormant(parsed, nil, src.parsed, src.title,
-        src.file, nil, file)
-    return added, src.title
+    local sources = XrayMerge.seedSources(file, features, provider, ui)
+    if #sources == 0 then return 0, nil end
+    local skip = removedStubsFor(file)
+    local added, titles = 0, {}
+    for _idx, src in ipairs(sources) do
+        local n = XrayMerge.populateDormant(parsed, nil, src.parsed, src.title,
+            src.file, nil, file, skip)
+        added = added + n
+        titles[#titles + 1] = src.title
+    end
+    return added, table.concat(titles, ", ")
+end
+
+-- Files whose pre-seed version was already ring-archived this session (the
+-- browser's once-per-session rule for carried-list edits)
+local reseed_archived = {}
+
+--- Automatic seeding of EXISTING X-Rays (S4, maintainer 2026-09-02): every
+--- member with a live text-based X-Ray gets its carried list refreshed from
+--- its seed sources, in list order (an ordered chain completes front to back
+--- within one run — a member's fresh list feeds the next member's seed).
+--- Zero tokens. A member is written only when the seed actually adds or
+--- changes something (dry run on a throwaway parse first), through
+--- editLiveXray (pre-op version archived once per session). Removed entries
+--- stay removed (tombstones). Idempotent.
+--- @param group table The group record
+--- @param features table Settings features (consent)
+--- @param provider string|nil Active provider id (trusted-provider consent)
+--- @param ui table|nil
+--- @return number written, number checked
+function XrayMerge.reseedGroup(group, features, provider, ui)
+    if type(group) ~= "table" or type(group.books) ~= "table" then return 0, 0 end
+    local BookGroups = require("koassistant_book_groups")
+    if not BookGroups.sharesKnowledge(group) then return 0, 0 end
+    local ActionCache = require("koassistant_action_cache")
+    local XrayParser = require("koassistant_xray_parser")
+    local WriteBack = require("koassistant_artifact_writeback")
+    local written, checked = 0, 0
+    for _idx, file in ipairs(group.books) do
+        local entry = ActionCache.getXrayCache(file)
+        if entry and entry.result and entry.source_mode ~= "ai_knowledge"
+                and XrayParser.isJSON(entry.result) then
+            local sources = XrayMerge.seedSources(file, features, provider, ui)
+            if #sources > 0 then
+                checked = checked + 1
+                local skip = removedStubsFor(file)
+                local function seed(data)
+                    local added, refreshed = 0, 0
+                    for _s, src in ipairs(sources) do
+                        local a, r = XrayMerge.populateDormant(data, nil, src.parsed,
+                            src.title, src.file, nil, file, skip)
+                        added, refreshed = added + a, refreshed + (r or 0)
+                    end
+                    return added > 0 or refreshed > 0
+                end
+                local probe = XrayParser.parse(entry.result)
+                if probe and not probe.error and seed(probe) then
+                    local ok = WriteBack.editLiveXray(file, seed, {
+                        features = features,
+                        limit = reseed_archived[file] and 0 or nil,
+                    })
+                    if ok then
+                        written = written + 1
+                        reseed_archived[file] = true
+                    end
+                end
+            end
+        end
+    end
+    return written, checked
 end
 
 --- Carry ONE entry from an earlier book's X-Ray into a book's carried

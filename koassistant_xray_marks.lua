@@ -222,7 +222,7 @@ local function ensureIndex(plugin, pageno)
   -- steady-state cost here is stats, not parses. A book with NO artifacts
   -- of its own still marks its predecessor's entities (the "never X-Rayed
   -- this volume" case).
-  local pred = ActionCache.nearestPredecessorXray(st.file)
+  local group_list, group_stamp = ActionCache.groupXrays(st.file)
   -- Round 5: ALL section X-Rays fold in, range-free — the lookup/intercept
   -- surfaces search every section regardless of range (searchAllXrays), so
   -- a section-only entity was findable-but-never-marked outside its span
@@ -230,7 +230,7 @@ local function ensureIndex(plugin, pageno)
   -- Lloyd" matched lookups everywhere and marks nowhere). Marked = findable,
   -- one truth; the spoiler angle is covered by the round-7 ruling (installed
   -- content reveals through its coverage — sections are installed content).
-  if not art and #(st.sections or {}) == 0 and not pred then
+  if not art and #(st.sections or {}) == 0 and #group_list == 0 then
     st.entities = nil
     st.artifact_key = nil
     return
@@ -243,7 +243,7 @@ local function ensureIndex(plugin, pageno)
     key = key .. "|ahead:" .. st.ahead.stamp
   end
   key = key .. "|" .. st.stamps
-  key = key .. "|pred:" .. (pred and pred.stamp or "-")
+  key = key .. "|group:" .. group_stamp
   if st.artifact_key == key and st.entities then return end
   local XrayParser = require("koassistant_xray_parser")
   local user_aliases = ActionCache.getUserAliases(st.file)
@@ -299,8 +299,10 @@ local function ensureIndex(plugin, pageno)
   -- and ITS carried list mark DOTTED like live ones (already-read content;
   -- the card carries the "From <title>" provenance). After every local
   -- source, before the peek — a local duplicate keeps its own style.
-  if pred then
-    for _idx, e in ipairs(XrayParser.buildMarkEntities(pred.data)) do
+  -- S4: every group book the direction rule allows (earlier first, later
+  -- only while unprotected, every member of a project) — same style
+  for _g, g in ipairs(group_list) do
+    for _idx, e in ipairs(XrayParser.buildMarkEntities(g.data)) do
       local nk = type(e.name) == "string" and e.name:lower() or nil
       if not (nk and seen_names[nk]) then
         if nk then seen_names[nk] = true end
@@ -308,7 +310,7 @@ local function ensureIndex(plugin, pageno)
         included[e.category_key] = (included[e.category_key] or 0) + 1
       end
     end
-    for _idx, e in ipairs(XrayParser.buildLedgerMarkEntities(pred.data)) do
+    for _idx, e in ipairs(XrayParser.buildLedgerMarkEntities(g.data)) do
       local nk = type(e.name) == "string" and e.name:lower() or nil
       if not (nk and seen_names[nk]) then
         if nk then seen_names[nk] = true end
@@ -360,7 +362,7 @@ local function ensureIndex(plugin, pageno)
   end
   logger.dbg("KOAssistant marks: index rebuilt from " .. src
     .. " +" .. tostring(#(st.sections or {})) .. " sections"
-    .. (pred and " +pred" or "")
+    .. (#group_list > 0 and (" +group:" .. #group_list) or "")
     .. (st.ahead and (" +ahead@" .. math.floor(st.ahead.p * 100 + 0.5) .. "%") or "")
     .. ": " .. tally(included)
     .. (next(skipped) and (" | skipped: " .. tally(skipped)) or ""))

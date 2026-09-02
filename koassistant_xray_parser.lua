@@ -3137,6 +3137,25 @@ end
 --- @param stub_idx number Ledger index at scan time
 --- @param stub_name string Expected stub name
 --- @return table|nil stub The removed stub (nil = not found / ambiguous)
+--- Drop carried entries whose name is in `skip` (a lowercased-name set — the
+--- reader's removals, S4 tombstones). Pure.
+--- @return number dropped
+function XrayParser.dropStubs(data, skip)
+    if type(data) ~= "table" or type(skip) ~= "table" or not next(skip) then return 0 end
+    local ledger = data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return 0 end
+    local kept, dropped = {}, 0
+    for _idx, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and skip[stub.name:lower()] then
+            dropped = dropped + 1
+        else
+            kept[#kept + 1] = stub
+        end
+    end
+    if dropped > 0 then data[XrayParser.DORMANT_KEY] = #kept > 0 and kept or nil end
+    return dropped
+end
+
 function XrayParser.removeStub(data, stub_idx, stub_name)
     if type(data) ~= "table" or type(stub_name) ~= "string" then return nil end
     local ledger = data[XrayParser.DORMANT_KEY]
@@ -3289,6 +3308,14 @@ function XrayParser.promoteStub(data, stub_idx, stub_name)
     if type(stub.aliases) == "table" and #stub.aliases > 0 then item.aliases = stub.aliases end
     if type(stub.role) == "string" and stub.role ~= "" then item.role = stub.role end
     if type(stub.background) == "table" and #stub.background > 0 then item.background = stub.background end
+    -- S4 (Q13): keep the earlier book's text as a background line as well, so
+    -- a checkpoint install re-stubs the entry (carryActiveBackground) instead
+    -- of dropping it when the checkpoint does not know the entity
+    if not item.background and type(stub.description) == "string" and stub.description ~= ""
+        and type(stub.source) == "string" and stub.source ~= "" then
+        item.background = { { source = stub.source, text = stub.description,
+            file = type(stub.file) == "string" and stub.file or nil } }
+    end
     local arr = data[cat_key]
     if type(arr) ~= "table" then
         arr = {}

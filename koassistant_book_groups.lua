@@ -155,6 +155,17 @@ function BookGroups.sharesKnowledge(group)
     return kind == BookGroups.KIND_SERIES or kind == BookGroups.KIND_PROJECT
 end
 
+--- Change hook (S4, ref #90): main.lua registers a function(group_id) that
+--- re-seeds the members' carried lists after a membership, order or kind
+--- change (setOrdered delegates to setKind, so it is covered). Called AFTER
+--- the store write; a failing hook never reaches the caller.
+BookGroups.on_change = nil
+local function notify(group_id)
+    if type(BookGroups.on_change) == "function" then
+        pcall(BookGroups.on_change, group_id)
+    end
+end
+
 --- Set the group's kind (round 30).
 --- @param id string
 --- @param kind string One of KIND_SERIES / KIND_PROJECT / KIND_PLAIN
@@ -174,7 +185,7 @@ function BookGroups.setKind(id, kind)
             else
                 group.ordered = false
             end
-            save(data)
+            save(data); notify(id)
             return true
         end
     end
@@ -217,7 +228,7 @@ function BookGroups.addBook(id, path)
         if group.id == id then
             if indexOf(group, path) then return false end
             group.books[#group.books + 1] = path
-            save(data)
+            save(data); notify(id)
             return true
         end
     end
@@ -231,7 +242,7 @@ function BookGroups.removeBook(id, path)
             local i = indexOf(group, path)
             if not i then return false end
             table.remove(group.books, i)
-            save(data)
+            save(data); notify(id)
             return true
         end
     end
@@ -253,7 +264,7 @@ function BookGroups.moveBookTo(id, path, pos)
             if j == i then return false end
             table.remove(group.books, i)
             table.insert(group.books, j, path)
-            save(data)
+            save(data); notify(id)
             return true
         end
     end
@@ -272,7 +283,7 @@ function BookGroups.moveBook(id, path, delta)
             if j == i then return false end
             table.remove(group.books, i)
             table.insert(group.books, j, path)
-            save(data)
+            save(data); notify(id)
             return true
         end
     end
@@ -318,6 +329,37 @@ function BookGroups.predecessorsOf(path)
     for _idx, p in ipairs(group.books) do
         if p == path then break end
         out[#out + 1] = p
+    end
+    return out, group
+end
+
+--- Books whose X-Rays may answer a lookup for this book, in rank order
+--- (S4, ref #90): ordered group = earlier books nearest first, then — only
+--- when `both_ways` (the current book is not under spoiler protection) —
+--- later books nearest first; unordered knowledge-sharing group (project) =
+--- every other member in list order; plain group = none. First containing
+--- group, like neighbors/predecessorsOf.
+--- @param path string
+--- @param both_ways boolean|nil
+--- @return table rows { { file, direction = "earlier"|"later"|nil }, ... }, table|nil group
+function BookGroups.lookupBooksFor(path, both_ways)
+    local group = BookGroups.groupsFor(path)[1]
+    if not group then return {}, nil end
+    local out = {}
+    if BookGroups.isOrdered(group) then
+        local i = indexOf(group, path)
+        for j = i - 1, 1, -1 do
+            out[#out + 1] = { file = group.books[j], direction = "earlier" }
+        end
+        if both_ways then
+            for j = i + 1, #group.books do
+                out[#out + 1] = { file = group.books[j], direction = "later" }
+            end
+        end
+    elseif BookGroups.sharesKnowledge(group) then
+        for _idx, p in ipairs(group.books) do
+            if p ~= path then out[#out + 1] = { file = p } end
+        end
     end
     return out, group
 end

@@ -10886,7 +10886,31 @@ local function showPredecessorEntity(opts)
         }
     end
     local live = ActionCache.getXrayCache(opts.document_path)
-    if live and live.result and XrayParser.isJSON(live.result) then
+    local live_data = live and live.result and XrayParser.isJSON(live.result)
+        and XrayParser.parse(live.result) or nil
+    if live_data and live_data.error then live_data = nil end
+    -- Q14 (device round 4): already here, in either form, is said instead
+    -- of offered — the whole-chain list shows an earlier book's entry even
+    -- after it was carried
+    local state
+    if live_data then
+        local names = { hit.name }
+        if type(hit.item) == "table" and type(hit.item.aliases) == "table" then
+            for _idx, a in ipairs(hit.item.aliases) do
+                if type(a) == "string" and a ~= "" then names[#names + 1] = a end
+            end
+        end
+        if XrayParser.findByIdentity(live_data, names, hit.category_key) then
+            state = "live"
+        elseif XrayParser.findDormantByIdentity(live_data, names) then
+            state = "carried"
+        end
+    end
+    if state == "live" then
+        action_row[#action_row + 1] = { text = _("Already in this book's X-Ray"), enabled = false }
+    elseif state == "carried" then
+        action_row[#action_row + 1] = { text = _("Already on this book's carried list"), enabled = false }
+    elseif live_data then
         action_row[#action_row + 1] = {
             text = _("Add to this book's carried list"),
             callback = function()
@@ -10920,6 +10944,8 @@ local function showPredecessorEntity(opts)
                     return
                 end
                 UIManager:close(viewer)
+                -- A hand-added entry cancels an earlier removal (S4 tombstones)
+                ActionCache.clearRemovedStub(opts.document_path, hit.name)
                 local Notification = require("ui/widget/notification")
                 UIManager:show(Notification:new{
                     text = T(_("Added to the carried list: %1"), hit.name),
@@ -10954,7 +10980,8 @@ local function predGroupsMenu(opts, groups, title)
     local items = {}
     for _g, g in ipairs(groups) do
         table.insert(items, {
-            text = T(_("From %1"), g.title),
+            text = g.direction == "later" and T(_("From %1 (later in the series)"), g.title)
+                or T(_("From %1"), g.title),
             bold = true,
             separator = true,
             callback = function() end,
@@ -11015,6 +11042,7 @@ local function collectPredGroups(preds, query, exact)
                 item = r.item, category_key = r.category_key,
                 category_label = r.category_label, match_field = r.match_field,
                 source_title = pred.title, pred_file = pred.file, pred_title = pred.title,
+                direction = pred.direction,
             }
         end
         for _i, s in ipairs(XrayParser.searchLedger(pred.data, query, sopts)) do
@@ -11025,11 +11053,12 @@ local function collectPredGroups(preds, query, exact)
                 match_field = s.match_field,
                 source_title = s.source_title or pred.title,
                 pred_file = pred.file, pred_title = pred.title, pred_stub = true,
+                direction = pred.direction,
             }
         end
         if #rows > 0 then
             groups[#groups + 1] = { file = pred.file, title = pred.title,
-                entry = pred.entry, rows = rows }
+                entry = pred.entry, rows = rows, direction = pred.direction }
         end
     end
     return groups
@@ -11039,20 +11068,37 @@ end
 -- lists where this book had hits of its own (the browser's search results).
 -- The lookup's no-result seams no longer need it — predLookupHandled walks
 -- the chain itself (S3).
+-- True when the group walk reaches beyond earlier books (a later volume
+-- while unprotected, or every member of a project) — the wording follows.
+local function walkIsWide(list)
+    for _idx, g in ipairs(list) do
+        if g.direction ~= "earlier" then return true end
+    end
+    return false
+end
+
 showEarlierBooksSweep = function(opts)
     local ActionCache = require("koassistant_action_cache")
-    local preds = ActionCache.predecessorXrays(opts.document_path)
+    local preds = ActionCache.groupXrays(opts.document_path)
+    local wide = walkIsWide(preds)
     local groups = collectPredGroups(preds, opts.query, false)
     if #groups == 0 then
-        UIManager:show(InfoMessage:new{
+        local text
+        if wide then
+            text = #preds == 1
+                and T(_("No results for \"%1\" in the other book of the group."), opts.query)
+                or T(_("No results for \"%1\" in the %2 other books of the group."), opts.query, #preds)
+        else
             text = #preds == 1
                 and T(_("No results for \"%1\" in the earlier book."), opts.query)
-                or T(_("No results for \"%1\" in %2 earlier books."), opts.query, #preds),
-            timeout = 4,
-        })
+                or T(_("No results for \"%1\" in %2 earlier books."), opts.query, #preds)
+        end
+        UIManager:show(InfoMessage:new{ text = text, timeout = 4 })
         return
     end
-    predGroupsMenu(opts, groups, T(_("Results for \"%1\" in earlier books"), opts.query))
+    predGroupsMenu(opts, groups, wide
+        and T(_("Results for \"%1\" in the other books of the group"), opts.query)
+        or T(_("Results for \"%1\" in earlier books"), opts.query))
 end
 
 -- Predecessor tier of the lookup (S2 + S3, ref #90): after a full local
@@ -11066,7 +11112,7 @@ end
 local function predLookupHandled(ui, query, config, plugin, book_metadata,
         cleanup_widgets, document_path)
     local ActionCache = require("koassistant_action_cache")
-    local preds = ActionCache.predecessorXrays(document_path)
+    local preds = ActionCache.groupXrays(document_path)
     if #preds == 0 then return false end
     local show_opts = { ui = ui, config = config, plugin = plugin,
         book_metadata = book_metadata, cleanup_widgets = cleanup_widgets,
@@ -11083,9 +11129,11 @@ local function predLookupHandled(ui, query, config, plugin, book_metadata,
         local rows = {}
         for _idx, h in ipairs(hits) do
             local captured = h
+            local from = captured.direction == "later"
+                and T(_("From %1 (later in the series)"), captured.source_title or in_title)
+                or T(_("From %1"), captured.source_title or in_title)
             rows[#rows + 1] = { {
-                text = captured.name .. "  \u{00B7}  " .. T(_("From %1"),
-                    captured.source_title or in_title),
+                text = captured.name .. "  \u{00B7}  " .. from,
                 align = "left",
                 callback = function()
                     UIManager:close(chooser)
@@ -11539,8 +11587,15 @@ local function showLookupNoResults(opts)
     -- S3 (ref #90): by the time any seam lands here the lookup has walked
     -- every earlier X-Rayed book too (predLookupHandled), so say so in one
     -- short sentence; opts.note (the "updating may find it" hint) follows
-    local n_earlier = #ActionCache.predecessorXrays(opts.document_path)
-    if n_earlier == 1 then
+    local walked = ActionCache.groupXrays(opts.document_path)
+    local n_earlier = #walked
+    if walkIsWide(walked) then
+        if n_earlier == 1 then
+            msg = msg .. " " .. _("The other book in the group has nothing either.")
+        elseif n_earlier > 1 then
+            msg = msg .. " " .. T(_("The %1 other books in the group have nothing either."), n_earlier)
+        end
+    elseif n_earlier == 1 then
         msg = msg .. " " .. _("The earlier book in the group has nothing either.")
     elseif n_earlier > 1 then
         msg = msg .. " " .. T(_("The %1 earlier books in the group have nothing either."), n_earlier)

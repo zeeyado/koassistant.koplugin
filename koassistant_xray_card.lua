@@ -159,6 +159,10 @@ local function carriedLine(hit)
         local line
         if hit.source == "carried" or hit.pred_stub then
             line = T(_("Carried from %1"), hit.source_title)
+        elseif hit.direction == "later" then
+            -- S4: a later volume's entry, reachable only while this book is
+            -- not under spoiler protection — name the direction
+            line = T(_("From %1's X-Ray (later in the series)"), hit.source_title)
         else
             line = T(_("From %1's X-Ray"), hit.source_title)
         end
@@ -346,47 +350,65 @@ function XrayCard.resolve(file, query, opts)
             return hit
         end
     end
-    -- Predecessor tier (S2 D1/D5, ref #90): the nearest earlier X-Rayed
-    -- book in the group — its entries AND its own carried list, so one
-    -- read covers a seeded chain. Already-read content: no warning, ranks
-    -- under everything local and above the peek. A transitive (carried-in-
-    -- the-predecessor) hit reports the ORIGINAL book as source_title.
-    local pred = ActionCache.nearestPredecessorXray(file)
-    if pred then
-        local results = XrayParser.searchAll(pred.data, query, { exact = true })
+    -- Group tier (S2 D1/D5 + S4, ref #90): every X-Rayed book the group
+    -- lets this book read — earlier books nearest first, then (only while
+    -- this book is not under spoiler protection) later books; an unordered
+    -- knowledge-sharing group reads every member. Each book answers from
+    -- its entries AND its own carried list (a transitive hit reports the
+    -- ORIGINAL title). Earlier books rank under everything local and above
+    -- the peek; later books rank BELOW the peek — this book's own next
+    -- checkpoint sits closer to what the reader is reading than another
+    -- book's take.
+    local group_list = ActionCache.groupXrays(file)
+    local function groupHit(g)
+        local results = XrayParser.searchAll(g.data, query, { exact = true })
         if results and #results > 0 then
             local hit = makeHit(results[1], "predecessor")
-            hit.source_title = pred.title
-            hit.pred_file = pred.file
-            hit.pred_title = pred.title
-            local _ar, ap = aheadProbe()
-            hit.also_ahead = ap
+            hit.source_title = g.title
+            hit.pred_file = g.file
+            hit.pred_title = g.title
+            hit.direction = g.direction
             return hit
         end
-        local stubs = XrayParser.searchLedger(pred.data, query, { exact = true })
+        local stubs = XrayParser.searchLedger(g.data, query, { exact = true })
         if #stubs > 0 then
             local s = stubs[1]
-            local hit = {
+            return {
                 name = s.stub.name,
                 item = s.stub,
                 category_key = s.category_key,
-                category_label = XrayParser.categoryLabel(pred.data, s.category_key),
+                category_label = XrayParser.categoryLabel(g.data, s.category_key),
                 source = "predecessor",
                 source_title = s.source_title,
-                pred_file = pred.file,
-                pred_title = pred.title,
+                pred_file = g.file,
+                pred_title = g.title,
                 pred_stub = true,
+                direction = g.direction,
                 query = query,
             }
-            local _ar, ap = aheadProbe()
-            hit.also_ahead = ap
-            return hit
+        end
+        return nil
+    end
+    for _idx, g in ipairs(group_list) do
+        if g.direction ~= "later" then
+            local hit = groupHit(g)
+            if hit then
+                local _ar, ap = aheadProbe()
+                hit.also_ahead = ap
+                return hit
+            end
         end
     end
     -- The identification peek (P5: stood down when the Upcoming Entities
     -- setting is off; B269: the one rung covering the reader's stretch)
     local r, rp = aheadProbe()
     if r then return makeHit(r, "ahead", rp) end
+    for _idx, g in ipairs(group_list) do
+        if g.direction == "later" then
+            local hit = groupHit(g)
+            if hit then return hit end
+        end
+    end
     return nil
 end
 

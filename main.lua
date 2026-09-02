@@ -215,6 +215,11 @@ function AskGPT:init()
   -- Patch DocSettings for chat index tracking on file moves
   self:patchDocSettingsForChatIndex()
 
+  -- Cross-book X-Ray knowledge (S4, ref #90): the lookup direction follows
+  -- the current book's spoiler protection; group edits and live X-Ray writes
+  -- re-seed the members' carried lists (deferred, zero tokens)
+  self:_installGroupSeedingHooks()
+
   -- Chat index validation deferred to first chat history browser open
   -- (see ChatHistoryDialog:showChatHistoryBrowser for lazy validation)
 
@@ -7072,6 +7077,70 @@ end
 ---   mode only) — where the reader is in THIS book's X-Ray, so the member's
 ---   opens at the same entity/category (XrayBrowser:_applyPendingLocation
 ---   falls back one level at a time when it has neither)
+--- S4 (ref #90): the three module hooks behind cross-book X-Ray knowledge.
+--- Single slots, so the most recently created plugin instance (the reader's,
+--- when a book is open) owns them; the direction resolver reads the live
+--- DocSettings only while that instance still has a document.
+function AskGPT:_installGroupSeedingHooks()
+  local self_ref = self
+  local ActionCache = require("koassistant_action_cache")
+  local BookGroups = require("koassistant_book_groups")
+  -- Earlier books only while the current book is under spoiler protection;
+  -- both directions once it is not (off, marked finished, research mode)
+  ActionCache.setLookupDirectionResolver(function(file)
+    local features = configuration and configuration.features
+    if not features then return false end
+    local ui = (self_ref.ui and self_ref.ui.document) and self_ref.ui or nil
+    local ds = require("koassistant_doc_settings").resolve(file, ui)
+    return require("koassistant_book_settings").resolveSpoilerFree(ds, features) == false
+  end)
+  BookGroups.on_change = function(group_id)
+    self_ref:_scheduleGroupReseed(group_id)
+  end
+  ActionCache.on_live_xray_written = function(file)
+    for _idx, group in ipairs(BookGroups.groupsFor(file)) do
+      self_ref:_scheduleGroupReseed(group.id)
+    end
+  end
+end
+
+--- Debounced automatic seeding of a group's carried lists (S4): every
+--- trigger within 2 s folds into one run; the run suppresses the write hook
+--- for its own writes and re-syncs the marks when it wrote anything.
+function AskGPT:_scheduleGroupReseed(group_id)
+  if type(group_id) ~= "string" or group_id == "" then return end
+  self._reseed_pending = self._reseed_pending or {}
+  self._reseed_pending[group_id] = true
+  if self._reseed_fn then UIManager:unschedule(self._reseed_fn) end
+  local self_ref = self
+  self._reseed_fn = function()
+    local pending = self_ref._reseed_pending or {}
+    self_ref._reseed_pending = {}
+    local ActionCache = require("koassistant_action_cache")
+    local BookGroups = require("koassistant_book_groups")
+    local XrayMerge = require("koassistant_xray_merge")
+    local ui = (self_ref.ui and self_ref.ui.document) and self_ref.ui or nil
+    ActionCache.suppress_write_hook = true
+    for id in pairs(pending) do
+      local group = BookGroups.byId(id)
+      if group then
+        local ok, written, checked = pcall(XrayMerge.reseedGroup, group,
+          (configuration and configuration.features) or {},
+          configuration and configuration.provider, ui)
+        if not ok then
+          logger.warn("KOAssistant: group seeding failed:", tostring(written))
+        elseif (written or 0) > 0 then
+          logger.info("KOAssistant: group seeding wrote", written, "carried list(s) of",
+            checked, "checked")
+          if self_ref.syncXrayMarks then pcall(function() self_ref:syncXrayMarks() end) end
+        end
+      end
+    end
+    ActionCache.suppress_write_hook = false
+  end
+  UIManager:scheduleIn(2, self._reseed_fn)
+end
+
 function AskGPT:_showGroupMembersPopup(file, mode, opts)
   local BookGroups = require("koassistant_book_groups")
   local GroupsUI = require("koassistant_book_groups_ui")
@@ -7134,6 +7203,14 @@ function AskGPT:_showGroupMembersPopup(file, mode, opts)
                   book_file = captured,
                   fallback = true,
                 }
+              end
+              -- Q16: the jumped-to browser's up-arrow at root returns to the
+              -- X-Ray this popup was opened from (browser callers pass it)
+              if opts and opts.return_to then
+                local rt = {}
+                for k, v in pairs(opts.return_to) do rt[k] = v end
+                rt.target = captured
+                require("koassistant_xray_browser")._pending_return_to = rt
               end
               self_ref:showCacheViewer({ name = _("X-Ray"), key = "_xray_cache",
                 data = entry, book_title = title, file = captured })

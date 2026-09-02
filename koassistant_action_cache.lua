@@ -849,7 +849,14 @@ end
 ---   When reading the cache, permissions are only required for data that was actually used.
 --- @return boolean success
 function ActionCache.setXrayCache(document_path, result, progress_decimal, metadata)
-    return ActionCache.set(document_path, ActionCache.XRAY_CACHE_KEY, result, progress_decimal, metadata)
+    local ok = ActionCache.set(document_path, ActionCache.XRAY_CACHE_KEY, result, progress_decimal, metadata)
+    -- S4 (ref #90): every live X-Ray write reaches the group seeding hook —
+    -- main.lua registers it; the seed run suppresses it for its own writes
+    if ok and type(ActionCache.on_live_xray_written) == "function"
+            and not ActionCache.suppress_write_hook then
+        pcall(ActionCache.on_live_xray_written, document_path)
+    end
+    return ok
 end
 
 --- Get cached document analysis (full document deep analysis)
@@ -1072,6 +1079,12 @@ ActionCache.NEVER_MERGE_KEY = "__never_merge"
 -- (round 18): same array-of-pairs shape as never-merge. One ask per pair,
 -- ever — dismissing the ask is an answer; the manual scan stays available.
 ActionCache.DEDUP_OFFERED_KEY = "__dedup_offered"
+-- Reserved key holding carried entries the reader REMOVED from the carried
+-- list (S4, ref #90): a plain array of names. A removed entry must not come
+-- back through the automatic seed or a checkpoint install; adding it by hand
+-- again clears the record. Same sidecar as the alias edits, so it survives
+-- installs and rebuilds.
+ActionCache.REMOVED_STUBS_KEY = "__dormant_removed"
 
 --- Get path to user aliases file for a document
 --- @param document_path string The document file path
@@ -1115,6 +1128,7 @@ function ActionCache.getUserAliases(document_path)
     for name, entry in pairs(data) do
         if name ~= ActionCache.NEVER_MERGE_KEY
             and name ~= ActionCache.DEDUP_OFFERED_KEY
+            and name ~= ActionCache.REMOVED_STUBS_KEY
             and type(entry) == "table" and not entry.add and not entry.ignore then
             -- Old format: plain array of strings
             data[name] = { add = entry }
@@ -1137,7 +1151,8 @@ function ActionCache.setUserAliases(document_path, aliases_table)
         if type(entry) ~= "table" then
             aliases_table[name] = nil
         elseif name == ActionCache.NEVER_MERGE_KEY
-            or name == ActionCache.DEDUP_OFFERED_KEY then
+            or name == ActionCache.DEDUP_OFFERED_KEY
+            or name == ActionCache.REMOVED_STUBS_KEY then
             if #entry == 0 then
                 aliases_table[name] = nil
             end
@@ -1195,9 +1210,16 @@ function ActionCache.setUserAliases(document_path, aliases_table)
             file:write(" },\n")
         end
     end
+    local removed = aliases_table[ActionCache.REMOVED_STUBS_KEY]
+    if type(removed) == "table" and #removed > 0 then
+        file:write(string.format("    [%q] = ", ActionCache.REMOVED_STUBS_KEY))
+        write_array(file, removed)
+        file:write(",\n")
+    end
     for item_name, entry in pairs(aliases_table) do
         if item_name ~= ActionCache.NEVER_MERGE_KEY
-            and item_name ~= ActionCache.DEDUP_OFFERED_KEY then
+            and item_name ~= ActionCache.DEDUP_OFFERED_KEY
+            and item_name ~= ActionCache.REMOVED_STUBS_KEY then
             file:write(string.format("    [%q] = { add = ", item_name))
             write_array(file, entry.add)
             if entry.ignore and #entry.ignore > 0 then
@@ -1212,6 +1234,53 @@ function ActionCache.setUserAliases(document_path, aliases_table)
 
     logger.dbg("KOAssistant ActionCache: Saved user aliases for", document_path)
     return true
+end
+
+--- Carried entries the reader removed (S4 tombstones): lowercased-name set.
+--- @param document_path string
+--- @return table set
+function ActionCache.getRemovedStubs(document_path)
+    local set = {}
+    local raw = ActionCache.getUserAliases(document_path)[ActionCache.REMOVED_STUBS_KEY]
+    if type(raw) == "table" then
+        for _idx, n in ipairs(raw) do
+            if type(n) == "string" and n ~= "" then set[n:lower()] = true end
+        end
+    end
+    return set
+end
+
+--- Remember a removed carried entry (the browser's Remove).
+function ActionCache.addRemovedStub(document_path, name)
+    if type(name) ~= "string" or name == "" then return false end
+    local all = ActionCache.getUserAliases(document_path)
+    local list = all[ActionCache.REMOVED_STUBS_KEY]
+    if type(list) ~= "table" then list = {} end
+    for _idx, n in ipairs(list) do
+        if type(n) == "string" and n:lower() == name:lower() then return true end
+    end
+    list[#list + 1] = name
+    all[ActionCache.REMOVED_STUBS_KEY] = list
+    return ActionCache.setUserAliases(document_path, all)
+end
+
+--- Forget a removal (the reader added the entry by hand again).
+function ActionCache.clearRemovedStub(document_path, name)
+    if type(name) ~= "string" or name == "" then return false end
+    local all = ActionCache.getUserAliases(document_path)
+    local list = all[ActionCache.REMOVED_STUBS_KEY]
+    if type(list) ~= "table" then return true end
+    local kept, changed = {}, false
+    for _idx, n in ipairs(list) do
+        if type(n) == "string" and n:lower() == name:lower() then
+            changed = true
+        else
+            kept[#kept + 1] = n
+        end
+    end
+    if not changed then return true end
+    all[ActionCache.REMOVED_STUBS_KEY] = kept
+    return ActionCache.setUserAliases(document_path, all)
 end
 
 --- Validated pair list from a reserved pair-list key. Pure.
@@ -1299,6 +1368,7 @@ function ActionCache.addUserAlias(document_path, item_name, alias)
     for k in pairs(all) do
         if type(k) == "string"
             and k ~= ActionCache.NEVER_MERGE_KEY and k ~= ActionCache.DEDUP_OFFERED_KEY
+            and k ~= ActionCache.REMOVED_STUBS_KEY
             and k:lower() == item_name:lower() then
             key = k
             break
@@ -2077,10 +2147,17 @@ function ActionCache.promoteXrayLadderRung(document_path, rung, limit, opts)
             -- the live artifact held (a fold made after this rung was built,
             -- an alias edited onto a stub) died with the swap; the rebuild
             -- path has carried the outgoing ledger across since round 25
-            local u_added, u_refreshed = XrayMerge.unionLedger(prev_parsed, parsed)
+            -- S4 tombstones: a carried entry the reader removed stays
+            -- removed — dropped from the rung's own copy, never re-unioned
+            local skip = ActionCache.getRemovedStubs(document_path)
+            local dropped = XrayParser.dropStubs(parsed, skip)
+            local u_added, u_refreshed = XrayMerge.unionLedger(prev_parsed, parsed, skip)
             local n = XrayMerge.carryActiveBackground(prev_parsed, parsed)
             local woken = XrayParser.wakeDormant(parsed)
-            if u_added == 0 and u_refreshed == 0 and n == 0 and #woken == 0 then return nil end
+            if u_added == 0 and u_refreshed == 0 and n == 0 and #woken == 0
+                    and dropped == 0 then
+                return nil
+            end
             return XrayParser.serialize(parsed), n, #woken, u_added + u_refreshed
         end)
         if ok_carry and type(carried_out) == "string" then
@@ -2447,7 +2524,6 @@ end
 -- rebuilt only when the book's cache file or user-aliases sidecar changes on
 -- disk (mtime+size key — a stat per lookup instead of a full parse per tap).
 -- One book at a time: taps are reader-scoped, a different file swaps the slot.
-local pred_xray_memo = nil -- { file, stamp, res }
 -- Per-book parsed X-Ray memo for group reads (S3, ref #90): the whole-chain
 -- lookup and the carried page's "Open in <title>'s X-Ray" parse each earlier
 -- book once per stamp; the steady state is a stat call. Bounded: wiped when
@@ -2515,67 +2591,68 @@ function ActionCache.parsedXrayFor(file)
     return res or nil
 end
 
-function ActionCache.nearestPredecessorXray(document_path)
-    if not document_path then return nil end
-    local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
-    if not ok_bg then return nil end
-    local preds = BookGroups.predecessorsOf(document_path)
-    if #preds == 0 then return nil end
-    local parts = {}
-    for i = 1, #preds do
-        local cp = ActionCache.getPath(preds[i])
-        local ca = cp and lfs.attributes(cp)
-        parts[#parts + 1] = ca and (tostring(ca.modification) .. ":" .. tostring(ca.size)) or "-"
-        local ap = ActionCache.getUserAliasesPath(preds[i])
-        local aa = ap and lfs.attributes(ap)
-        parts[#parts + 1] = aa and (tostring(aa.modification) .. ":" .. tostring(aa.size)) or "-"
-    end
-    local stamp = table.concat(parts, "|")
-    if pred_xray_memo and pred_xray_memo.file == document_path
-            and pred_xray_memo.stamp == stamp then
-        return pred_xray_memo.res
-    end
-    local res
-    for i = #preds, 1, -1 do
-        local px = ActionCache.parsedXrayFor(preds[i])
-        if px then
-            local more = 0
-            for j = 1, i - 1 do
-                local p2 = ActionCache.getPath(preds[j])
-                if p2 and lfs.attributes(p2) then more = more + 1 end
-            end
-            res = {
-                file = px.file,
-                title = px.title,
-                data = px.data,
-                entry = px.entry,
-                more = more,
-                stamp = stamp,
-            }
-            break
-        end
-    end
-    pred_xray_memo = { file = document_path, stamp = stamp, res = res }
-    return res
+-- Lookup direction (S4, ref #90): the ordered-group "earlier books only"
+-- rule is a spoiler guard, so it stands down exactly when spoiler protection
+-- does for the current book (off, finished, research). main.lua injects the
+-- resolver — it owns the settings and the live DocSettings; without one,
+-- earlier books only.
+local lookup_both_ways = nil
+function ActionCache.setLookupDirectionResolver(fn)
+    lookup_both_ways = fn
+end
+local function bothWays(document_path)
+    if type(lookup_both_ways) ~= "function" then return false end
+    local ok, res = pcall(lookup_both_ways, document_path)
+    return ok and res == true
 end
 
---- Every earlier X-Rayed book in the ordered group, nearest first (S3, ref
---- #90: the lookup walks the whole chain instead of offering a tap row).
---- Entries are parsedXrayFor's shape; each book parses once per stamp, so
---- the walk itself costs a stat per predecessor.
+--- Every group book whose X-Ray may answer a lookup for this book, in rank
+--- order (S4, ref #90): ordered group = earlier books nearest first, then —
+--- only when the current book is not under spoiler protection — later books
+--- nearest first; unordered knowledge-sharing group (project) = every other
+--- member; plain group = none. Entries are parsedXrayFor's shape plus
+--- `direction` ("earlier" | "later" | nil for unordered groups). Each book
+--- parses once per stamp; the walk itself is a stat per book.
 --- @param document_path string
---- @return table Array, possibly empty
-function ActionCache.predecessorXrays(document_path)
+--- @return table list (possibly empty), string stamp (every book's stamp +
+---   the direction — memo keys carry it, so a protection flip re-indexes)
+function ActionCache.groupXrays(document_path)
     local out = {}
-    if not document_path then return out end
+    if not document_path then return out, "-" end
     local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
-    if not ok_bg then return out end
-    local preds = BookGroups.predecessorsOf(document_path)
-    for i = #preds, 1, -1 do
-        local px = ActionCache.parsedXrayFor(preds[i])
-        if px then out[#out + 1] = px end
+    if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return out, "-" end
+    local both = bothWays(document_path)
+    local rows = BookGroups.lookupBooksFor(document_path, both)
+    if #rows == 0 then return out, "-" end
+    local parts = { both and "both" or "earlier" }
+    for _idx, row in ipairs(rows) do
+        local px = ActionCache.parsedXrayFor(row.file)
+        if px then
+            local e = {}
+            for k, v in pairs(px) do e[k] = v end
+            e.direction = row.direction
+            out[#out + 1] = e
+            parts[#parts + 1] = (row.direction or "any") .. ":" .. px.stamp
+        else
+            parts[#parts + 1] = "-"
+        end
     end
-    return out
+    return out, table.concat(parts, "|")
+end
+
+--- The first group X-Ray in rank order (the nearest earlier book while
+--- protected), with `more` = how many further group X-Rays exist and the
+--- combined stamp; nil when none. Thin over groupXrays.
+--- @param document_path string
+--- @return table|nil { file, title, data, entry, direction, more, stamp }
+function ActionCache.nearestGroupXray(document_path)
+    local list, stamp = ActionCache.groupXrays(document_path)
+    if #list == 0 then return nil end
+    local res = {}
+    for k, v in pairs(list[1]) do res[k] = v end
+    res.more = #list - 1
+    res.stamp = stamp
+    return res
 end
 
 local exact_route_index = nil -- { path, key, set }
@@ -2608,8 +2685,8 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
     -- fires when there is no predecessor either.
     local attr = lfs.attributes(path)
     if attr and attr.mode ~= "file" then return false end
-    local pred = ActionCache.nearestPredecessorXray(document_path)
-    if not attr and not pred then return false end
+    local group_list, group_stamp = ActionCache.groupXrays(document_path)
+    if not attr and #group_list == 0 then return false end
     local key = attr and (tostring(attr.modification) .. "|" .. tostring(attr.size)) or "-"
     local alias_path = ActionCache.getUserAliasesPath(document_path)
     local aattr = alias_path and lfs.attributes(alias_path)
@@ -2651,7 +2728,7 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
     -- handles join the route so its entities intercept/tap like local ones.
     -- Rank-free here by design — the SET only routes; the card router owns
     -- the order (live -> sections -> carried -> predecessor -> ahead).
-    key = key .. "|pred:" .. (pred and pred.stamp or "-")
+    key = key .. "|group:" .. group_stamp
     if not (exact_route_index and exact_route_index.path == path
             and exact_route_index.key == key) then
         local XrayParser = require("koassistant_xray_parser")
@@ -2695,9 +2772,11 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
                 XrayParser.foldExactHandles(data, set)
             end
         end
-        if pred then
-            XrayParser.foldExactHandles(pred.data, set)
-            XrayParser.foldLedgerHandles(pred.data, set)
+        -- S4: every group book the direction rule allows (earlier first,
+        -- later only when unprotected, every member of a project) folds in
+        for _idx, g in ipairs(group_list) do
+            XrayParser.foldExactHandles(g.data, set)
+            XrayParser.foldLedgerHandles(g.data, set)
         end
         exact_route_index = { path = path, key = key, set = set }
     end
