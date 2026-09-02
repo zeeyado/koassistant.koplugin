@@ -1937,8 +1937,9 @@ function ChatHistoryManager:saveChatToDocSettings(ui, chat_data)
         return false
     end
 
-    -- Update chat index
-    self:updateChatIndex(chat_data.document_path, "save", chat_data.id, chats)
+    -- Update chat index (doc_props: Fix M title/author)
+    self:updateChatIndex(chat_data.document_path, "save", chat_data.id, chats,
+        { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
 
     -- Track as last opened chat
     self:setLastOpenedChat(chat_data.document_path, chat_data.id)
@@ -2074,7 +2075,8 @@ function ChatHistoryManager:deleteChatFromDocSettings(ui, chat_id, document_path
 
     -- Update chat index
     if stored_path and stored_path ~= "__GENERAL_CHATS__" then
-        self:updateChatIndex(stored_path, "delete", chat_id, chats)
+        self:updateChatIndex(stored_path, "delete", chat_id, chats,
+            { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
     end
 
     logger.dbg("Deleted chat from metadata.lua: " .. chat_id)
@@ -2137,7 +2139,8 @@ function ChatHistoryManager:updateChatInDocSettings(ui, chat_id, updates, docume
     -- other patches write through here without touching any save-path index
     -- update. "refresh" preserves last_modified and no-ops when nothing
     -- indexed changed.
-    self:updateChatIndex(actual_doc_path, "refresh", nil, chats)
+    self:updateChatIndex(actual_doc_path, "refresh", nil, chats,
+        { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
 
     logger.dbg("Updated chat in metadata.lua: " .. chat_id)
     return true
@@ -2466,10 +2469,31 @@ local function sameChatIdSet(a, b)
     return true
 end
 
+-- Fix M (2026-09-02): the index carries the book's title/author so the chat
+-- browser renders its document list without opening any DocSettings. Writers
+-- that have a DocSettings in hand pass `opts.doc_props` (the book's doc_props
+-- table, nil when the book has none); the entry stores `false` for a missing
+-- field so "known absent" (false: render the filename) is distinguishable from
+-- "never looked" (nil: legacy entry, healed once by the browser). Without
+-- opts.doc_props the previous entry's title/author are preserved.
+local function indexTitleAuthor(doc_props, prev, has_props)
+    if has_props then
+        local title = doc_props and doc_props.title
+        local author = doc_props and doc_props.authors
+        return (title ~= nil and title ~= "") and title or false,
+               (author ~= nil and author ~= "") and author or false
+    end
+    if prev then return prev.title, prev.author end
+    return nil, nil
+end
+
 function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, chats_table, opts)
     if not document_path or document_path == "__GENERAL_CHATS__" or document_path == "__LIBRARY_CHATS__" then
         return
     end
+    -- doc_props may legitimately be nil (book never opened in the reader):
+    -- the caller signals "I looked" with opts.has_props, or by passing a table
+    local has_props = opts and (opts.has_props or opts.doc_props ~= nil) or false
 
     -- Check for concurrent index operations
     -- Lua is single-threaded but callbacks can interleave in KOReader's event loop
@@ -2481,6 +2505,7 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
 
     -- G_reader_settings is a global in KOReader
     local index = G_reader_settings:readSetting("koassistant_chat_index", {})
+    local title, author = indexTitleAuthor(opts and opts.doc_props, index[document_path], has_props)
 
     -- Count chats in the provided table
     local count = 0
@@ -2532,6 +2557,7 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
             -- prev.starred nil (legacy entry) fails the equality even against 0,
             -- so the first refresh after the Fix S upgrade heals the field
             if prev and prev.count == count and prev.starred == starred
+                and prev.title == title and prev.author == author
                 and sameChatIdSet(prev.chat_ids, chat_ids) then
                 index_operation_pending = false
                 return
@@ -2544,6 +2570,8 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
             last_modified = timestamp,
             chat_ids = chat_ids,
             starred = starred,
+            title = title,
+            author = author,
         }
 
         logger.dbg("Chat index update: operation=" .. operation .. ", timestamp=" ..
@@ -2584,7 +2612,11 @@ function ChatHistoryManager:refreshChatIndexEntry(document_path, ui, opts)
     end
     local doc_settings = SafeDocSettings.resolve(document_path, ui)
     local chats = doc_settings:readSetting("koassistant_chats", {})
-    self:updateChatIndex(document_path, "refresh", nil, chats, opts)
+    -- Fix M: the heal also carries the current title/author, so a book whose
+    -- metadata was edited in KOReader re-labels in the browser on next open
+    local merged = { no_flush = opts and opts.no_flush,
+                     doc_props = doc_settings:readSetting("doc_props"), has_props = true }
+    self:updateChatIndex(document_path, "refresh", nil, chats, merged)
 end
 
 -- Get the chat index
@@ -2632,6 +2664,15 @@ function ChatHistoryManager:validateChatIndex()
                 end
                 needs_update = true
             end
+            -- Fix M: heal title/author from the DocSettings already in hand
+            if index[doc_path] then
+                local title, author = indexTitleAuthor(doc_settings:readSetting("doc_props"), entry, true)
+                if entry.title ~= title or entry.author ~= author then
+                    entry.title = title
+                    entry.author = author
+                    needs_update = true
+                end
+            end
         end
     end
 
@@ -2673,10 +2714,13 @@ function ChatHistoryManager:rebuildChatIndex()
                 count = count + 1
                 table.insert(chat_ids, id)
             end
+            local title, author = indexTitleAuthor(doc_settings:readSetting("doc_props"), nil, true)
             index[book_path] = {
                 count = count,
                 last_modified = os.time(),
                 chat_ids = chat_ids,
+                title = title,
+                author = author,
             }
             doc_count = doc_count + 1
             logger.dbg("KOAssistant: Indexed:", book_path, "(" .. count .. " chats)")
@@ -2907,28 +2951,28 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                 -- so it reappears if the book is moved back. Use "Validate Data
                 -- Indexes" in settings for intentional cleanup.
                 if lfs.attributes(doc_path, "mode") then
-                    -- Try to get book metadata
-                    local doc_settings = SafeDocSettings.resolve(doc_path)
-                    local doc_props = doc_settings:readSetting("doc_props")
-
-                    local title = doc_props and doc_props.title or doc_path:match("([^/]+)$")
-                    local author = doc_props and doc_props.authors or nil
-
-                    -- Legacy index entries lack `starred` — heal it for FREE
-                    -- from this already-parsed DocSettings instance (the
-                    -- doc_props read above paid the full metadata.lua parse)
+                    -- Fix M (2026-09-02): title/author come from the index.
+                    -- Only a legacy entry (no `starred` tally, or title never
+                    -- looked up = nil) pays a DocSettings parse, ONCE: the
+                    -- refresh below stores what it found (false = known
+                    -- absent), so the next open is index-only.
                     local starred = info.starred
-                    if type(starred) ~= "number" then
+                    local title, author = info.title, info.author
+                    if type(starred) ~= "number" or title == nil then
+                        local doc_settings = SafeDocSettings.resolve(doc_path)
+                        local doc_props = doc_settings:readSetting("doc_props")
                         local chats_table = doc_settings:readSetting("koassistant_chats", {})
                         starred = countStarred(chats_table)
-                        self:updateChatIndex(doc_path, "refresh", nil, chats_table, { no_flush = true })
+                        title, author = indexTitleAuthor(doc_props, nil, true)
+                        self:updateChatIndex(doc_path, "refresh", nil, chats_table,
+                            { no_flush = true, doc_props = doc_props, has_props = true })
                         healed = true
                     end
 
                     table.insert(documents, {
                         path = doc_path,
-                        title = title,
-                        author = author,
+                        title = title or doc_path:match("([^/]+)$"),
+                        author = author or nil,
                         last_modified = info.last_modified or 0,
                         count = info.count or 0,
                         starred = starred,

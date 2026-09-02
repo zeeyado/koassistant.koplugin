@@ -1359,7 +1359,8 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
                 doc_settings:flush()
 
                 -- Update chat index
-                chat_manager:updateChatIndex(doc_path, "restore", nil, existing_chats)
+                chat_manager:updateChatIndex(doc_path, "restore", nil, existing_chats,
+                    { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
 
                 logger.info("BackupManager: Restored", data.chat_count, "chats to", doc_path)
             else

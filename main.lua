@@ -21806,7 +21806,8 @@ function AskGPT:migrateChatsToDocSettings()
           doc_settings:flush()
 
           -- Update chat index
-          ChatHistoryManager:updateChatIndex(doc_path, "save", nil, existing_chats)
+          ChatHistoryManager:updateChatIndex(doc_path, "save", nil, existing_chats,
+            { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
 
           logger.info("Migrated " .. #chats .. " chats for: " .. doc_path)
         else
