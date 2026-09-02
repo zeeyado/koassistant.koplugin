@@ -2612,6 +2612,7 @@ gemini = {
 - **View Mode**: Choose between Markdown (formatted) or Plain Text display
   - **Markdown**: Full formatting with bold, lists, headers, etc. (default)
   - **Plain Text**: Better font support for Arabic and some other non-Latin scripts
+- **Render Math Formulas**: Show LaTeX math from responses as readable formulas in Markdown view (Greek letters, operators, superscripts, vectors, fractions as `a/b`, centered display lines). Display-only: saved chats, copies and exports keep the original notation. Grayed out in Plain Text mode. (default: on)
 - **Plain Text Options**: Settings for Plain Text mode
   - **Apply Markdown Stripping**: Convert markdown syntax to readable plain text. Headers use hierarchical symbols with bold text (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`, etc.), `**bold**` renders as actual bold, `*italics*` are preserved as-is, `_italics_` (underscores) become bold, lists become `•`, code becomes `'quoted'`. Includes BiDi support for mixed RTL/LTR content. Disable to show raw markdown. (default: on)
 - **Latest Reply on New Page**: Present the newest reply from the top of a fresh page (default: on). Markdown chats get a real page break before it; Plain Text chats align the view so the reply starts the screen. Chat viewer only.
@@ -4031,6 +4032,8 @@ KOAssistant offers two view modes for displaying AI responses:
 - **Permanently**: Settings → Display Settings → Rendering → View Mode
 
 > **Tip:** The chat viewer remembers your text alignment and font size between opens, so you only set them once.
+
+**Math formulas:** in Markdown view, LaTeX math in responses (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`) is shown as readable formulas: Greek letters and operators as real symbols, superscripts and subscripts, vector arrows and hats, roots, fractions as `a/b`, and `$$` blocks on their own centered line. This is display-only: saved chats, copies, exports and notebook entries keep the original LaTeX, which apps like Obsidian render fully. Plain Text view shows the LaTeX as written. Toggle under Settings → Display Settings → Rendering → Render Math Formulas. True typesetting (stacked fractions, matrices) is not possible in the viewer's renderer; those flatten to `a/b` and `(a, b; c, d)`.
 
 **Text alignment:** the chat viewer defaults to **Auto** alignment, which follows the text's own direction (left for LTR, right for RTL) instead of forcing one side. The gear menu's alignment row cycles Auto → Left → Justify → Right. Long-press the Show/Hide Quote button for global quote defaults (hide by default, auto-hide long quotes).
 
