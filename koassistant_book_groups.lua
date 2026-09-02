@@ -404,7 +404,7 @@ function BookGroups.displayTitle(path, ui)
         return require("koassistant_doc_settings").resolve(path, ui)
     end)
     if ok and ds then
-        local props = ds:readSetting("doc_props") or {}
+        local props = require("koassistant_doc_settings").overlayCustomProps(ds:readSetting("doc_props"), path) or {}
         title = props.display_title or props.title
         local ok_ov, ov_title = pcall(function()
             return require("koassistant_book_settings").getMetadataOverride(ds)
@@ -429,7 +429,7 @@ function BookGroups.booksInfoFor(group, ui)
                 return require("koassistant_doc_settings").resolve(path, ui)
             end)
             if ok and ds then
-                local props = ds:readSetting("doc_props") or {}
+                local props = require("koassistant_doc_settings").overlayCustomProps(ds:readSetting("doc_props"), path) or {}
                 title = props.display_title or props.title
                 author = props.authors
                 if type(author) == "string" and author:find("\n") then

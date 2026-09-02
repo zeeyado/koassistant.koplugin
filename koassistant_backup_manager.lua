@@ -775,7 +775,7 @@ function BackupManager:exportAllChatsToTable()
 
                 if next(chats) then
                     -- Get book metadata
-                    local doc_props = doc_settings:readSetting("doc_props") or {}
+                    local doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), doc_path) or {}
 
                     all_chats[doc_path] = {
                         chats = chats,

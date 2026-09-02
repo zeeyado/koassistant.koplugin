@@ -67,4 +67,35 @@ function SafeDocSettings.resolve(document_path, ui)
     return DocSettings:open(document_path), false
 end
 
+--- Effective book props: KOReader keeps metadata edited in Book information
+--- (title, authors, series, ...) in the sidecar's custom_metadata.lua and
+--- NEVER rewrites metadata.lua's doc_props, which stays the original. ReaderUI's
+--- own `ui.doc_props` carries that overlay already; a doc_props read off any
+--- DocSettings (live or fresh) does NOT. Every plugin site that turns doc_props
+--- into a title/author must pass it through here (tests/unit/test_effective_props.lua
+--- greps for it). Applies KOReader's own BookInfo.extendProps when a custom
+--- metadata file exists; returns the raw table untouched otherwise, so callers
+--- keep their `if props then` semantics (nil in, no custom file = nil out).
+--- Note: the overlay result carries only BookInfo.props + display_title + pages —
+--- DOI identifiers must be read from the RAW props (main.lua getRawDocProps).
+--- @param raw_props table|nil doc_props as read from DocSettings
+--- @param document_path string|nil the book (nil = no overlay possible)
+--- @return table|nil
+function SafeDocSettings.overlayCustomProps(raw_props, document_path)
+    if not document_path then return raw_props end
+    local ok_ds, DocSettings = pcall(require, "docsettings")
+    if not ok_ds or type(DocSettings) ~= "table" or not DocSettings.findCustomMetadataFile then
+        return raw_props
+    end
+    local ok_find, custom_file = pcall(DocSettings.findCustomMetadataFile, DocSettings, document_path)
+    if not ok_find or not custom_file then return raw_props end
+    local ok_bi, BookInfo = pcall(require, "apps/filemanager/filemanagerbookinfo")
+    if not ok_bi or type(BookInfo) ~= "table" or not BookInfo.extendProps then
+        return raw_props
+    end
+    local ok_ext, props = pcall(BookInfo.extendProps, raw_props, document_path)
+    if ok_ext and type(props) == "table" then return props end
+    return raw_props
+end
+
 return SafeDocSettings

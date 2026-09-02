@@ -120,7 +120,7 @@ end
 function Notebook.generateFilename(document_path, doc_props)
     if not doc_props then
         local doc_settings = DocSettings:open(document_path)
-        doc_props = doc_settings:readSetting("doc_props")
+        doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), document_path)
     end
 
     local title = doc_props and (doc_props.display_title or doc_props.title) or nil
@@ -155,7 +155,7 @@ end
 function Notebook.generateFrontmatter(document_path, doc_props)
     if not doc_props then
         local doc_settings = DocSettings:open(document_path)
-        doc_props = doc_settings:readSetting("doc_props")
+        doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), document_path)
     end
 
     local parts = {"---"}
@@ -769,7 +769,7 @@ function Notebook.create(document_path)
     -- Resolved via SafeDocSettings: this instance later WRITES the notebook ref,
     -- and a fresh instance for an open book would clobber metadata.lua (issue #72)
     local doc_settings = SafeDocSettings.resolve(document_path)
-    local doc_props = doc_settings:readSetting("doc_props")
+    local doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), document_path)
 
     local notebook_path, final_filename
     if location == "sidecar" then
@@ -956,7 +956,7 @@ function Notebook.migrateAll(from_location, to_location, features)
             if base_dir then
                 util.makePath(base_dir)
                 local ds = SafeDocSettings.resolve(nb.doc_path)
-                local doc_props = ds:readSetting("doc_props")
+                local doc_props = SafeDocSettings.overlayCustomProps(ds:readSetting("doc_props"), nb.doc_path)
                 local filename = Notebook.generateFilename(nb.doc_path, doc_props)
                 new_path = base_dir .. "/" .. filename
 

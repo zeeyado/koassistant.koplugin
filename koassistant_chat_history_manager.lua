@@ -2480,18 +2480,9 @@ end
 -- edited in Book information in the sidecar's custom_metadata.lua, never in
 -- metadata.lua's doc_props, so the overlay goes through KOReader's own
 -- BookInfo.extendProps (raw doc_props when that module is unavailable).
-local function effectiveProps(doc_props, doc_path)
-    local ok, BookInfo = pcall(require, "apps/filemanager/filemanagerbookinfo")
-    if ok and BookInfo and BookInfo.extendProps and doc_path then
-        local ok2, props = pcall(BookInfo.extendProps, doc_props, doc_path)
-        if ok2 and type(props) == "table" then return props end
-    end
-    return doc_props
-end
-
 local function indexTitleAuthor(doc_props, prev, has_props, doc_path)
     if has_props then
-        doc_props = effectiveProps(doc_props, doc_path)
+        doc_props = SafeDocSettings.overlayCustomProps(doc_props, doc_path)
         local title = doc_props and doc_props.title
         local author = doc_props and doc_props.authors
         return (title ~= nil and title ~= "") and title or false,
@@ -2974,7 +2965,7 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                     local title, author = info.title, info.author
                     if type(starred) ~= "number" or title == nil then
                         local doc_settings = SafeDocSettings.resolve(doc_path)
-                        local doc_props = doc_settings:readSetting("doc_props")
+                        local doc_props = doc_settings:readSetting("doc_props") -- raw-props: overlaid in indexTitleAuthor
                         local chats_table = doc_settings:readSetting("koassistant_chats", {})
                         starred = countStarred(chats_table)
                         title, author = indexTitleAuthor(doc_props, nil, true, doc_path)

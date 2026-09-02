@@ -14,6 +14,7 @@ local ActionCache = require("koassistant_action_cache")
 local ButtonDialog = require("ui/widget/buttondialog")
 local ConfirmBox = require("ui/widget/confirmbox")
 local DocSettings = require("docsettings")
+local SafeDocSettings = require("koassistant_doc_settings")
 local InfoMessage = require("ui/widget/infomessage")
 local Menu = require("ui/widget/menu")
 local Notification = require("ui/widget/notification")
@@ -33,7 +34,7 @@ local ArtifactBrowser = {}
 --- @return string|nil author The book author, or nil
 local function getBookMetadata(doc_path)
     local doc_settings = DocSettings:open(doc_path)
-    local doc_props = doc_settings:readSetting("doc_props")
+    local doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), doc_path)
     local title = doc_props and (doc_props.display_title or doc_props.title) or nil
     if not title or title == "" then
         title = doc_path:match("([^/]+)%.[^%.]+$") or doc_path

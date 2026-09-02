@@ -154,6 +154,8 @@ local DOIResolver = require("doi_resolver")
 
 --- Get raw doc_props (with identifiers) from DocSettings for a file.
 --- Raw props include the identifiers field that extendProps() filters out.
+--- RAW = the original metadata: a title edited in Book information is NOT in
+--- here (SafeDocSettings.overlayCustomProps for anything user-facing).
 --- @param file string Document file path
 --- @return table|nil Raw document properties, or nil
 local function getRawDocProps(file)
@@ -161,7 +163,7 @@ local function getRawDocProps(file)
     local DocSettings = require("docsettings")
     local ok, doc_settings = pcall(DocSettings.open, DocSettings, file)
     if ok and doc_settings then
-        return doc_settings:readSetting("doc_props")
+        return doc_settings:readSetting("doc_props") -- raw-props: DOI identifiers, callers overlay for display
     end
     return nil
 end
@@ -587,7 +589,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if not title or title == "" then
     local DocSettings = require("docsettings")
     local doc_settings = DocSettings:open(file)
-    local doc_props = doc_settings:readSetting("doc_props")
+    local doc_props = require("koassistant_doc_settings").overlayCustomProps(doc_settings:readSetting("doc_props"), file)
     title = doc_props and (doc_props.display_title or doc_props.title) or nil
   end
   if not title or title == "" then
@@ -23187,7 +23189,7 @@ function AskGPT:openNotebookInChatViewer(notebook_path, document_path)
     book_title = props and (props.display_title or props.title)
     book_author = props and props.authors
   else
-    local props = getRawDocProps(document_path)
+    local props = require("koassistant_doc_settings").overlayCustomProps(getRawDocProps(document_path), document_path)
     book_title = props and (props.display_title or props.title)
     book_author = props and props.authors
   end

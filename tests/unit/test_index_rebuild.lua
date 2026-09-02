@@ -165,6 +165,10 @@ function MockDocSettings:open(path)
     return setmetatable({ _path = store_key }, MockDocSettings)
 end
 
+function MockDocSettings:findCustomMetadataFile(doc_path)
+    return mock_custom_props[doc_path] and ("/mock/" .. doc_path .. ".sdr/custom_metadata.lua") or nil
+end
+
 function MockDocSettings.openSettingsFile(sidecar_file)
     local store_key = "settingsfile:" .. sidecar_file
     local data = mock_storage[store_key] or {}

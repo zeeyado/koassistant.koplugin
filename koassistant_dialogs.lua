@@ -7635,7 +7635,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             local title = nil
             local author = ""
             local ds = DocSettings:open(entry.file)
-            local doc_props = ds:readSetting("doc_props")
+            local doc_props = SafeDocSettings.overlayCustomProps(ds:readSetting("doc_props"), entry.file)
             if doc_props then
                 local dt = doc_props.display_title or doc_props.title
                 if dt and dt ~= "" then title = dt end
@@ -7961,7 +7961,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             local title = nil
                             local author = ""
                             local ds = DocSettings:open(file)
-                            local doc_props = ds:readSetting("doc_props")
+                            local doc_props = SafeDocSettings.overlayCustomProps(ds:readSetting("doc_props"), file)
                             if doc_props then
                                 local dt = doc_props.display_title or doc_props.title
                                 if dt and dt ~= "" then title = dt end
@@ -8017,7 +8017,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                     local title = nil
                                     local author = ""
                                     local ds = DocSettings:open(file)
-                                    local doc_props = ds:readSetting("doc_props")
+                                    local doc_props = SafeDocSettings.overlayCustomProps(ds:readSetting("doc_props"), file)
                                     if doc_props then
                                         local dt = doc_props.display_title or doc_props.title
                                         if dt and dt ~= "" then title = dt end
@@ -12224,7 +12224,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     -- sidecar props (the stale global book_metadata may name a THIRD book)
     if forced_path and not book_metadata then
         local ds = SafeDocSettings.resolve(forced_path, ui)
-        local props = (ds and ds:readSetting("doc_props")) or {}
+        local props = SafeDocSettings.overlayCustomProps(ds and ds:readSetting("doc_props"), forced_path) or {}
         local author = props.authors
         if author and author:find("\n") then
             author = author:gsub("\n", ", ")

@@ -18,6 +18,7 @@ options for scope, depth, and grouping.
 ]]
 
 local DocSettings = require("docsettings")
+local SafeDocSettings = require("koassistant_doc_settings")
 local logger = require("koassistant_logger")
 local lfs = require("libs/libkoreader-lfs")
 
@@ -44,7 +45,7 @@ end
 --- @return table metadata Per-book metadata table
 local function extractBookMetadata(doc_path)
     local doc_settings = DocSettings:open(doc_path)
-    local doc_props = doc_settings:readSetting("doc_props")
+    local doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), doc_path)
 
     -- Title: display_title > title > filename
     local title = doc_props and (doc_props.display_title or doc_props.title) or nil

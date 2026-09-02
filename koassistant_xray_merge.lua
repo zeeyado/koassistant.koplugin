@@ -1026,7 +1026,7 @@ function XrayMerge.reconcileBackground(parsed, file, ui)
             return require("koassistant_doc_settings").resolve(member, ui)
         end)
         if ok_ds and ds then
-            local props = ds:readSetting("doc_props") or {}
+            local props = require("koassistant_doc_settings").overlayCustomProps(ds:readSetting("doc_props"), member) or {}
             local names = { props.title, props.display_title }
             local ok_ov, ov_title = pcall(function()
                 return require("koassistant_book_settings").getMetadataOverride(ds)
@@ -1747,7 +1747,7 @@ function XrayMerge.buildHeadlessConfig(opts, payload)
             return require("koassistant_doc_settings").resolve(opts.file, opts.ui)
         end)
         if ok and ds then
-            local props = ds:readSetting("doc_props") or {}
+            local props = require("koassistant_doc_settings").overlayCustomProps(ds:readSetting("doc_props"), opts.file) or {}
             local ok_ov, ov_t, ov_a = pcall(function()
                 return require("koassistant_book_settings").getMetadataOverride(ds)
             end)
@@ -3102,7 +3102,7 @@ function XrayMerge.startCrossBookFlow(opts)
                     return require("koassistant_doc_settings").resolve(path, opts.ui)
                 end)
                 if ok_ds and ds then
-                    local props = ds:readSetting("doc_props") or {}
+                    local props = require("koassistant_doc_settings").overlayCustomProps(ds:readSetting("doc_props"), path) or {}
                     title = props.display_title or props.title
                     author = props.authors
                     if type(author) == "string" and author:find("\n") then

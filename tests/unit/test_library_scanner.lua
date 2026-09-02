@@ -37,6 +37,10 @@ require("mock_koreader")
 -- Mock DocSettings: per-file sidecar data
 local mock_sidecars = {}
 
+-- custom_metadata.lua stand-in: a title edited in KOReader's Book information
+-- lives THERE, never in doc_props (SafeDocSettings.overlayCustomProps)
+local mock_custom_props = {}
+
 package.loaded["docsettings"] = {
     open = function(_self, doc_path)
         local sidecar = mock_sidecars[doc_path] or {}
@@ -46,7 +50,23 @@ package.loaded["docsettings"] = {
             end,
         }
     end,
+    findCustomMetadataFile = function(_self, doc_path)
+        return mock_custom_props[doc_path] and (doc_path .. ".sdr/custom_metadata.lua") or nil
+    end,
 }
+package.loaded["apps/filemanager/filemanagerbookinfo"] = {
+    extendProps = function(original, filepath)
+        local custom = mock_custom_props[filepath] or {}
+        original = original or {}
+        local props = {}
+        for _idx, key in ipairs({ "title", "authors", "series", "series_index", "language" }) do
+            props[key] = custom[key] or original[key]
+        end
+        props.display_title = props.title
+        return props
+    end,
+}
+package.loaded["koassistant_doc_settings"] = nil
 
 -- Mock DocumentRegistry: all test files are "supported"
 local mock_supported_extensions = { epub = true, pdf = true, djvu = true, mobi = true, fb2 = true, txt = true }
@@ -252,6 +272,23 @@ TestRunner:test("complete status from sidecar", function()
     TestRunner:assertEqual(result.stats.complete, 1, "Should be 1 complete")
     TestRunner:assertEqual(result.stats.total, 1, "Total should be 1")
     TestRunner:assertEqual(result.by_status.complete[1].title, "Dune")
+end)
+
+TestRunner:test("a title edited in KOReader (custom metadata) is what the catalog carries", function()
+    resetMocks()
+    setFilesystem({
+        ["/test/books"] = { "book.epub" },
+    })
+    setSidecar("/test/books/book.epub",
+        { title = "Dune", authors = "Frank Herbert" },
+        { status = "complete" },
+        1.0
+    )
+    mock_custom_props["/test/books/book.epub"] = { title = "Dune (edited)" }
+    local result = LibraryScanner.scan(DEFAULT_SETTINGS, nil)
+    mock_custom_props["/test/books/book.epub"] = nil
+    TestRunner:assertEqual(result.by_status.complete[1].title, "Dune (edited)", "edited title wins")
+    TestRunner:assertEqual(result.by_status.complete[1].author, "Frank Herbert", "author untouched")
 end)
 
 TestRunner:test("abandoned status from sidecar", function()
