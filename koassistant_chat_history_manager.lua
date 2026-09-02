@@ -2476,8 +2476,22 @@ end
 -- field so "known absent" (false: render the filename) is distinguishable from
 -- "never looked" (nil: legacy entry, healed once by the browser). Without
 -- opts.doc_props the previous entry's title/author are preserved.
-local function indexTitleAuthor(doc_props, prev, has_props)
+-- The stored value is the EFFECTIVE title/author: KOReader keeps a title
+-- edited in Book information in the sidecar's custom_metadata.lua, never in
+-- metadata.lua's doc_props, so the overlay goes through KOReader's own
+-- BookInfo.extendProps (raw doc_props when that module is unavailable).
+local function effectiveProps(doc_props, doc_path)
+    local ok, BookInfo = pcall(require, "apps/filemanager/filemanagerbookinfo")
+    if ok and BookInfo and BookInfo.extendProps and doc_path then
+        local ok2, props = pcall(BookInfo.extendProps, doc_props, doc_path)
+        if ok2 and type(props) == "table" then return props end
+    end
+    return doc_props
+end
+
+local function indexTitleAuthor(doc_props, prev, has_props, doc_path)
     if has_props then
+        doc_props = effectiveProps(doc_props, doc_path)
         local title = doc_props and doc_props.title
         local author = doc_props and doc_props.authors
         return (title ~= nil and title ~= "") and title or false,
@@ -2505,7 +2519,7 @@ function ChatHistoryManager:updateChatIndex(document_path, operation, chat_id, c
 
     -- G_reader_settings is a global in KOReader
     local index = G_reader_settings:readSetting("koassistant_chat_index", {})
-    local title, author = indexTitleAuthor(opts and opts.doc_props, index[document_path], has_props)
+    local title, author = indexTitleAuthor(opts and opts.doc_props, index[document_path], has_props, document_path)
 
     -- Count chats in the provided table
     local count = 0
@@ -2666,7 +2680,7 @@ function ChatHistoryManager:validateChatIndex()
             end
             -- Fix M: heal title/author from the DocSettings already in hand
             if index[doc_path] then
-                local title, author = indexTitleAuthor(doc_settings:readSetting("doc_props"), entry, true)
+                local title, author = indexTitleAuthor(doc_settings:readSetting("doc_props"), entry, true, doc_path)
                 if entry.title ~= title or entry.author ~= author then
                     entry.title = title
                     entry.author = author
@@ -2714,7 +2728,7 @@ function ChatHistoryManager:rebuildChatIndex()
                 count = count + 1
                 table.insert(chat_ids, id)
             end
-            local title, author = indexTitleAuthor(doc_settings:readSetting("doc_props"), nil, true)
+            local title, author = indexTitleAuthor(doc_settings:readSetting("doc_props"), nil, true, book_path)
             index[book_path] = {
                 count = count,
                 last_modified = os.time(),
@@ -2963,7 +2977,7 @@ function ChatHistoryManager:getAllDocumentsUnified(ui)
                         local doc_props = doc_settings:readSetting("doc_props")
                         local chats_table = doc_settings:readSetting("koassistant_chats", {})
                         starred = countStarred(chats_table)
-                        title, author = indexTitleAuthor(doc_props, nil, true)
+                        title, author = indexTitleAuthor(doc_props, nil, true, doc_path)
                         self:updateChatIndex(doc_path, "refresh", nil, chats_table,
                             { no_flush = true, doc_props = doc_props, has_props = true })
                         healed = true

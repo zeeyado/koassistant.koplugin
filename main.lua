@@ -22991,6 +22991,20 @@ function AskGPT:offerNotebookMigration(old_location, new_location)
   })
 end
 
+--- KOReader broadcasts this after a Book information edit (title/authors/
+--- cover) for `file`, from the reader or the file browser. The chat index
+--- carries the effective title/author (Fix M), so refresh that one entry
+--- right away; the refresh no-ops when nothing indexed changed.
+function AskGPT:onInvalidateMetadataCache(file)
+  if type(file) ~= "string" or not self:documentHasChats(file) then return end
+  local ok, err = pcall(function()
+    require("koassistant_chat_history_manager"):refreshChatIndexEntry(file, self.ui)
+  end)
+  if not ok then
+    logger.warn("KOAssistant: chat index refresh after metadata edit failed:", err)
+  end
+end
+
 --- Check if document has saved chats
 --- @param file_path string The document file path
 --- @return boolean has_chats Whether the document has saved chats

@@ -109,6 +109,20 @@ package.loaded["document/documentregistry"] = nil
 -- Load standard mocks FIRST (logger, ffi, json, etc.)
 require("mock_koreader")
 
+-- Fix M: KOReader's BookInfo.extendProps overlays custom_metadata.lua props;
+-- mock it with a per-path custom_props map
+local mock_custom_props = {}
+package.loaded["apps/filemanager/filemanagerbookinfo"] = {
+    extendProps = function(original_props, filepath)
+        local custom = mock_custom_props[filepath] or {}
+        original_props = original_props or {}
+        return {
+            title = custom.title or original_props.title,
+            authors = custom.authors or original_props.authors,
+        }
+    end,
+}
+
 -- Capture logger.warn calls (mutex-collision regression check)
 local warn_log = {}
 local logger_mock = package.loaded["logger"]
@@ -550,6 +564,21 @@ TestRunner:test("browser renders from the index; legacy entries heal once", func
     docsettings_opens = 0
     ChatHistoryManager:getAllDocumentsUnified(nil)
     TestRunner:assertEqual(docsettings_opens, 0, "second open is index-only")
+end)
+
+TestRunner:test("edited (custom) metadata wins over the original doc_props", function()
+    local chats = chatsTable({ "c1" })
+    ChatHistoryManager:updateChatIndex("/books/a.epub", "save", nil, chats,
+        { doc_props = { title = "Original", authors = "Orig" }, has_props = true })
+    mock_custom_props["/books/a.epub"] = { title = "Original (edited)" }
+    local n = chatSaves()
+    ChatHistoryManager:updateChatIndex("/books/a.epub", "refresh", nil, chats,
+        { doc_props = { title = "Original", authors = "Orig" }, has_props = true })
+    TestRunner:assertEqual(chatSaves(), n + 1, "custom title = a write")
+    local entry = g_reader_store[CHAT_KEY]["/books/a.epub"]
+    TestRunner:assertEqual(entry.title, "Original (edited)", "custom title stored")
+    TestRunner:assertEqual(entry.author, "Orig", "untouched field keeps the original")
+    mock_custom_props["/books/a.epub"] = nil
 end)
 
 TestRunner:test("rebuild stores title/author", function()
