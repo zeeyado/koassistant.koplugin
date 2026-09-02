@@ -158,6 +158,14 @@ local function readSeriesProps(path, ui, allow_open)
     if not (path and ui and ui.bookinfo) then return nil end
     local ok, props = pcall(ui.bookinfo.getDocProps, ui.bookinfo, path, nil, not allow_open)
     if not ok or type(props) ~= "table" then return nil end
+    -- A series typed into KOReader's Book information editor lives in the
+    -- custom metadata file, which getDocProps only folds in through the
+    -- cover browser's cache; overlay it here so an edited or hand-added
+    -- series counts everywhere (the chat index's edited-title precedent)
+    if type(ui.bookinfo.extendProps) == "function" then
+        local ok2, ext = pcall(ui.bookinfo.extendProps, props, path)
+        if ok2 and type(ext) == "table" then props = ext end
+    end
     if type(props.series) ~= "string" or props.series == "" then return nil end
     return { series = props.series, idx = tonumber(props.series_index) }
 end

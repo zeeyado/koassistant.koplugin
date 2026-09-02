@@ -207,6 +207,29 @@ local FICTION_KEYS = { "characters", "locations", "themes", "lexicon", "timeline
 local NONFICTION_KEYS = { "key_figures", "locations", "core_concepts", "arguments", "terminology", "argument_development", "current_position", "conclusion" }
 local ACADEMIC_KEYS = { "key_concepts", "foundations", "methodology", "findings", "referenced_works", "technical_terms", "figures_data", "current_position", "conclusion" }
 
+-- Type inference order when the JSON carries no `type`: fiction, academic
+-- (its unique keys come before nonfiction's), nonfiction — the original
+-- first-match order. Keys present in MORE than one schema (`locations`,
+-- `conclusion`, `current_position`) make the data valid but never decide
+-- the type on their own: a nonfiction X-Ray without a type field used to
+-- read as FICTION on its (empty) locations list alone, and every real
+-- category then rendered empty (2026-09-02, the mock project pair).
+local SCHEMA_KEYS = {
+    { type = "fiction", keys = FICTION_KEYS },
+    { type = "academic", keys = ACADEMIC_KEYS },
+    { type = "nonfiction", keys = NONFICTION_KEYS },
+}
+local SHARED_KEYS = {}
+do
+    local seen = {}
+    for _idx, spec in ipairs(SCHEMA_KEYS) do
+        for _k, key in ipairs(spec.keys) do
+            if seen[key] then SHARED_KEYS[key] = true end
+            seen[key] = true
+        end
+    end
+end
+
 -- Build normalized key → canonical key map for fuzzy matching.
 -- Normalizing = lowercase + strip separators (_, -, spaces).
 -- Catches all variants: camelCase, PascalCase, kebab-case, concatenated, etc.
@@ -455,28 +478,24 @@ local function isValidXrayData(data)
     -- Cross-book merge deltas (item 44) may carry ONLY mechanical background
     -- updates — recognize them so such a delta parses without a category key
     if type(data.background_updates) == "table" then return true end
-    -- Check for fiction keys
-    for _idx, key in ipairs(FICTION_KEYS) do
-        if data[key] then
-            if not data.type then data.type = "fiction" end
-            return true
+    -- Schema-unique keys decide the type; shared keys only count as
+    -- structure (see SCHEMA_KEYS / SHARED_KEYS)
+    local inferred
+    for _pass = 1, 2 do
+        for _idx, spec in ipairs(SCHEMA_KEYS) do
+            for _k, key in ipairs(spec.keys) do
+                if data[key] and (_pass == 2 or not SHARED_KEYS[key]) then
+                    inferred = spec.type
+                    break
+                end
+            end
+            if inferred then break end
         end
+        if inferred then break end
     end
-    -- Check for academic keys (before nonfiction: unique keys come first in array)
-    for _idx, key in ipairs(ACADEMIC_KEYS) do
-        if data[key] then
-            if not data.type then data.type = "academic" end
-            return true
-        end
-    end
-    -- Check for non-fiction keys
-    for _idx, key in ipairs(NONFICTION_KEYS) do
-        if data[key] then
-            if not data.type then data.type = "nonfiction" end
-            return true
-        end
-    end
-    return false
+    if not inferred then return false end
+    if not data.type then data.type = inferred end
+    return true
 end
 
 --- Attempt to extract valid JSON from a potentially wrapped response

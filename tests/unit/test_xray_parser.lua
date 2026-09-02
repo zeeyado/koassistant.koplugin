@@ -703,6 +703,31 @@ TestRunner:test("categoryLabel: own type, cross-type fallback, unknown key", fun
     TestRunner:eq(XrayParser.categoryLabel(d, "bogus_cat"), "bogus_cat")
 end)
 
+TestRunner:suite("type inference — schema-unique keys decide (2026-09-02)")
+
+TestRunner:test("typeless nonfiction JSON with an empty locations list parses as nonfiction", function()
+    local d = XrayParser.parse('{"key_figures":[{"name":"A","role":"R","description":"d"}],'
+        .. '"locations":[],"core_concepts":[],"terminology":[{"term":"t","definition":"x"}]}')
+    TestRunner:eq(d and d.type, "nonfiction")
+    local counts = {}
+    for _idx, c in ipairs(XrayParser.getCategories(d)) do counts[c.key] = #(c.items or {}) end
+    TestRunner:eq(counts.key_figures, 1, "the nonfiction categories render")
+    TestRunner:eq(counts.terminology, 1)
+end)
+
+TestRunner:test("fiction and academic still infer from their own keys; an explicit type wins", function()
+    TestRunner:eq(XrayParser.parse('{"characters":[],"locations":[]}').type, "fiction")
+    TestRunner:eq(XrayParser.parse('{"key_concepts":[],"locations":[]}').type, "academic")
+    TestRunner:eq(XrayParser.parse('{"type":"fiction","key_figures":[]}').type, "fiction",
+        "explicit type is never overridden")
+end)
+
+TestRunner:test("shared keys alone still validate, on the pre-existing first-match order", function()
+    local d = XrayParser.parse('{"locations":[{"name":"Harbor","description":"d"}]}')
+    TestRunner:ok(d and not d.error, "valid")
+    TestRunner:eq(d.type, "fiction")
+end)
+
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))

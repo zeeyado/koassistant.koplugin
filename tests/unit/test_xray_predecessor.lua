@@ -383,6 +383,50 @@ end)
 -- ---------------------------------------------------------------- cleanup
 BookGroups.remove(group.id)
 os.execute(string.format("rm -rf %q", TMP_ROOT))
+TestRunner:suite("S4 device round — project seeding between typeless nonfiction X-Rays")
+
+TestRunner:test("reseedGroup carries between nonfiction members that declare no type", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    local PA = TMP_ROOT .. "/proj_a.epub"
+    local PB = TMP_ROOT .. "/proj_b.epub"
+    for _idx, doc in ipairs({ PA, PB }) do
+        os.execute(string.format("mkdir -p %q", doc .. ".sdr"))
+    end
+    -- No "type" field and an empty locations list, like the mock project pair
+    -- on device: the shared key used to make both read as fiction, with every
+    -- real category empty and nothing to carry
+    local A_JSON = '{"key_figures":[{"name":"Maren Kessler","role":"Marine ecologist","description":"Coined the term."}],'
+        .. '"locations":[],"arguments":[{"name":"Commons outlast owners","description":"Deeds do not."}],'
+        .. '"terminology":[{"term":"slack water","definition":"The pause between tides."}]}'
+    local B_JSON = '{"key_figures":[{"name":"Ivo Larsen","role":"Harbor historian","description":"Writes the ledgers."}],'
+        .. '"locations":[],"terminology":[{"term":"salt road","definition":"A low-tide cart route."}],'
+        .. '"__dormant":[{"name":"Maren Kessler","category":"key_figures","description":"Coined the term.",'
+        .. '"source":"Project A","file":"' .. PA .. '"}]}'
+    TestRunner:eq(XrayParser.parse(A_JSON).type, "nonfiction", "typeless nonfiction JSON infers nonfiction")
+    for _idx, pair in ipairs({ { PA, A_JSON }, { PB, B_JSON } }) do
+        assert(ActionCache.set(pair[1], "xray", pair[2], 1.0, { model = "m", used_book_text = true }))
+        assert(ActionCache.setXrayCache(pair[1], pair[2], 1.0, { model = "m", used_book_text = true }))
+    end
+    local pgroup = BookGroups.create("Pred Project Test")
+    BookGroups.addBook(pgroup.id, PA)
+    BookGroups.addBook(pgroup.id, PB)
+    BookGroups.setKind(pgroup.id, BookGroups.KIND_PROJECT)
+    pgroup = BookGroups.byId(pgroup.id)
+    local features = { enable_book_text_extraction = true }
+    local written, checked = XrayMerge.reseedGroup(pgroup, features, nil, nil)
+    TestRunner:eq(checked, 2, "both members have a source")
+    TestRunner:eq(written, 2, "both carried lists change")
+    local a = XrayParser.parse(ActionCache.getXrayCache(PA).result)
+    TestRunner:ok(XrayParser.findDormantByIdentity(a, { "salt road" }), "A carries B's term")
+    TestRunner:eq(XrayParser.findDormantByIdentity(a, { "Maren Kessler" }), nil,
+        "B's stub of A's own figure never rides back into A")
+    local b = XrayParser.parse(ActionCache.getXrayCache(PB).result)
+    TestRunner:ok(XrayParser.findDormantByIdentity(b, { "Commons outlast owners" }), "B carries A's argument")
+    TestRunner:eq(XrayParser.findDormantByIdentity(b, { "Maren Kessler" }).role, "Marine ecologist",
+        "the existing stub gained the role")
+    TestRunner:eq(XrayMerge.reseedGroup(pgroup, features, nil, nil), 0, "idempotent")
+end)
+
 package.loaded["luasettings"] = prior_luasettings
 package.loaded["koassistant_book_groups"] = nil
 package.loaded["koassistant_action_cache"] = nil

@@ -186,6 +186,7 @@ local VOL3_SECTION_CH2 = [[{
 }]]
 
 local PROJ_A_XRAY = [[{
+  "type": "nonfiction",
   "key_figures": [
     {"name": "Maren Kessler", "role": "Marine ecologist", "description": "Maren Kessler surveyed the tidal commons for thirty years and coined the term."},
     {"name": "Ivo Larsen", "role": "Harbor historian", "description": "Ivo Larsen catalogued the drowned market records."}
@@ -211,6 +212,7 @@ local PROJ_A_XRAY = [[{
 -- background line from A, and Maren sits in B's ledger (project-group fold
 -- residue; the family bridge characters <-> key_figures is exercised here).
 local PROJ_B_XRAY = [[{
+  "type": "nonfiction",
   "key_figures": [
     {"name": "Ivo Larsen", "role": "Harbor historian", "description": "Ivo Larsen, now writing the salt-road ledgers, argues the roads WERE the commons."}
   ],
