@@ -89,7 +89,7 @@ local VOL2_XRAY = [[{
   ],
   "conclusion": "The ferry route survives the season.",
   "__dormant": [
-    {"name": "Cass Merrow", "category": "characters", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["}
+    {"name": "Cass Merrow", "category": "characters", "role": "Tide clerk", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["}
   ]
 }]]
 
@@ -116,12 +116,12 @@ local VOL3_XRAY = [[{
   ],
   "current_state": "Tamsin settles into Hollowmere; the salt is rising.",
   "__dormant": [
-    {"name": "Orrin Blackwood", "category": "characters", "description": "Orrin Blackwood runs the night ferry and never asks for fares twice. He knows every sandbar by sound.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "Elias Penrose", "category": "characters", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "Cass Merrow", "category": "characters", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
-    {"name": "Fenna Quill", "category": "characters", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "the Warden", "category": "characters", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Orrin Blackwood", "category": "characters", "role": "Ferry master", "description": "Orrin Blackwood runs the night ferry and never asks for fares twice. He knows every sandbar by sound.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Elias Penrose", "category": "characters", "role": "Deckhand", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Cass Merrow", "category": "characters", "role": "Tide clerk", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
+    {"name": "Fenna Quill", "category": "characters", "role": "Letter carrier", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "the Warden", "category": "characters", "role": "Harbor official", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "role": "Ship's cat", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Saltmere", "category": "locations", "description": "Saltmere is the drowned market town across the bay, visited at low tide.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["}
   ]
 }]]
@@ -152,11 +152,11 @@ local VOL3_RUNG_70 = [[{
   ],
   "current_state": "Orrin has come inland; Hester measures what the salt takes.",
   "__dormant": [
-    {"name": "Elias Penrose", "category": "characters", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "Cass Merrow", "category": "characters", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
-    {"name": "Fenna Quill", "category": "characters", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "the Warden", "category": "characters", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
-    {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Elias Penrose", "category": "characters", "role": "Deckhand", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Cass Merrow", "category": "characters", "role": "Tide clerk", "description": "Cass Merrow records the tides and keeps Tamsin honest. Dry-witted, always cold.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
+    {"name": "Fenna Quill", "category": "characters", "role": "Letter carrier", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "the Warden", "category": "characters", "role": "Harbor official", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "role": "Ship's cat", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Saltmere", "category": "locations", "description": "Saltmere is the drowned market town across the bay, visited at low tide.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["}
   ]
 }]]
