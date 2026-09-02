@@ -288,9 +288,9 @@ local VOL3_CHAPTERS = {
     ch("The Salt Line", "Gil showed Tamsin the white line climbing the trunks. A warden's first job, he said, is to notice."),
     ch("Rented Quiet", "Tamsin walked the flooded rows at dusk. Whatever was wrong with Hollowmere had not introduced itself yet."),
     ch("A Face From the Water", "A poleman stood at the orchard gate, hat in hand. Elias Penrose had come a long way from the crossing, and Tamsin could not place him at first. He asked after work, then after the road to Saltmere, and left before the answer.", 4),
-    ch("The Inn Sign", "A painted sign came upriver on the cart: an inn changing hands. Dorrit Hale, the letters said, was selling. The Warden was named in the small print, and Gil read it twice. That evening a grey cat crossed the orchard wall as if it owned the deed.", 4),
+    ch("The Inn Sign", "A painted sign came upriver on the cart: an inn changing hands. Dorrit Hale, the letters said, was selling. The Warden was named in the small print, and Gil read it twice. That evening a grey cat crossed the orchard wall as if it owned the deed. Behind the cart walked Orrin Blackwood, carrying nothing, and he would not say why he had come inland.", 4),
     ch("Old Ledgers", "A tide ledger arrived wrapped in oilcloth, in a hand Tamsin knew: Cass Merrow's. No note. Later a stranger asked at the gate for salvage work and gave the name Zeph Umber; Gil sent him upvalley. By dark a surveyor's lamp burned on the ridge, and someone said the name Hester Lune.", 4),
-    ch("Instruments", "Hester Lune walked the salt line with brass instruments and wrote to someone nightly. Orrin Blackwood carried her tripod and would not say why he had come inland."),
+    ch("Instruments", "Hester Lune walked the salt line with brass instruments and wrote to someone nightly. The man who carried her tripod kept his own counsel."),
     ch("What the Salt Takes", "Tamsin and Gil counted the drowned rows. Hester's figures said the valley had three seasons left."),
     ch("The Grove Warden", "Tamsin took the warden's oath under the oldest tree. The salt kept rising, and the story went on without asking."),
 }

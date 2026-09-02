@@ -3287,6 +3287,7 @@ function XrayParser.promoteStub(data, stub_idx, stub_name)
         item = { name = stub.name, description = stub.description or "" }
     end
     if type(stub.aliases) == "table" and #stub.aliases > 0 then item.aliases = stub.aliases end
+    if type(stub.role) == "string" and stub.role ~= "" then item.role = stub.role end
     if type(stub.background) == "table" and #stub.background > 0 then item.background = stub.background end
     local arr = data[cat_key]
     if type(arr) ~= "table" then
@@ -3428,6 +3429,7 @@ function XrayParser.demoteToStub(data, cat_key, item_name)
     local stub = {
         name = item_name,
         category = cat_key,
+        role = type(item.role) == "string" and item.role ~= "" and item.role or nil,
         source = source,
         description = type(item.description) == "string" and item.description ~= ""
             and item.description or nil,

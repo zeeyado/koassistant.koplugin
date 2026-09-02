@@ -1526,7 +1526,13 @@ end
 --- @param nav_context table|nil { stubs, index } for ◀/▶ within the list
 function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
     local self_ref = self
-    local parts = { stub.name, "" }
+    -- S3 parity (ref #90): the role on line 1, as formatItemDetail renders
+    -- a live entry (stubs store it since S3; older stubs simply have none)
+    local head = stub.name
+    if type(stub.role) == "string" and stub.role ~= "" then
+        head = head .. " (" .. stub.role .. ")"
+    end
+    local parts = { head, "" }
     if type(stub.aliases) == "table" and #stub.aliases > 0 then
         parts[#parts + 1] = _("Also known as:") .. " " .. table.concat(stub.aliases, ", ")
     end
@@ -1556,10 +1562,52 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
             fn()
         end
     end
+    -- S3 parity (maintainer 2026-09-02): the stub knows its source book, so
+    -- when that book's X-Ray still holds the entity, open it there — the
+    -- "→ Group" jump recipe (retire this browser, _pending_navigate_to,
+    -- showCacheViewer). One memoized parse per source book.
+    local open_row
+    if type(stub.file) == "string" and stub.file ~= "" and self.metadata.plugin then
+        local src = require("koassistant_action_cache").parsedXrayFor(stub.file)
+        if src then
+            local names = { stub.name }
+            if type(stub.aliases) == "table" then
+                for _idx, a in ipairs(stub.aliases) do
+                    if type(a) == "string" and a ~= "" then names[#names + 1] = a end
+                end
+            end
+            local item, cat_key = XrayParser.findByIdentity(src.data, names, stub.category)
+            if item then
+                local src_title = src.title or stub.source
+                local aliases = {}
+                if type(item.aliases) == "table" then
+                    for _idx, a in ipairs(item.aliases) do
+                        if type(a) == "string" then aliases[#aliases + 1] = a end
+                    end
+                end
+                open_row = { {
+                    text = T(_("Open in %1's X-Ray"), src_title),
+                    callback = afterClose(function()
+                        if self_ref.menu then UIManager:close(self_ref.menu) end
+                        XrayBrowser._pending_navigate_to = {
+                            category_key = cat_key,
+                            item_name = XrayParser.getItemName(item, cat_key),
+                            item_aliases = aliases,
+                            book_file = stub.file,
+                            fallback = true,
+                        }
+                        self_ref.metadata.plugin:showCacheViewer({ name = _("X-Ray"),
+                            key = "_xray_cache", data = src.entry,
+                            book_title = src_title, file = stub.file })
+                    end),
+                } }
+            end
+        end
+    end
     local buttons_rows = {
         {
             {
-                text = _("This is an existing entry…"),
+                text = _("Merge into an existing entry…"),
                 callback = afterClose(function()
                     self_ref:showDormantLinkPicker(stub_idx, stub)
                 end),
@@ -1567,14 +1615,14 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
         },
         {
             {
-                text = _("Add as its own entry"),
+                text = _("Add as a new entry"),
                 callback = afterClose(function()
                     -- Round 27 (maintainer: "could easily be done by accident
                     -- and there is no way back"): confirm, and name the way
                     -- back so it is not a one-way door
                     local ConfirmBox = require("ui/widget/confirmbox")
                     UIManager:show(ConfirmBox:new{
-                        text = T(_("Add \"%1\" to this book's X-Ray as its own entry?\nIt stops being listed as carried. Its entry page offers \"Move back to carried list\"."), stub.name),
+                        text = T(_("Add \"%1\" to this book's X-Ray as a new entry?\nIt stops being listed as carried. Its entry page offers \"Move back to carried list\"."), stub.name),
                         ok_text = _("Add"),
                         ok_callback = function()
                             if self_ref:_commitDormantOp(
@@ -1598,6 +1646,7 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
             },
         },
     }
+    if open_row then table.insert(buttons_rows, 1, open_row) end
     -- Prev/next within the carried list, mirroring showItemDetail's nav row
     local rows = nav_context and nav_context.rows
     if rows and #rows > 1 then

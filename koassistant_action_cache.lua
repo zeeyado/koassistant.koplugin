@@ -2448,6 +2448,13 @@ end
 -- disk (mtime+size key — a stat per lookup instead of a full parse per tap).
 -- One book at a time: taps are reader-scoped, a different file swaps the slot.
 local pred_xray_memo = nil -- { file, stamp, res }
+-- Per-book parsed X-Ray memo for group reads (S3, ref #90): the whole-chain
+-- lookup and the carried page's "Open in <title>'s X-Ray" parse each earlier
+-- book once per stamp; the steady state is a stat call. Bounded: wiped when
+-- it outgrows PARSED_XRAY_MEMO_MAX entries (a rare group edit, not a hot path).
+local parsed_xray_memo = {}
+local parsed_xray_memo_n = 0
+local PARSED_XRAY_MEMO_MAX = 12
 
 --- Nearest earlier X-Rayed book in the current book's ORDERED group (S2,
 --- ref #90): its parsed main X-Ray (own user aliases merged) answers
@@ -2463,6 +2470,51 @@ local pred_xray_memo = nil -- { file, stamp, res }
 --- @return table|nil { file, title, data, entry, more, stamp } — `more` =
 ---   how many FURTHER predecessors have a cache file (the "Search all
 ---   earlier books" row's visibility); `stamp` keys consumer memos.
+--- Parsed live X-Ray of ANY book, memoized on that book's cache + alias
+--- stamps (S3, ref #90). nil when the book has no valid text-based JSON
+--- X-Ray. The returned tables are SHARED across callers: read, never mutate.
+--- @param file string Book path
+--- @return table|nil { file, title, data (user aliases merged), entry, stamp }
+function ActionCache.parsedXrayFor(file)
+    if type(file) ~= "string" or file == "" then return nil end
+    local cp = ActionCache.getPath(file)
+    local ca = cp and lfs.attributes(cp)
+    if not ca then return nil end
+    local ap = ActionCache.getUserAliasesPath(file)
+    local aa = ap and lfs.attributes(ap)
+    local stamp = tostring(ca.modification) .. ":" .. tostring(ca.size) .. "|"
+        .. (aa and (tostring(aa.modification) .. ":" .. tostring(aa.size)) or "-")
+    local m = parsed_xray_memo[file]
+    if m and m.stamp == stamp then return m.res or nil end
+    local XrayParser = require("koassistant_xray_parser")
+    local res = false
+    local entry = ActionCache.getXrayCache(file)
+    if entry and entry.result and entry.source_mode ~= "ai_knowledge"
+            and XrayParser.isJSON(entry.result) then
+        local data = XrayParser.parse(entry.result)
+        if data and not data.error then
+            XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(file))
+            local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
+            res = {
+                file = file,
+                title = ok_bg and BookGroups.displayTitle(file) or file,
+                data = data,
+                entry = entry,
+                stamp = stamp,
+            }
+        end
+    end
+    if not m then
+        if parsed_xray_memo_n >= PARSED_XRAY_MEMO_MAX then
+            parsed_xray_memo = {}
+            parsed_xray_memo_n = 0
+        end
+        parsed_xray_memo_n = parsed_xray_memo_n + 1
+    end
+    parsed_xray_memo[file] = { stamp = stamp, res = res }
+    return res or nil
+end
+
 function ActionCache.nearestPredecessorXray(document_path)
     if not document_path then return nil end
     local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
@@ -2483,34 +2535,47 @@ function ActionCache.nearestPredecessorXray(document_path)
             and pred_xray_memo.stamp == stamp then
         return pred_xray_memo.res
     end
-    local XrayParser = require("koassistant_xray_parser")
     local res
     for i = #preds, 1, -1 do
-        local entry = ActionCache.getXrayCache(preds[i])
-        if entry and entry.result and entry.source_mode ~= "ai_knowledge"
-                and XrayParser.isJSON(entry.result) then
-            local data = XrayParser.parse(entry.result)
-            if data and not data.error then
-                XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(preds[i]))
-                local more = 0
-                for j = 1, i - 1 do
-                    local p2 = ActionCache.getPath(preds[j])
-                    if p2 and lfs.attributes(p2) then more = more + 1 end
-                end
-                res = {
-                    file = preds[i],
-                    title = BookGroups.displayTitle(preds[i]),
-                    data = data,
-                    entry = entry,
-                    more = more,
-                    stamp = stamp,
-                }
-                break
+        local px = ActionCache.parsedXrayFor(preds[i])
+        if px then
+            local more = 0
+            for j = 1, i - 1 do
+                local p2 = ActionCache.getPath(preds[j])
+                if p2 and lfs.attributes(p2) then more = more + 1 end
             end
+            res = {
+                file = px.file,
+                title = px.title,
+                data = px.data,
+                entry = px.entry,
+                more = more,
+                stamp = stamp,
+            }
+            break
         end
     end
     pred_xray_memo = { file = document_path, stamp = stamp, res = res }
     return res
+end
+
+--- Every earlier X-Rayed book in the ordered group, nearest first (S3, ref
+--- #90: the lookup walks the whole chain instead of offering a tap row).
+--- Entries are parsedXrayFor's shape; each book parses once per stamp, so
+--- the walk itself costs a stat per predecessor.
+--- @param document_path string
+--- @return table Array, possibly empty
+function ActionCache.predecessorXrays(document_path)
+    local out = {}
+    if not document_path then return out end
+    local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
+    if not ok_bg then return out end
+    local preds = BookGroups.predecessorsOf(document_path)
+    for i = #preds, 1, -1 do
+        local px = ActionCache.parsedXrayFor(preds[i])
+        if px then out[#out + 1] = px end
+    end
+    return out
 end
 
 local exact_route_index = nil -- { path, key, set }

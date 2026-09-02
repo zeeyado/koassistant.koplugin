@@ -742,6 +742,10 @@ function XrayMerge.populateDormant(base_parsed, delta, source_parsed, source_tit
                             name = name,
                             aliases = aliases,
                             category = cat.key,
+                            -- S3 parity: the role rides so a carried card reads
+                            -- like a live one ("Cast (Innkeeper)")
+                            role = type(item.role) == "string" and item.role ~= ""
+                                and item.role or nil,
                             description = type(item.description) == "string"
                                 and item.description ~= "" and item.description or nil,
                             source = source_title,
@@ -772,6 +776,7 @@ function XrayMerge.populateDormant(base_parsed, delta, source_parsed, source_tit
                     name = stub.name,
                     aliases = stub.aliases,
                     category = stub.category,
+                    role = stub.role,
                     description = stub.description,
                     source = stub.source or source_title,
                     file = stub.file,
@@ -889,6 +894,7 @@ function XrayMerge.unionLedger(prev_parsed, parsed)
                     source = stub.source or old.source,
                     file = stub.file or old.file,
                     description = stub.description or old.description,
+                    role = stub.role or old.role,
                     background = XrayParser.mergeBackground(old.background, stub.background),
                 }
                 -- Aliases: the outgoing list first (the reader's edits live
@@ -1213,6 +1219,7 @@ function XrayMerge.carryOne(parsed, item, category_key, prov)
         name = name,
         aliases = aliases,
         category = category_key,
+        role = type(item.role) == "string" and item.role ~= "" and item.role or nil,
         description = desc,
         source = prov and prov.source or nil,
         file = prov and prov.file or nil,

@@ -10888,7 +10888,7 @@ local function showPredecessorEntity(opts)
     local live = ActionCache.getXrayCache(opts.document_path)
     if live and live.result and XrayParser.isJSON(live.result) then
         action_row[#action_row + 1] = {
-            text = _("Carry into this book"),
+            text = _("Add to this book's carried list"),
             callback = function()
                 local XrayMerge = require("koassistant_xray_merge")
                 local features = (opts.config and opts.config.features) or {}
@@ -10896,7 +10896,7 @@ local function showPredecessorEntity(opts)
                 if pred_entry and not XrayMerge.consentOk({ pred_entry }, features,
                         provider, hit.pred_file, opts.ui) then
                     UIManager:show(InfoMessage:new{
-                        text = T(_("Carrying this entry needs text extraction allowed for %1 (Book Settings, Privacy) or a trusted provider."),
+                        text = T(_("Adding this entry needs text extraction allowed for %1 (Book Settings, Privacy) or a trusted provider."),
                             hit.pred_title or _("that book")),
                         timeout = 6,
                     })
@@ -10913,7 +10913,7 @@ local function showPredecessorEntity(opts)
                     end, { features = features })
                 if not ok then
                     UIManager:show(InfoMessage:new{
-                        text = err == "no_xray" and _("This book has no X-Ray to carry into.")
+                        text = err == "no_xray" and _("This book has no X-Ray to add it to.")
                             or _("Could not save the X-Ray."),
                         timeout = 4,
                     })
@@ -10922,7 +10922,7 @@ local function showPredecessorEntity(opts)
                 UIManager:close(viewer)
                 local Notification = require("ui/widget/notification")
                 UIManager:show(Notification:new{
-                    text = T(_("Carried into this book's X-Ray: %1"), hit.name),
+                    text = T(_("Added to the carried list: %1"), hit.name),
                 })
                 -- Land on the fresh carried entry when the caller threaded
                 -- book_metadata (the lookup paths); the card path just toasts
@@ -10945,10 +10945,9 @@ local function showPredecessorEntity(opts)
     viewer = XrayCard.showFullDetail(hit, { buttons_table = rows })
 end
 
--- Grouped results Menu for earlier-book hits (S2): a "From <title>" header
--- per book, rows open the read-only predecessor entry view. groups =
--- { { file, title, entry, rows = { hit, ... } } }; opts.sweep_row adds the
--- bottom "Search all earlier books…" row (nearest-book lists only).
+-- Grouped results Menu for earlier-book hits (S2/S3): a "From <title>"
+-- header per book, rows open the read-only predecessor entry view. groups =
+-- { { file, title, entry, rows = { hit, ... } } }, nearest book first.
 local showEarlierBooksSweep
 local function predGroupsMenu(opts, groups, title)
     local Menu = require("ui/widget/menu")
@@ -10982,19 +10981,6 @@ local function predGroupsMenu(opts, groups, title)
             })
         end
     end
-    if opts.sweep_row then
-        table.insert(items, {
-            text = _("Search all earlier books…"),
-            bold = true,
-            separator = true,
-            callback = function()
-                local next_opts = {}
-                for k, v in pairs(opts) do next_opts[k] = v end
-                next_opts.sweep_row = nil
-                showEarlierBooksSweep(next_opts)
-            end,
-        })
-    end
     local results_menu = Menu:new{
         title = title,
         item_table = items,
@@ -11012,60 +10998,56 @@ local function predGroupsMenu(opts, groups, title)
     UIManager:show(results_menu)
 end
 
--- "Search all earlier books…" (S2 D5): walk EVERY earlier book in the
--- group, newest first; one group per book with hits — the book's entries
--- plus what it carries itself. One parse per X-Rayed book, on demand only
--- (a true miss on a long chain is the priced-in worst case, which is why
--- this is an extra step and never automatic).
--- @param opts table { ui, config, plugin, book_metadata, cleanup_widgets,
---   document_path, query }
-showEarlierBooksSweep = function(opts)
-    local ActionCache = require("koassistant_action_cache")
+-- Earlier-book result groups (S3, ref #90): every earlier X-Rayed book,
+-- nearest first, one group per book with hits. `exact` = exact handle
+-- matching (the direct-landing pass); otherwise substring over names and
+-- aliases, description skipped (noise for a lookup). Rows carry the
+-- provenance the entity view and the chooser render.
+local function collectPredGroups(preds, query, exact)
     local XrayParser = require("koassistant_xray_parser")
-    local BookGroups = require("koassistant_book_groups")
-    local preds = BookGroups.predecessorsOf(opts.document_path)
+    local sopts = exact and { exact = true } or { skip_description = true }
     local groups = {}
-    local searched = 0
-    for i = #preds, 1, -1 do
-        local entry = ActionCache.getXrayCache(preds[i])
-        if entry and entry.result and entry.source_mode ~= "ai_knowledge"
-                and XrayParser.isJSON(entry.result) then
-            local data = XrayParser.parse(entry.result)
-            if data and not data.error then
-                XrayParser.mergeUserAliases(data, ActionCache.getUserAliases(preds[i]))
-                searched = searched + 1
-                local title = BookGroups.displayTitle(preds[i])
-                local rows = {}
-                for _idx, r in ipairs(XrayParser.searchAll(data, opts.query,
-                        { skip_description = true })) do
-                    rows[#rows + 1] = {
-                        name = XrayParser.getItemName(r.item, r.category_key),
-                        item = r.item, category_key = r.category_key,
-                        category_label = r.category_label, match_field = r.match_field,
-                        source_title = title, pred_file = preds[i], pred_title = title,
-                    }
-                end
-                for _idx, s in ipairs(XrayParser.searchLedger(data, opts.query,
-                        { skip_description = true })) do
-                    rows[#rows + 1] = {
-                        name = s.stub.name, item = s.stub,
-                        category_key = s.category_key,
-                        category_label = XrayParser.categoryLabel(data, s.category_key),
-                        match_field = s.match_field,
-                        source_title = s.source_title or title,
-                        pred_file = preds[i], pred_title = title, pred_stub = true,
-                    }
-                end
-                if #rows > 0 then
-                    groups[#groups + 1] = { file = preds[i], title = title,
-                        entry = entry, rows = rows }
-                end
-            end
+    for _idx, pred in ipairs(preds) do
+        local rows = {}
+        for _i, r in ipairs(XrayParser.searchAll(pred.data, query, sopts)) do
+            rows[#rows + 1] = {
+                name = XrayParser.getItemName(r.item, r.category_key),
+                item = r.item, category_key = r.category_key,
+                category_label = r.category_label, match_field = r.match_field,
+                source_title = pred.title, pred_file = pred.file, pred_title = pred.title,
+            }
+        end
+        for _i, s in ipairs(XrayParser.searchLedger(pred.data, query, sopts)) do
+            rows[#rows + 1] = {
+                name = s.stub.name, item = s.stub,
+                category_key = s.category_key,
+                category_label = XrayParser.categoryLabel(pred.data, s.category_key),
+                match_field = s.match_field,
+                source_title = s.source_title or pred.title,
+                pred_file = pred.file, pred_title = pred.title, pred_stub = true,
+            }
+        end
+        if #rows > 0 then
+            groups[#groups + 1] = { file = pred.file, title = pred.title,
+                entry = pred.entry, rows = rows }
         end
     end
+    return groups
+end
+
+-- "Search all earlier books…": the explicit whole-chain LIST, kept on the
+-- lists where this book had hits of its own (the browser's search results).
+-- The lookup's no-result seams no longer need it — predLookupHandled walks
+-- the chain itself (S3).
+showEarlierBooksSweep = function(opts)
+    local ActionCache = require("koassistant_action_cache")
+    local preds = ActionCache.predecessorXrays(opts.document_path)
+    local groups = collectPredGroups(preds, opts.query, false)
     if #groups == 0 then
         UIManager:show(InfoMessage:new{
-            text = T(_("No results for \"%1\" in %2 earlier books."), opts.query, searched),
+            text = #preds == 1
+                and T(_("No results for \"%1\" in the earlier book."), opts.query)
+                or T(_("No results for \"%1\" in %2 earlier books."), opts.query, #preds),
             timeout = 4,
         })
         return
@@ -11073,55 +11055,37 @@ showEarlierBooksSweep = function(opts)
     predGroupsMenu(opts, groups, T(_("Results for \"%1\" in earlier books"), opts.query))
 end
 
--- The predecessor tier's miss handling (S2), shared by the lookup's
--- no-result seams the way carriedLookupHandled is: consulted only after a
--- FULL local miss (live + sections + carried), per the design's strict
--- ranking. Exact hit(s) -> the read-only predecessor view (a chooser when
--- several share the handle); substring hits -> a "From <title>" results
--- list with the whole-chain row when further X-Rayed books exist. Returns
--- true when it presented something.
+-- Predecessor tier of the lookup (S2 + S3, ref #90): after a full local
+-- miss, walk EVERY earlier X-Rayed book in the ordered group, nearest first.
+-- Exact pass first: the first book holding the handle wins (one hit = the
+-- read-only entity view, several = a chooser of that book's hits). Then the
+-- substring pass, auto-shown as one grouped list (nearest book first) — the
+-- maintainer's call over a tap row, since the nearest book already
+-- auto-showed and every book parses once per stamp. Returns true when it
+-- showed something.
 local function predLookupHandled(ui, query, config, plugin, book_metadata,
         cleanup_widgets, document_path)
     local ActionCache = require("koassistant_action_cache")
-    local XrayParser = require("koassistant_xray_parser")
-    local pred = ActionCache.nearestPredecessorXray(document_path)
-    if not pred then return false end
+    local preds = ActionCache.predecessorXrays(document_path)
+    if #preds == 0 then return false end
     local show_opts = { ui = ui, config = config, plugin = plugin,
         book_metadata = book_metadata, cleanup_widgets = cleanup_widgets,
         document_path = document_path, query = query }
-    local function activeHit(r)
-        return { name = XrayParser.getItemName(r.item, r.category_key),
-            item = r.item, category_key = r.category_key,
-            category_label = r.category_label, match_field = r.match_field,
-            source_title = pred.title, pred_file = pred.file, pred_title = pred.title }
-    end
-    local function stubHit(s)
-        return { name = s.stub.name, item = s.stub, category_key = s.category_key,
-            category_label = XrayParser.categoryLabel(pred.data, s.category_key),
-            match_field = s.match_field,
-            source_title = s.source_title or pred.title,
-            pred_file = pred.file, pred_title = pred.title, pred_stub = true }
-    end
-    local hits = {}
-    for _idx, r in ipairs(XrayParser.searchAll(pred.data, query, { exact = true })) do
-        hits[#hits + 1] = activeHit(r)
-    end
-    for _idx, s in ipairs(XrayParser.searchLedger(pred.data, query, { exact = true })) do
-        hits[#hits + 1] = stubHit(s)
-    end
-    if #hits == 1 then
-        show_opts.hit = hits[1]
-        showPredecessorEntity(show_opts)
-        return true
-    end
-    if #hits > 1 then
+    local exact_groups = collectPredGroups(preds, query, true)
+    if #exact_groups > 0 then
+        local hits, in_title = exact_groups[1].rows, exact_groups[1].title
+        if #hits == 1 then
+            show_opts.hit = hits[1]
+            showPredecessorEntity(show_opts)
+            return true
+        end
         local chooser
         local rows = {}
         for _idx, h in ipairs(hits) do
             local captured = h
             rows[#rows + 1] = { {
                 text = captured.name .. "  \u{00B7}  " .. T(_("From %1"),
-                    captured.source_title or pred.title),
+                    captured.source_title or in_title),
                 align = "left",
                 callback = function()
                     UIManager:close(chooser)
@@ -11133,29 +11097,18 @@ local function predLookupHandled(ui, query, config, plugin, book_metadata,
         rows[#rows + 1] = { { text = _("Close"),
             callback = function() UIManager:close(chooser) end } }
         chooser = ButtonDialog:new{
-            title = T(_("\"%1\" matches %2 entries in %3"), query, #hits, pred.title),
+            title = T(_("\"%1\" matches %2 entries in %3"), query, #hits, in_title),
             buttons = rows,
         }
         UIManager:show(chooser)
         return true
     end
-    local rows = {}
-    for _idx, r in ipairs(XrayParser.searchAll(pred.data, query,
-            { skip_description = true })) do
-        rows[#rows + 1] = activeHit(r)
-    end
-    for _idx, s in ipairs(XrayParser.searchLedger(pred.data, query,
-            { skip_description = true })) do
-        rows[#rows + 1] = stubHit(s)
-    end
-    if #rows > 0 then
-        show_opts.sweep_row = pred.more > 0
-        predGroupsMenu(show_opts,
-            { { file = pred.file, title = pred.title, entry = pred.entry, rows = rows } },
-            T(_("Results for \"%1\" (%2)"), query, #rows))
-        return true
-    end
-    return false
+    local groups = collectPredGroups(preds, query, false)
+    if #groups == 0 then return false end
+    local n = 0
+    for _idx, g in ipairs(groups) do n = n + #g.rows end
+    predGroupsMenu(show_opts, groups, T(_("Results for \"%1\" (%2)"), query, n))
+    return true
 end
 
 -- Show cross-section X-Ray search results as a standalone picker Menu.
@@ -11583,34 +11536,19 @@ end
 local function showLookupNoResults(opts)
     local ActionCache = require("koassistant_action_cache")
     local query, msg = opts.query, opts.msg
-    -- S2 (ref #90): the whole-chain sweep rides the no-results surface when
-    -- the group holds MORE X-Rayed books than the one already searched (the
-    -- nearest was consulted by predLookupHandled before any seam lands here)
-    local sweep_pred = ActionCache.nearestPredecessorXray(opts.document_path)
-    local sweep_ok = sweep_pred and sweep_pred.more > 0
+    -- S3 (ref #90): by the time any seam lands here the lookup has walked
+    -- every earlier X-Rayed book too (predLookupHandled), so say so in one
+    -- short sentence; opts.note (the "updating may find it" hint) follows
+    local n_earlier = #ActionCache.predecessorXrays(opts.document_path)
+    if n_earlier == 1 then
+        msg = msg .. " " .. _("The earlier book in the group has nothing either.")
+    elseif n_earlier > 1 then
+        msg = msg .. " " .. T(_("The %1 earlier books in the group have nothing either."), n_earlier)
+    end
+    if opts.note then msg = msg .. "\n\n" .. opts.note end
     if not (opts.data and opts.cached and opts.document_path
             and #query > 2 and #query <= 120
             and ActionCache.getUserAliasesPath(opts.document_path)) then
-        if sweep_ok then
-            local plain
-            plain = ButtonDialog:new{
-                title = msg,
-                buttons = {
-                    { { text = _("Search all earlier books…"), callback = function()
-                        UIManager:close(plain)
-                        showEarlierBooksSweep{
-                            ui = opts.ui, config = opts.config, plugin = opts.plugin,
-                            book_metadata = opts.book_metadata,
-                            cleanup_widgets = opts.cleanup_widgets,
-                            document_path = opts.document_path, query = query,
-                        }
-                    end } },
-                    { { text = _("Close"), callback = function() UIManager:close(plain) end } },
-                },
-            }
-            UIManager:show(plain)
-            return
-        end
         UIManager:show(InfoMessage:new{
             text = msg,
             timeout = 5,
@@ -11654,17 +11592,6 @@ local function showLookupNoResults(opts)
                     end,
                 }
             end } }
-    if sweep_ok then
-        nores_buttons[#nores_buttons + 1] =
-            { { text = _("Search all earlier books…"), callback = function()
-                UIManager:close(nores)
-                showEarlierBooksSweep{
-                    ui = ui, config = config, plugin = plugin,
-                    book_metadata = book_metadata, cleanup_widgets = opts.cleanup_widgets,
-                    document_path = document_path, query = query,
-                }
-            end } }
-    end
     nores_buttons[#nores_buttons + 1] =
         { { text = _("Close"), callback = function() UIManager:close(nores) end } }
     nores = ButtonDialog:new{
@@ -11767,7 +11694,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                     ui = ui, config = config, plugin = plugin,
                     book_metadata = book_metadata, cleanup_widgets = cleanup_widgets,
                     document_path = document_path, query = query,
-                    msg = T(_("No results for \"%1\" across %2 X-Rays."), query, total_xrays),
+                    msg = T(_("No results for \"%1\" in this book's X-Rays."), query),
                     data = mdata,
                     cached = (main and main.result) and main or nil,
                     best = (main and main.result) and { entry = main } or nil,
@@ -11930,14 +11857,15 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
             return
         end
         -- No results
-        local msg = T(_("No results for \"%1\" in X-Ray."), query)
+        local msg = T(_("No results for \"%1\" in this book's X-Ray."), query)
         if best.is_section and best.label then
             msg = T(_("No results for \"%1\" in Section X-Ray: %2."), query, best.label)
         end
+        local note
         if progress_gap and progress_gap > 0.08 then
             local cache_pct = math.floor(cache_progress * 100 + 0.5)
             local current_pct = math.floor(current_progress * 100 + 0.5)
-            msg = msg .. "\n\n" .. T(_("X-Ray covers to %1% (you're at %2%). Updating may find this entry."), cache_pct, current_pct)
+            note = T(_("X-Ray covers to %1% (you're at %2%). Updating may find this entry."), cache_pct, current_pct)
         end
         -- Shared no-results dialog (ref #63): message + the alias offer —
         -- extracted to showLookupNoResults so the cross-section zero-hit
@@ -11945,7 +11873,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         showLookupNoResults{
             ui = ui, config = config, plugin = plugin, book_metadata = book_metadata,
             cleanup_widgets = cleanup_widgets, document_path = document_path,
-            query = query, msg = msg, data = data, cached = cached, best = best,
+            query = query, msg = msg, note = note, data = data, cached = cached, best = best,
         }
     else
         -- Exact-identity fast path (device round 2026-08-13, ref #63): a query

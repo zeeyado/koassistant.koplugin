@@ -2,7 +2,7 @@
 Unit tests: S2 predecessor tier (ref #90) — ActionCache.nearestPredecessorXray
 walk + memo, the route index's predecessor fold (no-cache books included),
 XrayCard.resolve's predecessor ordering (transitive source titles, the Q6
-also_ahead hint), and XrayMerge.carryOne.
+also_ahead hint), XrayMerge.carryOne, and the S3 whole-chain walk + carried-entry roles.
 
 Real ActionCache + BookGroups under the docsettings shim (per-doc sidecar
 dirs — the multi-book variant of test_xray_card's harness).
@@ -221,6 +221,46 @@ TestRunner:test("carries actives and term-keyed entries; refreshes by name", fun
     -- The carried stub resolves through the S1 machinery immediately
     TestRunner:eq(#XrayParser.searchLedger(parsed, "the innkeeper", { exact = true }), 1,
         "stub alias searchable after carry")
+end)
+
+TestRunner:suite("S3 — whole-chain walk, parsed memo, role on carried entries")
+
+TestRunner:test("predecessorXrays: every earlier X-Rayed book nearest first; parsedXrayFor memoizes", function()
+    local chain = ActionCache.predecessorXrays(VOL3)
+    TestRunner:eq(#chain, 2, "two earlier X-Rayed books")
+    TestRunner:eq(chain[1].file, VOL2, "nearest first")
+    TestRunner:eq(chain[2].file, VOL1, "then the book before it")
+    TestRunner:ok(chain[1].data and chain[1].entry and chain[1].title, "parsed data, entry and title ride")
+    TestRunner:eq(#ActionCache.predecessorXrays(VOL1), 0, "first book: nothing earlier")
+    TestRunner:eq(#ActionCache.predecessorXrays(TMP_ROOT .. "/lone.epub"), 0, "ungrouped book")
+    TestRunner:eq(ActionCache.parsedXrayFor(TMP_ROOT .. "/nope.epub"), nil, "no cache file = nil")
+    local a = ActionCache.parsedXrayFor(VOL2)
+    TestRunner:ok(a ~= nil and a == ActionCache.parsedXrayFor(VOL2), "unchanged stamp = the memoized table")
+    TestRunner:ok(ActionCache.nearestPredecessorXray(VOL3).data == a.data, "nearest shares the same parse")
+end)
+
+TestRunner:test("role rides on carried entries: carryOne, the seed, JSON round trip, promote and demote", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    local DK = XrayParser.DORMANT_KEY
+    local parsed = XrayParser.parse(VOL3_LIVE_JSON)
+    TestRunner:ok(XrayMerge.carryOne(parsed, { name = "Petra Lund", role = "Innkeeper", description = "d" },
+        "characters", { source = "Volume Two", file = VOL2 }))
+    TestRunner:eq(parsed[DK][1].role, "Innkeeper", "carryOne copies the role")
+    local base = XrayParser.parse(VOL3_LIVE_JSON)
+    XrayMerge.populateDormant(base, nil, XrayParser.parse(VOL2_JSON), "Volume Two", VOL2,
+        "Volume Three", VOL3)
+    local stub = XrayParser.findDormantByIdentity(base, { "Petra Lund" })
+    TestRunner:eq(stub and stub.role, "Innkeeper", "the create-time seed copies the role")
+    local again = XrayParser.parse(XrayParser.serialize(base))
+    local st2, idx = XrayParser.findDormantByIdentity(again, { "Petra Lund" })
+    TestRunner:eq(st2 and st2.role, "Innkeeper", "role survives the JSON round trip")
+    TestRunner:ok(XrayParser.promoteStub(again, idx, "Petra Lund"), "promote")
+    local item = XrayParser.findByIdentity(again, { "Petra Lund" }, "characters")
+    TestRunner:eq(item and item.role, "Innkeeper", "promote restores the role onto the entry")
+    item.background = { { source = "Volume Two", text = "Kept the inn.", file = VOL2 } }
+    TestRunner:ok(XrayParser.demoteToStub(again, "characters", "Petra Lund"), "demote")
+    local st3 = XrayParser.findDormantByIdentity(again, { "Petra Lund" })
+    TestRunner:eq(st3 and st3.role, "Innkeeper", "demote keeps the role")
 end)
 
 -- ---------------------------------------------------------------- cleanup

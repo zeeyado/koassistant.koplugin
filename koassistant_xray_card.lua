@@ -143,16 +143,25 @@ local function aheadLine(hit)
     end
 end
 
---- Carried/predecessor provenance line (S1 D3 + S2, ref #90): plain
---- "From <title>", no warning glyph — an earlier volume in the reading
---- order is already-read content by the group's own definition. Q6
---- (maintainer 2026-09-01): when the next checkpoint ALSO knows the name,
+--- Carried/predecessor provenance line (S1 D3 + S2, ref #90), no warning
+--- glyph — an earlier volume in the reading order is already-read content by
+--- the group's own definition. S3 parity (maintainer 2026-09-02): the
+--- category slot reads the same on both cards, so THIS line carries the
+--- difference in plain words — an entry on this book's carried list (or a
+--- carried entry seen in the earlier book) says "Carried from <title>", an
+--- entry read straight out of the earlier book's X-Ray says "From <title>'s
+--- X-Ray". Q6 (2026-09-01): when the next checkpoint ALSO knows the name,
 --- say so in one clause — the reader can then choose to update/install for
 --- this book's own take; the carried entry stays the one shown.
 local function carriedLine(hit)
     if (hit.source == "carried" or hit.source == "predecessor")
         and type(hit.source_title) == "string" and hit.source_title ~= "" then
-        local line = T(_("From %1"), hit.source_title)
+        local line
+        if hit.source == "carried" or hit.pred_stub then
+            line = T(_("Carried from %1"), hit.source_title)
+        else
+            line = T(_("From %1's X-Ray"), hit.source_title)
+        end
         if hit.also_ahead then
             line = line .. " \u{00B7} " .. T(_("Also in the next checkpoint (to %1%)"),
                 math.floor(hit.also_ahead * 100 + 0.5))
@@ -203,12 +212,12 @@ local function cardContent(hit, opts)
     end
     if hit.source == "carried" then
         -- Carried stub (S1): known identity from an earlier book — the
-        -- provenance line rides the ahead-warning slot, without the glyph
+        -- provenance line rides the ahead-warning slot, without the glyph.
+        -- S3 parity: the same "Name · Category (role)" head as every other
+        -- card (stubs store the role since S3); the line says "Carried from"
         local text = itemText(hit.item)
         if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
-        local kind = kindLabel(hit)
-        kind = kind ~= "" and T(_("%1 (carried)"), kind) or _("carried")
-        return { name = hit.name or "", kind = kind, line = carriedLine(hit),
+        return { name = hit.name or "", kind = kindLabel(hit), line = carriedLine(hit),
             body = text, hint = _("Tap for the full entry") }
     end
     if hit.source == "predecessor" then
