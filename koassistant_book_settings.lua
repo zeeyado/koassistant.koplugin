@@ -330,32 +330,30 @@ end
 --- reader creates again, and the form's pick turns it back on). ONE helper
 --- for every delete site (popup + both browser hamburgers). Flushes.
 --- 2026-09-03 (device round, B272): clearing alone was quiet ONLY for a
---- book whose automation was its own "on" — a book that FOLLOWS a global
---- auto-create resolved to on again, and the once-per-book coverage ask
---- returned on the next page turn (dismissing decides nothing, so it kept
---- returning). So when the book would still resolve to automatic after
---- the clear, an explicit "off" is written: deleted = quiet until the
---- reader creates again, whichever layer said on. Checkpoint installs
+--- book whose automation was its own "on". Two other layers re-asked after
+--- a delete: a book that FOLLOWS a global auto-create resolved to on again
+--- (the once-per-book coverage ask returned on the next page turn), and the
+--- on-open OFFER (`xray_offer_auto`, "This book has no X-Ray yet. Turn on
+--- Automatic X-Ray for this book?") fires whenever this key is unset and the
+--- book has no X-Ray, which a delete had just arranged (2026-09-04 device
+--- round: the maintainer's nag, with the all-books switch OFF). So the
+--- override is written "off" UNCONDITIONALLY: deleted = quiet until the
+--- reader creates again, whichever layer would have spoken (the form's "as
+--- I read" pick and the per-book picker write "on"). Checkpoint installs
 --- never read this key, so a later "Build all checkpoints" run still
 --- installs its rungs as the reader passes them.
---- @param features table|nil the global features (the auto layer to test)
-function BookSettings.clearXrayLineageState(doc_settings, features)
+--- @param _features table|nil kept for the call sites; the pin no longer depends on the global layer
+function BookSettings.clearXrayLineageState(doc_settings, _features)
     doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return end
-    local keys = { BookSettings.KEY_XRAY_COVERAGE_ASKED, BookSettings.KEY_XRAY_PROMOTION,
-        BookSettings.KEY_XRAY_AUTO }
-    local any = false
+    local keys = { BookSettings.KEY_XRAY_COVERAGE_ASKED, BookSettings.KEY_XRAY_PROMOTION }
     for _idx, k in ipairs(keys) do
         if doc_settings:readSetting(k) ~= nil then
             doc_settings:delSetting(k)
-            any = true
         end
     end
-    if BookSettings.resolveXrayAuto(doc_settings, features) then
-        doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
-        any = true
-    end
-    if any then doc_settings:flush() end
+    doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
+    doc_settings:flush()
 end
 
 --- Per-book checkpoint spacing override. Pure.

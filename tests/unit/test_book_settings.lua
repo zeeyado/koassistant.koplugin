@@ -1336,9 +1336,9 @@ TestRunner:test("ignore_finished: the cross-book rule reads only the reader's ow
     TestRunner:assertEqual(p.reason, "finished", "without the opt the finished layer is untouched")
 end)
 
-TestRunner:suite("clearXrayLineageState (B272, 2026-09-03: deleted = quiet whichever layer said on)")
+TestRunner:suite("clearXrayLineageState (B272, 2026-09-04: deleted = quiet, the override is pinned off unconditionally)")
 
-TestRunner:test("a book that would still resolve to automatic goes explicitly off; otherwise only the clear", function()
+TestRunner:test("every delete pins the per-book automation off and clears the lineage stamps", function()
     local function mutableDs(map)
         local ds = { _data = map, flushed = 0 }
         function ds:readSetting(k) return self._data[k] end
@@ -1348,10 +1348,13 @@ TestRunner:test("a book that would still resolve to automatic goes explicitly of
         return ds
     end
     local A, ASKED = BookSettings.KEY_XRAY_AUTO, BookSettings.KEY_XRAY_COVERAGE_ASKED
-    -- per-book on under a global off: the clear alone is quiet
+    -- per-book on under a global off: pinned off (the on-open offer fires
+    -- only while the key is unset, and a delete used to unset it)
     local ds = mutableDs({ [A] = "on", [ASKED] = true, [BookSettings.KEY_XRAY_PROMOTION] = "position" })
     BookSettings.clearXrayLineageState(ds, { xray_auto_update = false })
-    TestRunner:assertEqual(ds._data[A], nil, "override cleared")
+    TestRunner:assertEqual(ds._data[A], "off", "override pinned off")
+    TestRunner:assertEqual(BookSettings.xrayAutoOverride(ds, { xray_offer_auto = true }), "off",
+        "the offer's unset-key gate sees an answer")
     TestRunner:assertEqual(ds._data[ASKED], nil, "stamp cleared")
     TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_PROMOTION], nil, "hold cleared")
     TestRunner:assertEqual(ds.flushed, 1)
@@ -1366,12 +1369,16 @@ TestRunner:test("a book that would still resolve to automatic goes explicitly of
     ds = mutableDs({ [A] = "on" })
     BookSettings.clearXrayLineageState(ds, g)
     TestRunner:assertEqual(ds._data[A], "off")
-    -- nothing set, global off: no write at all
+    -- nothing set, global off (the maintainer's device: all-books OFF, offer ON):
+    -- still pinned off, so the next open of the X-Ray-less book asks nothing
     ds = mutableDs({})
     BookSettings.clearXrayLineageState(ds, {})
-    TestRunner:assertEqual(ds.flushed, 0, "nothing to clear, nothing written")
+    TestRunner:assertEqual(ds._data[A], "off", "pinned even when no layer said on")
+    TestRunner:assertEqual(ds.flushed, 1)
+    ds = mutableDs({})
     BookSettings.clearXrayLineageState(ds, nil)
-    TestRunner:assertEqual(ds.flushed, 0, "nil features: no auto layer, no write")
+    TestRunner:assertEqual(ds._data[A], "off", "nil features: same pin")
+    TestRunner:assertEqual(ds.flushed, 1)
 end)
 
 TestRunner:suite("resolveDomain / resolveResearch (consolidation round P1)")
