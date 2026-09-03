@@ -200,7 +200,9 @@ package.loaded["docsettings"] = MockDocSettings
 
 -- Mock LuaSettings
 package.loaded["luasettings"] = {
-    open = function(path)
+    -- accepts both LuaSettings:open(path) and LuaSettings.open(path)
+    open = function(a, b)
+        local path = b or a
         if not mock_storage[path] then mock_storage[path] = {} end
         return {
             _path = path,
@@ -351,9 +353,15 @@ local function chatsTable(ids)
     return chats
 end
 
--- Book with chats readable through (Safe)DocSettings + existing book file
+-- Book with chats in its koassistant_chats.lua sidecar file (Track 37) +
+-- existing book file. The DocSettings mock stays empty: metadata.lua carries
+-- no plugin keys any more.
+local function chatsFileFor(doc_path)
+    return MockDocSettings:getSidecarDir(doc_path) .. "/koassistant_chats.lua"
+end
 local function addBookWithChats(doc_path, chat_ids)
-    mock_storage["docsettings:" .. doc_path] = { koassistant_chats = chatsTable(chat_ids) }
+    mock_storage[chatsFileFor(doc_path)] = { chats = chatsTable(chat_ids) }
+    mock_storage["docsettings:" .. doc_path] = mock_storage["docsettings:" .. doc_path] or {}
     mock_files[doc_path] = { mode = "file" }
 end
 

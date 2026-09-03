@@ -2490,7 +2490,7 @@ The default viewer can be changed in Settings → Notebook Settings → Viewer M
 
 **Storage System (v2)**: Chats are organized into three storage locations:
 
-1. **Book chats**: Stored alongside your books in `.sdr/metadata.lua` (per-book via DocSettings)
+1. **Book chats**: Stored alongside your books in the `.sdr` folder as `koassistant_chats.lua` (the plugin's own file; per-book settings live next to it in `koassistant_book_settings.lua`)
 2. **General chats**: Stored in `koassistant_general_chats.lua` (global file)
 3. **Library chats**: Stored in `koassistant_library_chats.lua` (global file)
 
@@ -2512,7 +2512,7 @@ All per-book data (chats, cache, notebook, pinned artifacts, X-Ray aliases) work
 
 > **Data indexes:** KOAssistant keeps lightweight indexes that map book paths to their chats, artifacts, and images. If a synced library ever gets out of step (e.g. files copied outside KOReader), indexes are healed automatically when you open an affected book, and a folder-scoped **Rebuild Data Indexes** action is available to re-scan a library folder. See [Backup & Restore](#backup--restore).
 
-**Migration**: If you're upgrading from an older version, your existing chats will be automatically migrated to the new storage system on first launch. The old chat files are backed up to `koassistant_chats.backup/`.
+**Migration**: If you're upgrading from an older version, your existing chats and per-book settings are moved into the plugin's own sidecar files automatically on the first launch (out of KOReader's `metadata.lua`, which the plugin no longer writes to). Very old installs that still keep chats in hash folders are imported the same way; those old files are backed up to `koassistant_chats.backup/`.
 
 ### Tags
 

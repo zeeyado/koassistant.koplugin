@@ -155,12 +155,18 @@ TestRunner:test("updateDirs() == old USER_DIRS", function()
     assertListEqual(Registry.updateDirs(), { "behaviors", "domains" }, "updateDirs")
 end)
 
-TestRunner:test("sidecarFiles() == old KOASSISTANT_SIDECAR_FILES + xray checkpoints + ladder", function()
+TestRunner:test("sidecarFiles() == the six original files + the two Track 37 per-book store files", function()
     assertListEqual(Registry.sidecarFiles(), {
         "koassistant_notebook.md", "koassistant_cache.lua",
         "koassistant_user_aliases.lua", "koassistant_pinned.lua",
         "koassistant_xray_checkpoints.lua", "koassistant_xray_ladder.lua",
+        "koassistant_book_settings.lua", "koassistant_chats.lua",
     }, "sidecarFiles")
+end)
+
+TestRunner:test("no sidecar_dockey entries remain (plugin keys left metadata.lua in Track 37)", function()
+    TestRunner:assertTrue(#Registry.byLocation("sidecar_dockey") == 0,
+        "metadata.lua must carry no plugin keys")
 end)
 
 TestRunner:test("indexKeys() == old KOASSISTANT_INDICES", function()
@@ -181,7 +187,7 @@ local REQUIRED_IDS = {
     "chat_index", "notebook_index", "artifact_index", "pinned_index",
     "artifact_index_version", "chat_storage_version", "chat_migration_in_progress",
     "sidecar_notebook", "sidecar_cache", "sidecar_user_aliases", "sidecar_pinned",
-    "dockey_book_settings", "dockey_chats", "dockey_notebook_ref", "dockey_doi",
+    "sidecar_book_settings", "sidecar_chats",
     "apikeys", "configuration", "custom_actions", "behaviors_dir", "domains_dir",
     "chats_v1_dir", "chats_backup_dir", "backups_dir", "exports_dir",
     "notebooks_vault_dir",

@@ -1785,70 +1785,60 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                             end
 
                             -- Check storage version and route to appropriate method
-                            if chat_history_manager:useDocSettingsStorage() then
-                                -- v2: DocSettings-based storage
-                                -- Build complete chat_data structure (matching old saveChat format)
-                                local chat_id = metadata.id or chat_history_manager:generateChatId()
+                            -- v2: DocSettings-based storage
+                            -- Build complete chat_data structure (matching old saveChat format)
+                            local chat_id = metadata.id or chat_history_manager:generateChatId()
 
-                                -- Preserve existing tags and starred when updating an existing chat
-                                local existing_tags = {}
-                                local existing_starred
-                                if metadata.id then
-                                    local existing = chat_history_manager:getChatById(document_path, metadata.id)
-                                    if existing then
-                                        existing_tags = existing.tags or {}
-                                        existing_starred = existing.starred
-                                    end
+                            -- Preserve existing tags and starred when updating an existing chat
+                            local existing_tags = {}
+                            local existing_starred
+                            if metadata.id then
+                                local existing = chat_history_manager:getChatById(document_path, metadata.id)
+                                if existing then
+                                    existing_tags = existing.tags or {}
+                                    existing_starred = existing.starred
                                 end
+                            end
 
-                                local chat_data = {
-                                    id = chat_id,
-                                    title = chat_title or "Conversation",
-                                    document_path = document_path,
-                                    timestamp = os.time(),
-                                    messages = history:getMessages(),
-                                    model = history:getModel(),
-                                    metadata = metadata,
-                                    book_title = metadata.book_title,
-                                    book_author = metadata.book_author,
-                                    prompt_action = history.prompt_action,
-                                    launched_from = history.launched_from,
-                                    launch_context = metadata.launch_context,
-                                    domain = metadata.domain,
-                                    tags = existing_tags,
-                                    starred = existing_starred,
-                                    original_highlighted_text = metadata.original_highlighted_text,
-                                    -- Store system prompt metadata for debug display
-                                    system_metadata = config and config.system,
-                                    -- Per-chat control state — resume reactivates it (parity §8c)
-                                    control_state = chat_history_manager.captureControlState(config),
-                                    -- Store cache continuation info (for "Updated from X% cache" notice)
-                                    used_cache = history.used_cache,
-                                    cached_progress = history.cached_progress,
-                                    cache_action_id = history.cache_action_id,
-                                    -- Store book text truncation info
-                                    book_text_truncated = history.book_text_truncated,
-                                    book_text_coverage_start = history.book_text_coverage_start,
-                                    book_text_coverage_end = history.book_text_coverage_end,
-                                    -- Store unavailable data info
-                                    unavailable_data = history.unavailable_data,
-                                }
+                            local chat_data = {
+                                id = chat_id,
+                                title = chat_title or "Conversation",
+                                document_path = document_path,
+                                timestamp = os.time(),
+                                messages = history:getMessages(),
+                                model = history:getModel(),
+                                metadata = metadata,
+                                book_title = metadata.book_title,
+                                book_author = metadata.book_author,
+                                prompt_action = history.prompt_action,
+                                launched_from = history.launched_from,
+                                launch_context = metadata.launch_context,
+                                domain = metadata.domain,
+                                tags = existing_tags,
+                                starred = existing_starred,
+                                original_highlighted_text = metadata.original_highlighted_text,
+                                -- Store system prompt metadata for debug display
+                                system_metadata = config and config.system,
+                                -- Per-chat control state — resume reactivates it (parity §8c)
+                                control_state = chat_history_manager.captureControlState(config),
+                                -- Store cache continuation info (for "Updated from X% cache" notice)
+                                used_cache = history.used_cache,
+                                cached_progress = history.cached_progress,
+                                cache_action_id = history.cache_action_id,
+                                -- Store book text truncation info
+                                book_text_truncated = history.book_text_truncated,
+                                book_text_coverage_start = history.book_text_coverage_start,
+                                book_text_coverage_end = history.book_text_coverage_end,
+                                -- Store unavailable data info
+                                unavailable_data = history.unavailable_data,
+                            }
 
-                                if document_path == "__GENERAL_CHATS__" then
-                                    return chat_history_manager:saveGeneralChat(chat_data)
-                                elseif document_path == "__LIBRARY_CHATS__" then
-                                    return chat_history_manager:saveLibraryChat(chat_data)
-                                else
-                                    return chat_history_manager:saveChatToDocSettings(ui, chat_data)
-                                end
+                            if document_path == "__GENERAL_CHATS__" then
+                                return chat_history_manager:saveGeneralChat(chat_data)
+                            elseif document_path == "__LIBRARY_CHATS__" then
+                                return chat_history_manager:saveLibraryChat(chat_data)
                             else
-                                -- v1: Legacy hash-based storage
-                                return chat_history_manager:saveChat(
-                                    document_path,
-                                    chat_title,
-                                    history,
-                                    metadata
-                                )
+                                return chat_history_manager:saveChatToDocSettings(ui, chat_data)
                             end
                         end)
                         
@@ -2762,72 +2752,62 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                         else
                             local save_result
                             -- Check storage version and route to appropriate method
-                            if chat_history_manager:useDocSettingsStorage() then
-                                -- v2: DocSettings-based storage
-                                local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                            -- v2: DocSettings-based storage
+                            local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
 
-                                -- Preserve existing tags, starred, and title when updating an existing chat
-                                local existing_tags = {}
-                                local existing_starred
-                                local existing_title = suggested_title
-                                local effective_chat_id = metadata.id or history.chat_id
-                                if effective_chat_id and save_path then
-                                    local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
-                                    if existing then
-                                        existing_tags = existing.tags or {}
-                                        existing_starred = existing.starred
-                                        existing_title = existing.title or suggested_title
-                                    end
+                            -- Preserve existing tags, starred, and title when updating an existing chat
+                            local existing_tags = {}
+                            local existing_starred
+                            local existing_title = suggested_title
+                            local effective_chat_id = metadata.id or history.chat_id
+                            if effective_chat_id and save_path then
+                                local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
+                                if existing then
+                                    existing_tags = existing.tags or {}
+                                    existing_starred = existing.starred
+                                    existing_title = existing.title or suggested_title
                                 end
+                            end
 
-                                local chat_data = {
-                                    id = chat_id,
-                                    title = existing_title or "Conversation",
-                                    document_path = save_path,
-                                    timestamp = os.time(),
-                                    messages = history:getMessages(),
-                                    model = history:getModel(),
-                                    metadata = metadata,
-                                    book_title = metadata.book_title,
-                                    book_author = metadata.book_author,
-                                    prompt_action = history.prompt_action,
-                                    launched_from = history.launched_from,
-                                    launch_context = metadata.launch_context,
-                                    domain = metadata.domain,
-                                    tags = existing_tags,
-                                    starred = existing_starred,
-                                    original_highlighted_text = metadata.original_highlighted_text,
-                                    -- Store system prompt metadata for debug display
-                                    system_metadata = cfg.system,
-                                    -- Per-chat control state — resume reactivates it (parity §8c)
-                                    control_state = chat_history_manager.captureControlState(cfg),
-                                    -- Store cache continuation info (for "Updated from X% cache" notice)
-                                    used_cache = history.used_cache,
-                                    cached_progress = history.cached_progress,
-                                    cache_action_id = history.cache_action_id,
-                                    -- Store book text truncation info
-                                    book_text_truncated = history.book_text_truncated,
-                                    book_text_coverage_start = history.book_text_coverage_start,
-                                    book_text_coverage_end = history.book_text_coverage_end,
-                                    -- Store unavailable data info
-                                    unavailable_data = history.unavailable_data,
-                                }
+                            local chat_data = {
+                                id = chat_id,
+                                title = existing_title or "Conversation",
+                                document_path = save_path,
+                                timestamp = os.time(),
+                                messages = history:getMessages(),
+                                model = history:getModel(),
+                                metadata = metadata,
+                                book_title = metadata.book_title,
+                                book_author = metadata.book_author,
+                                prompt_action = history.prompt_action,
+                                launched_from = history.launched_from,
+                                launch_context = metadata.launch_context,
+                                domain = metadata.domain,
+                                tags = existing_tags,
+                                starred = existing_starred,
+                                original_highlighted_text = metadata.original_highlighted_text,
+                                -- Store system prompt metadata for debug display
+                                system_metadata = cfg.system,
+                                -- Per-chat control state — resume reactivates it (parity §8c)
+                                control_state = chat_history_manager.captureControlState(cfg),
+                                -- Store cache continuation info (for "Updated from X% cache" notice)
+                                used_cache = history.used_cache,
+                                cached_progress = history.cached_progress,
+                                cache_action_id = history.cache_action_id,
+                                -- Store book text truncation info
+                                book_text_truncated = history.book_text_truncated,
+                                book_text_coverage_start = history.book_text_coverage_start,
+                                book_text_coverage_end = history.book_text_coverage_end,
+                                -- Store unavailable data info
+                                unavailable_data = history.unavailable_data,
+                            }
 
-                                if save_path == "__GENERAL_CHATS__" then
-                                    save_result = chat_history_manager:saveGeneralChat(chat_data)
-                                elseif save_path == "__LIBRARY_CHATS__" then
-                                    save_result = chat_history_manager:saveLibraryChat(chat_data)
-                                else
-                                    save_result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
-                                end
+                            if save_path == "__GENERAL_CHATS__" then
+                                save_result = chat_history_manager:saveGeneralChat(chat_data)
+                            elseif save_path == "__LIBRARY_CHATS__" then
+                                save_result = chat_history_manager:saveLibraryChat(chat_data)
                             else
-                                -- v1: Legacy hash-based storage
-                                save_result = chat_history_manager:saveChat(
-                                    save_path,
-                                    suggested_title,
-                                    history,
-                                    metadata
-                                )
+                                save_result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                             end
 
                             if save_result and save_result ~= false then
@@ -2907,67 +2887,62 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 local viewer_config = viewer and viewer.configuration
                 local success, save_result = pcall(function()
                     -- Check storage version and route to appropriate method
-                    if chat_history_manager:useDocSettingsStorage() then
-                        -- v2: DocSettings-based storage
-                        local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                    -- v2: DocSettings-based storage
+                    local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
 
-                        -- Preserve existing tags, starred, and title when updating an existing chat
-                        local existing_tags = {}
-                        local existing_starred
-                        local existing_title = suggested_title
-                        local effective_chat_id = metadata.id or history.chat_id
-                        if effective_chat_id then
-                            local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
-                            if existing then
-                                existing_tags = existing.tags or {}
-                                existing_starred = existing.starred
-                                existing_title = existing.title or suggested_title
-                            end
+                    -- Preserve existing tags, starred, and title when updating an existing chat
+                    local existing_tags = {}
+                    local existing_starred
+                    local existing_title = suggested_title
+                    local effective_chat_id = metadata.id or history.chat_id
+                    if effective_chat_id then
+                        local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
+                        if existing then
+                            existing_tags = existing.tags or {}
+                            existing_starred = existing.starred
+                            existing_title = existing.title or suggested_title
                         end
+                    end
 
-                        local chat_data = {
-                            id = chat_id,
-                            title = existing_title or "Conversation",
-                            document_path = save_path,
-                            timestamp = os.time(),
-                            messages = history:getMessages(),
-                            model = history:getModel(),
-                            metadata = metadata,
-                            book_title = metadata.book_title,
-                            book_author = metadata.book_author,
-                            prompt_action = history.prompt_action,
-                            launched_from = history.launched_from,
-                            launch_context = metadata.launch_context,
-                            domain = metadata.domain,
-                            tags = existing_tags,
-                            starred = existing_starred,
-                            original_highlighted_text = metadata.original_highlighted_text,
-                            -- Store system prompt metadata for debug display
-                            system_metadata = viewer_config and viewer_config.system,
-                            -- Per-chat control state — resume reactivates it (parity §8c)
-                            control_state = chat_history_manager.captureControlState(viewer_config),
-                            -- Store cache continuation info (for "Updated from X% cache" notice)
-                            used_cache = history.used_cache,
-                            cached_progress = history.cached_progress,
-                            cache_action_id = history.cache_action_id,
-                            -- Store book text truncation info
-                            book_text_truncated = history.book_text_truncated,
-                            book_text_coverage_start = history.book_text_coverage_start,
-                            book_text_coverage_end = history.book_text_coverage_end,
-                            -- Store unavailable data info
-                            unavailable_data = history.unavailable_data,
-                        }
+                    local chat_data = {
+                        id = chat_id,
+                        title = existing_title or "Conversation",
+                        document_path = save_path,
+                        timestamp = os.time(),
+                        messages = history:getMessages(),
+                        model = history:getModel(),
+                        metadata = metadata,
+                        book_title = metadata.book_title,
+                        book_author = metadata.book_author,
+                        prompt_action = history.prompt_action,
+                        launched_from = history.launched_from,
+                        launch_context = metadata.launch_context,
+                        domain = metadata.domain,
+                        tags = existing_tags,
+                        starred = existing_starred,
+                        original_highlighted_text = metadata.original_highlighted_text,
+                        -- Store system prompt metadata for debug display
+                        system_metadata = viewer_config and viewer_config.system,
+                        -- Per-chat control state — resume reactivates it (parity §8c)
+                        control_state = chat_history_manager.captureControlState(viewer_config),
+                        -- Store cache continuation info (for "Updated from X% cache" notice)
+                        used_cache = history.used_cache,
+                        cached_progress = history.cached_progress,
+                        cache_action_id = history.cache_action_id,
+                        -- Store book text truncation info
+                        book_text_truncated = history.book_text_truncated,
+                        book_text_coverage_start = history.book_text_coverage_start,
+                        book_text_coverage_end = history.book_text_coverage_end,
+                        -- Store unavailable data info
+                        unavailable_data = history.unavailable_data,
+                    }
 
-                        if save_path == "__GENERAL_CHATS__" then
-                            return chat_history_manager:saveGeneralChat(chat_data)
-                        elseif save_path == "__LIBRARY_CHATS__" then
-                            return chat_history_manager:saveLibraryChat(chat_data)
-                        else
-                            return chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
-                        end
+                    if save_path == "__GENERAL_CHATS__" then
+                        return chat_history_manager:saveGeneralChat(chat_data)
+                    elseif save_path == "__LIBRARY_CHATS__" then
+                        return chat_history_manager:saveLibraryChat(chat_data)
                     else
-                        -- v1: Legacy hash-based storage
-                        return chat_history_manager:saveChat(save_path, suggested_title, history, metadata)
+                        return chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                     end
                 end)
                 if success and save_result then
@@ -3390,72 +3365,62 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             if should_save then
                 local result
                 -- Check storage version and route to appropriate method
-                if chat_history_manager:useDocSettingsStorage() then
-                    -- v2: DocSettings-based storage
-                    local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                -- v2: DocSettings-based storage
+                local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
 
-                    -- Preserve existing tags, starred, and title when updating an existing chat
-                    local existing_tags = {}
-                    local existing_starred
-                    local existing_title = suggested_title
-                    local effective_chat_id = metadata.id or history.chat_id
-                    if effective_chat_id and save_path then
-                        local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
-                        if existing then
-                            existing_tags = existing.tags or {}
-                            existing_starred = existing.starred
-                            existing_title = existing.title or suggested_title
-                        end
+                -- Preserve existing tags, starred, and title when updating an existing chat
+                local existing_tags = {}
+                local existing_starred
+                local existing_title = suggested_title
+                local effective_chat_id = metadata.id or history.chat_id
+                if effective_chat_id and save_path then
+                    local existing = chat_history_manager:getChatById(save_path, effective_chat_id)
+                    if existing then
+                        existing_tags = existing.tags or {}
+                        existing_starred = existing.starred
+                        existing_title = existing.title or suggested_title
                     end
+                end
 
-                    local chat_data = {
-                        id = chat_id,
-                        title = existing_title or "Conversation",
-                        document_path = save_path,
-                        timestamp = os.time(),
-                        messages = history:getMessages(),
-                        model = history:getModel(),
-                        metadata = metadata,
-                        book_title = metadata.book_title,
-                        book_author = metadata.book_author,
-                        prompt_action = history.prompt_action,
-                        launched_from = history.launched_from,
-                        launch_context = metadata.launch_context,
-                        domain = metadata.domain,
-                        tags = existing_tags,
-                        starred = existing_starred,
-                        original_highlighted_text = metadata.original_highlighted_text,
-                        -- Store system prompt metadata for debug display
-                        system_metadata = temp_config.system,
-                        -- Per-chat control state — resume reactivates it (parity §8c)
-                        control_state = chat_history_manager.captureControlState(temp_config),
-                        -- Store cache continuation info (for "Updated from X% cache" notice)
-                        used_cache = history.used_cache,
-                        cached_progress = history.cached_progress,
-                        cache_action_id = history.cache_action_id,
-                        -- Store book text truncation info
-                        book_text_truncated = history.book_text_truncated,
-                        book_text_coverage_start = history.book_text_coverage_start,
-                        book_text_coverage_end = history.book_text_coverage_end,
-                        -- Store unavailable data info
-                        unavailable_data = history.unavailable_data,
-                    }
+                local chat_data = {
+                    id = chat_id,
+                    title = existing_title or "Conversation",
+                    document_path = save_path,
+                    timestamp = os.time(),
+                    messages = history:getMessages(),
+                    model = history:getModel(),
+                    metadata = metadata,
+                    book_title = metadata.book_title,
+                    book_author = metadata.book_author,
+                    prompt_action = history.prompt_action,
+                    launched_from = history.launched_from,
+                    launch_context = metadata.launch_context,
+                    domain = metadata.domain,
+                    tags = existing_tags,
+                    starred = existing_starred,
+                    original_highlighted_text = metadata.original_highlighted_text,
+                    -- Store system prompt metadata for debug display
+                    system_metadata = temp_config.system,
+                    -- Per-chat control state — resume reactivates it (parity §8c)
+                    control_state = chat_history_manager.captureControlState(temp_config),
+                    -- Store cache continuation info (for "Updated from X% cache" notice)
+                    used_cache = history.used_cache,
+                    cached_progress = history.cached_progress,
+                    cache_action_id = history.cache_action_id,
+                    -- Store book text truncation info
+                    book_text_truncated = history.book_text_truncated,
+                    book_text_coverage_start = history.book_text_coverage_start,
+                    book_text_coverage_end = history.book_text_coverage_end,
+                    -- Store unavailable data info
+                    unavailable_data = history.unavailable_data,
+                }
 
-                    if save_path == "__GENERAL_CHATS__" then
-                        result = chat_history_manager:saveGeneralChat(chat_data)
-                    elseif save_path == "__LIBRARY_CHATS__" then
-                        result = chat_history_manager:saveLibraryChat(chat_data)
-                    else
-                        result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
-                    end
+                if save_path == "__GENERAL_CHATS__" then
+                    result = chat_history_manager:saveGeneralChat(chat_data)
+                elseif save_path == "__LIBRARY_CHATS__" then
+                    result = chat_history_manager:saveLibraryChat(chat_data)
                 else
-                    -- v1: Legacy hash-based storage
-                    result = chat_history_manager:saveChat(
-                        save_path,
-                        suggested_title,
-                        history,
-                        metadata
-                    )
+                    result = chat_history_manager:saveChatToDocSettings(ui_instance, chat_data)
                 end
 
                 if result and result ~= false then

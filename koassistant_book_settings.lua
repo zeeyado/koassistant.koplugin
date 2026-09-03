@@ -20,6 +20,10 @@ local UIManager = require("ui/uimanager")
 local ButtonDialog = require("ui/widget/buttondialog")
 local DomainLoader = require("domain_loader")
 local Languages = require("koassistant_languages")
+-- Track 37: per-book keys live in the plugin's own sidecar file; every public
+-- entry wraps the DocSettings it is handed (a raw ui.doc_settings from any
+-- caller becomes a BookStore facade; facades pass through unchanged)
+local BookStore = require("koassistant_book_store")
 
 local BookSettings = {}
 
@@ -40,6 +44,7 @@ BookSettings.KEY_QUIZ = "koassistant_book_quiz"
 --- Resolve the effective book-info level for a book: per-book override > global default ("basic").
 -- @return "none" | "basic" | "full"
 function BookSettings.resolveBookInfoLevel(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_BOOK_INFO)
     if per_book ~= nil then return per_book end
     return (features and features.book_info_in_chat) or "basic"
@@ -76,6 +81,7 @@ end
 --   since the §4.3 flip) — kept distinct from an explicit global value so
 --   the flip lives in exactly one branch.
 function BookSettings.resolveSpoilerPosture(doc_settings, features, opts)
+    doc_settings = BookStore.wrap(doc_settings)
     opts = opts or {}
     local layer = opts.layer == "mechanical" and "mechanical" or "request"
     if layer == "request" and opts.session ~= nil then
@@ -106,6 +112,7 @@ end
 -- the tool reading clamp now follow the same rule as X-Ray posture.
 -- @return boolean
 function BookSettings.resolveSpoilerFree(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     return BookSettings.resolveSpoilerPosture(doc_settings, features).protected
 end
 
@@ -121,6 +128,7 @@ end
 --   resolver's "default" collapses into "global" — callers only label
 --   layers, and nothing-set IS the global state)
 function BookSettings.resolveXrayPosture(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local p = BookSettings.resolveSpoilerPosture(doc_settings, features, { layer = "mechanical" })
     local reason = p.reason == "default" and "global" or p.reason
     return p.protected and "track" or "full", reason
@@ -137,6 +145,7 @@ end
 -- @return string|nil layer "book" | "global" | nil — nil = no domain anywhere;
 --   "book" with a nil id = the explicit no-domain override
 function BookSettings.resolveDomain(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local book = doc_settings and doc_settings:readSetting(BookSettings.KEY_DOMAIN) or nil
     if book == "_none" then return nil, "book" end
     if book ~= nil then return book, "book" end
@@ -149,6 +158,7 @@ end
 -- auto-detection (opts.doi — only callers holding a request know it; chips,
 -- pickers and the spoiler posture deliberately omit it) > global. Pure boolean.
 function BookSettings.resolveResearch(doc_settings, features, opts)
+    doc_settings = BookStore.wrap(doc_settings)
     local book = doc_settings and doc_settings:readSetting(BookSettings.KEY_RESEARCH)
     if book ~= nil then return book == true end
     if opts and opts.doi then return true end
@@ -226,6 +236,7 @@ BookSettings.KEY_XRAY_DEPTH = "koassistant_book_xray_depth"
 --- @return table { enabled, density, families, tap, ahead, intercept, card,
 ---   card_length, ahead_card, has_override }
 function BookSettings.resolveXrayMarking(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     features = features or {}
     -- No and/or chain here: it would fold an explicit book-level FALSE into
     -- nil and let the global leak through (the classic tri-state pitfall)
@@ -299,6 +310,7 @@ end
 --- X-Ray promotion hold. Pure.
 --- @return boolean true = promotion follows the reading position for this book
 function BookSettings.xrayPromotionHold(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     return (doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_PROMOTION)) == "position"
 end
 
@@ -310,6 +322,7 @@ end
 --- reader creates again, and the form's pick turns it back on). ONE helper
 --- for every delete site (popup + both browser hamburgers). Flushes.
 function BookSettings.clearXrayLineageState(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return end
     local keys = { BookSettings.KEY_XRAY_COVERAGE_ASKED, BookSettings.KEY_XRAY_PROMOTION,
         BookSettings.KEY_XRAY_AUTO }
@@ -326,6 +339,7 @@ end
 --- Per-book checkpoint spacing override. Pure.
 --- @return number|nil ratio in (0, 0.5], or nil = follow the formula
 function BookSettings.xraySpacingOverride(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     local v = doc_settings and tonumber(doc_settings:readSetting(BookSettings.KEY_XRAY_SPACING))
     if v and v > 0.005 and v <= 0.5 then return v end
     return nil
@@ -334,6 +348,7 @@ end
 --- Per-book Automatic X-Ray override. Pure.
 --- @return string|nil "on" | "off" | nil (= follow global)
 function BookSettings.xrayAutoOverride(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local v = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_AUTO)
     if v == "on" or v == "off" then return v end
     if v == true and features and features._xray_auto_legacy_optin == true then
@@ -347,6 +362,7 @@ end
 --- sub-toggle on top of the global master. Pure.
 --- @return boolean auto, boolean create_allowed, string|nil override
 function BookSettings.resolveXrayAuto(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local ov = BookSettings.xrayAutoOverride(doc_settings, features)
     if ov == "on" then return true, true, ov end
     if ov == "off" then return false, false, ov end
@@ -357,6 +373,7 @@ end
 
 --- Row/chip label for the current per-book Automatic X-Ray state. Pure.
 function BookSettings.xrayAutoLabel(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local ov = BookSettings.xrayAutoOverride(doc_settings, features)
     if ov == "on" then return _("On") end
     if ov == "off" then return _("Off") end
@@ -384,6 +401,7 @@ end
 -- keep resolving ON) > legacy `tools_posture` read-through for configs the
 -- migration hasn't touched. Pure boolean: true = the Tools chip starts ON.
 function BookSettings.resolveBookTools(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local per_book = toolsValueOn(
         doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOLS))
     if per_book ~= nil then return per_book end
@@ -421,6 +439,7 @@ BookSettings.BACKGROUND_MAX_CHARS = 2000
 -- system prompt would read as instruction text.
 -- @return string|nil  nil when unset/blank (never an empty string)
 function BookSettings.getBackground(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     local v = doc_settings and doc_settings:readSetting(BookSettings.KEY_BACKGROUND)
     if type(v) ~= "string" then return nil end
     v = v:match("^%s*(.-)%s*$")
@@ -439,6 +458,7 @@ BookSettings.KEY_WEB_SEARCH = "koassistant_book_web_search"
 -- per-chat toggle and the global default.
 -- @return true | false | nil
 function BookSettings.webSearchOverride(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     local v = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH)
     if v == nil then return nil end
     return v == true
@@ -453,6 +473,7 @@ end
 -- caller's concern (mirrors resolveSpoilerFree).
 -- @return boolean
 function BookSettings.resolveWebSearch(doc_settings, features, provider)
+    doc_settings = BookStore.wrap(doc_settings)
     local per_book = BookSettings.webSearchOverride(doc_settings)
     if per_book ~= nil then return per_book end
     local global = features and features.enable_web_search
@@ -472,6 +493,7 @@ BookSettings.KEY_WEB_EFFORT = "koassistant_book_web_effort"     -- "light"|"stan
 -- features.tool_lookup_effort > "standard" (schema default).
 -- @return "quick" | "standard" | "thorough"
 function BookSettings.resolveToolEffort(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local valid = { quick = true, standard = true, thorough = true }
     local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOL_EFFORT)
     if valid[per_book] then return per_book end
@@ -484,6 +506,7 @@ end
 -- features.web_search_effort > "standard". Mirrors resolveToolEffort.
 -- @return "light" | "standard" | "thorough"
 function BookSettings.resolveWebEffort(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local valid = { light = true, standard = true, thorough = true }
     local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_EFFORT)
     if valid[per_book] then return per_book end
@@ -517,6 +540,7 @@ BookSettings.KEY_QUICK_ANSWER = "koassistant_book_quick_answer"
 -- quick_answer_default (opt-in, schema default false).
 -- @return boolean
 function BookSettings.resolveQuickAnswerDefault(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local v = doc_settings and doc_settings:readSetting(BookSettings.KEY_QUICK_ANSWER)
     if v ~= nil then return v == true end
     return (features and features.quick_answer_default) == true
@@ -537,6 +561,7 @@ local VALID_CONTEXT_MODES = { none = true, sentence = true, paragraph = true, ch
 -- fall through so a corrupt sidecar value can't wedge the feature.
 -- @return "none" | "sentence" | "paragraph" | "characters"
 function BookSettings.resolveHighlightContext(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_HIGHLIGHT_CONTEXT)
     if VALID_CONTEXT_MODES[per_book] then return per_book end
     local global = features and features.highlight_context_mode
@@ -556,6 +581,7 @@ end
 -- pressed Ctx. The Ctx button stays as the per-lookup toggle, now turn-it-OFF.
 -- @return "none" | "sentence" | "paragraph" | "characters"
 function BookSettings.resolveDictionaryContext(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_DICTIONARY_CONTEXT)
     if VALID_CONTEXT_MODES[per_book] then return per_book end
     local global = features and features.dictionary_context_mode
@@ -578,6 +604,7 @@ end
 -- enabled (suppress-only), min_pages, and min_minutes. Booleans collapse the global's "nil = on" rule.
 -- @return table { count, difficulty, mc, sa, essay, chapter_depth, enabled, min_pages, min_minutes }
 function BookSettings.resolveQuiz(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     features = features or {}
     local bq = (doc_settings and doc_settings:readSetting(BookSettings.KEY_QUIZ)) or {}
     -- For required fields: book value, else global, else built-in default.
@@ -609,6 +636,7 @@ end
 -- reference isn't mutated, and drops an emptied table so a reset book carries no override.
 -- Shared by the Book Settings quiz screen and the chapter-quiz popup's "Not for this book".
 function BookSettings.setQuizField(doc_settings, field, value)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return end
     local new = {}
     for k, v in pairs(doc_settings:readSetting(BookSettings.KEY_QUIZ) or {}) do new[k] = v end
@@ -634,6 +662,7 @@ BookSettings.KEY_RESPONSE_LANG = "koassistant_book_response_language"
 -- @param doc_settings table|nil
 -- @return table
 function BookSettings.applyLanguageOverride(config, doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return config end
     local t = doc_settings:readSetting(BookSettings.KEY_TRANSLATION_LANG)
     local d = doc_settings:readSetting(BookSettings.KEY_DICTIONARY_LANG)
@@ -662,6 +691,7 @@ end
 -- @param doc_settings table|nil
 -- @return table
 function BookSettings.applyResponseLanguageOverride(config, doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return config end
     local lang = doc_settings:readSetting(BookSettings.KEY_RESPONSE_LANG)
     if lang == nil or lang == "" then return config end
@@ -698,6 +728,7 @@ BookSettings.KEY_TEXT_EXTRACTION = "koassistant_book_text_extraction"
 --- Raw per-book privacy overrides. Pure.
 -- @return table { highlights = tri, annotations = tri, notebook = tri, book_text = tri }
 function BookSettings.getPrivacyOverrides(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return {} end
     return {
         highlights = doc_settings:readSetting(BookSettings.KEY_HIGHLIGHTS_SHARING),
@@ -712,6 +743,7 @@ end
 -- annotations too (the promise is "no highlighted text from this book"). Pure.
 -- @return table { highlights = tri, annotations = tri, notebook = tri, book_text = tri }
 function BookSettings.effectivePrivacyOverrides(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     local raw = BookSettings.getPrivacyOverrides(doc_settings)
     -- Strict booleans only: a corrupt/hand-edited sidecar value (e.g. the string
     -- "off") must read as "follow global", never as a truthy ALLOW (fail-closed).
@@ -776,6 +808,7 @@ BookSettings.SIDECAR_KEYS = {
 --- Count how many per-book settings deviate from the global defaults (any non-nil key).
 -- @return number
 function BookSettings.countCustomized(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return 0 end
     local n = 0
     for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do
@@ -786,11 +819,14 @@ end
 
 --- Clear every per-book override so this book follows the global defaults again.
 function BookSettings.resetBook(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return end
     require("koassistant_logger").dbg("KOAssistant BookSettings: clearing all",
         #BookSettings.SIDECAR_KEYS, "per-book overrides")
     for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do
-        doc_settings:saveSetting(key, nil)
+        if doc_settings:readSetting(key) ~= nil then
+            doc_settings:saveSetting(key, nil)  -- nil = delete (facade + DocSettings alike)
+        end
     end
     doc_settings:flush()
 end
@@ -798,6 +834,7 @@ end
 --- Read the per-book AI title/author overrides (what the AI sees for this book).
 -- @return title, author  -- each: nil (use metadata) | "" (send empty) | string (custom)
 function BookSettings.getMetadataOverride(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return nil, nil end
     return doc_settings:readSetting(BookSettings.KEY_AI_TITLE),
            doc_settings:readSetting(BookSettings.KEY_AI_AUTHOR)
@@ -812,6 +849,7 @@ end
 -- @param doc_settings table|nil
 -- @return table|nil
 function BookSettings.applyMetadataOverride(metadata, doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     local t, a = BookSettings.getMetadataOverride(doc_settings)
     if t == nil and a == nil then return metadata end
     local m = {}
@@ -836,6 +874,7 @@ end
 --- Row label for the Background setting: a one-line preview, or "not set".
 -- @return string
 function BookSettings.backgroundRowLabel(doc_settings)
+    doc_settings = BookStore.wrap(doc_settings)
     local v = BookSettings.getBackground(doc_settings)
     if not v then return _("not set") end
     v = v:gsub("%s+", " ")
@@ -1859,6 +1898,7 @@ local XRAY_CATEGORY_LABELS = {
 --- @param features table|nil global features table
 --- @return string|nil normalized csv (nil = full), string|nil deciding layer ("book"/"global")
 function BookSettings.resolveXrayCategories(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local Actions = require("prompts.actions")
     local raw = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_CATEGORIES)
     if raw == "full" then return nil, "book" end
@@ -1876,6 +1916,7 @@ end
 --- @param features table|nil
 --- @return string|nil depth ("light"/"deep"; nil = standard), string|nil layer ("book"/"global")
 function BookSettings.resolveXrayDepth(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
     local Actions = require("prompts.actions")
     local raw = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_DEPTH)
     if raw == "standard" then return nil, "book" end

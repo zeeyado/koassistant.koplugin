@@ -38,12 +38,9 @@ local SPECIAL_KEYS = {
 }
 
 -- Plugin files that mark a sidecar as "has KOAssistant data" (used to report
--- sidecars that couldn't be mapped back to a local book)
-local PLUGIN_SIDECAR_FILES = {
-    "koassistant_cache.lua",
-    "koassistant_pinned.lua",
-    "koassistant_notebook.md",
-}
+-- sidecars that couldn't be mapped back to a local book). Registry-driven
+-- since Track 37 (the two per-book store files joined the list).
+local PLUGIN_SIDECAR_FILES = require("koassistant_storage_registry").sidecarFiles()
 
 --- Does this book have a sidecar dir at ANY candidate location?
 -- Checking only the current storage mode would miss data stranded by a
@@ -51,7 +48,7 @@ local PLUGIN_SIDECAR_FILES = {
 -- metadata.lua lives at the dir location (DocSettings:flush falls back
 -- there). Hash is checked last: that lookup computes a partial MD5 of the
 -- book file (file open + seeked reads), the others are pure string ops.
-local function hasAnySidecarDir(book_path)
+function IndexRebuilder.hasAnySidecarDir(book_path)
     for _idx, loc in ipairs({ "doc", "dir" }) do
         local ok, dir = pcall(DocSettings.getSidecarDir, DocSettings, book_path, loc)
         if ok and dir and lfs.attributes(dir, "mode") == "directory" then
@@ -112,28 +109,16 @@ function IndexRebuilder.pruneAllIndexes(opts)
     return pruned
 end
 
---- Run a merge-based rebuild of all four indexes.
---- @param ui table|nil ReaderUI/FileManager instance (live DocSettings resolution)
---- @param features table|nil Plugin features table (index_scan_folders, notebook_save_location)
---- @return table report { candidates = {a,b,c}, with_data, skipped_missing,
----   unmapped_sidecars, totals = {key->n}, added = {key->net}, pruned }
-function IndexRebuilder.run(ui, features)
-    local report = {
-        candidates = { a = 0, b = 0, c = 0 },
-        with_data = 0,
-        skipped_missing = 0,
-        unmapped_sidecars = 0,
-        totals = {},
-        added = {},
-        pruned = 0,
-    }
-
-    local before = {}
-    for _idx, key in ipairs(INDEX_KEYS) do
-        before[key] = countIndexEntries(key)
-    end
-
-    -- ---- Discovery ----
+--- Discovery: every book path the plugin can find, deduplicated.
+--- Phase A = ReadHistory + the four indexes, B = central sidecar dirs
+--- (dir/hash modes), C = user-designated index folders. Shared by run() and
+--- the Track 37 bulk migration (BookStore.migrateAll).
+--- @param features table|nil Plugin features table (index_scan_folders)
+--- @param report table|nil optional report whose .candidates{a,b,c} and
+---   .unmapped_sidecars counters are advanced
+--- @return table candidates array of book paths
+function IndexRebuilder.collectCandidates(features, report)
+    report = report or { candidates = { a = 0, b = 0, c = 0 }, unmapped_sidecars = 0 }
     local seen, candidates = {}, {}
     local function add(path, phase)
         if not path or SPECIAL_KEYS[path] or seen[path] then return end
@@ -184,8 +169,34 @@ function IndexRebuilder.run(ui, features)
             add(path, "c")
         end
     end
+    return candidates
+end
+
+--- Run a merge-based rebuild of all four indexes.
+--- @param ui table|nil ReaderUI/FileManager instance (live DocSettings resolution)
+--- @param features table|nil Plugin features table (index_scan_folders, notebook_save_location)
+--- @return table report { candidates = {a,b,c}, with_data, skipped_missing,
+---   unmapped_sidecars, totals = {key->n}, added = {key->net}, pruned }
+function IndexRebuilder.run(ui, features)
+    local report = {
+        candidates = { a = 0, b = 0, c = 0 },
+        with_data = 0,
+        skipped_missing = 0,
+        unmapped_sidecars = 0,
+        totals = {},
+        added = {},
+        pruned = 0,
+    }
+
+    local before = {}
+    for _idx, key in ipairs(INDEX_KEYS) do
+        before[key] = countIndexEntries(key)
+    end
+
+    local candidates = IndexRebuilder.collectCandidates(features, report)
 
     -- ---- Heal ----
+    local ChatHistoryManager = require("koassistant_chat_history_manager")
     local ActionCache = require("koassistant_action_cache")
     local Notebook = require("koassistant_notebook")
     local PinnedManager = require("koassistant_pinned_manager")
@@ -194,7 +205,7 @@ function IndexRebuilder.run(ui, features)
     for _idx, path in ipairs(candidates) do
         if lfs.attributes(path, "mode") ~= "file" then
             report.skipped_missing = report.skipped_missing + 1
-        elseif hasAnySidecarDir(path) then
+        elseif IndexRebuilder.hasAnySidecarDir(path) then
             report.with_data = report.with_data + 1
             ActionCache.refreshIndex(path, no_flush)
             ChatHistoryManager:refreshChatIndexEntry(path, ui, no_flush)

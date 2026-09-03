@@ -5,6 +5,7 @@ local lfs = require("libs/libkoreader-lfs")
 local _ = require("koassistant_gettext")
 local DocSettings = require("docsettings")
 local SafeDocSettings = require("koassistant_doc_settings")
+local BookStore = require("koassistant_book_store")
 local JSON = require("json")
 local StorageRegistry = require("koassistant_storage_registry")
 
@@ -611,6 +612,7 @@ function BackupManager:_createManifest(options, counts)
         created_date = self:_getDateString(timestamp),
         contents = {
             settings = options.include_settings or false,
+            book_settings = options.include_settings or false,
             api_keys = options.include_api_keys or false,
             config_files = options.include_configs or false,
             domains = options.include_content or false,
@@ -680,42 +682,22 @@ function BackupManager:_countItems(options)
         local ChatHistoryManager = require("koassistant_chat_history_manager")
         local chat_manager = ChatHistoryManager:new()
 
-        if chat_manager:useDocSettingsStorage() then
-            -- v2: Count from chat index and general chats
-            local chat_index = chat_manager:getChatIndex()
+        -- v2: Count from chat index and general chats
+        local chat_index = chat_manager:getChatIndex()
 
-            for doc_path, info in pairs(chat_index) do
-                total_chats = total_chats + (info.count or 0)
-            end
-
-            -- Add general chats
-            local general_chats = chat_manager:getGeneralChats()
-            total_chats = total_chats + #general_chats
-
-            -- Add library chats
-            local library_chats = chat_manager:getLibraryChats()
-            total_chats = total_chats + #library_chats
-
-            logger.dbg("BackupManager: Counted", total_chats, "chats (v2 storage)")
-        else
-            -- v1: Count from CHAT_DIR directory
-            if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
-                for doc_hash in lfs.dir(self.CHAT_DIR) do
-                    if doc_hash ~= "." and doc_hash ~= ".." then
-                        local doc_dir = self.CHAT_DIR .. "/" .. doc_hash
-                        if lfs.attributes(doc_dir, "mode") == "directory" then
-                            for entry in lfs.dir(doc_dir) do
-                                if entry ~= "." and entry ~= ".." and not entry:match("%.old$") then
-                                    total_chats = total_chats + 1
-                                end
-                            end
-                        end
-                    end
-                end
-            end
-
-            logger.dbg("BackupManager: Counted", total_chats, "chats (v1 storage)")
+        for doc_path, info in pairs(chat_index) do
+            total_chats = total_chats + (info.count or 0)
         end
+
+        -- Add general chats
+        local general_chats = chat_manager:getGeneralChats()
+        total_chats = total_chats + #general_chats
+
+        -- Add library chats
+        local library_chats = chat_manager:getLibraryChats()
+        total_chats = total_chats + #library_chats
+
+        logger.dbg("BackupManager: Counted", total_chats, "chats (v2 storage)")
 
         counts.chats = total_chats
     end
@@ -739,7 +721,7 @@ function BackupManager:_countItems(options)
 
         counts.custom_behaviors = 0
         if features.custom_behaviors then
-            for _, _ in pairs(features.custom_behaviors) do
+            for _idx, _ in pairs(features.custom_behaviors) do
                 counts.custom_behaviors = counts.custom_behaviors + 1
             end
         end
@@ -748,17 +730,69 @@ function BackupManager:_countItems(options)
     return counts
 end
 
+-- Export every book's per-book settings (Track 37 koassistant_book_settings.lua)
+-- as { [doc_path] = { key = value } }. Candidates = the index rebuilder's
+-- discovery set; only books whose settings file holds something are listed.
+function BackupManager:exportBookSettingsToTable()
+    local out = {}
+    local ok, IndexRebuilder = pcall(require, "koassistant_index_rebuilder")
+    if not ok or not IndexRebuilder.collectCandidates then return out end
+    local features = LuaSettings:open(self.SETTINGS_DIR .. "/koassistant_settings.lua"):readSetting("features") or {}
+    for _idx, doc_path in ipairs(IndexRebuilder.collectCandidates(features)) do
+        if lfs.attributes(doc_path, "mode") == "file" then
+            local store = BookStore.settings(doc_path)
+            if store and not store:isEmpty() then
+                local copy = {}
+                for k, v in pairs(store.data) do copy[k] = v end
+                out[doc_path] = copy
+            end
+        end
+    end
+    return out
+end
+
+-- Restore per-book settings from koassistant_book_settings.json.
+-- merge_mode: backup values win per key over the current file; otherwise the
+-- book's settings are replaced by the backup's. Books missing locally are skipped.
+-- @return restored_books, skipped_books
+function BackupManager:restoreBookSettingsFromJSON(json_path, merge_mode)
+    local file = io.open(json_path, "r")
+    if not file then return 0, 0 end
+    local content = file:read("*all")
+    file:close()
+    local ok, all = pcall(JSON.decode, content)
+    if not ok or type(all) ~= "table" then
+        logger.warn("BackupManager: per-book settings JSON unreadable")
+        return 0, 0
+    end
+    local restored, skipped = 0, 0
+    for doc_path, keys in pairs(all) do
+        if type(keys) == "table" and lfs.attributes(doc_path, "mode") == "file" then
+            local store = BookStore.settings(doc_path)
+            if store then
+                if not merge_mode then
+                    for k in pairs(store.data) do store.data[k] = nil end
+                end
+                for k, v in pairs(keys) do
+                    if BookStore.isPluginKey(k) and type(v) ~= "function" then store.data[k] = v end
+                end
+                store.dirty = true
+                store:flush()
+                restored = restored + 1
+            end
+        else
+            skipped = skipped + 1
+        end
+    end
+    logger.info("BackupManager: Restored per-book settings for", restored, "books (skipped", skipped, ")")
+    return restored, skipped
+end
+
 -- Export all chats to a table structure (for v2 JSON backup)
 -- Returns a table mapping document paths to their chats and metadata
 function BackupManager:exportAllChatsToTable()
     local ChatHistoryManager = require("koassistant_chat_history_manager")
     local chat_manager = ChatHistoryManager:new()
-
-    -- Check if using DocSettings storage
-    if not chat_manager:useDocSettingsStorage() then
-        logger.warn("BackupManager: exportAllChatsToTable called but not using v2 storage")
-        return {}
-    end
 
     local all_chats = {}
 
@@ -769,25 +803,17 @@ function BackupManager:exportAllChatsToTable()
     for doc_path, index_info in pairs(chat_index) do
         -- Check if document still exists
         if lfs.attributes(doc_path, "mode") then
-            local success, doc_settings = pcall(DocSettings.open, DocSettings, doc_path)
-            if success and doc_settings then
-                local chats = doc_settings:readSetting("koassistant_chats", {})
-
-                if next(chats) then
-                    -- Get book metadata
-                    local doc_props = SafeDocSettings.overlayCustomProps(doc_settings:readSetting("doc_props"), doc_path) or {}
-
-                    all_chats[doc_path] = {
-                        chats = chats,
-                        book_title = doc_props.title or "",
-                        book_author = doc_props.authors or "",
-                        chat_count = index_info.count or 0,
-                    }
-
-                    logger.dbg("BackupManager: Exported", index_info.count, "chats from", doc_path)
-                end
-            else
-                logger.warn("BackupManager: Could not open DocSettings for", doc_path)
+            -- Track 37: chats come from the book's koassistant_chats.lua; the
+            -- labels come from the index (Fix M), so no metadata.lua is opened
+            local chats = BookStore.readChats(doc_path)
+            if next(chats) then
+                all_chats[doc_path] = {
+                    chats = chats,
+                    book_title = index_info.title or "",
+                    book_author = index_info.author or "",
+                    chat_count = index_info.count or 0,
+                }
+                logger.dbg("BackupManager: Exported", index_info.count, "chats from", doc_path)
             end
         else
             logger.dbg("BackupManager: Skipping missing document", doc_path)
@@ -799,7 +825,7 @@ function BackupManager:exportAllChatsToTable()
     if #general_chats > 0 then
         -- Convert array to table keyed by ID (matching DocSettings format)
         local general_chats_table = {}
-        for _, chat in ipairs(general_chats) do
+        for _idx, chat in ipairs(general_chats) do
             general_chats_table[chat.id] = chat
         end
 
@@ -910,6 +936,23 @@ function BackupManager:createBackup(options)
             end
         end
 
+        -- Per-book settings (Track 37): every book's koassistant_book_settings.lua
+        -- folded into one JSON file keyed by book path
+        local book_settings = self:exportBookSettingsToTable()
+        if next(book_settings) then
+            local ok_enc, json_string = pcall(JSON.encode, book_settings)
+            if ok_enc then
+                local bs_file = io.open(settings_dir .. "/koassistant_book_settings.json", "w")
+                if bs_file then
+                    bs_file:write(json_string)
+                    bs_file:close()
+                    logger.info("BackupManager: Exported per-book settings")
+                end
+            else
+                logger.warn("BackupManager: Failed to encode per-book settings:", json_string)
+            end
+        end
+
         -- Copy pinned artifact files (general + library)
         local pinned_general = self.SETTINGS_DIR .. "/koassistant_pinned_general.lua"
         if lfs.attributes(pinned_general, "mode") == "file" then
@@ -925,7 +968,7 @@ function BackupManager:createBackup(options)
     if options.include_configs then
         local configs_dir = temp_dir .. "/configs"
         lfs.mkdir(configs_dir)
-        for _, entry in ipairs(StorageRegistry.backupPluginFiles()) do
+        for _idx, entry in ipairs(StorageRegistry.backupPluginFiles()) do
             if not entry.credential or options.include_api_keys then
                 local src = self.PLUGIN_DIR .. "/" .. entry.ref
                 if lfs.attributes(src, "mode") == "file" then
@@ -937,7 +980,7 @@ function BackupManager:createBackup(options)
 
     -- Copy user content dirs (domains, behaviors; .md/.txt only) — registry-driven
     if options.include_content then
-        for _, dir_name in ipairs(StorageRegistry.backupPluginDirs()) do
+        for _idx, dir_name in ipairs(StorageRegistry.backupPluginDirs()) do
             local src = self.PLUGIN_DIR .. "/" .. dir_name
             if lfs.attributes(src, "mode") == "directory" then
                 local success, err_msg = self:_copyDirectory(src, temp_dir .. "/" .. dir_name, function(entry, path)
@@ -959,57 +1002,36 @@ function BackupManager:createBackup(options)
         local ChatHistoryManager = require("koassistant_chat_history_manager")
         local chat_manager = ChatHistoryManager:new()
 
-        if chat_manager:useDocSettingsStorage() then
-            -- v2: Export chats to JSON
-            local all_chats = self:exportAllChatsToTable()
+        -- v2: Export chats to JSON
+        local all_chats = self:exportAllChatsToTable()
 
-            if next(all_chats) then
-                local json_path = temp_dir .. "/koassistant_chats.json"
-                local success, json_string = pcall(JSON.encode, all_chats)
+        if next(all_chats) then
+            local json_path = temp_dir .. "/koassistant_chats.json"
+            local success, json_string = pcall(JSON.encode, all_chats)
 
-                if not success then
-                    self:_removeTempDir(temp_dir)
-                    if not options.skip_lock then
-                        self:_releaseLock()
-                    end
-                    return { success = false, error = "Failed to encode chats to JSON: " .. tostring(json_string) }
+            if not success then
+                self:_removeTempDir(temp_dir)
+                if not options.skip_lock then
+                    self:_releaseLock()
                 end
-
-                local file = io.open(json_path, "w")
-                if not file then
-                    self:_removeTempDir(temp_dir)
-                    if not options.skip_lock then
-                        self:_releaseLock()
-                    end
-                    return { success = false, error = "Failed to create chat JSON file" }
-                end
-
-                file:write(json_string)
-                file:close()
-
-                logger.info("BackupManager: Exported chats to JSON (v2 storage)")
-            else
-                logger.info("BackupManager: No chats to backup (v2 storage)")
+                return { success = false, error = "Failed to encode chats to JSON: " .. tostring(json_string) }
             end
+
+            local file = io.open(json_path, "w")
+            if not file then
+                self:_removeTempDir(temp_dir)
+                if not options.skip_lock then
+                    self:_releaseLock()
+                end
+                return { success = false, error = "Failed to create chat JSON file" }
+            end
+
+            file:write(json_string)
+            file:close()
+
+            logger.info("BackupManager: Exported chats to JSON (v2 storage)")
         else
-            -- v1: Copy legacy CHAT_DIR directory
-            if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
-                local dest_chats = temp_dir .. "/chats"
-                local success, err_msg = self:_copyDirectory(self.CHAT_DIR, dest_chats, function(entry, path)
-                    -- Skip .old backup files
-                    return not entry:match("%.old$")
-                end)
-                if not success then
-                    -- Clean up and return error
-                    self:_removeTempDir(temp_dir)
-                    if not options.skip_lock then
-                        self:_releaseLock()
-                    end
-                    return { success = false, error = err_msg }
-                end
-
-                logger.info("BackupManager: Backed up chats directory (v1 storage)")
-            end
+            logger.info("BackupManager: No chats to backup (v2 storage)")
         end
     end
 
@@ -1341,12 +1363,8 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
             -- Restore document-specific chats
             -- Check if document exists
             if lfs.attributes(doc_path, "mode") then
-                -- SafeDocSettings: live doc_settings if this book is open — a fresh
-                -- instance would clobber metadata.lua on flush (issue #72)
-                local doc_settings = SafeDocSettings.resolve(doc_path)
-
-                -- Get existing chats (for merge mode)
-                local existing_chats = merge_mode and doc_settings:readSetting("koassistant_chats", {}) or {}
+                -- Track 37: the book's koassistant_chats.lua sidecar file
+                local existing_chats = merge_mode and BookStore.readChats(doc_path) or {}
 
                 -- Merge or replace
                 for chat_id, chat_data in pairs(data.chats) do
@@ -1354,11 +1372,11 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
                     restored_count = restored_count + 1
                 end
 
-                -- Save back to doc_settings
-                doc_settings:saveSetting("koassistant_chats", existing_chats)
-                doc_settings:flush()
+                local ok_w, err_w = BookStore.writeChats(doc_path, existing_chats)
+                if not ok_w then error(err_w or "chats write failed") end
 
-                -- Update chat index
+                -- Update chat index (title/author: KOReader's doc_props)
+                local doc_settings = SafeDocSettings.resolve(doc_path)
                 chat_manager:updateChatIndex(doc_path, "restore", nil, existing_chats,
                     { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
 
@@ -1435,6 +1453,13 @@ function BackupManager:restoreBackup(backup_path, options)
     local pcall_success, pcall_err = pcall(function()
 
     -- Restore settings
+    if options.restore_settings ~= false and manifest.contents.book_settings then
+        local bs_json = temp_dir .. "/settings/koassistant_book_settings.json"
+        if lfs.attributes(bs_json, "mode") == "file" then
+            self:restoreBookSettingsFromJSON(bs_json, options.merge_mode)
+        end
+    end
+
     if options.restore_settings ~= false and manifest.contents.settings then
         local backup_settings_file = temp_dir .. "/settings/koassistant_settings.lua"
         if lfs.attributes(backup_settings_file, "mode") == "file" then
@@ -1580,7 +1605,7 @@ function BackupManager:restoreBackup(backup_path, options)
     -- Restore config files (registry-driven; credential files gated)
     if options.restore_configs ~= false and manifest.contents.config_files then
         local restore_creds = options.restore_api_keys and manifest.contents.api_keys
-        for _, entry in ipairs(StorageRegistry.backupPluginFiles()) do
+        for _idx, entry in ipairs(StorageRegistry.backupPluginFiles()) do
             if not entry.credential or restore_creds then
                 local src = temp_dir .. "/configs/" .. entry.ref
                 if lfs.attributes(src, "mode") == "file" then
@@ -1592,7 +1617,7 @@ function BackupManager:restoreBackup(backup_path, options)
 
     -- Restore user content dirs (registry-driven; replace mode clears first)
     if options.restore_content ~= false and (manifest.contents.domains or manifest.contents.behaviors) then
-        for _, dir_name in ipairs(StorageRegistry.backupPluginDirs()) do
+        for _idx, dir_name in ipairs(StorageRegistry.backupPluginDirs()) do
             local src = temp_dir .. "/" .. dir_name
             if lfs.attributes(src, "mode") == "directory" then
                 local dest = self.PLUGIN_DIR .. "/" .. dir_name
@@ -1775,7 +1800,7 @@ function BackupManager:cleanupOldRestorePoints()
 
     local deleted_count = 0
 
-    for _, backup in ipairs(backups) do
+    for _idx, backup in ipairs(backups) do
         if backup.is_restore_point then
             local age = current_time - backup.modified
             if age > retention_seconds then

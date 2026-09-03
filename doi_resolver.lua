@@ -74,7 +74,10 @@ function DOIResolver.resolveDOI(file, doc_props, document, live_doc_settings)
     -- SafeDocSettings resolves the live instance even when the caller passed nil
     -- while the book is open — a standalone instance would then clobber
     -- metadata.lua on flush (issue #72)
-    local settings = live_doc_settings
+    -- Track 37: the DOI cache key lives in the plugin's own per-book file, so
+    -- the DocSettings is wrapped (BookStore facade) and flushing it never
+    -- rewrites metadata.lua.
+    local settings = live_doc_settings and require("koassistant_book_store").wrap(live_doc_settings, file)
     local settings_is_live = live_doc_settings ~= nil
     if not settings and file then
         local ok, ds, is_live = pcall(function()
@@ -97,8 +100,9 @@ function DOIResolver.resolveDOI(file, doc_props, document, live_doc_settings)
     if doi then
         if settings then
             settings:saveSetting("koassistant_doi", doi)
-            -- Only flush standalone instances; a live instance persists with KOReader's save
-            if not settings_is_live then settings:flush() end
+            -- A facade flush touches only our file; a raw live instance (no
+            -- sidecar path resolvable) still persists with KOReader's save
+            if not settings_is_live or settings._koa_facade then settings:flush() end
         end
         return doi
     end
@@ -109,7 +113,7 @@ function DOIResolver.resolveDOI(file, doc_props, document, live_doc_settings)
         -- Cache result: DOI string or false sentinel (scanned, not found)
         if settings then
             settings:saveSetting("koassistant_doi", doi or false)
-            if not settings_is_live then settings:flush() end
+            if not settings_is_live or settings._koa_facade then settings:flush() end
         end
         return doi
     end

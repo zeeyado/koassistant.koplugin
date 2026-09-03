@@ -317,45 +317,26 @@ Registry.entries = {
         notes = "Create-ahead prefix versions (rungs, ascending by progress; xray_ecosystem_plan.md §6); promotion source; deleted with the X-Ray.",
     },
 
-    --========================= Sidecar DocSettings keys (per-book) ============
+    --========================= Plugin per-book files (Track 37, 2026-09-02) ===
+    -- Everything the plugin used to keep INSIDE KOReader's metadata.lua (the
+    -- Book Settings keys, chats, notebook ref, DOI cache, last-opened stamp,
+    -- X-Ray coverage-ask stamp) now lives in these two files in the same .sdr
+    -- folder as the other sidecar files. metadata.lua carries NO plugin keys
+    -- any more; the migration + straggler nets live in koassistant_book_store.lua.
     {
-        id = "dockey_book_settings", label = "Per-book settings",
-        location = "sidecar_dockey",
-        ref = function() return require("koassistant_book_settings").SIDECAR_KEYS end,
-        category = "config", backup = false,
-        notes = "Per-book override keys; SIDECAR_KEYS is the owner's source of truth (no dedicated index; per-book DocSettings).",
+        id = "sidecar_book_settings", label = "Per-book settings",
+        location = "sidecar_file", ref = "koassistant_book_settings.lua",
+        category = "config", backup = true,
+        opt_in_reset = true,
+        notes = "Single key `settings` = { koassistant_book_* (BookSettings.SIDECAR_KEYS) + koassistant_notebook_ref + koassistant_doi + koassistant_last_opened + koassistant_book_xray_coverage_asked }. No dedicated index (per-book, small). Backed up as koassistant_book_settings.json.",
     },
     {
-        id = "dockey_chats", label = "Per-book chats",
-        location = "sidecar_dockey", ref = "koassistant_chats",
-        category = "conversations", backup = true,  -- backed up as JSON today
+        id = "sidecar_chats", label = "Per-book chats",
+        location = "sidecar_file", ref = "koassistant_chats.lua",
+        category = "conversations", backup = true,  -- backed up as JSON
         index_key = "koassistant_chat_index",
         opt_in_reset = true,
-    },
-    {
-        id = "dockey_notebook_ref", label = "Per-book notebook reference",
-        location = "sidecar_dockey", ref = "koassistant_notebook_ref",
-        category = "notebooks", backup = false,
-        index_key = "koassistant_notebook_index",
-        notes = "Currently never cleaned on notebook delete (Track 33 cleanup item).",
-    },
-    {
-        id = "dockey_doi", label = "Per-book DOI cache",
-        location = "sidecar_dockey", ref = "koassistant_doi",
-        category = "artifacts", rebuildable = true, backup = false,
-        notes = "No index; re-resolvable. Registered for visibility.",
-    },
-    {
-        id = "dockey_last_opened", label = "Per-book last-opened timestamp",
-        location = "sidecar_dockey", ref = "koassistant_last_opened",
-        category = "internal", backup = false,
-        notes = "Distinct from the settings-dir koassistant_last_opened.lua pointer.",
-    },
-    {
-        id = "dockey_xray_coverage_asked", label = "Per-book X-Ray coverage-ask stamp",
-        location = "sidecar_dockey", ref = "koassistant_book_xray_coverage_asked",
-        category = "internal", backup = false,
-        notes = "Once-per-book stamp for the first-auto-fire coverage ask (round 19); deliberately not in SIDECAR_KEYS (not an override).",
+        notes = "Single key `chats` = { [chat_id] = chat }. Was the `koassistant_chats` DocSettings key (metadata.lua) until Track 37.",
     },
 
     --========================= Plugin-folder files (USER_FILES) ===============

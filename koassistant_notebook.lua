@@ -268,8 +268,8 @@ function Notebook.getPath(document_path)
         return base_dir .. "/" .. entry.filename
     end
 
-    -- Fallback: check DocSettings ref
-    local doc_settings = DocSettings:open(document_path)
+    -- Fallback: check the per-book ref (BookStore facade via SafeDocSettings)
+    local doc_settings = SafeDocSettings.resolve(document_path)
     local ref = doc_settings:readSetting("koassistant_notebook_ref")
     if ref and ref.filename then
         return base_dir .. "/" .. ref.filename
@@ -877,8 +877,8 @@ function Notebook.resolvePathForLocation(document_path, location, features, inde
         return base_dir .. "/" .. index_entry.filename
     end
 
-    -- Check DocSettings ref
-    local doc_settings = DocSettings:open(document_path)
+    -- Check the per-book ref (BookStore facade via SafeDocSettings)
+    local doc_settings = SafeDocSettings.resolve(document_path)
     local ref = doc_settings:readSetting("koassistant_notebook_ref")
     if ref and ref.filename then
         return base_dir .. "/" .. ref.filename

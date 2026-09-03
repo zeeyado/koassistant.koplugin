@@ -94,6 +94,12 @@ end
 
 function MockDocSettings:flush() end
 
+-- Track 37: chats live in <book>.sdr/koassistant_chats.lua (BookStore); the
+-- store resolves the sidecar dir through DocSettings
+function MockDocSettings:getSidecarDir(doc_path)
+    return (doc_path:match("(.*)%.") or doc_path) .. ".sdr"
+end
+
 package.loaded["docsettings"] = MockDocSettings
 
 -- Mock util (imported by ChatHistoryManager but not actually called)

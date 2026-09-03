@@ -525,17 +525,13 @@ function ChatHistoryDialog:showChatHistoryBrowser(ui, current_document_path, cha
     local self_ref = self  -- Capture self for callbacks
 
     -- Add virtual "Starred" folder at top if any starred chats exist.
-    -- Fix S (2026-08-17): v2 documents carry `starred` (index-driven for books,
+    -- Fix S (2026-08-17): documents carry `starred` (index-driven for books,
     -- single store parse for General/Library) — summing them replaces the old
-    -- every-sidecar re-parse. v1 keeps the legacy scan.
+    -- every-sidecar re-parse.
     local starred_count
-    if chat_history_manager:useDocSettingsStorage() then
-        starred_count = 0
-        for _idx, d in ipairs(documents) do
-            starred_count = starred_count + (d.starred or 0)
-        end
-    else
-        starred_count = chat_history_manager:getStarredChatCount()
+    starred_count = 0
+    for _idx, d in ipairs(documents) do
+        starred_count = starred_count + (d.starred or 0)
     end
     if starred_count > 0 then
         local enable_emoji_starred = config and config.features and config.features.enable_emoji_icons == true
@@ -1900,53 +1896,48 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                     local save_ok
                     -- Check storage version and route to appropriate method
-                    if chat_history_manager:useDocSettingsStorage() then
-                        -- v2: DocSettings-based storage
-                        local chat_data = {
-                            id = chat.id,
-                            title = save_title,
-                            document_path = document_path,
-                            timestamp = os.time(),
-                            messages = history:getMessages(),
-                            model = history:getModel(),
-                            metadata = {id = chat.id},
-                            book_title = chat.book_title,
-                            book_author = chat.book_author,
-                            prompt_action = history.prompt_action,
-                            launch_context = chat.launch_context,
-                            domain = chat.domain,
-                            tags = save_tags,
-                            starred = save_starred,
-                            original_highlighted_text = chat.original_highlighted_text,
-                            -- Preserve system prompt metadata for debug display
-                            system_metadata = chat.system_metadata,
-                            -- Per-chat control state, captured LIVE from the resumed
-                            -- config (reflects reply-time changes — parity §8c)
-                            control_state = chat_history_manager.captureControlState(config),
-                            -- Preserve cache continuation info
-                            used_cache = chat.used_cache,
-                            cached_progress = chat.cached_progress,
-                            cache_action_id = chat.cache_action_id,
-                            -- Preserve book text truncation info
-                            book_text_truncated = chat.book_text_truncated,
-                            book_text_coverage_start = chat.book_text_coverage_start,
-                            book_text_coverage_end = chat.book_text_coverage_end,
-                            -- Preserve unavailable data info
-                            unavailable_data = chat.unavailable_data,
-                        }
+                    -- v2: DocSettings-based storage
+                    local chat_data = {
+                        id = chat.id,
+                        title = save_title,
+                        document_path = document_path,
+                        timestamp = os.time(),
+                        messages = history:getMessages(),
+                        model = history:getModel(),
+                        metadata = {id = chat.id},
+                        book_title = chat.book_title,
+                        book_author = chat.book_author,
+                        prompt_action = history.prompt_action,
+                        launch_context = chat.launch_context,
+                        domain = chat.domain,
+                        tags = save_tags,
+                        starred = save_starred,
+                        original_highlighted_text = chat.original_highlighted_text,
+                        -- Preserve system prompt metadata for debug display
+                        system_metadata = chat.system_metadata,
+                        -- Per-chat control state, captured LIVE from the resumed
+                        -- config (reflects reply-time changes — parity §8c)
+                        control_state = chat_history_manager.captureControlState(config),
+                        -- Preserve cache continuation info
+                        used_cache = chat.used_cache,
+                        cached_progress = chat.cached_progress,
+                        cache_action_id = chat.cache_action_id,
+                        -- Preserve book text truncation info
+                        book_text_truncated = chat.book_text_truncated,
+                        book_text_coverage_start = chat.book_text_coverage_start,
+                        book_text_coverage_end = chat.book_text_coverage_end,
+                        -- Preserve unavailable data info
+                        unavailable_data = chat.unavailable_data,
+                    }
 
-                        if document_path == "__GENERAL_CHATS__" then
-                            save_ok = chat_history_manager:saveGeneralChat(chat_data)
-                        elseif document_path == "__LIBRARY_CHATS__" then
-                            -- saveChatToDocSettings rejects the library sentinel; without this
-                            -- branch every resumed-library-chat save was silently lost (audit C1)
-                            save_ok = chat_history_manager:saveLibraryChat(chat_data)
-                        else
-                            save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
-                        end
+                    if document_path == "__GENERAL_CHATS__" then
+                        save_ok = chat_history_manager:saveGeneralChat(chat_data)
+                    elseif document_path == "__LIBRARY_CHATS__" then
+                        -- saveChatToDocSettings rejects the library sentinel; without this
+                        -- branch every resumed-library-chat save was silently lost (audit C1)
+                        save_ok = chat_history_manager:saveLibraryChat(chat_data)
                     else
-                        -- v1: Legacy hash-based storage
-                        save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                        save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
                     end
 
                     if not save_ok then
@@ -2201,53 +2192,48 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
                     local save_ok
                     -- Check storage version and route to appropriate method
-                    if chat_history_manager:useDocSettingsStorage() then
-                        -- v2: DocSettings-based storage
-                        local chat_data = {
-                            id = chat.id,
-                            title = save_title,
-                            document_path = document_path,
-                            timestamp = os.time(),
-                            messages = history:getMessages(),
-                            model = history:getModel(),
-                            metadata = {id = chat.id},
-                            book_title = chat.book_title,
-                            book_author = chat.book_author,
-                            prompt_action = history.prompt_action,
-                            launch_context = chat.launch_context,
-                            domain = chat.domain,
-                            tags = save_tags,
-                            starred = save_starred,
-                            original_highlighted_text = chat.original_highlighted_text,
-                            -- Preserve system prompt metadata for debug display
-                            system_metadata = chat.system_metadata,
-                            -- Per-chat control state, captured LIVE from the resumed
-                            -- config (reflects reply-time changes — parity §8c)
-                            control_state = chat_history_manager.captureControlState(config),
-                            -- Preserve cache continuation info
-                            used_cache = chat.used_cache,
-                            cached_progress = chat.cached_progress,
-                            cache_action_id = chat.cache_action_id,
-                            -- Preserve book text truncation info
-                            book_text_truncated = chat.book_text_truncated,
-                            book_text_coverage_start = chat.book_text_coverage_start,
-                            book_text_coverage_end = chat.book_text_coverage_end,
-                            -- Preserve unavailable data info
-                            unavailable_data = chat.unavailable_data,
-                        }
+                    -- v2: DocSettings-based storage
+                    local chat_data = {
+                        id = chat.id,
+                        title = save_title,
+                        document_path = document_path,
+                        timestamp = os.time(),
+                        messages = history:getMessages(),
+                        model = history:getModel(),
+                        metadata = {id = chat.id},
+                        book_title = chat.book_title,
+                        book_author = chat.book_author,
+                        prompt_action = history.prompt_action,
+                        launch_context = chat.launch_context,
+                        domain = chat.domain,
+                        tags = save_tags,
+                        starred = save_starred,
+                        original_highlighted_text = chat.original_highlighted_text,
+                        -- Preserve system prompt metadata for debug display
+                        system_metadata = chat.system_metadata,
+                        -- Per-chat control state, captured LIVE from the resumed
+                        -- config (reflects reply-time changes — parity §8c)
+                        control_state = chat_history_manager.captureControlState(config),
+                        -- Preserve cache continuation info
+                        used_cache = chat.used_cache,
+                        cached_progress = chat.cached_progress,
+                        cache_action_id = chat.cache_action_id,
+                        -- Preserve book text truncation info
+                        book_text_truncated = chat.book_text_truncated,
+                        book_text_coverage_start = chat.book_text_coverage_start,
+                        book_text_coverage_end = chat.book_text_coverage_end,
+                        -- Preserve unavailable data info
+                        unavailable_data = chat.unavailable_data,
+                    }
 
-                        if document_path == "__GENERAL_CHATS__" then
-                            save_ok = chat_history_manager:saveGeneralChat(chat_data)
-                        elseif document_path == "__LIBRARY_CHATS__" then
-                            -- saveChatToDocSettings rejects the library sentinel; without this
-                            -- branch every resumed-library-chat save was silently lost (audit C1)
-                            save_ok = chat_history_manager:saveLibraryChat(chat_data)
-                        else
-                            save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
-                        end
+                    if document_path == "__GENERAL_CHATS__" then
+                        save_ok = chat_history_manager:saveGeneralChat(chat_data)
+                    elseif document_path == "__LIBRARY_CHATS__" then
+                        -- saveChatToDocSettings rejects the library sentinel; without this
+                        -- branch every resumed-library-chat save was silently lost (audit C1)
+                        save_ok = chat_history_manager:saveLibraryChat(chat_data)
                     else
-                        -- v1: Legacy hash-based storage
-                        save_ok = chat_history_manager:saveChat(document_path, chat.title, history, {id = chat.id})
+                        save_ok = chat_history_manager:saveChatToDocSettings(ui, chat_data)
                     end
 
                     UIManager:show(InfoMessage:new{

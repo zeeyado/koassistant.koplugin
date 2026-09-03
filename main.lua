@@ -211,6 +211,10 @@ function AskGPT:init()
   self.action_service = ActionService:new(self.settings)
   self.action_service:initialize()
 
+  -- Track 37: move per-book plugin data out of KOReader's metadata.lua
+  -- (one-shot, runs before any read; see _runBookStoreMigration)
+  self:_runBookStoreMigration()
+
   -- Register dispatcher actions
   self:onDispatcherRegisterActions()
 
@@ -372,6 +376,15 @@ function AskGPT:init()
   
   -- Also register when reader is ready as a backup
   self.onReaderReady = function()
+    -- Track 37 straggler net: anything an older build (or an unmigrated
+    -- sidecar synced from another device) left in this book's metadata.lua
+    -- is folded into our files before any read. A table scan when clean.
+    if self.ui and self.ui.document and self.ui.doc_settings then
+      local ok_m, err_m = pcall(function()
+        require("koassistant_book_store").ensureMigrated(self.ui.document.file, self.ui.doc_settings)
+      end)
+      if not ok_m then logger.warn("KOAssistant: book store straggler check failed:", err_m) end
+    end
     self:registerToMainMenu()
     -- Sync highlight bypass (needs ui.highlight to be available)
     self:syncHighlightBypass()
@@ -9697,7 +9710,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       local c_auto_on = c_flowing and self.ui.doc_settings
         and require("koassistant_book_settings")
           .resolveXrayAuto(self.ui.doc_settings, c_features)
-      local ext_goal = self.ui.doc_settings and tonumber(self.ui.doc_settings:readSetting(
+      local ext_goal = self.ui.doc_settings and tonumber(self:_openBookDS():readSetting(
         require("koassistant_book_settings").KEY_XRAY_GOAL)) or nil
       if c_auto_on and XrayAuto.isAutoSuppressed(sx_file) then
         table.insert(buttons, {{
@@ -10666,7 +10679,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       -- is a snapshot: untouched). Round 23: written here, AFTER the rebuild
       -- confirm — a cancelled rebuild must not have touched the goal.
       if self_ref.ui and self_ref.ui.doc_settings and cr.coverage ~= "position" then
-        self_ref.ui.doc_settings:saveSetting(
+        self_ref:_openBookDS():saveSetting(
           require("koassistant_book_settings").KEY_XRAY_GOAL,
           cr.coverage == "target" and cr.target or nil)
       end
@@ -11125,9 +11138,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
               end,
               on_pick = function(s)
                 if self_ref.ui and self_ref.ui.doc_settings then
-                  self_ref.ui.doc_settings:saveSetting(
+                  self_ref:_openBookDS():saveSetting(
                     require("koassistant_book_settings").KEY_XRAY_SPACING, s)
-                  self_ref.ui.doc_settings:flush()
+                  self_ref:_openBookDS():flush()
                   -- A sticky per-book write must never be silent — a stray
                   -- tap on "Every 50%" here is how the 2026-08-14 device
                   -- round ended up planning one giant rung to 100%
@@ -11141,9 +11154,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
               end,
               on_reset = function()
                 if self_ref.ui and self_ref.ui.doc_settings then
-                  self_ref.ui.doc_settings:saveSetting(
+                  self_ref:_openBookDS():saveSetting(
                     require("koassistant_book_settings").KEY_XRAY_SPACING, nil)
-                  self_ref.ui.doc_settings:flush()
+                  self_ref:_openBookDS():flush()
                   UIManager:show(Notification:new{
                     text = T(_("Checkpoint spacing for this book: recommended (every %1%)"),
                       self_ref:_xraySpacingPctLabel(self_ref:_xrayLadderSpacing())),
@@ -11299,8 +11312,8 @@ function AskGPT:_enableXrayFollowForBook(decimal, opts)
   -- "on" string, NOT boolean true (round-19 bug fix): the P1 tri-state resolver
   -- honors a legacy boolean only for migrated users (_xray_auto_legacy_optin),
   -- so a boolean write here was INERT for everyone else
-  self.ui.doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, "on")
-  self.ui.doc_settings:flush()
+  self:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, "on")
+  self:_openBookDS():flush()
   self:_refreshXrayAutoState()
   self:_xrayFollowCatchUp(decimal, opts)
 end
@@ -11330,7 +11343,7 @@ function AskGPT:_xrayEstablishmentSteps(opts)
     ladder = ladder,
     base_progress = ActionCache.highestXrayLadderProgress(ladder),
     position = decimal,
-    goal = tonumber(self.ui.doc_settings:readSetting(BookSettings.KEY_XRAY_GOAL)),
+    goal = tonumber(self:_openBookDS():readSetting(BookSettings.KEY_XRAY_GOAL)),
     is_json = XrayParser.isJSON,
   }
   if not rebuild and (work.lineage_blocked or not work.build) then return nil end
@@ -11363,9 +11376,9 @@ end
 function AskGPT:_xrayFollowCatchUp(_decimal, opts)
   -- An explicit follow choice answers the coverage ask — never re-ask this book
   if self.ui and self.ui.doc_settings then
-    self.ui.doc_settings:saveSetting(
+    self:_openBookDS():saveSetting(
       require("koassistant_book_settings").KEY_XRAY_COVERAGE_ASKED, true)
-    self.ui.doc_settings:flush()
+    self:_openBookDS():flush()
   end
   local XrayAuto = require("koassistant_xray_auto")
   local file = self.ui and self.ui.document and self.ui.document.file
@@ -13195,13 +13208,13 @@ function AskGPT:checkXrayOffer()
     buttons = {
       {{ text = _("Turn on"), callback = function()
         UIManager:close(offer)
-        self_ref.ui.doc_settings:saveSetting(
+        self_ref:_openBookDS():saveSetting(
           require("koassistant_book_settings").KEY_XRAY_AUTO, "on")
         -- The offer promised a quiet background create — that IS the coverage
         -- answer, so the round-19 ask must not interject a second question
-        self_ref.ui.doc_settings:saveSetting(
+        self_ref:_openBookDS():saveSetting(
           require("koassistant_book_settings").KEY_XRAY_COVERAGE_ASKED, true)
-        self_ref.ui.doc_settings:flush()
+        self_ref:_openBookDS():flush()
         self_ref:_refreshXrayAutoState()
         -- Act now — the deferred fire re-checks every gate from disk truth
         UIManager:scheduleIn(2, function()
@@ -13210,9 +13223,9 @@ function AskGPT:checkXrayOffer()
       end }},
       {{ text = _("Not for this book"), callback = function()
         UIManager:close(offer)
-        self_ref.ui.doc_settings:saveSetting(
+        self_ref:_openBookDS():saveSetting(
           require("koassistant_book_settings").KEY_XRAY_AUTO, "off")
-        self_ref.ui.doc_settings:flush()
+        self_ref:_openBookDS():flush()
       end }},
     },
   }
@@ -13226,7 +13239,7 @@ function AskGPT:checkRecapReminder()
   if not self.ui or not self.ui.document or not self.ui.doc_settings then return end
 
   local now = os.time()
-  local last_opened = self.ui.doc_settings:readSetting("koassistant_last_opened")
+  local last_opened = self:_openBookDS():readSetting("koassistant_last_opened")
 
   -- Retroactive fallback: use sidecar directory mod time for books opened
   -- before this feature existed (sidecar is written on book close)
@@ -13240,7 +13253,7 @@ function AskGPT:checkRecapReminder()
   end
 
   -- Always update timestamp for next session
-  self.ui.doc_settings:saveSetting("koassistant_last_opened", now)
+  self:_openBookDS():saveSetting("koassistant_last_opened", now)
 
   if not last_opened then return end
 
@@ -13249,7 +13262,7 @@ function AskGPT:checkRecapReminder()
   if days_since < threshold then return end
 
   -- Skip if not started or nearly finished
-  local percent = self.ui.doc_settings:readSetting("percent_finished") or 0
+  local percent = self:_openBookDS():readSetting("percent_finished") or 0
   if percent <= 0 or percent > 0.95 then return end
 
   local days_display = math.floor(days_since)
@@ -13273,7 +13286,7 @@ function AskGPT:_maybeOfferLastChapterQuiz(features)
   if not self.ui or not self.ui.document or not self.ui.toc then return false end
   local toc = self.ui.toc
   if not toc.toc or #toc.toc == 0 then return false end
-  local book_quiz = self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_book_quiz")
+  local book_quiz = self.ui.doc_settings and self:_openBookDS():readSetting("koassistant_book_quiz")
   self._book_quiz = book_quiz
   if book_quiz and book_quiz.enabled == false then return false end
   self:_ensureQuizChapters(features)
@@ -13386,7 +13399,7 @@ function AskGPT:_currentChapterInfo()
   end
   local features = self.settings:readSetting("features") or {}
   -- Fresh per-book override read, same as onPageUpdate (consumed by _ensureQuizChapters)
-  self._book_quiz = self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_book_quiz")
+  self._book_quiz = self.ui.doc_settings and self:_openBookDS():readSetting("koassistant_book_quiz")
   self:_ensureQuizChapters(features)
   local indices = self._quiz_chapter_indices
   if not indices or #indices == 0 then return nil end
@@ -13446,7 +13459,7 @@ function AskGPT:_quizOnPageUpdate(pageno)
   -- Per-book quiz overrides, read from the live in-memory doc_settings (a hash lookup, fresh
   -- every page turn). `enabled` is suppress-only (the global gate above already returned for a
   -- globally-disabled quiz). (Key: BookSettings.KEY_QUIZ.)
-  local book_quiz = self.ui.doc_settings and self.ui.doc_settings:readSetting("koassistant_book_quiz")
+  local book_quiz = self.ui.doc_settings and self:_openBookDS():readSetting("koassistant_book_quiz")
   self._book_quiz = book_quiz
   if book_quiz and book_quiz.enabled == false then return end
 
@@ -13530,7 +13543,7 @@ function AskGPT:_refreshXrayAutoState()
     end
     local dials = XrayAuto.dialsFromFeatures(features)
     state.cooldown_s = dials.cooldown_s
-    state.goal = tonumber(self.ui.doc_settings:readSetting(
+    state.goal = tonumber(self:_openBookDS():readSetting(
       require("koassistant_book_settings").KEY_XRAY_GOAL)) or nil
     -- Console visibility while testing: log per-turn gate declines when debug is on
     state.debug = features.debug and true or nil
@@ -13732,11 +13745,11 @@ function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
   if not self.ui or not self.ui.doc_settings then return false end
   local BookSettings = require("koassistant_book_settings")
   if features.xray_coverage_mode == "follow" then return false end
-  if self.ui.doc_settings:readSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED) then return false end
+  if self:_openBookDS():readSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED) then return false end
   local self_ref = self
   local function stamp()
-    self_ref.ui.doc_settings:saveSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED, true)
-    self_ref.ui.doc_settings:flush()
+    self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED, true)
+    self_ref:_openBookDS():flush()
   end
   if features.xray_coverage_mode == "build" then
     stamp()
@@ -13749,7 +13762,7 @@ function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
   -- The ask only fires for from-nothing books: base nil. Counts mirror the
   -- plans each button dispatches (goal bounds the follow path; build-all is
   -- the whole book, matching _startXrayLadderBuild without opts).
-  local goal = tonumber(self.ui.doc_settings:readSetting(BookSettings.KEY_XRAY_GOAL))
+  local goal = tonumber(self:_openBookDS():readSetting(BookSettings.KEY_XRAY_GOAL))
   if goal and (goal <= 0.01 or goal >= 0.995) then goal = nil end
   local intro_extra = has_intro and 0 or 1
   local remember = false
@@ -13790,9 +13803,9 @@ function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
                 return #(self_ref:_planXrayGrid(nil, s, nil, decimal, boundaries)) + intro_extra
               end,
               on_pick = function(s)
-                self_ref.ui.doc_settings:saveSetting(
+                self_ref:_openBookDS():saveSetting(
                   BookSettings.KEY_XRAY_SPACING, s)
-                self_ref.ui.doc_settings:flush()
+                self_ref:_openBookDS():flush()
                 UIManager:show(Notification:new{
                   text = T(_("Checkpoint spacing for this book: every %1%"),
                     self_ref:_xraySpacingPctLabel(s)),
@@ -13800,9 +13813,9 @@ function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
                 showAsk()
               end,
               on_reset = function()
-                self_ref.ui.doc_settings:saveSetting(
+                self_ref:_openBookDS():saveSetting(
                   BookSettings.KEY_XRAY_SPACING, nil)
-                self_ref.ui.doc_settings:flush()
+                self_ref:_openBookDS():flush()
                 UIManager:show(Notification:new{
                   text = T(_("Checkpoint spacing for this book: recommended (every %1%)"),
                     self_ref:_xraySpacingPctLabel(self_ref:_xrayLadderSpacing())),
@@ -13820,8 +13833,8 @@ function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
           end }},
         {{ text = _("Not for this book"), callback = function()
           UIManager:close(ask)
-          self_ref.ui.doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
-          self_ref.ui.doc_settings:flush()
+          self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
+          self_ref:_openBookDS():flush()
           self_ref:_refreshXrayAutoState()
         end }},
       },
@@ -13916,7 +13929,7 @@ function AskGPT:_fireXrayAutoCheckpoints(opts)
     ladder = ladder,
     base_progress = ActionCache.highestXrayLadderProgress(ladder),
     position = decimal,
-    goal = tonumber(self.ui.doc_settings:readSetting(BookSettings.KEY_XRAY_GOAL)),
+    goal = tonumber(self:_openBookDS():readSetting(BookSettings.KEY_XRAY_GOAL)),
     is_json = XrayParser.isJSON,
   }
   -- Deferred rebuild catch-up (2026-08-14): an explicit rebuild-follow pick
@@ -15459,7 +15472,7 @@ function AskGPT:_offerChapterQuiz(chapter_index)
                 local feats = self_ref.settings:readSetting("features") or {}
                 if feats.enable_chapter_quiz ~= true then return end
                 local bq = self_ref.ui and self_ref.ui.doc_settings
-                    and self_ref.ui.doc_settings:readSetting("koassistant_book_quiz")
+                    and self_ref:_openBookDS():readSetting("koassistant_book_quiz")
                 if bq and bq.enabled == false then return end
                 UIManager:show(ConfirmBox:new{
                   text = T(_("End of: %1\n\nStart the quiz now?"), display_title),
@@ -18619,7 +18632,7 @@ function AskGPT:syncDictionaryBypass()
   -- reach by design (no wrapper installed).
   local intercept_on = features.xray_selection_intercept ~= false
   if not intercept_on and self.ui and self.ui.doc_settings then
-    intercept_on = self.ui.doc_settings:readSetting(
+    intercept_on = self:_openBookDS():readSetting(
       require("koassistant_book_settings").KEY_XRAY_INTERCEPT) == true
   end
 
@@ -21659,6 +21672,59 @@ end
     7. Mark migration complete (version = 2)
 --]]
 
+--- The open book's settings object for plugin keys (Track 37): a BookStore
+--- facade over the live DocSettings, so koassistant_* keys read/write the
+--- plugin's own per-book file while KOReader keys still read KOReader's.
+--- nil when no book is open. Replaces every direct DocSettings call on the
+--- open book in this file (grep gate in tests/unit/test_book_store.lua).
+function AskGPT:_openBookDS()
+  local ds = self.ui and self.ui.doc_settings
+  if not ds then return nil end
+  local file = self.ui.document and self.ui.document.file
+  return require("koassistant_book_store").wrap(ds, file)
+end
+
+--- Track 37 one-shot: move chats + per-book keys out of metadata.lua into the
+--- plugin's own sidecar files for every book the plugin can find. Runs at
+--- plugin init while chat_storage_version == 2 (v1 installs go through the
+--- v1 import, which now writes straight into the new files and stamps 3).
+--- Per book: copy, verify, then delete + flush — idempotent, so an
+--- interrupted pass simply re-runs on the next start; the version stamp is
+--- written only after a pass with zero failures. Once per process.
+function AskGPT:_runBookStoreMigration()
+  local version = G_reader_settings:readSetting("chat_storage_version", 1)
+  if version ~= 2 then return end
+  local BookStore = require("koassistant_book_store")
+  if BookStore._bulk_ran then return end
+  BookStore._bulk_ran = true
+  local features = self.settings:readSetting("features") or {}
+  logger.info("KOAssistant: moving per-book data out of metadata.lua (chat storage v2 -> v3)")
+  local ok, report = pcall(BookStore.migrateAll, self.ui, features)
+  if not ok then
+    logger.warn("KOAssistant: book store migration crashed:", report)
+    return
+  end
+  logger.info("KOAssistant: book store migration:", report.candidates, "candidates,",
+    report.moved, "moved (" .. report.chats .. " chats, " .. report.keys .. " keys),",
+    report.clean, "clean,", report.skipped, "skipped,", report.failed, "failed")
+  for _idx, f in ipairs(report.failures) do
+    logger.info("KOAssistant: book store migration failure:", f)
+  end
+  if report.failed == 0 then
+    G_reader_settings:saveSetting("chat_storage_version", 3)
+  end
+  G_reader_settings:flush()
+  if report.moved > 0 then
+    local moved = report.moved
+    UIManager:scheduleIn(2, function()
+      UIManager:show(InfoMessage:new{
+        text = T(_("KOAssistant moved its data out of KOReader's metadata files for %1 books."), moved),
+        timeout = 6,
+      })
+    end)
+  end
+end
+
 -- Check if chat history migration is needed
 function AskGPT:checkChatMigrationStatus()
   local version = G_reader_settings:readSetting("chat_storage_version", 1)
@@ -21677,9 +21743,9 @@ function AskGPT:checkChatMigrationStatus()
       logger.info("Chat storage needs migration from v1 to v2")
       self:showMigrationDialog()
     else
-      -- No old chats to migrate, just mark as v2
-      logger.info("No old chats found, marking storage as v2")
-      G_reader_settings:saveSetting("chat_storage_version", 2)
+      -- No old chats to migrate, just mark as v3 (the current sidecar-file layout)
+      logger.info("No old chats found, marking storage as v3")
+      G_reader_settings:saveSetting("chat_storage_version", 3)
       G_reader_settings:flush()
     end
   end
@@ -21736,7 +21802,7 @@ function AskGPT:migrateChatsToDocSettings()
   local old_dir = ChatHistoryManager.CHAT_DIR
   if not lfs.attributes(old_dir, "mode") then
     -- No old chats to migrate
-    G_reader_settings:saveSetting("chat_storage_version", 2)
+    G_reader_settings:saveSetting("chat_storage_version", 3)
     G_reader_settings:delSetting("chat_migration_in_progress")
     G_reader_settings:flush()
     UIManager:close(progress)
@@ -21791,23 +21857,20 @@ function AskGPT:migrateChatsToDocSettings()
       else
         -- Check if document still exists
         if lfs.attributes(doc_path, "mode") then
-          -- Read existing chats from metadata.lua (if any).
-          -- SafeDocSettings: use the live doc_settings if this book is open —
-          -- a fresh instance would clobber metadata.lua on flush (issue #72)
-          local doc_settings = require("koassistant_doc_settings").resolve(doc_path)
-          local existing_chats = doc_settings:readSetting("koassistant_chats", {})
-
-          -- Add all chats (keyed by ID)
+          -- Read existing chats from the book's chats file (if any) and add
+          -- the v1 chats (keyed by ID). Track 37: v1 imports straight into the
+          -- sidecar chats file, never through metadata.lua.
+          local BookStore = require("koassistant_book_store")
+          local existing_chats = BookStore.readChats(doc_path)
           for _idx, chat in ipairs(chats) do
             existing_chats[chat.id] = chat
             stats.migrated = stats.migrated + 1
           end
+          local ok_w, err_w = BookStore.writeChats(doc_path, existing_chats)
+          if not ok_w then error(err_w or "chats write failed") end
 
-          -- Save to metadata.lua
-          doc_settings:saveSetting("koassistant_chats", existing_chats)
-          doc_settings:flush()
-
-          -- Update chat index
+          -- Update chat index (title/author from KOReader's DocSettings)
+          local doc_settings = require("koassistant_doc_settings").resolve(doc_path)
           ChatHistoryManager:updateChatIndex(doc_path, "save", nil, existing_chats,
             { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
 
@@ -21847,9 +21910,9 @@ function AskGPT:migrateChatsToDocSettings()
       stats.failed = 1  -- Force retry
     else
       -- Mark migration complete only after successful backup
-      -- v2 = chats stored in metadata.lua for automatic move tracking
-      G_reader_settings:saveSetting("chat_storage_version", 2)
-      logger.info("Migration successful, marked as v2 storage (metadata.lua)")
+      -- v3 = chats in the plugin's own koassistant_chats.lua sidecar file
+      G_reader_settings:saveSetting("chat_storage_version", 3)
+      logger.info("Migration successful, marked as v3 storage (sidecar chats file)")
     end
   else
     logger.warn("Migration had " .. stats.failed .. " failures, keeping v1 storage for retry")
@@ -22844,6 +22907,11 @@ function AskGPT:patchDocSettingsForChatIndex()
 
     -- Call KOReader's original function (passes through copy parameter)
     DocSettings._original_updateLocation(old_path, new_path, copy)
+
+    -- Per-book store cache (Track 37): the files just moved/copied/died
+    local BookStore = require("koassistant_book_store")
+    BookStore.invalidate(old_path)
+    if new_path then BookStore.invalidate(new_path) end
 
     -- Update indices: move replaces old→new, copy adds new (keeps old), delete removes old
     local needs_flush = false

@@ -160,7 +160,9 @@ package.loaded["docsettings"] = MockDocSettings
 
 -- Mock LuaSettings
 package.loaded["luasettings"] = {
-    open = function(path)
+    -- accepts both LuaSettings:open(path) and LuaSettings.open(path)
+    open = function(a, b)
+        local path = b or a
         if not mock_storage[path] then mock_storage[path] = {} end
         return {
             _path = path,
@@ -228,7 +230,7 @@ package.loaded["datastorage"] = {
 
 -- Override os.rename to track calls
 local original_rename = os.rename
-os.rename = function(old, new)
+os.rename = function(old, new)  -- luacheck: ignore 122
     table.insert(mock_renames, { old = old, new = new })
     if mock_files[old] then
         mock_files[new] = mock_files[old]
@@ -298,13 +300,14 @@ end
 -- ============================================================
 -- Helper: populate a book with chats in MockDocSettings
 -- ============================================================
+-- Track 37: chats live in <sidecar>/koassistant_chats.lua (BookStore)
 local function addBookWithChats(doc_path, chat_ids)
-    local store_key = "docsettings:" .. doc_path
     local chats = {}
     for _idx, id in ipairs(chat_ids) do
         chats[id] = { id = id, messages = {} }
     end
-    mock_storage[store_key] = { koassistant_chats = chats }
+    mock_storage[MockDocSettings:getSidecarDir(doc_path) .. "/koassistant_chats.lua"] = { chats = chats }
+    mock_storage["docsettings:" .. doc_path] = {}
     -- Register as existing file
     mock_files[doc_path] = { mode = "file" }
 end
@@ -391,8 +394,8 @@ end)
 TestRunner:test("Phase A: skips missing book files", function()
     storage_mode = "doc"
     -- Book in ReadHistory but file doesn't exist on disk
-    mock_storage["docsettings:/books/deleted.epub"] = {
-        koassistant_chats = { c1 = { id = "c1" } },
+    mock_storage[MockDocSettings:getSidecarDir("/books/deleted.epub") .. "/koassistant_chats.lua"] = {
+        chats = { c1 = { id = "c1" } },
     }
     mock_read_history.hist = { { file = "/books/deleted.epub" } }
     -- Note: NOT registering /books/deleted.epub in mock_files
