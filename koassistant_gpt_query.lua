@@ -561,6 +561,13 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         max_tokens_retry_done = true
         if parsed.kind == "output_cap" and model then
             ModelConstraints.learnMaxOutput(provider, model, parsed.cap)
+        elseif parsed.kind == "context" and parsed.limit then
+            -- The model's context window binds prompt + budget exactly like a
+            -- per-minute allowance does; remember it for the session so the
+            -- next request on this model is sized up front instead of failing
+            -- first (OpenRouter free models, #106 follow-up). Never persisted:
+            -- the derived-caps cache is for output ceilings only.
+            RateLimits.record(provider, model, { limit_tokens = parsed.limit }, "context")
         end
         local retry_at = parsed.cap or parsed.retry_at
         logger.warn("KOAssistant: max_tokens self-heal (" .. parsed.kind .. "), retrying at",

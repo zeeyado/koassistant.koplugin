@@ -582,3 +582,7 @@ Desktop KOReader: Settings > Provider > Add custom provider, base URL
    probe learned the plan). Plugin log: "test probe learned per-minute allowance 8000".
 4. Paste ~40K characters into a chat: one refusal, no resend, and the error dialog says
    the request itself is larger than the allowance (scope advice), staying on screen.
+5. OpenRouter shape: restart the stub as `python3 tests/tools/tpm_stub_server.py 1234 32768
+   --openrouter` (LIMIT = the model's context window, HTTP 400, no headers) and send a
+   chat. Expect one refusal then ok (plugin log: "max_tokens self-heal (context), retrying
+   at N"), and the NEXT chat admitted first try ("answer budget capped ... allowance 32768").

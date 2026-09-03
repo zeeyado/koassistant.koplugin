@@ -1391,16 +1391,24 @@ function ModelConstraints.parseMaxTokensError(err_text)
     --  requested 20480 tokens (8192 in the messages, 12288 in the completion)."
     -- Checked FIRST: it also contains completion-token numbers that the
     -- output-cap patterns below must never mistake for a model ceiling.
+    -- OpenRouter (2026-09-03, #106 follow-up): "This endpoint's maximum context
+    -- length is 32768 tokens. However, you requested about 33002 tokens (234 of
+    -- text input, 32768 in the output)." Same arithmetic, different prompt wording;
+    -- every free model with a context at or below the 32,768 default budget failed
+    -- every request until this was recognized.
     local ctx = err_text:match("[Mm]aximum context length[^%d]*(%d+)")
         or err_text:match("context length of only (%d+)")
     if ctx then
         local limit = tonumber(ctx)
         local prompt = tonumber(err_text:match("(%d+)%s+in the messages")
-            or err_text:match("(%d+)%s+tokens? in the messages"))
+            or err_text:match("(%d+)%s+tokens? in the messages")
+            or err_text:match("(%d+)%s+of text input")
+            or err_text:match("(%d+)%s+in the prompt")
+            or err_text:match("(%d+)%s+input tokens"))
         if limit and prompt and limit > prompt then
             local room = limit - prompt - 256  -- margin for chat template overhead
             if room >= 1024 then
-                return { kind = "context", retry_at = room }
+                return { kind = "context", retry_at = room, limit = limit, prompt = prompt }
             end
         end
         return nil  -- context overflow but no computable room: retrying can't help
@@ -1562,6 +1570,18 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
     -- dictionary lookup was told to lower "Max Text Characters"); say what
     -- actually happened, with the provider's own numbers.
     local RateLimits = require("koassistant_rate_limits")
+    -- Context overflow where the PROMPT fits comfortably: the answer budget was the
+    -- problem (OpenRouter free models with small contexts against the 32,768
+    -- default). The book-text advice below would be wrong for that case too.
+    local overflow = ModelConstraints.parseMaxTokensError(err_msg)
+    if overflow and overflow.kind == "context" and overflow.prompt and overflow.limit then
+        return err_msg .. "\n\n" ..
+            "What happened: this model's context window is " .. tostring(overflow.limit) ..
+            " tokens and the request asked for an answer budget (max_tokens) that, together with the " ..
+            tostring(overflow.prompt) .. "-token prompt, exceeds it. KOAssistant resends such a request once " ..
+            "with a smaller answer budget and remembers this model's window for the session. If you keep " ..
+            "seeing this, pick a model with a larger context window."
+    end
     local refusal = RateLimits.parseRefusal(err_msg)
     if refusal then
         local who = (type(provider) == "string" and provider ~= "") and provider or "This provider"

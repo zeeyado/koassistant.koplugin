@@ -442,6 +442,23 @@ TestRunner:test("admission refusal: prompt alone over the allowance = scope advi
     TestRunner:assertEqual(out:find("resends such a request once", 1, true), nil, "no resend promise")
 end)
 
+TestRunner:test("context overflow caused by the budget: honest tip, no book-text advice", function()
+    local out = ModelConstraints.decorateRequestError(
+        "This endpoint's maximum context length is 32768 tokens. However, you requested about 33002 tokens (234 of text input, 32768 in the output).",
+        "openrouter", "some/free-model:free", { features = {} })
+    TestRunner:assertContains(out, "context window is 32768", "names the window")
+    TestRunner:assertContains(out, "234-token prompt", "names the prompt size")
+    TestRunner:assertContains(out, "resends such a request once", "says what the plugin does")
+    TestRunner:assertEqual(out:find("Max Text Characters", 1, true), nil, "book-text advice gone")
+end)
+
+TestRunner:test("context overflow where the prompt itself is too big keeps the scope advice", function()
+    local out = ModelConstraints.decorateRequestError(
+        "This endpoint's maximum context length is 8192 tokens. However, you requested about 40000 tokens (9000 of text input, 31000 in the output).",
+        "openrouter", "some/free-model:free", { features = {} })
+    TestRunner:assertContains(out, "too large for the selected model", "book-text tip kept")
+end)
+
 TestRunner:test("admission refusal is a rate-limit for the persistent dialog (HTTP 413, no 429 wording)", function()
     TestRunner:assertEqual(ModelConstraints.isRateLimitError(GROQ_413), true, "413 TPM wording classed as rate limit")
     TestRunner:assertEqual(ModelConstraints.isRateLimitError("HTTP 413: Request Entity Too Large"), false,

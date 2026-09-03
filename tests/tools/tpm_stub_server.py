@@ -10,6 +10,7 @@ the same headers. No credentials, no network beyond localhost.
 Usage:
     python3 tests/tools/tpm_stub_server.py            # port 8765, limit 8000
     python3 tests/tools/tpm_stub_server.py 8765 8000 --no-headers   # refusal text only
+    python3 tests/tools/tpm_stub_server.py 1234 32768 --openrouter   # OpenRouter context-window wording
 
 Then in KOAssistant (desktop build): Settings -> Provider -> Add custom provider,
 base URL http://127.0.0.1:8765/v1/chat/completions, no API key, any model name.
@@ -23,6 +24,11 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 and sys.argv[1].isdigit() else 8765
 LIMIT = int(sys.argv[2]) if len(sys.argv) > 2 and sys.argv[2].isdigit() else 8000
 SEND_HEADERS = "--no-headers" not in sys.argv
+# --openrouter: refuse with OpenRouter's context-window wording (HTTP 400, no rate-limit
+# headers) instead of Groq's per-minute one; LIMIT then plays the model's context length.
+OPENROUTER = "--openrouter" in sys.argv
+if OPENROUTER:
+    SEND_HEADERS = False
 BYTES_PER_TOKEN = 4
 
 
@@ -64,11 +70,19 @@ class Handler(BaseHTTPRequestHandler):
               f"-> {'REFUSE' if requested > LIMIT else 'ok'}", flush=True)
 
         if requested > LIMIT:
-            msg = (f"Request too large for model `{model}` in organization `org_stub` service tier "
-                   f"`on_demand` on tokens per minute (TPM): Limit {LIMIT}, Requested {requested}, "
-                   f"please reduce your message size and try again.")
-            payload = json.dumps({"error": {"message": msg, "type": "tokens", "code": "rate_limit_exceeded"}}).encode()
-            self.send_response(413)
+            if OPENROUTER:
+                msg = (f"This endpoint's maximum context length is {LIMIT} tokens. However, you requested "
+                       f"about {requested} tokens ({est} of text input, {requested - est} in the output). "
+                       f"Please reduce the length of either one, or use the \"middle-out\" transform to "
+                       f"compress your prompt automatically.")
+                payload = json.dumps({"error": {"message": msg, "code": 400}}).encode()
+                self.send_response(400)
+            else:
+                msg = (f"Request too large for model `{model}` in organization `org_stub` service tier "
+                       f"`on_demand` on tokens per minute (TPM): Limit {LIMIT}, Requested {requested}, "
+                       f"please reduce your message size and try again.")
+                payload = json.dumps({"error": {"message": msg, "type": "tokens", "code": "rate_limit_exceeded"}}).encode()
+                self.send_response(413)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
             self._headers(requested)
@@ -121,6 +135,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    print(f"[stub] listening on http://127.0.0.1:{PORT}  limit={LIMIT} tokens/min  "
+    print(f"[stub] listening on http://127.0.0.1:{PORT}  limit={LIMIT} "
+          f"{'context tokens (openrouter wording)' if OPENROUTER else 'tokens/min'}  "
           f"headers={'on' if SEND_HEADERS else 'off'}", flush=True)
     HTTPServer(("127.0.0.1", PORT), Handler).serve_forever()
