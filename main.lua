@@ -1581,6 +1581,13 @@ function AskGPT:initSettings()
     -- not one-time (re-evaluates every launch) and needs self + ModelLists.
     local needs_save = require("koassistant_migrations").run(features)
 
+    -- Orphan global key from an early 2026 build, never read since (registry
+    -- entry legacy_chat_storage_version; storage sweep 2026-09-03)
+    if G_reader_settings:has("koassistant_chat_storage_version") then
+      G_reader_settings:delSetting("koassistant_chat_storage_version")
+      G_reader_settings:flush()
+    end
+
     -- Image gen became the image_gen ACTION (2026-08-13). One-time here, not in
     -- the pure migrations module: an explicit old "Show Generate Image button"
     -- OFF must seed a highlight-menu DISMISSAL — a top-level settings list the
@@ -20278,6 +20285,24 @@ function AskGPT:quickResetFreshStart()
 
   self.settings:flush()
   self:updateConfigFromSettings()
+
+  -- Registry-declared cruft a fresh start removes (storage sweep 2026-09-03,
+  -- flags audit I3): today only the v1->v2 import's own copy of the chats it
+  -- already imported, and only once that import is complete. Chat history
+  -- itself stays, as the confirm text promises.
+  if G_reader_settings:readSetting("chat_storage_version", 1) >= 2 then
+    for _idx, entry in ipairs(StorageRegistry.resetEntries("fresh_start")) do
+      local path = StorageRegistry.resolvePath(entry)
+      if path and lfs.attributes(path, "mode") == "directory" then
+        local ok_p, err_p = pcall(require("ffi/util").purgeDir, path)
+        if ok_p then
+          logger.info("KOAssistant: fresh start removed", entry.id, path)
+        else
+          logger.warn("KOAssistant: fresh start could not remove", path, ":", err_p)
+        end
+      end
+    end
+  end
 
   UIManager:show(Notification:new{
     text = _("Fresh start complete - API keys preserved"),

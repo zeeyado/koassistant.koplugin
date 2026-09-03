@@ -79,35 +79,11 @@ function BookStore.pathFor(document_path, filename)
     return dir .. "/" .. filename
 end
 
---- Lazy storage-mode migration (same recipe as the cache/notebook/pinned
---- files): when the file is missing at the current location, look in the
---- other storage modes and move it over.
+--- Lazy storage-mode migration (the shared registry recipe): when the file
+--- is missing at the current location, look in the other storage modes and
+--- move it over.
 local function migrateSidecarIfNeeded(document_path, current_path, filename)
-    local ok_ds, DocSettings = pcall(require, "docsettings")
-    if not ok_ds or type(DocSettings) ~= "table" then return false end
-    local current = G_reader_settings:readSetting("document_metadata_folder", "doc")
-    local alternates = { "doc", "dir" }
-    if DocSettings.isHashLocationEnabled and DocSettings.isHashLocationEnabled() then
-        table.insert(alternates, "hash")
-    end
-    for _idx, loc in ipairs(alternates) do
-        if loc ~= current then
-            local alt_dir = sidecarDir(document_path, loc)
-            local alt_path = alt_dir and (alt_dir .. "/" .. filename)
-            if alt_path and lfs.attributes(alt_path, "mode") == "file" then
-                local util = require("util")
-                local dir = current_path:match("(.*/)") or ""
-                if dir ~= "" then util.makePath(dir) end
-                local ok, err = os.rename(alt_path, current_path)
-                if ok then
-                    logger.info("KOAssistant: Migrated sidecar file", filename, "from alternate storage location")
-                    return true
-                end
-                logger.warn("KOAssistant: Failed to migrate sidecar file", filename, ":", err)
-            end
-        end
-    end
-    return false
+    return require("koassistant_storage_registry").migrateSidecarFile(document_path, current_path, filename)
 end
 
 local function fileStamp(path)

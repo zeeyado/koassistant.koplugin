@@ -99,30 +99,8 @@ local function migrateSidecarIfNeeded(document_path, current_path, filename)
         or document_path == PinnedManager.LIBRARY_KEY then
         return false
     end
-    local current = G_reader_settings:readSetting("document_metadata_folder", "doc")
-    local alternates = { "doc", "dir" }
-    if DocSettings.isHashLocationEnabled() then
-        table.insert(alternates, "hash")
-    end
-    for _idx, loc in ipairs(alternates) do
-        if loc ~= current then
-            local alt_dir = DocSettings:getSidecarDir(document_path, loc)
-            local alt_path = alt_dir .. "/" .. filename
-            if lfs.attributes(alt_path, "mode") == "file" then
-                local util = require("util")
-                local dir = current_path:match("(.*/)") or ""
-                if dir ~= "" then util.makePath(dir) end
-                local ok, err = os.rename(alt_path, current_path)
-                if ok then
-                    logger.info("KOAssistant: Migrated sidecar file", filename, "from alternate storage location")
-                    return true
-                else
-                    logger.warn("KOAssistant: Failed to migrate sidecar file", filename, ":", err)
-                end
-            end
-        end
-    end
-    return false
+    -- the shared registry recipe (storage sweep 2026-09-03)
+    return require("koassistant_storage_registry").migrateSidecarFile(document_path, current_path, filename)
 end
 
 --- Load pinned artifacts from file.

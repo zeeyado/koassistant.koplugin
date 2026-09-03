@@ -170,8 +170,13 @@ local SETTINGS_BODY = 'return {\n  ["features"] = { ["api_keys"] = { ["anthropic
 local CONFIG_BODY = '-- user config\nreturn { provider = "openai" }\n'
 local DOMAIN_BODY = '# Academic\nA custom domain.\n'
 local BEHAVIOR_BODY = '# Terse\nBe brief.\n'
+local PINNED_BODY = 'return {\n  ["pinned"] = { { ["title"] = "p1" } },\n}\n'
+local GROUPS_BODY = 'return {\n  ["groups"] = { { ["name"] = "g1", ["books"] = {} } },\n}\n'
 local function seed()
     writeFile(TMP .. "/settings/koassistant_settings.lua", SETTINGS_BODY)
+    -- settings-dir stores copied as-is (registry backupSettingsFiles)
+    writeFile(TMP .. "/settings/koassistant_pinned_general.lua", PINNED_BODY)
+    writeFile(TMP .. "/settings/koassistant_book_groups.lua", GROUPS_BODY)
     writeFile(TMP .. "/plugin/configuration.lua", CONFIG_BODY)
     writeFile(TMP .. "/plugin/domains/academic.md", DOMAIN_BODY)
     writeFile(TMP .. "/plugin/behaviors/terse.md", BEHAVIOR_BODY)
@@ -262,7 +267,8 @@ local bm2 = freshManager()
 local backup2 = bm2:createBackup(BACKUP_OPTS)
 
 -- Simulate data loss: delete the live settings + plugin files, keep the backup.
-sh(string.format('rm -f "%s"', TMP .. "/settings/koassistant_settings.lua"))
+sh(string.format('rm -f "%s" "%s" "%s"', TMP .. "/settings/koassistant_settings.lua",
+    TMP .. "/settings/koassistant_pinned_general.lua", TMP .. "/settings/koassistant_book_groups.lua"))
 sh(string.format('rm -rf "%s" "%s" "%s"',
     TMP .. "/plugin/configuration.lua", TMP .. "/plugin/domains", TMP .. "/plugin/behaviors"))
 
@@ -285,6 +291,11 @@ end)
 
 TestRunner:test("restoreBackup succeeds", function()
     TestRunner:assertTrue(restore and restore.success, "restore failed: " .. tostring(restore and restore.error))
+end)
+
+TestRunner:test("pinned store + groups come back byte-for-byte (registry-driven settings-dir list)", function()
+    TestRunner:assertTrue(readFile(TMP .. "/settings/koassistant_pinned_general.lua") == PINNED_BODY, "pinned general restored")
+    TestRunner:assertTrue(readFile(TMP .. "/settings/koassistant_book_groups.lua") == GROUPS_BODY, "groups restored (were never backed up before 2026-09-03)")
 end)
 
 TestRunner:test("configs + content come back byte-for-byte", function()

@@ -953,14 +953,13 @@ function BackupManager:createBackup(options)
             end
         end
 
-        -- Copy pinned artifact files (general + library)
-        local pinned_general = self.SETTINGS_DIR .. "/koassistant_pinned_general.lua"
-        if lfs.attributes(pinned_general, "mode") == "file" then
-            self:_copyFile(pinned_general, settings_dir .. "/koassistant_pinned_general.lua")
-        end
-        local pinned_library = self.SETTINGS_DIR .. "/koassistant_pinned_library.lua"
-        if lfs.attributes(pinned_library, "mode") == "file" then
-            self:_copyFile(pinned_library, settings_dir .. "/koassistant_pinned_library.lua")
+        -- Settings-dir stores copied as-is (registry-driven: pinned general +
+        -- library, groups; storage sweep 2026-09-03 — groups were missing)
+        for _idx, ref in ipairs(StorageRegistry.backupSettingsFiles()) do
+            local src = self.SETTINGS_DIR .. "/" .. ref
+            if lfs.attributes(src, "mode") == "file" then
+                self:_copyFile(src, settings_dir .. "/" .. ref)
+            end
         end
     end
 
@@ -1588,17 +1587,17 @@ function BackupManager:restoreBackup(backup_path, options)
             end
         end
 
-        -- Restore pinned artifact files (general + library)
-        local backup_pinned_general = temp_dir .. "/settings/koassistant_pinned_general.lua"
-        if lfs.attributes(backup_pinned_general, "mode") == "file" then
-            self:_copyFile(backup_pinned_general, self.SETTINGS_DIR .. "/koassistant_pinned_general.lua")
+        -- Settings-dir stores copied back as-is (same registry list as the backup side)
+        for _idx, ref in ipairs(StorageRegistry.backupSettingsFiles()) do
+            local src = temp_dir .. "/settings/" .. ref
+            if lfs.attributes(src, "mode") == "file" then
+                self:_copyFile(src, self.SETTINGS_DIR .. "/" .. ref)
+            end
         end
-        -- Try new name first, fall back to old name (backward compat with old backups)
-        local backup_pinned_library = temp_dir .. "/settings/koassistant_pinned_library.lua"
+        -- Old backups carry the library pinned store under its pre-rename name
         local backup_pinned_multi_old = temp_dir .. "/settings/koassistant_pinned_multi_book.lua"
-        if lfs.attributes(backup_pinned_library, "mode") == "file" then
-            self:_copyFile(backup_pinned_library, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
-        elseif lfs.attributes(backup_pinned_multi_old, "mode") == "file" then
+        if lfs.attributes(temp_dir .. "/settings/koassistant_pinned_library.lua", "mode") ~= "file"
+                and lfs.attributes(backup_pinned_multi_old, "mode") == "file" then
             self:_copyFile(backup_pinned_multi_old, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
         end
     end

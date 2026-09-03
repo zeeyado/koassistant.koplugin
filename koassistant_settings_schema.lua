@@ -3427,7 +3427,6 @@ function SettingsSchema.applyDefaults(features, preserve)
 
     -- Keep migration flags
     new_features.behavior_migrated = true
-    new_features.prompts_migrated_v2 = true
 
     return new_features
 end

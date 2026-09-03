@@ -225,6 +225,10 @@ function NotebookManager:showNotebookOptions(doc_path, doc_title)
                                 if ok == nil and err then
                                     logger.warn("KOAssistant Notebook: Failed to delete:", err)
                                 end
+                                -- Drop the book's pointer to it (vault/central modes keep one;
+                                -- it used to outlive the file — storage sweep 2026-09-03)
+                                local ds = doc_path and SafeDocSettings.resolve(doc_path)
+                                if ds then ds:saveSetting("koassistant_notebook_ref", nil) end
                                 -- Update index
                                 local AskGPT = self_ref:getAskGPTInstance()
                                 if AskGPT then

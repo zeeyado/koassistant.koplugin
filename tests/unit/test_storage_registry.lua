@@ -393,11 +393,13 @@ TestRunner:test("freshStartPreserve is clean-slate: wipes custom assets + prefer
         .. "per-book boolean opt-ins in sidecars survive Fresh Start and key on it)")
 end)
 
-TestRunner:test("resetEntries(fresh_start) clears only internal data-dir cruft", function()
+TestRunner:test("resetEntries(fresh_start) clears only the v1 import's backup copy", function()
     local ids = {}
     for _, e in ipairs(Registry.resetEntries("fresh_start")) do ids[e.id] = true end
-    TestRunner:assertTrue(ids["chats_v1_dir"], "fresh_start should clear v1 chats dir")
     TestRunner:assertTrue(ids["chats_backup_dir"], "fresh_start should clear chats.backup dir")
+    -- storage sweep 2026-09-03: v1 is retired as a storage path but a v1 dir
+    -- left by an old-build restore may hold un-imported chats — wipe_all only.
+    TestRunner:assertTrue(not ids["chats_v1_dir"], "fresh_start must not delete the v1 chats dir")
     -- Must NOT force-clear conversations/backups via this path.
     TestRunner:assertTrue(not ids["general_chats"], "fresh_start must not force-clear chats")
     TestRunner:assertTrue(not ids["backups_dir"], "fresh_start must never touch backups")
@@ -451,6 +453,57 @@ TestRunner:test("backupPluginFiles covers the config files, with credential flag
     TestRunner:assertTrue(by_ref["configuration.lua"] and by_ref["configuration.lua"].credential ~= true,
         "configuration.lua must be a non-credential backup file")
     TestRunner:assertTrue(by_ref["custom_actions.lua"] ~= nil, "custom_actions.lua must be backed up")
+end)
+
+TestRunner:test("backupSettingsFiles = the settings-dir stores copied as-is (pinned x2 + groups), never the settings file or chat stores", function()
+    local refs = {}
+    for _, ref in ipairs(Registry.backupSettingsFiles()) do refs[ref] = true end
+    TestRunner:assertTrue(refs["koassistant_pinned_general.lua"], "pinned general")
+    TestRunner:assertTrue(refs["koassistant_pinned_library.lua"], "pinned library")
+    TestRunner:assertTrue(refs["koassistant_book_groups.lua"], "groups (missing from every backup before the 2026-09-03 sweep)")
+    TestRunner:assertTrue(not refs["koassistant_settings.lua"], "settings file has its own path")
+    TestRunner:assertTrue(not refs["koassistant_general_chats.lua"], "chat stores ride the chats JSON")
+    TestRunner:assertTrue(not refs["koassistant_library_chats.lua"], "chat stores ride the chats JSON")
+end)
+
+TestRunner:test("the orphan early-build version key is registered and deleted at init (structural)", function()
+    local found
+    for _, e in ipairs(Registry.all()) do
+        if e.ref == "koassistant_chat_storage_version" then found = e end
+    end
+    TestRunner:assertTrue(found and found.location == "global_key", "registry entry")
+    local f = assert(io.open(PLUGIN_DIR .. "/main.lua", "r"))
+    local src = f:read("*all"); f:close()
+    TestRunner:assertTrue(src:find('delSetting%("koassistant_chat_storage_version"%)') ~= nil, "initSettings deletes it")
+end)
+
+TestRunner:test("quickResetFreshStart consumes resetEntries(fresh_start) (structural, flags audit I3)", function()
+    local f = assert(io.open(PLUGIN_DIR .. "/main.lua", "r"))
+    local src = f:read("*all"); f:close()
+    local body = src:match("function AskGPT:quickResetFreshStart%(%).-\nend\n")
+    TestRunner:assertTrue(body ~= nil, "quickResetFreshStart found")
+    TestRunner:assertTrue(body:find('resetEntries%("fresh_start"%)') ~= nil, "must walk the registry's fresh_start entries")
+    TestRunner:assertTrue(body:find('chat_storage_version') ~= nil, "must gate on the v1 import being complete")
+end)
+
+TestRunner:test("dead stamps are gone: prompts_migrated_v2 is neither written nor preserved", function()
+    local internal = {}
+    for _idx, key in ipairs(Registry.SETTINGS_SUBKEYS.internal) do internal[key] = true end
+    TestRunner:assertTrue(not internal["prompts_migrated_v2"] and not internal["_reasoning_hint_shown"], "removed from the internal bucket")
+    local f = assert(io.open(PLUGIN_DIR .. "/koassistant_settings_schema.lua", "r"))
+    local src = f:read("*all"); f:close()
+    TestRunner:assertTrue(src:find("prompts_migrated_v2", 1, true) == nil, "schema no longer writes it")
+end)
+
+TestRunner:test("only ONE sidecar-relocation implementation remains (registry.migrateSidecarFile)", function()
+    local dup = 0
+    for _idx, name in ipairs({ "koassistant_action_cache.lua", "koassistant_notebook.lua", "koassistant_pinned_manager.lua", "koassistant_book_store.lua" }) do
+        local f = assert(io.open(PLUGIN_DIR .. "/" .. name, "r"))
+        local src = f:read("*all"); f:close()
+        if src:find('readSetting%("document_metadata_folder"') then dup = dup + 1 end
+        TestRunner:assertTrue(src:find("migrateSidecarFile", 1, true) ~= nil, name .. " must delegate to the registry")
+    end
+    TestRunner:assertTrue(dup == 0, "no file may re-implement the alternate-location walk (found " .. dup .. ")")
 end)
 
 TestRunner:test("backupPluginDirs covers domains + behaviors", function()
