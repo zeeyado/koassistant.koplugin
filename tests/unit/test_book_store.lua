@@ -86,8 +86,11 @@ function MockLS:flush() existing[self._path] = true; return self end
 local docs = {}   -- doc_path -> data table
 local MockDS = {}
 MockDS.__index = MockDS
-function MockDS:getSidecarDir(doc_path, _loc)
-    return (doc_path:match("(.*)%.") or doc_path) .. ".sdr"
+local mock_location = "doc"   -- KOReader's "Book metadata location"
+function MockDS:getSidecarDir(doc_path, loc)
+    local base = (doc_path:match("(.*)%.") or doc_path) .. ".sdr"
+    if (loc or mock_location) == "dir" then return "/central" .. base end
+    return base
 end
 function MockDS:open(doc_path)
     if not docs[doc_path] then docs[doc_path] = { doc_path = doc_path } end
@@ -112,7 +115,14 @@ package.loaded["docsettings"] = MockDS
 
 package.loaded["util"] = { makePath = function() end }
 
--- os.remove against the in-memory "disk"
+-- os.remove / os.rename against the in-memory "disk"
+local saved_os_rename = os.rename
+os.rename = function(old, new)  -- luacheck: ignore 122
+    if not existing[old] then return nil, "no such file" end
+    files[new] = files[old]; files[old] = nil
+    existing[new] = true; existing[old] = nil
+    return true
+end
 local saved_os_remove = os.remove
 os.remove = function(path)  -- luacheck: ignore 122
     if existing[path] then existing[path] = nil; files[path] = nil; return true end
@@ -123,7 +133,7 @@ end
 local g_store = {}
 _G.G_reader_settings = {
     readSetting = function(_, key, default)
-        if key == "document_metadata_folder" then return "doc" end
+        if key == "document_metadata_folder" then return mock_location end
         local v = g_store[key]
         if v == nil then return default end
         return v
@@ -178,6 +188,7 @@ local SafeDocSettings = require("koassistant_doc_settings")
 local TestRunner = { passed = 0, failed = 0 }
 local function reset()
     files = {}; existing = {}; docs = {}; ds_flushes = {}; index_calls = {}; candidates = {}; g_store = {}
+    mock_location = "doc"
     BookStore._resetForTests()
     BookStore._resetMigrationMemoForTests()
 end
@@ -260,6 +271,29 @@ end)
 
 -- ============================================================
 print("\n  -- chats file --")
+
+TestRunner:test("both files follow KOReader's metadata-location switch, mid-session too", function()
+    -- device round 2026-09-03: the settings file stayed in the central
+    -- folder after switching back, because the cached store kept the old path
+    bookFile(BOOK)
+    local f = BookStore.wrap(MockDS:open(BOOK), BOOK)
+    f:saveSetting("koassistant_book_domain", "history")
+    BookStore.writeChats(BOOK, { c1 = { id = "c1" } })
+    mock_location = "dir"
+    eq(f:readSetting("koassistant_book_domain"), "history", "settings follow to the central folder")
+    truthy(existing["/central" .. SFILE], "settings file moved to the central folder")
+    eq(existing[SFILE], nil, "and left the book folder")
+    eq(BookStore.readChats(BOOK).c1.id, "c1", "chats follow to the central folder")
+    truthy(existing["/central" .. CFILE], "chats file moved")
+    f:saveSetting("koassistant_book_quiz", true)
+    truthy(files["/central" .. SFILE].data.settings.koassistant_book_quiz, "writes land at the new location")
+    mock_location = "doc"
+    eq(f:readSetting("koassistant_book_quiz"), true, "settings follow back, same session")
+    truthy(existing[SFILE], "settings file back beside the book")
+    eq(existing["/central" .. SFILE], nil, "and gone from the central folder")
+    eq(BookStore.readChats(BOOK).c1.id, "c1", "chats follow back")
+    truthy(existing[CFILE], "chats file back beside the book")
+end)
 
 TestRunner:test("writeChats + readChats roundtrip; empty write removes the file", function()
     bookFile(BOOK)
@@ -549,5 +583,6 @@ package.loaded["koassistant_chat_history_manager"] = nil
 package.loaded["koassistant_index_rebuilder"] = nil
 
 os.remove = saved_os_remove  -- luacheck: ignore 122
+os.rename = saved_os_rename  -- luacheck: ignore 122
 print(string.format("\n  Book store tests: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

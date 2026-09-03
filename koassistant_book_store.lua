@@ -279,7 +279,12 @@ function BookStore.settings(document_path, raw_ds, opts)
     local entry = cache[key]
     if entry then
         local file = entry.store.file
-        if file and not entry.store.dirty and fileStamp(file) ~= entry.store.stamp then
+        if file ~= BookStore.pathFor(document_path, BookStore.SETTINGS_FILE) then
+            -- KOReader's "Book metadata location" changed under us: the
+            -- reload finds our file at the old location and moves it over
+            if entry.store.dirty then entry.store:flush() end
+            entry.store = loadStore(document_path)
+        elseif file and not entry.store.dirty and fileStamp(file) ~= entry.store.stamp then
             entry.store = loadStore(document_path)
         end
     else
