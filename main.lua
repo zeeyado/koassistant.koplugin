@@ -446,8 +446,6 @@ function AskGPT:init()
     end
     -- Check if recap reminder should be shown
     self:checkRecapReminder()
-    -- One-shot Automatic X-Ray offer (§7 P4, opt-in; gates inside)
-    self:checkXrayOffer()
     -- Initialize chapter quiz state (reset on each book open). The chapter boundary list is
     -- recomputed lazily on the first page turn (and whenever the level setting changes), since
     -- the TOC may not be filled yet here.
@@ -9421,7 +9419,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
             -- A5 — the cancel path records the stop now, and this row must
             -- honor it like the checkpoint-resume row below)
             local nc_stop = nc_xa.lastLadderStop(nc_file)
-            self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true, asked = true,
+            self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true,
               rebuild = (nc_stop and nc_stop.rebuild) or nil })
           end,
         }})
@@ -9745,7 +9743,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
             XrayAuto.clearAutoSuppression(sx_file)
             -- A cancelled PRE-SWAP rebuild resumes as a rebuild (2026-08-15 A5)
             local sx_paused_stop = XrayAuto.lastLadderStop(sx_file)
-            self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true, asked = true,
+            self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true,
               rebuild = (sx_paused_stop and sx_paused_stop.rebuild) or nil })
           end,
         }})
@@ -11337,10 +11335,22 @@ function AskGPT:_enableXrayFollowForBook(decimal, opts)
   -- "on" string, NOT boolean true (round-19 bug fix): the P1 tri-state resolver
   -- honors a legacy boolean only for migrated users (_xray_auto_legacy_optin),
   -- so a boolean write here was INERT for everyone else
+  local prev = self:_openBookDS():readSetting(BookSettings.KEY_XRAY_AUTO)
   self:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, "on")
   self:_openBookDS():flush()
   self:_refreshXrayAutoState()
-  self:_xrayFollowCatchUp(decimal, opts)
+  -- 2026-09-04 (maintainer): the catch-up confirm's Cancel puts the key back
+  -- the way it was, so a cancelled pick leaves nothing running and nothing
+  -- resuming on the next open
+  local self_ref = self
+  local o = {}
+  for k, v in pairs(opts or {}) do o[k] = v end
+  o.revert = function()
+    self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, prev)
+    self_ref:_openBookDS():flush()
+    self_ref:_refreshXrayAutoState()
+  end
+  self:_xrayFollowCatchUp(decimal, o)
 end
 
 --- Size of the establishment chain the engine would run right now: intro +
@@ -11398,60 +11408,95 @@ end
 --- seed ceiling): a catch-up of more than a few requests names its cost
 --- before the chain starts; declining pauses automatic building for this
 --- book this session (the setting stays on).
+--- Start the engine for a follow pick behind ONE confirm that names the
+--- spend (2026-09-04, maintainer: the request count must never decide whether
+--- the reader sees what is about to happen; a 50% spacing set by accident on a
+--- thousand-page book is few requests and a huge one). Start = the engine
+--- entry as before. Cancel (or tapping outside) = opts.revert when the caller
+--- just wrote the per-book key (the pick is put back, nothing runs, nothing
+--- resumes on reopen), plain close when the book was already automatic.
+--- opts.after runs once the confirm resolved either way (the picker defers
+--- its surface reopen to it). Nothing to build = no confirm, just the toast.
 function AskGPT:_xrayFollowCatchUp(_decimal, opts)
-  -- An explicit follow choice answers the coverage ask — never re-ask this book
-  if self.ui and self.ui.doc_settings then
-    self:_openBookDS():saveSetting(
-      require("koassistant_book_settings").KEY_XRAY_COVERAGE_ASKED, true)
-    self:_openBookDS():flush()
-  end
-  local XrayAuto = require("koassistant_xray_auto")
-  local file = self.ui and self.ui.document and self.ui.document.file
   local rebuild = opts and opts.rebuild or nil
   local self_ref = self
+  local function after()
+    if opts and opts.after then opts.after() end
+  end
   local function start()
     UIManager:show(Notification:new{
       text = rebuild and _("Automatic X-Ray on: rebuilding as you read.")
         or _("Automatic X-Ray on: building as you read."),
     })
-    self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true, asked = true,
-      rebuild = rebuild })
+    self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true, rebuild = rebuild })
+    after()
   end
   local n = self:_xrayEstablishmentSteps(rebuild and { rebuild = true } or nil)
-  if n and n > 3 then
-    local confirm
-    confirm = ButtonDialog:new{
-      title = T(_("Automatic X-Ray needs to catch up first: %1 background requests build checkpoints up to your position, plus one ahead. Each covers a bounded slice of the text. Start now?"), n),
-      buttons = {
-        {{ text = _("Start"), callback = function()
-          UIManager:close(confirm)
-          start()
-        end }},
-        {{ text = _("Later (resumes when you reopen this book)"), callback = function()
-          UIManager:close(confirm)
-          if file then XrayAuto.suppressAuto(file) end
-          UIManager:show(InfoMessage:new{
-            text = _("Automatic X-Ray stays on. Resume from the X-Ray popup, or it continues next time you open this book."),
-            timeout = 4,
-          })
-        end }},
-      },
-    }
-    UIManager:show(confirm)
+  if n == 0 then
+    start()
     return
   end
-  start()
+  local lines = {}
+  if rebuild then
+    lines[1] = _("Automatic X-Ray on: the X-Ray is rebuilt from the start in background requests, the introduction and checkpoints up to your position, plus one ahead.")
+  else
+    lines[1] = _("Automatic X-Ray on: background requests build the introduction and checkpoints up to your position, plus one ahead.")
+  end
+  if n then
+    lines[2] = T(_("Requests needed now: %1. Each covers a bounded slice of the text."), n)
+  else
+    lines[2] = _("Each covers a bounded slice of the text.")
+  end
+  lines[3] = _("Start now?")
+  local revert = opts and opts.revert
+  local function cancel()
+    if revert then revert() end
+    after()
+  end
+  local confirm
+  confirm = ButtonDialog:new{
+    title = table.concat(lines, "\n"),
+    buttons = {
+      {{ text = _("Start"), callback = function()
+        UIManager:close(confirm)
+        start()
+      end }},
+      {{ text = revert and _("Cancel (leave Automatic X-Ray off)") or _("Cancel"),
+        callback = function()
+          UIManager:close(confirm)
+          cancel()
+        end }},
+    },
+    tap_close_callback = cancel,
+  }
+  UIManager:show(confirm)
 end
 
 --- Round 19/21 ("auto-toggle entry"): turning per-book Automatic X-Ray ON from
 --- the tri-state picker starts the engine like the Create form's follow pick —
 --- first-ever books get intro + catch-up + one ahead; books with an X-Ray just
---- get their next checkpoint ahead.
-function AskGPT:_onXrayAutoTurnedOn()
-  if not self.ui or not self.ui.document or not self.ui.document.file then return end
+--- get their next checkpoint ahead. 2026-09-04: behind the catch-up confirm;
+--- `prev` = the key's value before the pick (Cancel restores it unless the
+--- book was already "on"), `after` = the picker's deferred surface reopen.
+--- Returns true when it took the pick over (the caller must not reopen its
+--- surface itself), false when there is nothing to run here (no open book,
+--- page-based book).
+function AskGPT:_onXrayAutoTurnedOn(prev, after)
+  if not self.ui or not self.ui.document or not self.ui.document.file then return false end
   local doc_info = self.ui.document.info
-  if not doc_info or doc_info.has_pages then return end
-  self:_xrayFollowCatchUp()
+  if not doc_info or doc_info.has_pages then return false end
+  local self_ref = self
+  local o = { after = after }
+  if prev ~= "on" then
+    o.revert = function()
+      local BookSettings = require("koassistant_book_settings")
+      self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, prev)
+      self_ref:_openBookDS():flush()
+      self_ref:_refreshXrayAutoState()
+    end
+  end
+  self:_xrayFollowCatchUp(nil, o)
+  return true
 end
 
 --- Show name input for a Section X-Ray, then trigger generation.
@@ -13197,66 +13242,6 @@ end
 
 --- Check if we should show a recap reminder for the current book.
 --- Called from onReaderReady when the user opens a book they haven't read in a while.
---- One-shot "turn on Automatic X-Ray?" offer on book open (§7 P4, recap-reminder
---- pattern; opt-in via xray_offer_auto). Fires only when accepting can act
---- immediately: flowing doc, no X-Ray at all, inside the auto-create window,
---- consent already satisfied. Declining sets the per-book tri-state to "off"
---- (the offer only fires while it is unset, so it never re-asks); tapping
---- outside decides nothing and may ask again next open. A ButtonDialog, NOT a
---- ConfirmBox — ConfirmBox fires cancel_callback on ANY close incl. dismiss.
-function AskGPT:checkXrayOffer()
-  local features = self.settings:readSetting("features") or {}
-  if features.xray_offer_auto ~= true then return end
-  if not self.ui or not self.ui.document or not self.ui.doc_settings then return end
-  local doc_info = self.ui.document.info
-  if not doc_info or doc_info.has_pages then return end
-  local file = self.ui.document.file
-  if not file then return end
-  local BookSettings = require("koassistant_book_settings")
-  if BookSettings.xrayAutoOverride(self.ui.doc_settings, features) ~= nil then return end
-  if BookSettings.resolveXrayAuto(self.ui.doc_settings, features) then return end
-  local ActionCache = require("koassistant_action_cache")
-  local entry = ActionCache.get(file, "xray")
-  if entry and entry.result then return end
-  local doc_entry = ActionCache.getXrayCache(file)
-  if doc_entry and doc_entry.result then return end
-  -- Round 21: no window gate — the engine can act at any position (intro +
-  -- catch-up checkpoints), so the offer is valid whenever consent is in place
-  local action = self.action_service and self.action_service:getAction("book", "xray")
-  if not action then return end
-  if not self:_xrayBackgroundConsentOk(action, features) then return end
-  local self_ref = self
-  local offer
-  offer = ButtonDialog:new{
-    title = _("This book has no X-Ray yet.") .. "\n"
-      .. _("Turn on Automatic X-Ray for this book? It will be created in the background now and kept updated as you read."),
-    buttons = {
-      {{ text = _("Turn on"), callback = function()
-        UIManager:close(offer)
-        self_ref:_openBookDS():saveSetting(
-          require("koassistant_book_settings").KEY_XRAY_AUTO, "on")
-        -- The offer promised a quiet background create — that IS the coverage
-        -- answer, so the round-19 ask must not interject a second question
-        self_ref:_openBookDS():saveSetting(
-          require("koassistant_book_settings").KEY_XRAY_COVERAGE_ASKED, true)
-        self_ref:_openBookDS():flush()
-        self_ref:_refreshXrayAutoState()
-        -- Act now — the deferred fire re-checks every gate from disk truth
-        UIManager:scheduleIn(2, function()
-          self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true, asked = true })
-        end)
-      end }},
-      {{ text = _("Not for this book"), callback = function()
-        UIManager:close(offer)
-        self_ref:_openBookDS():saveSetting(
-          require("koassistant_book_settings").KEY_XRAY_AUTO, "off")
-        self_ref:_openBookDS():flush()
-      end }},
-    },
-  }
-  UIManager:show(offer)
-end
-
 function AskGPT:checkRecapReminder()
   local features = self.settings:readSetting("features") or {}
   if features.enable_recap_reminder ~= true then return end
@@ -13751,134 +13736,6 @@ function AskGPT:_scheduleXrayAutoFire()
   UIManager:scheduleIn(XrayAuto.SCHEDULE_DELAY_S, fire)
 end
 
---- Round 19 (item-16 "first-auto-fire coverage-ask"), reworked round 22 (D4):
---- the first time auto-create is about to fire on a book (every gate has
---- already passed), ask HOW coverage should happen instead of silently
---- creating — once per book (sidecar stamp). features.xray_coverage_mode
---- remembers a global answer: "follow" = never ask, create silently; "build" =
---- offer the (always-confirmed) checkpoint build once per book; nil/"ask" =
---- ask. The decline row is a REAL decline (R4 "Not for this book"): it sets
---- the per-book tri-state to "off" — reversible via the Automatic X-Ray
---- picker, no stamp needed on that branch. Dismissing the dialog decides
---- nothing and may ask again at the next fire. Explicit follow opt-ins (picker
---- On, Create-form follow pick, the book-open offer) pre-stamp — the user
---- already answered this question. Button counts are the real establishment
---- plans (D6): catch-up = grid to position + one ahead; build-all = the full
---- grid; both count the intro when one is still needed.
---- @return boolean true when this fire was consumed (ask shown / build offered)
-function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
-  if not self.ui or not self.ui.doc_settings then return false end
-  local BookSettings = require("koassistant_book_settings")
-  if features.xray_coverage_mode == "follow" then return false end
-  if self:_openBookDS():readSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED) then return false end
-  local self_ref = self
-  local function stamp()
-    self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_COVERAGE_ASKED, true)
-    self_ref:_openBookDS():flush()
-  end
-  if features.xray_coverage_mode == "build" then
-    stamp()
-    self:_startXrayLadderBuild()
-    return true
-  end
-  local XrayAuto = require("koassistant_xray_auto")
-  local boundaries = features.xray_ladder_chapter_snap ~= false
-    and self:_ladderChapterBoundaries() or nil
-  -- The ask only fires for from-nothing books: base nil. Counts mirror the
-  -- plans each button dispatches (goal bounds the follow path; build-all is
-  -- the whole book, matching _startXrayLadderBuild without opts).
-  local goal = tonumber(self:_openBookDS():readSetting(BookSettings.KEY_XRAY_GOAL))
-  if goal and (goal <= 0.01 or goal >= 0.995) then goal = nil end
-  local intro_extra = has_intro and 0 or 1
-  local remember = false
-  local ask
-  local function showAsk()
-    -- Counts recompute per show — the spacing row below changes them
-    -- (spacing slice: the ask IS the once-per-book up-front spacing moment)
-    local spacing = self_ref:_xrayLadderSpacing()
-    local follow_rungs, follow_labels = self_ref:_planXrayGrid(nil, spacing, goal, decimal, boundaries)
-    local n_follow = #(XrayAuto.truncateToOneAhead(follow_rungs, decimal, follow_labels)) + intro_extra
-    local n_all = #(self_ref:_planXrayGrid(nil, spacing, nil, decimal, boundaries)) + intro_extra
-    ask = ButtonDialog:new{
-      -- B272: name WHY the dialog is here (the automation is on), not a
-      -- lack — the old "This book has no X-Ray yet" read as a nag
-      title = _("Automatic X-Ray is on. How should this book's X-Ray be built?"),
-      buttons = {
-        {{ text = T(_("Catch up to here now, then keep one ahead (%1 requests)"), n_follow),
-          callback = function()
-            UIManager:close(ask)
-            stamp()
-            if remember then self_ref:_setXrayCoverageMode("follow") end
-            self_ref:_fireXrayAutoCheckpoints({ asked = true, notify = true })
-          end }},
-        {{ text = T(_("Build all checkpoints now (%1 background requests)…"), n_all),
-          callback = function()
-            UIManager:close(ask)
-            stamp()
-            if remember then self_ref:_setXrayCoverageMode("build") end
-            self_ref:_startXrayLadderBuild()
-          end }},
-        {{ text = T(_("Change checkpoint spacing (every %1%)…"),
-            self_ref:_xraySpacingPctLabel(spacing)),
-          callback = function()
-            UIManager:close(ask)
-            self_ref:_showXraySpacingPicker{
-              current = spacing,
-              override = BookSettings.xraySpacingOverride(self_ref.ui.doc_settings),
-              title = _("Checkpoint spacing for this book:"),
-              count_for = function(s)
-                return #(self_ref:_planXrayGrid(nil, s, nil, decimal, boundaries)) + intro_extra
-              end,
-              on_pick = function(s)
-                self_ref:_openBookDS():saveSetting(
-                  BookSettings.KEY_XRAY_SPACING, s)
-                self_ref:_openBookDS():flush()
-                UIManager:show(Notification:new{
-                  text = T(_("Checkpoint spacing for this book: every %1%"),
-                    self_ref:_xraySpacingPctLabel(s)),
-                })
-                showAsk()
-              end,
-              on_reset = function()
-                self_ref:_openBookDS():saveSetting(
-                  BookSettings.KEY_XRAY_SPACING, nil)
-                self_ref:_openBookDS():flush()
-                UIManager:show(Notification:new{
-                  text = T(_("Checkpoint spacing for this book: recommended (every %1%)"),
-                    self_ref:_xraySpacingPctLabel(self_ref:_xrayLadderSpacing())),
-                })
-                showAsk()
-              end,
-              on_back = function() showAsk() end,
-            }
-          end }},
-        {{ text = (remember and "● " or "○ ") .. _("Always do this, for every book"),
-          callback = function()
-            UIManager:close(ask)
-            remember = not remember
-            showAsk()
-          end }},
-        {{ text = _("Not for this book"), callback = function()
-          UIManager:close(ask)
-          self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
-          self_ref:_openBookDS():flush()
-          self_ref:_refreshXrayAutoState()
-        end }},
-      },
-    }
-    UIManager:show(ask)
-  end
-  showAsk()
-  return true
-end
-
-function AskGPT:_setXrayCoverageMode(mode)
-  local f = self.settings:readSetting("features") or {}
-  f.xray_coverage_mode = mode
-  self.settings:saveSetting("features", f)
-  self.settings:flush()
-end
-
 --- Silent consent check shared by every unattended X-Ray fire (background update,
 --- auto-create, ladder rungs): the book_text gate incl. trusted-provider bypass,
 --- without _checkRequirements' UI.
@@ -13902,11 +13759,12 @@ end
 --- every missing grid point up to ONE past the reader, through the same chain
 --- the front-load build uses (same grid, same store, same promotion). Replaces
 --- the retired to-position auto-update/auto-create path. Disk truth derived
---- here; the chain re-verifies per step. First-ever spend for a book routes
---- through the coverage ask. opts: { notify = true } → announce chain progress
---- (explicit enables); { asked = true } → the coverage ask was just answered;
---- { explicit = true } → fired by an explicit enable (skip the posture
---- re-check — the key may have just been written).
+--- here; the chain re-verifies per step. A first-ever build for a book runs
+--- only under a per-book On (the reader's own pick, confirmed at pick time)
+--- — first-build automation is retired (2026-09-04). opts: { notify = true }
+--- → announce chain progress (explicit enables); { explicit = true } → fired
+--- by an explicit enable (skip the posture re-check — the key may have just
+--- been written).
 function AskGPT:_fireXrayAutoCheckpoints(opts)
   local XrayAuto = require("koassistant_xray_auto")
   if XrayAuto.ladderBuild() or XrayAuto.isInFlight() then return end
@@ -13967,14 +13825,10 @@ function AskGPT:_fireXrayAutoCheckpoints(opts)
   local chain_rebuild = opts and opts.rebuild or nil
   if not chain_rebuild then
     if work.lineage_blocked or not work.build then return end
-    -- Follow-global books keep the separate create guard (P1): the FIRST build
-    -- for a book needs create_allowed unless the enable was explicit
+    -- The FIRST build for a book needs a per-book On (create_allowed) unless
+    -- the enable was explicit: a follow-global book with no X-Ray is left
+    -- alone (first-build automation retired 2026-09-04, maintainer)
     if not work.has_any and not create_allowed and not (opts and opts.explicit) then return end
-    -- First-ever spend goes through the coverage ask (round 19; once per book)
-    if not work.has_any and not (opts and opts.asked)
-        and self:_xrayCoverageAskBeforeCreate(file, features, decimal, work.has_intro) then
-      return
-    end
   end
 
   local spacing = self:_xrayLadderSpacing()

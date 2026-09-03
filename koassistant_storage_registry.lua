@@ -335,7 +335,7 @@ Registry.entries = {
         location = "sidecar_file", ref = "koassistant_book_settings.lua",
         category = "config", backup = true,
         opt_in_reset = true,
-        notes = "Single key `settings` = { koassistant_book_* (BookSettings.SIDECAR_KEYS) + koassistant_notebook_ref + koassistant_doi + koassistant_last_opened + koassistant_book_xray_coverage_asked }. No dedicated index (per-book, small). Backed up as koassistant_book_settings.json.",
+        notes = "Single key `settings` = { koassistant_book_* (BookSettings.SIDECAR_KEYS) + koassistant_notebook_ref + koassistant_doi + koassistant_last_opened }. No dedicated index (per-book, small). Backed up as koassistant_book_settings.json.",
     },
     {
         id = "sidecar_chats", label = "Per-book chats",

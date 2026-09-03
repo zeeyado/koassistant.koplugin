@@ -1028,21 +1028,22 @@ TestRunner:test("xrayAutoOverride: strings win; legacy true needs the migration 
     TestRunner:assertEqual(BookSettings.xrayAutoOverride(nil, {}), nil, "no doc_settings = follow")
 end)
 
-TestRunner:test("resolveXrayAuto: per-book On bundles create; follow needs master+create", function()
+TestRunner:test("resolveXrayAuto: per-book On bundles the first build; follow-global only continues", function()
     local function ds(v) return { readSetting = function(_, key)
         if key == BookSettings.KEY_XRAY_AUTO then return v end
     end } end
     local auto, create = BookSettings.resolveXrayAuto(ds("on"), {})
     TestRunner:assertEqual(auto, true, "per-book On is standalone (global off)")
-    TestRunner:assertEqual(create, true, "per-book On bundles auto-create")
-    auto, create = BookSettings.resolveXrayAuto(ds("off"), { xray_auto_update = true, xray_auto_create = true })
+    TestRunner:assertEqual(create, true, "per-book On bundles the first build")
+    auto, create = BookSettings.resolveXrayAuto(ds("off"), { xray_auto_update = true })
     TestRunner:assertEqual(auto, false, "per-book Off beats global on")
     TestRunner:assertEqual(create, false, "per-book Off kills create too")
     auto, create = BookSettings.resolveXrayAuto(ds(nil), { xray_auto_update = true })
     TestRunner:assertEqual(auto, true, "follow-global inherits the all-books master")
-    TestRunner:assertEqual(create, false, "follow-global create needs the sub-toggle")
+    TestRunner:assertEqual(create, false, "follow-global never starts an X-Ray")
+    -- The retired sub-toggle left in an old settings file changes nothing
     auto, create = BookSettings.resolveXrayAuto(ds(nil), { xray_auto_update = true, xray_auto_create = true })
-    TestRunner:assertEqual(create, true, "follow-global create with the sub-toggle on")
+    TestRunner:assertEqual(create, false, "stale xray_auto_create is inert (retired 2026-09-04)")
     auto = BookSettings.resolveXrayAuto(ds(nil), {})
     TestRunner:assertEqual(auto, false, "everything unset = off (schema default)")
 end)
@@ -1347,30 +1348,27 @@ TestRunner:test("every delete pins the per-book automation off and clears the li
         function ds:flush() self.flushed = self.flushed + 1 end
         return ds
     end
-    local A, ASKED = BookSettings.KEY_XRAY_AUTO, BookSettings.KEY_XRAY_COVERAGE_ASKED
-    -- per-book on under a global off: pinned off (the on-open offer fires
-    -- only while the key is unset, and a delete used to unset it)
-    local ds = mutableDs({ [A] = "on", [ASKED] = true, [BookSettings.KEY_XRAY_PROMOTION] = "position" })
+    local A = BookSettings.KEY_XRAY_AUTO
+    -- per-book on under a global off: pinned off
+    local ds = mutableDs({ [A] = "on", [BookSettings.KEY_XRAY_PROMOTION] = "position" })
     BookSettings.clearXrayLineageState(ds, { xray_auto_update = false })
     TestRunner:assertEqual(ds._data[A], "off", "override pinned off")
-    TestRunner:assertEqual(BookSettings.xrayAutoOverride(ds, { xray_offer_auto = true }), "off",
-        "the offer's unset-key gate sees an answer")
-    TestRunner:assertEqual(ds._data[ASKED], nil, "stamp cleared")
+    TestRunner:assertEqual(BookSettings.xrayAutoOverride(ds, {}), "off")
     TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_PROMOTION], nil, "hold cleared")
     TestRunner:assertEqual(ds.flushed, 1)
-    -- follow-global under a global auto-create: the device case — pinned off
-    ds = mutableDs({ [ASKED] = true })
-    local g = { xray_auto_update = true, xray_auto_create = true }
+    -- follow-global under the all-books master: pinned off, resolves off
+    ds = mutableDs({})
+    local g = { xray_auto_update = true }
     BookSettings.clearXrayLineageState(ds, g)
-    TestRunner:assertEqual(ds._data[A], "off", "explicit off, so the coverage ask stays away")
+    TestRunner:assertEqual(ds._data[A], "off", "explicit off under the master")
     TestRunner:assertEqual(BookSettings.resolveXrayAuto(ds, g), false)
     TestRunner:assertEqual(ds.flushed, 1)
-    -- per-book on under a global auto: same outcome
+    -- per-book on under the master: same outcome
     ds = mutableDs({ [A] = "on" })
     BookSettings.clearXrayLineageState(ds, g)
     TestRunner:assertEqual(ds._data[A], "off")
-    -- nothing set, global off (the maintainer's device: all-books OFF, offer ON):
-    -- still pinned off, so the next open of the X-Ray-less book asks nothing
+    -- nothing set, global off: still pinned off (the 2026-09-04 device case,
+    -- where the retired on-open offer re-asked after every delete)
     ds = mutableDs({})
     BookSettings.clearXrayLineageState(ds, {})
     TestRunner:assertEqual(ds._data[A], "off", "pinned even when no layer said on")

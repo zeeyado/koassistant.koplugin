@@ -11076,14 +11076,27 @@ end
 
 showEarlierBooksSweep = function(opts)
     local ActionCache = require("koassistant_action_cache")
-    -- opts.include_later = the confirmed later-books reveal (S5)
+    -- opts.include_later = the confirmed later-books reveal (S5): ONLY the
+    -- later books — every surface carrying the confirm row already shows the
+    -- earlier books' hits (the auto-walked lookup lists, the browser's folded
+    -- groups since 2026-09-04), so the reveal lists what was held back and
+    -- nothing twice
     local preds = ActionCache.groupXrays(opts.document_path, { include_later = opts.include_later })
+    if opts.include_later then
+        local later = {}
+        for _idx, p in ipairs(preds) do
+            if p.direction == "later" then later[#later + 1] = p end
+        end
+        preds = later
+    end
     local wide = walkIsWide(preds)
     local groups = collectPredGroups(preds, opts.query, false)
     if #groups == 0 then
         local text
         if opts.include_later then
-            text = T(_("No results for \"%1\" in the other books of the series."), opts.query)
+            text = #preds == 1
+                and T(_("No results for \"%1\" in the later book of the series."), opts.query)
+                or T(_("No results for \"%1\" in the later books of the series."), opts.query)
         elseif wide then
             text = #preds == 1
                 and T(_("No results for \"%1\" in the other book of the group."), opts.query)
@@ -11098,7 +11111,7 @@ showEarlierBooksSweep = function(opts)
     end
     local title
     if opts.include_later then
-        title = T(_("Results for \"%1\" in the other books of the series"), opts.query)
+        title = T(_("Results for \"%1\" in later books of the series"), opts.query)
     elseif wide then
         title = T(_("Results for \"%1\" in the other books of the group"), opts.query)
     else
@@ -12993,6 +13006,7 @@ return {
     showPredecessorEntity = showPredecessorEntity,
     showEarlierBooksSweep = showEarlierBooksSweep,
     confirmLaterBooksSweep = confirmLaterBooksSweep,
+    collectPredGroups = collectPredGroups,
     executeDirectAction = executeDirectAction,
     executeActionForResult = executeActionForResult,
     generateSummaryCache = generateSummaryCache,

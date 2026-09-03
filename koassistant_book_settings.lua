@@ -183,10 +183,9 @@ BookSettings.KEY_TOOLS = "koassistant_book_tools"
 -- "on" only when the one-time migration recorded the old master as enabled —
 -- with the old master off, stored opt-ins were inert and must not re-activate.
 BookSettings.KEY_XRAY_AUTO = "koassistant_book_xray_auto"
--- Round 19: once-per-book stamp for the first-auto-fire coverage ask (set by the
--- ask itself and by every EXPLICIT follow opt-in — picker On, Create-form follow
--- pick, the P4 offer — which already answer the question the ask would pose)
-BookSettings.KEY_XRAY_COVERAGE_ASKED = "koassistant_book_xray_coverage_asked"
+-- (KEY_XRAY_COVERAGE_ASKED, the coverage ask's once-per-book stamp, retired
+-- 2026-09-04 with first-build automation; a stale value in an old sidecar
+-- file is inert.)
 -- Round 21 (unified checkpoint engine): per-book coverage GOAL bounding the
 -- checkpoint grid — a ratio for section-end targets; nil = whole book. Written
 -- by the Create form's "as I read" pick under section-end coverage and by the
@@ -329,28 +328,22 @@ end
 --- re-asked how to create on the next page turn; deleted = quiet until the
 --- reader creates again, and the form's pick turns it back on). ONE helper
 --- for every delete site (popup + both browser hamburgers). Flushes.
---- 2026-09-03 (device round, B272): clearing alone was quiet ONLY for a
---- book whose automation was its own "on". Two other layers re-asked after
---- a delete: a book that FOLLOWS a global auto-create resolved to on again
---- (the once-per-book coverage ask returned on the next page turn), and the
---- on-open OFFER (`xray_offer_auto`, "This book has no X-Ray yet. Turn on
---- Automatic X-Ray for this book?") fires whenever this key is unset and the
---- book has no X-Ray, which a delete had just arranged (2026-09-04 device
---- round: the maintainer's nag, with the all-books switch OFF). So the
---- override is written "off" UNCONDITIONALLY: deleted = quiet until the
---- reader creates again, whichever layer would have spoken (the form's "as
---- I read" pick and the per-book picker write "on"). Checkpoint installs
---- never read this key, so a later "Build all checkpoints" run still
---- installs its rungs as the reader passes them.
---- @param _features table|nil kept for the call sites; the pin no longer depends on the global layer
+--- 2026-09-03/04 (device rounds, B272): clearing alone was quiet ONLY for a
+--- book whose automation was its own "on"; the on-open offer and the global
+--- auto-create re-asked after a delete because both keyed on an UNSET
+--- per-book value plus a missing X-Ray, which every delete arranged. Both
+--- are retired now (first-build automation, 2026-09-04), and the override is
+--- still written "off" UNCONDITIONALLY: deleted = quiet until the reader
+--- creates again, whichever layer would have spoken (the form's "as I read"
+--- pick and the per-book picker write "on"). Checkpoint installs never read
+--- this key, so a later "Build all checkpoints" run still installs its rungs
+--- as the reader passes them.
+--- @param _features table|nil kept for the call sites; the pin does not depend on the global layer
 function BookSettings.clearXrayLineageState(doc_settings, _features)
     doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return end
-    local keys = { BookSettings.KEY_XRAY_COVERAGE_ASKED, BookSettings.KEY_XRAY_PROMOTION }
-    for _idx, k in ipairs(keys) do
-        if doc_settings:readSetting(k) ~= nil then
-            doc_settings:delSetting(k)
-        end
+    if doc_settings:readSetting(BookSettings.KEY_XRAY_PROMOTION) ~= nil then
+        doc_settings:delSetting(BookSettings.KEY_XRAY_PROMOTION)
     end
     doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
     doc_settings:flush()
@@ -377,9 +370,11 @@ function BookSettings.xrayAutoOverride(doc_settings, features)
     return nil
 end
 
---- Effective X-Ray automation for a book. Per-book "on" bundles auto-create
---- (the one-switch directive); follow-global books need the global create
---- sub-toggle on top of the global master. Pure.
+--- Effective X-Ray automation for a book. Per-book "on" bundles the first
+--- build (the one-switch directive, confirmed at pick time); follow-global
+--- books only ever CONTINUE an X-Ray the reader started — the global
+--- auto-create sub-toggle is retired (2026-09-04, maintainer: nothing may
+--- start an X-Ray without the reader picking it for that book). Pure.
 --- @return boolean auto, boolean create_allowed, string|nil override
 function BookSettings.resolveXrayAuto(doc_settings, features)
     doc_settings = BookStore.wrap(doc_settings)
@@ -387,8 +382,7 @@ function BookSettings.resolveXrayAuto(doc_settings, features)
     if ov == "on" then return true, true, ov end
     if ov == "off" then return false, false, ov end
     local f = features or {}
-    local auto = f.xray_auto_update == true
-    return auto, auto and f.xray_auto_create == true, nil
+    return f.xray_auto_update == true, false, nil
 end
 
 --- Row/chip label for the current per-book Automatic X-Ray state. Pure.
@@ -813,9 +807,6 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_XRAY_AHEAD_CARD,
     BookSettings.KEY_XRAY_CATEGORIES,
     BookSettings.KEY_XRAY_DEPTH,
-    -- (KEY_XRAY_COVERAGE_ASKED is deliberately NOT here: a stamp, not an
-    -- override — it must not count as "customized" nor block on reset;
-    -- registered as its own storage-registry entry like the last-opened stamp)
     BookSettings.KEY_QUICK_ANSWER,
     BookSettings.KEY_TOOL_EFFORT,
     BookSettings.KEY_WEB_EFFORT,
@@ -1262,13 +1253,21 @@ function BookSettings.showXrayAutoPicker(opts)
         doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, val)
         doc_settings:flush()
         UIManager:close(picker)
-        if opts.on_change then opts.on_change() end
-        -- Round 19 (after on_change so the catch-up dialog lands ON TOP of a
-        -- re-opened popup): picking On on a book with no X-Ray yet gets the
-        -- same honest catch-up flow as the Create form's follow pick
-        if val == "on" and opts.plugin and opts.plugin._onXrayAutoTurnedOn then
-            opts.plugin:_onXrayAutoTurnedOn()
+        -- Round 19: picking On gets the same catch-up flow as the Create
+        -- form's follow pick. 2026-09-04: that flow confirms first (Cancel
+        -- restores `cur`), so the surface reopen (on_change) is DEFERRED to
+        -- the confirm's outcome — reopening first and again after would
+        -- stack two copies of the popup. Only when the picker's book IS the
+        -- open book: the engine and the revert both act on the open book's
+        -- settings, and Book Settings can target any book from hub surfaces
+        local open_here = not opts.document_path
+            or (opts.ui and opts.ui.document and opts.ui.document.file
+                and require("koassistant_doc_settings").samePath(opts.ui.document.file, opts.document_path))
+        if val == "on" and open_here and opts.plugin and opts.plugin._onXrayAutoTurnedOn
+                and opts.plugin:_onXrayAutoTurnedOn(cur, opts.on_change) then
+            return
         end
+        if opts.on_change then opts.on_change() end
     end
     picker = ButtonDialog:new{
         title = _("Automatic X-Ray (this book)") .. "\n"

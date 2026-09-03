@@ -909,14 +909,14 @@ local SettingsSchema = {
                             text = _("Automatic X-Ray (all books)"),
                             path = "features.xray_auto_update",
                             default = false,
-                            help_text = _("Automatically build and maintain every book's X-Ray as you read (flowing formats like EPUB only): a spoiler-free introduction first, then checkpoints at chapter-sized steps, always keeping the next checkpoint ready ahead of you; reaching it installs it instantly and the one after starts building. Individual books can override this either way: X-Ray popup or Book Settings → Automatic X-Ray; a per-book On works even with this off, and a per-book Off always wins.\n\nSpend guards: at most one background build per cooldown, WiFi only, and text-extraction consent (or a trusted provider) required; background runs extract book text and use API tokens without a per-request tap. Leave off if every request should be explicit."),
+                            help_text = _("Keep the X-Rays you started up to date as you read (flowing formats like EPUB only): checkpoints at chapter-sized steps, always keeping the next checkpoint ready ahead of you; reaching it installs it instantly and the one after starts building. Books with no X-Ray are left alone: start one from the X-Ray popup with \"Build as I read\", or switch a book to Automatic individually (X-Ray popup or Book Settings → Automatic X-Ray), which works even with this off; a per-book Off always wins.\n\nSpend guards: at most one background build per cooldown, WiFi only, and text-extraction consent (or a trusted provider) required; background runs extract book text and use API tokens without a per-request tap. Leave off if every request should be explicit."),
                             on_change = function(new_value, plugin)
                                 -- Round 22 (R4 / known gap (a)): flipping the master with a
                                 -- book open must reach that book immediately — refresh the
                                 -- per-page state and, when turning ON, run the same engine
-                                -- entry a book-open would (the coverage ask fires for
-                                -- first-spend books; established books just restore the
-                                -- one-ahead invariant).
+                                -- entry a book-open would (books with no X-Ray are left
+                                -- alone; established books just restore the one-ahead
+                                -- invariant).
                                 if not plugin or not plugin._refreshXrayAutoState then return end
                                 plugin:_refreshXrayAutoState()
                                 if new_value == true and plugin._fireXrayAutoCheckpoints
@@ -927,36 +927,6 @@ local SettingsSchema = {
                                     end)
                                 end
                             end,
-                        },
-                        {
-                            id = "xray_auto_create",
-                            type = "toggle",
-                            text = _("Also Start X-Rays Automatically"),
-                            path = "features.xray_auto_create",
-                            default = false,
-                            help_text = _("A sub-setting of Automatic X-Ray (all books), for books that have NO X-Ray yet: allow automation to make the FIRST build (introduction + checkpoints to your position; the first build asks how you want coverage, once per book). With this off, \"all books\" automation only maintains X-Rays you started yourself. Books with an existing non-incremental X-Ray (complete, AI-knowledge, legacy) are never touched.\n\nBooks switched to Automatic individually (per-book On) always build the first one, regardless of this setting."),
-                            depends_on = { id = "xray_auto_update", value = true },
-                        },
-                        {
-                            id = "xray_coverage_mode",
-                            type = "dropdown",
-                            text = _("First Build for New Books"),
-                            path = "features.xray_coverage_mode",
-                            default = "ask",
-                            options = {
-                                { label = _("Ask each book"), value = "ask" },
-                                { label = _("Catch up, then follow"), value = "follow" },
-                                { label = _("Build all checkpoints"), value = "build" },
-                            },
-                            help_text = _("How Automatic X-Ray handles its first build for a book. \"Ask each book\" shows a one-time choice per book. \"Catch up, then follow\" quietly builds checkpoints to your position and keeps one ahead. \"Build all checkpoints\" offers the full checkpoint build with its cost confirmation. The ask dialog's \"Always do this, for every book\" writes this setting too."),
-                        },
-                        {
-                            id = "xray_offer_auto",
-                            type = "toggle",
-                            text = _("Offer Automatic X-Ray for New Books"),
-                            path = "features.xray_offer_auto",
-                            default = false,
-                            help_text = _("When you open a book that has no X-Ray, ask once whether to turn on Automatic X-Ray for it. Only asks when it could act right away (flowing format, text-extraction consent in place). Declining turns the book's Automatic X-Ray off, so it never asks again for that book."),
                         },
                         -- (Round 21, unified engine: the min/max progress-gap dials are
                         -- retired — checkpoint spacing IS the increment. Stored values

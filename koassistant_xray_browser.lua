@@ -6162,42 +6162,71 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
         end
     end
 
-    -- Earlier books (S2, ref #90): this list searches only the open
-    -- artifact and its carried list — the group's X-Rayed earlier books are
-    -- one row away (device step 13: reachable from a zero-hit browser
-    -- search too). Shown whenever any earlier book has an X-Ray.
+    -- Other books in the group (S2, ref #90; FOLDED IN 2026-09-04, maintainer:
+    -- one list, no second tap): every X-Rayed group book the direction rule
+    -- allows (earlier books; later ones only while this book is unprotected;
+    -- every member of a project) contributes its hits right here, one
+    -- "From <title>" group per book with hits — the same rows the lookup's
+    -- grouped list shows, a tap opening the read-only entry. A held-back
+    -- later book contributes nothing: it stays behind the confirm row below.
     local sweep_file = self.metadata and self.metadata.book_file
     local sweep_list = sweep_file and not self.scope
         and require("koassistant_action_cache").groupXrays(sweep_file) or {}
     if #sweep_list > 0 then
-        -- S4: the label follows the direction rule (later books while
-        -- unprotected, every member of a project)
-        local wide = false
-        for _idx, g in ipairs(sweep_list) do
-            if g.direction ~= "earlier" then wide = true end
+        local Dialogs = require("koassistant_dialogs")
+        local groups = Dialogs.collectPredGroups(sweep_list, query, false)
+        if #groups == 0 and #results == 0 and #stub_hits == 0 then
+            -- S4 wording follows the direction rule
+            local wide = false
+            for _idx, g in ipairs(sweep_list) do
+                if g.direction ~= "earlier" then wide = true end
+            end
+            local none
+            if wide then
+                none = _("Nothing in the other books of the group either")
+            elseif #sweep_list == 1 then
+                none = _("Nothing in the earlier book either")
+            else
+                none = _("Nothing in the earlier books either")
+            end
+            table.insert(items, { text = none, dim = true, callback = function() end })
         end
-        table.insert(items, {
-            text = wide and _("Search the other books in the group…")
-                or _("Search all earlier books…"),
-            bold = true,
-            separator = true,
-            callback = function()
-                local Dialogs = require("koassistant_dialogs")
-                Dialogs.showEarlierBooksSweep{
-                    ui = self_ref.metadata.plugin and self_ref.metadata.plugin.ui,
-                    config = self_ref.metadata.configuration,
-                    plugin = self_ref.metadata.plugin,
-                    book_metadata = { title = self_ref.metadata.title },
-                    document_path = sweep_file,
-                    query = query,
-                }
-            end,
-        })
+        for _g, g in ipairs(groups) do
+            table.insert(items, {
+                text = g.direction == "later" and T(_("From %1 (later in the series)"), g.title)
+                    or T(_("From %1"), g.title),
+                bold = true,
+                separator = true,
+                callback = function() end,
+            })
+            for _r, ghit in ipairs(g.rows) do
+                local captured = ghit
+                local match_label = captured.category_label or ""
+                if captured.match_field == "alias" then
+                    match_label = match_label .. " (" .. _("alias") .. ")"
+                end
+                table.insert(items, {
+                    text = "  " .. captured.name,
+                    mandatory = match_label,
+                    mandatory_dim = true,
+                    callback = function()
+                        Dialogs.showPredecessorEntity{
+                            ui = self_ref.metadata.plugin and self_ref.metadata.plugin.ui,
+                            config = self_ref.metadata.configuration,
+                            plugin = self_ref.metadata.plugin,
+                            book_metadata = { title = self_ref.metadata.title },
+                            document_path = sweep_file,
+                            hit = captured,
+                        }
+                    end,
+                })
+            end
+        end
     end
     -- S5 (ref #90): later books held back by this book's spoiler protection
     -- are one confirm away — offered regardless of hits (so the row itself
-    -- reveals nothing) and independent of the earlier row, which the first
-    -- volume never has
+    -- reveals nothing); the reveal lists the later books only, the earlier
+    -- ones are folded in above
     if sweep_file and not self.scope
             and require("koassistant_action_cache").heldBackLaterXrays(sweep_file) > 0 then
         table.insert(items, {
