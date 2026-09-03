@@ -21474,6 +21474,12 @@ function AskGPT:_performRestore(backup_manager, backup, options)
       UIManager:close(progress_msg)
 
       if result.success then
+        if result.v1_chats_restored then
+          -- The backup predates chat storage v2: its chats came back in the
+          -- old hash-folder layout, which nothing reads any more. Import them
+          -- into the books' chats files now (the importer merges by chat id).
+          self:migrateChatsToDocSettings()
+        end
         -- Show success with restart option
         local ButtonDialog = require("ui/widget/buttondialog")
         local success_text = _("Restore completed successfully!\n\nIt's recommended to restart KOReader for all changes to take effect.")

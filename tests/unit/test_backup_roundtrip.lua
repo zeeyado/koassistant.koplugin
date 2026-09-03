@@ -36,7 +36,17 @@ local _saved = {
     docsettings = package.loaded["docsettings"],
     luasettings = package.loaded["luasettings"],
 }
+-- Track 37: the per-book settings export walks the index rebuilder's
+-- candidates, which reads G_reader_settings (the suite harness may or may
+-- not have installed one; standalone runs have none)
+local _saved_grs = rawget(_G, "G_reader_settings")
+_G.G_reader_settings = _saved_grs or {
+    readSetting = function(_, _key, default) return default end,
+    saveSetting = function() end,
+    flush = function() end,
+}
 local function restoreMocks()
+    _G.G_reader_settings = _saved_grs
     package.loaded["libs/libkoreader-lfs"] = _saved.lfs
     package.loaded["docsettings"] = _saved.docsettings
     package.loaded["luasettings"] = _saved.luasettings
@@ -297,6 +307,56 @@ TestRunner:test("settings (incl. API keys) come back semantically", function()
     TestRunner:assertTrue(features.openai_codex_oauth
         and features.openai_codex_oauth.refresh_token == "oauth-refresh",
         "subscription OAuth tokens should restore only with credentials")
+end)
+
+--------------------------------------------------------------------------------
+TestRunner:suite("a v1-era backup (chats as hash folders) restores AND is flagged for import")
+
+-- The importer lives in main.lua (AskGPT:migrateChatsToDocSettings) and runs
+-- off the returned flag; without the flag the restored folders sit unread
+-- forever (the pre-Track-37 gap, fixed 2026-09-03).
+wipeTmp()
+seed()
+local bm3 = freshManager()
+local v1_src = TMP .. "/v1_archive"
+mkdirs(v1_src .. "/chats/abc123")
+writeFile(v1_src .. "/chats/abc123/chat_1.lua", 'return { id = "chat_1", messages = {} }\n')
+writeFile(v1_src .. "/manifest.json",
+    '{"version":"' .. BackupManager.BACKUP_VERSION .. '","plugin_version":"0.9.0","timestamp":1,'
+    .. '"created_date":"2026-01-01","contents":{"chats":true},"counts":{},"settings_schema_version":"2","notes":""}')
+local v1_archive = BackupManager.BACKUP_DIR .. "/koassistant_backup_v1.koa"
+sh(string.format('cd "%s" && tar -czf "%s" .', v1_src, v1_archive))
+local restore_v1 = bm3:restoreBackup(v1_archive, {
+    restore_chats = true,
+    merge_mode = false,
+    skip_restore_point = true,
+})
+
+TestRunner:test("restoreBackup succeeds on the v1 archive", function()
+    TestRunner:assertTrue(restore_v1 and restore_v1.success, "restore failed: " .. tostring(restore_v1 and restore_v1.error))
+end)
+
+TestRunner:test("the hash folders land in CHAT_DIR", function()
+    TestRunner:assertTrue(exists(BackupManager.CHAT_DIR .. "/abc123/chat_1.lua"), "v1 chat file should be restored")
+end)
+
+TestRunner:test("the result carries v1_chats_restored so the caller runs the importer", function()
+    TestRunner:assertTrue(restore_v1.v1_chats_restored == true, "v1_chats_restored flag missing")
+end)
+
+TestRunner:test("a JSON (v2+) restore does not carry the flag", function()
+    TestRunner:assertTrue(restore.v1_chats_restored == false, "flag must be false on a JSON-era restore")
+end)
+
+TestRunner:test("main.lua runs the importer off the flag (structural)", function()
+    local here = debug.getinfo(1, "S").source:match("@?(.*)")
+    local root = here:gsub("/?tests/unit/[^/]+$", "")
+    if root == "" then root = "." end
+    local main_path = root .. "/main.lua"
+    local f = assert(io.open(main_path, "r"))
+    local src = f:read("*all"); f:close()
+    TestRunner:assertTrue(src:find("result%.v1_chats_restored", 1) ~= nil
+        and src:find("self:migrateChatsToDocSettings%(%)", 1) ~= nil, "restore callback must call the importer")
 end)
 
 wipeTmp()

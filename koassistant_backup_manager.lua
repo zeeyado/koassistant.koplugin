@@ -1446,6 +1446,7 @@ function BackupManager:restoreBackup(backup_path, options)
 
     local conflicts = {}
     local warnings = {}
+    local v1_chats_restored = false  -- backup predates chat storage v2
     local restore_success = false
     local restore_error = nil
 
@@ -1662,6 +1663,9 @@ function BackupManager:restoreBackup(backup_path, options)
             end
 
             self:_copyDirectory(backup_chats_dir, self.CHAT_DIR)
+            -- Nothing reads that layout any more: the caller runs the v1
+            -- importer (AskGPT:migrateChatsToDocSettings) when this is set
+            v1_chats_restored = true
         else
             logger.warn("BackupManager: No chat backup found in archive (neither JSON nor directory)")
         end
@@ -1684,6 +1688,7 @@ function BackupManager:restoreBackup(backup_path, options)
             success = true,
             conflicts = conflicts,
             warnings = warnings,
+            v1_chats_restored = v1_chats_restored,
         }
     else
         -- Restore failed - rollback if we have a restore point
