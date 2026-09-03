@@ -1315,6 +1315,65 @@ TestRunner:test("explicit global vs nothing-set stay distinct (the §4.3 flip se
     TestRunner:assertEqual(p.reason, "default")
 end)
 
+TestRunner:test("ignore_finished: the cross-book rule reads only the reader's own switch (S5, ref #90)", function()
+    local finished = { summary = { status = "complete" } }
+    local p = BookSettings.resolveSpoilerPosture(fakeDocSettings(finished), {},
+        { layer = "mechanical", ignore_finished = true })
+    TestRunner:assertEqual(p.protected, true, "finished alone: the series stays protected")
+    TestRunner:assertEqual(p.reason, "default")
+    p = BookSettings.resolveSpoilerPosture(fakeDocSettings({ summary = { status = "complete" },
+        koassistant_book_spoiler_free = false }), {}, { ignore_finished = true })
+    TestRunner:assertEqual(p.protected, false, "finished + explicit book off: the switch counts")
+    TestRunner:assertEqual(p.reason, "book")
+    p = BookSettings.resolveSpoilerPosture(fakeDocSettings(finished), { spoiler_free_chat = false },
+        { ignore_finished = true })
+    TestRunner:assertEqual(p.protected, false, "global off counts")
+    TestRunner:assertEqual(p.reason, "global")
+    p = BookSettings.resolveSpoilerPosture(fakeDocSettings({ summary = { status = "complete" },
+        koassistant_book_research_mode = true }), {}, { ignore_finished = true })
+    TestRunner:assertEqual(p.reason, "research", "research still stands protection down")
+    p = BookSettings.resolveSpoilerPosture(fakeDocSettings(finished), {})
+    TestRunner:assertEqual(p.reason, "finished", "without the opt the finished layer is untouched")
+end)
+
+TestRunner:suite("clearXrayLineageState (B272, 2026-09-03: deleted = quiet whichever layer said on)")
+
+TestRunner:test("a book that would still resolve to automatic goes explicitly off; otherwise only the clear", function()
+    local function mutableDs(map)
+        local ds = { _data = map, flushed = 0 }
+        function ds:readSetting(k) return self._data[k] end
+        function ds:saveSetting(k, v) self._data[k] = v end
+        function ds:delSetting(k) self._data[k] = nil end
+        function ds:flush() self.flushed = self.flushed + 1 end
+        return ds
+    end
+    local A, ASKED = BookSettings.KEY_XRAY_AUTO, BookSettings.KEY_XRAY_COVERAGE_ASKED
+    -- per-book on under a global off: the clear alone is quiet
+    local ds = mutableDs({ [A] = "on", [ASKED] = true, [BookSettings.KEY_XRAY_PROMOTION] = "position" })
+    BookSettings.clearXrayLineageState(ds, { xray_auto_update = false })
+    TestRunner:assertEqual(ds._data[A], nil, "override cleared")
+    TestRunner:assertEqual(ds._data[ASKED], nil, "stamp cleared")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_PROMOTION], nil, "hold cleared")
+    TestRunner:assertEqual(ds.flushed, 1)
+    -- follow-global under a global auto-create: the device case — pinned off
+    ds = mutableDs({ [ASKED] = true })
+    local g = { xray_auto_update = true, xray_auto_create = true }
+    BookSettings.clearXrayLineageState(ds, g)
+    TestRunner:assertEqual(ds._data[A], "off", "explicit off, so the coverage ask stays away")
+    TestRunner:assertEqual(BookSettings.resolveXrayAuto(ds, g), false)
+    TestRunner:assertEqual(ds.flushed, 1)
+    -- per-book on under a global auto: same outcome
+    ds = mutableDs({ [A] = "on" })
+    BookSettings.clearXrayLineageState(ds, g)
+    TestRunner:assertEqual(ds._data[A], "off")
+    -- nothing set, global off: no write at all
+    ds = mutableDs({})
+    BookSettings.clearXrayLineageState(ds, {})
+    TestRunner:assertEqual(ds.flushed, 0, "nothing to clear, nothing written")
+    BookSettings.clearXrayLineageState(ds, nil)
+    TestRunner:assertEqual(ds.flushed, 0, "nil features: no auto layer, no write")
+end)
+
 TestRunner:suite("resolveDomain / resolveResearch (consolidation round P1)")
 
 TestRunner:test("resolveDomain: book override wins, layer book", function()

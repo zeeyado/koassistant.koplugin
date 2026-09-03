@@ -74,7 +74,13 @@ end
 -- @param features table|nil
 -- @param opts table|nil { layer = "request" (default) | "mechanical",
 --   session = true|false|nil — the Spoiler chip's per-chat value, if the
---   call site has one }
+--   call site has one,
+--   ignore_finished = true — skip the Finished layer. S5 (ref #90), the
+--   cross-book lookup rule: inside one book Finished means nothing is left
+--   to protect, but for a SERIES it only means the reader moved on to the
+--   next volume, whose entries retell this one's ending — so only the
+--   reader's own switch (research, book override, global) opens later
+--   books there }
 -- @return table { protected = boolean, reason = "session"|"research"|
 --   "finished"|"book"|"global"|"default", layer = the resolved layer }.
 --   "default" = nothing set anywhere (the schema default: protection ON
@@ -90,9 +96,11 @@ function BookSettings.resolveSpoilerPosture(doc_settings, features, opts)
     if BookSettings.resolveResearch(doc_settings, features) then
         return { protected = false, reason = "research", layer = layer }
     end
-    local summary = doc_settings and doc_settings:readSetting("summary")
-    if summary and summary.status == "complete" then
-        return { protected = false, reason = "finished", layer = layer }
+    if not opts.ignore_finished then
+        local summary = doc_settings and doc_settings:readSetting("summary")
+        if summary and summary.status == "complete" then
+            return { protected = false, reason = "finished", layer = layer }
+        end
     end
     local book = doc_settings and doc_settings:readSetting(BookSettings.KEY_SPOILER_FREE)
     if book ~= nil then
@@ -321,7 +329,17 @@ end
 --- re-asked how to create on the next page turn; deleted = quiet until the
 --- reader creates again, and the form's pick turns it back on). ONE helper
 --- for every delete site (popup + both browser hamburgers). Flushes.
-function BookSettings.clearXrayLineageState(doc_settings)
+--- 2026-09-03 (device round, B272): clearing alone was quiet ONLY for a
+--- book whose automation was its own "on" — a book that FOLLOWS a global
+--- auto-create resolved to on again, and the once-per-book coverage ask
+--- returned on the next page turn (dismissing decides nothing, so it kept
+--- returning). So when the book would still resolve to automatic after
+--- the clear, an explicit "off" is written: deleted = quiet until the
+--- reader creates again, whichever layer said on. Checkpoint installs
+--- never read this key, so a later "Build all checkpoints" run still
+--- installs its rungs as the reader passes them.
+--- @param features table|nil the global features (the auto layer to test)
+function BookSettings.clearXrayLineageState(doc_settings, features)
     doc_settings = BookStore.wrap(doc_settings)
     if not doc_settings then return end
     local keys = { BookSettings.KEY_XRAY_COVERAGE_ASKED, BookSettings.KEY_XRAY_PROMOTION,
@@ -332,6 +350,10 @@ function BookSettings.clearXrayLineageState(doc_settings)
             doc_settings:delSetting(k)
             any = true
         end
+    end
+    if BookSettings.resolveXrayAuto(doc_settings, features) then
+        doc_settings:saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
+        any = true
     end
     if any then doc_settings:flush() end
 end

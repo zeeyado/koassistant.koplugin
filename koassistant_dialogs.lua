@@ -10704,7 +10704,7 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
         -- OPEN book's X-Ray would be silent data loss (2026-08-13)
         ActionCache.deleteXray(target_file, { keep_versions = keep_versions })
         require("koassistant_book_settings").clearXrayLineageState(
-            SafeDocSettings.resolve(target_file, ui))
+            SafeDocSettings.resolve(target_file, ui), config and config.features)
         UIManager:show(Notification:new{
             text = keep_versions and _("X-Ray deleted — archived versions kept")
                 or T(_("%1 deleted"), "X-Ray"),
@@ -10940,6 +10940,30 @@ end
 -- header per book, rows open the read-only predecessor entry view. groups =
 -- { { file, title, entry, rows = { hit, ... } } }, nearest book first.
 local showEarlierBooksSweep
+-- S5 (ref #90): the reveal for later books in the series — the in-book
+-- "next checkpoint behind a confirm" pattern applied across books. Offered
+-- on every lookup list whenever this book's spoiler protection is holding
+-- later X-Rayed books back, regardless of hits (so the offer itself says
+-- nothing about the query); the confirmed sweep walks every group book,
+-- later ones labeled. Marks, cards and the selection intercept never show
+-- later books under protection — "later books" has no bound.
+local function laterBooksHeldBack(opts)
+    if opts.include_later or not opts.document_path then return false end
+    return require("koassistant_action_cache").heldBackLaterXrays(opts.document_path) > 0
+end
+local function confirmLaterBooksSweep(opts)
+    local ConfirmBox = require("ui/widget/confirmbox")
+    UIManager:show(ConfirmBox:new{
+        text = _("Later books in the series can reveal what happens in this book. Search them anyway?"),
+        ok_text = _("Search later books"),
+        ok_callback = function()
+            local o = {}
+            for k, v in pairs(opts) do o[k] = v end
+            o.include_later = true
+            showEarlierBooksSweep(o)
+        end,
+    })
+end
 local function predGroupsMenu(opts, groups, title)
     local Menu = require("ui/widget/menu")
     local items = {}
@@ -10972,6 +10996,14 @@ local function predGroupsMenu(opts, groups, title)
                 end,
             })
         end
+    end
+    if laterBooksHeldBack(opts) then
+        table.insert(items, {
+            text = _("Search later books too (may contain spoilers)…"),
+            bold = true,
+            separator = true,
+            callback = function() confirmLaterBooksSweep(opts) end,
+        })
     end
     local results_menu = Menu:new{
         title = title,
@@ -11044,12 +11076,15 @@ end
 
 showEarlierBooksSweep = function(opts)
     local ActionCache = require("koassistant_action_cache")
-    local preds = ActionCache.groupXrays(opts.document_path)
+    -- opts.include_later = the confirmed later-books reveal (S5)
+    local preds = ActionCache.groupXrays(opts.document_path, { include_later = opts.include_later })
     local wide = walkIsWide(preds)
     local groups = collectPredGroups(preds, opts.query, false)
     if #groups == 0 then
         local text
-        if wide then
+        if opts.include_later then
+            text = T(_("No results for \"%1\" in the other books of the series."), opts.query)
+        elseif wide then
             text = #preds == 1
                 and T(_("No results for \"%1\" in the other book of the group."), opts.query)
                 or T(_("No results for \"%1\" in the %2 other books of the group."), opts.query, #preds)
@@ -11061,9 +11096,15 @@ showEarlierBooksSweep = function(opts)
         UIManager:show(InfoMessage:new{ text = text, timeout = 4 })
         return
     end
-    predGroupsMenu(opts, groups, wide
-        and T(_("Results for \"%1\" in the other books of the group"), opts.query)
-        or T(_("Results for \"%1\" in earlier books"), opts.query))
+    local title
+    if opts.include_later then
+        title = T(_("Results for \"%1\" in the other books of the series"), opts.query)
+    elseif wide then
+        title = T(_("Results for \"%1\" in the other books of the group"), opts.query)
+    else
+        title = T(_("Results for \"%1\" in earlier books"), opts.query)
+    end
+    predGroupsMenu(opts, groups, title)
 end
 
 -- Predecessor tier of the lookup (S2 + S3, ref #90): after a full local
@@ -11566,15 +11607,6 @@ local function showLookupNoResults(opts)
         msg = msg .. " " .. T(_("The %1 earlier books in the group have nothing either."), n_earlier)
     end
     if opts.note then msg = msg .. "\n\n" .. opts.note end
-    if not (opts.data and opts.cached and opts.document_path
-            and #query > 2 and #query <= 120
-            and ActionCache.getUserAliasesPath(opts.document_path)) then
-        UIManager:show(InfoMessage:new{
-            text = msg,
-            timeout = 5,
-        })
-        return
-    end
     local XrayParser = require("koassistant_xray_parser")
     local ui, config, plugin = opts.ui, opts.config, opts.plugin
     local book_metadata, document_path = opts.book_metadata, opts.document_path
@@ -11582,7 +11614,11 @@ local function showLookupNoResults(opts)
     local cw = opts.cleanup_widgets and #opts.cleanup_widgets > 0 and opts.cleanup_widgets or nil
     local nores
     local nores_buttons = {}
-    nores_buttons[#nores_buttons + 1] =
+    local alias_ok = opts.data and opts.cached and opts.document_path
+            and #query > 2 and #query <= 120
+            and ActionCache.getUserAliasesPath(opts.document_path)
+    if alias_ok then
+        nores_buttons[#nores_buttons + 1] =
             { { text = _("Add as alias of an entry…"), callback = function()
                 UIManager:close(nores)
                 showAliasTargetPicker{
@@ -11612,6 +11648,25 @@ local function showLookupNoResults(opts)
                     end,
                 }
             end } }
+    end
+    -- S5 (ref #90): the later-books reveal, offered whenever this book's
+    -- protection holds later X-Rayed books back (confirmLaterBooksSweep)
+    if laterBooksHeldBack(opts) then
+        nores_buttons[#nores_buttons + 1] =
+            { { text = _("Search later books too (may contain spoilers)…"), callback = function()
+                UIManager:close(nores)
+                confirmLaterBooksSweep{ ui = ui, config = config, plugin = plugin,
+                    book_metadata = book_metadata, cleanup_widgets = cw,
+                    document_path = document_path, query = query }
+            end } }
+    end
+    if #nores_buttons == 0 then
+        UIManager:show(InfoMessage:new{
+            text = msg,
+            timeout = 5,
+        })
+        return
+    end
     nores_buttons[#nores_buttons + 1] =
         { { text = _("Close"), callback = function() UIManager:close(nores) end } }
     nores = ButtonDialog:new{
@@ -12361,7 +12416,8 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                             -- XrayBrowser:show callback above (round 28)
                             ActionCache.deleteXray(ui.document.file, { keep_versions = keep_versions })
                             require("koassistant_book_settings").clearXrayLineageState(
-                                SafeDocSettings.resolve(ui.document.file, ui))
+                                SafeDocSettings.resolve(ui.document.file, ui),
+                                configuration and configuration.features)
                             UIManager:show(Notification:new{
                                 text = keep_versions and _("X-Ray deleted — archived versions kept")
                                     or T(_("%1 deleted"), "X-Ray"),
@@ -12936,6 +12992,7 @@ return {
     showAliasTargetPicker = showAliasTargetPicker,
     showPredecessorEntity = showPredecessorEntity,
     showEarlierBooksSweep = showEarlierBooksSweep,
+    confirmLaterBooksSweep = confirmLaterBooksSweep,
     executeDirectAction = executeDirectAction,
     executeActionForResult = executeActionForResult,
     generateSummaryCache = generateSummaryCache,

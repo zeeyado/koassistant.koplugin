@@ -7118,13 +7118,19 @@ function AskGPT:_installGroupSeedingHooks()
   local ActionCache = require("koassistant_action_cache")
   local BookGroups = require("koassistant_book_groups")
   -- Earlier books only while the current book is under spoiler protection;
-  -- both directions once it is not (off, marked finished, research mode)
+  -- both directions once the reader's OWN switch turns it off (global off,
+  -- book override off, research mode). S5 (ref #90): Finished does NOT
+  -- count here — inside one book it means nothing is left to protect, for
+  -- the series it only means the reader moved on to the next volume, and
+  -- the later volumes retell this one's ending. Held-back later books stay
+  -- one confirm away on the lookup lists (Dialogs.confirmLaterBooksSweep).
   ActionCache.setLookupDirectionResolver(function(file)
     local features = configuration and configuration.features
     if not features then return false end
     local ui = (self_ref.ui and self_ref.ui.document) and self_ref.ui or nil
     local ds = require("koassistant_doc_settings").resolve(file, ui)
-    return require("koassistant_book_settings").resolveSpoilerFree(ds, features) == false
+    return require("koassistant_book_settings").resolveSpoilerPosture(ds, features,
+      { layer = "mechanical", ignore_finished = true }).protected == false
   end)
   BookGroups.on_change = function(group_id)
     self_ref:_scheduleGroupReseed(group_id)
@@ -7398,9 +7404,11 @@ function AskGPT:showCacheViewer(cache_info)
         -- when the reader said so (delete_options below)
         ActionCache.deleteXray(file, { keep_versions = keep_versions })
         -- The per-book state describing the deleted lineage dies with it
-        -- (coverage-ask stamp, promotion hold, automatic override)
+        -- (coverage-ask stamp, promotion hold, automatic override — and a
+        -- global auto-create is pinned off for this book, B272)
         require("koassistant_book_settings").clearXrayLineageState(
-          require("koassistant_doc_settings").resolve(file, self.ui))
+          require("koassistant_doc_settings").resolve(file, self.ui),
+          self.settings:readSetting("features") or {})
       elseif cache_key == "_analyze_cache" then
         ActionCache.clearAnalyzeCache(file)
         ActionCache.clear(file, "analyze_full_document")
@@ -13792,7 +13800,9 @@ function AskGPT:_xrayCoverageAskBeforeCreate(file, features, decimal, has_intro)
     local n_follow = #(XrayAuto.truncateToOneAhead(follow_rungs, decimal, follow_labels)) + intro_extra
     local n_all = #(self_ref:_planXrayGrid(nil, spacing, nil, decimal, boundaries)) + intro_extra
     ask = ButtonDialog:new{
-      title = _("This book has no X-Ray yet. How should it be created?"),
+      -- B272: name WHY the dialog is here (the automation is on), not a
+      -- lack — the old "This book has no X-Ray yet" read as a nag
+      title = _("Automatic X-Ray is on. How should this book's X-Ray be built?"),
       buttons = {
         {{ text = T(_("Catch up to here now, then keep one ahead (%1 requests)"), n_follow),
           callback = function()

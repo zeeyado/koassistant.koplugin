@@ -2558,10 +2558,11 @@ function ActionCache.parsedXrayFor(file)
 end
 
 -- Lookup direction (S4, ref #90): the ordered-group "earlier books only"
--- rule is a spoiler guard, so it stands down exactly when spoiler protection
--- does for the current book (off, finished, research). main.lua injects the
--- resolver — it owns the settings and the live DocSettings; without one,
--- earlier books only.
+-- rule is a spoiler guard, so it stands down exactly when the reader's own
+-- switch turns spoiler protection off for the current book (off, research;
+-- NOT Finished — S5: finishing a volume only moves the reader on to the
+-- next one). main.lua injects the resolver — it owns the settings and the
+-- live DocSettings; without one, earlier books only.
 local lookup_both_ways = nil
 function ActionCache.setLookupDirectionResolver(fn)
     lookup_both_ways = fn
@@ -2580,14 +2581,16 @@ end
 --- `direction` ("earlier" | "later" | nil for unordered groups). Each book
 --- parses once per stamp; the walk itself is a stat per book.
 --- @param document_path string
+--- @param opts table|nil { include_later = true } — the reader's confirmed
+---   reveal (S5): walk later books regardless of the direction rule
 --- @return table list (possibly empty), string stamp (every book's stamp +
 ---   the direction — memo keys carry it, so a protection flip re-indexes)
-function ActionCache.groupXrays(document_path)
+function ActionCache.groupXrays(document_path, opts)
     local out = {}
     if not document_path then return out, "-" end
     local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
     if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return out, "-" end
-    local both = bothWays(document_path)
+    local both = (opts and opts.include_later) or bothWays(document_path)
     local rows = BookGroups.lookupBooksFor(document_path, both)
     if #rows == 0 then return out, "-" end
     local parts = { both and "both" or "earlier" }
@@ -2604,6 +2607,26 @@ function ActionCache.groupXrays(document_path)
         end
     end
     return out, table.concat(parts, "|")
+end
+
+--- How many later books in the series have an X-Ray that this book's
+--- spoiler protection is holding back (S5, ref #90) — 0 whenever the walk
+--- already reaches them (unprotected, project) and for the last volume.
+--- Drives the "Search later books too" offer, which is shown regardless
+--- of hits so the offer itself reveals nothing about the query.
+--- @param document_path string
+--- @return number
+function ActionCache.heldBackLaterXrays(document_path)
+    if not document_path or bothWays(document_path) then return 0 end
+    local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
+    if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return 0 end
+    local n = 0
+    for _idx, row in ipairs(BookGroups.lookupBooksFor(document_path, true)) do
+        if row.direction == "later" and ActionCache.parsedXrayFor(row.file) then
+            n = n + 1
+        end
+    end
+    return n
 end
 
 --- The first group X-Ray in rank order (the nearest earlier book while

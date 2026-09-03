@@ -6194,6 +6194,28 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
             end,
         })
     end
+    -- S5 (ref #90): later books held back by this book's spoiler protection
+    -- are one confirm away — offered regardless of hits (so the row itself
+    -- reveals nothing) and independent of the earlier row, which the first
+    -- volume never has
+    if sweep_file and not self.scope
+            and require("koassistant_action_cache").heldBackLaterXrays(sweep_file) > 0 then
+        table.insert(items, {
+            text = _("Search later books too (may contain spoilers)…"),
+            bold = true,
+            separator = true,
+            callback = function()
+                require("koassistant_dialogs").confirmLaterBooksSweep{
+                    ui = self_ref.metadata.plugin and self_ref.metadata.plugin.ui,
+                    config = self_ref.metadata.configuration,
+                    plugin = self_ref.metadata.plugin,
+                    book_metadata = { title = self_ref.metadata.title },
+                    document_path = sweep_file,
+                    query = query,
+                }
+            end,
+        })
+    end
 
     -- "Search other X-Rays" button when others exist
     -- Skip when caller already performed cross-section search (e.g., "Look up in X-Ray")
