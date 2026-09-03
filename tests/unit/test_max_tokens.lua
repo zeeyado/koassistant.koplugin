@@ -182,6 +182,24 @@ do
     end
 end
 
+-- effectiveMaxTokens: the budget a handler will send, derived like the handlers do
+-- (per-minute admission limits need it to read a refusal's "Requested M").
+do
+    local E = ModelConstraints.effectiveMaxTokens
+    TestRunner.assert(E("groq", "openai/gpt-oss-20b", { provider_settings = { groq = { additional_parameters = { max_tokens = 16384 } } } }) == TARGET,
+        "effectiveMaxTokens: known ceiling -> raise-where-known target")
+    TestRunner.assert(E("custom_lm_studio", "stub-model", { provider_settings = {} }) == 16384,
+        "effectiveMaxTokens: custom provider, no ceiling -> the handlers' 16384 fallback")
+    TestRunner.assert(E("novita", "some-unknown", { provider_settings = { novita = { additional_parameters = { max_tokens = 4096 } } } }) == 4096,
+        "effectiveMaxTokens: community provider fallback from its defaults")
+    TestRunner.assert(E("groq", "openai/gpt-oss-20b", { api_params = { max_tokens = 4096 } }) == 4096,
+        "effectiveMaxTokens: api_params pin respected")
+    TestRunner.assert(E("groq", "llama-3.3-70b-versatile", { api_params = { max_tokens = 65536 } }) == 32768,
+        "effectiveMaxTokens: pin clamped to the ceiling")
+    TestRunner.assert(E("anthropic", "claude-sonnet-5", { additional_parameters = { max_tokens = 8000 } }) == 8000,
+        "effectiveMaxTokens: top-level additional_parameters pin (anthropic reads it as a pin)")
+end
+
 -- parseMaxTokensError: the self-heal's decision function. Only provider-STATED
 -- numbers may be acted on — a misparse here caches a wrong ceiling silently.
 do

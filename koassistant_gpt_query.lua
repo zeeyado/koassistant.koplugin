@@ -538,11 +538,14 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             local refusal = RateLimits.parseRefusal(err)
             if not refusal then return false end
             RateLimits.record(provider, model, { limit_tokens = refusal.limit }, "refusal")
-            local sent = sent_budget
-                or (config.api_params and config.api_params.max_tokens)
-                or ModelConstraints.resolveMaxTokens(provider, model, nil)
+            local sent = sent_budget or ModelConstraints.effectiveMaxTokens(provider, model, config)
             local budget = RateLimits.retryBudget(refusal, sent, prompt_chars)
-            if not budget then return false end
+            if not budget then
+                logger.warn("KOAssistant: per-minute allowance", refusal.limit, "cannot admit this prompt (~",
+                    RateLimits.promptTokensFromRefusal(refusal, sent) or RateLimits.estimateTokens(prompt_chars),
+                    "tokens) - no resend for", provider, model or "?")
+                return false
+            end
             max_tokens_retry_done = true
             logger.warn("KOAssistant: per-minute allowance", refusal.limit, "refused budget",
                 sent or "?", "- resending at", budget, "for", provider, model or "?")
@@ -585,8 +588,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- Only ever shrinks; unknown plan = request untouched (Config Copy Pattern).
     do
         local cap = RateLimits.budgetCap(provider, config.model, prompt_chars)
-        local current = config.api_params and config.api_params.max_tokens
-            or ModelConstraints.resolveMaxTokens(provider, config.model, nil)
+        local current = ModelConstraints.effectiveMaxTokens(provider, config.model, config)
         local capped, changed = RateLimits.applyCap(current, cap)
         if changed then
             local capped_config = {}

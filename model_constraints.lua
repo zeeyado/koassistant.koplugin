@@ -1505,6 +1505,28 @@ function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, mod
         "key in Google AI Studio (confirmed to lift this limit)."
 end
 
+--- The answer budget a handler will put on the wire for this config, derived the
+--- way the handlers derive it (per-minute admission limits need the exact number
+--- to turn a refusal's "Requested M" into the prompt size): the action/user pin
+--- (api_params, or a top-level additional_parameters pin), else the resolver over
+--- the provider's own fallback (provider_settings[provider].additional_parameters
+--- from defaults.lua / the custom-provider defaults, else the handlers' literal
+--- 16384), clamped to the model ceiling. Pure; nil only for an unknown provider
+--- with no fallback at all.
+--- @param provider string|nil
+--- @param model string|nil
+--- @param config table|nil merged request config
+--- @return number|nil
+function ModelConstraints.effectiveMaxTokens(provider, model, config)
+    local pin = config and ((config.api_params and tonumber(config.api_params.max_tokens))
+        or (config.additional_parameters and tonumber(config.additional_parameters.max_tokens)))
+    if pin then return ModelConstraints.clampMaxTokens(provider, model, pin) end
+    local ps = config and config.provider_settings and provider and config.provider_settings[provider]
+    local fallback = (ps and ps.additional_parameters and tonumber(ps.additional_parameters.max_tokens)) or 16384
+    local v = ModelConstraints.resolveMaxTokens(provider, model, fallback)
+    return ModelConstraints.clampMaxTokens(provider, model, v)
+end
+
 --- Append an actionable tip when a request fails because the prompt (usually
 --- extracted book text) is too large for the model/tier. Covers HTTP 413
 --- ("request too large" / "payload too large") and HTTP 400 context_length_exceeded.
@@ -1549,8 +1571,7 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
             "allowance of " .. tostring(refusal.limit) .. ".\n"
         -- Which half was too big? The refusal names prompt + budget; the budget we
         -- sent is the pin or the resolver's default (same derivation as the router).
-        local sent = (config and config.api_params and tonumber(config.api_params.max_tokens))
-            or ModelConstraints.resolveMaxTokens(provider, model, nil)
+        local sent = ModelConstraints.effectiveMaxTokens(provider, model, config)
         local prompt_tokens = RateLimits.promptTokensFromRefusal(refusal, sent)
         local budget_was_the_problem = prompt_tokens
             and (prompt_tokens + RateLimits.MARGIN + RateLimits.FLOOR) <= refusal.limit
