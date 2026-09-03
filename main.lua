@@ -2758,9 +2758,19 @@ function AskGPT:testProvider(provider_id)
       ["Content-Length"] = tostring(#payload),
     }
     if auth then hdrs["Authorization"] = auth end
-    return BaseHandler.fetchInSubprocess(url, {
+    local code, body, resp_headers = BaseHandler.fetchInSubprocess(url, {
       method = "POST", headers = hdrs, body = payload, timeout = 20,
     })
+    -- Per-minute admission limits (docs/tpm_admission_plan.md): the probe's
+    -- response headers name the plan's tokens-per-minute allowance, so the
+    -- first real request is already sized to fit (Groq free: 8K/min against
+    -- a 32K default budget refused every request until this was learned).
+    local RL = require("koassistant_rate_limits")
+    if RL.record(provider_id, model, RL.fromHeaders(resp_headers), "probe") then
+      logger.dbg("KOAssistant: test probe learned per-minute allowance",
+        RL.known(provider_id, model).limit_tokens, "for", provider_id, model)
+    end
+    return code, body
   end
 
   local probe_tools = { { type = "function",

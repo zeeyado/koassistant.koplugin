@@ -1534,6 +1534,39 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
         or lowered:find("tokens per minute", 1, true)
     if not is_size_error then return err_msg end
 
+    -- Per-minute admission refusal (docs/tpm_admission_plan.md): the plan's
+    -- tokens-per-minute allowance could not admit prompt + requested answer
+    -- budget. The old book-text tip was WRONG for this case (a 211-token
+    -- dictionary lookup was told to lower "Max Text Characters"); say what
+    -- actually happened, with the provider's own numbers.
+    local RateLimits = require("koassistant_rate_limits")
+    local refusal = RateLimits.parseRefusal(err_msg)
+    if refusal then
+        local who = (type(provider) == "string" and provider ~= "") and provider or "This provider"
+        local text = "What happened: " .. who .. " counts the answer budget a request asks for " ..
+            "(max_tokens) against your plan's tokens-per-minute allowance before running it. " ..
+            "This request asked for " .. tostring(refusal.requested) .. " tokens in total against an " ..
+            "allowance of " .. tostring(refusal.limit) .. ".\n"
+        -- Which half was too big? The refusal names prompt + budget; the budget we
+        -- sent is the pin or the resolver's default (same derivation as the router).
+        local sent = (config and config.api_params and tonumber(config.api_params.max_tokens))
+            or ModelConstraints.resolveMaxTokens(provider, model, nil)
+        local prompt_tokens = RateLimits.promptTokensFromRefusal(refusal, sent)
+        local budget_was_the_problem = prompt_tokens
+            and (prompt_tokens + RateLimits.MARGIN + RateLimits.FLOOR) <= refusal.limit
+        if budget_was_the_problem then
+            text = text .. "KOAssistant resends such a request once with a smaller answer budget " ..
+                "and remembers the allowance for this session. If you keep seeing this, wait a " ..
+                "minute (the allowance refills) or pick a model or plan with a larger per-minute limit."
+        else
+            text = text .. "The request itself is larger than the allowance, so a smaller answer " ..
+                "budget cannot help: use a smaller scope (a section, \"Up to current position\", " ..
+                "or \"AI knowledge only\" where the action offers a source choice), or a plan/provider " ..
+                "with a larger per-minute limit."
+        end
+        return err_msg .. "\n\n" .. text
+    end
+
     local tip = "Tip: This request was too large for the selected model.\n" ..
         "Actions like X-Ray and Recap send the book's text, which can exceed a model's input limit. Options:\n" ..
         "- Choose \"AI knowledge only\" or a single section when the action offers a source choice.\n" ..
@@ -1633,7 +1666,12 @@ function ModelConstraints.isRateLimitError(err_msg)
         or l:find("quota", 1, true)
         or l:find("rate limit", 1, true)
         or l:find("rate_limit", 1, true)
-        or l:find("too many requests", 1, true)) and true or false
+        or l:find("too many requests", 1, true)
+        -- Per-minute admission refusals (Groq sends them as HTTP 413): the
+        -- allowance refills within a minute, so the persistent dialog with
+        -- "Try again" is the right surface, not a 3-second toast.
+        or l:find("tokens per min", 1, true)
+        or l:find("(tpm)", 1, true)) and true or false
 end
 
 --- True when an error message looks like a provider overload/capacity refusal (HTTP 503
@@ -1666,6 +1704,8 @@ function ModelConstraints.maybeAppendRateLimitHint(err_msg, provider, model, con
     if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
     if not ModelConstraints.isRateLimitError(err_msg) then return err_msg end
     if err_msg:find(GROUNDING_TIP_HEAD, 1, true) then return err_msg end
+    -- Admission refusals get their own explanation in maybeAppendContextLimitHint
+    if require("koassistant_rate_limits").parseRefusal(err_msg) then return err_msg end
     local who = (type(provider) == "string" and provider ~= "") and provider or "the provider"
     return err_msg .. "\n\n" ..
         "Tip: this is " .. who .. "'s own rate limit, not a plugin error. These allowances are " ..

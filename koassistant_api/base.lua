@@ -15,6 +15,11 @@ local BaseHandler = {
 BaseHandler.CODE_CANCELLED = "USER_CANCELED"
 BaseHandler.CODE_NETWORK_ERROR = "NETWORK_ERROR"
 BaseHandler.PROTOCOL_NON_200 = "X-NON-200-STATUS:"
+-- Per-minute admission limits (docs/tpm_admission_plan.md): the fetch child forwards
+-- the provider's rate-limit response headers to the parent as one marker line, same
+-- shape as PROTOCOL_NON_200, so the parent can size answer budgets to the plan.
+local RateLimits = require("koassistant_rate_limits")
+BaseHandler.PROTOCOL_RATELIMIT = RateLimits.PROTOCOL_MARKER
 
 --- Format a non-200 HTTP error body into a SINGLE-LINE message.
 --- The streaming reader consumes the PROTOCOL_NON_200 marker line-by-line, so a
@@ -331,7 +336,7 @@ end
 --- @param hostname string Host header value
 --- @param headers table|nil Additional request headers
 --- @param body string|nil Request body
---- @return number|nil status_code, boolean is_chunked
+--- @return number|nil status_code, boolean is_chunked, table headers (lower-cased keys)
 local function sendRequestAndReadHeaders(ssl_sock, method, path, hostname, headers, body)
     local req_lines = {
         string.format("%s %s HTTP/1.1", method, path),
@@ -355,17 +360,21 @@ local function sendRequestAndReadHeaders(ssl_sock, method, path, hostname, heade
     local status_line = ssl_sock:receive("*l")
     local status_code = status_line and tonumber(status_line:match("HTTP/%S+%s+(%d+)"))
 
-    -- Read response headers
+    -- Read response headers (kept, lower-cased: the rate-limit family rides
+    -- the pipe as a marker line — see RateLimits.encodeMarker)
     local is_chunked = false
+    local resp_headers = {}
     while true do
         local line = ssl_sock:receive("*l")
         if not line or line == "" then break end
         if line:lower():match("^transfer%-encoding:%s*chunked") then
             is_chunked = true
         end
+        local hk, hv = line:match("^([^:]+):%s*(.-)%s*$")
+        if hk then resp_headers[hk:lower()] = hv end
     end
 
-    return status_code, is_chunked
+    return status_code, is_chunked, resp_headers
 end
 
 --- Detect unfilled sample placeholders from apikeys.lua.sample
@@ -525,11 +534,11 @@ function BaseHandler.fetchInSubprocess(url, opts)
         local port = tonumber(url:match("https://[^/:]+:(%d+)")) or 443
         local path = url:match("https://[^/]+(.*)") or "/"
         local ssl_sock = BaseHandler.connectSSLInSubprocess(opts.resolved_ip, host, port, timeout)
-        local status_code, is_chunked = sendRequestAndReadHeaders(
+        local status_code, is_chunked, resp_headers = sendRequestAndReadHeaders(
             ssl_sock, method, path, host, opts.headers, opts.body)
         local resp_body = readFullBody(ssl_sock, is_chunked)
         ssl_sock:close()
-        return status_code, resp_body
+        return status_code, resp_body, resp_headers
     end
     local su_ok, socketutil = pcall(require, "socketutil")
     if su_ok and socketutil then
@@ -560,13 +569,13 @@ function BaseHandler.fetchInSubprocess(url, opts)
     if opts.body then
         request.source = ltn12.source.string(opts.body)
     end
-    local ok, code = pcall(function()
+    local ok, code, resp_headers = pcall(function()
         return socket.skip(1, http.request(request))
     end)
     if not ok then
         return nil, tostring(code)
     end
-    return tonumber(code), table.concat(chunks)
+    return tonumber(code), table.concat(chunks), resp_headers
 end
 
 --- Non-blocking one-shot HTTP(S) fetch: fetchInSubprocess forked into a child,
@@ -703,8 +712,12 @@ function BaseHandler:backgroundRequest(url, headers, body)
 
                 local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, parsed_host,
                     parsed_port, BaseHandler.SUBPROCESS_READ_TIMEOUT)
-                local status_code, is_chunked = sendRequestAndReadHeaders(
+                local status_code, is_chunked, resp_headers = sendRequestAndReadHeaders(
                     ssl_sock, "POST", parsed_path, parsed_host, headers, body)
+                -- Rate-limit headers first (also on a non-200: a refusal's own headers
+                -- name the plan's allowance)
+                local rl_marker = RateLimits.encodeMarker(resp_headers)
+                if rl_marker then ffiutil.writeToFD(child_write_fd, rl_marker) end
 
                 if status_code and status_code ~= 200 then
                     local err_body = readFullBody(ssl_sock, is_chunked)
@@ -753,6 +766,13 @@ function BaseHandler:backgroundRequest(url, headers, body)
                 ok, code, _headers, status = pcall(function()
                     return socket.skip(1, http.request(request))
                 end)
+
+                -- Rate-limit headers: on this path the body has already streamed into
+                -- the pipe, so the marker trails it; both parents accept it anywhere
+                if ok then
+                    local rl_marker = RateLimits.encodeMarker(_headers)
+                    if rl_marker then ffiutil.writeToFD(child_write_fd, rl_marker) end
+                end
 
                 if not ok then
                     local err_msg = tostring(code)

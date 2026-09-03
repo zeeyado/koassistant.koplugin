@@ -268,6 +268,18 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
     local function processResponse()
         local full_response = table.concat(response_data)
 
+        -- Per-minute admission limits: the fetch child forwards the provider's
+        -- rate-limit headers as a marker line (before or after the body);
+        -- record it and strip it before anything decodes the buffer.
+        do
+            local RateLimits = require("koassistant_rate_limits")
+            local rl_fields, cleaned = RateLimits.extractMarker(full_response)
+            if rl_fields then
+                RateLimits.record(provider, config and config.model, rl_fields, "header")
+                full_response = cleaned
+            end
+        end
+
         -- Check for error marker (plain find — PROTOCOL_NON_200 contains '-'
         -- which is a Lua pattern quantifier, so pattern matching fails)
         local marker_pos = full_response:find(PROTOCOL_NON_200, 1, true)
@@ -491,16 +503,59 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- second attempt instead of looping.
     local dispatchRequest
     local max_tokens_retry_done = false
+    -- Per-minute admission limits (docs/tpm_admission_plan.md): byte size of
+    -- everything we send as text, for the plan-fit budget and the honest
+    -- refusal arithmetic. Also feeds the stream settings' truncation check.
+    local RateLimits = require("koassistant_rate_limits")
+    local prompt_chars = (function()
+        local n = 0
+        if config.system and type(config.system.text) == "string" then
+            n = n + #config.system.text
+        end
+        for _idx = 1, #(message_history or {}) do
+            local m = message_history[_idx]
+            if m and type(m.content) == "string" then n = n + #m.content end
+        end
+        return n
+    end)()
+    -- The answer budget the last dispatch carried when the plan capped it (nil =
+    -- the handler's own default went out) — the refusal arithmetic needs it.
+    local sent_budget = nil
     local function tryMaxTokensSelfHeal(err)
         if max_tokens_retry_done then return false end
-        local parsed = ModelConstraints.parseMaxTokensError(err)
-        if not parsed then return false end
-        max_tokens_retry_done = true
         local model = config.model
         if not model then
             local pd = Defaults.ProviderDefaults[provider]
             model = pd and pd.model or nil
         end
+        local parsed = ModelConstraints.parseMaxTokensError(err)
+        if not parsed then
+            -- Admission refusal ("Limit N, Requested M"): the plan's per-minute
+            -- allowance could not admit prompt + budget. Learn the allowance for
+            -- the session, resend ONCE at a budget that fits; when the prompt
+            -- alone does not fit there is nothing to resend — the decorated
+            -- error says so.
+            local refusal = RateLimits.parseRefusal(err)
+            if not refusal then return false end
+            RateLimits.record(provider, model, { limit_tokens = refusal.limit }, "refusal")
+            local sent = sent_budget
+                or (config.api_params and config.api_params.max_tokens)
+                or ModelConstraints.resolveMaxTokens(provider, model, nil)
+            local budget = RateLimits.retryBudget(refusal, sent, prompt_chars)
+            if not budget then return false end
+            max_tokens_retry_done = true
+            logger.warn("KOAssistant: per-minute allowance", refusal.limit, "refused budget",
+                sent or "?", "- resending at", budget, "for", provider, model or "?")
+            local retry_config = {}
+            for k, v in pairs(config) do retry_config[k] = v end
+            retry_config.api_params = {}
+            for k, v in pairs(config.api_params or {}) do retry_config.api_params[k] = v end
+            retry_config.api_params.max_tokens = budget
+            sent_budget = budget
+            dispatchRequest(retry_config)
+            return true
+        end
+        max_tokens_retry_done = true
         if parsed.kind == "output_cap" and model then
             ModelConstraints.learnMaxOutput(provider, model, parsed.cap)
         end
@@ -523,6 +578,28 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- the original request flow, unchanged; the self-heal re-enters it with its
     -- corrected copy while the first pass uses the caller's config verbatim.
     dispatchRequest = function(config) --luacheck: ignore 431
+
+    -- Plan-fit budget: when this session already knows the plan's per-minute
+    -- allowance (headers of an earlier response, the "Test provider" probe, or
+    -- a refusal), shrink the answer budget so prompt + budget is admitted.
+    -- Only ever shrinks; unknown plan = request untouched (Config Copy Pattern).
+    do
+        local cap = RateLimits.budgetCap(provider, config.model, prompt_chars)
+        local current = config.api_params and config.api_params.max_tokens
+            or ModelConstraints.resolveMaxTokens(provider, config.model, nil)
+        local capped, changed = RateLimits.applyCap(current, cap)
+        if changed then
+            local capped_config = {}
+            for k, v in pairs(config) do capped_config[k] = v end
+            capped_config.api_params = {}
+            for k, v in pairs(config.api_params or {}) do capped_config.api_params[k] = v end
+            capped_config.api_params.max_tokens = capped
+            config = capped_config
+            sent_budget = capped
+            logger.dbg("KOAssistant: answer budget capped to", capped, "by the plan's per-minute allowance",
+                RateLimits.known(provider, config.model).limit_tokens, "for", provider, config.model or "?")
+        end
+    end
 
     local success, result = pcall(function()
         return handler:query(message_history, config)
@@ -599,17 +676,8 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             -- PROVES a prompt was cut to fit the server's context window,
             -- instead of guessing from a token estimate.
             provider_name = provider,
-            prompt_chars = (function()
-                local n = 0
-                if config.system and type(config.system.text) == "string" then
-                    n = n + #config.system.text
-                end
-                for _idx = 1, #(message_history or {}) do
-                    local m = message_history[_idx]
-                    if m and type(m.content) == "string" then n = n + #m.content end
-                end
-                return n
-            end)(),
+            model = config.model,
+            prompt_chars = prompt_chars,
             -- Round 27: the label/note round 26 added rode config.features but
             -- were never copied into stream_settings, so every hidden stream
             -- still announced itself as quiz generation on the device

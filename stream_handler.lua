@@ -1780,6 +1780,15 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         -- Ignore SSE event lines
                     elseif line:sub(1, 1) == ":" then
                         -- SSE comment/keep-alive
+                    elseif line:sub(1, 16) == "X-KOA-RATELIMIT:" then
+                        -- Per-minute admission limits (docs/tpm_admission_plan.md): the
+                        -- fetch child forwards the provider's rate-limit headers as one
+                        -- marker line (before the body on macOS, after it elsewhere).
+                        -- Inline require + settings-resident provider/model: this closure
+                        -- sits near the 60-upvalue cap.
+                        local RL = require("koassistant_rate_limits")
+                        RL.record(settings and settings.provider_name,
+                            settings and settings.model, RL.decodeMarker(line), "header")
                     elseif line:sub(1, 1) == "{" then
                         -- Raw JSON line (NDJSON format - used by Ollama)
                         local ok, event = pcall(json.decode, line)
