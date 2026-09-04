@@ -170,7 +170,7 @@ lua tests/inspect.lua --web --port 3000
 **Features:**
 - Live request building (no API calls needed)
 - **Send Request** to actually call provider APIs
-- Provider/model selection with all 17 providers
+- Provider/model selection for every built-in provider
 - Behavior toggles, temperature slider, **max tokens slider**
 - **Domain loading** from your actual `domains/` folder
 - **Action loading** from `prompts/actions.lua` + custom actions from settings
@@ -192,48 +192,110 @@ lua tests/inspect.lua --web --port 3000
 
 ### Unit Tests (no API calls)
 
-Located in `tests/unit/` — **40 files, ~1,770 assertions** (run `lua tests/run_tests.lua --unit` for the live count; the per-file list below is a partial snapshot and undercounts newer suites: tool workflows, quiz, X-Ray, storage registry/modes/backup, book settings, dict buttons, DOI, sidecar gating, non-200 errors, stats reader, library scanner, chat persistence, and more).
+Located in `tests/unit/` — **96 files, ~3,180 checks** (run `lua tests/run_tests.lua --unit` for the live count; the runner prints a per-file summary and no grand total).
 
 **Contract every test file must follow:** end with `return TestRunner.failed == 0` (or return a `runAll` table). ⚠ The harness treats a `nil` return as PASSING — a forgotten return line yields a false green. Read the printed per-file summaries, not just the exit code.
 
 **Running a single file:** there is no filter flag; run directly from the repo root: `lua tests/unit/test_xray_parser.lua`.
 
-Older snapshot (17 of the 39 files):
-- `test_action_service.lua` - ActionService integration, action execution flow (35 tests)
-- `test_actions.lua` - Placeholder gating, flag cascading, DOUBLE_GATED_FLAGS (65 tests)
-- `test_auto_update.lua` - Auto-update helper functions: verify, preserve, restore (23 tests)
-- `test_constants.lua` - Context constants, GitHub URLs (20 tests)
-- `test_constraint_utils.lua` - Plugin constraint utilities wrapper (25 tests)
-- `test_export.lua` - Export formatting, content modes, metadata (50 tests)
-- `test_loaders.lua` - BehaviorLoader and DomainLoader functionality (26 tests)
-- `test_message_history.lua` - Conversation tracking, token estimation, reasoning entries (54 tests)
-- `test_openai_compatible.lua` - OpenAI-compatible base class, hooks, request building (30 tests)
-- `test_prompt_building.lua` - MessageBuilder placeholder replacement, ContextExtractor privacy gating, analysis cache flow (121 tests)
-  - Section placeholder tests: disappear when empty, include labels when present
-  - Text fallback nudge tests: conditional appearance, late title substitution, substituteVariables cleanup
-  - Gating tests: annotations/book text/notebook double-gating, trusted provider bypass, opt-out patterns, X-Ray cache with/without annotations, flag-only extraction
-  - Cache integration tests: analysis cache flow to MessageBuilder
-  - Context type tests: highlight, book, library, general context building
-  - Language, dictionary, surrounding context, reading stats, cache/incremental, additional input tests
-- `test_reasoning.lua` - Reasoning capabilities, defaults, request injection, response parsing (65 tests)
-- `test_response_parser.lua` - Response parsing for all 17 providers (46 tests)
-- `test_state_management.lua` - Context detection, flag isolation, config merge, transient flags, cache permission gating (68 tests)
-  - Context detection contract: getPromptContext() priority rules (library > book > general > highlight)
-  - Context flag isolation: entry point patterns correctly set/clear flags
-  - Config merge: runtime-only keys survive updateConfigFromSettings(), transient flags cleared
-  - Transient flag consumption: _hide_artifacts, _exclude_action_flags consumed and cleared
-  - Cache permission gating: used_book_text/used_annotations dynamic permission for X-Ray/Analyze/Summary caches
-- `test_streaming_parser.lua` - SSE/NDJSON content extraction for all providers (22 tests)
-- `test_system_prompts.lua` - Behavior variants, language parsing, domain, skip_language_instruction (73 tests)
-- `test_templates.lua` - Template constants, utility placeholders, nudge substitution, action regression (160 tests)
-  - Constant tests: CONCISENESS_NUDGE, HALLUCINATION_NUDGE, TEXT_FALLBACK_NUDGE validation
-  - Templates.get() and substitution tests
-  - Action regression: verifies no literal utility placeholders remain after substitution across all built-in actions
-- `test_web_search.lua` - Web search detection across providers (44 tests)
-  - Response parser tests: OpenAI, xAI, Gemini, OpenRouter web search detection
-  - Streaming parser tests: tool_call detection, Gemini grounding metadata
-  - Model constraints: capability checks for google_search, web_search
-  - OpenRouter :online suffix handling
+The 96 files, with what each one pins:
+
+- `test_action_cache_parity.lua` - ActionCache `set()` / `saveCache()` / `loadCache()` field parity through a real disk round-trip
+- `test_action_display_text.lua` - `ActionService.getActionDisplayText`: the badge text on action buttons
+- `test_action_service.lua` - pure ActionService helpers: copyAction, getApiParams, custom-action flag migration, duplicate naming
+- `test_actions.lua` - placeholder gating, flag cascading, `DOUBLE_GATED_FLAGS`, `inferOpenBookFlags()`
+- `test_anthropic_tools_request.lua` - Anthropic tool declarations and replay, through the handler's real `buildRequestBody`
+- `test_api_keys.lua` - multi-key resolution: listApiKeys / getApiKey / keyFingerprint over every store shape, GUI-before-file order, stale-selection fallback
+- `test_artifact_writeback.lua` - the shared write-back primitive: metadata reconciliation, coverage/gaps, commitXray/applyXray round-trips, the never-archive-a-rung rule
+- `test_attachments.lua` - Attach chip engine: per-type budgets, staging list, builders, wire framing
+- `test_auto_update.lua` - auto-update helpers (verify, preserve, restore) against real temp directories
+- `test_backup_roundtrip.lua` - the real BackupManager backing up and restoring end to end in a temp filesystem
+- `test_book_groups.lua` - book-groups store: CRUD, manual ordering, move re-keying policy, merge-candidate order
+- `test_book_picker.lua` - the book picker's pure ordering helpers (the picker hands callers a set; order must be imposed)
+- `test_book_settings.lua` - per-book resolvers and overrides: AI title/author, book-info level, spoiler, quiz, language, tools posture, sidecar key count
+- `test_book_store.lua` - Track 37: the sidecar facade, per-book store, chats file, `migrateBook` / `ensureMigrated` / `migrateAll`
+- `test_book_tool_runner.lua` - the book tool runner: interactive loop, gather mode, spoiler clamping of the reading scope
+- `test_book_tools.lua` - the `toc` / `search_book` / `read_around` tool implementations
+- `test_chapter_presets.lua` - chapter scope presets: availability matrix, spoiler clamp, agreement with the quiz chapter resolution
+- `test_chat_persistence.lua` - chat save/load round-trips, tags, renames, and full-replacement saves
+- `test_chip_scope.lua` - the Scope chip's range resolution (kind x spoiler x position)
+- `test_constants.lua` - context lists, expansion, validation, GitHub URLs
+- `test_constraint_utils.lua` - the test-side constraint wrapper delegates to the plugin's own constraints
+- `test_context_routing.lua` - actions belong to the right context, input-dialog defaults are valid, library stays isolated
+- `test_context_windows.lua` - `ModelConstraints.checkContextWindow`, the model-aware extraction pre-check
+- `test_custom_openai_reasoning.lua` - custom-provider reasoning wire translation in `customizeRequestBody`
+- `test_dict_buttons.lua` - dictionary-popup button specs: ids, ordering, row groups, visibility gating
+- `test_dispatch_sizing.lua` - `ModelConstraints.dispatchModel` is the one model id a request is keyed under (includes a structural source scan)
+- `test_doc_settings_resolver.lua` - SafeDocSettings: live-instance resolution and samePath alias handling (#72)
+- `test_doi_resolver.lua` - DOI matching, extraction from metadata and page text, resolution
+- `test_effective_props.lua` - `overlayCustomProps` plus the structural gate over every raw `doc_props` read
+- `test_error_wordings.lua` - the real provider wordings for output-cap / context / admission refusals, as a corpus
+- `test_export.lua` - export formatting: content modes, styles, filenames, cache content
+- `test_gemini_tools_request.lua` - Gemini tool request construction
+- `test_gettext_lang_cache.lua` - the gettext language cache (no settings re-read per `_()` call)
+- `test_gettext_unescape.lua` - the PO parser unescapes both msgid and msgstr
+- `test_handler_max_tokens.lua` - every provider handler both resolves and clamps max_tokens (the handler contract)
+- `test_image_gen.lua` - image-model inventory, provider resolution chain, the book-association index
+- `test_index_rebuild.lua` - index heal/rebuild (#92): refresh ops, per-book helpers, merge semantics, pruning
+- `test_library_scanner.lua` - library metadata extraction, status categorization, formatted catalog
+- `test_loaders.lua` - BehaviorLoader and DomainLoader file loading, sorting, retrieval
+- `test_math.lua` - the LaTeX to readable HTML converter (#105), including the luamd safety rules
+- `test_max_tokens.lua` - `resolveMaxTokens` / `clampMaxTokens`: raise-where-known defaults, pin clamping
+- `test_message_builder.lua` - placeholder resolution in message_builder.lua, including the replace_placeholder loop gotcha
+- `test_message_history.lua` - conversation tracking, token estimation, reasoning entries
+- `test_migrations.lua` - the one-time settings upgrade chain, fixture-based, including idempotence
+- `test_minimal_popup_registry.lua` - `Constants.resolveMinimalPopupActions` read-through (nil = defaults, empty stays empty)
+- `test_model_audit.lua` - the pure helpers of `tests/model_audit.lua`: diff classification, ceiling parsing, draft stanzas
+- `test_model_overrides.lua` - the capability resolution layer: user overrides, derived metadata, family-prefix fallbacks
+- `test_model_refresh.lua` - `ModelLists.resolveModelRefresh`: never clobber a deliberate model pick
+- `test_model_tiers.lua` - the 5-tier ladder, retired-tier read-through, descend-only fallback, array-membership invariant
+- `test_non200_errors.lua` - API error extraction and the tip gating in the error dialog
+- `test_notebook_snippet.lua` - notebook snippet formatting and append, with a real file round-trip
+- `test_ollama_endpoints.lua` - Ollama server address normalization and the wire routing at the active endpoint
+- `test_ollama_num_ctx.lua` - per-request `num_ctx` sizing (the silent-truncation guard)
+- `test_ollama_tools_request.lua` - Ollama tool declarations, decoded-object arguments, ignored `tool_choice`
+- `test_openai_codex_handler.lua` - OpenAI Subscription: codex endpoint, OAuth headers, collected-SSE transport, web-search and tool wire
+- `test_openai_codex_oauth.lua` - device-code OAuth: user-code / poll / exchange / refresh requests, JWT claims
+- `test_openai_compatible.lua` - the OpenAI-compatible base handler and its hooks
+- `test_openai_responses.lua` - the OpenAI Responses path: routing, request builder, transformer, stream events
+- `test_openai_tools_request.lua` - OpenAI chat-completions tool declarations and the message-copy loop
+- `test_pinned_manager_parity.lua` - pinned save/load long-string round-trip against adversarial content
+- `test_prompt_building.lua` - MessageBuilder, ContextExtractor privacy gating and cache flow end to end
+- `test_prompt_chars.lua` - `RateLimits.promptChars` stays the router's own prompt-size arithmetic
+- `test_quick_preset_forces.lua` - `Dialogs.quickPresetForces`, the quick-preset facet-off rule
+- `test_quick_reply_overrides.lua` - reply-time re-derivation of web / tools / model / reasoning from the Quick baseline
+- `test_quiz_chapters.lua` - pure chapter-boundary resolution for the chapter-end quiz
+- `test_quiz_parser.lua` - quiz JSON extraction and unescaped-quote repair
+- `test_rate_limits.lua` - per-minute admission limits: header capture, pipe marker, session memo, refusal parsing, budget sizing
+- `test_reasoning.lua` - reasoning parameter injection and reasoning-content parsing
+- `test_reply_quote.lua` - the "Add to reply" quote formatting and popup gating
+- `test_response_parser.lua` - per-provider response parsing from mock responses (the Responses-API transformer is covered in `test_openai_responses.lua`)
+- `test_session_chips_registry.lua` - `Constants.resolveSessionChips` auto-injection (a new chip appears, a dismissed one stays gone)
+- `test_setup_wizard.lua` - wizard pure helpers: font install dir, `font_ui_fallbacks` append semantics, completer probes
+- `test_sidecar_gating.lua` - sidecar (file browser) reads and identical privacy gating
+- `test_state_management.lua` - context detection, flag isolation, config merge, transient flags, cache permission gating
+- `test_stats_reader.lua` - engagement group computation and labels from mock stats
+- `test_storage_modes.lua` - chat index rebuild phases and lazy sidecar migration
+- `test_storage_registry.lua` - the registry stays the single source of truth, including a source-literal scan
+- `test_stream_ratelimit_marker.lua` - the streaming consumer drains the pipe and learns the plan on both transports
+- `test_streaming_parser.lua` - SSE/NDJSON content extraction
+- `test_surrounding_context.lua` - surrounding-context trims, the per-action tri-state, placeholder vs ambient append
+- `test_system_prompts.lua` - behavior resolution, language parsing, unified system building
+- `test_templates.lua` - template constants, nudge substitution, no literal placeholders left in built-in actions
+- `test_tool_wire.lua` - the per-provider tool-turn adapters
+- `test_wave1_tools_request.lua` - DeepSeek / Mistral / Groq / xAI tool requests at handler level, plus the xAI routing invariant
+- `test_web_search.lua` - web-search request building, response parsing, streaming detection
+- `test_web_tools.lua` - the SearXNG / Tavily backend module (built but not wired into the plugin yet): request and parse, null sentinels, result formatting
+- `test_xai_responses.lua` - the xAI Responses routing and request builder
+- `test_xray_auto.lua` - the background auto-update gate matrix and the checkpoint ring
+- `test_xray_card.lua` - the entity card's identification line (`firstSentence` / `sentenceEnd`) and its resolve ordering
+- `test_xray_category_prompts.lua` - X-Ray category prompt assembly (full stays byte-identical, filtered drops the rest)
+- `test_xray_counting.lua` - occurrence counting: match spans, word boundaries, union of name and aliases
+- `test_xray_dedup.lua` - duplicate scan, merge application, never-merge storage, AI-merge prompt sentinels
+- `test_xray_merge.lua` - the parser's programmatic merge and the entity index
+- `test_xray_merge_engine.lua` - the merge engine's pure halves: prompts, unions, scope, consent gate
+- `test_xray_parser.lua` - X-Ray JSON extraction and the shared unescaped-quote repair
+- `test_xray_predecessor.lua` - the cross-book tiers (#90): group walk and memo, route fold, card ordering, carry, the chain
 
 ### Integration Tests (real API calls)
 
@@ -428,12 +490,18 @@ cp tests/local_config.lua.sample tests/local_config.lua
 
 Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_providers`
 
-## Providers (18 total)
+## Providers (30 ids)
+
+The 29 built-in providers plus `openai_codex` (OpenAI Subscription: a keyless access path, but
+its own provider id in code). `ModelLists.getAllProviders()` is the live list, and the inspector's
+`--list` prints it. User-defined OpenAI-compatible providers get runtime ids of the form
+`custom_<slug>` and are not listed here.
 
 | Provider | Description |
 |----------|-------------|
 | anthropic | Claude models (extended thinking support) |
 | openai | GPT models |
+| openai_codex | OpenAI Subscription: GPT models via a ChatGPT plan (device login, no API key) |
 | deepseek | DeepSeek models (reasoning_content) |
 | gemini | Google Gemini |
 | ollama | Local models (NDJSON streaming) |
@@ -441,6 +509,7 @@ Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_pro
 | mistral | Mistral AI |
 | xai | Grok models |
 | openrouter | Meta-provider (500+ models) |
+| requesty | OpenAI-compatible model router |
 | qwen | Alibaba Qwen |
 | kimi | Moonshot |
 | together | Together AI |
@@ -450,6 +519,16 @@ Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_pro
 | doubao | ByteDance |
 | zai | Z.AI GLM models |
 | perplexity | Sonar models (built-in web search) |
+| nvidia | Nemotron family + hosted open models (no web search) |
+| cerebras | Very fast open-model inference |
+| minimax | MiniMax M-series |
+| deepinfra | Many open models |
+| novita | Open-model marketplace |
+| hyperbolic | Open-model host |
+| nebius | Nebius AI Studio |
+| chutes | Decentralized GPU marketplace |
+| featherless | Huge open-model catalog |
+| vercel | Vercel AI Gateway |
 
 ## Files
 
@@ -457,7 +536,8 @@ Supports: `plugin_dir`, `apikeys_path`, `default_provider`, `verbose`, `skip_pro
 tests/
 ├── run_tests.lua              # Test runner
 ├── inspect.lua                # Request inspector (CLI + Web UI)
-├── test_config.lua            # Config helpers (buildFullConfig)
+├── model_audit.lua            # Model discovery diff + capability probe battery
+├── test_config.lua            # Config helpers (buildFullConfig, KOA_KEY_ALIAS_* key selection)
 ├── local_config.lua.sample    # Local config template
 ├── fixtures/
 │   ├── sample_context.lua     # Sample context data for tests
@@ -466,34 +546,22 @@ tests/
 │                              # 7 tiny invented EPUBs + real-API sidecar data (see gen.lua header)
 ├── lib/
 │   ├── mock_koreader.lua      # KOReader module mocks
+│   ├── test_runner.lua        # Assertion/reporting harness every unit file uses
+│   ├── test_helpers.lua       # Integration-test helpers (sync HTTP instead of KOReader subprocesses)
 │   ├── constraint_utils.lua   # Plugin constraint utilities wrapper
 │   ├── request_inspector.lua  # Core inspection logic
 │   ├── terminal_formatter.lua # ANSI colors, formatting
 │   └── web_server.lua         # LuaSocket HTTP server
+├── tools/
+│   ├── tpm_stub_server.py     # Local provider stub playing a per-minute token allowance (no credentials)
+│   └── tpm_e2e.lua            # End-to-end transport check against that stub (KOReader's bundled LuaJIT)
 ├── web/
 │   └── index.html             # Web UI frontend
 ├── integration/
 │   ├── test_full_provider.lua    # Comprehensive tests (--full)
 │   ├── test_model_validation.lua # Model validation (--models)
 │   └── test_reasoning.lua        # Reasoning integration tests (--reasoning)
-└── unit/
-    ├── test_action_service.lua      # ActionService integration tests (35 tests)
-    ├── test_actions.lua             # Placeholder gating, flag cascading tests (65 tests)
-    ├── test_auto_update.lua         # Auto-update helper tests (23 tests)
-    ├── test_constants.lua           # Context constants, GitHub URLs tests (20 tests)
-    ├── test_constraint_utils.lua    # Constraint utilities tests (25 tests)
-    ├── test_export.lua              # Export formatting, content modes tests (50 tests)
-    ├── test_loaders.lua             # BehaviorLoader, DomainLoader tests (26 tests)
-    ├── test_message_history.lua     # Conversation tracking, token estimation tests (54 tests)
-    ├── test_openai_compatible.lua   # OpenAI-compatible base class tests (30 tests)
-    ├── test_prompt_building.lua     # MessageBuilder, ContextExtractor gating, cache flow (121 tests)
-    ├── test_reasoning.lua              # Reasoning capabilities, request injection tests (65 tests)
-    ├── test_response_parser.lua     # Provider response parsing tests (42 tests)
-    ├── test_state_management.lua    # Context/config state management tests (68 tests)
-    ├── test_streaming_parser.lua    # SSE/NDJSON parsing tests (22 tests)
-    ├── test_system_prompts.lua      # Behavior, language, domain tests (73 tests)
-    ├── test_templates.lua           # Template constants, nudge substitution, action regression (160 tests)
-    └── test_web_search.lua          # Web search detection tests (44 tests)
+└── unit/                      # 96 files - see "Unit Tests" above for the per-file list
 ```
 
 ## Troubleshooting
@@ -544,7 +612,7 @@ Some providers may be slow. Tests wait for API response without timeout. Check n
 - **Ollama**: Requires running Ollama instance locally
 - **Streaming**: Not fully testable standalone (requires KOReader subprocess)
 - **Token Limits**: Tests use small limits (64-512 tokens) to minimize costs
-- **Model Validation Cost**: `--models` uses ~10 input + 1 output tokens per model (~1,400 tokens total for all 130+ models, typically < $0.01)
+- **Model Validation Cost**: `--models` uses ~10 input + 1 output tokens per model (~2,000 tokens total for all 179 curated models, typically < $0.01)
 
 ## Per-minute admission limits (no credentials needed)
 
@@ -555,6 +623,7 @@ text and dialog class. For an end-to-end run without any provider key:
 ```bash
 python3 tests/tools/tpm_stub_server.py            # Groq-shaped plan: 8000 tokens/min, headers on
 python3 tests/tools/tpm_stub_server.py 8765 8000 --no-headers   # learn from the refusal text only
+python3 tests/tools/tpm_stub_server.py 1234 32768 --openrouter  # context-window wording (HTTP 400, no headers)
 ```
 
 Automated transport check (real base.lua fetch paths under KOReader's bundled LuaJIT,
