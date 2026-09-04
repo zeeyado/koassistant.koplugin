@@ -46,9 +46,12 @@ def prompt_tokens(body):
 
 
 class Handler(BaseHTTPRequestHandler):
-    def _headers(self, requested):
+    def _headers(self, requested, refused=False):
         if not SEND_HEADERS:
             return
+        if refused:
+            # Groq sets retry-after only on a refusal (console.groq.com/docs/rate-limits)
+            self.send_header("retry-after", "7")
         self.send_header("x-ratelimit-limit-tokens", str(LIMIT))
         self.send_header("x-ratelimit-remaining-tokens", str(max(0, LIMIT - requested)))
         self.send_header("x-ratelimit-reset-tokens", "1m0s")
@@ -85,7 +88,7 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_response(413)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(payload)))
-            self._headers(requested)
+            self._headers(requested, refused=True)
             self.end_headers()
             self.wfile.write(payload)
             return

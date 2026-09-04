@@ -37,6 +37,9 @@ function BaseHandler.formatNon200(code, err_body)
             local e = j.error or (type(j[1]) == "table" and j[1].error)
             if type(e) == "table" then
                 msg = e.message or e.status or err_body
+                -- The machine code rides with the sentence (see RateLimits.withErrorCode):
+                -- this line is what the macOS streaming path shows and classifies.
+                if type(e.message) == "string" then msg = RateLimits.withErrorCode(e.message, e) end
             elseif type(e) == "string" then
                 msg = e
             end

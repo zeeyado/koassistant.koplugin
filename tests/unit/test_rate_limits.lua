@@ -413,5 +413,110 @@ TestRunner:test("remaining_tokens is bounded like the limit", function()
     RL._reset()
 end)
 
+--------------------------------------------------------------------------------
+-- The provider's own wait (2026-09-05, borrowed from assistant.koplugin's
+-- retry loop): durations as providers write them, the phrase hunt, the
+-- retry-after header through the marker into the wait memo, and OpenRouter's
+-- "can only afford N".
+--------------------------------------------------------------------------------
+TestRunner:suite("retry delay")
+
+local function near(a, b) return type(a) == "number" and math.abs(a - b) < 1e-6 end
+
+TestRunner:test("parseDuration reads Go, protobuf and word durations; stops at prose", function()
+    TestRunner:assertTrue(near(RL.parseDuration("9m38.016s"), 578.016), "Go m+s")
+    TestRunner:assertTrue(near(RL.parseDuration("5.289s. Visit"), 5.289), "trailing prose ignored")
+    TestRunner:assertEqual(RL.parseDuration("1m0s"), 60, "Go 1m0s")
+    TestRunner:assertTrue(near(RL.parseDuration("500ms"), 0.5), "milliseconds")
+    TestRunner:assertTrue(near(RL.parseDuration("15.002899939s"), 15.002899939), "protobuf seconds")
+    TestRunner:assertEqual(RL.parseDuration("1h2m3s"), 3723, "hours")
+    TestRunner:assertEqual(RL.parseDuration("2 minutes"), 120, "words: minutes")
+    TestRunner:assertEqual(RL.parseDuration("30 seconds"), 30, "words: seconds")
+    TestRunner:assertEqual(RL.parseDuration("20"), 20, "a bare number is seconds")
+    TestRunner:assertNil(RL.parseDuration("20 tokens"), "a count with another unit is not a wait")
+    TestRunner:assertNil(RL.parseDuration("a minute"), "no number, no wait")
+    TestRunner:assertNil(RL.parseDuration("0s"), "zero is no wait")
+    TestRunner:assertNil(RL.parseDuration(nil), "nil")
+end)
+
+TestRunner:test("retryAfterSeconds hunts the providers' phrases and never the plugin's own tips", function()
+    TestRunner:assertTrue(near(RL.retryAfterSeconds("Limit 7000, Used 0, Requested ~12903. Please try again in 50.597142857s."),
+        50.597142857), "Groq: try again in")
+    TestRunner:assertTrue(near(RL.retryAfterSeconds("Limit 200000, Used 162960, Requested 42288. Please try again in 1.574s. Visit"),
+        1.574), "OpenAI: try again in")
+    TestRunner:assertTrue(near(RL.retryAfterSeconds("on tokens per day (TPD): Limit 100000, Used 97050, Requested 3619. Please try again in 9m38.016s."),
+        578.016), "Groq daily: Go duration")
+    -- Gemini states it twice: its own sentence, then the plugin's rendering of
+    -- the same RetryInfo. The earliest in the text wins.
+    TestRunner:assertTrue(near(RL.retryAfterSeconds("Please retry in 15.002899939s.\n\nLimit reached: 125000 input tokens per minute.\nYou can retry in 15s."),
+        15.002899939), "Gemini: the provider's own number first")
+    TestRunner:assertEqual(RL.retryAfterSeconds('{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"15s"}'), 15, "raw RetryInfo")
+    TestRunner:assertNil(RL.retryAfterSeconds("Please reduce the prompt length or the maximum tokens requested, or try again later."),
+        "Anthropic names no delay in the text")
+    TestRunner:assertNil(RL.retryAfterSeconds("Options: wait and try again, pick a different model, or switch provider. "
+        .. "The provider asks for a wait of about 51 seconds."), "the plugin's own tip is never read back as a delay")
+    TestRunner:assertNil(RL.retryAfterSeconds("Pace your requests and follow the Retry-After header when it is present"),
+        "the header's NAME in prose is not a delay")
+    TestRunner:assertNil(RL.retryAfterSeconds(""), "empty")
+end)
+
+TestRunner:test("retryAfter: the header wait rides the marker into a per-model deadline", function()
+    RL._reset()
+    local real_now = RL._now
+    RL._now = function() return 1000 end
+    -- Anthropic's refusal carries only retry-after (no x-ratelimit-limit-tokens):
+    -- record keeps the wait even though it records no allowance.
+    local fields = RL.decodeMarker(RL.encodeMarker({ ["Retry-After"] = "20" }))
+    TestRunner:assertEqual(fields and fields.retry_after, "20", "header forwarded through the marker")
+    TestRunner:assertTrue(not RL.record("anthropic", "claude-sonnet-5", fields, "header"), "no allowance recorded")
+    TestRunner:assertEqual(RL.known("anthropic", "claude-sonnet-5"), nil, "memo untouched")
+    local secs, src = RL.retryAfter("no numbers in this wording", "anthropic", "claude-sonnet-5")
+    TestRunner:assertEqual(secs, 20, "20 s to wait")
+    TestRunner:assertEqual(src, "header", "from the header")
+    RL._now = function() return 1015 end
+    TestRunner:assertEqual(RL.retryAfter("", "anthropic", "claude-sonnet-5"), 5, "counts down")
+    RL._now = function() return 1021 end
+    TestRunner:assertNil(RL.retryAfter("", "anthropic", "claude-sonnet-5"), "expired: nothing to wait for")
+    TestRunner:assertNil(RL.retryAfter("", "anthropic", "claude-opus-5"), "another model has no wait")
+    -- The ms spellings
+    RL.record("openai", "m", { retry_after_ms = "1500", limit_tokens = "30000" }, "header")
+    TestRunner:assertTrue(near(RL.retryAfter("", "openai", "m"), 1.5), "retry-after-ms in seconds")
+    TestRunner:assertEqual(RL.known("openai", "m").limit_tokens, 30000, "the allowance beside it still recorded")
+    -- The wording's own number beats a header deadline (exact for THIS refusal)
+    TestRunner:assertTrue(near(RL.retryAfter("Please try again in 5.289s.", "openai", "m"), 5.289), "text first")
+    -- An HTTP-date arrives mangled by the marker charset and is not a number
+    local dated = RL.decodeMarker(RL.encodeMarker({ ["retry-after"] = "Wed, 21 Oct 2015 07:28:00 GMT" }))
+    RL.record("p", "d", dated, "header")
+    TestRunner:assertNil(RL.retryAfter("", "p", "d"), "an HTTP-date is ignored")
+    -- Nonsense bounds
+    RL.record("p", "z", { retry_after = "0" }, "header")
+    TestRunner:assertNil(RL.retryAfter("", "p", "z"), "zero is no wait")
+    RL.record("p", "y", { retry_after = tostring(RL.MAX_WAIT_S + 1) }, "header")
+    TestRunner:assertNil(RL.retryAfter("", "p", "y"), "longer than a day is not a wait")
+    RL._now = real_now
+    RL._reset()
+    TestRunner:assertNil(RL.retryAfter("", "openai", "m"), "_reset clears the waits too")
+end)
+
+TestRunner:test("parseAffordable reads OpenRouter's 'can only afford N'", function()
+    TestRunner:assertEqual(RL.parseAffordable("You requested up to 32000 tokens, but can only afford 0. To increase, visit"), 0, "zero")
+    TestRunner:assertEqual(RL.parseAffordable("but can only afford 1,000."), 1000, "thousands separator")
+    TestRunner:assertNil(RL.parseAffordable("Limit 7000, Requested 12903"), "not there")
+    TestRunner:assertNil(RL.parseAffordable(nil), "nil")
+end)
+
+TestRunner:test("withErrorCode appends a string code once, never a number or prose", function()
+    TestRunner:assertEqual(RL.withErrorCode("You exceeded your current quota", { type = "insufficient_quota", code = "insufficient_quota" }),
+        "You exceeded your current quota (insufficient_quota)", "code")
+    TestRunner:assertEqual(RL.withErrorCode("Insufficient credits", { code = 402 }), "Insufficient credits", "numeric code skipped")
+    TestRunner:assertEqual(RL.withErrorCode("You exceeded", { code = 429, status = "RESOURCE_EXHAUSTED" }),
+        "You exceeded (RESOURCE_EXHAUSTED)", "status when no string code or type")
+    TestRunner:assertEqual(RL.withErrorCode("rate_limit_exceeded: slow down", { code = "rate_limit_exceeded" }),
+        "rate_limit_exceeded: slow down", "already in the sentence")
+    TestRunner:assertEqual(RL.withErrorCode("msg", { type = "not a code at all" }), "msg", "prose is not a code")
+    TestRunner:assertEqual(RL.withErrorCode("msg", nil), "msg", "no error object")
+    TestRunner:assertEqual(RL.withErrorCode("", { code = "x" }), "", "empty message untouched")
+end)
+
 print(string.format("\n  test_rate_limits: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

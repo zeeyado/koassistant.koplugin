@@ -1857,18 +1857,95 @@ function ModelConstraints.isOverloadError(err_msg)
         or l:find("try again later", 1, true)) and true or false
 end
 
+--- True when the provider refused because the ACCOUNT cannot pay or has hit a
+--- spending cap: credits, balance, a quota exhausted for the billing period.
+--- Waiting does not help and a smaller request does not either, so the tip
+--- names the account and the unattended ladder stops instead of retrying
+--- (borrowed from assistant.koplugin, which stops its retry loop on
+--- insufficient_quota and billing walls). Needles are the providers' own machine
+--- codes and sentences, each sourced in tests/unit/test_error_wordings.lua:
+--- OpenAI's insufficient_quota, credit_balance_exhausted and the spend/usage
+--- limit codes; Anthropic's "credit balance is too low", its "reached your ...
+--- API usage limits" (the tier spend cap and a self-set spend limit) and the 402
+--- billing_error type; DeepSeek's "Insufficient Balance"; OpenRouter's
+--- "insufficient credits" / "requires more credits". Gemini's ordinary 429 says
+--- "please check your plan and billing details" and is NOT one: that sentence
+--- is deliberately not a needle (it is also OpenAI's insufficient_quota
+--- sentence, which is why the consumers append the machine code).
+--- @param err_msg string|nil
+--- @return boolean
+function ModelConstraints.isBillingWall(err_msg)
+    if type(err_msg) ~= "string" or err_msg == "" then return false end
+    local l = err_msg:lower()
+    if l:find("insufficient_quota", 1, true)
+            or l:find("credit_balance_exhausted", 1, true)
+            or l:find("spend_limit_exceeded", 1, true)          -- organization_ / project_
+            or l:find("organization_usage_limit_exceeded", 1, true)
+            or l:find("credit balance is too low", 1, true)
+            or l:find("billing_error", 1, true)
+            or l:find("insufficient balance", 1, true)
+            or l:find("insufficient credits", 1, true)
+            or l:find("requires more credits", 1, true) then
+        return true
+    end
+    return (l:find("reached your", 1, true) and l:find("api usage limits", 1, true)) and true or false
+end
+
+--- "wait" as a number the reader can act on.
+local function waitSentence(seconds)
+    local s = math.ceil(seconds)
+    if s < 1 then s = 1 end
+    if s >= 120 then
+        return "The provider asks for a wait of about " .. math.ceil(s / 60) .. " minutes."
+    end
+    return "The provider asks for a wait of about " .. s .. (s == 1 and " second." or " seconds.")
+end
+
+--- The account-wall tip (HINT_HEADS.billing is its first words).
+local function billingTip(err_msg, provider)
+    local RateLimits = require("koassistant_rate_limits")
+    local who = (type(provider) == "string" and provider ~= "") and provider or "the provider"
+    local text = "Tip: this is an account limit at " .. who .. ", not a problem with the request. " ..
+        "The message says the account's credits, balance or spending limit are used up, so waiting " ..
+        "or sending a smaller request does not help. Add credits or raise the limit in your " .. who ..
+        " account, then try again."
+    -- OpenRouter's 402 names what the remaining credits cover; the router resends
+    -- once at that budget when it is worth an answer (koassistant_gpt_query.lua).
+    local afford = RateLimits.parseAffordable(err_msg)
+    if afford then
+        if afford >= RateLimits.FLOOR then
+            text = text .. " The remaining credits cover an answer of at most " .. tostring(afford) ..
+                " tokens; KOAssistant sends such a request again once with that answer budget."
+        else
+            text = text .. " The remaining credits cover an answer of at most " .. tostring(afford) ..
+                " tokens, too few to answer with."
+        end
+    end
+    return text
+end
+
 --- Append a provider-neutral explanation of what a 429 actually means. Free-tier
 --- allowances are counted PER MODEL, and per minute as well as per day — the part users
 --- can't infer from "quota exceeded for your plan": the same key answers one action and
 --- refuses the next, and picking a different model looks like it fixed the plugin.
---- Skipped when the more specific grounding tip already fired.
+--- Skipped when the more specific grounding tip already fired. An account wall
+--- (isBillingWall) gets its own tip instead, and a burst names the provider's
+--- own wait when one was stated (the wording, or the retry-after header).
 --- @param err_msg string: user-facing error message already built
 --- @param provider string|nil: provider id
---- @param model string|nil: model id (unused; kept for signature parity with the other hints)
+--- @param model string|nil: model id (the header wait is remembered per provider+model)
 --- @param config table|nil: unified request config (unused; parity)
 --- @return string
 function ModelConstraints.maybeAppendRateLimitHint(err_msg, provider, model, config)
     if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
+    -- The account wall first: OpenAI's insufficient_quota also says "quota", so
+    -- it would pass the rate-limit test below and be told to wait, which is
+    -- exactly the advice that does not help (the account is empty, not the
+    -- minute). Its own head guards re-decoration.
+    if err_msg:find(ModelConstraints.HINT_HEADS.billing, 1, true) then return err_msg end
+    if ModelConstraints.isBillingWall(err_msg) then
+        return err_msg .. "\n\n" .. billingTip(err_msg, provider)
+    end
     if not ModelConstraints.isRateLimitError(err_msg) then return err_msg end
     if err_msg:find(GROUNDING_TIP_HEAD, 1, true) then return err_msg end
     if err_msg:find(ModelConstraints.HINT_HEADS.burst, 1, true) then return err_msg end  -- already said
@@ -1882,11 +1959,16 @@ function ModelConstraints.maybeAppendRateLimitHint(err_msg, provider, model, con
         return err_msg
     end
     local who = (type(provider) == "string" and provider ~= "") and provider or "the provider"
-    return err_msg .. "\n\n" ..
-        "Tip: this is " .. who .. "'s own rate limit, not a plugin error. These allowances are " ..
+    local tip = "Tip: this is " .. who .. "'s own rate limit, not a plugin error. These allowances are " ..
         "counted per model, and per minute as well as per day, so one API key can answer a " ..
         "request and refuse the next, and switching model can look like a fix. " ..
         "Options: wait and try again, pick a different model, or switch provider."
+    -- The provider's own wait, when it named one (its wording, or the retry-after
+    -- header the fetch child forwarded with the refusal). Advice here; the
+    -- unattended checkpoint ladder waits it out (XrayAuto.retryDelayFor).
+    local wait = require("koassistant_rate_limits").retryAfter(err_msg, provider, model)
+    if wait then tip = tip .. " " .. waitSentence(wait) end
+    return err_msg .. "\n\n" .. tip
 end
 
 --- Prefix an API failure with the provider/model it came from. Failures used to arrive
@@ -1921,6 +2003,8 @@ ModelConstraints.HINT_HEADS = {
     -- the book-text tip: a size error that is not a per-minute refusal
     book_text = "Tip: This request was too large for the selected model",
     grounding = GROUNDING_TIP_HEAD,
+    -- an account wall: credits, balance or a spending cap (isBillingWall)
+    billing = "Tip: this is an account limit",
 }
 
 --- Single decoration point for API request failures: name the model, then append

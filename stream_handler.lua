@@ -33,6 +33,10 @@ local function extractApiError(text)
             -- speed bump from a daily wall. Cold path: inline require keeps this file's
             -- big closures away from the 60-upvalue cap.
             if type(msg) == "string" and msg ~= "" then
+                -- The provider's machine code (error.code / type / status) says what
+                -- the sentence cannot (OpenAI's insufficient_quota shares Gemini's
+                -- ordinary 429 sentence); mirrors the non-streaming consumer.
+                msg = require("koassistant_rate_limits").withErrorCode(msg, err)
                 -- Wrap `err` rather than passing `j`: Gemini also answers in the array
                 -- shape ([{"error":{...}}]), where the details live under j[1].error.
                 local detail = require("model_constraints").formatQuotaDetails({ error = err })

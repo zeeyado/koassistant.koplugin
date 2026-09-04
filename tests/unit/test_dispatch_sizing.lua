@@ -559,6 +559,31 @@ do
         TestRunner:assertEqual(RL.known("ollama", model), nil, "nothing learned from a wording without numbers")
     end)
 
+    -- OpenRouter's 402 (2026-09-05): the remaining credits cover N tokens of
+    -- answer. Worth an answer = resent once at N, nothing recorded (a balance is
+    -- not a plan); below the floor = nothing to resend, the account wall's tip.
+    local function afford(n)
+        return function(sent)
+            return "This request requires more credits, or fewer max_tokens. You requested up to "
+                .. tostring(sent) .. " tokens, but can only afford " .. tostring(n)
+                .. ". To increase, visit https://openrouter.ai/settings/keys and create a key with a higher monthly limit"
+        end
+    end
+
+    TestRunner:test("'can only afford N' is resent once at N and never learned", function()
+        refusal_for = afford(1000)
+        runStreaming({ provider = "ollama", features = {} }, 300)
+        TestRunner:assertEqual(#calls, 2, "refused once, resent once")
+        TestRunner:assertEqual(calls[2].max_tokens, 1000, "resent at what the credits cover")
+        TestRunner:assertEqual(RL.known("ollama", model), nil, "a balance is not a plan: nothing recorded")
+    end)
+
+    TestRunner:test("'can only afford 0' is not resent (below the floor)", function()
+        refusal_for = afford(0)
+        runStreaming({ provider = "ollama", features = {} }, 300)
+        TestRunner:assertEqual(#calls, 1, "nothing worth resending at")
+    end)
+
     refusal_for = nil
     handler.query = real_query
     package.loaded["stream_handler"] = saved_stream

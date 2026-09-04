@@ -1218,12 +1218,50 @@ TestRunner:test("classifyStopReason: own abort sentinels and refusals that canno
         { decorated(GROQ_BURST, "groq", "gemma2-9b-it"), "rate_limited", true },
         { decorated(CEREBRAS, "cerebras", "zai-glm-4.7"), "rate_limited", true },
         { decorated(ANTHROPIC_ITPM, "anthropic", "claude-sonnet-5"), "rate_limited", true },
+        -- Account walls (2026-09-05): credits, balance, a spending cap. No wait
+        -- heals them, so the chain stops and names the account. OpenAI's
+        -- insufficient_quota also says "quota" and used to buy the retry.
+        { decorated("You exceeded your current quota, please check your plan and billing details. "
+            .. "(insufficient_quota)", "openai", "gpt-5.5"), "billing", false },
+        { decorated("Insufficient Balance (invalid_request_error)", "deepseek", "deepseek-chat"), "billing", false },
+        { decorated("This request requires more credits, or fewer max_tokens. You requested up to 32000 "
+            .. "tokens, but can only afford 0. To increase, visit https://openrouter.ai/settings/keys",
+            "openrouter", "moonshotai/kimi-k2.5:free"), "billing", false },
+        { decorated("Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing "
+            .. "to upgrade or purchase credits. (invalid_request_error)", "anthropic", "claude-sonnet-5"), "billing", false },
     }
     for _idx, case in ipairs(cases) do
         local kind, transient = XrayAuto.classifyStopReason(case[1])
         TestRunner:assertEqual(kind, case[2], "kind for: " .. case[1]:sub(1, 60))
         TestRunner:assertEqual(transient, case[3], "transient for: " .. case[1]:sub(1, 60))
     end
+end)
+
+TestRunner:test("retryDelayFor: the provider's own wait times the one retry (2026-09-05)", function()
+    local RL = require("koassistant_rate_limits")
+    RL._reset()
+    local GROQ_BURST = "Rate limit reached for model `gemma2-9b-it` on tokens per minute (TPM): "
+        .. "Limit 15000, Used 11972, Requested 4351. Please try again in 5.289s."
+    TestRunner:assertEqual(XrayAuto.retryDelayFor(GROQ_BURST, "groq", "gemma2-9b-it"), 7,
+        "named 5.289 s: ceil plus a second of slack")
+    TestRunner:assertEqual(XrayAuto.retryDelayFor("This request would exceed your organization's rate limit of "
+        .. "80,000 input tokens per minute.", "anthropic", "claude-sonnet-5"), XrayAuto.RETRY_DELAY_S,
+        "no wait named anywhere: the fixed delay")
+    -- Anthropic names the wait only in its retry-after header, which the fetch
+    -- child forwards through the marker into the wait memo.
+    local real_now = RL._now
+    RL._now = function() return 5000 end
+    RL.record("anthropic", "claude-sonnet-5", { retry_after = "20" }, "header")
+    TestRunner:assertEqual(XrayAuto.retryDelayFor("This request would exceed your organization's rate limit of "
+        .. "80,000 input tokens per minute.", "anthropic", "claude-sonnet-5"), 21, "header wait plus slack")
+    RL._now = real_now
+    RL._reset()
+    TestRunner:assertEqual(XrayAuto.retryDelayFor("Please try again in 20ms.", "openai", "m"), 2, "never under 2 s")
+    TestRunner:assertEqual(XrayAuto.retryDelayFor("Please try again in 9m38.016s.", "groq", "m"), 580,
+        "a long named wait is waited out")
+    TestRunner:assertEqual(XrayAuto.retryDelayFor("Please try again in 2h.", "groq", "m"), nil,
+        "past RETRY_MAX_WAIT_S: no retry (a guaranteed second refusal)")
+    TestRunner:assertEqual(XrayAuto.retryDelayFor(nil, "groq", "m"), XrayAuto.RETRY_DELAY_S, "nil text")
 end)
 
 TestRunner:test("ladder stop record: per-file, superseded by a chain (re)start", function()

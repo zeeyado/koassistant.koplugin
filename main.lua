@@ -15162,14 +15162,19 @@ function AskGPT:_fireXrayLadderRung()
         -- Item 45: one silent retry per step for transient provider failures
         -- (503/429/5xx/network) — the field specimen healed on a resume 76s
         -- later. The build state stays ALIVE through the wait so cancel works.
-        if transient and (cur.retried or 0) < 1 and not cur.cancel_requested then
+        -- The wait is the provider's own when it named one (Groq's "try again
+        -- in 5.289s", Anthropic's retry-after header), else the fixed 60 s; a
+        -- wait past XrayAuto.RETRY_MAX_WAIT_S means no retry (nil).
+        local retry_in = transient and XrayAuto.retryDelayFor(err_text, config_copy.provider,
+          require("model_constraints").dispatchModel(config_copy)) or nil
+        if retry_in and (cur.retried or 0) < 1 and not cur.cancel_requested then
           cur.retried = 1
           logger.dbg("KOAssistant: ladder step", cur.step or cur.idx, "transient failure (",
-            kind, ") - retrying in", XrayAuto.RETRY_DELAY_S, "s:", err_text)
+            kind, ") - retrying in", retry_in, "s:", err_text)
           if not cur.silent or features.xray_auto_notify == true then
             UIManager:show(Notification:new{
               text = T(_("Model busy — retrying checkpoint %1 of %2 in %3 s…"),
-                cur.step or cur.idx, cur.total, XrayAuto.RETRY_DELAY_S),
+                cur.step or cur.idx, cur.total, retry_in),
             })
           end
           local retry_fn = function()
@@ -15185,7 +15190,7 @@ function AskGPT:_fireXrayLadderRung()
             self_ref:_fireXrayLadderRung()
           end
           self_ref._xray_ladder_retry = retry_fn
-          UIManager:scheduleIn(XrayAuto.RETRY_DELAY_S, retry_fn)
+          UIManager:scheduleIn(retry_in, retry_fn)
           return
         end
         XrayAuto.endLadderBuild()
@@ -15296,6 +15301,9 @@ function AskGPT:_xrayStopReasonLabel(kind)
   -- (the surfaces render it as "stopped: nothing was sent").
   if kind == "too_large" then return _("request too large") end
   if kind == "aborted" then return _("nothing was sent") end
+  -- An account wall (credits, balance, a spending cap): never retried, the
+  -- reader must act on the account.
+  if kind == "billing" then return _("account credits or billing") end
   return nil
 end
 

@@ -308,6 +308,11 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
                         or (type(j.message) == "string" and j.message)
                         or nil
                     if err and err ~= "" then
+                        -- The provider's machine code (error.code / type / status)
+                        -- says what the sentence cannot: OpenAI's insufficient_quota
+                        -- carries Gemini's ordinary 429 sentence word for word.
+                        err = require("koassistant_rate_limits").withErrorCode(err,
+                            type(j.error) == "table" and j.error or nil)
                         -- 429 bodies name the exact bucket (per-day vs per-minute, requests
                         -- vs tokens) and the retry delay in error.details[]; error.message
                         -- alone says only "you exceeded your current quota".
@@ -564,6 +569,31 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             --             ONCE at a budget that fits, and when the prompt alone
             --             does not fit there is nothing to resend (the decorated
             --             error says which).
+            -- OpenRouter's 402 first: it names the answer the remaining credits
+            -- can pay for ("can only afford N"). Resend ONCE at that budget when
+            -- it is worth an answer, recording nothing (a balance is not a
+            -- plan). Below the floor there is nothing to resend; the decorated
+            -- error then names the account (ModelConstraints.isBillingWall).
+            local afford = RateLimits.parseAffordable(err)
+            if afford then
+                local sent = sent_budget or ModelConstraints.effectiveMaxTokens(provider, dispatch_model, config)
+                if afford < RateLimits.FLOOR or (sent and afford >= sent) then
+                    logger.warn("KOAssistant: credits cover an answer of", afford,
+                        "tokens at most - no resend for", provider, dispatch_model or "?")
+                    return false
+                end
+                max_tokens_retry_done = true
+                logger.warn("KOAssistant: credits cover an answer of", afford, "tokens at most; refused budget",
+                    sent or "?", "- resending at", afford, "for", provider, dispatch_model or "?")
+                local retry_config = {}
+                for k, v in pairs(config) do retry_config[k] = v end
+                retry_config.api_params = {}
+                for k, v in pairs(config.api_params or {}) do retry_config.api_params[k] = v end
+                retry_config.api_params.max_tokens = afford
+                sent_budget = afford
+                dispatchRequest(retry_config)
+                return true
+            end
             local refusal = RateLimits.parseRefusal(err)
             if not refusal then return false end   -- numberless: nothing to learn
             local recorded = RateLimits.record(provider, dispatch_model,

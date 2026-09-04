@@ -15,6 +15,9 @@
 --   ModelConstraints.decorateRequestError (WHICH tip the reader is shown)
 --   XrayAuto.classifyStopReason           (the unattended ladder's verdict and
 --                                          whether it retries at all)
+--   RateLimits.retryAfterSeconds          (the wait the wording itself names)
+--   ModelConstraints.isBillingWall        (an account wall: never retried)
+--   RateLimits.parseAffordable            (OpenRouter's "can only afford N")
 --
 -- This file is the CORPUS: one entry per verbatim wording collected from the
 -- repo's own fixtures, this repo's issues, and public provider reports. Every
@@ -96,6 +99,16 @@ local XrayAuto = require("koassistant_xray_auto")
 --            the DECORATED string, which is what the unattended checkpoint
 --            ladder really receives (audit B2b/F36: the retry decision used to
 --            be driven by the plugin's own advice paragraph, and was inverted).
+-- retry_after = seconds the WORDING itself names for the wait, what
+--            RateLimits.retryAfterSeconds must read (absent = nil: the text
+--            names none; a header-only wait like Anthropic's is not text).
+--            Asserted on every entry.
+-- billing  = true when ModelConstraints.isBillingWall must say so: an account
+--            wall (credits, balance, a spending cap). Asserted on EVERY entry,
+--            so Gemini's "check your plan and billing details" sentence can
+--            never start counting as one.
+-- afford   = what RateLimits.parseAffordable must read out of OpenRouter's
+--            "can only afford N" (absent = nil). Asserted on every entry.
 --------------------------------------------------------------------------------
 
 local CORPUS = {
@@ -589,6 +602,9 @@ local CORPUS = {
         -- The per-minute signature here is the PLUGIN's own rendering of the
         -- quota id. Gemini never counts max_tokens at admission: a burst.
         expect = { kind = "burst", rate_limit = true },
+        -- Stated twice (Gemini's own sentence, then the plugin's rendering of
+        -- the same RetryInfo): the earliest in the text wins.
+        retry_after = 15.002899939,
         refusal_kind = "burst",
         hint = "burst",
         ladder = { kind = "rate_limited", transient = true },
@@ -615,6 +631,7 @@ local CORPUS = {
         -- "try again in 50s" (re-audit 2026-09-04; it used to be filed as a
         -- burst on the Used count alone and was never resent).
         expect = { kind = "admission", limit = 7000, requested = 12903, used = 0, rate_limit = true },
+        retry_after = 50.597142857,
         refusal_kind = "admission",
         hint = "admission",
         ladder = { kind = "too_large", transient = false },
@@ -633,6 +650,7 @@ local CORPUS = {
         -- A second model id, because the digit an unanchored search steals moves
         -- with the name: `llama3` gave 3 above, `gemma2` gives 2 here.
         expect = { kind = "burst", limit = 15000, requested = 4351, used = 11972, rate_limit = true },
+        retry_after = 5.289,
         refusal_kind = "burst",
         hint = "burst",
         ladder = { kind = "rate_limited", transient = true },
@@ -649,6 +667,7 @@ local CORPUS = {
         -- Same anchoring point; the unanchored pattern captured the "4" of
         -- "o4-mini" here.
         expect = { kind = "burst", limit = 200000, requested = 42288, used = 162960, rate_limit = true },
+        retry_after = 1.574,
         refusal_kind = "burst",
         hint = "burst",
         ladder = { kind = "rate_limited", transient = true },
@@ -665,6 +684,7 @@ local CORPUS = {
         -- not (no per-minute signature in the text). refusal_kind is therefore
         -- absent = nil: not a per-minute refusal at all.
         expect = { kind = "burst", rate_limit = true },
+        retry_after = 578.016,  -- "9m38.016s", a Go duration
         hint = "burst",
         ladder = { kind = "rate_limited", transient = true },
     },
@@ -680,6 +700,113 @@ local CORPUS = {
         expect = { kind = "burst", rate_limit = true },
         hint = "burst",
         ladder = { kind = "rate_limited", transient = true },
+    },
+
+    ----------------------------------------------------------------------------
+    -- Account walls (2026-09-05): credits, balance, a spending cap. Neither a
+    -- wait nor a smaller request helps, so the reader is pointed at the account
+    -- and the unattended ladder stops without its retry (borrowed from
+    -- assistant.koplugin, which stops its retry loop on insufficient_quota and
+    -- billing errors). Where the sentence is not distinctive the trailing
+    -- "(code)" is what RateLimits.withErrorCode appends from the body's own
+    -- error.code / type, in every consumer, before the parsers see the text.
+    ----------------------------------------------------------------------------
+    {
+        id = "openai_429_insufficient_quota",
+        provider = "openai",
+        status = 429,
+        source = "community.openai.com/t/error-code-429-you-exceeded-your-current-quota-please-check-your-plan-and-billing-details/649547 "
+            .. "(verbatim error.message; type and code insufficient_quota, appended as the trailing code)",
+        envelope = '{"error":{"message":"...","type":"insufficient_quota","param":null,"code":"insufficient_quota"}}',
+        text = "You exceeded your current quota, please check your plan and billing details. For more information "
+            .. "on this error, read the docs: https://platform.openai.com/docs/guides/error-codes/api-errors. "
+            .. "(insufficient_quota)",
+        -- The SAME sentence Gemini uses for its ordinary per-minute 429, so only
+        -- the code can tell them apart. It says "quota", so isRateLimitError is
+        -- true and, without the wall check first, the reader was told to wait.
+        expect = { kind = "other", rate_limit = true },
+        billing = true,
+        hint = "billing",
+        ladder = { kind = "billing", transient = false },
+    },
+    {
+        id = "anthropic_400_credit_balance",
+        provider = "anthropic",
+        status = 400,
+        source = "github.com/anthropics/claude-code/issues/1491 (verbatim; type invalid_request_error appended as the code)",
+        envelope = '{"type":"error","error":{"type":"invalid_request_error","message":"..."}}',
+        text = "Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade "
+            .. "or purchase credits. (invalid_request_error)",
+        expect = { kind = "other", rate_limit = false },
+        billing = true,
+        hint = "billing",
+        ladder = { kind = "billing", transient = false },
+    },
+    {
+        id = "anthropic_429_spend_cap",
+        provider = "anthropic",
+        status = 429,
+        source = "platform.claude.com/docs/en/api/rate-limits, section \"Reaching your spend cap\" (verbatim example; "
+            .. "type rate_limit_error appended as the code; the docs note this 429 carries NO retry-after header)",
+        envelope = '{"type":"error","error":{"type":"rate_limit_error","message":"...","details":{"error_code":"enforced_spend_limit_reached"}}}',
+        text = "You have reached your API usage limits: your organization has crossed its monthly API usage threshold, "
+            .. "set based on your organization's API tier. You will regain access on 2026-09-01 at 00:00 UTC. "
+            .. "(rate_limit_error)",
+        -- Wears the rate_limit_error type, so isRateLimitError is true; the
+        -- sentence is the wall. No delay is named (a date is not a duration).
+        expect = { kind = "other", rate_limit = true },
+        billing = true,
+        hint = "billing",
+        ladder = { kind = "billing", transient = false },
+    },
+    {
+        id = "deepseek_402_insufficient_balance",
+        provider = "deepseek",
+        status = 402,
+        source = "github.com/continuedev/continue/issues/4766 (verbatim body; api-docs.deepseek.com/quick_start/error_codes "
+            .. "documents 402 Insufficient Balance); code invalid_request_error appended",
+        envelope = '{"error":{"message":"Insufficient Balance","type":"unknown_error","param":null,"code":"invalid_request_error"}}',
+        text = "Insufficient Balance (invalid_request_error)",
+        expect = { kind = "other", rate_limit = false },
+        billing = true,
+        hint = "billing",
+        ladder = { kind = "billing", transient = false },
+    },
+    {
+        id = "openrouter_402_afford_0",
+        provider = "openrouter",
+        status = 402,
+        source = "github.com/anomalyco/opencode/issues/12219 (verbatim; openrouter.ai/docs/api-reference/errors documents 402)",
+        envelope = '{"error":{"message":"...","code":402}}',
+        text = "This request requires more credits, or fewer max_tokens. You requested up to 32000 tokens, but can only "
+            .. "afford 0. To increase, visit https://openrouter.ai/settings/keys and create a key with a higher monthly limit",
+        -- OpenRouter checks the key's remaining credit against the WHOLE answer
+        -- budget before the model runs: the item-27 default of 32,768 fails a
+        -- low-credit key on a one-line question. "afford 0" leaves nothing to
+        -- resend at; the tip names the account.
+        expect = { kind = "other", rate_limit = false },
+        billing = true,
+        afford = 0,
+        hint = "billing",
+        ladder = { kind = "billing", transient = false },
+    },
+    {
+        id = "openrouter_402_afford_2",
+        provider = "openrouter",
+        status = 402,
+        source = "community.activepieces.com/t/apicallerror-ai-apicallerror-this-request-requires-more-credits-or-fewer-"
+            .. "max-tokens-you-requested-up-to-400-tokens-but-can-only-afford-2-to-increase-visit-https-openrouter-ai-"
+            .. "settings-keys-and-create-a-key-with-a-higher-total-limit/11680 (verbatim)",
+        envelope = '{"error":{"message":"...","code":402}}',
+        text = "This request requires more credits, or fewer max_tokens. You requested up to 400 tokens, but can only "
+            .. "afford 2. To increase, visit https://openrouter.ai/settings/keys and create a key with a higher total limit",
+        -- Below RateLimits.FLOOR: still nothing worth resending at. A larger
+        -- affordable count is resent once at that budget (test_dispatch_sizing).
+        expect = { kind = "other", rate_limit = false },
+        billing = true,
+        afford = 2,
+        hint = "billing",
+        ladder = { kind = "billing", transient = false },
     },
 }
 
@@ -824,6 +951,27 @@ for _idx, entry in ipairs(CORPUS) do
     TestRunner.assert(lk == entry.ladder.kind and lt == entry.ladder.transient,
         entry.id .. ": classifyStopReason is " .. tostring(lk) .. "/" .. tostring(lt)
             .. ", expected " .. tostring(entry.ladder.kind) .. "/" .. tostring(entry.ladder.transient))
+
+    -- The wait the wording names (retry_after), the account wall (billing) and
+    -- OpenRouter's affordable count (afford): asserted on EVERY entry, absent =
+    -- nil, so no wording elsewhere in the corpus can start reading as one.
+    local ra = RateLimits.retryAfterSeconds(entry.text)
+    local ra_ok = (ra == nil and entry.retry_after == nil)
+        or (ra ~= nil and entry.retry_after ~= nil and math.abs(ra - entry.retry_after) < 1e-6)
+    TestRunner.assert(ra_ok, entry.id .. ": retryAfterSeconds is " .. tostring(ra)
+        .. ", expected " .. tostring(entry.retry_after))
+    local bw = ModelConstraints.isBillingWall(entry.text)
+    TestRunner.assert(bw == (entry.billing == true), entry.id .. ": isBillingWall is " .. tostring(bw)
+        .. ", expected " .. tostring(entry.billing == true))
+    local af = RateLimits.parseAffordable(entry.text)
+    TestRunner.assert(af == entry.afford, entry.id .. ": parseAffordable is " .. tostring(af)
+        .. ", expected " .. tostring(entry.afford))
+    -- The named wait reaches the reader exactly when the burst tip fired: as
+    -- its closing sentence, and nowhere else (an admission refusal that also
+    -- says "try again in 50s" is not told to wait: no wait admits it).
+    local wait_said = decorated:find("asks for a wait of about", 1, true) ~= nil
+    TestRunner.assert(wait_said == (entry.retry_after ~= nil and entry.hint == "burst"),
+        entry.id .. ": the wait sentence fired = " .. tostring(wait_said))
 
     local ok, detail = checkEntry(entry)
     if entry.known_miss then

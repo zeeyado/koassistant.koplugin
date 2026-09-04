@@ -113,9 +113,15 @@ local function showRequestError(err_text, retry_fn, timeout, drop_offer)
     -- Overload/503 joins the persistent-dialog class (2026-08-15 device round: a
     -- high-demand 503 vanished as a toast with no retry button), but the drop row
     -- stays rate-limit-only — dropping web/tools does not heal an overloaded model.
-    local is_rate_limit = ModelConstraints.isRateLimitError(err_text)
+    -- An account wall (credits, balance, a spending cap) joins the persistent
+    -- class too: its tip is several lines a 3-second toast cannot show, and
+    -- "Try again" is right once the account is topped up. It is NOT a rate
+    -- limit here even when its wording says "quota" (OpenAI's
+    -- insufficient_quota): dropping web search or book tools cannot pay for it.
+    local is_billing = ModelConstraints.isBillingWall(err_text)
+    local is_rate_limit = not is_billing and ModelConstraints.isRateLimitError(err_text)
     if retry_fn and type(err_text) == "string"
-            and (is_rate_limit or ModelConstraints.isOverloadError(err_text)) then
+            and (is_rate_limit or is_billing or ModelConstraints.isOverloadError(err_text)) then
         local dialog
         local buttons = {{
             {

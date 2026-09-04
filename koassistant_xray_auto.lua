@@ -27,6 +27,25 @@ XrayAuto.CATCHUP_DELAY_S = 30    -- session-start catch-up delay (update-checker
 -- socket timeouts self-resolve dead connections, every in-progress state has
 -- a tap-to-cancel row, and book close cancels the flight.)
 XrayAuto.RETRY_DELAY_S = 60      -- item 45: single transient-failure retry per ladder step.
+XrayAuto.RETRY_MAX_WAIT_S = 600  -- a provider-named wait past this holds no build session
+
+--- Seconds the one retry waits: the provider's own delay when it named one
+--- (the wording, or the retry-after header: RateLimits.retryAfter), plus a
+--- second of slack, else RETRY_DELAY_S. nil = the provider asked for longer
+--- than RETRY_MAX_WAIT_S, so the retry is a guaranteed second refusal and the
+--- step stops instead (the resume rows stay). Pure.
+--- @param err string|nil the failure text
+--- @param provider string|nil
+--- @param model string|nil
+--- @return number|nil seconds
+function XrayAuto.retryDelayFor(err, provider, model)
+  local named = require("koassistant_rate_limits").retryAfter(err, provider, model)
+  if not named then return XrayAuto.RETRY_DELAY_S end
+  local wait = math.ceil(named) + 1
+  if wait < 2 then wait = 2 end
+  if wait > XrayAuto.RETRY_MAX_WAIT_S then return nil end
+  return wait
+end
                                  -- Field specimen (2026-08-03): a Gemini 503 healed on a
                                  -- resume 76s later — one 60s retry makes that invisible.
 
@@ -206,7 +225,7 @@ end
 --- and a context/output-cap 400 are deterministic, so transient is false: the
 --- retry would be a guaranteed second failure.
 --- @param err string|nil The error text (handler-formatted, e.g. "gemini/…: HTTP 503: …")
---- @return string kind "aborted"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
+--- @return string kind "aborted"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
 --- @return boolean transient True when a short wait plausibly heals it (retry-worthy)
 function XrayAuto.classifyStopReason(err)
   local text = type(err) == "string" and err:lower() or ""
@@ -222,6 +241,13 @@ function XrayAuto.classifyStopReason(err)
   -- deliberately keeps no file-level dependency on the api/constraints layer.
   local RateLimits = require("koassistant_rate_limits")
   local ModelConstraints = require("model_constraints")
+  -- An account wall (credits, balance, a spending cap: ModelConstraints.isBillingWall)
+  -- is neither transient nor a size problem: no wait heals it, so the chain
+  -- stops and the stop names the account. Checked before the per-minute family
+  -- because OpenAI's insufficient_quota also says "quota".
+  if ModelConstraints.isBillingWall(err) then
+    return "billing", false
+  end
   -- Per-minute token refusals are graded off their NUMBERS (RateLimits.refusalKind):
   -- an admission refusal (the request alone exceeds the allowance) is
   -- deterministic; a burst (the allowance is spent for now, or the wording

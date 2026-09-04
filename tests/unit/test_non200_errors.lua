@@ -103,22 +103,56 @@ local ModelConstraints = require("model_constraints")
 
 TestRunner:suite("extractApiError: clean message from raw error bodies")
 
+-- The machine code rides with the sentence since 2026-09-05 (RateLimits.withErrorCode):
+-- a string error.code, else error.type, else error.status, appended as "(code)".
+-- A numeric code (Google and OpenRouter put the HTTP status there) is skipped.
 TestRunner:test("object form {\"error\":{\"message\":..}}", function()
     local body = '{"error":{"code":429,"message":"You exceeded your current quota.","status":"RESOURCE_EXHAUSTED"}}'
     TestRunner:assertEqual(StreamHandler.extractApiError(body),
-        "You exceeded your current quota.", "should extract error.message")
+        "You exceeded your current quota. (RESOURCE_EXHAUSTED)",
+        "should extract error.message and append the status (the numeric code is skipped)")
 end)
 
 TestRunner:test("array form [{\"error\":{..}}]", function()
     local body = '[{"error":{"code":400,"message":"Bad request body","status":"INVALID_ARGUMENT"}}]'
     TestRunner:assertEqual(StreamHandler.extractApiError(body),
-        "Bad request body", "should extract from array[1].error.message")
+        "Bad request body (INVALID_ARGUMENT)", "should extract from array[1].error.message")
 end)
 
 TestRunner:test("code fallback when no message", function()
     local body = '{"error":{"code":503,"status":"UNAVAILABLE"}}'
     TestRunner:assertEqual(StreamHandler.extractApiError(body),
-        "API error 503", "should fall back to error.code before status")
+        "API error 503 (UNAVAILABLE)", "should fall back to error.code before status")
+end)
+
+TestRunner:test("the machine code is what tells OpenAI's insufficient_quota from Gemini's 429", function()
+    -- Same sentence on both providers; only the code differs (sources in
+    -- tests/unit/test_error_wordings.lua).
+    local sentence = "You exceeded your current quota, please check your plan and billing details."
+    local openai = '{"error":{"message":"' .. sentence .. '","type":"insufficient_quota","param":null,"code":"insufficient_quota"}}'
+    local out = StreamHandler.extractApiError(openai)
+    TestRunner:assertEqual(out, sentence .. " (insufficient_quota)", "OpenAI: code appended once")
+    TestRunner:assertTrue(ModelConstraints.isBillingWall(out), "and it is an account wall")
+    local gemini = '{"error":{"code":429,"message":"' .. sentence .. '","status":"RESOURCE_EXHAUSTED"}}'
+    local gout = StreamHandler.extractApiError(gemini)
+    TestRunner:assertEqual(gout, sentence .. " (RESOURCE_EXHAUSTED)", "Gemini: the status, not the numeric code")
+    TestRunner:assertTrue(not ModelConstraints.isBillingWall(gout), "and it is NOT an account wall")
+    -- Groq: type "tokens" is prose-like but valid; code wins the slot
+    local groq = '{"error":{"message":"Rate limit reached","type":"tokens","code":"rate_limit_exceeded"}}'
+    TestRunner:assertEqual(StreamHandler.extractApiError(groq), "Rate limit reached (rate_limit_exceeded)", "code before type")
+    -- A code the sentence already carries is not repeated
+    local dup = '{"error":{"message":"rate_limit_exceeded: slow down","code":"rate_limit_exceeded"}}'
+    TestRunner:assertEqual(StreamHandler.extractApiError(dup), "rate_limit_exceeded: slow down", "no duplicate")
+end)
+
+TestRunner:test("BaseHandler.formatNon200 carries the code the same way (macOS streaming path)", function()
+    local BaseHandler = require("koassistant_api.base")
+    local body = '{"error":{"message":"Insufficient Balance","type":"unknown_error","param":null,"code":"invalid_request_error"}}'
+    local line = BaseHandler.formatNon200(402, body)
+    TestRunner:assertEqual(line, "HTTP 402: Insufficient Balance (invalid_request_error)", "code appended")
+    TestRunner:assertTrue(ModelConstraints.isBillingWall(line), "DeepSeek's 402 is an account wall")
+    TestRunner:assertEqual(BaseHandler.formatNon200(429, '{"error":{"code":429,"message":"slow"}}'),
+        "HTTP 429: slow", "numeric code skipped")
 end)
 
 TestRunner:test("status fallback when no message and no code", function()
@@ -142,6 +176,72 @@ end)
 TestRunner:test("body without an error returns nil", function()
     TestRunner:assertNil(StreamHandler.extractApiError('{"candidates":[{"content":"ok"}]}'),
         "non-error body should return nil")
+end)
+
+--------------------------------------------------------------------------------
+-- Test: the provider's own wait and the account wall in the decorated error
+-- (2026-09-05)
+--------------------------------------------------------------------------------
+
+TestRunner:suite("decorateRequestError: the named wait and the account wall")
+
+TestRunner:test("a burst names the provider's wait from its wording", function()
+    local out = ModelConstraints.decorateRequestError(
+        "Rate limit reached for model `gemma2-9b-it` on tokens per minute (TPM): Limit 15000, "
+        .. "Used 11972, Requested 4351. Please try again in 5.289s.", "groq", "gemma2-9b-it", nil)
+    TestRunner:assertContains(out, ModelConstraints.HINT_HEADS.burst, "the wait tip fired")
+    TestRunner:assertContains(out, "The provider asks for a wait of about 6 seconds.", "5.289 s rounds up")
+    -- Re-decoration adds nothing (the burst head guards it)
+    TestRunner:assertEqual(ModelConstraints.decorateRequestError(out, "groq", "gemma2-9b-it", nil), out,
+        "idempotent")
+    -- Minutes past two minutes
+    local long = ModelConstraints.decorateRequestError(
+        "Rate limit reached on tokens per day (TPD): Limit 100000, Used 97050, Requested 3619. "
+        .. "Please try again in 9m38.016s.", "groq", "m", nil)
+    TestRunner:assertContains(long, "asks for a wait of about 10 minutes.", "long waits in minutes")
+end)
+
+TestRunner:test("a burst names the wait from the retry-after header when the wording has none", function()
+    local RL = require("koassistant_rate_limits")
+    RL._reset()
+    local real_now = RL._now
+    RL._now = function() return 100 end
+    -- Anthropic: the wording states no delay; the header did, via the marker.
+    RL.record("anthropic", "claude-sonnet-5", { retry_after = "20" }, "header")
+    local itpm = "This request would exceed your organization's rate limit of 80,000 input tokens per minute. "
+        .. "Please reduce the prompt length or the maximum tokens requested, or try again later."
+    local out = ModelConstraints.decorateRequestError(itpm, "anthropic", "claude-sonnet-5", nil)
+    TestRunner:assertContains(out, "asks for a wait of about 20 seconds.", "header wait named")
+    -- Another model of the same provider has no such wait
+    local other = ModelConstraints.decorateRequestError(itpm, "anthropic", "claude-opus-5", nil)
+    TestRunner:assertTrue(not other:find("asks for a wait", 1, true), "no wait known for another model")
+    RL._now = real_now
+    RL._reset()
+end)
+
+TestRunner:test("an account wall gets its own tip, never the wait tip", function()
+    local out = ModelConstraints.decorateRequestError(
+        "You exceeded your current quota, please check your plan and billing details. (insufficient_quota)",
+        "openai", "gpt-5.5", nil)
+    TestRunner:assertContains(out, ModelConstraints.HINT_HEADS.billing, "the account-wall tip fired")
+    TestRunner:assertTrue(not out:find(ModelConstraints.HINT_HEADS.burst, 1, true), "no wait tip")
+    TestRunner:assertTrue(not out:find("asks for a wait", 1, true), "no wait sentence")
+    TestRunner:assertEqual(ModelConstraints.decorateRequestError(out, "openai", "gpt-5.5", nil), out, "idempotent")
+    -- OpenRouter's affordable count is explained both ways
+    local low = ModelConstraints.decorateRequestError(
+        "This request requires more credits, or fewer max_tokens. You requested up to 32000 tokens, but can "
+        .. "only afford 2.", "openrouter", "m", nil)
+    TestRunner:assertContains(low, "at most 2 tokens, too few to answer with", "below the floor")
+    local ok = ModelConstraints.decorateRequestError(
+        "This request requires more credits, or fewer max_tokens. You requested up to 32000 tokens, but can "
+        .. "only afford 1000.", "openrouter", "m", nil)
+    TestRunner:assertContains(ok, "at most 1000 tokens; KOAssistant sends such a request again once", "worth a resend")
+    -- Gemini's ordinary 429 shares the sentence and is NOT a wall
+    local gem = ModelConstraints.decorateRequestError(
+        "You exceeded your current quota, please check your plan and billing details. (RESOURCE_EXHAUSTED)",
+        "gemini", "gemini-2.5-flash", nil)
+    TestRunner:assertTrue(not gem:find(ModelConstraints.HINT_HEADS.billing, 1, true), "Gemini: not a wall")
+    TestRunner:assertContains(gem, ModelConstraints.HINT_HEADS.burst, "Gemini: the wait tip")
 end)
 
 --------------------------------------------------------------------------------

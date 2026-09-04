@@ -58,6 +58,13 @@ check(cleaned413:find(BaseHandler.PROTOCOL_NON_200, 1, true) ~= nil, "NON-200 ma
 check(cleaned413:find("Requested", 1, true) ~= nil, "refusal body reached the pipe")
 local refusal = RL.parseRefusal(cleaned413)
 check(refusal and refusal.limit == 8000, "parseRefusal reads Limit 8000 from the pipe text")
+-- The refusal's retry-after header rides the same marker into the wait memo
+-- (2026-09-05): the wait tip and the checkpoint ladder's retry read it there.
+check(fields413 and fields413.retry_after == "7", "retry-after 7 forwarded on the refusal")
+RL._reset()
+RL.record("custom_stub", "stub-model", fields413, "header")
+local wait = RL.retryAfter("", "custom_stub", "stub-model")
+check(wait and wait > 5 and wait <= 7, "the wait memo answers about 7 s (got " .. tostring(wait) .. ")")
 check(refusal and RL.retryBudget(refusal, 32768, #body(32768)) ~= nil, "a fitting resend budget exists")
 
 print("[3] forked child: 200 SSE -> marker trails the stream, body intact")
