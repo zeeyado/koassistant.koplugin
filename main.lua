@@ -11449,6 +11449,8 @@ end
 --- resumes on reopen), plain close when the book was already automatic.
 --- opts.after runs once the confirm resolved either way (the picker defers
 --- its surface reopen to it). Nothing to build = no confirm, just the toast.
+--- opts.intro = a leading line naming the situation (the engine's own
+--- first-build confirm), opts.cancel_label = the Cancel row's text.
 function AskGPT:_xrayFollowCatchUp(_decimal, opts)
   local rebuild = opts and opts.rebuild or nil
   local self_ref = self
@@ -11460,27 +11462,30 @@ function AskGPT:_xrayFollowCatchUp(_decimal, opts)
       text = rebuild and _("Automatic X-Ray on: rebuilding as you read.")
         or _("Automatic X-Ray on: building as you read."),
     })
+    -- The reader said Start: this book open's retries never re-ask
+    self_ref._xray_first_build_ok = true
     self_ref:_fireXrayAutoCheckpoints({ notify = true, explicit = true, rebuild = rebuild })
     after()
   end
   local n = self:_xrayEstablishmentSteps(rebuild and { rebuild = true } or nil)
-  if n == 0 then
+  -- nil = nothing would build right now (the X-Ray is already ahead of the
+  -- reader, or a lineage automation never touches): no spend, no confirm
+  if not n or n == 0 then
     start()
     return
   end
   local lines = {}
+  if opts and opts.intro then lines[#lines + 1] = opts.intro end
   if rebuild then
-    lines[1] = _("Automatic X-Ray on: the X-Ray is rebuilt from the start in background requests, the introduction and checkpoints up to your position, plus one ahead.")
+    lines[#lines + 1] = _("Automatic X-Ray on: the X-Ray is rebuilt from the start in background requests, the introduction and checkpoints up to your position, plus one ahead.")
   else
-    lines[1] = _("Automatic X-Ray on: background requests build the introduction and checkpoints up to your position, plus one ahead.")
+    lines[#lines + 1] = _("Automatic X-Ray on: background requests build the introduction and checkpoints up to your position, plus one ahead.")
   end
-  if n then
-    lines[2] = T(_("Requests needed now: %1. Each covers a bounded slice of the text."), n)
-  else
-    lines[2] = _("Each covers a bounded slice of the text.")
-  end
-  lines[3] = _("Start now?")
+  lines[#lines + 1] = T(_("Requests needed now: %1. Each covers a bounded slice of the text."), n)
+  lines[#lines + 1] = _("Start now?")
   local revert = opts and opts.revert
+  local cancel_label = (opts and opts.cancel_label)
+    or (revert and _("Cancel (leave Automatic X-Ray off)") or _("Cancel"))
   local function cancel()
     if revert then revert() end
     after()
@@ -11493,7 +11498,7 @@ function AskGPT:_xrayFollowCatchUp(_decimal, opts)
         UIManager:close(confirm)
         start()
       end }},
-      {{ text = revert and _("Cancel (leave Automatic X-Ray off)") or _("Cancel"),
+      {{ text = cancel_label,
         callback = function()
           UIManager:close(confirm)
           cancel()
@@ -11502,6 +11507,31 @@ function AskGPT:_xrayFollowCatchUp(_decimal, opts)
     tap_close_callback = cancel,
   }
   UIManager:show(confirm)
+end
+
+--- The engine's own confirm for a book whose Automatic X-Ray is On but whose
+--- X-Ray does not exist yet (2026-09-04, maintainer: "the same protection as
+--- when you turn on Automatic X-Ray"): the pick's dialog, shown at the moment
+--- the first build would otherwise start on its own (an On set while the
+--- book was closed, or set before the confirm existed). Start marks this book
+--- open so retries never re-ask; Cancel or tapping outside pins the book's
+--- Automatic X-Ray off, so nothing runs and nothing resumes on reopen. One
+--- dialog at a time (page-turn fires keep coming while it is up).
+function AskGPT:_confirmFirstAutoBuild()
+  if self._xray_first_build_confirm then return end
+  self._xray_first_build_confirm = true
+  local self_ref = self
+  self:_xrayFollowCatchUp(nil, {
+    intro = _("Automatic X-Ray is on for this book, but the X-Ray has not been built yet."),
+    cancel_label = _("Cancel (turn Automatic X-Ray off)"),
+    revert = function()
+      local BookSettings = require("koassistant_book_settings")
+      self_ref:_openBookDS():saveSetting(BookSettings.KEY_XRAY_AUTO, "off")
+      self_ref:_openBookDS():flush()
+      self_ref:_refreshXrayAutoState()
+    end,
+    after = function() self_ref._xray_first_build_confirm = nil end,
+  })
 end
 
 --- Round 19/21 ("auto-toggle entry"): turning per-book Automatic X-Ray ON from
@@ -13792,7 +13822,8 @@ end
 --- the front-load build uses (same grid, same store, same promotion). Replaces
 --- the retired to-position auto-update/auto-create path. Disk truth derived
 --- here; the chain re-verifies per step. A first-ever build for a book runs
---- only under a per-book On (the reader's own pick, confirmed at pick time)
+--- only under a per-book On and only behind the reader's confirm, at pick
+--- time or (an On set on a closed book) when the build would first start
 --- — first-build automation is retired (2026-09-04). opts: { notify = true }
 --- → announce chain progress (explicit enables); { explicit = true } → fired
 --- by an explicit enable (skip the posture re-check — the key may have just
@@ -13857,10 +13888,21 @@ function AskGPT:_fireXrayAutoCheckpoints(opts)
   local chain_rebuild = opts and opts.rebuild or nil
   if not chain_rebuild then
     if work.lineage_blocked or not work.build then return end
-    -- The FIRST build for a book needs a per-book On (create_allowed) unless
-    -- the enable was explicit: a follow-global book with no X-Ray is left
-    -- alone (first-build automation retired 2026-09-04, maintainer)
-    if not work.has_any and not create_allowed and not (opts and opts.explicit) then return end
+    if not work.has_any and not (opts and opts.explicit) then
+      -- The FIRST build for a book needs a per-book On (create_allowed): a
+      -- follow-global book with no X-Ray is left alone (first-build
+      -- automation retired 2026-09-04, maintainer)
+      if not create_allowed then return end
+      -- ...and even a per-book On starts its first build only behind the
+      -- same confirm the pick shows (2026-09-04 device round: an On set on a
+      -- closed book, or set before the confirm existed, started building on
+      -- the first page turn). Asked once per book open; Start covers this
+      -- session's retries.
+      if not self._xray_first_build_ok then
+        self:_confirmFirstAutoBuild()
+        return
+      end
+    end
   end
 
   local spacing = self:_xrayLadderSpacing()
@@ -15266,6 +15308,9 @@ function AskGPT:onCloseDocument()
     self._xray_auto_pending = nil
     self._xray_auto_pending_logged = nil
   end
+  -- The first-build confirm's state is per book open (2026-09-04)
+  self._xray_first_build_ok = nil
+  self._xray_first_build_confirm = nil
   if self._xray_ladder_promo_pending then
     UIManager:unschedule(self._xray_ladder_promo_pending)
     self._xray_ladder_promo_pending = nil
