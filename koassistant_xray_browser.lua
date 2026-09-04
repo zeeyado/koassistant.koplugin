@@ -6223,14 +6223,16 @@ function XrayBrowser:showSearchResults(query, skip_cross_search)
             end
         end
     end
-    -- S5 (ref #90): later books held back by this book's spoiler protection
-    -- are one confirm away — offered regardless of hits (so the row itself
-    -- reveals nothing); the reveal lists the later books only, the earlier
-    -- ones are folded in above
-    if sweep_file and not self.scope
-            and require("koassistant_action_cache").heldBackLaterXrays(sweep_file) > 0 then
+    -- S5 (ref #90): later books the chain holds back are one confirm away,
+    -- ONE book per confirm since S7 (the row names it) — offered regardless
+    -- of hits (so the row itself reveals nothing); the reveal page lists the
+    -- revealed book only, everything the chain reaches is folded in above
+    local next_later = sweep_file and not self.scope
+        and require("koassistant_action_cache").nextHeldBackLaterXray(sweep_file, 0) or nil
+    if next_later then
         table.insert(items, {
-            text = _("Search later books too (may contain spoilers)…"),
+            text = T(_("Search %1 too (may contain spoilers)…"),
+                next_later.title or (next_later.file and next_later.file:match("([^/]+)$")) or "?"),
             bold = true,
             separator = true,
             callback = function()

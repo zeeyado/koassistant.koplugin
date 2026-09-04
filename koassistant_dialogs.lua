@@ -10952,19 +10952,36 @@ local showEarlierBooksSweep
 -- nothing about the query); the confirmed sweep walks every group book,
 -- later ones labeled. Marks, cards and the selection intercept never show
 -- later books under protection — "later books" has no bound.
-local function laterBooksHeldBack(opts)
-    if opts.include_later or not opts.document_path then return false end
-    return require("koassistant_action_cache").heldBackLaterXrays(opts.document_path) > 0
+-- S7 (2026-09-04, maintainer): ONE book per confirm, following the chain.
+-- `nextLaterBook(opts)` = the nearest X-Rayed later book the chain does not
+-- reach and `opts.reveal` confirms have not yet revealed (nil = nothing held
+-- back); the row names it, the confirm names it, and the reveal page carries
+-- the row for the book after it. A reveal never sticks: every search starts
+-- from the chain again.
+local function nextLaterBook(opts)
+    if not opts.document_path then return nil end
+    return require("koassistant_action_cache").nextHeldBackLaterXray(opts.document_path, opts.reveal or 0)
+end
+local function bookLabel(book)
+    return book.title or (book.file and book.file:match("([^/]+)$")) or "?"
+end
+local function laterBookRowText(book)
+    return T(_("Search %1 too (may contain spoilers)…"), bookLabel(book))
 end
 local function confirmLaterBooksSweep(opts)
+    local book = nextLaterBook(opts)
+    if not book then return end
     local ConfirmBox = require("ui/widget/confirmbox")
     UIManager:show(ConfirmBox:new{
-        text = _("Later books in the series can reveal what happens in this book. Search them anyway?"),
-        ok_text = _("Search later books"),
+        text = T(_("%1 comes later in the series and can reveal what happens in the books before it. Search it anyway?"), bookLabel(book)),
+        ok_text = _("Search this book"),
         ok_callback = function()
+            -- On a reveal page the next hop replaces the page
+            if opts.close_first then UIManager:close(opts.close_first) end
             local o = {}
             for k, v in pairs(opts) do o[k] = v end
-            o.include_later = true
+            o.close_first = nil
+            o.reveal = (opts.reveal or 0) + 1
             showEarlierBooksSweep(o)
         end,
     })
@@ -11002,15 +11019,22 @@ local function predGroupsMenu(opts, groups, title)
             })
         end
     end
-    if laterBooksHeldBack(opts) then
+    local results_menu
+    local next_book = nextLaterBook(opts)
+    if next_book then
         table.insert(items, {
-            text = _("Search later books too (may contain spoilers)…"),
+            text = laterBookRowText(next_book),
             bold = true,
             separator = true,
-            callback = function() confirmLaterBooksSweep(opts) end,
+            callback = function()
+                local o = {}
+                for k, v in pairs(opts) do o[k] = v end
+                if opts.reveal then o.close_first = results_menu end
+                confirmLaterBooksSweep(o)
+            end,
         })
     end
-    local results_menu = Menu:new{
+    results_menu = Menu:new{
         title = title,
         item_table = items,
         is_borderless = true,
@@ -11081,16 +11105,18 @@ end
 
 showEarlierBooksSweep = function(opts)
     local ActionCache = require("koassistant_action_cache")
-    -- opts.include_later = the confirmed later-books reveal (S5): ONLY the
-    -- later books — every surface carrying the confirm row already shows the
-    -- earlier books' hits (the auto-walked lookup lists, the browser's folded
-    -- groups since 2026-09-04), so the reveal lists what was held back and
-    -- nothing twice
-    local preds = ActionCache.groupXrays(opts.document_path, { include_later = opts.include_later })
-    if opts.include_later then
+    -- opts.reveal = the confirmed later-books reveal (S5; one book per
+    -- confirm since S7): ONLY the revealed books — every surface carrying
+    -- the confirm row already shows the earlier books' hits and the later
+    -- books the chain reaches (the auto-walked lookup lists, the browser's
+    -- folded groups since 2026-09-04), so the reveal lists what was held
+    -- back and nothing twice
+    local reveal = tonumber(opts.reveal) or 0
+    local preds = ActionCache.groupXrays(opts.document_path, { reveal = reveal })
+    if reveal > 0 then
         local later = {}
         for _idx, p in ipairs(preds) do
-            if p.direction == "later" then later[#later + 1] = p end
+            if p.revealed then later[#later + 1] = p end
         end
         preds = later
     end
@@ -11098,10 +11124,28 @@ showEarlierBooksSweep = function(opts)
     local groups = collectPredGroups(preds, opts.query, false)
     if #groups == 0 then
         local text
-        if opts.include_later then
+        if reveal > 0 then
             text = #preds == 1
-                and T(_("No results for \"%1\" in the later book of the series."), opts.query)
+                and T(_("No results for \"%1\" in %2."), opts.query, bookLabel(preds[1]))
                 or T(_("No results for \"%1\" in the later books of the series."), opts.query)
+            -- The chain goes on from a no-hit page too (S7): the next book's
+            -- row rides a dialog instead of a plain message
+            local next_book = nextLaterBook(opts)
+            if next_book then
+                local dlg
+                dlg = ButtonDialog:new{
+                    title = text,
+                    buttons = {
+                        { { text = laterBookRowText(next_book), callback = function()
+                            UIManager:close(dlg)
+                            confirmLaterBooksSweep(opts)
+                        end } },
+                        { { text = _("Close"), callback = function() UIManager:close(dlg) end } },
+                    },
+                }
+                UIManager:show(dlg)
+                return
+            end
         elseif wide then
             text = #preds == 1
                 and T(_("No results for \"%1\" in the other book of the group."), opts.query)
@@ -11115,8 +11159,10 @@ showEarlierBooksSweep = function(opts)
         return
     end
     local title
-    if opts.include_later then
-        title = T(_("Results for \"%1\" in later books of the series"), opts.query)
+    if reveal > 0 then
+        title = #preds == 1
+            and T(_("Results for \"%1\" in %2"), opts.query, bookLabel(preds[1]))
+            or T(_("Results for \"%1\" in later books of the series"), opts.query)
     elseif wide then
         title = T(_("Results for \"%1\" in the other books of the group"), opts.query)
     else
@@ -11667,11 +11713,12 @@ local function showLookupNoResults(opts)
                 }
             end } }
     end
-    -- S5 (ref #90): the later-books reveal, offered whenever this book's
-    -- protection holds later X-Rayed books back (confirmLaterBooksSweep)
-    if laterBooksHeldBack(opts) then
+    -- S5 (ref #90): the later-books reveal, offered whenever the chain holds
+    -- an X-Rayed later book back (one book per confirm since S7)
+    local next_later = nextLaterBook{ document_path = document_path }
+    if next_later then
         nores_buttons[#nores_buttons + 1] =
-            { { text = _("Search later books too (may contain spoilers)…"), callback = function()
+            { { text = laterBookRowText(next_later), callback = function()
                 UIManager:close(nores)
                 confirmLaterBooksSweep{ ui = ui, config = config, plugin = plugin,
                     book_metadata = book_metadata, cleanup_widgets = cw,

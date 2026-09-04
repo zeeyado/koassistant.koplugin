@@ -436,6 +436,28 @@ TestRunner:test("a later volume answers only when every book before it is read o
     ActionCache.setLookupChainResolver(nil)
 end)
 
+TestRunner:test("S7: the confirmed reveal opens one X-Rayed later book per confirm, past the chain", function()
+    local open = {}
+    ActionCache.setLookupChainResolver(function(file) return open[file] == true end)
+    local one = ActionCache.groupXrays(VOL1, { reveal = 1 })
+    TestRunner:eq(#one, 1, "one reveal from unread vol 1: vol 2")
+    TestRunner:eq(one[1].file, VOL2)
+    TestRunner:eq(one[1].revealed, true, "flagged as revealed")
+    TestRunner:eq(#ActionCache.groupXrays(VOL1, { reveal = 2 }), 2, "two reveals: vol 3 too")
+    TestRunner:eq(ActionCache.heldBackLaterXrays(VOL1, 1), 1, "one reveal in: vol 3 still held back")
+    TestRunner:eq(ActionCache.nextHeldBackLaterXray(VOL1, 0).file, VOL2, "the next reveal is vol 2")
+    TestRunner:eq(ActionCache.nextHeldBackLaterXray(VOL1, 1).file, VOL3, "then vol 3")
+    TestRunner:eq(ActionCache.nextHeldBackLaterXray(VOL1, 2), nil, "then nothing")
+    open[VOL1] = true
+    TestRunner:eq(ActionCache.nextHeldBackLaterXray(VOL1, 0).file, VOL3,
+        "vol 1 read: the chain shows vol 2, the reveal starts at vol 3")
+    local mixed = ActionCache.groupXrays(VOL1, { reveal = 1 })
+    TestRunner:eq(#mixed, 2, "chain plus one reveal")
+    TestRunner:eq(mixed[1].revealed, nil, "the chain-reached book is not a reveal")
+    TestRunner:eq(mixed[2].revealed, true)
+    ActionCache.setLookupChainResolver(nil)
+end)
+
 -- ---------------------------------------------------------------- cleanup
 BookGroups.remove(group.id)
 os.execute(string.format("rm -rf %q", TMP_ROOT))

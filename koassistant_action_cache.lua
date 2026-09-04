@@ -2604,11 +2604,14 @@ end
 --- "later" | nil for unordered groups). Each book parses once per stamp;
 --- the walk itself is a stat per book plus the chain predicate.
 --- @param document_path string
---- @param opts table|nil { include_later = true } — the reader's confirmed
----   reveal (S5): walk every later book regardless of the chain
---- @return table list (possibly empty), string stamp (the reach + every
----   listed book's stamp — memo keys carry it, so a status or protection
----   change anywhere in the chain re-indexes)
+--- @param opts table|nil { reveal = k } — the reader's confirmed reveals
+---   (S5; ONE book per confirm since S7, 2026-09-04): past the chain's
+---   reach, the first k X-Rayed later books join, flagged `revealed`
+---   (books without an X-Ray have nothing to show and cost no confirm);
+---   { include_later = true } = every later book regardless (tests)
+--- @return table list (possibly empty), string stamp (the reach + the
+---   reveal count + every listed book's stamp — memo keys carry it, so a
+---   status or protection change anywhere in the chain re-indexes)
 function ActionCache.groupXrays(document_path, opts)
     local out = {}
     if not document_path then return out, "-" end
@@ -2617,14 +2620,21 @@ function ActionCache.groupXrays(document_path, opts)
     local rows = BookGroups.lookupBooksFor(document_path, true)
     if #rows == 0 then return out, "-" end
     local all_later = (opts and opts.include_later) and true or false
+    local reveal_left = (opts and tonumber(opts.reveal)) or 0
     local reach = all_later and #rows or laterReach(document_path, rows)
-    local parts = { all_later and "both" or ("chain:" .. reach) }
+    local parts = { all_later and "both" or ("chain:" .. reach .. "+" .. reveal_left) }
     local seen_later = 0
     for _idx, row in ipairs(rows) do
-        local take = true
+        local take, revealed = true, false
         if row.direction == "later" then
             seen_later = seen_later + 1
-            take = seen_later <= reach
+            if seen_later > reach and not all_later then
+                take = reveal_left > 0 and ActionCache.parsedXrayFor(row.file) ~= nil
+                if take then
+                    reveal_left = reveal_left - 1
+                    revealed = true
+                end
+            end
         end
         if take then
             local px = ActionCache.parsedXrayFor(row.file)
@@ -2632,6 +2642,7 @@ function ActionCache.groupXrays(document_path, opts)
                 local e = {}
                 for k, v in pairs(px) do e[k] = v end
                 e.direction = row.direction
+                e.revealed = revealed or nil
                 out[#out + 1] = e
                 parts[#parts + 1] = (row.direction or "any") .. ":" .. px.stamp
             else
@@ -2642,29 +2653,54 @@ function ActionCache.groupXrays(document_path, opts)
     return out, table.concat(parts, "|")
 end
 
---- How many later books in the series have an X-Ray the chain does not
---- reach from this book (S5/S6, ref #90) — 0 whenever the walk already
---- reaches them all (every book before them read or unprotected, project)
---- and for the last volume. Drives the "Search later books too" offer,
---- which is shown regardless of hits so the offer itself reveals nothing
---- about the query.
---- @param document_path string
---- @return number
-function ActionCache.heldBackLaterXrays(document_path)
-    if not document_path then return 0 end
+--- The X-Rayed later books the chain does not reach from this book,
+--- nearest first, minus the first `reveal` of them (the confirms already
+--- given on this search). parsedXrayFor's shape.
+local function heldBackLater(document_path, reveal)
+    local out = {}
+    if not document_path then return out end
     local ok_bg, BookGroups = pcall(require, "koassistant_book_groups")
-    if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return 0 end
+    if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return out end
     local rows = BookGroups.lookupBooksFor(document_path, true)
-    if #rows == 0 or rows[#rows].direction ~= "later" then return 0 end
+    if #rows == 0 or rows[#rows].direction ~= "later" then return out end
     local reach = laterReach(document_path, rows)
-    local n, seen = 0, 0
+    local skip, seen = tonumber(reveal) or 0, 0
     for _idx, row in ipairs(rows) do
         if row.direction == "later" then
             seen = seen + 1
-            if seen > reach and ActionCache.parsedXrayFor(row.file) then n = n + 1 end
+            if seen > reach then
+                local px = ActionCache.parsedXrayFor(row.file)
+                if px then
+                    if skip > 0 then skip = skip - 1 else out[#out + 1] = px end
+                end
+            end
         end
     end
-    return n
+    return out
+end
+
+--- How many later books in the series have an X-Ray neither the chain nor
+--- the `reveal` confirms so far reach from this book (S5/S6/S7, ref #90) —
+--- 0 whenever the walk already reaches them all (every book before them
+--- read or unprotected, project) and for the last volume. The offer it
+--- drives is shown regardless of hits, so the offer itself reveals nothing
+--- about the query.
+--- @param document_path string
+--- @param reveal number|nil confirms already given on this search
+--- @return number
+function ActionCache.heldBackLaterXrays(document_path, reveal)
+    return #heldBackLater(document_path, reveal)
+end
+
+--- The book the next confirm would reveal (S7): the nearest X-Rayed later
+--- book past the chain's reach and the `reveal` books already revealed;
+--- nil when nothing is held back. parsedXrayFor's shape (file, title, ...),
+--- so the offer can name the book.
+--- @param document_path string
+--- @param reveal number|nil
+--- @return table|nil
+function ActionCache.nextHeldBackLaterXray(document_path, reveal)
+    return heldBackLater(document_path, reveal)[1]
 end
 
 --- The first group X-Ray in rank order (the nearest earlier book while
