@@ -7139,20 +7139,48 @@ function AskGPT:_installGroupSeedingHooks()
   local self_ref = self
   local ActionCache = require("koassistant_action_cache")
   local BookGroups = require("koassistant_book_groups")
-  -- Earlier books only while the current book is under spoiler protection;
-  -- both directions once the reader's OWN switch turns it off (global off,
-  -- book override off, research mode). S5 (ref #90): Finished does NOT
-  -- count here — inside one book it means nothing is left to protect, for
-  -- the series it only means the reader moved on to the next volume, and
-  -- the later volumes retell this one's ending. Held-back later books stay
-  -- one confirm away on the lookup lists (Dialogs.confirmLaterBooksSweep).
-  ActionCache.setLookupDirectionResolver(function(file)
+  -- The lookup chain (S6, ref #90, maintainer 2026-09-04: "the access
+  -- should cascade"): lookups look PAST a book only once it is read
+  -- (Finished, or its last page reached) or its own spoiler protection is
+  -- off (global off, book override off, research mode). A later volume's
+  -- entries retell everything before it, so the first volume that still
+  -- has unread pages under protection hides every volume behind it,
+  -- whatever those volumes' own settings. The open book answers live;
+  -- closed books answer from their sidecars, memoized per file on the
+  -- metadata + book-settings file stamps and the two global switches,
+  -- because the marks index and the route check ask on page turns.
+  -- Held-back later books stay one confirm away on the lookup lists
+  -- (Dialogs.confirmLaterBooksSweep).
+  local chain_memo = {}
+  local function stampOf(path)
+    local a = path and lfs.attributes(path)
+    return a and (tostring(a.modification) .. ":" .. tostring(a.size)) or "-"
+  end
+  ActionCache.setLookupChainResolver(function(file)
     local features = configuration and configuration.features
-    if not features then return false end
+    if not features or not file then return false end
+    local SafeDocSettings = require("koassistant_doc_settings")
     local ui = (self_ref.ui and self_ref.ui.document) and self_ref.ui or nil
-    local ds = require("koassistant_doc_settings").resolve(file, ui)
-    return require("koassistant_book_settings").resolveSpoilerPosture(ds, features,
-      { layer = "mechanical", ignore_finished = true }).protected == false
+    local live = ui and SafeDocSettings.samePath(ui.document.file, file)
+    local key
+    if not live then
+      local DocSettings = require("docsettings")
+      local ok, meta = pcall(DocSettings.findSidecarFile, DocSettings, file)
+      key = stampOf(ok and meta or nil) .. "|"
+        .. stampOf(require("koassistant_book_store").pathFor(file, "koassistant_book_settings.lua"))
+        .. "|" .. tostring(features.spoiler_free_chat) .. "/" .. tostring(features.research_mode)
+      local hit = chain_memo[file]
+      if hit and hit.key == key then return hit.clears end
+    end
+    local ds = SafeDocSettings.resolve(file, ui)
+    local open = require("koassistant_book_settings").resolveSpoilerPosture(ds, features,
+      { layer = "mechanical" }).protected == false
+    if not open then
+      local pos = self_ref:_xrayReaderPosition(file)
+      open = type(pos) == "number" and pos >= 0.995
+    end
+    if key then chain_memo[file] = { key = key, clears = open } end
+    return open
   end)
   BookGroups.on_change = function(group_id)
     self_ref:_scheduleGroupReseed(group_id)

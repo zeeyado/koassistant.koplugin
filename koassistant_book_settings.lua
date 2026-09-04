@@ -74,13 +74,9 @@ end
 -- @param features table|nil
 -- @param opts table|nil { layer = "request" (default) | "mechanical",
 --   session = true|false|nil — the Spoiler chip's per-chat value, if the
---   call site has one,
---   ignore_finished = true — skip the Finished layer. S5 (ref #90), the
---   cross-book lookup rule: inside one book Finished means nothing is left
---   to protect, but for a SERIES it only means the reader moved on to the
---   next volume, whose entries retell this one's ending — so only the
---   reader's own switch (research, book override, global) opens later
---   books there }
+--   call site has one }. (The S5 `ignore_finished` opt is gone: since S6,
+--   2026-09-04, Finished counts for the cross-book chain too — main.lua's
+--   chain predicate reads this resolver as is.)
 -- @return table { protected = boolean, reason = "session"|"research"|
 --   "finished"|"book"|"global"|"default", layer = the resolved layer }.
 --   "default" = nothing set anywhere (the schema default: protection ON
@@ -96,11 +92,9 @@ function BookSettings.resolveSpoilerPosture(doc_settings, features, opts)
     if BookSettings.resolveResearch(doc_settings, features) then
         return { protected = false, reason = "research", layer = layer }
     end
-    if not opts.ignore_finished then
-        local summary = doc_settings and doc_settings:readSetting("summary")
-        if summary and summary.status == "complete" then
-            return { protected = false, reason = "finished", layer = layer }
-        end
+    local summary = doc_settings and doc_settings:readSetting("summary")
+    if summary and summary.status == "complete" then
+        return { protected = false, reason = "finished", layer = layer }
     end
     local book = doc_settings and doc_settings:readSetting(BookSettings.KEY_SPOILER_FREE)
     if book ~= nil then

@@ -1316,27 +1316,6 @@ TestRunner:test("explicit global vs nothing-set stay distinct (the §4.3 flip se
     TestRunner:assertEqual(p.reason, "default")
 end)
 
-TestRunner:test("ignore_finished: the cross-book rule reads only the reader's own switch (S5, ref #90)", function()
-    local finished = { summary = { status = "complete" } }
-    local p = BookSettings.resolveSpoilerPosture(fakeDocSettings(finished), {},
-        { layer = "mechanical", ignore_finished = true })
-    TestRunner:assertEqual(p.protected, true, "finished alone: the series stays protected")
-    TestRunner:assertEqual(p.reason, "default")
-    p = BookSettings.resolveSpoilerPosture(fakeDocSettings({ summary = { status = "complete" },
-        koassistant_book_spoiler_free = false }), {}, { ignore_finished = true })
-    TestRunner:assertEqual(p.protected, false, "finished + explicit book off: the switch counts")
-    TestRunner:assertEqual(p.reason, "book")
-    p = BookSettings.resolveSpoilerPosture(fakeDocSettings(finished), { spoiler_free_chat = false },
-        { ignore_finished = true })
-    TestRunner:assertEqual(p.protected, false, "global off counts")
-    TestRunner:assertEqual(p.reason, "global")
-    p = BookSettings.resolveSpoilerPosture(fakeDocSettings({ summary = { status = "complete" },
-        koassistant_book_research_mode = true }), {}, { ignore_finished = true })
-    TestRunner:assertEqual(p.reason, "research", "research still stands protection down")
-    p = BookSettings.resolveSpoilerPosture(fakeDocSettings(finished), {})
-    TestRunner:assertEqual(p.reason, "finished", "without the opt the finished layer is untouched")
-end)
-
 TestRunner:suite("clearXrayLineageState (B272, 2026-09-04: deleted = quiet, the override is pinned off unconditionally)")
 
 TestRunner:test("every delete pins the per-book automation off and clears the lineage stamps", function()
