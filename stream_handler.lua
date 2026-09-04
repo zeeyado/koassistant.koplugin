@@ -460,7 +460,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     self.user_interrupted = false
     local streamDialog
     local animation_task = nil
+    -- Holds the FUNCTION that is scheduled (pollForData / drainTick): KOReader's
+    -- UIManager:scheduleIn returns nothing and unschedule() takes the action, so
+    -- storing the scheduler's return value left every pending tick alive.
     local poll_task = nil
+    local stream_finished = false  -- finishStream runs once, whoever calls it twice
     local ui_update_task = nil  -- Forward declaration for display throttling
     local first_content_received = false
 
@@ -690,6 +694,8 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     local captureReadPosition
 
     local function finishStream()
+        if stream_finished then return end
+        stream_finished = true
         -- Capture the reader's spot BEFORE the dialog closes: if they paused the
         -- follow and were reading mid-response, the completion viewer lands there.
         -- Captured always, handed over only on the success path below.
@@ -808,8 +814,9 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                 if on_complete then on_complete(false, nil, err) end
                 return
             end
-            if partial_data and #partial_data > 0 then
-                if on_complete then on_complete(false, nil, _("No response received. Raw: ") .. partial_data:sub(1, 200)) end
+            local raw = partial_data and partial_data:match("^%s*(.-)%s*$") or ""
+            if #raw > 0 then
+                if on_complete then on_complete(false, nil, _("No response received. Raw: ") .. raw:sub(1, 200)) end
                 return
             end
             if on_complete then on_complete(false, nil, _("No response received from AI")) end
@@ -1489,6 +1496,99 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         return
     end
 
+    -- Drain the pipe before the teardown (#106 follow-up). The forked fetch child
+    -- writes RateLimits.PROTOCOL_MARKER BEFORE the body on the macOS raw-SSL path
+    -- and AFTER it on the http.request path every device uses (koassistant_api/
+    -- base.lua:backgroundRequest), where the body streams through an ltn12 sink and
+    -- the headers only exist once it is gone. The line loop below returns out of the
+    -- WHOLE poll callback at "data: [DONE]" and at every error branch, and
+    -- finishStream() -> cleanup() SIGKILLs the child, so a trailing marker is lost,
+    -- not merely unscanned: it has to be waited for. endStream() replaces every
+    -- finishStream() call inside the poll loop. It harvests the tail already in hand
+    -- and, when nothing has been learned yet, keeps the child and the descriptor
+    -- alive for a bounded grace (ended early by the marker or by the child exiting).
+    local DRAIN_MAX_POLLS = 4
+    local marker_seen = false
+    local drain_polls = 0
+    local drainTick  -- forward declaration: scheduled by endStream, assigned below
+
+    local function recordMarkerFields(fields)
+        if type(fields) ~= "table" then return end
+        marker_seen = true  -- the line arrived; whether it taught anything is separate
+        -- Inline require: this closure family sits near the 60-upvalue cap.
+        local RL = require("koassistant_rate_limits")
+        local pname = settings and settings.provider_name
+        local mname = settings and settings.model
+        if RL.record(pname, mname, fields, "header") then
+            logger.dbg("KOAssistant: stream learned per-minute allowance",
+                RL.known(pname, mname).limit_tokens, "for", pname, mname or "?")
+        end
+    end
+
+    --- Take every marker line OUT of the text (protocol, never prose: finishStream
+    --- shows partial_data as "No response received. Raw: ...") and record it.
+    local function harvestMarkers(text)
+        if type(text) ~= "string" or text == "" then return text end
+        local RL = require("koassistant_rate_limits")
+        while true do
+            -- Only a COMPLETE line: a marker cut in half by a read boundary would
+            -- decode a truncated number ("limit_tokens=80" out of 8000).
+            local s = text:find(RL.PROTOCOL_MARKER, 1, true)
+            if not s or not text:find("\n", s, true) then return text end
+            -- Strip the line even when it decodes to nothing: it is protocol,
+            -- never prose, and must not reach the "Raw:" fallback string.
+            local fields, cleaned = RL.extractMarker(text)
+            text = cleaned
+            marker_seen = true  -- a complete line arrived, so the drain can end
+            if fields then recordMarkerFields(fields) end
+        end
+    end
+
+    --- At teardown a marker cut off without its newline can never complete:
+    --- drop it (never decode it) so it cannot reach the "Raw:" fallback either.
+    local function dropHalfMarker(text)
+        if type(text) ~= "string" or text == "" then return text end
+        local RL = require("koassistant_rate_limits")
+        local s = text:find(RL.PROTOCOL_MARKER, 1, true)
+        if not s then return text end
+        local cut = text:sub(1, s - 1):gsub("\r?\n?$", "")
+        return cut
+    end
+
+    local function endStream()
+        partial_data = harvestMarkers(partial_data)
+        if marker_seen or not parent_read_fd or drain_polls >= DRAIN_MAX_POLLS then
+            partial_data = dropHalfMarker(partial_data)
+            finishStream()
+            return
+        end
+        local avail = tonumber(ffiutil.getNonBlockingReadSize(parent_read_fd)) or 0
+        if avail <= 0 and pid and ffiutil.isSubProcessDone(pid) then
+            partial_data = dropHalfMarker(partial_data)
+            finishStream()  -- the child is gone: nothing more can arrive
+            return
+        end
+        drain_polls = drain_polls + 1
+        UIManager:scheduleIn(avail > 0 and 0 or check_interval_sec, drainTick)
+        poll_task = drainTick
+    end
+
+    drainTick = function()
+        poll_task = nil
+        -- A cancel during the grace already finished the stream (and on device
+        -- the pending tick cannot be unscheduled by handle: see poll_task).
+        if stream_finished or self.user_interrupted then return end
+        local avail = parent_read_fd
+            and (tonumber(ffiutil.getNonBlockingReadSize(parent_read_fd)) or 0) or 0
+        if avail > 0 then
+            local bytes_read = tonumber(ffi.C.read(parent_read_fd, buffer_ptr, chunksize))
+            if bytes_read and bytes_read > 0 then
+                partial_data = partial_data .. ffi.string(buffer, bytes_read)
+            end
+        end
+        endStream()
+    end
+
     -- Polling function to check for data
     local function pollForData()
         if completed or self.user_interrupted then
@@ -1502,11 +1602,11 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                 local err = ffi.errno()
                 logger.warn("readAllFromFD() error: " .. ffi.string(ffi.C.strerror(err)))
                 completed = true
-                finishStream()
+                endStream()
                 return
             elseif bytes_read == 0 then
                 completed = true
-                finishStream()
+                endStream()
                 return
             else
                 local data_chunk = ffi.string(buffer, bytes_read)
@@ -1518,6 +1618,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                 -- error diagnostics.
                 local data = partial_data .. data_chunk
                 local pos = 1
+                -- Marker protocol, hoisted out of the line loop below: the elseif
+                -- chain tests it once per line, and a file-local reference would
+                -- add an upvalue to this closure (53 of LuaJIT's 60).
+                local RL = require("koassistant_rate_limits")
 
                 -- Process complete lines
                 while true do
@@ -1548,7 +1652,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         if json_str == '[DONE]' then
                             partial_data = data:sub(pos)
                             completed = true
-                            finishStream()
+                            endStream()
                             return
                         end
 
@@ -1568,7 +1672,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = err_message  -- finishStream reports it once
-                                finishStream()
+                                endStream()
                                 return
                             elseif event.type == "error"
                                     and (type(event.message) == "string" or type(event.code) == "string") then
@@ -1579,7 +1683,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = err_message
-                                finishStream()
+                                endStream()
                                 return
                             elseif event.type == "response.failed"
                                     and type(event.response) == "table"
@@ -1591,7 +1695,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = err_message
-                                finishStream()
+                                endStream()
                                 return
                             end
 
@@ -1780,15 +1884,11 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         -- Ignore SSE event lines
                     elseif line:sub(1, 1) == ":" then
                         -- SSE comment/keep-alive
-                    elseif line:sub(1, 16) == "X-KOA-RATELIMIT:" then
+                    elseif line:sub(1, #RL.PROTOCOL_MARKER) == RL.PROTOCOL_MARKER then
                         -- Per-minute admission limits (docs/tpm_admission_plan.md): the
                         -- fetch child forwards the provider's rate-limit headers as one
                         -- marker line (before the body on macOS, after it elsewhere).
-                        -- Inline require + settings-resident provider/model: this closure
-                        -- sits near the 60-upvalue cap.
-                        local RL = require("koassistant_rate_limits")
-                        RL.record(settings and settings.provider_name,
-                            settings and settings.model, RL.decodeMarker(line), "header")
+                        recordMarkerFields(RL.decodeMarker(line))
                     elseif line:sub(1, 1) == "{" then
                         -- Raw JSON line (NDJSON format - used by Ollama)
                         local ok, event = pcall(json.decode, line)
@@ -1826,7 +1926,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = tostring(err_message)
-                                finishStream()
+                                endStream()
                                 return
                             -- Check for Ollama done signal
                             elseif event.done == true then
@@ -1840,7 +1940,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 noteInputTruncation(event)
                                 partial_data = data:sub(pos)
                                 completed = true
-                                finishStream()
+                                endStream()
                                 return
                             else
                                 -- Try to extract streaming content
@@ -1911,7 +2011,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         table.insert(result_buffer, clean)
                         partial_data = data:sub(pos)
                         completed = true
-                        finishStream()
+                        endStream()
                         return
                     else
                         if #line:match("^%s*(.-)%s*$") > 0 then
@@ -1929,7 +2029,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             -- No data available, check if subprocess is done
             if ffiutil.isSubProcessDone(pid) then
                 completed = true
-                finishStream()
+                endStream()
                 return
             end
         else
@@ -1937,16 +2037,18 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             local err = ffi.errno()
             logger.warn("Error reading from parent_read_fd:", err, ffi.string(ffi.C.strerror(err)))
             completed = true
-            finishStream()
+            endStream()
             return
         end
 
         -- Schedule next poll
-        poll_task = UIManager:scheduleIn(check_interval_sec, pollForData)
+        UIManager:scheduleIn(check_interval_sec, pollForData)
+        poll_task = pollForData
     end
 
     -- Start polling
-    poll_task = UIManager:scheduleIn(check_interval_sec, pollForData)
+    UIManager:scheduleIn(check_interval_sec, pollForData)
+    poll_task = pollForData
 end
 
 --- Check if an SSE event indicates the response was truncated (max tokens)

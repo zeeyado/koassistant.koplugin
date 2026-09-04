@@ -1788,17 +1788,16 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     do
         local ModelConstraints = require("model_constraints")
         local ReasoningPrefs = require("reasoning_prefs")
-        local Defaults = require("koassistant_api.defaults")
         config.api_params = {}
         if config.features.default_temperature then
             config.api_params.temperature = config.features.default_temperature
         end
         local bake_provider = config.provider or config.default_provider or "anthropic"
-        local bake_model = config.model
-        if not bake_model then
-            local pd = Defaults.ProviderDefaults[bake_provider]
-            bake_model = pd and pd.model or nil
-        end
+        -- One model id per request (audit B3): the shared resolver, the same one
+        -- the size guards and the dispatch use (covers custom providers too,
+        -- which Defaults.ProviderDefaults never did).
+        local bake_model = ModelConstraints.dispatchModel({
+            provider = bake_provider, model = config.model, features = config.features })
         local sr = config.features._session_reasoning
         if sr and sr.follow then sr = nil end
         local decision = ModelConstraints.resolveReasoning(bake_provider, bake_model, {

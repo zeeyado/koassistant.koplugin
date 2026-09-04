@@ -20,7 +20,6 @@ local BookSettings = require("koassistant_book_settings")
 local MessageBuilder = require("message_builder")
 local ModelConstraints = require("model_constraints")
 local ReasoningPrefs = require("reasoning_prefs")
-local Defaults = require("koassistant_api.defaults")
 local Constants = require("koassistant_constants")
 local ScopeResolver = require("koassistant_scope_resolver")
 local PromptsActions = require("prompts.actions")
@@ -904,11 +903,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- API default (stance "default" with no overrides). See model_constraints.lua
     -- and reasoning_prefs.lua.
     local provider = config.provider or config.default_provider or "anthropic"
-    local reasoning_model = config.model
-    if not reasoning_model then
-        local pd = Defaults.ProviderDefaults[provider]
-        reasoning_model = pd and pd.model or nil
-    end
+    -- One model id per request (audit B3): the shared resolver, so reasoning is
+    -- resolved for the model that will be sent (covers custom providers too,
+    -- which Defaults.ProviderDefaults never did).
+    local reasoning_model = ModelConstraints.dispatchModel({
+        provider = provider, model = config.model, features = config.features })
     local reasoning_decision = ModelConstraints.resolveReasoning(provider, reasoning_model, {
         global_stance = ReasoningPrefs.getStance(features),
         model_pref = ReasoningPrefs.getModelPref(features, provider, reasoning_model),
@@ -1633,11 +1632,9 @@ local function applyQuickReplyOverrides(config, plugin)
     -- reply-time pick is the user's most explicit signal for THIS chat.
     for _idx, key in ipairs(REASONING_WIRE_KEYS) do config.api_params[key] = nil end
     local provider = config.provider or config.default_provider or "anthropic"
-    local model = config.model
-    if not model then
-        local pd = Defaults.ProviderDefaults[provider]
-        model = pd and pd.model or nil
-    end
+    -- One model id per request (audit B3): the shared resolver (see the bake).
+    local model = ModelConstraints.dispatchModel({
+        provider = provider, model = config.model, features = config.features })
     -- {follow=true} sentinel = reply-time "Follow settings" pick on a chat with
     -- a baked reasoning override: resolve WITHOUT a session layer (prefs/stance).
     local sr = f._session_reasoning
@@ -5873,7 +5870,12 @@ if prune_book_text then
     -- Rides the same warning dialogs and the same suppress flag.
     local function contextWindowNote(chars)
         local p = (temp_config and temp_config.provider) or config.provider
-        local m = (temp_config and temp_config.model) or config.model
+        -- One model id per request (audit B3): the same resolver the memo key
+        -- and the answer budget use, so a nil config.model (first API key save,
+        -- a tier pin the provider lacks) still checks the model that is sent.
+        local m = ModelConstraints.dispatchModel({ provider = p,
+            model = (temp_config and temp_config.model) or config.model,
+            features = (temp_config or config).features })
         local exceeded, window = ModelConstraints.checkContextWindow(p, m, chars)
         if not exceeded then return nil end
         return T(_("This likely exceeds the current model's context window (%1: ~%2K tokens). Pick a smaller scope or switch models."),
@@ -9645,11 +9647,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 -- showChatGPTDialog closures sit near the 60-upvalue cap).
                 local scope_cw_note
                 if scope_block then
+                    -- One model id per request (audit B3): the shared resolver, so a
+                    -- nil configuration.model still checks the model that is sent.
+                    local cw_model = require("model_constraints").dispatchModel(configuration)
                     local exceeded, window = require("model_constraints").checkContextWindow(
-                        configuration.provider, configuration.model, #scope_block.text)
+                        configuration.provider, cw_model, #scope_block.text)
                     if exceeded then
                         scope_cw_note = T(_("This likely exceeds the current model's context window (%1: ~%2K tokens). Pick a smaller scope or switch models."),
-                            configuration.model, math.floor(window / 1000))
+                            cw_model, math.floor(window / 1000))
                     end
                 end
                 if scope_block

@@ -1384,7 +1384,9 @@ ModelConstraints.MAX_TOKENS_TARGET = 32768
 ---                    number depends on this request's prompt length)
 function ModelConstraints.parseMaxTokensError(err_text)
     if type(err_text) ~= "string" or err_text == "" then return nil end
-    local sane = function(n) return n and n >= 1024 and n < 10000000 end
+    -- One definition of "a token count that could be real", shared with the
+    -- per-minute memo's sanity check (it rejects the same misparses there).
+    local sane = require("koassistant_rate_limits").saneTokenCount
 
     -- vLLM-family context overflow (Novita, Featherless, local servers, ...):
     -- "This model's maximum context length is 12288 tokens. However, you
@@ -1513,6 +1515,56 @@ function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, mod
         "key in Google AI Studio (confirmed to lift this limit)."
 end
 
+--- THE rule for which model id a request is keyed under: the per-minute plan
+--- memo (koassistant_rate_limits.lua), the context-window pre-check, the
+--- effective answer budget and the handler on the wire must all use this one
+--- string, or all be nil together (audit B3/F3 — four hand-written copies of
+--- this rule keyed the memo under "provider/<default>" while the sizing read
+--- passed a bare nil `config.model`, so the cap was written and read under
+--- different keys and never applied).
+---
+--- Resolution: (1) `config.model` when it is a non-empty string, else (2) the
+--- provider's own default via `Defaults.getProviderDefaults`, which covers
+--- built-ins AND custom providers in one call (never `Defaults.ProviderDefaults[id]`,
+--- nil for every custom id; never a handler's `getProviderKey()`, the shared
+--- string "custom", on which all custom providers would collide), else (3) nil.
+--- Deliberately NOT `provider_settings[provider].model`: no handler reads that
+--- slot (they all read `config.model or defaults.model`; the merge copies the
+--- top-level model INTO it, never out of it), so a stale per-provider entry
+--- there would key the memo under a model the wire never carries.
+---
+--- Returns nil DELIBERATELY where the handler's last resort would be the
+--- placeholder "default" (`config.model or defaults.model or "default"` in
+--- openai_compatible.lua, and the same literal synthesized by
+--- buildCustomProviderDefaults for a custom provider with no default_model):
+--- keying a plan allowance under a string nobody named would be an invented
+--- fact (audit F41; the placeholder reaching the wire is a separate fix).
+--- The non-empty test is load-bearing, not tidiness: a custom provider whose
+--- default_model was saved as "" must resolve to nil, not to "" ("" is truthy
+--- in Lua, so it wins every `or` chain and reaches the memo as "custom_x/").
+--- Pure: no new table, no new number.
+--- @param config table|nil merged request config
+--- @return string|nil model id, or nil when nobody named one
+function ModelConstraints.dispatchModel(config)
+    if type(config) ~= "table" then return nil end
+    if type(config.model) == "string" and config.model ~= "" then
+        return config.model
+    end
+    local provider = config.provider or config.default_provider
+    if type(provider) ~= "string" or provider == "" then return nil end
+    -- Inline require: this file has no file-level dependency on the api layer
+    -- (defaults.lua pulls in koassistant_model_lists), and only this one
+    -- function needs it.
+    local Defaults = require("koassistant_api.defaults")
+    local pd = Defaults.getProviderDefaults(provider,
+        config.features and config.features.custom_providers)
+    local m = pd and pd.model
+    if type(m) == "string" and m ~= "" and m ~= "default" then
+        return m
+    end
+    return nil
+end
+
 --- The answer budget a handler will put on the wire for this config, derived the
 --- way the handlers derive it (per-minute admission limits need the exact number
 --- to turn a refusal's "Requested M" into the prompt size): the action/user pin
@@ -1535,25 +1587,20 @@ function ModelConstraints.effectiveMaxTokens(provider, model, config)
     return ModelConstraints.clampMaxTokens(provider, model, v)
 end
 
---- Append an actionable tip when a request fails because the prompt (usually
---- extracted book text) is too large for the model/tier. Covers HTTP 413
---- ("request too large" / "payload too large") and HTTP 400 context_length_exceeded.
---- Free tiers — notably Groq — measure a single request against a tokens-per-minute
---- budget that is far smaller than the model's nominal context window, so this can
---- fire long before the context window is full. Plain text (emoji don't render in
---- MuPDF). Returns err_msg unchanged unless a size-limit signature matches. (issue #89)
---- @param err_msg string: user-facing error message already built
---- @param provider string|nil: provider id
---- @param model string|nil: model id
---- @param config table|nil: unified request config
---- @return string
-function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, config)
-    if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
+--- Does this error text carry a size/limit signature? THE list, exported so the
+--- reader-facing hint below and the unattended ladder classifier
+--- (koassistant_xray_auto.lua) reach the same verdict about the same provider
+--- sentence instead of matching their own sentences (audit B2/B2b, F36).
+--- Deliberately NOT a bare "400"/"413" (too generic; the reason phrases are the
+--- real cases). "tokens per min" covers OpenAI's spelling AND Groq's longer
+--- "tokens per minute" — listing only the long one left OpenAI's canonical
+--- per-minute 429 with no tip at all (F12).
+--- @param err_msg string|nil
+--- @return boolean
+function ModelConstraints.isSizeError(err_msg)
+    if type(err_msg) ~= "string" or err_msg == "" then return false end
     local lowered = err_msg:lower()
-    -- Match size/context signatures only — deliberately NOT a bare "400"/"413"
-    -- (too generic; the reason-phrase text below covers the real cases).
-    local is_size_error =
-        lowered:find("payload too large", 1, true)
+    return (lowered:find("payload too large", 1, true)
         or lowered:find("request entity too large", 1, true)
         or lowered:find("request too large", 1, true)
         or lowered:find("too large for model", 1, true)
@@ -1561,8 +1608,75 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
         or lowered:find("context length", 1, true)
         or lowered:find("reduce your message size", 1, true)
         or lowered:find("reduce the length of the messages", 1, true)
-        or lowered:find("tokens per minute", 1, true)
-    if not is_size_error then return err_msg end
+        or lowered:find("tokens per min", 1, true)) and true or false
+end
+
+--- Name the lever the FAILING SURFACE actually has (audit B14, F35). The old
+--- advice named a scope popup and a source choice, which a library action, a
+--- general chat and an artifact chat do not have — an artifact chat IS the
+--- artifact. The request config already stamps which surface it came from
+--- (koassistant_dialogs.lua sets is_library_context / is_general_context on the
+--- launching dialogs, _spoiler_live = false for artifact chat and
+--- _xray_chat_active for X-Ray chat), so name only what the reader can reach.
+--- A nil config (some callers pass none) falls back to the book wording.
+--- @param config table|nil: unified request config
+--- @return string one plain-language sentence
+local function sizeLeverSentence(config)
+    local f = type(config) == "table" and type(config.features) == "table" and config.features or nil
+    if f then
+        -- Library action: no scope popup and no source choice, the folder list
+        -- is the only dial it has.
+        if f.is_library_context then
+            return "Options: pick fewer folders or books for the library scan " ..
+                "(Settings, Library scanning), or switch to a plan or provider with a larger " ..
+                "per-minute limit."
+        end
+        -- General chat: no book, so the size is the conversation plus attachments.
+        if f.is_general_context then
+            return "Options: start a new chat, attach less (the Attach button), or switch to a " ..
+                "plan or provider with a larger per-minute limit."
+        end
+        -- Artifact chat (launchArtifactChat marks it with an explicit false):
+        -- the artifact is the prompt, so there is nothing to narrow.
+        if f._spoiler_live == false then
+            return "This chat carries the whole artifact, so only a shorter artifact (a section " ..
+                "X-Ray instead of one for the whole book), or a plan or provider with a larger " ..
+                "per-minute limit, can run it."
+        end
+        if f._xray_chat_active then
+            return "Options: start a new X-Ray chat, or switch to a plan or provider with a " ..
+                "larger per-minute limit."
+        end
+    end
+    return "Options: use a smaller scope (a section, \"Up to current position\", or " ..
+        "\"AI knowledge only\" where the action offers a source choice), start a new chat if " ..
+        "this one has grown long, or switch to a plan or provider with a larger per-minute limit."
+end
+
+--- Append an actionable tip when a request fails because the prompt (usually
+--- extracted book text) is too large for the model/tier. Covers HTTP 413
+--- ("request too large" / "payload too large") and HTTP 400 context_length_exceeded.
+--- Free tiers — notably Groq — measure a single request against a tokens-per-minute
+--- budget that is far smaller than the model's nominal context window, so this can
+--- fire long before the context window is full. Plain text (emoji don't render in
+--- MuPDF). Returns err_msg unchanged unless a size-limit signature matches. (issue #89)
+--- EXACTLY ONE tip per refusal (audit B2): a burst is told to wait (that tip has
+--- already fired), an admission refusal is told what was too big.
+--- @param err_msg string: user-facing error message already built
+--- @param provider string|nil: provider id
+--- @param model string|nil: model id
+--- @param config table|nil: unified request config
+--- @return string
+function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, config)
+    if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
+    if not ModelConstraints.isSizeError(err_msg) then return err_msg end
+    -- Decorating an already-decorated message (a retry surface re-reporting
+    -- the same failure) must not stack a second tip, or read our own advice as
+    -- a new refusal. prefixProviderModel guards its prefix the same way.
+    local heads = ModelConstraints.HINT_HEADS
+    for _idx, name in ipairs({ "admission", "admission_numberless", "context", "book_text" }) do
+        if err_msg:find(heads[name], 1, true) then return err_msg end
+    end
 
     -- Per-minute admission refusal (docs/tpm_admission_plan.md): the plan's
     -- tokens-per-minute allowance could not admit prompt + requested answer
@@ -1582,11 +1696,30 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
             "with a smaller answer budget and remembers this model's window for the session. If you keep " ..
             "seeing this, pick a model with a larger context window."
     end
-    local refusal = RateLimits.parseRefusal(err_msg)
-    if refusal then
+
+    local kind = RateLimits.refusalKind(err_msg)
+    -- A burst means the allowance is already spent: it refills with time, not
+    -- with a smaller request. maybeAppendRateLimitHint has already said "wait
+    -- and try again", which is the right advice, so say nothing more here —
+    -- explaining a burst as an admission refusal was a second, wrong tip (F1).
+    if kind == "burst" then return err_msg end
+    if kind == "admission" then
         local who = (type(provider) == "string" and provider ~= "") and provider or "This provider"
+        local refusal = RateLimits.parseRefusal(err_msg)
+        if not refusal then
+            -- A per-minute refusal that states no numbers at all (Cerebras).
+            -- It taught us nothing, so nothing was learned and nothing resent;
+            -- it still gets exactly one tip, not the generic rate-limit tip
+            -- plus the book-text tip it used to collect.
+            return err_msg .. "\n\n" ..
+                "What happened: " .. who .. " counts the prompt plus the answer budget a request " ..
+                "asks for (max_tokens) against your plan's per-minute token allowance before " ..
+                "running it, and this request did not fit. " .. who .. " stated no numbers, so " ..
+                "KOAssistant learned nothing about your allowance and did not resend.\n" ..
+                sizeLeverSentence(config)
+        end
         local text = "What happened: " .. who .. " counts the answer budget a request asks for " ..
-            "(max_tokens) against your plan's tokens-per-minute allowance before running it. " ..
+            "(max_tokens) against your plan's per-minute token allowance before running it. " ..
             "This request asked for " .. tostring(refusal.requested) .. " tokens in total against an " ..
             "allowance of " .. tostring(refusal.limit) .. ".\n"
         -- Which half was too big? The refusal names prompt + budget; the budget we
@@ -1601,9 +1734,7 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
                 "minute (the allowance refills) or pick a model or plan with a larger per-minute limit."
         else
             text = text .. "The request itself is larger than the allowance, so a smaller answer " ..
-                "budget cannot help: use a smaller scope (a section, \"Up to current position\", " ..
-                "or \"AI knowledge only\" where the action offers a source choice), or a plan/provider " ..
-                "with a larger per-minute limit."
+                "budget cannot help. " .. sizeLeverSentence(config)
         end
         return err_msg .. "\n\n" .. text
     end
@@ -1614,7 +1745,7 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
         "- Lower \"Max Text Characters\" (Settings → Text Extraction).\n" ..
         "- Switch to a model/provider with a larger context window."
     if provider == "groq" then
-        tip = tip .. "\n\nNote: Groq's free tier limits tokens-per-minute (about 6K-12K) far below the " ..
+        tip = tip .. "\n\nNote: Groq's free tier limits tokens a minute (about 6K-12K) far below the " ..
             "model's context window, so large book text is rejected even on 128K-window models. " ..
             "A paid Groq tier or a larger-context provider avoids this."
     end
@@ -1745,8 +1876,16 @@ function ModelConstraints.maybeAppendRateLimitHint(err_msg, provider, model, con
     if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
     if not ModelConstraints.isRateLimitError(err_msg) then return err_msg end
     if err_msg:find(GROUNDING_TIP_HEAD, 1, true) then return err_msg end
-    -- Admission refusals get their own explanation in maybeAppendContextLimitHint
-    if require("koassistant_rate_limits").parseRefusal(err_msg) then return err_msg end
+    if err_msg:find(ModelConstraints.HINT_HEADS.burst, 1, true) then return err_msg end  -- already said
+    -- Stand aside ONLY for an admission refusal, which gets its own explanation
+    -- in maybeAppendContextLimitHint (with the provider's numbers when it states
+    -- any, without them when it does not). A burst falls through to the wait tip
+    -- below: the bucket refills with time, so waiting IS the right advice, and
+    -- the old parseRefusal test suppressed the tip for exactly the case that
+    -- needed it (audit B2, F12).
+    if require("koassistant_rate_limits").refusalKind(err_msg) == "admission" then
+        return err_msg
+    end
     local who = (type(provider) == "string" and provider ~= "") and provider or "the provider"
     return err_msg .. "\n\n" ..
         "Tip: this is " .. who .. "'s own rate limit, not a plugin error. These allowances are " ..
@@ -1771,6 +1910,24 @@ function ModelConstraints.prefixProviderModel(err_msg, provider, model)
     if err_msg:sub(1, #label + 1) == label .. ":" then return err_msg end
     return label .. ": " .. err_msg
 end
+
+--- The phrase that identifies each hint in a decorated error, one per branch and
+--- pairwise exclusive, so a test can assert WHICH tip fired and that no second
+--- one did (audit B2's invariant: exactly one tip per refusal). Not a UI string:
+--- these are the needles, the wordings live in the functions above.
+ModelConstraints.HINT_HEADS = {
+    -- per-minute admission refusal, provider stated its numbers
+    admission = "against an allowance of",
+    -- per-minute admission refusal, no numbers stated (Cerebras)
+    admission_numberless = "stated no numbers",
+    -- generic wait-and-retry tip (bursts, daily buckets, requests-per-minute)
+    burst = "own rate limit, not a plugin error",
+    -- context window overflow with a computable resend
+    context = "this model's context window is",
+    -- the book-text tip: a size error that is not a per-minute refusal
+    book_text = "Tip: This request was too large for the selected model",
+    grounding = GROUNDING_TIP_HEAD,
+}
 
 --- Single decoration point for API request failures: name the model, then append
 --- whichever hints apply. The query sites call this instead of nesting maybeAppend*

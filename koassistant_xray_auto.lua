@@ -195,11 +195,42 @@ end
 --- Classify a request-failure message into a short reason kind (item 45).
 --- Wire-neutral: matches HTTP status classes and generic phrasings, never one
 --- provider's exact wording. Pure.
+---
+--- The size classes CONSULT the parsers that already own those wordings rather
+--- than re-matching their sentences (audit B2b, F36): the string handed in has
+--- been through decorateRequestError, so the retry decision used to be driven by
+--- the plugin's own advice paragraph and came out exactly inverted (Cerebras's
+--- per-minute refusal graded "rate limited" and bought a useless 60-second
+--- retry, only because the appended tip contained the words "rate limit"; Groq's
+--- #106 refusal graded "other" and named no reason at all). An admission refusal
+--- and a context/output-cap 400 are deterministic, so transient is false: the
+--- retry would be a guaranteed second failure.
 --- @param err string|nil The error text (handler-formatted, e.g. "gemini/…: HTTP 503: …")
---- @return string kind "overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
+--- @return string kind "aborted"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
 --- @return boolean transient True when a short wait plausibly heals it (retry-worthy)
 function XrayAuto.classifyStopReason(err)
   local text = type(err) == "string" and err:lower() or ""
+  -- The plugin's own pre-send abort sentinels (koassistant_dialogs.lua raises
+  -- "background: …" BEFORE any request goes out): a deliberate local skip, not a
+  -- model failure. Same test the scheduled path already uses. Without it
+  -- "background: delta truncated" matched the bare "truncated" below and was
+  -- reported to the reader as an "unusable response" for a request never sent.
+  if text:find("^background:") then
+    return "aborted", false
+  end
+  -- Inline requires: both modules are pure and loadable from here, and this file
+  -- deliberately keeps no file-level dependency on the api/constraints layer.
+  local RateLimits = require("koassistant_rate_limits")
+  local ModelConstraints = require("model_constraints")
+  -- A "Used N" count means the bucket is spent and refills with time (a
+  -- per-minute burst, or a daily bucket that also says "reduce your message
+  -- size"): never terminal, whatever else the wording says.
+  local refusal_kind = RateLimits.refusalKind(err)
+  if not RateLimits.hasUsedCount(err) and (refusal_kind == "admission"
+      or ModelConstraints.parseMaxTokensError(err)
+      or ModelConstraints.isSizeError(err)) then
+    return "too_large", false
+  end
   if text:find("http 503", 1, true) or text:find("overload", 1, true)
       or text:find("high demand", 1, true) or text:find("capacity", 1, true) then
     return "overloaded", true

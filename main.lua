@@ -2719,7 +2719,23 @@ function AskGPT:testProvider(provider_id)
     })
     return
   end
+  -- Probe the model the next request will really dispatch under (audit B3
+  -- follow-up): tapping a model row writes features.model, always for the ACTIVE
+  -- provider, and per-minute allowances differ per model (Groq publishes 8,000 a
+  -- minute on the gpt-oss models and 12,000 on llama-3.3-70b), so a header
+  -- recorded under the provider's default model would be a lie.
+  local probe_features = self.settings:readSetting("features") or {}
   local model = provider.default_model
+  if provider_id == probe_features.provider then
+    -- The active provider: exactly what dispatch resolves for it, the picked
+    -- model or, with none picked, the provider's shipped default (the user's
+    -- per-provider default only reaches the wire through a provider switch,
+    -- which writes it into features.model).
+    model = require("model_constraints").dispatchModel({
+      provider = provider_id, model = probe_features.model,
+      features = { custom_providers = self:getCustomProviders() },
+    }) or model
+  end
   if not model or model == "" then
     model = self:getCustomModels(provider_id)[1]
   end
@@ -2729,6 +2745,14 @@ function AskGPT:testProvider(provider_id)
     })
     return
   end
+
+  -- One model id per request (audit B3): the key the plan allowance is recorded
+  -- under comes from the SAME resolver the dispatch path reads it with, so the
+  -- probe's record and the first real request provably share one memo key.
+  local key_model = require("model_constraints").dispatchModel({
+    provider = provider_id, model = model,
+    features = { custom_providers = self:getCustomProviders() },
+  })
 
   local BaseHandler = require("koassistant_api.base")
   local json = require("json")
@@ -2771,9 +2795,9 @@ function AskGPT:testProvider(provider_id)
     -- first real request is already sized to fit (Groq free: 8K/min against
     -- a 32K default budget refused every request until this was learned).
     local RL = require("koassistant_rate_limits")
-    if RL.record(provider_id, model, RL.fromHeaders(resp_headers), "probe") then
+    if RL.record(provider_id, key_model, RL.fromHeaders(resp_headers), "probe") then
       logger.dbg("KOAssistant: test probe learned per-minute allowance",
-        RL.known(provider_id, model).limit_tokens, "for", provider_id, model)
+        RL.known(provider_id, key_model).limit_tokens, "for", provider_id, key_model)
     end
     return code, body
   end
@@ -10000,9 +10024,17 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       end
       popup_title = popup_title .. "\n" .. pos_line
     end
-    -- "Last auto-update failed" trace line (session-scoped, silent-failure surfacing)
-    if doc and doc.file and XrayAuto.lastFailure(doc.file) then
-      popup_title = popup_title .. "\n" .. _("Last auto-update failed")
+    -- "Last auto-update failed" trace line (session-scoped, silent-failure
+    -- surfacing). Audit B2b: the message is already stored, so name the reason
+    -- with the same classifier the ladder stop uses instead of a fixed string
+    -- ("request too large for your plan" is the one a #106 reader needs).
+    local last_fail = doc and doc.file and XrayAuto.lastFailure(doc.file)
+    if last_fail then
+      local fail_kind = XrayAuto.classifyStopReason(last_fail)
+      local fail_why = self:_xrayStopReasonLabel(fail_kind)
+      popup_title = popup_title .. "\n" .. (fail_why
+        and T(_("Last auto-update failed (%1)"), fail_why)
+        or _("Last auto-update failed"))
     end
     dialog = ButtonDialog:new{
       title = popup_title,
@@ -15178,6 +15210,11 @@ function AskGPT:_xrayStopReasonLabel(kind)
   if kind == "network" then return _("connection problem") end
   if kind == "bad_json" then return _("unusable response") end
   if kind == "step_too_large" then return _("large step needs review") end
+  -- Audit B2b: the two verdicts the classifier gained. "too_large" is a
+  -- deterministic refusal (a per-minute admission limit, or a context/output
+  -- cap), never retried; "aborted" is one of the plugin's own pre-send skips.
+  if kind == "too_large" then return _("request too large for your plan") end
+  if kind == "aborted" then return _("stopped before sending") end
   return nil
 end
 

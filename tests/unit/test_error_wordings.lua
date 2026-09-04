@@ -7,10 +7,14 @@
 --   context     - prompt, or prompt + max_tokens, above the context window
 --   admission   - a per-minute token allowance counted BEFORE the model runs
 --   burst       - an ordinary rate-limit 429 (often with a Used/Requested pair)
--- Everything the plugin does about them is decided by three pure functions:
+-- Everything the plugin does about them is decided by pure functions:
 --   ModelConstraints.parseMaxTokensError  (self-heal: retry value / learned cap)
 --   RateLimits.parseRefusal               (admission resend arithmetic)
+--   RateLimits.refusalKind                (burst vs admission: resend or wait)
 --   ModelConstraints.isRateLimitError     (persistent dialog vs vanishing toast)
+--   ModelConstraints.decorateRequestError (WHICH tip the reader is shown)
+--   XrayAuto.classifyStopReason           (the unattended ladder's verdict and
+--                                          whether it retries at all)
 --
 -- This file is the CORPUS: one entry per verbatim wording collected from the
 -- repo's own fixtures, this repo's issues, and public provider reports. Every
@@ -55,6 +59,9 @@ end
 
 local ModelConstraints = require("model_constraints")
 local RateLimits = require("koassistant_rate_limits")
+-- The unattended surface's classifier is the fourth parser over these same
+-- wordings (audit B2b); the module is pure (no KOReader deps at file level).
+local XrayAuto = require("koassistant_xray_auto")
 
 --------------------------------------------------------------------------------
 -- THE CORPUS
@@ -71,10 +78,24 @@ local RateLimits = require("koassistant_rate_limits")
 --                which is correct: the prompt alone does not fit (or the
 --                message states no prompt number), so no resend can help.
 --            kind "admission"/"burst" with limit+requested:
---                parseRefusal -> {limit, requested}
+--                parseRefusal -> {limit, requested, used}
 --            kind "admission"/"burst" without them: parseRefusal -> nil
 --            kind "other": both parsers -> nil
 --            rate_limit = what isRateLimitError must return.
+-- refusal_kind = what RateLimits.refusalKind must return ("admission", "burst",
+--            or absent for nil = not a per-minute token refusal). Asserted on
+--            EVERY entry, so a wording elsewhere in the corpus that started
+--            classifying would fail here.
+-- hint     = WHICH tip the reader gets, one of ModelConstraints.HINT_HEADS'
+--            ids or "none" (audit B2: exactly one tip per refusal, and the
+--            right one). The entry's text is run through decorateRequestError,
+--            the way the query router builds the message, and every other
+--            hint's needle must be absent — the double tip (generic rate-limit
+--            plus book-text) and the suppressed tip (F12) both fail here.
+-- ladder   = { kind, transient } XrayAuto.classifyStopReason must return for
+--            the DECORATED string, which is what the unattended checkpoint
+--            ladder really receives (audit B2b/F36: the retry decision used to
+--            be driven by the plugin's own advice paragraph, and was inverted).
 --------------------------------------------------------------------------------
 
 local CORPUS = {
@@ -91,6 +112,8 @@ local CORPUS = {
         text = "max_tokens is too large: 100000. This model supports at most 16384 completion tokens, "
             .. "whereas you provided 100000.",
         expect = { kind = "output_cap", limit = 16384, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "anthropic_output_cap",
@@ -101,6 +124,8 @@ local CORPUS = {
         text = "max_tokens: 21333 > 4096, which is the maximum allowed number of output tokens for "
             .. "claude-3-opus-20240229",
         expect = { kind = "output_cap", limit = 4096, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "groq_output_cap",
@@ -110,6 +135,8 @@ local CORPUS = {
         text = "`max_tokens` must be less than or equal to `16384`, the maximum value for `max_tokens` "
             .. "is less than the `context_window` for this model",
         expect = { kind = "output_cap", limit = 16384, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "gemini_max_output_range",
@@ -121,6 +148,8 @@ local CORPUS = {
         -- Range is exclusive at the top, so the real ceiling is 65536.
         expect = { kind = "output_cap", limit = 65536, rate_limit = false },
         known_miss = true,
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "dashscope_max_tokens_range",
@@ -133,6 +162,8 @@ local CORPUS = {
         text = "Range of max_tokens should be [1, 131072]",
         expect = { kind = "output_cap", limit = 131072, rate_limit = false },
         known_miss = true,
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
 
     ----------------------------------------------------------------------------
@@ -151,6 +182,8 @@ local CORPUS = {
             .. "or completion.",
         expect = { kind = "context", limit = 4097, prompt = 999, retry_at = 4097 - 999 - 256,
             rate_limit = false },
+        hint = "context",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "vllm_context_room",
@@ -162,6 +195,8 @@ local CORPUS = {
             .. "or completion.",
         expect = { kind = "context", limit = 12288, prompt = 8192, retry_at = 12288 - 8192 - 256,
             rate_limit = false },
+        hint = "context",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "vllm_context_new_wording",
@@ -175,6 +210,8 @@ local CORPUS = {
         -- "(N in the messages, M in the completion)" shape is gone here.
         expect = { kind = "context", limit = 128000, prompt = 62466, retry_at = 128000 - 62466 - 256,
             rate_limit = false },
+        hint = "context",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "openrouter_context_free_model",
@@ -186,6 +223,8 @@ local CORPUS = {
             .. "or use the \"middle-out\" transform to compress your prompt automatically.",
         expect = { kind = "context", limit = 32768, prompt = 234, retry_at = 32768 - 234 - 256,
             rate_limit = false },
+        hint = "context",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "openrouter_context_big_model",
@@ -198,6 +237,8 @@ local CORPUS = {
             .. "either one, or use the 'middle-out' transform to compress your prompt automatically.",
         expect = { kind = "context", limit = 1000000, prompt = 12124, retry_at = 1000000 - 12124 - 256,
             rate_limit = false },
+        hint = "context",
+        ladder = { kind = "too_large", transient = false },
     },
 
     ----------------------------------------------------------------------------
@@ -213,6 +254,8 @@ local CORPUS = {
             .. "(112946 in the messages, 10000 in the completion). Please reduce the length of the "
             .. "messages or completion.",
         expect = { kind = "context", limit = 16384, prompt = 112946, rate_limit = false },
+        hint = "book_text",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "deepseek_context",
@@ -225,6 +268,8 @@ local CORPUS = {
             .. "tokens (1403370 in the messages, 384000 in the completion). Please reduce the length of "
             .. "the messages or completion.",
         expect = { kind = "context", limit = 1048576, prompt = 1403370, rate_limit = false },
+        hint = "book_text",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "lmstudio_keep_tokens",
@@ -237,6 +282,8 @@ local CORPUS = {
         -- 15857 is not in any prompt-token shape, and it is over the window
         -- anyway, so declining is right.
         expect = { kind = "context", limit = 4096, prompt = 15857, rate_limit = false },
+        hint = "book_text",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "anthropic_prompt_too_long",
@@ -249,6 +296,8 @@ local CORPUS = {
         -- 200000 is the model's WINDOW and is not prompt-dependent (the T2
         -- research doc proposed learning it); nothing reads it today.
         expect = { kind = "context", limit = 200000, prompt = 209375, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "xai_prompt_length",
@@ -257,6 +306,8 @@ local CORPUS = {
         source = "github.com/cline/cline/issues/3120 (xAI grok-3)",
         text = "This model's maximum prompt length is 131072 but the request contains 136973 tokens.",
         expect = { kind = "context", limit = 131072, prompt = 136973, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "perplexity_messages_tokens",
@@ -265,6 +316,8 @@ local CORPUS = {
         source = "community.make.com/t/400-messages-have-xx-tokens-which-exceeds-the-max-limit-of-xx-tokens/53291",
         text = "[400] Messages have 16865 tokens, which exceeds the max limit of 8192 tokens.",
         expect = { kind = "context", limit = 8192, prompt = 16865, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "cohere_too_many_tokens",
@@ -275,6 +328,8 @@ local CORPUS = {
             .. "Try using a shorter prompt or enable prompt truncating. "
             .. "See https://docs.cohere.com/reference/generate for more details.",
         expect = { kind = "context", limit = 4081, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "moonshot_token_limit",
@@ -284,6 +339,8 @@ local CORPUS = {
         envelope = "{'error': {'message': '...', 'type': 'invalid_request_error'}}",
         text = "Invalid request: Your request exceeded model token limit: 262144 (requested: 269030)",
         expect = { kind = "context", limit = 262144, requested = 269030, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "nvidia_nim_input_length",
@@ -293,6 +350,8 @@ local CORPUS = {
             .. "but-configured-the-api-parameters-to-4096/314917",
         text = "Input length 1217 exceeds maximum allowed token size 512",
         expect = { kind = "context", limit = 512, prompt = 1217, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "openrouter_poolside_input_length",
@@ -301,6 +360,8 @@ local CORPUS = {
         source = "github.com/earendil-works/pi/issues/4943 (OpenRouter, poolside backend)",
         text = "Input length 131393 exceeds the maximum allowed input length of 131040 tokens.",
         expect = { kind = "context", limit = 131040, prompt = 131393, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "gemini_input_token_count",
@@ -310,6 +371,8 @@ local CORPUS = {
         envelope = '{"error":{"code":400,"message":"...","errors":[{"message":"..."}]}}',
         text = "The input token count (1236488) exceeds the maximum number of tokens allowed (1048576).",
         expect = { kind = "context", limit = 1048576, prompt = 1236488, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "dashscope_input_range",
@@ -322,6 +385,8 @@ local CORPUS = {
         source = "github.com/QwenLM/qwen-code/issues/350",
         text = "InternalError.Algo.InvalidParameter: Range of input length should be [1, 1048576]",
         expect = { kind = "context", limit = 1048576, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "together_input_validation",
@@ -334,6 +399,8 @@ local CORPUS = {
         -- pattern reads either. Harmless here (80125 > 4097 anyway), not
         -- harmless on the shape where max_new_tokens is the whole problem.
         expect = { kind = "context", limit = 4097, prompt = 80125, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "openai_context_legacy_semicolon",
@@ -348,6 +415,8 @@ local CORPUS = {
         expect = { kind = "context", limit = 4097, prompt = 1360, retry_at = 4097 - 1360 - 256,
             rate_limit = false },
         known_miss = true,
+        hint = "book_text",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "anthropic_input_plus_max_tokens",
@@ -362,6 +431,8 @@ local CORPUS = {
         expect = { kind = "context", limit = 200000, prompt = 154690, retry_at = 200000 - 154690 - 256,
             rate_limit = false },
         known_miss = true,
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
 
     ----------------------------------------------------------------------------
@@ -374,6 +445,8 @@ local CORPUS = {
         source = "github.com/anomalyco/opencode/issues/27629 (Z.AI glm-5 family)",
         text = "tokens in request more than max tokens allowed",
         expect = { kind = "other", rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "minimax_context_window",
@@ -382,6 +455,8 @@ local CORPUS = {
         source = "github.com/agentscope-ai/QwenPaw/issues/1273 (MiniMax code 2013)",
         text = "invalid params, context window exceeds limit",
         expect = { kind = "other", rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
     {
         id = "llamacpp_context",
@@ -390,6 +465,8 @@ local CORPUS = {
         source = "github.com/continuedev/continue/issues/9797 (llama-server, send_error)",
         text = "the request exceeds the available context size, try increasing it",
         expect = { kind = "other", rate_limit = false },
+        hint = "none",
+        ladder = { kind = "other", transient = false },
     },
 
     ----------------------------------------------------------------------------
@@ -407,6 +484,9 @@ local CORPUS = {
             .. "message size and try again. Need more tokens? Upgrade to Dev Tier today at "
             .. "https://console.groq.com/settings/billing",
         expect = { kind = "admission", limit = 8000, requested = 32979, rate_limit = true },
+        refusal_kind = "admission",
+        hint = "admission",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "groq_413_continue",
@@ -417,6 +497,9 @@ local CORPUS = {
             .. "`org_01kgg5588eftc8k70aes4864eb` service tier `on_demand` on tokens per minute (TPM): "
             .. "Limit 12000, Requested 14137, please reduce your message size and try again.",
         expect = { kind = "admission", limit = 12000, requested = 14137, rate_limit = true },
+        refusal_kind = "admission",
+        hint = "admission",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "groq_413_eliza",
@@ -426,6 +509,9 @@ local CORPUS = {
         text = "Request too large for model `llama-3.1-8b-instant` in organization `xxxx` service tier "
             .. "`on_demand` on tokens per minute (TPM): Limit 6000, Requested 6294",
         expect = { kind = "admission", limit = 6000, requested = 6294, rate_limit = true },
+        refusal_kind = "admission",
+        hint = "admission",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "openai_413_admission",
@@ -435,6 +521,9 @@ local CORPUS = {
         text = "Request too large for gpt-4o in organization org-abc on tokens per min (TPM): Limit 30000, "
             .. "Requested 40000. The input or output tokens must be reduced in order to run successfully.",
         expect = { kind = "admission", limit = 30000, requested = 40000, rate_limit = true },
+        refusal_kind = "admission",
+        hint = "admission",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "cerebras_tpm",
@@ -444,8 +533,13 @@ local CORPUS = {
             .. "inference-docs.cerebras.ai/support/rate-limits",
         text = "Tokens per minute limit exceeded - too many tokens processed",
         -- Cerebras gates on max_completion_tokens the same way Groq does but
-        -- states NO numbers, so only the headers can size the budget.
+        -- states NO numbers, so only the headers can size the budget. It is
+        -- still an admission refusal: refusalKind classifies it (parseRefusal
+        -- cannot, having no numbers to return).
         expect = { kind = "admission", rate_limit = true },
+        refusal_kind = "admission",
+        hint = "admission_numberless",
+        ladder = { kind = "too_large", transient = false },
     },
 
     ----------------------------------------------------------------------------
@@ -460,11 +554,31 @@ local CORPUS = {
         text = "Rate limit reached for model `llama3-70b-8192` in organization "
             .. "`org_01hrsvc1b8ey0anvbgha0xckf2` on tokens per minute (TPM): Limit 7000, Used 0, "
             .. "Requested ~12903. Please try again in 50.597142857s.",
-        -- KNOWN MISS: the "limit" pattern is unanchored, so it captures the "3"
-        -- of "llama3" (the FIRST digits after the word "limit" in
-        -- "Rate limit reached...") instead of 7000.
+        -- The numbers are read after the per-minute signature only. An
+        -- unanchored search captured the "3" of "llama3" (the first digits
+        -- after the word "limit" in "Rate limit reached...") instead of 7000.
         expect = { kind = "burst", limit = 7000, requested = 12903, used = 0, rate_limit = true },
-        known_miss = true,
+        refusal_kind = "burst",
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
+    },
+    {
+        id = "groq_429_tpm_burst_gemma",
+        provider = "groq",
+        status = 429,
+        source = "github.com/Aider-AI/aider/issues/3265 (Groq via litellm; the organization id is "
+            .. "redacted as `...` at the source)",
+        envelope = '{"error":{"message":"...","type":"tokens","code":"rate_limit_exceeded"}}',
+        text = "Rate limit reached for model `gemma2-9b-it` in organization `...` service tier "
+            .. "`on_demand` on tokens per minute (TPM): Limit 15000, Used 11972, Requested 4351. "
+            .. "Please try again in 5.289s. Visit https://console.groq.com/docs/rate-limits for more "
+            .. "information.",
+        -- A second model id, because the digit an unanchored search steals moves
+        -- with the name: `llama3` gave 3 above, `gemma2` gives 2 here.
+        expect = { kind = "burst", limit = 15000, requested = 4351, used = 11972, rate_limit = true },
+        refusal_kind = "burst",
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
     },
     {
         id = "openai_429_tpm_burst",
@@ -475,10 +589,12 @@ local CORPUS = {
         text = "Rate limit reached for o4-mini in organization org-**** on tokens per min (TPM): "
             .. "Limit 200000, Used 162960, Requested 42288. Please try again in 1.574s. "
             .. "Visit https://platform.openai.com/account/rate-limits to learn more.",
-        -- KNOWN MISS: same unanchored "limit" pattern; here it captures the "4"
-        -- of "o4-mini".
+        -- Same anchoring point; the unanchored pattern captured the "4" of
+        -- "o4-mini" here.
         expect = { kind = "burst", limit = 200000, requested = 42288, used = 162960, rate_limit = true },
-        known_miss = true,
+        refusal_kind = "burst",
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
     },
     {
         id = "groq_429_tpd_burst",
@@ -489,8 +605,11 @@ local CORPUS = {
             .. "`org_01kjh7p9n8f1qs6nz2bz77vy6b` service tier `on_demand` on tokens per day (TPD): "
             .. "Limit 100000, Used 97050, Requested 3619. Please try again in 9m38.016s.",
         -- A DAILY bucket: a per-minute resend must never fire here, and does
-        -- not (no per-minute signature in the text).
+        -- not (no per-minute signature in the text). refusal_kind is therefore
+        -- absent = nil: not a per-minute refusal at all.
         expect = { kind = "burst", rate_limit = true },
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
     },
     {
         id = "openai_429_rpm_burst",
@@ -499,8 +618,11 @@ local CORPUS = {
         source = "developers.openai.com/cookbook/examples/how_to_handle_rate_limits",
         text = "Rate limit reached for default-codex in organization org-{id} on requests per min. "
             .. "Limit: 20.000000 / min. Current: 24.000000 / min.",
-        -- Requests, not tokens: nothing to resize.
+        -- Requests, not tokens: nothing to resize, and refusal_kind is absent =
+        -- nil for the same reason (no per-minute TOKEN signature).
         expect = { kind = "burst", rate_limit = true },
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
     },
 }
 
@@ -562,7 +684,14 @@ local function checkEntry(entry)
         if rf.requested ~= e.requested then
             return false, "requested is " .. tostring(rf.requested) .. ", expected " .. tostring(e.requested)
         end
+        -- "Used N" is what separates a spent bucket from a request that was too
+        -- big to admit, so the corpus asserts it (absent in the expectation
+        -- means the wording carries none).
+        if rf.used ~= e.used then
+            return false, "used is " .. tostring(rf.used) .. ", expected " .. tostring(e.used)
+        end
         return true, "limit " .. tostring(rf.limit) .. " requested " .. tostring(rf.requested)
+            .. " used " .. tostring(rf.used)
     end
 
     -- kind "other": nothing may be extracted
@@ -598,6 +727,47 @@ for _idx, entry in ipairs(CORPUS) do
         entry.id .. ": isRateLimitError is " .. tostring(is_rl)
             .. ", expected " .. tostring(entry.expect.rate_limit))
 
+    -- refusalKind decides whether a resend can help: a burst waits for the
+    -- bucket to refill, an admission refusal can be resized. Every entry is
+    -- asserted, so a wording outside the two per-minute sections must classify
+    -- as nil (its refusal_kind field is absent).
+    local rk = RateLimits.refusalKind(entry.text)
+    TestRunner.assert(rk == entry.refusal_kind,
+        entry.id .. ": refusalKind is " .. tostring(rk)
+            .. ", expected " .. tostring(entry.refusal_kind))
+
+    -- ONE tip per refusal, and the right one (audit B2). The message the reader
+    -- sees is the decorated one, so build it the way the query router does and
+    -- assert that the expected hint fired, once, and no other did.
+    local decorated = ModelConstraints.decorateRequestError(entry.text, entry.provider, nil, nil)
+    TestRunner.assert(entry.hint == "none" or ModelConstraints.HINT_HEADS[entry.hint] ~= nil,
+        entry.id .. ": names a known hint (" .. tostring(entry.hint) .. ")")
+    for head_id, needle in pairs(ModelConstraints.HINT_HEADS) do
+        local fired = decorated:find(needle, 1, true) ~= nil
+        TestRunner.assert(fired == (head_id == entry.hint),
+            entry.id .. ": hint '" .. head_id .. "' fired = " .. tostring(fired)
+                .. ", expected hint '" .. tostring(entry.hint) .. "'")
+    end
+    if entry.hint ~= "none" then
+        -- A tip must not be appended twice either (the F12 double-tip shape).
+        local needle, count, pos = ModelConstraints.HINT_HEADS[entry.hint], 0, 1
+        while true do
+            local at = decorated:find(needle, pos, true)
+            if not at then break end
+            count = count + 1
+            pos = at + 1
+        end
+        TestRunner.assert(count == 1,
+            entry.id .. ": the '" .. entry.hint .. "' tip appears " .. count .. " times, expected once")
+    end
+
+    -- The unattended ladder grades the SAME decorated string (audit B2b): an
+    -- admission refusal or a size 400 must never buy the one 60-second retry.
+    local lk, lt = XrayAuto.classifyStopReason(decorated)
+    TestRunner.assert(lk == entry.ladder.kind and lt == entry.ladder.transient,
+        entry.id .. ": classifyStopReason is " .. tostring(lk) .. "/" .. tostring(lt)
+            .. ", expected " .. tostring(entry.ladder.kind) .. "/" .. tostring(entry.ladder.transient))
+
     local ok, detail = checkEntry(entry)
     if entry.known_miss then
         misses = misses + 1
@@ -629,6 +799,36 @@ do
     end
     for _idx, p in ipairs({ "openai", "anthropic", "gemini", "groq", "openrouter", "vllm-family" }) do
         TestRunner.assert(providers[p], "corpus still covers " .. p)
+    end
+end
+
+-- The lever sentence names what the failing surface can actually change (F35).
+do
+    local cerebras = "Tokens per minute limit exceeded - too many tokens processed"
+    local function decorated(features)
+        return ModelConstraints.decorateRequestError(cerebras, "cerebras", nil, { features = features })
+    end
+    local cases = {
+        { { is_library_context = true }, "Library scanning", "library action names the folder list" },
+        { { is_general_context = true }, "Attach button", "general chat names the Attach button" },
+        { { _spoiler_live = false }, "whole artifact", "artifact chat is told the artifact is the prompt" },
+        { { _xray_chat_active = true }, "new X-Ray chat", "X-Ray chat names a new X-Ray chat" },
+        { {}, "smaller scope", "book request keeps the scope wording" },
+        { nil, "smaller scope", "no features at all: the book wording" },
+    }
+    for _idx, c in ipairs(cases) do
+        local out = decorated(c[1])
+        TestRunner:assert(out:find(c[2], 1, true) ~= nil, "lever: " .. c[3] .. " -- got: " .. out:sub(-160))
+    end
+    TestRunner:assert(decorated(nil):find("smaller scope", 1, true) ~= nil, "nil config falls back to the book wording")
+end
+
+-- Decorating an already-decorated message adds nothing (retry surfaces re-report).
+do
+    for _idx, entry in ipairs(CORPUS) do
+        local once = ModelConstraints.decorateRequestError(entry.text, entry.provider, nil, nil)
+        local twice = ModelConstraints.decorateRequestError(once, entry.provider, nil, nil)
+        TestRunner.assert(twice == once, entry.id .. ": a second decoration changes nothing")
     end
 end
 

@@ -1174,6 +1174,42 @@ TestRunner:test("classifyStopReason: transient classes vs terminal ones (item 45
     end
 end)
 
+TestRunner:test("classifyStopReason: own abort sentinels and refusals that cannot succeed (audit B2b)", function()
+    -- The classifier is handed the DECORATED string (provider prefix + the hints
+    -- decorateRequestError appended), so build the provider cases that way: the
+    -- old code graded them off the plugin's own advice paragraph and came out
+    -- inverted (Cerebras retried, Groq's #106 refusal named no reason at all).
+    local ModelConstraints = require("model_constraints")
+    local function decorated(text, provider, model)
+        return ModelConstraints.decorateRequestError(text, provider, model, { features = {} })
+    end
+    local CEREBRAS = "Tokens per minute limit exceeded - too many tokens processed"
+    local GROQ_413 = "Request too large for model `openai/gpt-oss-20b` in organization `org_x` "
+        .. "service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 32979, "
+        .. "please reduce your message size and try again."
+    local GROQ_BURST = "Rate limit reached for model `llama3-70b-8192` in organization `org_x` on "
+        .. "tokens per minute (TPM): Limit 7000, Used 0, Requested ~12903. Please try again in 50.597142857s."
+
+    local cases = {
+        -- The plugin's own pre-send aborts: never sent, so never a model failure
+        -- ("delta truncated" used to match the bare "truncated" and be reported
+        -- to the reader as an unusable response).
+        { "background: incremental update not applicable", "aborted", false },
+        { "background: delta truncated", "aborted", false },
+        { "background: extraction truncated", "aborted", false },
+        -- Deterministic refusals: the one 60-second retry would fail identically
+        { decorated(CEREBRAS, "cerebras", "zai-glm-4.7"), "too_large", false },
+        { decorated(GROQ_413, "groq", "openai/gpt-oss-20b"), "too_large", false },
+        -- A burst is the opposite: the bucket refills with time, so retry
+        { decorated(GROQ_BURST, "groq", "llama3-70b-8192"), "rate_limited", true },
+    }
+    for _idx, case in ipairs(cases) do
+        local kind, transient = XrayAuto.classifyStopReason(case[1])
+        TestRunner:assertEqual(kind, case[2], "kind for: " .. case[1]:sub(1, 60))
+        TestRunner:assertEqual(transient, case[3], "transient for: " .. case[1]:sub(1, 60))
+    end
+end)
+
 TestRunner:test("ladder stop record: per-file, superseded by a chain (re)start", function()
     XrayAuto.recordLadderStop("/a.epub", { step = 7, total = 11, kind = "overloaded" })
     local stop = XrayAuto.lastLadderStop("/a.epub")

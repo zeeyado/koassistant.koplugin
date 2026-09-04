@@ -101,7 +101,12 @@ end
 --- @param on_complete function: Callback with (success, content, error, reasoning, web_search_used, usage)
 --- @param response_parser function: Function to parse JSON response to content
 --- @param config table: Configuration with model info and optional loading_message
-local function handleNonStreamingBackground(background_fn, provider, on_complete, response_parser, config)
+--- @param dispatch_model string|nil: THE model id this request is keyed under
+---        (ModelConstraints.dispatchModel, audit B3). Passed in rather than
+---        re-derived so the plan memo written here and the budget the caller
+---        sized use one string by construction; a bare config.model is nil on
+---        four routine routes (audit F3) and lands in the "?" bucket.
+local function handleNonStreamingBackground(background_fn, provider, on_complete, response_parser, config, dispatch_model)
     local UIManager = require("ui/uimanager")
     local InfoMessage = require("ui/widget/infomessage")
     local BaseHandler = require("koassistant_api.base")
@@ -274,9 +279,9 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         do
             local RateLimits = require("koassistant_rate_limits")
             local rl_fields, cleaned = RateLimits.extractMarker(full_response)
+            full_response = cleaned  -- the line is protocol: strip it even when it decodes to nothing
             if rl_fields then
-                RateLimits.record(provider, config and config.model, rl_fields, "header")
-                full_response = cleaned
+                RateLimits.record(provider, dispatch_model, rl_fields, "header")
             end
         end
 
@@ -309,7 +314,7 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
                         local detail = ModelConstraints.formatQuotaDetails(j)
                         if detail then err = err .. "\n\n" .. detail end
                         finish(false, nil, ModelConstraints.decorateRequestError(
-                            err, provider, config and config.model, config))
+                            err, provider, dispatch_model, config))
                         return
                     end
                 end
@@ -321,7 +326,7 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
             end
             finish(false, nil, ModelConstraints.decorateRequestError(
                 err_msg ~= "" and err_msg or "Request failed",
-                provider, config and config.model, config))
+                provider, dispatch_model, config))
             return
         end
 
@@ -450,6 +455,23 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         return "Error: " .. err
     end
 
+    -- ONE model id per request (audit B3 / F3): the plan memo, the answer-budget
+    -- mirror, the context-window hint and the handler on the wire all key off
+    -- this string, or are all nil together. Resolved ONCE, here, because a bare
+    -- config.model is nil on four routine routes (first API key save, removing
+    -- the selected custom provider, clearing all custom providers, a tier pin
+    -- the provider lacks) and the memo would then be written under the provider
+    -- default and read under "?".
+    -- Resolved AFTER the custom-provider lookup on purpose: a custom provider's
+    -- default lives in its own entry, and the entry the router just matched is
+    -- the exact list the resolver needs (a custom provider the settings do not
+    -- list never gets this far). Built-ins need no list at all: getProviderDefaults
+    -- answers them from ProviderDefaults.
+    local dispatch_model = ModelConstraints.dispatchModel({
+        provider = provider, model = config.model,
+        features = { custom_providers = custom_provider_config and { custom_provider_config } or nil },
+    })
+
     -- Get API key for ordinary providers. OpenAI Subscription stores OAuth
     -- credentials separately and resolves/refreshes them only after WiFi is ready.
     if provider ~= "openai_codex" then
@@ -507,48 +529,64 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- everything we send as text, for the plan-fit budget and the honest
     -- refusal arithmetic. Also feeds the stream settings' truncation check.
     local RateLimits = require("koassistant_rate_limits")
-    local prompt_chars = (function()
-        local n = 0
-        if config.system and type(config.system.text) == "string" then
-            n = n + #config.system.text
-        end
-        for _idx = 1, #(message_history or {}) do
-            local m = message_history[_idx]
-            if m and type(m.content) == "string" then n = n + #m.content end
-        end
-        return n
-    end)()
+    -- The arithmetic itself lives in the module (audit B14): the pre-send notice
+    -- and this dispatch-time cap must work from the same number by construction,
+    -- and two hand copies of one sum is how the estimators drifted apart before.
+    local prompt_chars = RateLimits.promptChars(config.system and config.system.text, message_history)
     -- The answer budget the last dispatch carried when the plan capped it (nil =
     -- the handler's own default went out) — the refusal arithmetic needs it.
     local sent_budget = nil
+    -- The READER's own answer budget, if this request carries one: an action pin
+    -- (X-Ray's 65536) or a user parameter. Read here, from the caller's config,
+    -- so that cutting it can be said out loud (audit F9) while a self-heal's own
+    -- resend budget — which rewrites api_params on a copy — never is: the reader
+    -- did not choose that number and would not recognize it.
+    local pinned_budget = tonumber(config.api_params and config.api_params.max_tokens)
+        or tonumber(config.additional_parameters and config.additional_parameters.max_tokens)
+    -- The prompt's EXACT token count, once a refusal or a context 400 has stated
+    -- it. The self-heal's resend budget is computed from it; the cap block must
+    -- size the resend from the same number, because sizing it from the byte
+    -- estimate again shrank the resend straight back to the budget the provider
+    -- had just refused (verified against the stub: byte-identical resend).
+    local exact_prompt_tokens = nil
     local function tryMaxTokensSelfHeal(err)
         if max_tokens_retry_done then return false end
-        local model = config.model
-        if not model then
-            local pd = Defaults.ProviderDefaults[provider]
-            model = pd and pd.model or nil
-        end
         local parsed = ModelConstraints.parseMaxTokensError(err)
         if not parsed then
-            -- Admission refusal ("Limit N, Requested M"): the plan's per-minute
-            -- allowance could not admit prompt + budget. Learn the allowance for
-            -- the session, resend ONCE at a budget that fits; when the prompt
-            -- alone does not fit there is nothing to resend — the decorated
-            -- error says so.
+            -- Per-minute refusal. Two kinds, and only one of them is worth
+            -- resending (audit B1):
+            --   burst     "Used N" in the wording: the minute's allowance is
+            --             already spent, so the bucket refills with TIME, not
+            --             with a smaller request. Learn the allowance, then stop
+            --             — the decorated error carries the wait-and-retry tip.
+            --   admission prompt plus the requested answer budget did not fit.
+            --             Deterministic, so a smaller budget can help; resend
+            --             ONCE at a budget that fits, and when the prompt alone
+            --             does not fit there is nothing to resend (the decorated
+            --             error says which).
             local refusal = RateLimits.parseRefusal(err)
-            if not refusal then return false end
-            RateLimits.record(provider, model, { limit_tokens = refusal.limit }, "refusal")
-            local sent = sent_budget or ModelConstraints.effectiveMaxTokens(provider, model, config)
+            if not refusal then return false end   -- numberless: nothing to learn
+            local recorded = RateLimits.record(provider, dispatch_model,
+                { limit_tokens = refusal.limit }, "refusal")
+            logger.dbg("KOAssistant: per-minute refusal states allowance", refusal.limit,
+                "for", provider, dispatch_model or "?", "- recorded:", tostring(recorded))
+            if RateLimits.refusalKind(err) == "burst" then
+                logger.dbg("KOAssistant: burst refusal (used", refusal.used or "?",
+                    "of", refusal.limit, ") - no resend, the allowance refills with time")
+                return false
+            end
+            local sent = sent_budget or ModelConstraints.effectiveMaxTokens(provider, dispatch_model, config)
             local budget = RateLimits.retryBudget(refusal, sent, prompt_chars)
             if not budget then
                 logger.warn("KOAssistant: per-minute allowance", refusal.limit, "cannot admit this prompt (~",
                     RateLimits.promptTokensFromRefusal(refusal, sent) or RateLimits.estimateTokens(prompt_chars),
-                    "tokens) - no resend for", provider, model or "?")
+                    "tokens) - no resend for", provider, dispatch_model or "?")
                 return false
             end
             max_tokens_retry_done = true
+            exact_prompt_tokens = RateLimits.promptTokensFromRefusal(refusal, sent)
             logger.warn("KOAssistant: per-minute allowance", refusal.limit, "refused budget",
-                sent or "?", "- resending at", budget, "for", provider, model or "?")
+                sent or "?", "- resending at", budget, "for", provider, dispatch_model or "?")
             local retry_config = {}
             for k, v in pairs(config) do retry_config[k] = v end
             retry_config.api_params = {}
@@ -559,19 +597,20 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             return true
         end
         max_tokens_retry_done = true
-        if parsed.kind == "output_cap" and model then
-            ModelConstraints.learnMaxOutput(provider, model, parsed.cap)
+        if parsed.kind == "output_cap" and dispatch_model then
+            ModelConstraints.learnMaxOutput(provider, dispatch_model, parsed.cap)
         elseif parsed.kind == "context" and parsed.limit then
             -- The model's context window binds prompt + budget exactly like a
             -- per-minute allowance does; remember it for the session so the
             -- next request on this model is sized up front instead of failing
             -- first (OpenRouter free models, #106 follow-up). Never persisted:
             -- the derived-caps cache is for output ceilings only.
-            RateLimits.record(provider, model, { limit_tokens = parsed.limit }, "context")
+            RateLimits.record(provider, dispatch_model, { limit_tokens = parsed.limit }, "context")
         end
         local retry_at = parsed.cap or parsed.retry_at
+        if parsed.kind == "context" then exact_prompt_tokens = parsed.prompt end
         logger.warn("KOAssistant: max_tokens self-heal (" .. parsed.kind .. "), retrying at",
-            retry_at, "for", provider, model or "?")
+            retry_at, "for", provider, dispatch_model or "?")
         -- Copy-on-write (Config Copy Pattern): the retry value must not linger
         -- on the caller's config — a context-room value is valid for THIS
         -- prompt only, and output caps are served by the derived cache anyway.
@@ -594,8 +633,19 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
     -- a refusal), shrink the answer budget so prompt + budget is admitted.
     -- Only ever shrinks; unknown plan = request untouched (Config Copy Pattern).
     do
-        local cap = RateLimits.budgetCap(provider, config.model, prompt_chars)
-        local current = ModelConstraints.effectiveMaxTokens(provider, config.model, config)
+        -- Is a reader watching this request? Background fires, hidden streams
+        -- (quiz) and the tool runner's gather phase (its own status window is
+        -- up) must never raise a widget of their own.
+        local attended = not (config.features and (config.features._background_request
+            or config.features.hidden_streaming
+            or config.features._suppress_loading_dialog))
+        -- On the self-heal's second pass the notices below stay quiet: the
+        -- reader already saw the first pass, "before sending" would be a lie on
+        -- a resend, and the pin they would name is the retry budget, a number
+        -- the reader never chose.
+        local first_pass = not max_tokens_retry_done
+        local cap = RateLimits.budgetCap(provider, dispatch_model, prompt_chars, exact_prompt_tokens)
+        local current = ModelConstraints.effectiveMaxTokens(provider, dispatch_model, config)
         local capped, changed = RateLimits.applyCap(current, cap)
         if changed then
             local capped_config = {}
@@ -606,7 +656,61 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             config = capped_config
             sent_budget = capped
             logger.dbg("KOAssistant: answer budget capped to", capped, "by the plan's per-minute allowance",
-                RateLimits.known(provider, config.model).limit_tokens, "for", provider, config.model or "?")
+                RateLimits.known(provider, dispatch_model).limit_tokens, "for", provider, dispatch_model or "?")
+            -- A deliberate pin that the plan cut is worth one visible line
+            -- (audit F9 — X-Ray's 65536 pin went out at 1,077 tokens with a
+            -- logger.dbg line as the only report). An unpinned default being
+            -- sized down is the fix working as designed, and stays silent.
+            if pinned_budget and attended and first_pass then
+                local ok_ui, UIManager = pcall(require, "ui/uimanager")
+                local ok_note, Notification = pcall(require, "ui/widget/notification")
+                if ok_ui and ok_note then
+                    local T = require("ffi/util").template
+                    local text = T(_("Answer budget reduced from %1 to %2 tokens to fit your plan's per-minute limit."),
+                        tostring(pinned_budget), tostring(capped))
+                    UIManager:scheduleIn(0.8, function()
+                        UIManager:show(Notification:new{ text = text })
+                    end)
+                end
+            end
+        end
+
+        -- Say it BEFORE sending when the plan this session knows cannot admit
+        -- the prompt at all (audit B14). The condition is budgetCap's own,
+        -- asked ahead of time (allowance minus the prompt estimate minus the
+        -- margin below the floor), so no threshold is invented and the notice
+        -- can never disagree with the cap.
+        -- The request still goes out: a stale memo, a burst-poisoned one or a
+        -- wrong byte estimate must never become a permanent local refusal for a
+        -- provider that would have answered, and the refusal-and-resend path is
+        -- the second line of defence. Scheduled a beat late (the ollama
+        -- warn-before-send precedent) so it lands on top of the loading or
+        -- streaming window, with no timeout: tap to dismiss.
+        local over_limit, over_est, over_source =
+            RateLimits.promptExceedsPlan(provider, dispatch_model, prompt_chars)
+        if over_limit and attended and first_pass then
+            logger.dbg("KOAssistant: prompt ~", over_est, "tokens does not fit the known", over_source,
+                "limit", over_limit, "for", provider, dispatch_model or "?", "- sending anyway")
+            local ok_ui, UIManager = pcall(require, "ui/uimanager")
+            local ok_msg, InfoMessage = pcall(require, "ui/widget/infomessage")
+            if ok_ui and ok_msg then
+                local T = require("ffi/util").template
+                local text
+                if over_source == "context" then
+                    text = T(_([[This request is larger than the model can read at once.
+
+It is about %1 tokens (an estimate) and this model's context window is about %2 tokens, so it may be refused. It is being sent anyway. If it is refused, the error explains what to change.]]),
+                        tostring(over_est), tostring(over_limit))
+                else
+                    text = T(_([[This request is larger than your plan allows.
+
+It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a minute, so it may be refused. It is being sent anyway. If it is refused, KOAssistant sends it again once with a smaller answer budget when the text itself fits, and explains what to change when it does not.]]),
+                        tostring(over_est), tostring(provider), tostring(over_limit))
+                end
+                UIManager:scheduleIn(0.8, function()
+                    UIManager:show(InfoMessage:new{ text = text })  -- no timeout: tap to dismiss
+                end)
+            end
         end
     end
 
@@ -657,7 +761,8 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
                 end
             end,
             response_parser,
-            config
+            config,
+            dispatch_model
         )
         return STREAMING_IN_PROGRESS
     end
@@ -685,7 +790,11 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
             -- PROVES a prompt was cut to fit the server's context window,
             -- instead of guessing from a token estimate.
             provider_name = provider,
-            model = config.model,
+            -- The resolved id (audit B3): stream_handler records the plan
+            -- headers under settings.model, and ollama's observed-context write
+            -- reads it too, so a bare config.model here would file everything a
+            -- streamed request learns in the "?" bucket the cap never reads.
+            model = dispatch_model,
             prompt_chars = prompt_chars,
             -- Round 27: the label/note round 26 added rode config.features but
             -- were never copied into stream_settings, so every hidden stream
@@ -707,7 +816,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
         stream_handler:showStreamDialog(
             stream_fn,
             provider,
-            config.model,
+            dispatch_model,
             stream_settings,
             function(stream_success, content, err, reasoning_content, stream_web_search_used, usage)
                 -- Quick-answer retry (S3): the ⚡ button aborted this stream. Signal it UP to
@@ -737,7 +846,7 @@ local function queryChatGPT(message_history, temp_config, on_complete, settings)
                             err and tostring(err):sub(1, 2000) or "(no error text)")
                     end
                     local emsg = ModelConstraints.decorateRequestError(
-                        err or "Unknown streaming error", provider, config.model, config)
+                        err or "Unknown streaming error", provider, dispatch_model, config)
                     if on_complete then on_complete(false, nil, emsg) end
                     return
                 end
