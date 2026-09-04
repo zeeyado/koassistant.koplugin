@@ -10961,7 +10961,9 @@ local showEarlierBooksSweep
 -- reach and `opts.reveal` confirms have not yet revealed (nil = nothing held
 -- back); the row names it, the confirm names it, and the reveal page carries
 -- the row for the book after it. A reveal never sticks: every search starts
--- from the chain again.
+-- from the chain again. Each reveal is its OWN page holding only that book's
+-- hits, stacked on the page it was confirmed from (maintainer 2026-09-04:
+-- one book per confirm = one book per page; back = the previous book).
 local function nextLaterBook(opts)
     if not opts.document_path then return nil end
     return require("koassistant_action_cache").nextHeldBackLaterXray(opts.document_path, opts.reveal or 0)
@@ -10980,11 +10982,8 @@ local function confirmLaterBooksSweep(opts)
         text = T(_("%1 comes later in the series and can reveal what happens in the books before it. Search it anyway?"), bookLabel(book)),
         ok_text = _("Search this book"),
         ok_callback = function()
-            -- On a reveal page the next hop replaces the page
-            if opts.close_first then UIManager:close(opts.close_first) end
             local o = {}
             for k, v in pairs(opts) do o[k] = v end
-            o.close_first = nil
             o.reveal = (opts.reveal or 0) + 1
             showEarlierBooksSweep(o)
         end,
@@ -11023,22 +11022,17 @@ local function predGroupsMenu(opts, groups, title)
             })
         end
     end
-    local results_menu
     local next_book = nextLaterBook(opts)
     if next_book then
         table.insert(items, {
             text = laterBookRowText(next_book),
             bold = true,
             separator = true,
-            callback = function()
-                local o = {}
-                for k, v in pairs(opts) do o[k] = v end
-                if opts.reveal then o.close_first = results_menu end
-                confirmLaterBooksSweep(o)
-            end,
+            -- The next book's page stacks on this one (S7)
+            callback = function() confirmLaterBooksSweep(opts) end,
         })
     end
-    results_menu = Menu:new{
+    local results_menu = Menu:new{
         title = title,
         item_table = items,
         is_borderless = true,
@@ -11110,19 +11104,21 @@ end
 showEarlierBooksSweep = function(opts)
     local ActionCache = require("koassistant_action_cache")
     -- opts.reveal = the confirmed later-books reveal (S5; one book per
-    -- confirm since S7): ONLY the revealed books — every surface carrying
-    -- the confirm row already shows the earlier books' hits and the later
-    -- books the chain reaches (the auto-walked lookup lists, the browser's
-    -- folded groups since 2026-09-04), so the reveal lists what was held
-    -- back and nothing twice
+    -- confirm since S7): ONLY the book THIS confirm revealed — the newest
+    -- revealed entry (revealed entries come in series order). Every surface
+    -- carrying the confirm row already shows the earlier books' hits and the
+    -- later books the chain reaches (the auto-walked lookup lists, the
+    -- browser's folded groups since 2026-09-04), and the books earlier
+    -- confirms revealed stay on their own pages underneath, so nothing is
+    -- listed twice
     local reveal = tonumber(opts.reveal) or 0
     local preds = ActionCache.groupXrays(opts.document_path, { reveal = reveal })
     if reveal > 0 then
-        local later = {}
+        local newest
         for _idx, p in ipairs(preds) do
-            if p.revealed then later[#later + 1] = p end
+            if p.revealed then newest = p end
         end
-        preds = later
+        preds = newest and { newest } or {}
     end
     local wide = walkIsWide(preds)
     local groups = collectPredGroups(preds, opts.query, false)
@@ -11164,9 +11160,7 @@ showEarlierBooksSweep = function(opts)
     end
     local title
     if reveal > 0 then
-        title = #preds == 1
-            and T(_("Results for \"%1\" in %2"), opts.query, bookLabel(preds[1]))
-            or T(_("Results for \"%1\" in later books of the series"), opts.query)
+        title = T(_("Results for \"%1\" in %2"), opts.query, bookLabel(preds[1]))
     elseif wide then
         title = T(_("Results for \"%1\" in the other books of the group"), opts.query)
     else
