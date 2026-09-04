@@ -1893,8 +1893,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         else
                             logger.warn("Failed to parse JSON from SSE data:", json_str)
                         end
-                    elseif line:sub(1, 7) == "event: " then
+                    elseif line:sub(1, 6) == "event:" then
                         -- Ignore SSE event lines
+                    elseif line:sub(1, 3) == "id:" or line:sub(1, 6) == "retry:" then
+                        -- SSE ids and reconnect hints (Qwen writes "id: N" per chunk;
+                        -- they used to be buffered as unrecognized lines and flushed
+                        -- into the saved answer at stream end)
                     elseif line:sub(1, 1) == ":" then
                         -- SSE comment/keep-alive
                     elseif line:sub(1, #RL.PROTOCOL_MARKER) == RL.PROTOCOL_MARKER then
@@ -2033,7 +2037,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                             -- PROTOCOL_NON_200 marker; inserting it into result_buffer dumps
                             -- garbled JSON fragments into the viewer.
                             table.insert(error_body_lines, line)
-                            logger.warn("Unrecognized line format:", line)
+                            -- warn once per stream (issue #104: warn always reaches crash.log)
+                            if #error_body_lines == 1 then
+                                logger.warn("Unrecognized line format:", line)
+                            else
+                                logger.dbg("Unrecognized line format:", line)
+                            end
                         end
                     end
                 end

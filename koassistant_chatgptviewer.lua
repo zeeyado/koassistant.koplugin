@@ -1220,7 +1220,10 @@ pre {
     background-color: #f0f0f0;
     padding: 0.5em;
     border-radius: 3px;
-    overflow-x: auto;
+    /* MuPDF cannot scroll a block, so overflow-x: auto CLIPPED long code lines
+       at the right edge (probed 2026-09-04); wrap them instead. */
+    white-space: pre-wrap;
+    word-wrap: break-word;
     margin: 0.5em 0;
 }
 
@@ -1232,6 +1235,14 @@ pre code {
 ol, ul {
     margin: 0.5em 0;
     padding-left: 1.5em;
+}
+
+/* MuPDF's built-in stylesheet assigns bullets by depth (level 2 = a hollow
+   circle drawn larger than the text, level 3 = a square) and a plain author
+   rule does not override it, so !important is required. ul-only on purpose:
+   an li rule would turn ordered lists into bullets (probed 2026-09-04). */
+ul, ul ul, ul ul ul {
+    list-style-type: disc !important;
 }
 
 h1, h2, h3, h4, h5, h6 {

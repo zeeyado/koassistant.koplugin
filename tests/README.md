@@ -226,6 +226,7 @@ The 96 files, with what each one pins:
 - `test_custom_openai_reasoning.lua` - custom-provider reasoning wire translation in `customizeRequestBody`
 - `test_dict_buttons.lua` - dictionary-popup button specs: ids, ordering, row groups, visibility gating
 - `test_dispatch_sizing.lua` - `ModelConstraints.dispatchModel` is the one model id a request is keyed under (includes a structural source scan)
+- `test_document_end_xpointer.lua` - `ContextExtractor.documentEndXPointer`: every range that reaches the last page ends at the document end, not at that page's start
 - `test_doc_settings_resolver.lua` - SafeDocSettings: live-instance resolution and samePath alias handling (#72)
 - `test_doi_resolver.lua` - DOI matching, extraction from metadata and page text, resolution
 - `test_effective_props.lua` - `overlayCustomProps` plus the structural gate over every raw `doc_props` read

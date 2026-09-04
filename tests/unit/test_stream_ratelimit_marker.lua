@@ -414,6 +414,22 @@ TestRunner:test("a child that never exits cannot hold the answer", function()
 end)
 
 -- ------------------------------------------------------------------
+-- Parity audit F057 (2026-09-04): SSE "id:" and "retry:" lines are protocol.
+-- Qwen writes "id: N" per chunk; the loop used to buffer them as unrecognized
+-- lines and the end-of-stream fold flushed them INTO the saved answer.
+TestRunner:test("SSE id:/retry:/event: lines never reach the answer", function()
+    local body =
+        'event:message\nid: 0\nretry: 3000\n' ..
+        'data: {"choices":[{"index":0,"delta":{"content":"ok"},"finish_reason":null}]}\n\n' ..
+        'id: 1\n' ..
+        'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n' ..
+        'id:2\ndata: [DONE]\n\n'
+    local ok, content = runStream(body)
+    TestRunner:assertTrue(ok, "stream completed")
+    TestRunner:assertEqual(content, "ok", "answer text carries no id/retry lines")
+end)
+
+-- ------------------------------------------------------------------
 RL._reset()
 package.loaded["stream_handler"] = nil
 for _idx, k in ipairs(SAVED_KEYS) do package.loaded[k] = saved[k] end

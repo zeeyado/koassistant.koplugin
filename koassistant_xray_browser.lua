@@ -628,7 +628,10 @@ local function extractVisibleText(document, ranges, total_pages)
     local parts = {}
     for _idx, r in ipairs(ranges) do
         local start_xp = document:getPageXPointer(r.start_page)
-        local end_xp = document:getPageXPointer(math.min(r.end_page + 1, total_pages))
+        -- a range reaching the last page ends at the document end (F242)
+        local end_xp = (r.end_page >= total_pages
+            and require("koassistant_context_extractor").documentEndXPointer(document, total_pages))
+            or document:getPageXPointer(math.min(r.end_page + 1, total_pages))
         if start_xp and end_xp then
             local text = document:getTextFromXPointers(start_xp, end_xp)
             if text and text ~= "" then
@@ -695,15 +698,17 @@ local function extractChapterText(ui, chapter, max_chars)
         local document = ui.document
         local total_pages = document.info.number_of_pages or 0
         local ok, result = pcall(function()
+            local ContextExtractor = require("koassistant_context_extractor")
             if document.hasHiddenFlows and document:hasHiddenFlows() then
                 -- Flow-aware: extract only visible pages within chapter range
-                local ContextExtractor = require("koassistant_context_extractor")
                 local ranges = ContextExtractor.getVisiblePageRanges(document,
                     chapter.start_page, math.min(chapter.end_page, total_pages))
                 return extractVisibleText(document, ranges, total_pages)
             else
                 local start_xp = document:getPageXPointer(chapter.start_page)
-                local end_xp = document:getPageXPointer(math.min(chapter.end_page + 1, total_pages))
+                local end_xp = (chapter.end_page >= total_pages
+                    and ContextExtractor.documentEndXPointer(document, total_pages))
+                    or document:getPageXPointer(math.min(chapter.end_page + 1, total_pages))
                 if start_xp and end_xp then
                     return document:getTextFromXPointers(start_xp, end_xp)
                 end
