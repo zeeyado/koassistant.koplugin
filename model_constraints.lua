@@ -1485,6 +1485,7 @@ local GROUNDING_TIP_HEAD = "Tip: This is a Google quota limit"
 --- @return string
 function ModelConstraints.maybeAppendGemini3GroundingHint(err_msg, provider, model, config)
     if type(err_msg) ~= "string" or err_msg == "" then return err_msg end
+    if err_msg:find(GROUNDING_TIP_HEAD, 1, true) then return err_msg end  -- already said (re-decoration)
     if provider ~= "gemini" then return err_msg end
     if not (model and model:match("^gemini%-3")) then return err_msg end
     -- web search enabled? per-action override > global (mirrors gemini.lua)
@@ -1608,7 +1609,8 @@ function ModelConstraints.isSizeError(err_msg)
         or lowered:find("context length", 1, true)
         or lowered:find("reduce your message size", 1, true)
         or lowered:find("reduce the length of the messages", 1, true)
-        or lowered:find("tokens per min", 1, true)) and true or false
+        -- every per-minute TOKEN spelling, one definition (koassistant_rate_limits)
+        or require("koassistant_rate_limits").hasPerMinuteSignature(lowered)) and true or false
 end
 
 --- Name the lever the FAILING SURFACE actually has (audit B14, F35). The old
@@ -1674,7 +1676,7 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
     -- the same failure) must not stack a second tip, or read our own advice as
     -- a new refusal. prefixProviderModel guards its prefix the same way.
     local heads = ModelConstraints.HINT_HEADS
-    for _idx, name in ipairs({ "admission", "admission_numberless", "context", "book_text" }) do
+    for _idx, name in ipairs({ "admission", "context", "book_text", "grounding" }) do
         if err_msg:find(heads[name], 1, true) then return err_msg end
     end
 
@@ -1705,19 +1707,12 @@ function ModelConstraints.maybeAppendContextLimitHint(err_msg, provider, model, 
     if kind == "burst" then return err_msg end
     if kind == "admission" then
         local who = (type(provider) == "string" and provider ~= "") and provider or "This provider"
+        -- refusalKind answers "admission" only after reading a limit and a larger
+        -- requested size, so the numbers are there by construction. A per-minute
+        -- wording that states no numbers (Cerebras, Anthropic, the plugin's own
+        -- Gemini quota line) is a burst above: it keeps the wait-and-retry tip.
         local refusal = RateLimits.parseRefusal(err_msg)
-        if not refusal then
-            -- A per-minute refusal that states no numbers at all (Cerebras).
-            -- It taught us nothing, so nothing was learned and nothing resent;
-            -- it still gets exactly one tip, not the generic rate-limit tip
-            -- plus the book-text tip it used to collect.
-            return err_msg .. "\n\n" ..
-                "What happened: " .. who .. " counts the prompt plus the answer budget a request " ..
-                "asks for (max_tokens) against your plan's per-minute token allowance before " ..
-                "running it, and this request did not fit. " .. who .. " stated no numbers, so " ..
-                "KOAssistant learned nothing about your allowance and did not resend.\n" ..
-                sizeLeverSentence(config)
-        end
+        if not refusal then return err_msg end
         local text = "What happened: " .. who .. " counts the answer budget a request asks for " ..
             "(max_tokens) against your plan's per-minute token allowance before running it. " ..
             "This request asked for " .. tostring(refusal.requested) .. " tokens in total against an " ..
@@ -1839,11 +1834,11 @@ function ModelConstraints.isRateLimitError(err_msg)
         or l:find("rate limit", 1, true)
         or l:find("rate_limit", 1, true)
         or l:find("too many requests", 1, true)
-        -- Per-minute admission refusals (Groq sends them as HTTP 413): the
+        -- Per-minute token refusals (Groq sends them as HTTP 413): the
         -- allowance refills within a minute, so the persistent dialog with
-        -- "Try again" is the right surface, not a 3-second toast.
-        or l:find("tokens per min", 1, true)
-        or l:find("(tpm)", 1, true)) and true or false
+        -- "Try again" is the right surface, not a 3-second toast. One
+        -- signature definition (koassistant_rate_limits).
+        or require("koassistant_rate_limits").hasPerMinuteSignature(l)) and true or false
 end
 
 --- True when an error message looks like a provider overload/capacity refusal (HTTP 503
@@ -1918,9 +1913,8 @@ end
 ModelConstraints.HINT_HEADS = {
     -- per-minute admission refusal, provider stated its numbers
     admission = "against an allowance of",
-    -- per-minute admission refusal, no numbers stated (Cerebras)
-    admission_numberless = "stated no numbers",
-    -- generic wait-and-retry tip (bursts, daily buckets, requests-per-minute)
+    -- generic wait-and-retry tip (bursts, daily buckets, requests-per-minute,
+    -- and every per-minute wording that states no numbers)
     burst = "own rate limit, not a plugin error",
     -- context window overflow with a computable resend
     context = "this model's context window is",

@@ -1883,7 +1883,16 @@ end
 -- Helper: Get current model name
 function AskGPT:getCurrentModel()
   local features = self.settings:readSetting("features") or {}
-  return features.model or self.configuration.model or "claude-sonnet-4-20250514"
+  local model = features.model or self.configuration.model
+  if type(model) == "string" and model ~= "" then return model end
+  -- No model picked yet (first API key save, a cleared custom provider): answer
+  -- with the id the wire will carry (audit B3). The old fallback was a retired
+  -- Claude id, which the Quick chip's "follow the global model" pick then put on
+  -- the wire of whatever provider was active.
+  return require("model_constraints").dispatchModel({
+    provider = self:getCurrentProvider(),
+    features = { custom_providers = self:getCustomProviders() },
+  })
 end
 
 -- Helper: Get custom models for a provider
@@ -10055,7 +10064,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     -- "Last auto-update failed" trace line (session-scoped, silent-failure
     -- surfacing). Audit B2b: the message is already stored, so name the reason
     -- with the same classifier the ladder stop uses instead of a fixed string
-    -- ("request too large for your plan" is the one a #106 reader needs).
+    -- ("request too large" is the one a #106 reader needs).
     local last_fail = doc and doc.file and XrayAuto.lastFailure(doc.file)
     if last_fail then
       local fail_kind = XrayAuto.classifyStopReason(last_fail)
@@ -15282,9 +15291,11 @@ function AskGPT:_xrayStopReasonLabel(kind)
   if kind == "step_too_large" then return _("large step needs review") end
   -- Audit B2b: the two verdicts the classifier gained. "too_large" is a
   -- deterministic refusal (a per-minute admission limit, or a context/output
-  -- cap), never retried; "aborted" is one of the plugin's own pre-send skips.
-  if kind == "too_large" then return _("request too large for your plan") end
-  if kind == "aborted" then return _("stopped before sending") end
+  -- cap), never retried, and the label names no plan because a context or
+  -- output cap has none; "aborted" is one of the plugin's own pre-send skips
+  -- (the surfaces render it as "stopped: nothing was sent").
+  if kind == "too_large" then return _("request too large") end
+  if kind == "aborted" then return _("nothing was sent") end
   return nil
 end
 

@@ -71,17 +71,15 @@ function ConfigHelper:mergeWithDefaults(config, provider)
     return merged
 end
 
+--- The model id a request is recorded under (chat history, artifact metadata):
+--- the one the wire carries, through the same resolver every size guard uses
+--- (audit B3). The old read consulted provider_settings[provider].model first,
+--- a slot no handler reads (the merge copies the top-level model INTO it, never
+--- out of it), so a configuration.lua entry there was recorded while the wire
+--- sent something else.
 function ConfigHelper:getModelInfo(config)
     if not config then return "default" end
-    local provider = config.provider
-    
-    return (config.provider_settings and
-        config.provider_settings[provider] and
-        config.provider_settings[provider].model) or
-        (config.model) or
-        (Defaults.ProviderDefaults[provider] and
-        Defaults.ProviderDefaults[provider].model) or
-        "default"
+    return ModelConstraints.dispatchModel(config) or "default"
 end
 
 --- Resolve the active provider from a config (robust to the various shapes).

@@ -116,12 +116,30 @@ function RateLimits.decodeMarker(line)
     return any and out or nil
 end
 
+--- Position of the next marker LINE in a buffer: the prefix at the very start
+--- of the text or right after a newline. The child writes the line as
+--- "\r\n<prefix>...\n\n", so the same bytes anywhere else are content (a model
+--- quoting the prefix) and must stay untouched.
+--- @param text string
+--- @param init number|nil search start (default 1)
+--- @return number|nil start position
+function RateLimits.findMarker(text, init)
+    if type(text) ~= "string" then return nil end
+    local from = init or 1
+    while true do
+        local s = text:find(RateLimits.PROTOCOL_MARKER, from, true)
+        if not s then return nil end
+        if s == 1 or text:sub(s - 1, s - 1) == "\n" then return s end
+        from = s + 1
+    end
+end
+
 --- Non-streaming consumer: pull the marker line out of a whole pipe buffer.
 --- @param text string
 --- @return table|nil fields, string cleaned text (marker line removed)
 function RateLimits.extractMarker(text)
     if type(text) ~= "string" then return nil, text end
-    local s = text:find(RateLimits.PROTOCOL_MARKER, 1, true)
+    local s = RateLimits.findMarker(text)
     if not s then return nil, text end
     local e = text:find("\n", s, true) or #text
     local line = text:sub(s, e)
@@ -262,6 +280,16 @@ local function perMinutePos(l)
     return best
 end
 
+--- Does the text name a per-minute TOKEN bucket at all? ONE definition, shared
+--- with model_constraints.lua's size and rate-limit gates, so the three spellings
+--- ("tokens per min", "(TPM)", "tokens-per-minute") cannot drift apart.
+--- @param err_text string|nil
+--- @return boolean
+function RateLimits.hasPerMinuteSignature(err_text)
+    if type(err_text) ~= "string" or err_text == "" then return false end
+    return perMinutePos(err_text:lower()) ~= nil
+end
+
 --- Read "<word> N" out of a text, tolerating the separators providers use
 --- ("Limit 8000", "limit: 12,000", "Requested ~12903"). The word must stand on
 --- its own, so "delimiter" is not a limit and "caused" is not a used count, and
@@ -311,15 +339,23 @@ function RateLimits.parseRefusal(err_text)
     }
 end
 
---- Which kind of per-minute refusal is this?
----   "burst"     the allowance is already spent ("Used N" in the wording). The
----               bucket refills with TIME, not with a smaller request, so a
----               burst must never be resent at a smaller budget.
----   "admission" prompt plus the requested answer budget did not fit the
----               allowance. Deterministic, so a smaller budget can help, and the
----               honest explanation names what was too big. Covers the wordings
----               that state no numbers at all (Cerebras), which parseRefusal
----               cannot classify because it returns nil for them.
+--- Which kind of per-minute refusal is this? Read off the NUMBERS, never off the
+--- wording: "Rate limit reached" and "Request too large" both come in either shape.
+---   "admission" the request ALONE can never fit: the wording states a limit and
+---               a requested size, and requested > limit. No wait admits it, so
+---               it is deterministic: resend ONCE at a smaller budget, and the
+---               explanation names what was too big. "Limit 7000, Used 0,
+---               Requested ~12903" is this kind, whatever its "try again in 50s".
+---   "burst"     every other per-minute TOKEN refusal: the allowance is spent
+---               for now ("Used N" with a request that would fit an empty
+---               bucket), or the wording states no numbers at all (Anthropic's
+---               "would exceed ... input tokens per minute", the plugin's own
+---               Gemini quota line, Cerebras). The bucket refills with TIME, so
+---               a burst is never resent and keeps the wait-and-retry tip. The
+---               2026-09-04 re-audit found the old rule ("no Used count means
+---               admission") calling every Anthropic and Gemini per-minute 429
+---               a deterministic refusal: wrong tip, and the checkpoint chain
+---               stopped for good instead of retrying.
 ---   nil         not a per-minute token refusal (a daily bucket, a
 ---               requests-per-minute 429, an output cap, ordinary prose).
 --- @param err_text string|nil
@@ -329,8 +365,13 @@ function RateLimits.refusalKind(err_text)
     local l = err_text:lower()
     local at = perMinutePos(l)
     if not at then return nil end
-    if numberAfter(l:sub(at), "used") then return "burst" end
-    return "admission"
+    local tail = l:sub(at)
+    local limit = numberAfter(tail, "limit")
+    local requested = numberAfter(tail, "requested")
+    if limit and requested and limit > 0 and requested > limit then
+        return "admission"
+    end
+    return "burst"
 end
 
 --- Budget for the one resend after a refusal. When we know the budget the refused

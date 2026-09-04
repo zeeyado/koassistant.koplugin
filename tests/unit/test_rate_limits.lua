@@ -44,11 +44,30 @@ local GROQ = "groq/openai/gpt-oss-20b: Request too large for model `openai/gpt-o
     .. "https://console.groq.com/settings/billing"
 local OPENAI = "Request too large for gpt-4o in organization org-abc on tokens per min (TPM): Limit 30000, "
     .. "Requested 40000. The input or output tokens must be reduced in order to run successfully."
--- Ordinary bursts: the allowance is already spent, so the wording carries "Used".
--- Verbatim, from the corpus in tests/unit/test_error_wordings.lua (sources there).
-local GROQ_BURST = "Rate limit reached for model `llama3-70b-8192` in organization "
+-- Ordinary bursts: the allowance is spent for now, and the request WOULD fit an
+-- empty bucket (requested <= limit). Verbatim, from the corpus in
+-- tests/unit/test_error_wordings.lua (sources there).
+local GROQ_BURST = "Rate limit reached for model `gemma2-9b-it` in organization `...` service tier "
+    .. "`on_demand` on tokens per minute (TPM): Limit 15000, Used 11972, Requested 4351. "
+    .. "Please try again in 5.289s. Visit https://console.groq.com/docs/rate-limits for more "
+    .. "information."
+-- Groq's OTHER 429 shape: "Used 0" with a request larger than the whole allowance.
+-- The bucket is empty and the request still does not fit, so no wait admits it:
+-- by the numbers this is an admission refusal, whatever its "try again in 50s".
+local GROQ_USED0 = "Rate limit reached for model `llama3-70b-8192` in organization "
     .. "`org_01hrsvc1b8ey0anvbgha0xckf2` on tokens per minute (TPM): Limit 7000, Used 0, "
     .. "Requested ~12903. Please try again in 50.597142857s."
+-- Per-minute wordings that state NO numbers after the signature: Anthropic's
+-- input-tokens-per-minute 429 (verbatim, github.com/cline/cline/issues/879) and the
+-- line the plugin itself renders from a Gemini quota violation
+-- (ModelConstraints.formatQuotaDetails). Neither provider counts max_tokens at
+-- admission, and both refill with time: a burst, never a deterministic refusal.
+local ANTHROPIC_ITPM = "This request would exceed your organization's rate limit of 80,000 input tokens "
+    .. "per minute. For details, refer to: https://docs.anthropic.com/en/api/rate-limits; see the "
+    .. "response headers for current usage. Please reduce the prompt length or the maximum tokens "
+    .. "requested, or try again later."
+local GEMINI_LINE = "You exceeded your current quota, please check your plan and billing details.\n\n"
+    .. "Limit reached: 125000 input tokens per minute (free tier), model gemini-2.5-pro.\nYou can retry in 15s."
 local OPENAI_BURST = "Rate limit reached for o4-mini in organization org-**** on tokens per min (TPM): "
     .. "Limit 200000, Used 162960, Requested 42288. Please try again in 1.574s. "
     .. "Visit https://platform.openai.com/account/rate-limits to learn more."
@@ -214,9 +233,13 @@ end)
 
 TestRunner:test("burst wordings: the numbers come from after the signature, not the model name", function()
     local g = RL.parseRefusal(GROQ_BURST)
-    TestRunner:assertEqual(g.limit, 7000, "groq limit (not the 3 of llama3)")
-    TestRunner:assertEqual(g.requested, 12903, "groq requested (the ~ is skipped)")
-    TestRunner:assertEqual(g.used, 0, "groq used")
+    TestRunner:assertEqual(g.limit, 15000, "groq limit (not the 2 of gemma2)")
+    TestRunner:assertEqual(g.requested, 4351, "groq requested")
+    TestRunner:assertEqual(g.used, 11972, "groq used")
+    local z = RL.parseRefusal(GROQ_USED0)
+    TestRunner:assertEqual(z.limit, 7000, "groq limit (not the 3 of llama3)")
+    TestRunner:assertEqual(z.requested, 12903, "groq requested (the ~ is skipped)")
+    TestRunner:assertEqual(z.used, 0, "groq used (zero is a number)")
     local o = RL.parseRefusal(OPENAI_BURST)
     TestRunner:assertEqual(o.limit, 200000, "openai limit (not the 4 of o4-mini)")
     TestRunner:assertEqual(o.requested, 42288, "openai requested")
@@ -229,11 +252,19 @@ TestRunner:test("admission wordings carry no used count", function()
 end)
 
 TestRunner:test("refusalKind: burst vs admission vs not-a-per-minute-refusal", function()
-    TestRunner:assertEqual(RL.refusalKind(GROQ_BURST), "burst", "groq burst (Used present)")
+    TestRunner:assertEqual(RL.refusalKind(GROQ_BURST), "burst", "groq burst (request fits an empty bucket)")
     TestRunner:assertEqual(RL.refusalKind(OPENAI_BURST), "burst", "openai burst")
     TestRunner:assertEqual(RL.refusalKind(GROQ), "admission", "groq 413")
     TestRunner:assertEqual(RL.refusalKind(OPENAI), "admission", "openai admission")
-    TestRunner:assertEqual(RL.refusalKind(CEREBRAS), "admission", "numberless admission still classifies")
+    TestRunner:assertEqual(RL.refusalKind(GROQ_USED0), "admission",
+        "Used 0 with requested > limit can never fit: admission, by the numbers")
+    -- The 2026-09-04 re-audit: "no Used count" used to mean "admission", which
+    -- called every Anthropic and Gemini per-minute 429 a deterministic refusal.
+    TestRunner:assertEqual(RL.refusalKind(CEREBRAS), "burst", "a numberless per-minute wording is a burst")
+    TestRunner:assertEqual(RL.refusalKind(ANTHROPIC_ITPM), "burst", "Anthropic's input-tokens-per-minute 429 is a burst")
+    TestRunner:assertEqual(RL.refusalKind(GEMINI_LINE), "burst", "the plugin's own Gemini quota line is a burst")
+    TestRunner:assertEqual(RL.refusalKind("on tokens per min (TPM): Limit 30000, Requested 20000."), "burst",
+        "a request that fits an empty bucket is a burst even without a Used count")
     TestRunner:assertNil(RL.refusalKind(GROQ_TPD), "a daily bucket is not per-minute")
     TestRunner:assertNil(RL.refusalKind(OPENAI_RPM), "requests per minute, not tokens")
     TestRunner:assertNil(RL.refusalKind("max_tokens: 65536 > 32768, which is the maximum allowed"))
@@ -320,10 +351,37 @@ TestRunner:test("a model id AFTER the signature cannot supply the number", funct
 end)
 
 TestRunner:test("a number further down the sentence is not the used count", function()
+    TestRunner:assertNil(RL.parseRefusal("on tokens per minute (TPM): the allowance is used up. Please try again in 20s."),
+        "'used up ... 20s' carries no numbers")
     TestRunner:assertEqual(RL.refusalKind("on tokens per minute (TPM): the allowance is used up. Please try again in 20s."),
-        "admission", "'used up ... 20s' carries no used count")
+        "burst", "and a numberless per-minute wording is a burst")
+    local r = RL.parseRefusal("... on tokens per minute (TPM): Limit 7000, Used 0, Requested ~12903.")
+    TestRunner:assertEqual(r and r.used, 0, "'Used 0' is a used count (zero is a number)")
     TestRunner:assertEqual(RL.refusalKind("... on tokens per minute (TPM): Limit 7000, Used 0, Requested ~12903."),
-        "burst", "'Used 0' is a used count (zero is a number)")
+        "admission", "but requested > limit decides: the request can never fit")
+end)
+
+TestRunner:test("hasPerMinuteSignature: the one definition of the three spellings", function()
+    TestRunner:assertTrue(RL.hasPerMinuteSignature("on tokens per min (TPM): Limit 1"), "tokens per min")
+    TestRunner:assertTrue(RL.hasPerMinuteSignature("Rejected (TPM): limit 12,000"), "(TPM)")
+    TestRunner:assertTrue(RL.hasPerMinuteSignature("tokens-per-minute cap hit"), "tokens-per-minute")
+    TestRunner:assertTrue(RL.hasPerMinuteSignature(ANTHROPIC_ITPM), "input tokens per minute")
+    TestRunner:assertTrue(not RL.hasPerMinuteSignature(GROQ_TPD), "a daily bucket has none")
+    TestRunner:assertTrue(not RL.hasPerMinuteSignature(OPENAI_RPM), "requests per minute has none")
+    TestRunner:assertTrue(not RL.hasPerMinuteSignature(nil) and not RL.hasPerMinuteSignature(""), "nil/empty")
+end)
+
+TestRunner:test("findMarker: a marker line starts a line; the same bytes mid-line are content", function()
+    local M = RL.PROTOCOL_MARKER
+    TestRunner:assertEqual(RL.findMarker(M .. "limit_tokens=8000\n"), 1, "at the very start")
+    TestRunner:assertEqual(RL.findMarker("body\r\n" .. M .. "limit_tokens=8000\n\n"), 7, "after a newline")
+    TestRunner:assertNil(RL.findMarker("the model wrote " .. M .. " in prose"), "mid-line is content")
+    local both = "quoting " .. M .. "x\n" .. M .. "limit_tokens=8000\n"
+    TestRunner:assertEqual(RL.findMarker(both), #("quoting " .. M .. "x\n") + 1, "the anchored one wins")
+    local fields, cleaned = RL.extractMarker("say " .. M .. " here\n" .. M .. "limit_tokens=8000\nrest")
+    TestRunner:assertEqual(fields and fields.limit_tokens, "8000", "extractMarker reads the anchored line")
+    TestRunner:assertEqual(cleaned, "say " .. M .. " here\nrest", "and leaves the quoted prefix alone")
+    TestRunner:assertNil(RL.findMarker(nil), "nil text")
 end)
 
 TestRunner:test("hasUsedCount sees any bucket, per minute or per day", function()

@@ -1187,8 +1187,20 @@ TestRunner:test("classifyStopReason: own abort sentinels and refusals that canno
     local GROQ_413 = "Request too large for model `openai/gpt-oss-20b` in organization `org_x` "
         .. "service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 32979, "
         .. "please reduce your message size and try again."
-    local GROQ_BURST = "Rate limit reached for model `llama3-70b-8192` in organization `org_x` on "
+    -- "Used 0" and a request larger than the whole allowance: nothing to wait for
+    local GROQ_USED0 = "Rate limit reached for model `llama3-70b-8192` in organization `org_x` on "
         .. "tokens per minute (TPM): Limit 7000, Used 0, Requested ~12903. Please try again in 50.597142857s."
+    -- A real burst: the request would fit an empty bucket
+    local GROQ_BURST = "Rate limit reached for model `gemma2-9b-it` in organization `...` service tier "
+        .. "`on_demand` on tokens per minute (TPM): Limit 15000, Used 11972, Requested 4351. "
+        .. "Please try again in 5.289s."
+    -- Anthropic's per-minute 429 states no numbers after the signature and never
+    -- counts max_tokens (re-audit 2026-09-04: it was graded too_large, which
+    -- stopped the chain for good instead of retrying once after 60 s).
+    local ANTHROPIC_ITPM = "This request would exceed your organization's rate limit of 80,000 input "
+        .. "tokens per minute. For details, refer to: https://docs.anthropic.com/en/api/rate-limits; "
+        .. "see the response headers for current usage. Please reduce the prompt length or the "
+        .. "maximum tokens requested, or try again later."
 
     local cases = {
         -- The plugin's own pre-send aborts: never sent, so never a model failure
@@ -1198,10 +1210,14 @@ TestRunner:test("classifyStopReason: own abort sentinels and refusals that canno
         { "background: delta truncated", "aborted", false },
         { "background: extraction truncated", "aborted", false },
         -- Deterministic refusals: the one 60-second retry would fail identically
-        { decorated(CEREBRAS, "cerebras", "zai-glm-4.7"), "too_large", false },
         { decorated(GROQ_413, "groq", "openai/gpt-oss-20b"), "too_large", false },
-        -- A burst is the opposite: the bucket refills with time, so retry
-        { decorated(GROQ_BURST, "groq", "llama3-70b-8192"), "rate_limited", true },
+        { decorated(GROQ_USED0, "groq", "llama3-70b-8192"), "too_large", false },
+        -- A burst is the opposite: the bucket refills with time, so retry. A
+        -- per-minute wording that states no numbers proves nothing about the
+        -- request's size, so it is a burst too (Cerebras, Anthropic, Gemini).
+        { decorated(GROQ_BURST, "groq", "gemma2-9b-it"), "rate_limited", true },
+        { decorated(CEREBRAS, "cerebras", "zai-glm-4.7"), "rate_limited", true },
+        { decorated(ANTHROPIC_ITPM, "anthropic", "claude-sonnet-5"), "rate_limited", true },
     }
     for _idx, case in ipairs(cases) do
         local kind, transient = XrayAuto.classifyStopReason(case[1])

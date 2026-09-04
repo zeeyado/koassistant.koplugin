@@ -416,6 +416,30 @@ TestRunner:test("decorateRequestError: grounded 429 gets the grounding tip only"
     TestRunner:assertEqual(out:find(RATE_NEEDLE, 1, true), nil, "generic tip suppressed")
 end)
 
+-- Re-audit 2026-09-04 (F14): the grounding tip had no self-guard and was missing
+-- from the "already decorated" list, so a grounded quota error whose decoded
+-- details carry the plugin's own per-minute line collected a second tip, and a
+-- re-decoration (retry surfaces re-report the same failure) appended the
+-- grounding tip twice.
+TestRunner:test("decorateRequestError: grounded quota error with a per-minute line stays one tip, twice", function()
+    local text = "You exceeded your current quota, please check your plan and billing details.\n\n"
+        .. "Limit reached: 125000 input tokens per minute (free tier), model gemini-3.5-flash-lite.\n"
+        .. "You can retry in 15s."
+    local once = ModelConstraints.decorateRequestError(text, "gemini", "gemini-3.5-flash-lite", ws_on())
+    local twice = ModelConstraints.decorateRequestError(once, "gemini", "gemini-3.5-flash-lite", ws_on())
+    TestRunner:assertEqual(twice, once, "a second decoration changes nothing")
+    local n, pos = 0, 1
+    while true do
+        local at = once:find(TIP_NEEDLE, pos, true)
+        if not at then break end
+        n, pos = n + 1, at + 1
+    end
+    TestRunner:assertEqual(n, 1, "the grounding tip appears exactly once")
+    TestRunner:assertEqual(once:find(RATE_NEEDLE, 1, true), nil, "no wait tip beside it")
+    TestRunner:assertEqual(once:find(ModelConstraints.HINT_HEADS.admission, 1, true), nil, "no plan explanation beside it")
+    TestRunner:assertEqual(once:find(ModelConstraints.HINT_HEADS.book_text, 1, true), nil, "no book-text tip beside it")
+end)
+
 TestRunner:suite("per-minute admission refusals (docs/tpm_admission_plan.md)")
 
 local GROQ_413 = "Request too large for model `openai/gpt-oss-20b` in organization `org_x` service tier "

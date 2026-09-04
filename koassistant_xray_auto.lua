@@ -222,12 +222,21 @@ function XrayAuto.classifyStopReason(err)
   -- deliberately keeps no file-level dependency on the api/constraints layer.
   local RateLimits = require("koassistant_rate_limits")
   local ModelConstraints = require("model_constraints")
-  -- A "Used N" count means the bucket is spent and refills with time (a
-  -- per-minute burst, or a daily bucket that also says "reduce your message
-  -- size"): never terminal, whatever else the wording says.
+  -- Per-minute token refusals are graded off their NUMBERS (RateLimits.refusalKind):
+  -- an admission refusal (the request alone exceeds the allowance) is
+  -- deterministic; a burst (the allowance is spent for now, or the wording
+  -- states no numbers, as Anthropic's and Gemini's do) refills with time and is
+  -- exactly the failure the one 60-second retry can heal. Only outside that
+  -- family does a size signature mean "too large", and never beside a "Used N"
+  -- count (a daily bucket that also says "reduce your message size").
   local refusal_kind = RateLimits.refusalKind(err)
-  if not RateLimits.hasUsedCount(err) and (refusal_kind == "admission"
-      or ModelConstraints.parseMaxTokensError(err)
+  if refusal_kind == "admission" then
+    return "too_large", false
+  end
+  if refusal_kind == "burst" then
+    return "rate_limited", true
+  end
+  if not RateLimits.hasUsedCount(err) and (ModelConstraints.parseMaxTokensError(err)
       or ModelConstraints.isSizeError(err)) then
     return "too_large", false
   end

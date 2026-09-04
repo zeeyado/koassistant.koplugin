@@ -704,7 +704,7 @@ It is about %1 tokens (an estimate) and this model's context window is about %2 
                 else
                     text = T(_([[This request is larger than your plan allows.
 
-It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a minute, so it may be refused. It is being sent anyway. If it is refused, KOAssistant sends it again once with a smaller answer budget when the text itself fits, and explains what to change when it does not.]]),
+It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a minute, so it may be refused. It is being sent anyway. If it is refused and the refusal states its numbers, KOAssistant sends it again once with a smaller answer budget when the text itself fits. Otherwise the error explains what to change.]]),
                         tostring(over_est), tostring(provider), tostring(over_limit))
                 end
                 UIManager:scheduleIn(0.8, function()

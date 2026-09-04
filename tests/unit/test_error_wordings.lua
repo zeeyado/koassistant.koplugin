@@ -533,13 +533,65 @@ local CORPUS = {
             .. "inference-docs.cerebras.ai/support/rate-limits",
         text = "Tokens per minute limit exceeded - too many tokens processed",
         -- Cerebras gates on max_completion_tokens the same way Groq does but
-        -- states NO numbers, so only the headers can size the budget. It is
-        -- still an admission refusal: refusalKind classifies it (parseRefusal
-        -- cannot, having no numbers to return).
-        expect = { kind = "admission", rate_limit = true },
-        refusal_kind = "admission",
-        hint = "admission_numberless",
-        ladder = { kind = "too_large", transient = false },
+        -- states NO numbers, so only the headers can size the budget (they ride
+        -- the refusal's own response, so the next request is capped). Without
+        -- numbers nothing proves the request could never fit, so the wording is
+        -- graded a burst: the wait tip, and the ladder's one retry. (Re-audit
+        -- 2026-09-04: "no Used count = admission" gave every Anthropic and
+        -- Gemini per-minute 429 a false plan explanation and stopped the chain.)
+        expect = { kind = "burst", rate_limit = true },
+        refusal_kind = "burst",
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
+    },
+
+    ----------------------------------------------------------------------------
+    -- Per-minute TOKEN wordings from providers that never count max_tokens at
+    -- admission. The signature is there, the numbers are not: a burst.
+    ----------------------------------------------------------------------------
+    {
+        id = "anthropic_429_itpm",
+        provider = "anthropic",
+        status = 429,
+        source = "github.com/cline/cline/issues/879 (verbatim error.message)",
+        envelope = '{"type":"error","error":{"type":"rate_limit_error","message":"..."}}',
+        text = "This request would exceed your organization's rate limit of 80,000 input tokens per minute. "
+            .. "For details, refer to: https://docs.anthropic.com/en/api/rate-limits; see the response headers "
+            .. "for current usage. Please reduce the prompt length or the maximum tokens requested, or try "
+            .. "again later. You may also contact sales at https://www.anthropic.com/contact-sales to discuss "
+            .. "your options for a rate limit increase.",
+        -- Anthropic's most common 429. "input tokens per minute" carries the
+        -- per-minute signature and nothing after it; the bucket refills with
+        -- time, so: wait tip, never resent, the ladder retries once.
+        expect = { kind = "burst", rate_limit = true },
+        refusal_kind = "burst",
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
+    },
+    {
+        id = "gemini_429_input_tpm",
+        provider = "gemini",
+        status = 429,
+        source = "github.com/google-gemini/gemini-cli/issues/8883 (verbatim error.message and QuotaFailure "
+            .. "details; the two trailing lines are what ModelConstraints.formatQuotaDetails renders from "
+            .. "those details, appended by the handler before the parsers ever see the text)",
+        envelope = '{"error":{"code":429,"message":"...","status":"RESOURCE_EXHAUSTED","details":['
+            .. '{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"quotaId":'
+            .. '"GenerateContentInputTokensPerModelPerMinute-FreeTier","quotaValue":"125000",'
+            .. '"quotaDimensions":{"model":"gemini-2.5-pro"}}]},'
+            .. '{"@type":"type.googleapis.com/google.rpc.RetryInfo","retryDelay":"15s"}]}}',
+        text = "You exceeded your current quota, please check your plan and billing details. For more "
+            .. "information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits.\n"
+            .. "* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 125000\n"
+            .. "Please retry in 15.002899939s.\n\n"
+            .. "Limit reached: 125000 input tokens per minute (free tier), model gemini-2.5-pro.\n"
+            .. "You can retry in 15s.",
+        -- The per-minute signature here is the PLUGIN's own rendering of the
+        -- quota id. Gemini never counts max_tokens at admission: a burst.
+        expect = { kind = "burst", rate_limit = true },
+        refusal_kind = "burst",
+        hint = "burst",
+        ladder = { kind = "rate_limited", transient = true },
     },
 
     ----------------------------------------------------------------------------
@@ -557,10 +609,15 @@ local CORPUS = {
         -- The numbers are read after the per-minute signature only. An
         -- unanchored search captured the "3" of "llama3" (the first digits
         -- after the word "limit" in "Rate limit reached...") instead of 7000.
-        expect = { kind = "burst", limit = 7000, requested = 12903, used = 0, rate_limit = true },
-        refusal_kind = "burst",
-        hint = "burst",
-        ladder = { kind = "rate_limited", transient = true },
+        -- "Used 0" with a request larger than the whole allowance: the bucket
+        -- is EMPTY and the request still does not fit, so no wait admits it.
+        -- By the numbers this is an admission refusal, whatever the wording's
+        -- "try again in 50s" (re-audit 2026-09-04; it used to be filed as a
+        -- burst on the Used count alone and was never resent).
+        expect = { kind = "admission", limit = 7000, requested = 12903, used = 0, rate_limit = true },
+        refusal_kind = "admission",
+        hint = "admission",
+        ladder = { kind = "too_large", transient = false },
     },
     {
         id = "groq_429_tpm_burst_gemma",
@@ -804,9 +861,16 @@ end
 
 -- The lever sentence names what the failing surface can actually change (F35).
 do
-    local cerebras = "Tokens per minute limit exceeded - too many tokens processed"
+    -- The Groq admission wording with the requested size raised so that the
+    -- prompt ALONE exceeds the allowance (45000 - 32768 = 12232 > 8000): that is
+    -- the branch that names the lever; a budget-was-the-problem refusal says
+    -- "wait a minute" instead. (Synthetic on purpose: it drives the sentence
+    -- choice, it is not a corpus entry.)
+    local refusal = "Request too large for model `openai/gpt-oss-20b` in organization `org_01kx` "
+        .. "service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested 45000, please "
+        .. "reduce your message size and try again."
     local function decorated(features)
-        return ModelConstraints.decorateRequestError(cerebras, "cerebras", nil, { features = features })
+        return ModelConstraints.decorateRequestError(refusal, "groq", nil, { features = features })
     end
     local cases = {
         { { is_library_context = true }, "Library scanning", "library action names the folder list" },
@@ -816,11 +880,16 @@ do
         { {}, "smaller scope", "book request keeps the scope wording" },
         { nil, "smaller scope", "no features at all: the book wording" },
     }
+    -- TestRunner.assert is a plain function (line 51): a colon call would pass
+    -- the runner table as the condition and every assertion here would be
+    -- vacuously true (mutation testing 2026-09-04 found exactly that).
     for _idx, c in ipairs(cases) do
         local out = decorated(c[1])
-        TestRunner:assert(out:find(c[2], 1, true) ~= nil, "lever: " .. c[3] .. " -- got: " .. out:sub(-160))
+        TestRunner.assert(out:find(c[2], 1, true) ~= nil, "lever: " .. c[3] .. " -- got: " .. out:sub(-160))
     end
-    TestRunner:assert(decorated(nil):find("smaller scope", 1, true) ~= nil, "nil config falls back to the book wording")
+    TestRunner.assert(decorated(nil):find("smaller scope", 1, true) ~= nil, "nil config falls back to the book wording")
+    TestRunner.assert(decorated({}):find(ModelConstraints.HINT_HEADS.admission, 1, true) ~= nil,
+        "the lever rides the admission explanation")
 end
 
 -- Decorating an already-decorated message adds nothing (retry surfaces re-report).

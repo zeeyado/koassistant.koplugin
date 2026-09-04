@@ -930,7 +930,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     end
 
     local function _closeStreamDialog()
-        self.user_interrupted = true
+        -- Stop / X after the stream already reached its end (the drain grace
+        -- below, waiting for a trailing rate-limit marker) closes the dialog;
+        -- it must not throw a complete answer away as "cancelled".
+        if not completed then
+            self.user_interrupted = true
+        end
         finishStream()
     end
 
@@ -1507,7 +1512,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     -- finishStream() call inside the poll loop. It harvests the tail already in hand
     -- and, when nothing has been learned yet, keeps the child and the descriptor
     -- alive for a bounded grace (ended early by the marker or by the child exiting).
-    local DRAIN_MAX_POLLS = 4
+    -- At least four polls AND at least half a second: the marker follows the last
+    -- body chunk by the child's own return from http.request, so a reader who set
+    -- the poll interval to 25 ms must not shrink the grace to 100 ms.
+    local DRAIN_MAX_POLLS = math.max(4, math.ceil(0.5 / check_interval_sec))
     local marker_seen = false
     local drain_polls = 0
     local drainTick  -- forward declaration: scheduled by endStream, assigned below
@@ -1531,9 +1539,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         if type(text) ~= "string" or text == "" then return text end
         local RL = require("koassistant_rate_limits")
         while true do
-            -- Only a COMPLETE line: a marker cut in half by a read boundary would
-            -- decode a truncated number ("limit_tokens=80" out of 8000).
-            local s = text:find(RL.PROTOCOL_MARKER, 1, true)
+            -- Only a COMPLETE line, and only at a line start (a model quoting the
+            -- prefix mid-line is content): a marker cut in half by a read boundary
+            -- would decode a truncated number ("limit_tokens=80" out of 8000).
+            local s = RL.findMarker(text)
             if not s or not text:find("\n", s, true) then return text end
             -- Strip the line even when it decodes to nothing: it is protocol,
             -- never prose, and must not reach the "Raw:" fallback string.
@@ -1549,7 +1558,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     local function dropHalfMarker(text)
         if type(text) ~= "string" or text == "" then return text end
         local RL = require("koassistant_rate_limits")
-        local s = text:find(RL.PROTOCOL_MARKER, 1, true)
+        local s = RL.findMarker(text)
         if not s then return text end
         local cut = text:sub(1, s - 1):gsub("\r?\n?$", "")
         return cut
@@ -1562,8 +1571,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             finishStream()
             return
         end
+        -- Ask whether the child is gone BEFORE looking at the pipe: a marker it
+        -- writes between the two questions is then still seen as readable, and
+        -- read by the tick below, instead of being finished over.
+        local gone = pid and ffiutil.isSubProcessDone(pid)
         local avail = tonumber(ffiutil.getNonBlockingReadSize(parent_read_fd)) or 0
-        if avail <= 0 and pid and ffiutil.isSubProcessDone(pid) then
+        if avail <= 0 and gone then
             partial_data = dropHalfMarker(partial_data)
             finishStream()  -- the child is gone: nothing more can arrive
             return

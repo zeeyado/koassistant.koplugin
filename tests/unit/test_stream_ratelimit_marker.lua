@@ -209,8 +209,10 @@ local function runStream(segments)
     local out = {}
     StreamHandler:new{}:showStreamDialog(
         function() end, "groq", "openai/gpt-oss-20b",
+        -- 125 ms: the drain grace is max(4 polls, 0.5 s / interval), so this keeps
+        -- the bound at 4 polls; the replay never sleeps, so it costs nothing.
         { provider_name = "groq", model = "openai/gpt-oss-20b",
-          poll_interval_ms = 1, display_interval_ms = 1, prompt_chars = 100 },
+          poll_interval_ms = 125, display_interval_ms = 1, prompt_chars = 100 },
         function(ok, content, err)
             -- pipe.tick counts pipe polls; snapshot it AT completion so the
             -- post-finish subprocess collection (cleanup's 5 s task) is not counted
@@ -319,17 +321,19 @@ end)
 
 -- The pathological case: the child neither writes a marker nor exits. The drain
 -- must give up on its own bound instead of holding the reader's answer.
-TestRunner:test("a cancel during the drain finishes the stream exactly once", function()
+--- Drive a stream whose marker never arrives and tap Cancel once a drain tick is
+--- pending. Returns what on_complete saw and how often it fired.
+local function cancelDuringDrain()
     RL._reset()
     pipe.segs, pipe.idx, pipe.pos, pipe.tick, pipe.ready_at, held =
         { { text = SSE_BODY, delay = 0 }, { text = MARKER, delay = 1000000 } }, 1, 1, 0, 0, ""
     queue = {}
-    local completions = 0
+    local completions, seen = 0, {}
     StreamHandler:new{}:showStreamDialog(
         function() end, "groq", "openai/gpt-oss-20b",
         { provider_name = "groq", model = "openai/gpt-oss-20b",
-          poll_interval_ms = 1, display_interval_ms = 1, prompt_chars = 100 },
-        function() completions = completions + 1 end)
+          poll_interval_ms = 125, display_interval_ms = 1, prompt_chars = 100 },
+        function(ok, content, err) completions = completions + 1; seen = { ok = ok, content = content, err = err } end)
     local guard, cancelled = 0, false
     while #queue > 0 and guard < 200 do
         guard = guard + 1
@@ -341,12 +345,61 @@ TestRunner:test("a cancel during the drain finishes the stream exactly once", fu
             last_dialog.title_bar.close_callback()
         end
     end
+    return cancelled, completions, seen
+end
+
+TestRunner:test("a cancel during the drain finishes the stream exactly once", function()
+    local cancelled, completions = cancelDuringDrain()
     TestRunner:assertTrue(cancelled, "the cancel happened while a drain tick was pending")
     -- The loop above pumped up to 200 tasks after the cancel (cleanup's own
     -- subprocess-collection task re-arms itself while the child lives), so a
     -- surviving drain tick would have finished the stream a second time.
     TestRunner:assertEqual(completions, 1, "on_complete fired once")
     TestRunner:assertTrue(#queue <= 1, "only cleanup's collection task remains")
+end)
+
+-- Re-audit 2026-09-04: Stop / X during the grace used to report a COMPLETE
+-- answer as "Request cancelled by user." The stream had already reached
+-- [DONE]; the tap only ends the wait for the marker.
+TestRunner:test("a cancel during the drain keeps the complete answer", function()
+    local cancelled, _completions, seen = cancelDuringDrain()
+    TestRunner:assertTrue(cancelled, "the cancel happened while a drain tick was pending")
+    TestRunner:assertTrue(seen.ok, "reported as a success, not a cancel: " .. tostring(seen.err))
+    TestRunner:assertEqual(seen.content, "ok", "the complete answer is delivered")
+end)
+
+-- The marker prefix is protocol only at a line start (the child writes
+-- "\r\n<prefix>...\n\n"). A model quoting the prefix mid-line is content, on
+-- both the SSE line loop and the drain's buffer scan.
+TestRunner:test("the marker prefix quoted mid-line stays content", function()
+    local quoting = 'data: {"choices":[{"index":0,"delta":{"content":"see ' .. RL.PROTOCOL_MARKER ..
+        ' in logs"},"finish_reason":null}]}\n\n' .. 'data: [DONE]\n\n'
+    local ok, content = runStream(quoting .. MARKER)
+    TestRunner:assertTrue(ok, "stream completed")
+    TestRunner:assertEqual(content, "see " .. RL.PROTOCOL_MARKER .. " in logs", "the quoted prefix is kept")
+    TestRunner:assertEqual(learned(), 8000, "the real marker after [DONE] is still learned")
+end)
+
+-- A marker cut off without its newline when the child exits can never complete:
+-- it is dropped undecoded and never reaches the "No response received. Raw:" text.
+TestRunner:test("a half marker at teardown never reaches the Raw fallback", function()
+    local half = "data: [DONE]\n\n\r\n" .. RL.PROTOCOL_MARKER .. "limit_tok"
+    local _ok, _content, err = runStream(half)
+    TestRunner:assertTrue(type(err) ~= "string" or err:find(RL.PROTOCOL_MARKER, 1, true) == nil,
+        "marker prefix leaked: " .. tostring(err))
+    TestRunner:assertTrue(type(err) ~= "string" or err:find("limit_tok", 1, true) == nil,
+        "half marker body leaked: " .. tostring(err))
+    TestRunner:assertEqual(learned(), nil, "a truncated number is never recorded")
+end)
+
+-- The grace ends the moment the marker arrives: a late marker costs fewer polls
+-- than a child that never writes one.
+TestRunner:test("the drain ends early on the marker", function()
+    local _o1, _c1, _e1, polls_late = runStream({ { text = SSE_BODY, delay = 0 }, { text = MARKER, delay = 1 } })
+    local _o2, _c2, _e2, polls_never = runStream({ { text = SSE_BODY, delay = 0 }, { text = MARKER, delay = 1000000 } })
+    TestRunner:assertEqual(learned(), nil, "control: nothing learned when the marker never comes")
+    TestRunner:assertTrue(polls_late < polls_never,
+        "late marker " .. tostring(polls_late) .. " polls vs never " .. tostring(polls_never))
 end)
 
 TestRunner:test("a child that never exits cannot hold the answer", function()

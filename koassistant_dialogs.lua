@@ -5869,13 +5869,17 @@ if prune_book_text then
     -- threshold on small-window models, and stays silent on unknown models.
     -- Rides the same warning dialogs and the same suppress flag.
     local function contextWindowNote(chars)
-        local p = (temp_config and temp_config.provider) or config.provider
         -- One model id per request (audit B3): the same resolver the memo key
         -- and the answer budget use, so a nil config.model (first API key save,
         -- a tier pin the provider lacks) still checks the model that is sent.
-        local m = ModelConstraints.dispatchModel({ provider = p,
-            model = (temp_config and temp_config.model) or config.model,
-            features = (temp_config or config).features })
+        -- The per-request config, when there is one, answers ALONE: an action
+        -- pinned to another provider carries no model of its own, and falling
+        -- back to the global model here would check a foreign provider's id
+        -- (re-audit 2026-09-04).
+        local src = temp_config or config
+        local p = src.provider
+        local m = ModelConstraints.dispatchModel({ provider = p, model = src.model,
+            features = src.features })
         local exceeded, window = ModelConstraints.checkContextWindow(p, m, chars)
         if not exceeded then return nil end
         return T(_("This likely exceeds the current model's context window (%1: ~%2K tokens). Pick a smaller scope or switch models."),

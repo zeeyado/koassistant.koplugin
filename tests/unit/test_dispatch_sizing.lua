@@ -363,7 +363,14 @@ TestRunner:suite("the burst rule: a spent allowance is never resent (B1)")
 -- a second copy of test_stream_ratelimit_marker.lua's replay transport, so the
 -- decision itself is asserted here through the functions the router calls, on
 -- the exact wordings from the error corpus, plus a source-order gate below.
-local BURST = "Rate limit reached for model `llama3-70b-8192` in organization "
+local BURST = "Rate limit reached for model `gemma2-9b-it` in organization `...` service tier "
+    .. "`on_demand` on tokens per minute (TPM): Limit 15000, Used 11972, Requested 4351. "
+    .. "Please try again in 5.289s. Visit https://console.groq.com/docs/rate-limits for more "
+    .. "information."
+-- Groq's other 429 shape: "Used 0" and a request larger than the whole allowance.
+-- Read off the numbers it is an admission refusal: no wait admits it, a smaller
+-- answer budget can (re-audit 2026-09-04; the old "Used means burst" rule never resent it).
+local USED0 = "Rate limit reached for model `llama3-70b-8192` in organization "
     .. "`org_01hrsvc1b8ey0anvbgha0xckf2` on tokens per minute (TPM): Limit 7000, Used 0, "
     .. "Requested ~12903. Please try again in 50.597142857s."
 local ADMISSION = "Request too large for model `openai/gpt-oss-20b` in organization `org_01kx` "
@@ -374,10 +381,10 @@ local ADMISSION = "Request too large for model `openai/gpt-oss-20b` in organizat
 TestRunner:test("a burst still teaches the session its allowance", function()
     RL._reset()
     local refusal = RL.parseRefusal(BURST)
-    TestRunner:assertEqual(refusal.limit, 7000, "the provider's own number, not the 3 of llama3")
-    TestRunner:assertTrue(RL.record("groq", "llama3-70b-8192",
+    TestRunner:assertEqual(refusal.limit, 15000, "the provider's own number, not the 2 of gemma2")
+    TestRunner:assertTrue(RL.record("groq", "gemma2-9b-it",
         { limit_tokens = refusal.limit }, "refusal"), "recorded")
-    TestRunner:assertEqual(RL.known("groq", "llama3-70b-8192").limit_tokens, 7000, "and readable")
+    TestRunner:assertEqual(RL.known("groq", "gemma2-9b-it").limit_tokens, 15000, "and readable")
     RL._reset()
 end)
 
@@ -394,6 +401,56 @@ TestRunner:test("an admission refusal is the one that is resent", function()
     TestRunner:assertEqual(RL.refusalKind(ADMISSION), "admission", "classified as admission")
     local budget = RL.retryBudget(RL.parseRefusal(ADMISSION), 32768, 300)
     TestRunner:assertTrue(budget ~= nil and budget > 0, "and a budget to resend at")
+    -- "Used 0" with requested > limit: by the numbers a refusal no wait can heal
+    TestRunner:assertEqual(RL.refusalKind(USED0), "admission", "Used 0 + requested > limit is admission")
+    -- The resend is sized from the refusal's exact prompt count (requested minus
+    -- the budget sent): with a 12000 budget sent the prompt was 903 tokens and a
+    -- resend fits; with 4096 sent it was 8807, more than the whole allowance, and
+    -- nothing is resent (the error then explains the lever).
+    TestRunner:assertTrue(RL.retryBudget(RL.parseRefusal(USED0), 12000, 300) ~= nil, "resent smaller when the prompt fits")
+    TestRunner:assertNil(RL.retryBudget(RL.parseRefusal(USED0), 4096, 300), "no resend when the prompt alone does not fit")
+end)
+
+TestRunner:test("the second pass and the non-streaming consumer are wired (source gates)", function()
+    -- The four fixes the Stage 0 verifiers demanded are control-flow facts in
+    -- closures a stub handler cannot reach (mutation testing 2026-09-04 showed
+    -- every one of them could be deleted with the suite still green), so pin
+    -- them by source: (1) the pinned-budget notification and the pre-send notice
+    -- fire on the FIRST pass only; (2) the resend is sized from the refusal's
+    -- exact prompt count; (3) the non-streaming consumer strips the marker line
+    -- and records it under the ONE dispatch model.
+    local fh = io.open(plugin_dir .. "/koassistant_gpt_query.lua", "r")
+    TestRunner:assertTrue(fh ~= nil, "cannot read the router")
+    local src = fh:read("*a")
+    fh:close()
+    local function count(needle)
+        local n, pos = 0, 1
+        while true do
+            local at = src:find(needle, pos, true)
+            if not at then return n end
+            n, pos = n + 1, at + 1
+        end
+    end
+    TestRunner:assertTrue(count("and first_pass") >= 2, "both notices are gated on the first pass")
+    TestRunner:assertEqual(count("budgetCap(provider, dispatch_model, prompt_chars, exact_prompt_tokens)"), 1,
+        "the cap takes the exact prompt count from the refusal")
+    TestRunner:assertEqual(count("exact_prompt_tokens = RateLimits.promptTokensFromRefusal(refusal, sent)"), 1,
+        "the admission resend records the exact prompt count")
+    TestRunner:assertEqual(count("RateLimits.extractMarker(full_response)"), 1, "non-streaming: the marker is extracted")
+    TestRunner:assertEqual(count("full_response = cleaned"), 1, "non-streaming: and stripped from the body")
+    TestRunner:assertEqual(count('RateLimits.record(provider, dispatch_model, rl_fields, "header")'), 1,
+        "non-streaming: recorded under the dispatch model")
+end)
+
+TestRunner:test("ConfigHelper:getModelInfo records the wire's model id, never the provider_settings slot", function()
+    local ConfigHelper = require("koassistant_config_helper")
+    local cfg = { provider = "ollama", provider_settings = { ollama = { model = "stale-entry" } }, features = {} }
+    TestRunner:assertEqual(ConfigHelper:getModelInfo(cfg), ModelConstraints.dispatchModel(cfg),
+        "the same id the memo and the budget use")
+    TestRunner:assertTrue(ConfigHelper:getModelInfo(cfg) ~= "stale-entry", "not the slot no handler reads")
+    TestRunner:assertEqual(ConfigHelper:getModelInfo({ provider = "ollama", model = "picked", features = {} }),
+        "picked", "an explicit pick wins")
+    TestRunner:assertEqual(ConfigHelper:getModelInfo(nil), "default", "nil config keeps the old fallback")
 end)
 
 TestRunner:test("the classification survives DECORATION (the non-streaming path)", function()
@@ -408,6 +465,105 @@ TestRunner:test("the classification survives DECORATION (the non-streaming path)
             "case " .. _idx .. ": decorated text keeps its kind")
     end
 end)
+
+-- ---------------------------------------------------------------------------
+-- (g) The self-heal's second pass, DRIVEN (re-audit 2026-09-04, F6/F18): the
+-- router requires stream_handler lazily at dispatch, so a fake one can hand the
+-- first stream an admission refusal computed from the budget that actually went
+-- out and let the second succeed. The stub handler returns a function, which
+-- takes the router's streaming path (the shipped default). Everything is put
+-- back at the end of the section.
+-- ---------------------------------------------------------------------------
+TestRunner:suite("the second pass, driven through a fake stream handler")
+
+do
+    local handler = package.loaded["koassistant_api.ollama"]
+    local real_query = handler.query
+    local saved_stream = package.loaded["stream_handler"]
+    -- What the fake provider refuses with, per case: a function of the budget sent.
+    local refusal_for = nil
+    handler.query = function(_self, _message_history, cfg)
+        calls[#calls + 1] = { max_tokens = cfg.api_params and cfg.api_params.max_tokens, cfg = cfg }
+        return function() end  -- a stream_fn
+    end
+    package.loaded["stream_handler"] = {
+        new = function()
+            return {
+                showStreamDialog = function(_s, _fn, _prov, _model, _settings, cb)
+                    if #calls == 1 and refusal_for then
+                        local sent = calls[1].max_tokens
+                            or ModelConstraints.effectiveMaxTokens("ollama",
+                                ModelConstraints.dispatchModel(calls[1].cfg), calls[1].cfg)
+                        cb(false, nil, refusal_for(sent))
+                    else
+                        cb(true, "done", nil)
+                    end
+                end,
+            }
+        end,
+    }
+    local function admission(prompt_tokens)
+        return function(sent)
+            return "Request too large for model `openai/gpt-oss-20b` in organization `org_01kx` "
+                .. "service tier `on_demand` on tokens per minute (TPM): Limit 8000, Requested "
+                .. tostring(prompt_tokens + sent) .. ", please reduce your message size and try again."
+        end
+    end
+    local function runStreaming(cfg, bytes)
+        RL._reset()
+        runQuery(cfg, string.rep("x", bytes))
+    end
+    local model = ModelConstraints.dispatchModel({ provider = "ollama", features = {} })
+
+    TestRunner:test("an admission refusal is resent once, at the exact prompt count", function()
+        refusal_for = admission(211)
+        runStreaming({ provider = "ollama", features = {}, api_params = { max_tokens = 65536 } }, 300)
+        TestRunner:assertEqual(#calls, 2, "refused once, resent once")
+        TestRunner:assertEqual(calls[2].max_tokens, 8000 - 211 - RL.MARGIN, "resend budget = allowance - exact prompt - margin")
+        TestRunner:assertEqual(RL.known("ollama", model).limit_tokens, 8000, "the allowance was learned")
+        TestRunner:assertEqual(shownOfKind("notification"), nil, "no pin notification: the first pass had no cap, the second is the cap")
+    end)
+
+    TestRunner:test("the resend is never re-capped from the byte estimate (exact_prompt_tokens)", function()
+        -- 15000 bytes estimate to 5000 tokens, but the provider counted 3000: the
+        -- resend must carry 8000 - 3000 - margin, not 8000 - 5000 - margin.
+        refusal_for = admission(3000)
+        runStreaming({ provider = "ollama", features = {} }, 15000)
+        TestRunner:assertEqual(#calls, 2, "refused once, resent once")
+        TestRunner:assertEqual(calls[2].max_tokens, 8000 - 3000 - RL.MARGIN, "sized from the refusal's exact count")
+    end)
+
+    TestRunner:test("the pre-send notice does not fire on the second pass (first_pass)", function()
+        -- 30000 bytes estimate to 10000 tokens (more than the plan); the provider
+        -- counted 5000, so the resend fits. On the second pass the memo is warm and
+        -- promptExceedsPlan(estimate) would say "larger than your plan": that notice
+        -- belongs to the first pass only.
+        refusal_for = admission(5000)
+        runStreaming({ provider = "ollama", features = {} }, 30000)
+        TestRunner:assertEqual(#calls, 2, "refused once, resent once")
+        TestRunner:assertEqual(calls[2].max_tokens, 8000 - 5000 - RL.MARGIN, "resent at the exact budget")
+        TestRunner:assertEqual(shownOfKind("info"), nil, "no 'larger than your plan' notice on the resend")
+    end)
+
+    TestRunner:test("a burst is learned and never resent (B1's core rule, driven)", function()
+        refusal_for = function() return BURST end
+        runStreaming({ provider = "ollama", features = {} }, 300)
+        TestRunner:assertEqual(#calls, 1, "no resend: the bucket refills with time")
+        TestRunner:assertEqual(RL.known("ollama", model).limit_tokens, 15000, "but the allowance was learned")
+    end)
+
+    TestRunner:test("a numberless per-minute refusal is neither learned nor resent", function()
+        refusal_for = function() return "Tokens per minute limit exceeded - too many tokens processed" end
+        runStreaming({ provider = "ollama", features = {} }, 300)
+        TestRunner:assertEqual(#calls, 1, "nothing to resend at")
+        TestRunner:assertEqual(RL.known("ollama", model), nil, "nothing learned from a wording without numbers")
+    end)
+
+    refusal_for = nil
+    handler.query = real_query
+    package.loaded["stream_handler"] = saved_stream
+    RL._reset()
+end
 
 -- ---------------------------------------------------------------------------
 -- (f) STRUCTURAL GATE, in the shape of tests/unit/test_effective_props.lua's
