@@ -387,6 +387,19 @@ local RESPONSE_TRANSFORMERS = {
             -- truthy FUNCTION sentinel — normalize so the truncation concat below can't crash
             -- and the sentinel can't escape as the answer.
             if type(content) ~= "string" then content = nil end
+            -- Reasoning (2026-09-05, OpenCode Go battery): the OpenAI-shaped
+            -- backends this parser serves (community set, OpenCode, custom
+            -- providers) return it as reasoning_content (DeepSeek/GLM/Kimi),
+            -- reasoning (OpenRouter-style), or <think> tags INSIDE the content
+            -- (minimax-m3 on OpenCode Go) — the last used to reach the reader
+            -- as answer text in non-streaming mode (the stream path already
+            -- runs a think-tag machine). Passive: read, never requested.
+            local reasoning = message.reasoning_content
+            if type(reasoning) ~= "string" then reasoning = message.reasoning end
+            if type(reasoning) ~= "string" or reasoning == "" then
+                reasoning = nil
+                if content then content, reasoning = extractThinkTags(content) end
+            end
             -- Check for truncation (finish_reason: "length" means max tokens hit)
             local finish_reason = response.choices[1].finish_reason
             if content and content ~= "" and finish_reason == "length" then
@@ -430,7 +443,7 @@ local RESPONSE_TRANSFORMERS = {
                 end
             end
 
-            return true, content, nil, web_search_used
+            return true, content, reasoning, web_search_used
         end
         return false, "Unexpected response format"
     end,

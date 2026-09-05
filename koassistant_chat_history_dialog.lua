@@ -1710,6 +1710,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
             end
         end
         config.features._quick_reply_private = true
+        -- A resumed chat keeps its saved id as its conversation id (B285 / #107)
+        config.conversation_id = chat.id
     end
 
     -- Reactivate the chat's saved control state (parity §8c persistence,

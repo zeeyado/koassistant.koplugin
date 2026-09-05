@@ -156,6 +156,55 @@ TestRunner:test("no reasoning object when config absent", function()
     TestRunner:assertNil(result.reasoning, "reasoning should not be set")
 end)
 
+TestRunner:suite("OpenCode reasoning injection (probed 2026-09-05)")
+
+local OpencodeHandler = require("opencode")
+
+TestRunner:test("opencode puts the resolved effort on reasoning_effort", function()
+    local body = { model = "deepseek-v4-flash", messages = {} }
+    local result = OpencodeHandler:customizeRequestBody(body,
+        { api_params = { opencode_reasoning = { effort = "low" } }, features = {} })
+    TestRunner:assertEqual(result.reasoning_effort, "low", "effort on the wire")
+end)
+
+TestRunner:test("opencode: Minimal stance disables deepseek-v4-flash with 'none', cannot disable GLM", function()
+    local d = ModelConstraints.resolveReasoning("opencode", "deepseek-v4-flash", { global_stance = "minimal" })
+    local params = {}
+    ModelConstraints.applyReasoningParams("opencode", params, d)
+    TestRunner:assertEqual(params.opencode_reasoning and params.opencode_reasoning.effort, "none",
+        "deepseek-v4-flash off = reasoning_effort none")
+    local g = ModelConstraints.resolveReasoning("opencode", "glm-5.3-flash", { global_stance = "minimal" })
+    local gp = {}
+    ModelConstraints.applyReasoningParams("opencode", gp, g)
+    TestRunner:assertEqual(gp.opencode_reasoning and gp.opencode_reasoning.effort, "low",
+        "GLM cannot disable: Minimal = lowest effort, never 'none' (rejected upstream)")
+end)
+
+TestRunner:test("opencode_go: its own facts (glm-5.3-flash ladder low/high/max, kimi-k3 off = none)", function()
+    local g = ModelConstraints.resolveReasoning("opencode_go", "glm-5.3-flash", { global_stance = "minimal" })
+    local gp = {}
+    ModelConstraints.applyReasoningParams("opencode_go", gp, g)
+    TestRunner:assertEqual(gp.opencode_reasoning and gp.opencode_reasoning.effort, "low", "Go GLM flash Minimal = low")
+    local m = ModelConstraints.resolveReasoning("opencode_go", "glm-5.3-flash", { global_stance = "maximum" })
+    TestRunner:assertEqual(m.effort, "max", "Go GLM flash Maximum = max (medium/xhigh rejected there)")
+    local k = ModelConstraints.resolveReasoning("opencode_go", "kimi-k3", { global_stance = "minimal" })
+    local kp = {}
+    ModelConstraints.applyReasoningParams("opencode_go", kp, k)
+    TestRunner:assertEqual(kp.opencode_reasoning and kp.opencode_reasoning.effort, "none", "Go kimi-k3 Minimal = off via none")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("opencode_go", "kimi-k3", "tools"), "kimi-k3 tools granted on Go")
+    TestRunner:assertFalse(ModelConstraints.supportsCapability("opencode_go", "kimi-k2.6", "tools"), "kimi-k2.6 NO tools on Go (forced calls rejected)")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("opencode", "kimi-k2.6", "tools"), "kimi-k2.6 tools on Zen (probed there)")
+    local opt = ModelConstraints.resolveReasoning("opencode_go", "deepseek-v4-flash", { global_stance = "maximum" })
+    TestRunner:assertEqual(opt.axis, "none", "opt-in unprobed id on Go: axis none")
+end)
+
+TestRunner:test("opencode: an unprobed id sends nothing", function()
+    local d = ModelConstraints.resolveReasoning("opencode", "gpt-5.6-luna", { global_stance = "maximum" })
+    local params = {}
+    ModelConstraints.applyReasoningParams("opencode", params, d)
+    TestRunner:assertEqual(params.opencode_reasoning, nil, "no profile = no reasoning params")
+end)
+
 TestRunner:suite("Requesty reasoning injection")
 
 local RequestyHandler = require("requesty")
@@ -635,7 +684,7 @@ TestRunner:test("xAI has low/medium/high effort options", function()
 end)
 
 TestRunner:test("all effort providers default to high", function()
-    local providers = { "openrouter", "requesty", "groq", "together", "fireworks", "perplexity" }
+    local providers = { "openrouter", "requesty", "groq", "together", "fireworks", "perplexity", "opencode", "opencode_go" }
     for _idx, p in ipairs(providers) do
         TestRunner:assertEqual(ModelConstraints.reasoning_defaults[p].effort, "high",
             p .. " should default to high")

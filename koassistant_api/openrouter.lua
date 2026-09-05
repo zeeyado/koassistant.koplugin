@@ -41,8 +41,11 @@ function OpenRouterHandler:customizeRequestBody(body, config)
     -- nothing, so every OR-routed Claude/Gemini turn re-paid full input.
     -- Backends without explicit caching ignore it. session_id sticky routing
     -- (pins a chat to one endpoint so caches actually hit) needs a per-chat
-    -- id the request config doesn't carry yet — recorded follow-up.
+    -- id — carried since B285 (2026-09-05) as config.conversation_id.
     body.cache_control = { type = "ephemeral" }
+    -- session_id sticky routing: every turn of one chat lands on the endpoint
+    -- holding its cache. nil (no conversation) = omitted.
+    body.session_id = config.conversation_id
     -- Check if web search is enabled (per-action > global)
     local enable_web_search = false
     if config.enable_web_search ~= nil then

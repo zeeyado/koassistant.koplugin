@@ -61,6 +61,9 @@ function OpenAIHandler:buildResponsesRequest(message_history, config, model)
         -- Stateless by design: full history is resent each turn and chats must
         -- never be retained server-side (the API default is store=true).
         store = false,
+        -- One conversation, one cache key (B285): steers every turn of a chat to
+        -- the server holding its prefix cache. nil (no conversation) = omitted.
+        prompt_cache_key = config.conversation_id,
     }
 
     if config.system and config.system.text and config.system.text ~= "" then
@@ -182,6 +185,7 @@ function OpenAIHandler:buildRequestBody(message_history, config)
     local request_body = {
         model = model,
         messages = {},
+        prompt_cache_key = config.conversation_id,  -- B285: per-chat cache routing hint
     }
 
     -- Add system message from unified config

@@ -562,6 +562,35 @@ TestRunner:test("handles error response", function()
     TestRunner:assertEqual(result, "Error from Z.AI", "error message")
 end)
 
+TestRunner:suite("OpenAI-shaped parser: passive reasoning (2026-09-05)")
+
+TestRunner:test("openai parser returns reasoning_content as reasoning", function()
+    local ok, content, reasoning = ResponseParser:parseResponse({
+        choices = { { message = { role = "assistant", content = "OK", reasoning_content = "thought" }, finish_reason = "stop" } },
+    }, "openai")
+    TestRunner:assertTrue(ok, "success")
+    TestRunner:assertEqual(content, "OK", "content")
+    TestRunner:assertEqual(reasoning, "thought", "reasoning_content surfaced")
+end)
+
+TestRunner:test("openai parser strips <think> tags from content into reasoning", function()
+    local ok, content, reasoning = ResponseParser:parseResponse({
+        choices = { { message = { role = "assistant", content = "<think>plan</think>\nOK" }, finish_reason = "stop" } },
+    }, "openai")
+    TestRunner:assertTrue(ok, "success")
+    TestRunner:assertEqual(content, "OK", "answer text without the tags")
+    TestRunner:assertEqual(reasoning, "plan", "think block surfaced as reasoning")
+end)
+
+TestRunner:test("openai parser: no reasoning field = nil, content untouched", function()
+    local ok, content, reasoning = ResponseParser:parseResponse({
+        choices = { { message = { role = "assistant", content = "plain" }, finish_reason = "stop" } },
+    }, "openai")
+    TestRunner:assertTrue(ok, "success")
+    TestRunner:assertEqual(content, "plain", "content")
+    TestRunner:assertEqual(reasoning, nil, "no reasoning")
+end)
+
 -- Test OpenAI-compatible providers
 local openai_compatible = {
     "groq", "mistral", "xai", "openrouter", "requesty", "qwen",

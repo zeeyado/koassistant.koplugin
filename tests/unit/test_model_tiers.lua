@@ -103,7 +103,7 @@ end
 -- router's curated ladder would hop sub-vendors on a tier hint, so openrouter
 -- (curated) and requesty (community) carry NO curated placements — asserted
 -- absent below; users add router tiers via the GUI/custom_models override layer.
-local META_ROUTERS = { openrouter = true, requesty = true }
+local META_ROUTERS = { openrouter = true, requesty = true, opencode = true, opencode_go = true }  -- opencode Zen/Go: curated 2026-09-05, meta routers
 for _idx, tier_name in ipairs({ "flagship", "standard", "fast", "ultrafast" }) do
     for _pidx, provider in ipairs(ModelLists.getAllProviders()) do
         if not ModelLists.isCommunity(provider) and not META_ROUTERS[provider] then

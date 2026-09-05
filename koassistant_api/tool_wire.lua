@@ -232,6 +232,8 @@ ToolWire.adapters.nebius = ToolWire.adapters.openai
 ToolWire.adapters.chutes = ToolWire.adapters.openai
 ToolWire.adapters.featherless = ToolWire.adapters.openai
 ToolWire.adapters.vercel = ToolWire.adapters.openai
+ToolWire.adapters.opencode = ToolWire.adapters.openai
+ToolWire.adapters.opencode_go = ToolWire.adapters.openai
 
 -- Custom providers (ids always "custom_<slug>", generated in main.lua) speak the
 -- OpenAI chat wire by construction — same dialect as the wave-1 aliases above, and

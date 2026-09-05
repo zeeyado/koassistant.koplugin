@@ -22,6 +22,8 @@ local function getDefaultModel(provider)
         xai = "grok-4.5",
         openrouter = "anthropic/claude-sonnet-5",
         requesty = "openai/gpt-4o-mini",
+        opencode = "deepseek-v4-flash",
+        opencode_go = "kimi-k3",
         qwen = "qwen3-max",
         kimi = "kimi-k2.6",
         together = "deepseek-ai/DeepSeek-V4-Pro",
@@ -322,7 +324,25 @@ local ProviderDefaults = {
         model = getDefaultModel("vercel"),
         base_url = "https://ai-gateway.vercel.sh/v1/chat/completions",
         additional_parameters = { temperature = 0.7, max_tokens = 4096 }
-    }
+    },
+    -- OpenCode (#107, 2026-09-05): TWO providers on one account — Zen
+    -- (pay-as-you-go credit, the big router catalog) and Go (the monthly
+    -- subscription, its own small catalog) — the OpenAI / OpenAI Subscription
+    -- precedent: different billing and reach, same key mechanism. The Go key
+    -- falls back to the Zen key (base.lua KEY_FALLBACKS). 16384 probed
+    -- accepted on both endpoints.
+    opencode = {
+        provider = "opencode",
+        model = getDefaultModel("opencode"),
+        base_url = "https://opencode.ai/zen/v1/chat/completions",
+        additional_parameters = { temperature = 0.7, max_tokens = 16384 }
+    },
+    opencode_go = {
+        provider = "opencode_go",
+        model = getDefaultModel("opencode_go"),
+        base_url = "https://opencode.ai/zen/go/v1/chat/completions",
+        additional_parameters = { temperature = 0.7, max_tokens = 16384 }
+    },
 }
 
 --- Build defaults for a custom provider

@@ -45,6 +45,14 @@ function CustomOpenAIHandler:customizeHeaders(headers, config)
     if not config.api_key or config.api_key == "" then
         headers["Authorization"] = nil
     end
+    -- A custom provider pointed at opencode.ai (users who added OpenCode by
+    -- hand before the built-in landed, #107) gets the header OpenCode requires;
+    -- wire correctness for a documented protocol, never sent to any other host.
+    local url = config.base_url or ""
+    local cid = config.conversation_id
+    if type(cid) == "string" and cid ~= "" and url:match("^https?://opencode%.ai/") then
+        headers["x-opencode-session"] = cid
+    end
     return headers
 end
 

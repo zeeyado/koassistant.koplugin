@@ -444,6 +444,61 @@ local ModelLists = {
         "openai/gpt-5.5",                           -- seed (unverified)
         "anthropic/claude-sonnet-5",                -- seed (unverified)
     },
+    -- OpenCode (#107, added 2026-09-05; CURATED: keyed, /models on both plans
+    -- read the same day, every id below GREEN on the full model_audit battery
+    -- — reasoning ladder, tools + forced + none, two-round replay, SSE).
+    -- Only ids that answer on the OpenAI CHAT door and exist on BOTH the Zen
+    -- and the Go list. GPT ids (Responses door), Claude/Gemini ids (Messages
+    -- door) and grok-4.6 answer 500 on this wire and are left out on purpose;
+    -- "Fetch models" will import them and they fail politely. Meta router:
+    -- NO tier placements (the 2026-08-17 openrouter/requesty ruling).
+    opencode = {
+        "deepseek-v4-flash",                        -- default: fast, strong, the only fully controllable reasoning ladder (none..max)
+        "deepseek-v4-pro",
+        "glm-5.3-flash",
+        "glm-5.3",
+        "kimi-k3",
+        "kimi-k2.6",
+        "minimax-m3",
+        "minimax-m2.7",
+    },
+    -- OpenCode Go (the subscription catalog; CURATED 2026-09-05: all 35
+    -- /zen/go/v1/models ids ran the model_audit battery on the Go endpoint
+    -- with the maintainer's Zen key — the endpoint answers it without a Go
+    -- subscription). Order = default first, then the fully green models,
+    -- then reasoning-only (no forced tool calls on this endpoint), then the
+    -- OPT-IN ids (maintainer 2026-09-05: listed, never default — they fail
+    -- until the reader opts in at the OpenCode console). Left out: ids this
+    -- wire does not serve (gpt-5.6-luna, grok-4.6/4.5, omen-alpha,
+    -- kimi-k2.7-code, kimi-k2.5, minimax-m2.7, mimo-v2-pro/omni, hy3-preview).
+    -- Meta router: NO tier placements. Facts per id: model_constraints.lua.
+    opencode_go = {
+        "kimi-k3",                                  -- default: every battery leg green, full reasoning ladder incl. off
+        "hy4-preview",                              -- green; stated output ceiling 1M
+        "longcat-2.0",
+        "minimax-m3",                               -- green; reasoning arrives as <think> tags (parser strips)
+        "glm-5.3-flash",                            -- green; effort low/high/max only on this endpoint
+        "glm-5.3",
+        "glm-5.2",
+        "glm-5.1",
+        "glm-5",
+        "deepseek-v4-flash-vision-exp",
+        "minimax-m2.5",
+        "qwen3.7-max",
+        "qwen3.6-plus",
+        "qwen3.5-plus",
+        "mimo-v2.5-pro",
+        "mimo-v2.5",
+        "hy3",
+        "kimi-k2.6",                                -- reasoning-only: forced tool_choice rejected here (accepted on Zen)
+        "qwen3.8-max",                              -- reasoning-only
+        "qwen3.8-flash",                            -- reasoning-only
+        "qwen3.7-plus",                             -- reasoning-only
+        "deepseek-v4-flash",                        -- OPT-IN (China-hosted; enable in the OpenCode console)
+        "deepseek-v4-pro",                          -- OPT-IN (same)
+        "muse-spark-1.3-contributor",               -- OPT-IN (data-collection consent)
+        "muse-spark-1.2-contributor",               -- OPT-IN (same)
+    },
 
     ---------------------------------------------------------------------------
     -- CURATED vs COMMUNITY membership (REVISION 2). Community = docs-based, no
@@ -466,6 +521,8 @@ local ModelLists = {
         cerebras = true, minimax = true, deepinfra = true, novita = true,
         hyperbolic = true, nebius = true, chutes = true, featherless = true,
         vercel = true,
+        -- opencode: CURATED from day one (2026-09-05, #107): keyed + battery
+        -- green on every seed id; a meta router, so no tier placements.
     },
 
     ---------------------------------------------------------------------------
@@ -754,6 +811,14 @@ local ModelLists = {
         vercel = {
             api_list = "https://ai-gateway.vercel.sh/v1/models",
             docs = "https://vercel.com/docs/ai-gateway",
+        },
+        opencode = {
+            api_list = "https://opencode.ai/zen/v1/models",   -- public
+            docs = "https://opencode.ai/docs/zen/",
+        },
+        opencode_go = {
+            api_list = "https://opencode.ai/zen/go/v1/models",   -- public
+            docs = "https://opencode.ai/docs/go/",
         },
     },
 

@@ -247,6 +247,89 @@ ModelConstraints.capabilities = {
             "accounts/fireworks/models/gpt-oss-20b", -- not probed directly; same model as the probed 120b/groq pair
         },
     },
+    opencode = {
+        -- Probed live 2026-09-05 (Zen key, model_audit battery on every seed id):
+        -- every model reasons by DEFAULT (reasoning_content / reasoning present
+        -- bare); tools + forced tool_choice + two-round replay + SSE green on
+        -- all eight. grok-4.6 answers 500 on this door and is not listed.
+        reasoning = {
+            "glm-5.3-flash",
+            "glm-5.3",
+            "deepseek-v4-flash",
+            "deepseek-v4-pro",
+            "kimi-k3",
+            "kimi-k2.6",
+            "minimax-m3",
+            "minimax-m2.7",
+        },
+        tools = {
+            "glm-5.3-flash",
+            "glm-5.3",
+            "deepseek-v4-flash",
+            "deepseek-v4-pro",
+            "kimi-k3",
+            "kimi-k2.6",
+            "minimax-m3",
+            "minimax-m2.7",
+        },
+    },
+    opencode_go = {
+        -- Probed live 2026-09-05 on the GO endpoint (Zen key, model_audit
+        -- battery on all 35 catalog ids). Every served model reasons by
+        -- DEFAULT. tools = forced tool_choice + two-round replay green;
+        -- kimi-k2.6, qwen3.8-max, qwen3.8-flash and qwen3.7-plus answer tools
+        -- but REJECT tool_choice="required" on this endpoint (Zen's kimi-k2.6
+        -- accepts it — different backends), so they get no tools grant.
+        -- Not served on this wire (excluded from the seed list): gpt-5.6-luna
+        -- (500), grok-4.6 ("not supported for format oa-compat"), grok-4.5,
+        -- hy3-preview, mimo-v2-pro/omni, kimi-k2.5, minimax-m2.7,
+        -- kimi-k2.7-code (rejects temperature + forced tools), omen-alpha
+        -- (alpha: rejects forced tools and one effort level). Opt-in ids
+        -- (deepseek-v4-flash/pro: China-hosted opt-in; muse-spark-*: data
+        -- collection opt-in) are listed but unprobed = no grants, no profile.
+        reasoning = {
+            "kimi-k3",
+            "hy4-preview",
+            "longcat-2.0",
+            "minimax-m3",
+            "glm-5.3-flash",
+            "glm-5.3",
+            "glm-5.2",
+            "glm-5.1",
+            "glm-5",
+            "deepseek-v4-flash-vision-exp",
+            "minimax-m2.5",
+            "qwen3.7-max",
+            "qwen3.6-plus",
+            "qwen3.5-plus",
+            "mimo-v2.5-pro",
+            "mimo-v2.5",
+            "hy3",
+            "kimi-k2.6",
+            "qwen3.8-max",
+            "qwen3.8-flash",
+            "qwen3.7-plus",
+        },
+        tools = {
+            "kimi-k3",
+            "hy4-preview",
+            "longcat-2.0",
+            "minimax-m3",
+            "glm-5.3-flash",
+            "glm-5.3",
+            "glm-5.2",
+            "glm-5.1",
+            "glm-5",
+            "deepseek-v4-flash-vision-exp",
+            "minimax-m2.5",
+            "qwen3.7-max",
+            "qwen3.6-plus",
+            "qwen3.5-plus",
+            "mimo-v2.5-pro",
+            "mimo-v2.5",
+            "hy3",
+        },
+    },
     sambanova = {
         -- Models with thinking toggle (chat_template_kwargs.enable_thinking)
         thinking = { "DeepSeek-V3.1", "DeepSeek-V3.2" },
@@ -431,6 +514,24 @@ ModelConstraints._max_output_tokens = {
         -- = 40960. Provider-wide "" entry so FETCHED models inherit it too; any
         -- specific id added later wins on longest-prefix.
         [""] = 40960,
+    },
+    opencode_go = {
+        -- Stated by the Go endpoint's own oversized-max_tokens refusal
+        -- (model_audit battery 2026-09-05). Models absent here refused
+        -- without a number or accepted silently (fallback + self-heal).
+        ["glm-5.3-flash"] = 131072,
+        ["kimi-k2.6"] = 262144,
+        ["minimax-m3"] = 524288,
+        ["minimax-m2.5"] = 204800,
+        ["qwen3.8-max"] = 131072,
+        ["qwen3.8-flash"] = 131072,
+        ["qwen3.7-max"] = 131072,
+        ["qwen3.7-plus"] = 131072,
+        ["qwen3.6-plus"] = 65536,
+        ["qwen3.5-plus"] = 65536,
+        ["hy4-preview"] = 1048576,
+        ["hy3"] = 262144,
+        ["longcat-2.0"] = 131072,
     },
     deepinfra = {
         -- Docs state output caps at 16384 regardless of model. The catalog's
@@ -666,6 +767,14 @@ ModelConstraints.reasoning_defaults = {
         effort_options = { "low", "medium", "high" },
     },
     fireworks = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    opencode = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    opencode_go = {
         effort = "high",
         effort_options = { "low", "medium", "high" },
     },
@@ -988,6 +1097,88 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
         { match = "accounts/fireworks/", axis = "effort", default_state = "on", can_disable = true, can_enable = true, generic = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+    },
+    opencode = {
+        -- Probed live 2026-09-05 (Zen key, chat door, reasoning_effort wire):
+        -- every seed model reasons by DEFAULT. GLM rejects "none" AND "minimal"
+        -- (cannot disable; low..max only — the glm- family entry covers the
+        -- older 5.x ids "Fetch models" brings in). deepseek-v4-flash + kimi-k3
+        -- accept minimal..max and "none"; deepseek-v4-pro, kimi-k2.6 and both
+        -- minimax accept low..max and "none". NO provider-wide catch-all on
+        -- purpose: an unprobed id (GPT/Claude/Gemini ids from the Zen list, a
+        -- future model) resolves to axis "none" = nothing on the wire, which is
+        -- always safe; a catch-all's "none" would 400 on a GLM-like backend.
+        { match = "glm-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "low" }, maximum = { state = "on", option = "max" } } },
+        { match = "deepseek-v4-flash", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "kimi-k3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "deepseek-v4-pro", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "kimi-k2.6", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "minimax-m", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+    },
+    opencode_go = {
+        -- Probed live 2026-09-05 on the GO endpoint (reasoning_effort wire).
+        -- Facts differ from Zen for the SAME ids (different backends), hence
+        -- a separate table. Specific entries before family entries (prefix
+        -- match, first wins). No provider-wide catch-all: an unprobed id
+        -- (the opt-in ones, a future model) sends nothing = always safe.
+        -- Temperature: qwen*, mimo*, longcat reject 2.0 (no per-model max
+        -- shape exists; the plugin default is 0.7 — recorded, not clamped).
+        { match = "glm-5.3-flash", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "high", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "low" }, maximum = { state = "on", option = "max" } } },
+        { match = "glm-5.3", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "max" } } },
+        { match = "glm-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "low" }, maximum = { state = "on", option = "max" } } },
+        { match = "minimax-m2.5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "max" } } },
+        { match = "mimo-v2.5", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        { match = "qwen3.6-plus", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        { match = "qwen3.7-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        { match = "qwen3.5-plus", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        -- Full ladder + "none": kimi-k3, kimi-k2.6, minimax-m3, qwen3.8-*, hy4-preview, hy3,
+        -- longcat-2.0, deepseek-v4-flash-vision-exp
+        { match = "kimi-k", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "minimax-m3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "qwen3.8-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "hy", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "longcat-2.0", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "deepseek-v4-flash-vision-exp", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
     },
     xai = {
@@ -2248,7 +2439,7 @@ ModelConstraints.REASONING_WIRE_KEYS = {
     "thinking", "output_config", "reasoning", "thinking_budget", "thinking_level",
     "deepseek_thinking", "zai_thinking", "sambanova_thinking", "kimi_thinking",
     "openrouter_reasoning", "requesty_reasoning", "groq_reasoning", "nvidia_reasoning",
-    "together_reasoning", "fireworks_reasoning", "xai_reasoning",
+    "together_reasoning", "fireworks_reasoning", "xai_reasoning", "opencode_reasoning",
     "perplexity_reasoning", "custom_reasoning", "_reasoning",
 }
 
@@ -2335,6 +2526,12 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
         if on then api_params.together_reasoning = { effort = decision.effort } end
     elseif provider == "fireworks" then
         if on then api_params.fireworks_reasoning = { effort = decision.effort } end
+    elseif provider == "opencode" or provider == "opencode_go" then
+        -- "none" disables where the profile says it can (probed 2026-09-05 on
+        -- each endpoint); opencode.lua puts either onto reasoning_effort (one
+        -- api_params key for both providers, one handler family).
+        if on then api_params.opencode_reasoning = { effort = decision.effort }
+        elseif decision.off_option then api_params.opencode_reasoning = { effort = decision.off_option } end
     elseif provider == "xai" then
         if on then
             api_params.xai_reasoning = { effort = decision.effort }

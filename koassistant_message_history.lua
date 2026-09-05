@@ -28,7 +28,13 @@ function MessageHistory:new(system_prompt, prompt_action)
     local history = {
         messages = {},
         model = nil,  -- Will be set after first response
-        chat_id = nil, -- Chat ID for existing chats
+        chat_id = nil, -- Chat ID for existing chats (present = saved on disk)
+        -- One id per conversation from the FIRST message (B285 / #107): the
+        -- save sites adopt it as the chat id, and providers that route a
+        -- conversation to one server get it (OpenCode's required
+        -- x-opencode-session, OpenRouter session_id, OpenAI prompt_cache_key).
+        -- Same shape as ChatHistoryManager:generateChatId on purpose.
+        conversation_id = os.time() .. "_" .. math.random(100000, 999999),
         prompt_action = prompt_action, -- Store the action/prompt type for naming
         launch_context = nil, -- For general chats launched from within a book
         created_at = os.time(), -- When this chat session began
@@ -263,9 +269,11 @@ function MessageHistory:fromSavedMessages(messages, model, chat_id, prompt_actio
         history.model = model
     end
 
-    -- Set the chat ID if provided
+    -- Set the chat ID if provided (a resumed chat keeps ONE id for life:
+    -- the saved id is also its conversation id on the wire)
     if chat_id then
         history.chat_id = chat_id
+        history.conversation_id = chat_id
     end
 
     -- Set the prompt action if provided

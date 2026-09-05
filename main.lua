@@ -3015,6 +3015,8 @@ function AskGPT:getProviderDisplayName(provider_id)
     novita = "Novita AI",
     nebius = "Nebius AI Studio",
     vercel = "Vercel AI Gateway",
+    opencode = "OpenCode Zen",
+    opencode_go = "OpenCode Go",
   }
   if special[provider_id] then return special[provider_id] end
   -- Built-in provider: capitalize first letter

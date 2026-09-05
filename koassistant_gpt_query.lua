@@ -75,6 +75,8 @@ loadHandler("nebius")
 loadHandler("chutes")
 loadHandler("featherless")
 loadHandler("vercel")
+loadHandler("opencode")     -- #107 (2026-09-05): OpenCode Zen, required x-opencode-session header
+loadHandler("opencode_go")  -- OpenCode Go: own endpoint + catalog, key falls back to Zen's
 -- Generic handler for custom OpenAI-compatible providers
 loadHandler("custom_openai")
 

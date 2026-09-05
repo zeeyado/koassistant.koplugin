@@ -1790,7 +1790,7 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
                             -- Check storage version and route to appropriate method
                             -- v2: DocSettings-based storage
                             -- Build complete chat_data structure (matching old saveChat format)
-                            local chat_id = metadata.id or chat_history_manager:generateChatId()
+                            local chat_id = metadata.id or history.conversation_id or chat_history_manager:generateChatId()
 
                             -- Preserve existing tags and starred when updating an existing chat
                             local existing_tags = {}
@@ -2756,7 +2756,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                             local save_result
                             -- Check storage version and route to appropriate method
                             -- v2: DocSettings-based storage
-                            local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                            local chat_id = metadata.id or history.chat_id or history.conversation_id or chat_history_manager:generateChatId()
 
                             -- Preserve existing tags, starred, and title when updating an existing chat
                             local existing_tags = {}
@@ -2891,7 +2891,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 local success, save_result = pcall(function()
                     -- Check storage version and route to appropriate method
                     -- v2: DocSettings-based storage
-                    local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                    local chat_id = metadata.id or history.chat_id or history.conversation_id or chat_history_manager:generateChatId()
 
                     -- Preserve existing tags, starred, and title when updating an existing chat
                     local existing_tags = {}
@@ -3369,7 +3369,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 local result
                 -- Check storage version and route to appropriate method
                 -- v2: DocSettings-based storage
-                local chat_id = metadata.id or history.chat_id or chat_history_manager:generateChatId()
+                local chat_id = metadata.id or history.chat_id or history.conversation_id or chat_history_manager:generateChatId()
 
                 -- Preserve existing tags, starred, and title when updating an existing chat
                 local existing_tags = {}
@@ -3862,6 +3862,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Create history WITHOUT system prompt (we'll include it in the consolidated message)
     -- Pass prompt text for better chat naming
     local history = MessageHistory:new(nil, prompt.text)
+    -- The conversation id rides the request config (B285 / #107): OpenCode's
+    -- required x-opencode-session, OpenRouter session_id, OpenAI prompt_cache_key
+    temp_config.conversation_id = history.conversation_id
 
     -- Store source data for title generation (avoids fragile regex on message content)
     -- Skip for book-level actions where highlightedText is synthetic book metadata (Title: X. Author: Y.)
@@ -9483,6 +9486,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             end
                         end
                         configuration = copy
+                        -- Per-chat conversation id on the private copy (B285 / #107)
+                        configuration.conversation_id = history.conversation_id
                         if shared_features._session_quick_answer
                             or shared_features._session_reasoning
                             or shared_features._session_model then
@@ -12953,6 +12958,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
 
     -- Create history with artifact type as prompt_action for title generation
     local history = MessageHistory:new(nil, nil)
+    configuration.conversation_id = history.conversation_id  -- B285 / #107
     history.prompt_action = artifact_type_name
     -- Store domain for chat-save parity with freeform Send
     history.domain = artifact_domain_id

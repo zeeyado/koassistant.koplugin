@@ -119,7 +119,7 @@ Examples:
 Providers:
   anthropic, openai, deepseek, gemini, ollama, groq, mistral,
   xai, openrouter, requesty, qwen, kimi, together, fireworks, sambanova,
-  cohere, doubao, zai, perplexity
+  cohere, doubao, zai, perplexity, opencode, opencode_go
 
 Configuration:
   Create tests/local_config.lua from tests/local_config.lua.sample
