@@ -94,7 +94,7 @@ do
         "default base URL is the Zen endpoint, got " .. tostring(built.url))
 end
 
--- 4. OpenCode Go is its own provider: own endpoint, same header, key falls back to Zen's
+-- 4. OpenCode Go is its own provider: own endpoint, same header, its OWN key entry
 do
     local G = require("opencode_go")
     local built = G:buildRequestBody(MESSAGES, cfg("opencode_go", { conversation_id = "17_9" }))
@@ -110,13 +110,11 @@ do
     local Base = require("koassistant_api.base")
     local saved = package.loaded["apikeys"]
     package.loaded["apikeys"] = { opencode = "zen-key" }
-    local keys = Base.listApiKeys("opencode_go", nil)
-    TestRunner.assert(keys[1] and keys[1].key == "zen-key", "a Go user with only the Zen key stored still has a key")
+    TestRunner.assert(#Base.listApiKeys("opencode_go", nil) == 0,
+        "no hidden key sharing: Go with only a Zen key stored has no key (maintainer 2026-09-05)")
     package.loaded["apikeys"] = { opencode = "zen-key", opencode_go = "go-key" }
-    keys = Base.listApiKeys("opencode_go", nil)
-    TestRunner.assert(keys[1] and keys[1].key == "go-key" and keys[2] and keys[2].key == "zen-key",
-        "an own Go key ranks first, the Zen key stays reachable")
-    TestRunner.assert(#Base.listApiKeys("opencode", nil) == 1, "the Zen provider never borrows the Go key")
+    local keys = Base.listApiKeys("opencode_go", nil)
+    TestRunner.assert(#keys == 1 and keys[1].key == "go-key", "Go reads its own entry only")
     package.loaded["apikeys"] = saved
 end
 

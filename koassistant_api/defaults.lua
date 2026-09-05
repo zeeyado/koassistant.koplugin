@@ -328,9 +328,9 @@ local ProviderDefaults = {
     -- OpenCode (#107, 2026-09-05): TWO providers on one account — Zen
     -- (pay-as-you-go credit, the big router catalog) and Go (the monthly
     -- subscription, its own small catalog) — the OpenAI / OpenAI Subscription
-    -- precedent: different billing and reach, same key mechanism. The Go key
-    -- falls back to the Zen key (base.lua KEY_FALLBACKS). 16384 probed
-    -- accepted on both endpoints.
+    -- precedent: different billing and reach, same key mechanism, one key
+    -- entry each (the same string may sit under both). 16384 probed accepted
+    -- on both endpoints.
     opencode = {
         provider = "opencode",
         model = getDefaultModel("opencode"),

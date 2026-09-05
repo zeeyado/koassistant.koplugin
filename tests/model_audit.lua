@@ -568,11 +568,11 @@ local DISCOVERY = {
     opencode_go = { headers = bearerHeaders, parse = parseOpenAIShapedList },
 }
 
--- Providers whose key is shared with another entry in apikeys.lua (the
--- plugin's base.lua KEY_FALLBACKS mirror): OpenCode Go answers the Zen key.
-local KEY_FALLBACKS = { opencode_go = "opencode" }
+-- One key per provider entry, no sharing (maintainer 2026-09-05: OpenCode
+-- Zen and Go are separate `opencode` / `opencode_go` entries; the same
+-- string may sit under both).
 local function keyFor(apikeys, provider)
-    return apikeys[provider] or (KEY_FALLBACKS[provider] and apikeys[KEY_FALLBACKS[provider]])
+    return apikeys[provider]
 end
 
 local function fetchProviderList(provider, api_key)

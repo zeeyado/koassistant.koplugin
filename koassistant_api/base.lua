@@ -469,24 +469,15 @@ end
 --- Enumerate a provider's configured keys in resolution order: GUI entries first,
 --- then apikeys.lua entries (matching the long-standing GUI-overrides-file rule).
 --- @return table array of { key, alias|nil, source = "gui"|"file" }
---- Providers that answer another provider's key when they have none of their
---- own (#107: OpenCode Go and Zen are one account; a Go user who only stored
---- the Zen key is not asked twice). Own keys first, then the fallback's.
-BaseHandler.KEY_FALLBACKS = { opencode_go = "opencode" }
-
 function BaseHandler.listApiKeys(provider, settings)
     local out = {}
-    local names = { provider }
-    if BaseHandler.KEY_FALLBACKS[provider] then table.insert(names, BaseHandler.KEY_FALLBACKS[provider]) end
-    for _idx, name in ipairs(names) do
-        if settings then
-            local features = settings:readSetting("features") or {}
-            foldKeyEntries(out, (features.api_keys or {})[name], "gui")
-        end
-        local success, apikeys = pcall(function() return require("apikeys") end)
-        if success and type(apikeys) == "table" then
-            foldKeyEntries(out, apikeys[name], "file")
-        end
+    if settings then
+        local features = settings:readSetting("features") or {}
+        foldKeyEntries(out, (features.api_keys or {})[provider], "gui")
+    end
+    local success, apikeys = pcall(function() return require("apikeys") end)
+    if success and type(apikeys) == "table" then
+        foldKeyEntries(out, apikeys[provider], "file")
     end
     return out
 end

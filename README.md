@@ -3784,7 +3784,7 @@ KOAssistant supports **31 built-in AI providers** — a **curated set** the main
 | **Featherless** | Huge open-model catalog | Docs-based* | [featherless.ai](https://featherless.ai/) |
 | **Vercel AI Gateway** | 200+ models behind one key | Docs-based* | [vercel.com](https://vercel.com/) |
 | **OpenCode Zen** | Pay-as-you-go credit; open-weight models (GLM, DeepSeek, Kimi, MiniMax). GPT, Claude and Gemini through OpenCode are not supported yet (they use other endpoints). Sends the conversation header OpenCode requires | Tested | [opencode.ai/auth](https://opencode.ai/auth) |
-| **OpenCode Go** | The monthly subscription with its own model list; uses your OpenCode key (a separate `opencode_go` key only if yours differs) | Tested | [opencode.ai/docs/go](https://opencode.ai/docs/go/) |
+| **OpenCode Go** | The monthly subscription with its own model list. Same account key as Zen, entered separately under `opencode_go` | Tested | [opencode.ai/docs/go](https://opencode.ai/docs/go/) |
 
 > **\*Tested vs docs-based:** *Tested* providers are covered by the maintainer's own API keys and automated probe/test tooling. *Docs-based* providers are implemented from their official documentation and user reports — they should work the same way, but the maintainer holds no key for them, so regressions can go unnoticed until someone reports them (fixes are quick once reported).
 >

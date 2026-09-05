@@ -7,8 +7,8 @@ from the Zen console at https://opencode.ai/auth):
     (this handler, provider id "opencode")
   - OpenCode Go:  a monthly subscription with a usage allowance and its own
                   smaller catalog, https://opencode.ai/zen/go/v1/...
-                  (opencode_go.lua, extends this handler; its key falls back
-                  to the Zen key via BaseHandler.KEY_FALLBACKS)
+                  (opencode_go.lua, extends this handler; its own key entry
+                  `opencode_go` — the same string may sit under both names)
 Two providers on purpose (maintainer 2026-09-05): different billing, different
 reach, different catalogs — the OpenAI / OpenAI Subscription precedent.
 

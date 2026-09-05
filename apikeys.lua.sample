@@ -116,12 +116,11 @@ return {
     -- Get from: https://cloud.cerebras.ai/
     cerebras = "YOUR_CEREBRAS_API_KEY",
 
-    -- OpenCode Zen (pay as you go). Get from: https://opencode.ai/auth
+    -- OpenCode Zen (pay as you go) and OpenCode Go (the subscription) are two
+    -- providers in the plugin. One OpenCode account key works for both, so
+    -- put the same key under both names. Get from: https://opencode.ai/auth
     opencode = "YOUR_OPENCODE_API_KEY",
-    -- OpenCode Go (the subscription) is a separate provider in the plugin. It
-    -- uses this same key when you leave the line below out; add it only if
-    -- your Go key differs.
-    -- opencode_go = "YOUR_OPENCODE_GO_API_KEY",
+    opencode_go = "YOUR_OPENCODE_API_KEY",
 
     -- MiniMax (M-series models)
     -- Get from: https://platform.minimax.io/

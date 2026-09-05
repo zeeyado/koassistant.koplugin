@@ -461,6 +461,22 @@ local ModelLists = {
         "kimi-k2.6",
         "minimax-m3",
         "minimax-m2.7",
+        -- Second sweep 2026-09-05 (every remaining open-weight Zen id ran the
+        -- battery on the Zen endpoint): all green below. Left out: the Muse
+        -- and Grok ids (server errors on this wire), kimi-k2.7-code (not
+        -- found), deepseek-v4-flash-free (unavailable), big-pickle and
+        -- mimo-v2.5-free (the shared FREE pool rate-limited them mid-battery),
+        -- ling-3.0-flash-fin-free (finance model), nemotron-3-ultra-free
+        -- (free pool too slow to finish a battery).
+        "glm-5.2",
+        "glm-5.1",
+        "glm-5",
+        "minimax-m2.5",
+        "kimi-k2.5",
+        "qwen3.6-plus",                             -- effort low..xhigh, off = none; rejects temperature 2.0
+        "qwen3.5-plus",                             -- effort minimal..xhigh, off = none; rejects temperature 2.0
+        "deepseek-v4-flash-vision-exp",
+        "nemotron-3.5-lightning-free",              -- free pool, but every leg green; stated ceiling 1M
     },
     -- OpenCode Go (the subscription catalog; CURATED 2026-09-05: all 35
     -- /zen/go/v1/models ids ran the model_audit battery on the Go endpoint

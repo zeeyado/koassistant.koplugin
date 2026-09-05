@@ -248,10 +248,11 @@ ModelConstraints.capabilities = {
         },
     },
     opencode = {
-        -- Probed live 2026-09-05 (Zen key, model_audit battery on every seed id):
-        -- every model reasons by DEFAULT (reasoning_content / reasoning present
-        -- bare); tools + forced tool_choice + two-round replay + SSE green on
-        -- all eight. grok-4.6 answers 500 on this door and is not listed.
+        -- Probed live 2026-09-05 (Zen key, model_audit battery on the Zen
+        -- endpoint, two sweeps = every open-weight id the chat door serves):
+        -- every model reasons by DEFAULT (reasoning_content / reasoning
+        -- present bare); tools + forced tool_choice + two-round replay + SSE
+        -- green on all of them. See the model list for what was left out.
         reasoning = {
             "glm-5.3-flash",
             "glm-5.3",
@@ -261,6 +262,15 @@ ModelConstraints.capabilities = {
             "kimi-k2.6",
             "minimax-m3",
             "minimax-m2.7",
+            "glm-5.2",
+            "glm-5.1",
+            "glm-5",
+            "minimax-m2.5",
+            "kimi-k2.5",
+            "qwen3.6-plus",
+            "qwen3.5-plus",
+            "deepseek-v4-flash-vision-exp",
+            "nemotron-3.5-lightning-free",
         },
         tools = {
             "glm-5.3-flash",
@@ -271,6 +281,15 @@ ModelConstraints.capabilities = {
             "kimi-k2.6",
             "minimax-m3",
             "minimax-m2.7",
+            "glm-5.2",
+            "glm-5.1",
+            "glm-5",
+            "minimax-m2.5",
+            "kimi-k2.5",
+            "qwen3.6-plus",
+            "qwen3.5-plus",
+            "deepseek-v4-flash-vision-exp",
+            "nemotron-3.5-lightning-free",
         },
     },
     opencode_go = {
@@ -514,6 +533,13 @@ ModelConstraints._max_output_tokens = {
         -- = 40960. Provider-wide "" entry so FETCHED models inherit it too; any
         -- specific id added later wins on longest-prefix.
         [""] = 40960,
+    },
+    opencode = {
+        -- Stated by the Zen endpoint's own oversized-max_tokens refusal
+        -- (model_audit battery 2026-09-05); the others accepted silently.
+        ["qwen3.6-plus"] = 65536,
+        ["qwen3.5-plus"] = 65536,
+        ["nemotron-3.5-lightning-free"] = 1000000,
     },
     opencode_go = {
         -- Stated by the Go endpoint's own oversized-max_tokens refusal
@@ -1121,11 +1147,23 @@ ModelConstraints.reasoning_profiles = {
         { match = "deepseek-v4-pro", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
-        { match = "kimi-k2.6", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+        { match = "kimi-k2.", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
         { match = "minimax-m", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- Second sweep 2026-09-05 (Zen endpoint): deepseek-v4-flash-vision-exp
+        -- shares the deepseek-v4-flash entry above (same facts, prefix match);
+        -- glm-5.2/5.1/5 ride the glm- family; minimax-m2.5 the minimax-m one.
+        { match = "qwen3.6-plus", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        { match = "qwen3.5-plus", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        { match = "nemotron-3.5-lightning-free", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
     },
     opencode_go = {
