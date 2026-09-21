@@ -677,8 +677,10 @@ function BackupManager:_countItems(options)
         local domains_dir = self.PLUGIN_DIR .. "/domains"
         if lfs.attributes(domains_dir, "mode") == "directory" then
             local count = 0
+            -- Dotfiles are not content: a macOS copy leaves a hidden "._name.md"
+            -- beside every file, and the loaders skip them (#112)
             for entry in lfs.dir(domains_dir) do
-                if entry ~= "." and entry ~= ".." and (entry:match("%.md$") or entry:match("%.txt$")) then
+                if entry:sub(1, 1) ~= "." and (entry:match("%.md$") or entry:match("%.txt$")) then
                     count = count + 1
                 end
             end
@@ -692,7 +694,7 @@ function BackupManager:_countItems(options)
         if lfs.attributes(behaviors_dir, "mode") == "directory" then
             local count = 0
             for entry in lfs.dir(behaviors_dir) do
-                if entry ~= "." and entry ~= ".." and (entry:match("%.md$") or entry:match("%.txt$")) then
+                if entry:sub(1, 1) ~= "." and (entry:match("%.md$") or entry:match("%.txt$")) then
                     count = count + 1
                 end
             end

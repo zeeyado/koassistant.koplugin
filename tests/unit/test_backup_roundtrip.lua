@@ -237,6 +237,17 @@ TestRunner:test("listBackups sees the new backup", function()
     TestRunner:assertTrue(found, "listBackups should include the created backup")
 end)
 
+TestRunner:test("the domain/behavior counts skip macOS '._' companions (#112)", function()
+    writeFile(TMP .. "/plugin/domains/._academic.md", "\0\5\22\7binary")
+    writeFile(TMP .. "/plugin/behaviors/._terse.md", "\0\5\22\7binary")
+    local r = bm:createBackup(BACKUP_OPTS)
+    os.remove(TMP .. "/plugin/domains/._academic.md")
+    os.remove(TMP .. "/plugin/behaviors/._terse.md")
+    TestRunner:assertTrue(r and r.success, "backup should succeed")
+    TestRunner:assertTrue(r.counts.domains == 1 and r.counts.behaviors == 1,
+        "counts should be 1 and 1, got " .. tostring(r.counts.domains) .. " and " .. tostring(r.counts.behaviors))
+end)
+
 TestRunner:test("ordinary backup excludes API keys and subscription OAuth tokens", function()
     local sanitized = bm:createBackup({
         include_settings = true,
