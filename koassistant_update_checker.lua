@@ -1531,7 +1531,48 @@ local function verifyExtractedPlugin(staging_dir, expected_version)
     return true
 end
 
+--- First file under `src` that is missing from `dst` or differs in size.
+--- Judges the copy by what is on disk, never by exit codes: ffiutil.copyFile
+--- ignores write errors (a full disk leaves a truncated file and reports
+--- success), and execute's status differs by platform.
+--- @return string|nil relative path of the first mismatch, nil when all match
+local function copyMismatch(src, dst, rel)
+    local src_attr = lfs.attributes(src)
+    if not src_attr then return nil end
+    local dst_attr = lfs.attributes(dst)
+    if not dst_attr or dst_attr.mode ~= src_attr.mode then
+        return rel
+    end
+    if src_attr.mode == "file" then
+        if dst_attr.size ~= src_attr.size then return rel end
+        return nil
+    end
+    if src_attr.mode == "directory" then
+        for entry in lfs.dir(src) do
+            if entry ~= "." and entry ~= ".." then
+                local bad = copyMismatch(src .. "/" .. entry, dst .. "/" .. entry, rel .. "/" .. entry)
+                if bad then return bad end
+            end
+        end
+    end
+    return nil
+end
+
+--- First user file or folder (USER_FILES + USER_DIRS) that `from_dir` holds and
+--- `to_dir` lacks or holds a different size of. nil when every one arrived.
+local function firstMissingUserItem(from_dir, to_dir)
+    for _idx, list in ipairs({ USER_FILES, USER_DIRS }) do
+        for _idx2, name in ipairs(list) do
+            local bad = copyMismatch(from_dir .. "/" .. name, to_dir .. "/" .. name, name)
+            if bad then return bad end
+        end
+    end
+    return nil
+end
+
 --- Preserve user-owned files from the current plugin directory
+--- Fails (and the update aborts, before anything is moved) when a preserved
+--- copy is missing or short, since step 8 deletes the only other copy.
 --- @param src_dir string Current plugin directory
 --- @param preserve_dir string Temporary directory to hold user files
 --- @return boolean success, string|nil error_msg
@@ -1560,6 +1601,12 @@ local function preserveUserFiles(src_dir, preserve_dir)
                 logger.warn("UpdateChecker: failed to preserve directory", dirname)
             end
         end
+    end
+
+    local bad = firstMissingUserItem(src_dir, preserve_dir)
+    if bad then
+        logger.warn("UpdateChecker: preserved copy missing or incomplete:", bad)
+        return false, T(_("Could not save a copy of your file %1 before updating (storage full?). Nothing was changed."), bad)
     end
 
     return true
@@ -1817,17 +1864,28 @@ performUpdate = function(update_info)
         if not restore_ok then
             logger.warn("UpdateChecker: user file restore issue:", restore_err)
         end
+        -- Check against the originals, still in the old plugin folder: when a
+        -- file did not arrive intact, step 8 keeps that folder instead of
+        -- deleting the only good copy.
+        local missing = firstMissingUserItem(backup_path, plugin_path)
+        if missing then
+            logger.warn("UpdateChecker: user file did not reach the new version, keeping", backup_path, ":", missing)
+        end
 
         -- Step 8: Cleanup (non-fatal)
         pcall(os.remove, archive_path)
-        pcall(ffiutil.purgeDir, backup_path)
-        pcall(ffiutil.purgeDir, preserve_path)
+        if not missing then
+            pcall(ffiutil.purgeDir, backup_path)
+            pcall(ffiutil.purgeDir, preserve_path)
+        end
 
         UIManager:close(install_msg)
 
         -- Show success and ask for restart
         local restart_msg = T(_("KOAssistant updated to version %1.\n\nPlease restart KOReader to use the new version."), update_info.latest_version)
-        if not restore_ok then
+        if missing then
+            restart_msg = restart_msg .. "\n\n" .. T(_("Note: your file %1 could not be carried over to the new version. The previous version, with all your files, is kept at:\n%2"), missing, backup_path)
+        elseif not restore_ok then
             restart_msg = restart_msg .. "\n\n" .. _("Note: Some user files (API keys, custom actions) may need to be reconfigured.")
         end
 
@@ -2075,6 +2133,7 @@ end
 -- preserve/restore pair, previously untestable file-locals — the old test
 -- exercised a hand-copied re-implementation instead of this shipping code.
 UpdateChecker._preserveUserFiles = preserveUserFiles
+UpdateChecker._firstMissingUserItem = firstMissingUserItem
 UpdateChecker._restoreUserFiles = restoreUserFiles
 
 return UpdateChecker

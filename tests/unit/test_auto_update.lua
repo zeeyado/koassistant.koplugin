@@ -293,6 +293,74 @@ function TestAutoUpdate:runAll()
         self:assertEquals(self:readFile(dst .. "/behaviors/custom.md"), "# Custom Behavior", "Content should match")
     end)
 
+    -- A full disk: KOReader's copyFile ignores write errors, so a short copy
+    -- returns no error. The update used to go ahead and later delete the only
+    -- good copy; it must now stop before anything is moved.
+    self:test("preserveUserFiles: a truncated copy aborts the update", function()
+        local src = self:makeTempDir("_preserve_trunc")
+        local dst = self:makeTempDir("_preserve_trunc_dst")
+        self:purgeDir(dst)
+        self:writeFile(src .. "/apikeys.lua", 'return { openai = "sk-test-key-long-enough" }')
+
+        local ffiutil = require("ffi/util")
+        local orig_copy = ffiutil.copyFile
+        ffiutil.copyFile = function(from, to)
+            local fin = io.open(from, "rb"); local data = fin:read("*a"); fin:close()
+            local fout = io.open(to, "wb"); fout:write(data:sub(1, 5)); fout:close()
+            return nil  -- the real one reports success here too
+        end
+        local ok, err = preserveUserFiles(src, dst)
+        ffiutil.copyFile = orig_copy
+
+        self:assert(not ok, "A short preserved copy must fail the preserve step")
+        self:assert(err and err:find("apikeys.lua", 1, true), "The error should name the file: " .. tostring(err))
+    end)
+
+    self:test("preserveUserFiles: a folder that did not copy aborts the update", function()
+        local src = self:makeTempDir("_preserve_dirfail")
+        local dst = self:makeTempDir("_preserve_dirfail_dst")
+        self:purgeDir(dst)
+        lfs.mkdir(src .. "/domains")
+        self:writeFile(src .. "/domains/mine.md", "# Mine")
+
+        local ffiutil = require("ffi/util")
+        local orig_exec = ffiutil.execute
+        ffiutil.execute = function() return 0 end  -- claims success, copies nothing
+        local ok, err = preserveUserFiles(src, dst)
+        ffiutil.execute = orig_exec
+
+        self:assert(not ok, "A missing preserved folder must fail the preserve step")
+        self:assert(err and err:find("domains", 1, true), "The error should name the folder: " .. tostring(err))
+    end)
+
+    -- ---- firstMissingUserItem (the step-7 check that keeps the old folder) ----
+
+    self:test("firstMissingUserItem: nil when every user file arrived", function()
+        local old = self:makeTempDir("_fm_old")
+        local new = self:makeTempDir("_fm_new")
+        for _idx, dir in ipairs({ old, new }) do
+            self:writeFile(dir .. "/apikeys.lua", "return {}")
+            lfs.mkdir(dir .. "/behaviors")
+            self:writeFile(dir .. "/behaviors/b.md", "# B")
+        end
+        self:writeFile(new .. "/main.lua", "-- shipped files are not compared")
+        self:assertEquals(UpdateChecker._firstMissingUserItem(old, new), nil, "Nothing should be reported")
+    end)
+
+    self:test("firstMissingUserItem: names a file missing or short in the new version", function()
+        local old = self:makeTempDir("_fm_old2")
+        local new = self:makeTempDir("_fm_new2")
+        self:writeFile(old .. "/custom_actions.lua", "return { a = 1 }")
+        lfs.mkdir(old .. "/domains")
+        self:writeFile(old .. "/domains/d.md", "# D, the full text")
+        self:writeFile(new .. "/custom_actions.lua", "return { a = 1 }")
+        lfs.mkdir(new .. "/domains")
+        self:writeFile(new .. "/domains/d.md", "# D")
+        self:assertEquals(UpdateChecker._firstMissingUserItem(old, new), "domains/d.md", "The short file should be named")
+        os.remove(new .. "/custom_actions.lua")
+        self:assertEquals(UpdateChecker._firstMissingUserItem(old, new), "custom_actions.lua", "The missing file should be named")
+    end)
+
     -- ---- restoreUserFiles ----
 
     self:test("restoreUserFiles: restores files to target", function()
