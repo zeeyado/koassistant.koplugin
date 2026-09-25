@@ -373,6 +373,31 @@ local function gatherMentionHits(ui, terms, exclude)
     return hits
 end
 
+--- gatherMentionHits off the UI thread, the way KOReader runs its own
+--- full-text search (ReaderSearch:findAllText): Trapper forks, the child
+--- searches its copy of the document, the UI loop keeps running, and a tap
+--- on the message kills the child. One whole-book search takes tens of
+--- seconds on an e-reader for a very large book; run in process it froze the
+--- reader until Android killed it (docs/xray_marks_freeze_plan.md). Must run
+--- inside Trapper:wrap (outside one, Trapper falls back to a blocking run).
+--- @return table|nil hits, nil when the reader cancelled
+local function gatherMentionHitsInSubprocess(ui, terms, exclude)
+    local Trapper = require("ui/trapper")
+    local info = InfoMessage:new{ text = _("Searching the book… (tap to cancel)") }
+    UIManager:show(info)
+    UIManager:forceRePaint()
+    local completed, hits = Trapper:dismissableRunInSubprocess(function()
+        return gatherMentionHits(ui, terms, exclude)
+    end, info)
+    if not completed then return nil end
+    UIManager:close(info)
+    if type(hits) ~= "table" then
+        require("koassistant_logger").warn("KOAssistant XrayBrowser: mention search process returned no result")
+        return {}
+    end
+    return hits
+end
+
 --- Open KOReader's native search session for the term at the CURRENT
 --- position, then float the "Back to X-Ray" button. The built-in search owns
 --- highlighting and prev/next — no custom overlay (maintainer 2026-08-13).
@@ -5636,9 +5661,9 @@ function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapte
     if pre_hits then
         render(pre_hits)
     else
-        UIManager:show(Notification:new{ text = _("Finding mentions…") })
-        UIManager:scheduleIn(0.1, function()
-            render(gatherMentionHits(ui, terms, exclude))
+        require("ui/trapper"):wrap(function()
+            local hits = gatherMentionHitsInSubprocess(ui, terms, exclude)
+            if hits then render(hits) end
         end)
     end
 end
@@ -5736,12 +5761,10 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
         return
     end
 
-    UIManager:show(Notification:new{
-        text = _("Computing distribution…"),
-    })
-
     local self_ref = self
-    UIManager:scheduleIn(0.2, function()
+    -- Trapper:wrap: the whole-book pass below runs in a subprocess and this
+    -- coroutine resumes when it lands (or ends when the reader cancels)
+    UIManager:scheduleIn(0.2, function() require("ui/trapper"):wrap(function()
         local ui = self_ref.ui
         local gate = self_ref:_spoilerGate()
 
@@ -5768,8 +5791,9 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
         end
 
         -- ONE native pass: every hit, whole book (display gating comes later)
-        local hits = gatherMentionHits(ui, terms,
+        local hits = gatherMentionHitsInSubprocess(ui, terms,
             XrayParser.containingHandles(self.xray_data, item))
+        if not hits then return end
 
         -- Per-page prefix sums → a node's count is one subtraction, at any depth
         local total_pages = ui.document.info.number_of_pages or 0
@@ -5866,7 +5890,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
         }
         self_ref._dist_cache[cache_key] = data
         self_ref:_buildDistributionView(item, category_key, item_title, data, false, detail_context)
-    end)
+    end) end)
 end
 
 --- Show search dialog (overlays as InputDialog)

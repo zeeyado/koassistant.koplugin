@@ -9775,6 +9775,19 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         }})
       end
     end
+    -- Marking settings are per book, and the marks also read section X-Rays
+    -- and the group's X-Rays: offer them here whenever either exists
+    if sx_file and (nc_sx_count > 0 or #ActionCache.groupXrays(sx_file) > 0) then
+      table.insert(buttons, {{
+        text = _("Marking & lookup…"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:_showXrayMarkingQuickSettings({ file = sx_file, back = function()
+            self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+          end })
+        end,
+      }})
+    end
     table.insert(buttons, {{
       text = _("Cancel"),
       callback = function()
