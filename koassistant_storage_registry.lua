@@ -323,6 +323,14 @@ Registry.entries = {
         opt_in_reset = true,
         notes = "Create-ahead prefix versions (rungs, ascending by progress; xray_ecosystem_plan.md §6); promotion source; deleted with the X-Ray.",
     },
+    {
+        id = "sidecar_xray_index", label = "Per-book X-Ray name index",
+        location = "sidecar_file", ref = "koassistant_xray_index.lua",
+        category = "artifacts", backup = false, rebuildable = true,
+        index_key = "koassistant_artifact_index",  -- best-effort: shares the artifact sidecar dir (like user_aliases)
+        opt_in_reset = true,
+        notes = "Where each X-Ray name form occurs, page by page, per layout (two kept); koassistant_xray_index.lua, xray_marks_freeze_plan.md round 4. Derived from the book text: found again in the background when missing, never backed up. Keyed by name form, so it outlives X-Ray deletes and rebuilds harmlessly.",
+    },
 
     --========================= Plugin per-book files (Track 37, 2026-09-02) ===
     -- Everything the plugin used to keep INSIDE KOReader's metadata.lua (the

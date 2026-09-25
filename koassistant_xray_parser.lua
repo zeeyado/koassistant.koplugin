@@ -832,118 +832,20 @@ local function getItemSearchName(item)
     return item.name or item.term or item.event
 end
 
---- Count occurrences of a single item (name + aliases) in pre-lowered text.
---- Finds all match spans from name and aliases, merges overlapping spans,
---- and returns the total unique matches (union semantics, same as regex OR).
+--- Count occurrences of a single item (name + aliases) in normalized text.
+--- The one matcher (matchTermSet + occurrencesIn): spans of every form,
+--- overlapping ones merged (union semantics, same as regex OR), hits inside
+--- another entity's longer form dropped.
 --- @param item table An X-Ray item entry (must have name/term/event and optionally aliases)
---- @param text_lower string Already-lowered text to search
---- @param exclude_handles table|nil XrayParser.containingHandles output: spans inside an
+--- @param text_lower string matchNormalize'd text (plain lowered text works for Latin)
+--- @param exclude_handles table|nil XrayParser.containingMatchHandles output: spans inside an
 ---   occurrence of another entity's longer handle are not counted (B266)
 --- @return number count Unique match count across name and all aliases (0 if not found or name ≤2 chars)
 function XrayParser.countItemOccurrences(item, text_lower, exclude_handles)
-    local name = getItemSearchName(item)
-    if not name or #name <= 2 then return 0 end
-
-    local name_lower = name:lower()
-
-    -- Collect all search terms
-    local terms = {}
-
-    -- Handle parenthetical names: "Theosis (Deification)" → "theosis" + "deification"
-    local clean_name = name_lower:gsub("%s*%(.-%)%s*", "")
-    clean_name = clean_name:match("^%s*(.-)%s*$") or clean_name  -- trim
-    local paren_content = name_lower:match("%((.-)%)")
-
-    terms[#terms + 1] = (#clean_name > 2) and clean_name or name_lower
-
-    if paren_content and #paren_content > 2 and not paren_content:match("^%d+$") then
-        terms[#terms + 1] = paren_content
-    end
-
-    local item_aliases = ensure_array(item.aliases)
-    if item_aliases then
-        for _idx, alias in ipairs(item_aliases) do
-            if #alias > 2 then
-                terms[#terms + 1] = alias:lower()
-            end
-        end
-    end
-
-    -- Normalize terms for Arabic diacritics matching
-    for i = 1, #terms do
-        terms[i] = XrayParser.normalizeArabic(terms[i])
-    end
-
-    -- Arabic: also try matching without ال (definite article) on each word.
-    -- "النادي" won't substring-match "ناديه" but "نادي" will.
-    local term_count = #terms
-    for i = 1, term_count do
-        local t = terms[i]
-        if XrayParser.containsArabic(t) then
-            local stripped = stripArabicArticle(t)
-            if stripped ~= t and #stripped > 4 then
-                terms[#terms + 1] = stripped
-            end
-        end
-    end
-
-    -- Collect all match spans from all terms
-    local all_spans = {}
-    for _idx, term in ipairs(terms) do
-        local spans = XrayParser._collectMatchSpans(text_lower, term)
-        for _idx2, span in ipairs(spans) do
-            all_spans[#all_spans + 1] = span
-        end
-    end
-
-    -- Cross-entity containment (B266): a span sitting inside an occurrence
-    -- of another entity's longer handle is that entity's mention
-    if exclude_handles and #exclude_handles > 0 and #all_spans > 0 then
-        local ex = {}
-        for _idx, h in ipairs(exclude_handles) do
-            for _idx2, span in ipairs(XrayParser._collectMatchSpans(text_lower, h)) do
-                ex[#ex + 1] = span
-            end
-        end
-        if #ex > 0 then
-            local kept = {}
-            for _idx, span in ipairs(all_spans) do
-                local inside = false
-                for _idx2, x in ipairs(ex) do
-                    if span[1] >= x[1] and span[2] <= x[2] then
-                        inside = true
-                        break
-                    end
-                end
-                if not inside then kept[#kept + 1] = span end
-            end
-            all_spans = kept
-        end
-    end
-
-    if #all_spans == 0 then return 0 end
-    if #all_spans == 1 then return 1 end
-
-    -- Sort by start position
-    table.sort(all_spans, function(a, b)
-        return a[1] < b[1]
-    end)
-
-    -- Merge overlapping spans and count unique matches
-    local count = 1
-    local current_end = all_spans[1][2]
-    for i = 2, #all_spans do
-        if all_spans[i][1] > current_end then
-            -- No overlap: new distinct match
-            count = count + 1
-            current_end = all_spans[i][2]
-        elseif all_spans[i][2] > current_end then
-            -- Overlapping: extend current span (don't increment count)
-            current_end = all_spans[i][2]
-        end
-    end
-
-    return count
+    if type(text_lower) ~= "string" or text_lower == "" then return 0 end
+    local set = XrayParser.matchTermSet(item)
+    if not set then return 0 end
+    return #XrayParser.occurrencesIn(text_lower, set, exclude_handles)
 end
 
 --- Singleton categories not useful for chapter text matching
@@ -2212,6 +2114,10 @@ function XrayParser.buildMarkEntities(data)
                         category_key = cat.key,
                         family = XrayParser.CATEGORY_FAMILY[cat.key] or cat.key,
                         terms = terms,
+                        -- The page matcher's forms (round 4): what the
+                        -- marks match and paint; `terms` stays the
+                        -- identity key for the cross-source claim
+                        set = XrayParser.matchTermSet(item),
                     })
                 end
             end
@@ -2250,6 +2156,7 @@ function XrayParser.buildLedgerMarkEntities(data)
                         category_key = cat_key,
                         family = XrayParser.CATEGORY_FAMILY[cat_key] or cat_key,
                         terms = terms,
+                        set = XrayParser.matchTermSet(stub),
                         carried = true,
                     })
                 end
@@ -2307,14 +2214,14 @@ function XrayParser.findItemsInChapter(data, chapter_text)
     local categories = XrayParser.getCategories(data)
     if not categories or #categories == 0 then return {} end
 
-    local text_lower = XrayParser.normalizeArabic(chapter_text:lower())
+    local text_lower = XrayParser.matchNormalize(chapter_text)
     local results = {}
 
     for _idx, cat in ipairs(categories) do
         if not TEXT_MATCH_EXCLUDED[cat.key] then
             for _idx2, item in ipairs(cat.items) do
                 local count = XrayParser.countItemOccurrences(item, text_lower,
-                    XrayParser.containingHandles(data, item))
+                    XrayParser.containingMatchHandles(data, item))
                 if count > 0 then
                     table.insert(results, {
                         item = item,
@@ -2345,12 +2252,12 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     local characters = XrayParser.getCharacters(data)
     if not characters or #characters == 0 then return {} end
 
-    local text_lower = XrayParser.normalizeArabic(chapter_text:lower())
+    local text_lower = XrayParser.matchNormalize(chapter_text)
     local results = {}
 
     for _idx, char in ipairs(characters) do
         local best_count = XrayParser.countItemOccurrences(char, text_lower,
-            XrayParser.containingHandles(data, char))
+            XrayParser.containingMatchHandles(data, char))
         if best_count > 0 then
             table.insert(results, { item = char, count = best_count })
         end
@@ -2486,6 +2393,438 @@ end
 --- @return number count
 function XrayParser._countOccurrences(text, needle)
     return #XrayParser._collectMatchSpans(text, needle)
+end
+
+-- ── The one text matcher (docs/xray_marks_freeze_plan.md, round 4) ─────────
+-- The marks, the Mentions view, Chapter Appearances and the per-book name
+-- index (koassistant_xray_index.lua) all match X-Ray names against book text
+-- through matchNormalize + matchTermSet + _collectMatchSpans, so an
+-- underline, a count and a mention list agree. Latin, Cyrillic and Greek
+-- names match whole words; Arabic, Hebrew, CJK and Thai match substrings
+-- (attached prefixes, particles, no spaces between words). Arabic follows
+-- the engine regex the marks searched with before (buildArabicSearchRegex):
+-- every combining mark of the text is optional, the dagger alef included
+-- (Uthmani spelling writes a long vowel as a mark), every alef of a name is
+-- optional, and the article may drop.
+
+-- Case fold: KOReader's utf8proc NFKC case fold (Cyrillic, Greek and
+-- accented Latin fold like ASCII; ligatures, superscripts and presentation
+-- forms become plain characters; format characters drop) when it loads,
+-- string.lower otherwise (unit tests). Only pure ASCII takes the cheap path:
+-- the fold must not depend on what else is in the string, or a page read
+-- whole (the index) and word by word (the marks) would disagree ("adam¹").
+local foldCase = string.lower
+do
+    local ok, Utf8Proc = pcall(require, "ffi/utf8proc")
+    if ok and type(Utf8Proc) == "table" and type(Utf8Proc.lowercase) == "function" then
+        foldCase = function(text)
+            if not text:find("[\128-\255]") then return text:lower() end
+            local folded_ok, folded = pcall(Utf8Proc.lowercase, text, true)
+            if folded_ok and type(folded) == "string" then return folded end
+            return text:lower()
+        end
+    end
+end
+
+--- Arabic for matching: marks stripped (the dagger alef too, unlike
+--- normalizeArabic, which keeps it as a letter for exact-name identity),
+--- tatweel dropped, alef forms unified.
+local function arabicMatchSkeleton(str)
+    if not str:find(ARABIC_QUICK_CHECK_D8, 1, true)
+        and not str:find(ARABIC_QUICK_CHECK_D9, 1, true)
+        and not str:find(ARABIC_QUICK_CHECK_DB, 1, true) then
+        return str
+    end
+    str = str:gsub(TANWIN_FATHAH_ALEF, "")
+    str = str:gsub(TASHKEEL_PAT, "")
+    str = str:gsub(SIGN_PAT, "")
+    str = str:gsub(QURAN_MARK_PAT1, "")
+    str = str:gsub(QURAN_MARK_PAT2, "")
+    str = str:gsub(SUPERSCRIPT_ALEF, "")
+    str = str:gsub(TATWEEL, "")
+    str = str:gsub(ALEF_WASLA, ALEF)
+    str = str:gsub(ALEF_MADDA, ALEF)
+    str = str:gsub(ALEF_HAMZA_ABOVE, ALEF)
+    str = str:gsub(ALEF_HAMZA_BELOW, ALEF)
+    return str
+end
+
+--- Normalize text for matching: page text, chapter text and names alike.
+--- Case folded, invisible format characters dropped (soft hyphen, zero-width
+--- space/joiners, direction marks, word joiner, BOM), Arabic skeleton, every
+--- whitespace run (no-break space included) one space.
+--- @param s string
+--- @return string
+function XrayParser.matchNormalize(s)
+    if type(s) ~= "string" or s == "" then return "" end
+    s = foldCase(s)
+    s = s:gsub("\194\173", ""):gsub("\226\128[\139-\143]", "")
+        :gsub("\226\129\160", ""):gsub("\239\187\191", "")
+    s = arabicMatchSkeleton(s)
+    return (s:gsub("\194\160", " "):gsub("%s+", " "))
+end
+
+-- Alef-optional forms of an Arabic name: each alef kept or dropped (the
+-- engine regex made every alef optional). More alefs than this keep only
+-- the all-kept and all-dropped forms (16 forms at most).
+local ALEF_VARIANT_CAP = 4
+local function alefVariants(term)
+    local positions = {}
+    local from = 1
+    while true do
+        local s = term:find(ALEF, from, true)
+        if not s then break end
+        positions[#positions + 1] = s
+        from = s + #ALEF
+    end
+    if #positions == 0 then return { term } end
+    if #positions > ALEF_VARIANT_CAP then
+        return { term, (term:gsub(ALEF, "")) }
+    end
+    local out = {}
+    for mask = 0, 2 ^ #positions - 1 do
+        local parts, last, m = {}, 1, mask
+        for _k, pos in ipairs(positions) do
+            if m % 2 == 1 then
+                parts[#parts + 1] = term:sub(last, pos - 1)
+                last = pos + #ALEF
+            end
+            m = math.floor(m / 2)
+        end
+        parts[#parts + 1] = term:sub(last)
+        out[#out + 1] = table.concat(parts)
+    end
+    return out
+end
+
+local function trimSpaces(s)
+    return s:match("^%s*(.-)%s*$") or s
+end
+
+-- matchTermSet memo: the same item table asks many times per view (every
+-- other entity's containment check), keyed weakly with a name+aliases
+-- signature so an alias edited in place is never served stale
+local term_set_memo = setmetatable({}, { __mode = "k" })
+
+--- The match forms of one entity: its name, a parenthetical in it, and every
+--- alias, normalized, plus the Arabic article-dropped and alef-optional
+--- forms. `all` is longest first (the widest form present paints), `minimal`
+--- the forms that contain no other form, `source` maps each form to the name
+--- or alias as written (what a tap on it opens). nil when the name is two
+--- bytes or shorter (the counting rule since the Mentions view shipped).
+--- @param item table X-Ray entry
+--- @param item_title string|nil name fallback
+--- @return table|nil { all, minimal, source }
+function XrayParser.matchTermSet(item, item_title)
+    if type(item) ~= "table" then return nil end
+    local name = getItemSearchName(item) or item_title
+    if type(name) ~= "string" or #name <= 2 then return nil end
+    local aliases = ensure_array(item.aliases)
+    local sig = name .. "\0" .. (aliases and table.concat(aliases, "\0") or "")
+    local memo = term_set_memo[item]
+    if memo and memo.sig == sig then return memo.set end
+
+    local all, seen, source = {}, {}, {}
+    local function addForm(text)
+        local norm = trimSpaces(XrayParser.matchNormalize(text))
+        if #norm <= 2 then return end
+        local forms = { norm }
+        if XrayParser.containsArabic(norm) then
+            local stripped = trimSpaces(stripArabicArticle(norm))
+            if stripped ~= norm and #stripped > 4 then forms[2] = stripped end
+        end
+        for _f, form in ipairs(forms) do
+            for _v, v in ipairs(alefVariants(form)) do
+                v = trimSpaces(v)
+                if #v > 2 and not seen[v] then
+                    seen[v] = true
+                    all[#all + 1] = v
+                    source[v] = text
+                end
+            end
+        end
+    end
+    local function addName(t)
+        if type(t) ~= "string" then return end
+        addForm(trimSpaces((t:gsub("%s*%(.-%)%s*", " "))))
+        for inner in t:gmatch("%((.-)%)") do
+            if not inner:match("^%s*%d+%s*$") then addForm(trimSpaces(inner)) end
+        end
+    end
+    addName(name)
+    if aliases then
+        for _idx, a in ipairs(aliases) do addName(a) end
+    end
+    local set
+    if #all > 0 then
+        table.sort(all, function(a, b)
+            if #a ~= #b then return #a > #b end
+            return a < b
+        end)
+        local minimal = {}
+        for i, t in ipairs(all) do
+            local contains = false
+            for j, u in ipairs(all) do
+                if i ~= j and XrayParser.handleContainsWord(t, u) then
+                    contains = true
+                    break
+                end
+            end
+            if not contains then minimal[#minimal + 1] = t end
+        end
+        set = { all = all, minimal = minimal, source = source }
+    end
+    term_set_memo[item] = { sig = sig, set = set }
+    return set
+end
+
+--- Cross-entity containment for the matcher (B266): the forms of OTHER
+--- entries that contain one of this entry's forms ("vivian kubrick" for the
+--- entry "Kubrick"). An occurrence inside one of them is that entry's
+--- mention. Minimized: a form containing another listed form is dropped.
+--- @param data table Parsed X-Ray data
+--- @param item table The entry
+--- @return table|nil forms (normalized strings), nil when none
+function XrayParser.containingMatchHandles(data, item)
+    local own_set = XrayParser.matchTermSet(item)
+    if not (data and own_set) then return nil end
+    local own = {}
+    for _idx, t in ipairs(own_set.all) do own[t] = true end
+    local found, seen = {}, {}
+    for _idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
+        if not TEXT_MATCH_EXCLUDED[cat.key] then
+            for _idx2, other in ipairs(cat.items) do
+                local oset = other ~= item and XrayParser.matchTermSet(other)
+                if oset then
+                    for _idx3, h in ipairs(oset.all) do
+                        if not own[h] and not seen[h] then
+                            for _idx4, t in ipairs(own_set.minimal) do
+                                if XrayParser.handleContainsWord(h, t) then
+                                    seen[h] = true
+                                    found[#found + 1] = h
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    if #found == 0 then return nil end
+    local minimal = {}
+    for i, h in ipairs(found) do
+        local contains_other = false
+        for j, u in ipairs(found) do
+            if i ~= j and XrayParser.handleContainsWord(h, u) then
+                contains_other = true
+                break
+            end
+        end
+        if not contains_other then minimal[#minimal + 1] = h end
+    end
+    return minimal
+end
+
+--- Occurrences of one entity in a normalized text: the spans of every form,
+--- minus those inside an occurrence of a containing form (B266), merged so a
+--- longer form covering a shorter one is one occurrence. Each occurrence
+--- keeps its widest form (`form`) for the tap text.
+--- @param norm string matchNormalize output
+--- @param set table matchTermSet output
+--- @param handles table|nil containing forms
+--- @return table array of { s, e, form = string } in text order
+function XrayParser.occurrencesIn(norm, set, handles)
+    local spans = {}
+    for _idx, t in ipairs(set.all) do
+        if norm:find(t, 1, true) then
+            for _idx2, sp in ipairs(XrayParser._collectMatchSpans(norm, t)) do
+                spans[#spans + 1] = { sp[1], sp[2], t }
+            end
+        end
+    end
+    if #spans == 0 then return spans end
+    if handles and #handles > 0 then
+        local ex = {}
+        for _idx, h in ipairs(handles) do
+            if norm:find(h, 1, true) then
+                for _idx2, sp in ipairs(XrayParser._collectMatchSpans(norm, h)) do
+                    ex[#ex + 1] = sp
+                end
+            end
+        end
+        if #ex > 0 then
+            local kept = {}
+            for _idx, sp in ipairs(spans) do
+                local inside = false
+                for _idx2, x in ipairs(ex) do
+                    if sp[1] >= x[1] and sp[2] <= x[2] then
+                        inside = true
+                        break
+                    end
+                end
+                if not inside then kept[#kept + 1] = sp end
+            end
+            spans = kept
+        end
+    end
+    return XrayParser.mergeSpans(spans)
+end
+
+--- Merge overlapping { s, e, form } spans into occurrences (the union rule
+--- countItemOccurrences has always used), keeping each one's widest form.
+function XrayParser.mergeSpans(spans)
+    table.sort(spans, function(a, b)
+        if a[1] ~= b[1] then return a[1] < b[1] end
+        return a[2] > b[2]
+    end)
+    local out, cur = {}, nil
+    for _idx, sp in ipairs(spans) do
+        if cur and sp[1] <= cur[2] then
+            if sp[2] > cur[2] then cur[2] = sp[2] end
+            if sp[2] - sp[1] > cur.width then
+                cur.width = sp[2] - sp[1]
+                cur.form = sp[3]
+            end
+        else
+            cur = { sp[1], sp[2], form = sp[3], width = sp[2] - sp[1] }
+            out[#out + 1] = cur
+        end
+    end
+    return out
+end
+
+--- Incremental builder of one normalized match string over a run of text
+--- pieces (the words of a page with the separators the book has after or
+--- before them), recording each piece's byte range in it, so a span found in
+--- the string maps back to whole words. Whitespace runs collapse across
+--- pieces exactly as matchNormalize collapses them in one string.
+--- @return table builder: add(text, sep) → { first, last } or false (the
+---   piece normalizes to nothing, e.g. a lone Quranic sign); len; result()
+function XrayParser.newPieceNormalizer()
+    local b = { out = {}, len = 0, ends_space = true }
+    local function push(chunk)
+        if chunk == "" then return end
+        if b.ends_space and chunk:byte(1) == 32 then chunk = chunk:sub(2) end
+        if chunk == "" then return end
+        b.out[#b.out + 1] = chunk
+        b.len = b.len + #chunk
+        b.ends_space = chunk:byte(-1) == 32
+    end
+    function b.add(text, sep)
+        if sep and sep ~= "" then
+            if sep:find("^%s+$") then push(" ") else push(XrayParser.matchNormalize(sep)) end
+        end
+        text = text or ""
+        -- Fast path: ASCII (most pieces of Latin-script books)
+        if not text:find("[\128-\255]") then
+            text = text:lower():gsub("%s+", " ")
+        else
+            text = XrayParser.matchNormalize(text)
+        end
+        local before = b.len
+        push(text)
+        return b.len > before and { before + 1, b.len } or false
+    end
+    function b.result()
+        return table.concat(b.out)
+    end
+    return b
+end
+
+--- One normalized match string over a run of text pieces, with each piece's
+--- byte range in it (see newPieceNormalizer). The separators are the book's
+--- own: none between CJK characters, an apostrophe inside "friend’s".
+--- @param pieces array of { text = word (and the separator after it),
+---   sep = text before it (optional) }
+--- @return string norm, table ranges
+function XrayParser.normalizePieces(pieces)
+    local b = XrayParser.newPieceNormalizer()
+    local ranges = {}
+    for i, p in ipairs(pieces) do ranges[i] = b.add(p.text, p.sep) end
+    return b.result(), ranges
+end
+
+--- Pieces of a raw text the way crengine walks it, for the matcher and the
+--- mention snippets: a word with the whitespace after it, and CJK, kana,
+--- Hangul and Thai one character each (the scripts written without spaces).
+--- @param text string
+--- @return table array of { text }
+function XrayParser.textPieces(text)
+    local pieces = {}
+    for token, ws in text:gmatch("(%S+)(%s*)") do
+        if not token:find("[\224\227-\237\239]") then
+            pieces[#pieces + 1] = { text = token .. ws }
+        else
+            -- One piece per CJK/Thai character; runs of anything else stay whole
+            local run = {}
+            local i, len = 1, #token
+            while i <= len do
+                local c = token:byte(i)
+                local n = c < 0x80 and 1 or c < 0xE0 and 2 or c < 0xF0 and 3 or 4
+                local ch = token:sub(i, i + n - 1)
+                if n >= 3 and (c == 0xE0 or (c >= 0xE3 and c <= 0xED) or c == 0xEF) then
+                    if #run > 0 then
+                        pieces[#pieces + 1] = { text = table.concat(run) }
+                        run = {}
+                    end
+                    pieces[#pieces + 1] = { text = ch }
+                else
+                    run[#run + 1] = ch
+                end
+                i = i + n
+            end
+            if #run > 0 then pieces[#pieces + 1] = { text = table.concat(run) } end
+            pieces[#pieces].text = pieces[#pieces].text .. ws
+        end
+    end
+    return pieces
+end
+
+--- A mention snippet around pieces [f, l]: up to `budget` bytes of context
+--- each side, whitespace runs as single spaces.
+--- @return string before, string match, string after
+function XrayParser.snippetFromPieces(pieces, f, l, budget)
+    budget = budget or 80
+    local a, used = f, 0
+    while a > 1 and used < budget do
+        a = a - 1
+        used = used + #pieces[a].text
+    end
+    local b = l
+    used = 0
+    while b < #pieces and used < budget do
+        b = b + 1
+        used = used + #pieces[b].text
+    end
+    local parts = {}
+    for i = a, f - 1 do parts[#parts + 1] = pieces[i].text end
+    local before = table.concat(parts)
+    parts = {}
+    for i = f, l do parts[#parts + 1] = pieces[i].text end
+    -- The match's own trailing whitespace goes after the bold
+    local match, match_ws = table.concat(parts):match("^(.-)(%s*)$")
+    parts = { match_ws }
+    for i = l + 1, b do parts[#parts + 1] = pieces[i].text end
+    local after = table.concat(parts)
+    return (before:gsub("%s+", " ")), (match:gsub("%s+", " ")), (after:gsub("%s+", " "))
+end
+
+--- The pieces an occurrence covers: first and last piece index whose range
+--- overlaps [s, e], or nil when it covers none (text between pieces only).
+function XrayParser.piecesForSpan(ranges, s, e)
+    local first, last
+    for i, r in ipairs(ranges) do
+        if r then
+            if r[2] >= s and r[1] <= e then
+                first = first or i
+                last = i
+            elseif r[1] > e then
+                break
+            end
+        end
+    end
+    return first, last
 end
 
 --- Handle normalization shared by the cross-entity containment layer (B266):

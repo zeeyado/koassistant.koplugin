@@ -4816,7 +4816,10 @@ function XrayBrowser:showMentions(chapter)
     UIManager:show(Notification:new{ text = notif_text })
 
     local self_ref = self
-    UIManager:scheduleIn(0.2, function()
+    -- Trapper:wrap: a whole-book name-index pass may run in a subprocess
+    UIManager:scheduleIn(0.2, function() require("ui/trapper"):wrap(function()
+        local XrayIndex = require("koassistant_xray_index")
+        local by_index = XrayIndex.supported(self_ref.ui.document)
         local text, chapter_title
         local display_chapter = chapter  -- track what we're showing for the picker
         local mentions_gate = self_ref:_spoilerGate()  -- F2: posture-routed, position-strict
@@ -4825,25 +4828,27 @@ function XrayBrowser:showMentions(chapter)
         -- the reader is INSIDE crosses the gate — this surface used to
         -- extract its WHOLE span (the tree and the per-entity mention pages
         -- already clipped), so just entering chapter N revealed every entity
-        -- in its unread tail. Clip the extraction at the gate page; the
+        -- in its unread tail. Clip the range at the gate page; the
         -- session-level reveal flag (_mentions_spoiler_warned, same one the
         -- picker's beyond-gate confirm sets) lifts the clip.
         local clipped_to
-        local function gatedChapterText(ch)
+        local function gatedChapter(ch)
             if mentions_gate and not self_ref._mentions_spoiler_warned
                     and ch.start_page and ch.start_page <= mentions_gate
                     and (ch.end_page or 0) > mentions_gate then
                 clipped_to = mentions_gate
-                return self_ref:_getChapterText({
+                return {
                     title = ch.title,
                     start_page = ch.start_page,
                     end_page = mentions_gate,
                     depth = ch.depth,
-                }), ch.title or ""
+                }
             end
-            return self_ref:_getChapterText(ch), ch.title or ""
+            return ch
         end
 
+        local range -- { start_page, end_page } of what the list counts
+        local span  -- a section's own span: read in a moment when not stored
         if is_all then
             -- Aggregate: page range depends on context
             -- Section X-Ray "all" = scope bounds; main X-Ray "all" = the
@@ -4863,48 +4868,70 @@ function XrayBrowser:showMentions(chapter)
                 -- Section X-Ray: scope bounds
                 start_page = self_ref.scope_start or 1
                 end_page = self_ref.scope_end or total_pages
+                span = { first = start_page, last = end_page }
             elseif chapter == "all_reveal" then
                 end_page = total_pages
             else
                 end_page = mentions_gate or total_pages
             end
-            local all_chapter = { start_page = start_page, end_page = end_page }
-            text = self_ref:_getChapterText(all_chapter)
+            range = { start_page = start_page, end_page = end_page }
             chapter_title = ""
         elseif type(chapter) == "table" then
             -- Specific chapter from picker
-            text, chapter_title = gatedChapterText(chapter)
+            range = gatedChapter(chapter)
+            chapter_title = chapter.title or ""
         else
             -- Current chapter (default — deepest TOC match; flat page chunk
             -- when there is no TOC)
             local cur = getChapterBoundaries(self_ref.ui, nil)
                 or getPageRangeChapter(self_ref.ui)
             if cur then
-                text, chapter_title = gatedChapterText(cur)
+                range = gatedChapter(cur)
+                chapter_title = cur.title or ""
             else
                 text, chapter_title = getCurrentChapterText(self_ref.ui, nil, self_ref)
             end
         end
 
-        if not text or text == "" then
-            local msg
+        -- Counts from the per-book name index: the same numbers as Chapter
+        -- Appearances, whole book or section read once and stored (the
+        -- whole-book text used to be cut at 5 MB, a quarter of a very large
+        -- book). A single chapter uses it when it is ready and reads its own
+        -- text otherwise (a chapter is quick either way).
+        local found
+        if by_index and range then
+            local layout
             if is_all then
-                msg = self_ref.ui.document.info.has_pages
-                    and _("Could not extract book text. PDF text extraction may not be available for this document.")
-                    or _("Could not extract book text.")
+                layout = self_ref:_nameLayout(span)
+                if not layout then return end
             else
-                msg = self_ref.ui.document.info.has_pages
-                    and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
-                    or _("Could not extract chapter text.")
+                layout = XrayIndex.ready(self_ref.ui, self_ref:_indexForms())
             end
-            UIManager:show(InfoMessage:new{
-                text = msg,
-                timeout = 5,
-            })
-            return
+            if layout then
+                found = self_ref:_mentionsFromIndex(layout, range.start_page, range.end_page)
+            end
         end
-
-        local found = XrayParser.findItemsInChapter(self_ref.xray_data, text)
+        if not found then
+            if range and not text then text = self_ref:_getChapterText(range) end
+            if not text or text == "" then
+                local msg
+                if is_all then
+                    msg = self_ref.ui.document.info.has_pages
+                        and _("Could not extract book text. PDF text extraction may not be available for this document.")
+                        or _("Could not extract book text.")
+                else
+                    msg = self_ref.ui.document.info.has_pages
+                        and _("Could not extract chapter text. PDF text extraction may not be available for this document.")
+                        or _("Could not extract chapter text.")
+                end
+                UIManager:show(InfoMessage:new{
+                    text = msg,
+                    timeout = 5,
+                })
+                return
+            end
+            found = XrayParser.findItemsInChapter(self_ref.xray_data, text)
+        end
 
         -- Build menu items
         local items = {}
@@ -5029,7 +5056,45 @@ function XrayBrowser:showMentions(chapter)
             multilines_forced = true,
             items_max_lines = 2,
         })
-    end)
+    end) end)
+end
+
+--- Per-entry counts over [first, last] from a name-index layout (the Mentions
+--- view's rows), sorted by count: the one matcher, with cross-entity
+--- containment, exactly as Chapter Appearances counts.
+function XrayBrowser:_mentionsFromIndex(layout, first, last)
+    local XrayIndex = require("koassistant_xray_index")
+    -- Pages in hidden flows stay out, as the text path's flow-aware read did
+    local doc = self.ui and self.ui.document
+    local hidden = doc and doc.hasHiddenFlows and doc:hasHiddenFlows()
+    local results = {}
+    for _idx, cat in ipairs(XrayParser.getCategories(self.xray_data) or {}) do
+        if not XrayParser.TEXT_MATCH_EXCLUDED[cat.key] then
+            for _idx2, item in ipairs(cat.items) do
+                local set = XrayParser.matchTermSet(item)
+                if set then
+                    local counts, total = XrayIndex.entityPages(layout, set,
+                        XrayParser.containingMatchHandles(self.xray_data, item), first, last)
+                    if hidden and counts then
+                        total = 0
+                        for p, c in pairs(counts) do
+                            if doc:getPageFlow(p) == 0 then total = total + c end
+                        end
+                    end
+                    if total and total > 0 then
+                        results[#results + 1] = {
+                            item = item,
+                            category_key = cat.key,
+                            category_label = cat.label,
+                            count = total,
+                        }
+                    end
+                end
+            end
+        end
+    end
+    table.sort(results, function(a, b) return a.count > b.count end)
+    return results
 end
 
 --- Show all X-Ray items in a specific chapter (given boundaries)
@@ -5190,7 +5255,7 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
             mandatory_dim = true,
             callback = function()
                 self_ref:_showChapterMentions(item, category_key, item_title, nil,
-                    { hits = data.hits, no_clip = fully or nil })
+                    { hits = data.hits, dist = data.layout and data or nil, no_clip = fully or nil })
             end,
         })
     end
@@ -5204,12 +5269,15 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
             mandatory_dim = true,
             bold = true,
             callback = function()
-                for j = 1, #nodes do
-                    data.revealed[j] = true
-                end
-                data.spoiler_warned = true
-                data._focus_idx = nil
-                self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                -- A section's span-only first view completes the rest first
+                self_ref:_completeDistribution(data, function()
+                    for j = 1, #nodes do
+                        data.revealed[j] = true
+                    end
+                    data.spoiler_warned = true
+                    data._focus_idx = nil
+                    self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                end)
             end,
         })
     end
@@ -5357,13 +5425,15 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                 dim = true,
                 callback = function()
                     local function do_reveal()
-                        data.revealed[captured_i] = true
-                        for j = captured_i + 1, #nodes do
-                            if (nodes[j].depth or 1) <= (n.depth or 1) then break end
-                            data.revealed[j] = true
-                        end
-                        data._focus_idx = captured_i
-                        self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                        self_ref:_completeDistribution(data, function()
+                            data.revealed[captured_i] = true
+                            for j = captured_i + 1, #nodes do
+                                if (nodes[j].depth or 1) <= (n.depth or 1) then break end
+                                data.revealed[j] = true
+                            end
+                            data._focus_idx = captured_i
+                            self_ref:_buildDistributionView(item, category_key, item_title, data, true)
+                        end)
                     end
                     if not data.spoiler_warned then
                         local warn_text = self_ref.scope
@@ -5410,7 +5480,7 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
                         -- Mention list scoped to this node's span; a node the
                         -- user revealed opens unclipped
                         self_ref:_showChapterMentions(item, category_key, item_title, n,
-                            { hits = data.hits,
+                            { hits = data.hits, dist = data.layout and data or nil,
                               no_clip = data.revealed[captured_i] or nil })
                     else
                         UIManager:show(Notification:new{
@@ -5489,7 +5559,8 @@ function XrayBrowser:_buildDistributionView(item, category_key, item_title, data
             end
             if pm then
                 self:_showChapterMentions(item, category_key, item_title, target_chapter,
-                    { hits = data.hits, no_clip = pm.no_clip or nil })
+                    { hits = data.hits, dist = data.layout and data or nil,
+                      no_clip = pm.no_clip or nil })
             end
         end
     end
@@ -5506,6 +5577,163 @@ function XrayBrowser:_mentionReturnInfo(category_key, item_title)
     }
     if self.scope then return_info.scope = self.scope end
     return return_info
+end
+
+--- Every form this browser's X-Ray matches (all text-matched entries): what
+--- the per-book name index must hold for Chapter Appearances and Mentions.
+function XrayBrowser:_indexForms()
+    local forms, seen = {}, {}
+    for _idx, cat in ipairs(XrayParser.getCategories(self.xray_data) or {}) do
+        if not XrayParser.TEXT_MATCH_EXCLUDED[cat.key] then
+            for _idx2, item in ipairs(cat.items) do
+                local set = XrayParser.matchTermSet(item)
+                for _idx3, f in ipairs(set and set.all or {}) do
+                    if not seen[f] then
+                        seen[f] = true
+                        forms[#forms + 1] = f
+                    end
+                end
+            end
+        end
+    end
+    return forms
+end
+
+--- The name index for this browser's X-Ray (docs/xray_marks_freeze_plan.md
+--- round 4): the stored layout when it holds every form; else a section's
+--- own span, read now in a moment (the whole book follows in the
+--- background); else one whole-book pass now, in a subprocess with a
+--- tap-to-cancel message. Must run inside Trapper:wrap.
+--- @param span table|nil { first, last }
+--- @return table|nil layout (layout.span set when it covers only the span),
+---   nil when cancelled or while KOReader re-lays the book out
+function XrayBrowser:_nameLayout(span)
+    local XrayIndex = require("koassistant_xray_index")
+    local ui = self.ui
+    local forms = self:_indexForms()
+    local layout = XrayIndex.ready(ui, forms)
+    if layout then return layout end
+    if not XrayIndex.stamp(ui) then
+        UIManager:show(InfoMessage:new{
+            text = _("KOReader is still laying out the book after a settings change. Try again in a moment."),
+            timeout = 4,
+        })
+        return nil
+    end
+    return XrayIndex.buildNow(ui, forms, span)
+end
+
+--- Distribution counts from a name-index layout: per-page counts, every
+--- node's count (clipped at the gate too), the totals. A span-only layout
+--- (a section browser's first view) leaves `partial` set: counts outside it
+--- are unknown until the first reveal completes them.
+function XrayBrowser:_fillDistributionCounts(data, layout)
+    local XrayIndex = require("koassistant_xray_index")
+    local total_pages = self.ui.document.info.number_of_pages or 0
+    local sp = layout.span
+    local page_counts = XrayIndex.entityPages(layout, data.set, data.handles,
+        sp and sp[1], sp and sp[2]) or {}
+    local prefix = { [0] = 0 }
+    for p = 1, total_pages do
+        prefix[p] = prefix[p - 1] + (page_counts[p] or 0)
+    end
+    local function spanCount(a, b)
+        if b > total_pages then b = total_pages end
+        if a < 1 then a = 1 end
+        if b < a then return 0 end
+        return prefix[b] - prefix[a - 1]
+    end
+    local gate = data.gate
+    for _idx, n in ipairs(data.nodes) do
+        n.count = spanCount(n.start_page, n.end_page)
+        n.gated_count = (gate and n.start_page <= gate)
+            and spanCount(n.start_page, math.min(n.end_page, gate)) or nil
+    end
+    data.layout = layout
+    data.page_counts = page_counts
+    data.partial = sp
+    data.total_full = total_pages > 0 and prefix[total_pages] or 0
+    data.total_gated = gate and spanCount(1, gate) or nil
+end
+
+--- Run `after` once the distribution holds the whole book: a section
+--- browser's span-only first view completes on the first reveal beyond it
+--- (stored index, or one pass now with a tap-to-cancel message).
+function XrayBrowser:_completeDistribution(data, after)
+    if not data.partial then return after() end
+    local self_ref = self
+    require("ui/trapper"):wrap(function()
+        local layout = self_ref:_nameLayout(nil)
+        if not layout then return end
+        self_ref:_fillDistributionCounts(data, layout)
+        after()
+    end)
+end
+
+--- Mention rows for pages of the name index: every occurrence on those
+--- pages with a bold-match snippet (the PTF shape KOReader's own search list
+--- renders), the page, and its place on the page (the jump walks to it).
+--- Pure against the document, so a long list builds in a subprocess.
+local function indexMentionRows(document, pages, set, handles)
+    local TextBoxWidget = require("ui/widget/textboxwidget")
+    local total = document.info.number_of_pages or 0
+    local rows = {}
+    for _idx, p in ipairs(pages) do
+        local xp = document:getPageXPointer(p)
+        local nxp = p < total and document:getPageXPointer(p + 1)
+            or require("koassistant_context_extractor").documentEndXPointer(document, total)
+        local text = (xp and nxp) and document:getTextFromXPointers(xp, nxp) or ""
+        if text ~= "" then
+            local pieces = XrayParser.textPieces(text)
+            local norm, ranges = XrayParser.normalizePieces(pieces)
+            for k, o in ipairs(XrayParser.occurrencesIn(norm, set, handles)) do
+                local f, l = XrayParser.piecesForSpan(ranges, o[1], o[2])
+                if f then
+                    local before, match, after = XrayParser.snippetFromPieces(pieces, f, l)
+                    rows[#rows + 1] = {
+                        page = p,
+                        display_page = p,
+                        k = k,
+                        row_text = table.concat({ TextBoxWidget.PTF_HEADER, "… ", before,
+                            TextBoxWidget.PTF_BOLD_START, match, TextBoxWidget.PTF_BOLD_END,
+                            after, " …" }),
+                    }
+                end
+            end
+        end
+    end
+    return rows
+end
+
+-- A mention list over more pages than this builds in a subprocess
+-- (tap to cancel); fewer build in place
+local MENTION_ROWS_IN_PROCESS_PAGES = 20
+
+--- Where the k-th occurrence of a mention row sits: the page's words walked
+--- for their xpointers, the same matcher as the row. nil when it cannot be
+--- found (the page then opens at its top).
+function XrayBrowser:_mentionXPointer(mention)
+    local XrayIndex = require("koassistant_xray_index")
+    local doc = self.ui and self.ui.document
+    if not (doc and mention.set) then return nil end
+    local ok, pieces, norm = pcall(XrayIndex.pageWords, doc, mention.page, mention.page, 0)
+    if not ok or not pieces then return nil end
+    local ranges = {}
+    for i, pc in ipairs(pieces) do ranges[i] = pc.range or false end
+    local n = 0
+    for _idx, o in ipairs(XrayParser.occurrencesIn(norm, mention.set, mention.handles)) do
+        local f, l = XrayParser.piecesForSpan(ranges, o[1], o[2])
+        if f then
+            for q = f, l do
+                if pieces[q].inside then
+                    n = n + 1
+                    if n == mention.k then return pieces[f].ws end
+                    break
+                end
+            end
+        end
+    end
+    return nil
 end
 
 --- THE text-matching spoiler gate (F2, slice 4): routed through the posture
@@ -5551,50 +5779,43 @@ end
 --- session there (built-in highlighting + prev/next — no custom overlay,
 --- maintainer verdict). chapter = nil → whole book. Spans are clipped by
 --- the posture-routed spoiler gate (_spoilerGate) unless opts.no_clip (the
---- user revealed this span, or protection is off). opts.hits = the
---- distribution's pre-gathered hit list (one pass powers counts AND these
---- rows — consistent by construction); absent → gather here.
+--- user revealed this span, or protection is off). opts.dist = the
+--- distribution's name-index data (EPUB: rows read from the pages it points
+--- at, the same matcher as its counts); opts.hits = its gathered hit list
+--- (PDF); neither → gather here (PDF).
 function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapter, opts)
     local self_ref = self
     local ui = self.ui
     if not (ui and ui.document) then return end
     local terms = collectSearchTerms(item, item_title)
     if #terms == 0 then return end
+    local dist = opts and opts.dist
     local pre_hits = opts and opts.hits
-    local exclude = XrayParser.containingHandles(self.xray_data, item)
-    if not pre_hits and not ui.document.findAllText then return end
+    if not dist and not pre_hits and not ui.document.findAllText then return end
     local no_clip = opts and opts.no_clip
 
-    local function render(all_hits)
-        -- Span bounds: the chapter's page range, or the whole book — either
-        -- way clipped at the spoiler gate unless no_clip
-        local boundary = (not no_clip) and self_ref:_spoilerGate() or nil
-        local first_page, last_page
-        if chapter then
-            first_page = chapter.start_page
-            last_page = chapter.end_page
-            if boundary and boundary < last_page then
-                -- Crossing span: show up to the gate (an entirely-beyond
-                -- span yields an empty list — reveal is the way in)
-                last_page = math.max(boundary, first_page - 1)
-            else
-                boundary = nil  -- no visible clip on this span
-            end
+    -- Span bounds: the chapter's page range, or the whole book — either
+    -- way clipped at the spoiler gate unless no_clip
+    local boundary = (not no_clip) and self_ref:_spoilerGate() or nil
+    local first_page, last_page
+    if chapter then
+        first_page = chapter.start_page
+        last_page = chapter.end_page
+        if boundary and boundary < last_page then
+            -- Crossing span: show up to the gate (an entirely-beyond
+            -- span yields an empty list — reveal is the way in)
+            last_page = math.max(boundary, first_page - 1)
         else
-            first_page = 1
-            last_page = boundary
-                or (ui.document.info and ui.document.info.number_of_pages)
+            boundary = nil  -- no visible clip on this span
         end
-        if not (first_page and last_page) then return end
+    else
+        first_page = 1
+        last_page = boundary
+            or (ui.document.info and ui.document.info.number_of_pages)
+    end
+    if not (first_page and last_page) then return end
 
-        local mentions = {}
-        for _idx, m in ipairs(all_hits) do
-            if m.display_page and m.display_page >= first_page
-                and m.display_page <= last_page then
-                table.insert(mentions, m)
-            end
-        end
-
+    local function render(mentions)
         -- Return descriptor: the search-return button relaunches THIS page
         local mentions_state = {
             whole_book = (not chapter) or nil,
@@ -5658,12 +5879,56 @@ function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapte
         })
     end
 
-    if pre_hits then
-        render(pre_hits)
+    local function inSpan(all_hits)
+        local mentions = {}
+        for _idx, m in ipairs(all_hits) do
+            if m.display_page and m.display_page >= first_page
+                and m.display_page <= last_page then
+                table.insert(mentions, m)
+            end
+        end
+        return mentions
+    end
+
+    if dist then
+        -- The pages the name index points at, read and matched here: a long
+        -- list builds in a subprocess (tap to cancel)
+        local pages = {}
+        for p, c in pairs(dist.page_counts or {}) do
+            if c > 0 and p >= first_page and p <= last_page then pages[#pages + 1] = p end
+        end
+        table.sort(pages)
+        local doc = ui.document
+        local function show(rows)
+            for _idx, r in ipairs(rows) do
+                r.set = dist.set
+                r.handles = dist.handles
+            end
+            render(rows)
+        end
+        if #pages <= MENTION_ROWS_IN_PROCESS_PAGES then
+            show(indexMentionRows(doc, pages, dist.set, dist.handles))
+        else
+            require("ui/trapper"):wrap(function()
+                local Trapper = require("ui/trapper")
+                local info = InfoMessage:new{ text = _("Collecting the mentions… (tap to cancel)") }
+                UIManager:show(info)
+                UIManager:forceRePaint()
+                local completed, rows = Trapper:dismissableRunInSubprocess(function()
+                    return indexMentionRows(doc, pages, dist.set, dist.handles)
+                end, info)
+                if not completed then return end
+                UIManager:close(info)
+                show(type(rows) == "table" and rows or {})
+            end)
+        end
+    elseif pre_hits then
+        render(inSpan(pre_hits))
     else
         require("ui/trapper"):wrap(function()
-            local hits = gatherMentionHitsInSubprocess(ui, terms, exclude)
-            if hits then render(hits) end
+            local hits = gatherMentionHitsInSubprocess(ui, terms,
+                XrayParser.containingHandles(self_ref.xray_data, item))
+            if hits then render(inSpan(hits)) end
         end)
     end
 end
@@ -5685,6 +5950,9 @@ function XrayBrowser:_gotoMentionAndSearch(category_key, item_title, mention, te
         origin = { xp = (ui.rolling and ui.rolling.getLastProgress
             and ui.rolling:getLastProgress()) or ui.document:getXPointer() }
     end
+    -- A name-index row knows its page and its place there: walk the page
+    -- for that occurrence's xpointer before anything moves
+    local target_xp = (not mention.xp and mention.k) and self:_mentionXPointer(mention) or nil
     -- Reveal the page: covering widgets, then the browser
     if self._cleanup_widgets then
         for _cw, widget in ipairs(self._cleanup_widgets) do
@@ -5697,6 +5965,8 @@ function XrayBrowser:_gotoMentionAndSearch(category_key, item_title, mention, te
     end
     if mention.xp then
         ui:handleEvent(Event:new("GotoXPointer", mention.xp, mention.xp))
+    elseif target_xp then
+        ui:handleEvent(Event:new("GotoXPointer", target_xp, target_xp))
     elseif mention.page then
         ui:handleEvent(Event:new("GotoPage", mention.page))
     end
@@ -5718,11 +5988,13 @@ function XrayBrowser:_gotoMentionAndSearch(category_key, item_title, mention, te
 end
 
 --- Show where a single entity appears across the book (Chapter Appearances,
---- slice 4 shape): the full TOC hierarchy with a count at EVERY level,
---- computed from ONE gatherMentionHits pass — the same hit list the mention
---- pages render, so counts and lists always agree. No text extraction on
---- this surface anymore. Spoiler gating is display-only (see
---- _buildDistributionView).
+--- slice 4 shape): the full TOC hierarchy with a count at EVERY level. On
+--- EPUB the counts come from the per-book name index (koassistant_xray_index:
+--- stored, or one pass now with a tap-to-cancel message; a section browser
+--- reads its own span first and completes the rest on the first reveal
+--- beyond it) and the mention lists read the pages it points at; PDFs keep
+--- ONE gatherMentionHits pass. Either way counts and lists agree. Spoiler
+--- gating is display-only (see _buildDistributionView).
 --- Entry point: "Chapter Appearances" button in item detail view
 --- @param item table The X-Ray item
 --- @param category_key string Category key
@@ -5745,15 +6017,21 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
         return
     end
 
-    if not self.ui.document.findAllText then
+    local by_index = require("koassistant_xray_index").supported(self.ui.document)
+    if not by_index and not self.ui.document.findAllText then
         UIManager:show(InfoMessage:new{
             text = _("Text search is not supported for this document."),
             timeout = 3,
         })
         return
     end
-    local terms = collectSearchTerms(item, item_title)
-    if #terms == 0 then
+    local terms, set
+    if by_index then
+        set = XrayParser.matchTermSet(item, item_title)
+    else
+        terms = collectSearchTerms(item, item_title)
+    end
+    if (by_index and not set) or (not by_index and #terms == 0) then
         UIManager:show(InfoMessage:new{
             text = T(_("No searchable name for \"%1\"."), item_title),
             timeout = 3,
@@ -5762,7 +6040,7 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
     end
 
     local self_ref = self
-    -- Trapper:wrap: the whole-book pass below runs in a subprocess and this
+    -- Trapper:wrap: a whole-book pass runs in a subprocess and this
     -- coroutine resumes when it lands (or ends when the reader cancels)
     UIManager:scheduleIn(0.2, function() require("ui/trapper"):wrap(function()
         local ui = self_ref.ui
@@ -5790,39 +6068,59 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
             return
         end
 
-        -- ONE native pass: every hit, whole book (display gating comes later)
-        local hits = gatherMentionHitsInSubprocess(ui, terms,
-            XrayParser.containingHandles(self.xray_data, item))
-        if not hits then return end
-
-        -- Per-page prefix sums → a node's count is one subtraction, at any depth
-        local total_pages = ui.document.info.number_of_pages or 0
-        local page_counts = {}
-        for _idx, h in ipairs(hits) do
-            local p = h.display_page
-            if p and p >= 1 and p <= total_pages then
-                page_counts[p] = (page_counts[p] or 0) + 1
+        local data = {
+            nodes = nodes,
+            max_depth = max_depth,
+            gate = gate,
+            revealed = {},
+            spoiler_warned = false,
+        }
+        if by_index then
+            data.set = set
+            data.handles = XrayParser.containingMatchHandles(self_ref.xray_data, item)
+            local span = self_ref.scope
+                and { first = self_ref.scope_start, last = self_ref.scope_end } or nil
+            local layout = self_ref:_nameLayout(span)
+            if not layout then return end
+            self_ref:_fillDistributionCounts(data, layout)
+        else
+            -- ONE native pass: every hit, whole book (display gating comes later)
+            local hits = gatherMentionHitsInSubprocess(ui, terms,
+                XrayParser.containingHandles(self_ref.xray_data, item))
+            if not hits then return end
+            -- Per-page prefix sums → a node's count is one subtraction, at any depth
+            local total_pages = ui.document.info.number_of_pages or 0
+            local page_counts = {}
+            for _idx, h in ipairs(hits) do
+                local p = h.display_page
+                if p and p >= 1 and p <= total_pages then
+                    page_counts[p] = (page_counts[p] or 0) + 1
+                end
             end
+            local prefix = { [0] = 0 }
+            for p = 1, total_pages do
+                prefix[p] = prefix[p - 1] + (page_counts[p] or 0)
+            end
+            local function spanCount(a, b)
+                if b > total_pages then b = total_pages end
+                if a < 1 then a = 1 end
+                if b < a then return 0 end
+                return prefix[b] - prefix[a - 1]
+            end
+            for _idx, n in ipairs(nodes) do
+                n.count = spanCount(n.start_page, n.end_page)
+                -- Clipped count for spans the gate cuts through (nil elsewhere)
+                n.gated_count = (gate and n.start_page <= gate)
+                    and spanCount(n.start_page, math.min(n.end_page, gate)) or nil
+            end
+            data.hits = hits
+            data.total_full = total_pages > 0 and prefix[total_pages] or #hits
+            data.total_gated = gate and spanCount(1, gate) or nil
         end
-        local prefix = { [0] = 0 }
-        for p = 1, total_pages do
-            prefix[p] = prefix[p - 1] + (page_counts[p] or 0)
-        end
-        local function spanCount(a, b)
-            if b > total_pages then b = total_pages end
-            if a < 1 then a = 1 end
-            if b < a then return 0 end
-            return prefix[b] - prefix[a - 1]
-        end
-        for _idx, n in ipairs(nodes) do
-            n.count = spanCount(n.start_page, n.end_page)
-            -- Clipped count for spans the gate cuts through (nil elsewhere)
-            n.gated_count = (gate and n.start_page <= gate)
-                and spanCount(n.start_page, math.min(n.end_page, gate)) or nil
-        end
-        local total_full = total_pages > 0 and prefix[total_pages] or #hits
 
-        if total_full == 0 then
+        -- Nothing anywhere (a section's span-only view still opens: the rest
+        -- of the book is one reveal away)
+        if data.total_full == 0 and not data.partial then
             local msg = ui.document.info.has_pages
                 and T(_("No mentions of \"%1\" found. PDF text extraction may not be available for this document."), item_title)
                 or T(_("No mentions of \"%1\" found in book text."), item_title)
@@ -5875,19 +6173,8 @@ function XrayBrowser:showItemDistribution(item, category_key, item_title, detail
                 end
             end
         end
-
-        local data = {
-            nodes = nodes,
-            hits = hits,
-            max_depth = max_depth,
-            gate = gate,
-            total_full = total_full,
-            total_gated = gate and spanCount(1, gate) or nil,
-            revealed = {},
-            expanded = expanded,
-            spoiler_warned = false,
-            _focus_idx = cur_i,
-        }
+        data.expanded = expanded
+        data._focus_idx = cur_i
         self_ref._dist_cache[cache_key] = data
         self_ref:_buildDistributionView(item, category_key, item_title, data, false, detail_context)
     end) end)

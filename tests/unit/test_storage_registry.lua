@@ -155,11 +155,12 @@ TestRunner:test("updateDirs() == old USER_DIRS", function()
     assertListEqual(Registry.updateDirs(), { "behaviors", "domains" }, "updateDirs")
 end)
 
-TestRunner:test("sidecarFiles() == the six original files + the two Track 37 per-book store files", function()
+TestRunner:test("sidecarFiles() == the six original files + the X-Ray name index + the two Track 37 per-book store files", function()
     assertListEqual(Registry.sidecarFiles(), {
         "koassistant_notebook.md", "koassistant_cache.lua",
         "koassistant_user_aliases.lua", "koassistant_pinned.lua",
         "koassistant_xray_checkpoints.lua", "koassistant_xray_ladder.lua",
+        "koassistant_xray_index.lua",
         "koassistant_book_settings.lua", "koassistant_chats.lua",
     }, "sidecarFiles")
 end)

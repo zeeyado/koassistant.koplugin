@@ -15,13 +15,21 @@ WAITED on it, device: "page turns very slow"):
   page must never paint the old page's marks) and schedules the scan for
   SCAN_SETTLE_S after the turn — well after the page's own repaint, and
   rapid flipping never scans at all (each turn invalidates the last
-  schedule's token). The scan resolves terms — steady state
-  is pure memo lookups (NO page-text read, NO searches); a term never yet
-  searched costs one whole-book `findAllText`, so at most ONE runs per tick
-  with the rest chained on scheduleIn (UI stays responsive while a
-  first-encounter page warms up) — then boxes for current-page hits via
-  `getScreenBoxesFromPositions` → dedupe/merge → ONE partial refresh sized
-  to the strips, skipped entirely on mark-free pages.
+  schedule's token).
+- The scan is PAGE-LOCAL (docs/xray_marks_freeze_plan.md round 4): the
+  visible page's text is read once and matched with the one text matcher
+  (XrayParser.matchTermSet/occurrencesIn — the Mentions view's rules); only
+  when a name is on it, the page's words are walked for their xpointers
+  (XrayIndex.pageWords, about one crengine call per word, stopping after the
+  last name) → `getScreenBoxesFromPositions` → dedupe/merge → ONE partial
+  refresh sized to the strips; a mark-free page refreshes nothing. It used to
+  search the WHOLE book once per name on first sighting, on the UI thread:
+  seconds per name on an e-reader, minutes for an Arabic name, and Android
+  closed KOReader as not responding. Nothing here touches crengine's
+  selection, so marks stay on during KOReader's own search.
+- Spacing (10/25 unseen pages, first appearance only) reads the per-book name
+  index (koassistant_xray_index.lua), found in the background; until it
+  holds an entity's names, that entity marks once per page.
 - EPUB page mode only in v1: scroll mode clears (boxes go stale mid-scroll
   with no per-scroll event granularity worth paying for), PDFs are excluded
   (the donor rides the native highlight.temp slot there, which the search
@@ -65,9 +73,6 @@ local SCAN_SETTLE_S = 0.3
 --                      -- book position, not from what the reader viewed)
 --   debug,             -- features.debug captured at sync
 --   scan_token,        -- bumped per turn; stale deferred ticks abort
---   hits_page_count,   -- doc page count the memo was built against (a
---                      -- re-render, e.g. font change, renumbers pages —
---                      -- wipe the memo, xpointers stay valid)
 --   stamps,            -- cache+aliases disk stamp gating the reloads
 --   live,              -- in-memory live entry, reloaded on stamp change
 --   sections,          -- { {key, sp, ep, stamp, data} } ranges resolved on
@@ -75,10 +80,11 @@ local SCAN_SETTLE_S = 0.3
 --                      -- arithmetic (round 3: section-only entities were
 --                      -- invisible to marking)
 --   artifact_key,      -- identity of the artifacts the entity index came from
---   entities,          -- XrayParser.buildMarkEntities output (main + in-range sections)
---   term_hits = {},    -- term text (lower) -> { by_page = {[page] = {{start, e},...}},
---                      -- pages = sorted unique page list } — whole-book,
---                      -- searched at most once per term per session
+--   entities,          -- XrayParser.buildMarkEntities output (main + in-range sections),
+--                      -- each with `longer` (indices of entities whose forms
+--                      -- contain its own, B266) and `handles` (those forms)
+--   index_rev,         -- bumped when a name-index pass lands (spacing reads it)
+--   page_memo,         -- last few pages' computed marks, keyed by page + state
 --   page_marks,        -- current page: { {x,y,w,h, name, text}, ... } — FULL word
 --                      -- boxes, the tap targets (round 2, d2)
 --   paint_boxes,       -- same-line-merged union rects the strips paint from
@@ -157,6 +163,20 @@ local function pickArtifact()
     return nil
   end
   return live
+end
+
+--- A name-index pass landed: the spacing may read differently now, so the
+--- memoized pages go and the current page scans again when it uses spacing.
+local function onNameIndexReady()
+  if not st then return end
+  st.index_rev = (st.index_rev or 0) + 1
+  st.page_memo, st.page_memo_order = nil, nil
+  local plugin = st.plugin
+  local ui = plugin and plugin.ui
+  if st.spacing and st.spacing > 1 and ui and ui.document then
+    local okp, pg = pcall(ui.document.getCurrentPage, ui.document)
+    if okp and pg then XrayMarks.onPageTurn(plugin, pg) end
+  end
 end
 
 --- Reload disk state on stamp change, re-pick the artifacts, rebuild the
@@ -330,34 +350,60 @@ local function ensureIndex(plugin, pageno)
     end
   end
   if st.ahead then addFrom(st.ahead.result, true) end
-  -- Cross-entity containment (B266): an entity whose term sits inside
-  -- another entity's longer handle ("Kubrick" in "Vivian Kubrick") records
-  -- those entities; the paint pass drops its hits that lie inside theirs.
-  -- Index-time only, so the per-turn scan pays nothing for it.
+  -- Cross-entity containment (B266): an entity whose form sits inside
+  -- another entity's longer form ("Kubrick" in "Vivian Kubrick") records
+  -- that entity (`longer`: the scan drops its occurrences lying inside
+  -- theirs) and the containing forms (`handles`: the name index applies the
+  -- same rule to the spacing). Index-time only, so the per-turn scan pays
+  -- nothing for it.
   for i, a in ipairs(ents) do
-    local longer
-    for j, b in ipairs(ents) do
-      if i ~= j then
-        local hit = false
-        for _ta, ta in ipairs(a.terms) do
-          for _tb, tb in ipairs(b.terms) do
-            if XrayParser.handleContainsWord(tb.norm, ta.norm) then
-              hit = true
-              break
+    local longer, handles, seen_h
+    if a.set then
+      for j, b in ipairs(ents) do
+        if i ~= j and b.set then
+          local hit = false
+          for _tb, tb in ipairs(b.set.all) do
+            for _ta, ta in ipairs(a.set.minimal) do
+              if #tb > #ta and tb:find(ta, 1, true)
+                  and XrayParser.handleContainsWord(tb, ta) then
+                hit = true
+                seen_h = seen_h or {}
+                if not seen_h[tb] then
+                  seen_h[tb] = true
+                  handles = handles or {}
+                  handles[#handles + 1] = tb
+                end
+                break
+              end
             end
           end
-          if hit then break end
-        end
-        if hit then
-          longer = longer or {}
-          longer[#longer + 1] = b.name
+          if hit then
+            longer = longer or {}
+            longer[#longer + 1] = j
+          end
         end
       end
     end
     a.longer = longer
+    a.handles = handles
   end
   st.entities = #ents > 0 and ents or nil
   st.artifact_key = key
+  st.page_memo, st.page_memo_order = nil, nil
+  -- The per-book name index behind the spacing (and Chapter Appearances):
+  -- every form of every marked entity, found in the background
+  if st.entities and plugin.ui then
+    local forms, seen_f = {}, {}
+    for _i, e in ipairs(st.entities) do
+      for _f, f in ipairs(e.set and e.set.all or {}) do
+        if not seen_f[f] then
+          seen_f[f] = true
+          forms[#forms + 1] = f
+        end
+      end
+    end
+    require("koassistant_xray_index").request(plugin.ui, forms, onNameIndexReady)
+  end
   local function tally(t)
     local parts = {}
     for k, v in pairs(t) do parts[#parts + 1] = k .. "=" .. v end
@@ -376,78 +422,6 @@ local function ensureIndex(plugin, pageno)
     .. (st.ahead and (" +ahead@" .. math.floor(st.ahead.p * 100 + 0.5) .. "%") or "")
     .. ": " .. tally(included)
     .. (next(skipped) and (" | skipped: " .. tally(skipped)) or ""))
-end
-
--- Word-boundary honesty for plain terms (round 3, device: an entity name
--- marked inside a longer word containing it): crengine's own word
--- segmentation arrives as matched_word_prefix/suffix — leftover LETTERS in
--- the same word mean a mid-word substring match, dropped for marking.
--- Possessive tails ('s) and pure punctuation stay markable (a possessive
--- "name's" must mark). Arabic regex
--- terms are exempt: their pattern already consumes article/diacritic
--- variants, and attached-prefix morphology needs the looseness.
-local function blockingAffix(s)
-  if not s or s == "" then return false end
-  if s == "'s" or s == "\226\128\153s" then return false end
-  if s:find("%a") or s:find("[\128-\255]") then return true end
-  return false
-end
-
---- B265: crengine reports a suffix for any match that does not end on a
---- visible word end, so a term ending in punctuation ("D.B.", "Jr.") gets
---- the NEXT word as its suffix on every occurrence and was never marked.
---- When the term's own edge is a non-word char, the affix on that side
---- describes a neighbour, not a mid-word leftover; ignore it.
-local function edgeIsWordChar(term_text, side)
-  local ch = side == "prefix" and term_text:sub(1, 1) or term_text:sub(-1)
-  return ch ~= "" and (ch:find("%w") ~= nil or ch:find("[\128-\255]") ~= nil)
-end
-
---- Whole-doc hit index for one term: hits bucketed per page plus the sorted
---- page list (the spacing window walks it for the nearest previous hit).
---- Memoized by the caller; runs at most once per term per session — this is
---- THE expensive call (whole-book search), which is why the scan chain
---- budgets it to one per tick.
---- Search flags are LOAD-BEARING (round 4, a styled two-word name went
---- unmarked):
---- without them crengine matches nothing across DOM text-node boundaries
---- (MATCH_ACROSS_TEXT_NODES) and folds no NBSP/soft-hyphen/curly-apostrophe
---- (FOLD_* / IGNORE_FORMAT_CONTROL_CHARS) — a styled or NBSP-joined name
---- passes the page-TEXT presence check yet returns zero search hits, and
---- the empty result memoizes. 0x00FF = stock's default-search flag set;
---- regex rides 0x0001 exactly like stock's regex search type.
-local function searchTerm(document, term)
-  local res
-  if term.regex then
-    res = document:findAllText(term.regex, true, 1, 2000, true, 0x0001)
-  else
-    res = document:findAllText(term.text, true, 1, 2000, false, 0x00FF)
-  end
-  local by_page, pages = {}, {}
-  if res then
-    for _i, r in ipairs(res) do
-      local keep = true
-      if not term.regex
-          and ((edgeIsWordChar(term.text, "prefix") and blockingAffix(r.matched_word_prefix))
-            or (edgeIsWordChar(term.text, "suffix") and blockingAffix(r.matched_word_suffix))) then
-        keep = false
-      end
-      if keep then
-        local ok, page = pcall(document.getPageFromXPointer, document, r.start)
-        if ok and page then
-          local bucket = by_page[page]
-          if not bucket then
-            bucket = {}
-            by_page[page] = bucket
-            pages[#pages + 1] = page
-          end
-          bucket[#bucket + 1] = { start = r.start, e = r["end"] }
-        end
-      end
-    end
-  end
-  table.sort(pages)
-  return { by_page = by_page, pages = pages }
 end
 
 local function dedupeMarks(marks)
@@ -505,208 +479,189 @@ local function mergeLineBoxes(marks)
   return out
 end
 
---- One deferred scan step (round 7 — the perf split). Resolve phase: a term
---- present on this page but never searched costs one whole-book findAllText
---- (~100ms+ on device), so at most ONE runs per tick and the rest chain on
---- scheduleIn; the normalized page text (hay) is built lazily on the first
---- unsearched term and carried through the chain. Paint phase (every term
---- memoized — the steady state): page hits are pure table lookups, boxes
---- resolve for this page only, then ONE partial refresh sized to the strips
---- — a mark-free page schedules nothing and refreshes nothing.
-function XrayMarks._scanTick(plugin, pageno, token, hay)
+-- Words walked past the page edge on each side: a name broken across it
+-- still matches (its words there fall off the page's boxes)
+local MARGIN_WORDS = 4
+-- Pages whose computed marks are kept: flipping back costs nothing
+local PAGE_MEMO_SIZE = 6
+
+--- The marks of the visible page(s) [pageno, last]: { {x,y,w,h, name, text,
+--- ahead}, ... }. Page-local: the run's text through the one matcher, the
+--- word walk only when a name is on it, boxes for the occurrences on the
+--- page, spacing from the name index.
+local function computeMarks(state, ui, pageno, last, stamp, dbg)
+  local XrayParser = require("koassistant_xray_parser")
+  local XrayIndex = require("koassistant_xray_index")
+  local doc = ui.document
+  local run = XrayIndex.pageRun(doc, pageno, last, MARGIN_WORDS)
+  if not run then return {} end
+  -- Which entities are on the page, and where the last one ends (the walk
+  -- stops a few words after it). The book's last page has no run text:
+  -- every entity is a candidate and the walk decides.
+  local hay = run.text ~= "" and XrayParser.matchNormalize(run.text) or nil
+  local candidates, stop = {}, 0
+  for i, ent in ipairs(state.entities) do
+    if ent.set and (not state.families or state.families[ent.family]) then
+      if hay then
+        local occ = XrayParser.occurrencesIn(hay, ent.set, nil)
+        if #occ > 0 then
+          candidates[#candidates + 1] = i
+          if occ[#occ][2] > stop then stop = occ[#occ][2] end
+        end
+      else
+        candidates[#candidates + 1] = i
+      end
+    end
+  end
+  if #candidates == 0 then return {} end
+  local pieces, norm = XrayIndex.walkRun(doc, run, hay and stop or nil)
+  if not pieces or #pieces == 0 then return {} end
+  local ranges = {}
+  for k, pc in ipairs(pieces) do ranges[k] = pc.range or false end
+  local occ_by = {}
+  for _k, i in ipairs(candidates) do
+    local occ = XrayParser.occurrencesIn(norm, state.entities[i].set, nil)
+    if #occ > 0 then occ_by[i] = occ end
+  end
+  -- B266: an occurrence strictly inside a longer entity's occurrence is that
+  -- entity's mention (an identical span is the same mention: two entries
+  -- sharing a name never cancel each other)
+  local final = {}
+  for i, occ in pairs(occ_by) do
+    local longer = state.entities[i].longer
+    if longer then
+      local kept = {}
+      for _k, o in ipairs(occ) do
+        local inside = false
+        for _l, j in ipairs(longer) do
+          for _m, lo in ipairs(occ_by[j] or {}) do
+            if lo[1] <= o[1] and o[2] <= lo[2] and (lo[1] < o[1] or o[2] < lo[2]) then
+              inside = true
+              break
+            end
+          end
+          if inside then break end
+        end
+        if not inside then kept[#kept + 1] = o end
+      end
+      if #kept > 0 then final[i] = kept end
+    else
+      final[i] = occ
+    end
+  end
+  local screen_h = require("device").screen:getHeight()
+  local layout = state.spacing > 1 and XrayIndex.layout(state.file, stamp) or nil
+  local marks = {}
+  for _k, i in ipairs(candidates) do
+    local occ = final[i]
+    local ent = state.entities[i]
+    local on_page = {}
+    for _m, o in ipairs(occ or {}) do
+      local f, l = XrayParser.piecesForSpan(ranges, o[1], o[2])
+      if f then
+        for q = f, l do
+          if pieces[q].inside then
+            on_page[#on_page + 1] = { o = o, f = f, l = l }
+            break
+          end
+        end
+      end
+    end
+    if #on_page > 0 then
+      -- Spacing from the name index: quiet when the entity appeared within
+      -- the last N pages (math.huge = first appearance only), measured from
+      -- book positions so it is deterministic under back-jumps. An entity
+      -- the index does not hold yet marks once per page.
+      local suppressed = false
+      if layout then
+        local prev = XrayIndex.prevPage(layout, ent.set, ent.handles, pageno)
+        if prev and (pageno - prev) < state.spacing then suppressed = true end
+      end
+      if not suppressed then
+        local ent_done = false
+        for _m, v in ipairs(on_page) do
+          local we = XrayIndex.wordEnd(doc, pieces[v.l])
+          local bok, bxs = pcall(doc.getScreenBoxesFromPositions, doc, pieces[v.f].ws, we, true)
+          if bok and bxs then
+            local added = false
+            for _b, box in ipairs(bxs) do
+              -- Margin words beyond the page land off the screen
+              if box.y and box.h and box.h > 0 and box.y >= 0 and box.y < screen_h then
+                -- The matched name or alias as the X-Ray writes it rides with
+                -- the mark: a tap opens the card on what the reader tapped,
+                -- never on the entry name (an alias mark printing the entry
+                -- name revealed the alias link on sight)
+                marks[#marks + 1] = { x = box.x, y = box.y, w = box.w, h = box.h,
+                  name = ent.name, text = ent.set.source[v.o.form] or ent.name,
+                  ahead = ent.ahead }
+                added = true
+              end
+            end
+            if added then ent_done = true end
+          end
+          -- Any spacing except "every occurrence": one mark per entity
+          if state.spacing >= 1 and ent_done then break end
+        end
+        if dbg and ent_done then dbg.marked = dbg.marked + 1 end
+      end
+    end
+  end
+  return marks
+end
+
+-- Test seam: the headless probes and unit tests drive the page matcher
+-- with a hand-built state (entities, spacing, families, file)
+XrayMarks._computeMarks = computeMarks
+
+--- One deferred scan step: the visible page's marks (memoized for the last
+--- few pages), then ONE partial refresh sized to the strips — a mark-free
+--- page schedules nothing and refreshes nothing.
+function XrayMarks._scanTick(plugin, pageno, token)
   if not st or st.scan_token ~= token then return end
   local ui = plugin and plugin.ui
   if not (ui and ui.document and ui.rolling) then return end
   if ui.document.file ~= st.file then return end
   if ui.view and ui.view.view_mode == "scroll" then return end
-  -- A search session can OPEN between the turn and this tick (or mid-chain
-  -- during a multi-term warm-up) — our findAllText would erase its hit
-  -- highlights (the round-3 bug), so every tick re-checks
-  local search = ui.search
-  if search and (search._koassistant_search_session
-      or (search.search_dialog and UIManager:isWidgetShown(search.search_dialog))) then
-    return
-  end
   local ok, err = pcall(function()
     local time = require("ui/time")
     local t0 = time.now()
     ensureIndex(plugin, pageno)
     if not st.entities or #st.entities == 0 then return end
     local idx_ms = time.to_ms(time.now() - t0)
-    local hay_ms = 0
-
-    -- A re-render (font/margin change) renumbers pages; the memo's pages
-    -- were computed against the old flow. Xpointers stay valid — only the
-    -- page bucketing is stale — so wipe and let terms re-search on demand.
-    local total = ui.document.info and ui.document.info.number_of_pages
-    if total and st.hits_page_count ~= total then
-      if st.hits_page_count ~= nil then st.term_hits = {} end
-      st.hits_page_count = total
-    end
-
-    -- Resolve: first present-but-never-searched term searches now, rest of
-    -- the chain follows one tick at a time. An absent unsearched term stays
-    -- unmemoized on purpose — the page where it IS present triggers its
-    -- one-time search.
-    for _i, ent in ipairs(st.entities) do
-      if not st.families or st.families[ent.family] then
-        for _j, term in ipairs(ent.terms) do
-          local tkey = term.text:lower()
-          if not st.term_hits[tkey] then
-            if hay == nil then
-              -- Visible-page text, once per scan (page-level read, same
-              -- consent class as the page-exempt extraction). LAYOUT text:
-              -- line wraps arrive as newlines, so a wrapped "Danny\nLloyd"
-              -- must still match the single-space term — collapse all
-              -- whitespace (NBSP included) like the term norms.
-              local hay_t = time.now()
-              local ContextExtractor = require("koassistant_context_extractor")
-              local XrayParser = require("koassistant_xray_parser")
-              local page_text = ContextExtractor:new(ui):getVisiblePageText().text or ""
-              hay = XrayParser.normalizeArabic(page_text:lower())
-                  :gsub("\194\160", " "):gsub("%s+", " ")
-              hay_ms = time.to_ms(time.now() - hay_t)
-            end
-            if hay ~= "" and hay:find(term.norm, 1, true) then
-              local search_t = time.now()
-              st.term_hits[tkey] = searchTerm(ui.document, term)
-              if st.debug then
-                logger.dbg("KOAssistant marks dbg: searched \"" .. term.text
-                  .. "\" -> " .. tostring(#st.term_hits[tkey].pages)
-                  .. " pages in "
-                  .. string.format("%.0f", time.to_ms(time.now() - search_t)) .. "ms")
-              end
-              UIManager:scheduleIn(0.05, function()
-                XrayMarks._scanTick(plugin, pageno, token, hay)
-              end)
-              return
-            end
-          end
-        end
-      end
-    end
-
-    -- Paint: entity-level spacing + box resolution from the memo
-    local paint_t = time.now()
-    local dbg = st.debug and { marked = {} } or nil
-    local marks = {}
-    -- Pass 1: hits on this page per entity (pageno+1 covers two-page
-    -- spreads) and, for the spacing window, the entity's nearest hit page
-    -- BEFORE this page
-    local per_ent, hits_by_name = {}, {}
-    for _i, ent in ipairs(st.entities) do
-      if not st.families or st.families[ent.family] then
-        local page_hits = {}
-        local prev_page
-        for _j, term in ipairs(ent.terms) do
-          local th = st.term_hits[term.text:lower()]
-          if th then
-            for p = pageno, pageno + 1 do
-              local bucket = th.by_page[p]
-              if bucket then
-                for _k, h in ipairs(bucket) do
-                  -- The matched TEXT rides with the hit: a mark tap must
-                  -- open the card on the words the reader tapped, never on
-                  -- the entry name (an alias mark printing the entry name
-                  -- revealed the alias link on sight)
-                  page_hits[#page_hits + 1] = { h = h, text = term.text }
-                end
-              end
-            end
-            if st.spacing > 1 then
-              local pgs = th.pages
-              for k = #pgs, 1, -1 do
-                if pgs[k] < pageno then
-                  if not prev_page or pgs[k] > prev_page then prev_page = pgs[k] end
-                  break
-                end
-              end
-            end
-          end
-        end
-        per_ent[#per_ent + 1] = { ent = ent, hits = page_hits, prev_page = prev_page }
-        hits_by_name[ent.name] = page_hits
-      end
-    end
-    -- Pass 2: containment (B266) — a hit lying inside a longer entity's hit
-    -- on this page is that entity's mention (xpointer range comparison on
-    -- the memo, no box work); then spacing + boxes
-    for _i, pe in ipairs(per_ent) do
-      local ent, page_hits, prev_page = pe.ent, pe.hits, pe.prev_page
-      if ent.longer and #page_hits > 0 then
-        local kept = {}
-        for _k, ph in ipairs(page_hits) do
-          local inside = false
-          for _l, lname in ipairs(ent.longer) do
-            for _m, lh in ipairs(hits_by_name[lname] or {}) do
-              local ok1, c1 = pcall(ui.document.compareXPointers, ui.document, lh.h.start, ph.h.start)
-              local ok2, c2 = pcall(ui.document.compareXPointers, ui.document, ph.h.e, lh.h.e)
-              -- Strictly inside: an identical span is the same mention,
-              -- not a containment (two entries sharing a term must not
-              -- cancel each other)
-              if ok1 and ok2 and c1 and c2 and c1 >= 0 and c2 >= 0
-                  and (c1 > 0 or c2 > 0) then
-                inside = true
-                break
-              end
-            end
-            if inside then break end
-          end
-          if not inside then kept[#kept + 1] = ph end
-        end
-        page_hits = kept
-      end
-      do
-        -- Spacing window: the entity appeared within the last N pages —
-        -- stay quiet (math.huge = first appearance only). Measured from
-        -- book positions, so it is deterministic under back-jumps too.
-        local suppressed = #page_hits > 0 and st.spacing > 1 and prev_page
-            and (pageno - prev_page) < st.spacing
-        if #page_hits > 0 and not suppressed then
-          local ent_done = false
-          for _k, ph in ipairs(page_hits) do
-            local h = ph.h
-            -- Off-view positions return no/off-screen boxes; y-filter drops
-            local bok, bxs = pcall(ui.document.getScreenBoxesFromPositions,
-              ui.document, h.start, h.e, true)
-            if bok and bxs then
-              local added = false
-              for _b, box in ipairs(bxs) do
-                if box.y and box.y >= 0 and box.h and box.h > 0 then
-                  marks[#marks + 1] = { x = box.x, y = box.y,
-                    w = box.w, h = box.h, name = ent.name,
-                    text = ph.text, ahead = ent.ahead }
-                  added = true
-                end
-              end
-              if added then ent_done = true end
-            end
-            -- Any spacing except "every occurrence": one mark per entity
-            if st.spacing >= 1 and ent_done then break end
-          end
-          if dbg and ent_done then table.insert(dbg.marked, ent.name) end
-        end
+    local doc = ui.document
+    local total = doc.info and doc.info.number_of_pages or pageno
+    local okv, visible = pcall(doc.getVisiblePageCount, doc)
+    local last = math.min(total, pageno + math.max(1, okv and tonumber(visible) or 1) - 1)
+    local stamp = require("koassistant_xray_index").stamp(ui)
+    local key = table.concat({ tostring(stamp), tostring(pageno), tostring(last),
+      tostring(st.artifact_key), tostring(st.spacing), tostring(st.families_key),
+      tostring(st.index_rev or 0) }, "|")
+    st.page_memo = st.page_memo or {}
+    st.page_memo_order = st.page_memo_order or {}
+    local dbg = st.debug and { marked = 0 } or nil
+    local marks = st.page_memo[key]
+    local cached = marks ~= nil
+    if not cached then
+      marks = computeMarks(st, ui, pageno, last, stamp, dbg)
+      st.page_memo[key] = marks
+      local order = st.page_memo_order
+      order[#order + 1] = key
+      while #order > PAGE_MEMO_SIZE do
+        st.page_memo[table.remove(order, 1)] = nil
       end
     end
     if #marks > 0 then
       st.page_marks = dedupeMarks(marks)
       st.paint_boxes = mergeLineBoxes(st.page_marks)
     end
-    -- Phase-split timing line (the round-9 device-slowness arbiter). The
-    -- old full-hay dump is GONE — multi-KB synchronous log writes per page
-    -- turn were themselves a device cost, and its forensic job (presence
-    -- replay) is done. `text` covers page read+normalize, the presence
-    -- finds are total minus the named phases.
+    -- Timing line (the device-slowness arbiter): dbg level, and COUNTS,
+    -- never the entity names (book content stays out of crash.log)
     if dbg then
-      -- dbg level (#104: info is for one-shots, this fires per page turn) and
-      -- a COUNT, never the entity names (book content stays out of crash.log)
       logger.dbg("KOAssistant marks dbg: page " .. tostring(pageno)
         .. " ents=" .. tostring(#st.entities)
-        .. " marked=" .. tostring(#dbg.marked)
+        .. " marked=" .. (cached and "memo" or tostring(dbg.marked))
         .. " boxes=" .. tostring(st.page_marks and #st.page_marks or 0)
         .. " idx=" .. string.format("%.0f", idx_ms)
-        .. "ms text=" .. string.format("%.0f", hay_ms)
-        .. "ms paint=" .. string.format("%.0f", time.to_ms(time.now() - paint_t))
         .. "ms total=" .. string.format("%.0f", time.to_ms(time.now() - t0)) .. "ms")
     end
     -- One targeted partial refresh over the union of the strips — except
@@ -743,10 +698,12 @@ end
 --- Per-page-turn entry. Called from AskGPT:onPageUpdate (inside the
 --- dispatch, BEFORE the repaint) and from sync() for the current page.
 --- Synchronous work is only what must not wait: clearing stale boxes (the
---- fresh page must never paint the old page's marks) and the search-session
---- state machine; the actual scan runs SCAN_SETTLE_S after the turn (round
---- 7 moved it off the dispatch — the turn waited on searches and boxes;
---- round 9 added the settle so rapid flipping pays nothing per page).
+--- fresh page must never paint the old page's marks); the actual scan runs
+--- SCAN_SETTLE_S after the turn (round 7 moved it off the dispatch — the
+--- turn waited on searches and boxes; round 9 added the settle so rapid
+--- flipping pays nothing per page). Marks stay on during KOReader's own
+--- search: nothing the scan does touches crengine's selection, which the
+--- search session's hit highlighting lives in.
 function XrayMarks.onPageTurn(plugin, pageno)
   if not st then return end
   local ui = plugin and plugin.ui
@@ -755,35 +712,10 @@ function XrayMarks.onPageTurn(plugin, pageno)
   st.page_marks = nil
   st.paint_boxes = nil
   if ui.view and ui.view.view_mode == "scroll" then return end
-
-  -- A live search session owns the page visuals: our findAllText shares
-  -- crengine's selection state with the session's hit highlighting, so a
-  -- scan mid-session ERASES the highlights (round 3, device: "hits are no
-  -- longer highlighted"). The session flag is set by the onShowSearchDialog
-  -- wrap BEFORE the initial jump (do_search runs before UIManager:show, so
-  -- isWidgetShown alone misses the first hit); once the dialog has been
-  -- seen shown, its close ends the session and marks resume.
-  local search = ui.search
-  local sd = search and search.search_dialog
-  if sd and UIManager:isWidgetShown(sd) then
-    search._koassistant_search_session = "shown"
-    -- Invalidate any in-flight scan chain too
-    st.scan_token = (st.scan_token or 0) + 1
-    return
-  end
-  local sess = search and search._koassistant_search_session
-  if sess == true then
-    st.scan_token = (st.scan_token or 0) + 1
-    return
-  elseif sess then
-    -- Was shown, now closed: session over
-    search._koassistant_search_session = nil
-  end
-
   st.scan_token = (st.scan_token or 0) + 1
   local token = st.scan_token
   UIManager:scheduleIn(SCAN_SETTLE_S, function()
-    XrayMarks._scanTick(plugin, pageno, token, nil)
+    XrayMarks._scanTick(plugin, pageno, token)
   end)
 end
 
@@ -839,8 +771,9 @@ function XrayMarks.sync(plugin)
   end
 
   if not (st and st.file == ui.document.file) then
-    st = { file = ui.document.file, term_hits = {} }
+    st = { file = ui.document.file }
   end
+  st.plugin = plugin
   -- Density → spacing (round 7): "all" marks every occurrence, "first" once
   -- per page, "10"/"25" only after that many pages unseen, "once" only the
   -- first appearance in the book. Default flipped to "10" round 9 —
@@ -859,6 +792,8 @@ function XrayMarks.sync(plugin)
   -- shrinks the set would leave removed marks visible outside it
   st.full_refresh = true
   local fam = marking.families
+  st.families_key = fam or "all"
+  st.page_memo, st.page_memo_order = nil, nil
   if fam == "people" then
     st.families = { people = true }
   elseif fam == "people_places" then
@@ -887,6 +822,8 @@ function XrayMarks.teardown(plugin)
   local ui = plugin and plugin.ui
   local was_painting = st and st.paint_boxes
   st = nil
+  -- The background name-index pass belongs to the open book's marks
+  require("koassistant_xray_index").stop(true)
   if ui and ui.view and ui.view.view_modules
       and ui.view.view_modules[MODULE_NAME] then
     ui.view.view_modules[MODULE_NAME] = nil
