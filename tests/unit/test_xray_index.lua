@@ -62,48 +62,69 @@ local function has(list, value)
 end
 
 -- ── Mock crengine document ─────────────────────────────────────────────
--- One text node per paragraph; xpointers "/body/p[N]/text().<char offset>";
--- a range's text joins paragraphs with "\n" (crengine's block break); words
--- are runs of non-separator characters, each CJK character a word; the
--- current page's characters are on screen, everything else is off it.
+-- Text nodes in document order: a paragraph is a string (one node) or a list
+-- of { text, rt = true } parts (ruby annotations are their own nodes, under
+-- an rt element). xpointers are "<node path>.<char offset>". A range's text
+-- works like crengine's getRangeText: paragraphs joined with "\n", rt nodes
+-- skipped, soft hyphens dropped; a node's own text (getTextFromXPointer)
+-- keeps them. Words are runs of non-separator characters within a node, each
+-- CJK character a word; the current page's characters are on screen.
 local function newMockDoc(paragraphs, page_starts)
     local doc = { info = { number_of_pages = #page_starts }, file = "/books/mock.epub", current_page = 1 }
-    local paras = {}
-    for i, text in ipairs(paragraphs) do
-        local chars = {}
-        for ch in text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = ch end
-        paras[i] = chars
+    local nodes = {}
+    for pi, para in ipairs(paragraphs) do
+        local parts = type(para) == "string" and { { text = para } } or para
+        local k, r = 0, 0
+        for _i, part in ipairs(parts) do
+            local chars = {}
+            for ch in part.text:gmatch("[%z\1-\127\194-\244][\128-\191]*") do chars[#chars + 1] = ch end
+            local path
+            if part.rt then
+                r = r + 1
+                path = "/body/p[" .. pi .. "]/ruby[1]/rt[" .. r .. "]/text()[1]"
+            else
+                k = k + 1
+                path = "/body/p[" .. pi .. "]/text()[" .. k .. "]"
+            end
+            nodes[#nodes + 1] = { pi = pi, path = path, chars = chars, rt = part.rt }
+        end
     end
-    local function xp(pi, off) return "/body/p[" .. pi .. "]/text()." .. off end
+    local by_path = {}
+    for ni, n in ipairs(nodes) do by_path[n.path] = ni end
+    local function xp(ni, off) return nodes[ni].path .. "." .. off end
     local function parse(x)
-        local pi, off = x:match("p%[(%d+)%]/text%(%)%.(%d+)$")
-        return tonumber(pi), tonumber(off)
+        local path, off = x:match("^(.*)%.(%d+)$")
+        return by_path[path], tonumber(off)
     end
     local function lin(x)
-        local pi, off = parse(x)
-        return pi * 1000000 + off
+        local ni, off = parse(x)
+        return ni * 1000000 + off
     end
     local SEPS = { ["’"] = true, ["“"] = true, ["”"] = true, ["，"] = true, ["。"] = true }
+    local SHY = "\194\173"
     local function isSep(ch) return ch:match("^[%s%p]$") ~= nil or SEPS[ch] end
     local function isCJK(ch)
         local b = ch:byte(1)
         return b and b >= 0xE3 and b <= 0xE9
     end
     local starts, ends = {}, {}
-    for pi, chars in ipairs(paras) do
+    for ni, n in ipairs(nodes) do
+        local chars = n.chars
         local i = 1
         while i <= #chars do
             if isSep(chars[i]) then
                 i = i + 1
             elseif isCJK(chars[i]) then
-                starts[#starts + 1] = { pi, i - 1 }
-                ends[#ends + 1] = { pi, i }
+                starts[#starts + 1] = { ni, i - 1 }
+                ends[#ends + 1] = { ni, i }
                 i = i + 1
             else
                 local j = i
-                while j <= #chars and not isSep(chars[j]) and not isCJK(chars[j]) do j = j + 1 end
-                starts[#starts + 1] = { pi, i - 1 }
-                ends[#ends + 1] = { pi, j - 1 }
+                while j <= #chars and (chars[j] == SHY or (not isSep(chars[j]) and not isCJK(chars[j]))) do
+                    j = j + 1
+                end
+                starts[#starts + 1] = { ni, i - 1 }
+                ends[#ends + 1] = { ni, j - 1 }
                 i = j
             end
         end
@@ -112,9 +133,9 @@ local function newMockDoc(paragraphs, page_starts)
     doc.calls = 0
     function doc:getPageXPointer(p)
         local s = page_starts[p]
-        return s and xp(s[1], s[2])
+        return s and xp(by_path["/body/p[" .. s[1] .. "]/text()[1]"], s[2])
     end
-    function doc:endXPointer() return xp(#paras, #paras[#paras]) end
+    function doc:endXPointer() return xp(#nodes, #nodes[#nodes].chars) end
     function doc:compareXPointers(a, b)
         self.calls = self.calls + 1
         local la, lb = lin(a), lin(b)
@@ -124,15 +145,15 @@ local function newMockDoc(paragraphs, page_starts)
     function doc:getNextVisibleWordStart(x)
         self.calls = self.calls + 1
         local l = lin(x)
-        for _i, s in ipairs(starts) do
-            if posLin(s) > l then return xp(s[1], s[2]) end
+        for _i, st in ipairs(starts) do
+            if posLin(st) > l then return xp(st[1], st[2]) end
         end
     end
     function doc:getPrevVisibleWordStart(x)
         self.calls = self.calls + 1
         local l, best = lin(x), nil
-        for _i, s in ipairs(starts) do
-            if posLin(s) < l then best = s else break end
+        for _i, st in ipairs(starts) do
+            if posLin(st) < l then best = st else break end
         end
         return best and xp(best[1], best[2])
     end
@@ -143,28 +164,36 @@ local function newMockDoc(paragraphs, page_starts)
             if posLin(e) > l then return xp(e[1], e[2]) end
         end
     end
+    function doc:getTextFromXPointer(x)
+        local ni = parse(x)
+        return table.concat(nodes[ni].chars)
+    end
     function doc:getTextFromXPointers(a, b)
         self.calls = self.calls + 1
-        local pa, oa = parse(a)
-        local pb, ob = parse(b)
-        local out = {}
-        for pi = pa, pb do
-            local chars = paras[pi]
-            local from = (pi == pa) and oa + 1 or 1
-            local to = (pi == pb) and ob or #chars
-            local seg = {}
-            for i = from, to do seg[#seg + 1] = chars[i] end
-            out[#out + 1] = table.concat(seg)
+        local na, oa = parse(a)
+        local nb, ob = parse(b)
+        local out, last_pi = {}, nil
+        for ni = na, nb do
+            local n = nodes[ni]
+            if last_pi and n.pi ~= last_pi then out[#out + 1] = "\n" end
+            last_pi = n.pi
+            if not n.rt then
+                local from = (ni == na) and oa + 1 or 1
+                local to = (ni == nb) and ob or #n.chars
+                for i = from, to do
+                    if n.chars[i] ~= SHY then out[#out + 1] = n.chars[i] end
+                end
+            end
         end
-        return table.concat(out, "\n")
+        return table.concat(out)
     end
     function doc:getScreenBoxesFromPositions(a, b)
         local la, lb = lin(a), lin(b)
         local ps, pe = page_starts[self.current_page], page_starts[self.current_page + 1]
-        local ls = posLin(ps)
-        local le = pe and posLin(pe) or math.huge
+        local ls = by_path["/body/p[" .. ps[1] .. "]/text()[1]"] * 1000000 + ps[2]
+        local le = pe and (by_path["/body/p[" .. pe[1] .. "]/text()[1]"] * 1000000 + pe[2]) or math.huge
         if la >= le or lb <= ls then return { { x = 0, y = 900, w = 10, h = 10 } } end
-        return { { x = la % 1000000, y = 20, w = lb - la, h = 10 } }
+        return { { x = la % 1000000, y = 20, w = lb - la, h = 10, node = math.floor(la / 1000000) } }
     end
     return doc
 end
@@ -179,9 +208,14 @@ local PARAS = {
     "Later, Einstein’s theory changed physics.",
     "李白写了静夜思。李白是诗人。",
     "بِسۡمِ ٱللَّهِ ٱلرَّحۡمَٰنِ ٱلرَّحِيمِ",
+    -- soft hyphens in the DOM text, not in the range text
+    "Die Ver\194\173wal\194\173tung traf Einstein.",
+    -- ruby: the rt readings are their own nodes, skipped by the range text
+    { { text = "東" }, { text = "とう", rt = true }, { text = "京" }, { text = "きょう", rt = true },
+      { text = "に行った。" } },
 }
--- page 1 = paragraphs 1-2, page 2 = 3, page 3 = 4, page 4 = 5
-local PAGES = { { 1, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 } }
+-- page 1 = paragraphs 1-2, page 2 = 3, page 3 = 4, page 4 = 5, page 5 = 6, page 6 = 7
+local PAGES = { { 1, 0 }, { 3, 0 }, { 4, 0 }, { 5, 0 }, { 6, 0 }, { 7, 0 } }
 local DATA = {
     characters = {
         { name = "Albert Einstein", aliases = { "Einstein" } },
@@ -189,7 +223,7 @@ local DATA = {
         { name = "Vivian Kubrick" },
         { name = "李白" },
     },
-    locations = { { name = "Ulm" } },
+    locations = { { name = "Ulm" }, { name = "東京" } },
     themes = { { name = "الله" } },
 }
 
@@ -213,6 +247,16 @@ TestRunner:test("matchTermSet: name, parenthetical, aliases; minimal forms", fun
         "a form containing another is not minimal")
     TestRunner:eq(set.source["deification process"], "Deification process")
     TestRunner:eq(XrayParser.matchTermSet({ name = "Bo" }), nil, "two-byte names never match")
+end)
+TestRunner:test("matchTermSet: a lowercase bracketed descriptor is not a name; a leading The drops", function()
+    local set = XrayParser.matchTermSet({ name = "The Wise Old Man (archetype)",
+        aliases = { "Spirit archetype", "The Sun" } })
+    TestRunner:ok(not has(set.all, "archetype"), "(archetype) would match every archetype")
+    TestRunner:ok(has(set.all, "spirit archetype"), "an alias stays whole")
+    TestRunner:ok(has(set.minimal, "wise old man"), "the article is optional while two words remain")
+    TestRunner:ok(has(set.all, "the sun") and not has(set.all, "sun"), "one word keeps its article")
+    local cap = XrayParser.matchTermSet({ name = "The Lapis (Philosopher's Stone)" })
+    TestRunner:ok(has(cap.all, "philosopher's stone"), "a capitalized bracketed part is a name")
 end)
 TestRunner:test("matchTermSet: Arabic alef-optional and article-dropped forms", function()
     local set = XrayParser.matchTermSet({ name = "الله" })
@@ -287,7 +331,7 @@ local LAYOUT = { stamp = "S1", forms = SCANNED }
 TestRunner:test("scan: every form recorded, pages and offsets encoded", function()
     TestRunner:ok(SCANNED["einstein"] ~= nil and SCANNED["einstein"] ~= "")
     local d = XrayIndex.decode(LAYOUT, "einstein")
-    TestRunner:eq(table.concat(d.pages, ","), "1,2")
+    TestRunner:eq(table.concat(d.pages, ","), "1,2,5")
     TestRunner:eq(#d.offs[1], 2, "two on page 1")
     TestRunner:eq(SCANNED["ulm"]:match("^1:"), "1:")
 end)
@@ -296,7 +340,8 @@ TestRunner:test("entityPages: union and containment per page", function()
     local counts, total = XrayIndex.entityPages(LAYOUT, ein, nil)
     TestRunner:eq(counts[1], 2, "Albert Einstein + Einstein on page 1")
     TestRunner:eq(counts[2], 1)
-    TestRunner:eq(total, 3)
+    TestRunner:eq(counts[5], 1, "read through the soft hyphens around it")
+    TestRunner:eq(total, 4)
     local kub = XrayParser.matchTermSet(DATA.characters[2])
     local _c, with_handles = XrayIndex.entityPages(LAYOUT, kub,
         XrayParser.containingMatchHandles(DATA, DATA.characters[2]))
@@ -364,6 +409,23 @@ TestRunner:test("CJK page: one piece per character, no spaces between them", fun
     TestRunner:eq(n, 2)
 end)
 
+TestRunner:test("soft hyphens: words read without them, positions still the DOM's", function()
+    local pieces, norm = XrayIndex.pageWords(doc, 5, 5, 0)
+    TestRunner:ok(norm:find("die verwaltung traf einstein.", 1, true), norm)
+    for _i, pc in ipairs(pieces) do
+        if pc.text:find("^Einstein") then
+            TestRunner:eq(pc.ws:match("%.(%d+)$"), "22", "the DOM offset counts the soft hyphens")
+        end
+    end
+end)
+TestRunner:test("ruby: the readings add nothing to the text", function()
+    local pieces, norm = XrayIndex.pageWords(doc, 6, 6, 0)
+    TestRunner:ok(norm:find("東京に行った", 1, true), norm)
+    for _i, pc in ipairs(pieces) do
+        if pc.ws:find("/rt%[") then TestRunner:eq(pc.text, "", "an rt word has no width") end
+    end
+end)
+
 -- ── Marks ──────────────────────────────────────────────────────────────
 TestRunner:suite("marks: page-local")
 local function buildEntities()
@@ -419,6 +481,17 @@ TestRunner:test("CJK and Arabic pages mark", function()
     TestRunner:eq(markNames(XrayMarks._computeMarks(state, ui, 3, 3, "none"))["李白"], 2)
     doc.current_page = 4
     TestRunner:eq(markNames(XrayMarks._computeMarks(state, ui, 4, 4, "none"))["الله"], 1)
+end)
+TestRunner:test("soft hyphens and ruby: the mark sits on the name", function()
+    local state = { entities = buildEntities(), spacing = 0, file = doc.file }
+    doc.current_page = 5
+    local marks = XrayMarks._computeMarks(state, ui, 5, 5, "none")
+    TestRunner:eq(#marks, 1)
+    TestRunner:eq(marks[1].x, 22, "starts at Einstein, not before it")
+    doc.current_page = 6
+    local rm = XrayMarks._computeMarks(state, ui, 6, 6, "none")
+    TestRunner:eq(markNames(rm)["東京"], 2, "one box per base character, none on the reading")
+    TestRunner:eq(rm[1].x, 0, "starts at 東")
 end)
 TestRunner:test("once per page, and spacing from the index", function()
     XrayIndex.store(doc.file, "S1", SCANNED)

@@ -48,6 +48,9 @@ local loaded = {}
 local pending = nil
 -- The one background pass: { file, stamp, forms = set, pid, read_fd, cancelled }
 local running = nil
+-- The book a foreground pass (buildNow) is reading: no background pass
+-- starts meanwhile
+local foreground = nil
 
 --- crengine documents only: page-mode EPUB/FB2/HTML… (PDFs and DjVu keep the
 --- engine search, page-bound anyway).
@@ -180,11 +183,15 @@ function XrayIndex.store(file, stamp, results)
     if dir and lfs.attributes(dir, "mode") ~= "directory" then
         pcall(function() require("util").makePath(dir) end)
     end
+    -- The merged data is the truth for this session even when the write
+    -- fails (read-only storage): otherwise every pass would find the same
+    -- forms missing and start over
+    loaded[path] = { data = data }
     local tmp = path .. ".tmp"
     local f = io.open(tmp, "wb")
     if not f then
         logger.warn("KOAssistant XrayIndex: cannot write", tmp)
-        return nil
+        return target
     end
     f:write(serialize(data))
     f:close()
@@ -192,9 +199,7 @@ function XrayIndex.store(file, stamp, results)
     if not ok then
         logger.warn("KOAssistant XrayIndex: cannot replace index file:", err)
         os.remove(tmp)
-        return nil
     end
-    loaded[path] = { data = data }
     return target
 end
 
@@ -478,6 +483,10 @@ startPass = function()
         pending = nil
         return
     end
+    if foreground then
+        scheduleStart(START_DELAY_S * 2)
+        return
+    end
     local stamp = XrayIndex.stamp(ui)
     if not stamp then
         -- KOReader is still re-rendering: try again once it settles
@@ -539,9 +548,14 @@ startPass = function()
                 type(payload) == "table" and payload.err or "no result")
             return
         end
-        -- Only while the book and its layout are still the ones read
+        -- Only while the book and its layout are still the ones read (a
+        -- layout that changed meanwhile gets its own pass)
         local cur = pending and pending.ui and pending.ui.document
-        if not (cur and cur.file == run.file and XrayIndex.stamp(pending.ui) == run.stamp) then return end
+        if not (cur and cur.file == run.file) then return end
+        if XrayIndex.stamp(pending.ui) ~= run.stamp then
+            scheduleStart()
+            return
+        end
         XrayIndex.store(run.file, run.stamp, payload.forms)
         logger.dbg("KOAssistant XrayIndex: background pass stored", #missing, "forms in",
             os.time() - run.started, "s")
@@ -573,7 +587,9 @@ startPass = function()
                 finish()
                 return
             else
-                UIManager:scheduleIn(POLL_S, poll)
+                -- Once the result is flowing, drain it quickly: the child is
+                -- blocked on a full pipe until we read
+                UIManager:scheduleIn(#parts > 0 and 0.05 or POLL_S, poll)
                 return
             end
         end
@@ -655,9 +671,14 @@ function XrayIndex.buildNow(ui, forms, opts)
         local info = InfoMessage:new{ text = _("Finding the X-Ray names in this section… (tap to cancel)") }
         UIManager:show(info)
         UIManager:forceRePaint()
+        UIManager:unschedule(startPass)
+        foreground = file
         local completed, res = Trapper:dismissableRunInSubprocess(function()
             return XrayIndex.scan(doc, forms, span[1], span[2])
         end, info)
+        foreground = nil
+        -- The whole book keeps coming in the background
+        if pending and pending.file == file then scheduleStart() end
         if not completed then return nil end
         UIManager:close(info)
         if type(res) ~= "table" then return nil end
@@ -671,15 +692,18 @@ function XrayIndex.buildNow(ui, forms, opts)
     local missing = XrayIndex.missing(stored, want)
     if #missing == 0 then return stored end
     if running and running.file == file then XrayIndex.stop() end
+    UIManager:unschedule(startPass)
     local Trapper = require("ui/trapper")
     local InfoMessage = require("ui/widget/infomessage")
     local info = InfoMessage:new{ text = _("Finding the X-Ray names in the book… (tap to cancel)") }
     UIManager:show(info)
     UIManager:forceRePaint()
     local started = os.time()
+    foreground = file
     local completed, res = Trapper:dismissableRunInSubprocess(function()
         return XrayIndex.scan(doc, missing, 1, total)
     end, info)
+    foreground = nil
     if not completed then
         -- Cancelled: the background pass picks the forms up again later
         if pending and pending.file == file then scheduleStart(START_DELAY_S * 6) end
@@ -790,6 +814,24 @@ function XrayIndex.walkRun(document, run, stop_norm)
     local function readChunk(a, b)
         return raw:getTextFromXPointers(a, b, false, false) or ""
     end
+    -- The current text node's own characters (getTextFromXPointer: the DOM
+    -- text, no selection side effect), read once per node and walked with
+    -- a byte cursor. The run's text is crengine's RANGE text, which drops
+    -- soft hyphens and skips text-selection-skip elements (ruby's rt), so a
+    -- word is cut from the node and checked against the run, never cut
+    -- from the run by the xpointer offsets alone.
+    local node_path, node_text, node_bpos, node_cpos
+    local function nodeChunk(xp, path, off, n)
+        if node_path ~= path or node_cpos ~= off then
+            node_path = path
+            node_text = raw:getTextFromXPointer(xp) or ""
+            node_bpos, node_cpos = advanceChars(node_text, 1, off), off
+        end
+        local after = advanceChars(node_text, node_bpos, n)
+        local dom = node_text:sub(node_bpos, after - 1)
+        node_bpos, node_cpos = after, off + n
+        return (dom:gsub("\194\173", ""))
+    end
     while cur and guard < 8000 do
         guard = guard + 1
         -- A word never starts with whitespace: a line break the run's text
@@ -811,17 +853,24 @@ function XrayIndex.walkRun(document, run, stop_norm)
         local nxt_path, nxt_off
         if nxt then nxt_path, nxt_off = splitXPointer(nxt) end
         local chunk
-        if nxt and cursor <= tlen then
-            local stop, short
-            if cur_path and nxt_path == cur_path and nxt_off >= cur_off then
-                -- Same text node: the xpointer offsets count characters of the run
-                local after, left = advanceChars(text, cursor, nxt_off - cur_off)
-                stop, short = after - 1, left > 0
+        if cur_path and cur_path:find("/rt[%[/]") then
+            -- A ruby annotation: the run's text leaves it out
+            chunk = ""
+        elseif nxt and cursor <= tlen and cur_path and nxt_path == cur_path and nxt_off >= cur_off then
+            -- Same text node: the node's own characters, checked against the run
+            local dom = nodeChunk(cur, cur_path, cur_off, nxt_off - cur_off)
+            local run_part = text:sub(cursor, cursor + #dom - 1)
+            if run_part == dom or (cursor + #dom - 1 > tlen and dom:sub(1, #run_part) == run_part) then
+                -- (the second case: a word hyphenated across the page end)
+                chunk = dom
             else
-                -- Into another text node: re-anchor on the run's text
-                stop = #readChunk(start, nxt)
+                -- Not in the run as it stands (text the run skips): no width
+                chunk = ""
             end
-            if short or stop > tlen then
+        elseif nxt and cursor <= tlen then
+            -- Into another text node: re-anchor on the run's text
+            local stop = #readChunk(start, nxt)
+            if stop > tlen then
                 -- The word runs past the page end (hyphenated across it)
                 chunk = readChunk(cur, nxt)
             else

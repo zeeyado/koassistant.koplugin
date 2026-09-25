@@ -2506,9 +2506,10 @@ end
 -- signature so an alias edited in place is never served stale
 local term_set_memo = setmetatable({}, { __mode = "k" })
 
---- The match forms of one entity: its name, a parenthetical in it, and every
---- alias, normalized, plus the Arabic article-dropped and alef-optional
---- forms. `all` is longest first (the widest form present paints), `minimal`
+--- The match forms of one entity: its name, a bracketed part of it that
+--- reads as a name (capitalized or another script), and every alias,
+--- normalized, plus the article-dropped (Arabic; English "the" while two
+--- words remain) and Arabic alef-optional forms. `all` is longest first (the widest form present paints), `minimal`
 --- the forms that contain no other form, `source` maps each form to the name
 --- or alias as written (what a tap on it opens). nil when the name is two
 --- bytes or shorter (the counting rule since the Mentions view shipped).
@@ -2532,6 +2533,13 @@ function XrayParser.matchTermSet(item, item_title)
         if XrayParser.containsArabic(norm) then
             local stripped = trimSpaces(stripArabicArticle(norm))
             if stripped ~= norm and #stripped > 4 then forms[2] = stripped end
+        else
+            -- A leading English article: "The Wise Old Man" is as often "a
+            -- wise old man" or "this wise old man". The phrase without it
+            -- matches too while two words or more remain ("The Sun" keeps
+            -- its article: "sun" alone would match every sun).
+            local rest = norm:match("^the (.+)$")
+            if rest and rest:find(" ", 1, true) then forms[#forms + 1] = rest end
         end
         for _f, form in ipairs(forms) do
             for _v, v in ipairs(alefVariants(form)) do
@@ -2548,7 +2556,12 @@ function XrayParser.matchTermSet(item, item_title)
         if type(t) ~= "string" then return end
         addForm(trimSpaces((t:gsub("%s*%(.-%)%s*", " "))))
         for inner in t:gmatch("%((.-)%)") do
-            if not inner:match("^%s*%d+%s*$") then addForm(trimSpaces(inner)) end
+            local part = trimSpaces(inner)
+            -- A bracketed part that reads as another name is one: capitalized
+            -- ("Theosis (Deification)") or in another script (the Arabic after
+            -- an English name). A lowercase descriptor ("(archetype)", "(the
+            -- narrator)") is not: it would match every use of the word.
+            if not part:match("^%d+$") and not part:match("^%l") then addForm(part) end
         end
     end
     addName(name)

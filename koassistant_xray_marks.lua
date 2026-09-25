@@ -25,8 +25,9 @@ WAITED on it, device: "page turns very slow"):
   refresh sized to the strips; a mark-free page refreshes nothing. It used to
   search the WHOLE book once per name on first sighting, on the UI thread:
   seconds per name on an e-reader, minutes for an Arabic name, and Android
-  closed KOReader as not responding. Nothing here touches crengine's
-  selection, so marks stay on during KOReader's own search.
+  closed KOReader as not responding. The scan still stands down during
+  KOReader's own search: its range reads re-select in crengine, which
+  clears the search's hit highlighting.
 - Spacing (10/25 unseen pages, first appearance only) reads the per-book name
   index (koassistant_xray_index.lua), found in the background; until it
   holds an entity's names, that entity marks once per page.
@@ -171,6 +172,8 @@ local function onNameIndexReady()
   if not st then return end
   st.index_rev = (st.index_rev or 0) + 1
   st.page_memo, st.page_memo_order = nil, nil
+  -- The spacing may now hide marks already drawn: repaint the whole page
+  st.full_refresh = true
   local plugin = st.plugin
   local ui = plugin and plugin.ui
   if st.spacing and st.spacing > 1 and ui and ui.document then
@@ -402,6 +405,8 @@ local function ensureIndex(plugin, pageno)
         end
       end
     end
+    st.index_forms = forms
+    st.index_stamp = require("koassistant_xray_index").stamp(plugin.ui)
     require("koassistant_xray_index").request(plugin.ui, forms, onNameIndexReady)
   end
   local function tally(t)
@@ -580,25 +585,38 @@ local function computeMarks(state, ui, pageno, last, stamp, dbg)
       if not suppressed then
         local ent_done = false
         for _m, v in ipairs(on_page) do
-          local we = XrayIndex.wordEnd(doc, pieces[v.l])
-          local bok, bxs = pcall(doc.getScreenBoxesFromPositions, doc, pieces[v.f].ws, we, true)
-          if bok and bxs then
-            local added = false
-            for _b, box in ipairs(bxs) do
-              -- Margin words beyond the page land off the screen
-              if box.y and box.h and box.h > 0 and box.y >= 0 and box.y < screen_h then
-                -- The matched name or alias as the X-Ray writes it rides with
-                -- the mark: a tap opens the card on what the reader tapped,
-                -- never on the entry name (an alias mark printing the entry
-                -- name revealed the alias link on sight)
-                marks[#marks + 1] = { x = box.x, y = box.y, w = box.w, h = box.h,
-                  name = ent.name, text = ent.set.source[v.o.form] or ent.name,
-                  ahead = ent.ahead }
-                added = true
+          -- Runs of words with text: a ruby reading between two characters
+          -- of a name has no width, and its box (above the line) stays unmarked
+          local segs, seg_f = {}, nil
+          for q = v.f, v.l + 1 do
+            if q <= v.l and pieces[q].text ~= "" then
+              seg_f = seg_f or q
+            elseif seg_f then
+              segs[#segs + 1] = { seg_f, q - 1 }
+              seg_f = nil
+            end
+          end
+          local added = false
+          for _r, seg in ipairs(segs) do
+            local we = XrayIndex.wordEnd(doc, pieces[seg[2]])
+            local bok, bxs = pcall(doc.getScreenBoxesFromPositions, doc, pieces[seg[1]].ws, we, true)
+            if bok and bxs then
+              for _b, box in ipairs(bxs) do
+                -- Margin words beyond the page land off the screen
+                if box.y and box.h and box.h > 0 and box.y >= 0 and box.y < screen_h then
+                  -- The matched name or alias as the X-Ray writes it rides
+                  -- with the mark: a tap opens the card on what the reader
+                  -- tapped, never on the entry name (an alias mark printing
+                  -- the entry name revealed the alias link on sight)
+                  marks[#marks + 1] = { x = box.x, y = box.y, w = box.w, h = box.h,
+                    name = ent.name, text = ent.set.source[v.o.form] or ent.name,
+                    ahead = ent.ahead }
+                  added = true
+                end
               end
             end
-            if added then ent_done = true end
           end
+          if added then ent_done = true end
           -- Any spacing except "every occurrence": one mark per entity
           if state.spacing >= 1 and ent_done then break end
         end
@@ -622,6 +640,14 @@ function XrayMarks._scanTick(plugin, pageno, token)
   if not (ui and ui.document and ui.rolling) then return end
   if ui.document.file ~= st.file then return end
   if ui.view and ui.view.view_mode == "scroll" then return end
+  -- A search session can OPEN between the turn and this tick: every crengine
+  -- range read (getTextFromXPointers) re-selects, which clears the
+  -- selection list the session's hit highlighting lives in (round 3)
+  local search = ui.search
+  if search and (search._koassistant_search_session
+      or (search.search_dialog and UIManager:isWidgetShown(search.search_dialog))) then
+    return
+  end
   local ok, err = pcall(function()
     local time = require("ui/time")
     local t0 = time.now()
@@ -632,7 +658,14 @@ function XrayMarks._scanTick(plugin, pageno, token)
     local total = doc.info and doc.info.number_of_pages or pageno
     local okv, visible = pcall(doc.getVisiblePageCount, doc)
     local last = math.min(total, pageno + math.max(1, okv and tonumber(visible) or 1) - 1)
-    local stamp = require("koassistant_xray_index").stamp(ui)
+    local XrayIndex = require("koassistant_xray_index")
+    local stamp = XrayIndex.stamp(ui)
+    -- A new layout (font, margins, rotation) renumbers the pages: its own
+    -- name index is found in the background, once per layout
+    if stamp and st.index_forms and st.index_stamp ~= stamp then
+      st.index_stamp = stamp
+      XrayIndex.request(ui, st.index_forms, onNameIndexReady)
+    end
     local key = table.concat({ tostring(stamp), tostring(pageno), tostring(last),
       tostring(st.artifact_key), tostring(st.spacing), tostring(st.families_key),
       tostring(st.index_rev or 0) }, "|")
@@ -701,9 +734,7 @@ end
 --- fresh page must never paint the old page's marks); the actual scan runs
 --- SCAN_SETTLE_S after the turn (round 7 moved it off the dispatch — the
 --- turn waited on searches and boxes; round 9 added the settle so rapid
---- flipping pays nothing per page). Marks stay on during KOReader's own
---- search: nothing the scan does touches crengine's selection, which the
---- search session's hit highlighting lives in.
+--- flipping pays nothing per page) — and the search-session state machine.
 function XrayMarks.onPageTurn(plugin, pageno)
   if not st then return end
   local ui = plugin and plugin.ui
@@ -712,6 +743,31 @@ function XrayMarks.onPageTurn(plugin, pageno)
   st.page_marks = nil
   st.paint_boxes = nil
   if ui.view and ui.view.view_mode == "scroll" then return end
+
+  -- A live search session owns the page visuals: the scan's range reads
+  -- (getTextFromXPointers) re-select in crengine, and that clears the
+  -- session's hit highlighting (round 3, device: "hits are no longer
+  -- highlighted"). The session flag is set by the onShowSearchDialog wrap
+  -- BEFORE the initial jump (do_search runs before UIManager:show, so
+  -- isWidgetShown alone misses the first hit); once the dialog has been
+  -- seen shown, its close ends the session and marks resume.
+  local search = ui.search
+  local sd = search and search.search_dialog
+  if sd and UIManager:isWidgetShown(sd) then
+    search._koassistant_search_session = "shown"
+    -- Invalidate any in-flight scan too
+    st.scan_token = (st.scan_token or 0) + 1
+    return
+  end
+  local sess = search and search._koassistant_search_session
+  if sess == true then
+    st.scan_token = (st.scan_token or 0) + 1
+    return
+  elseif sess then
+    -- Was shown, now closed: session over
+    search._koassistant_search_session = nil
+  end
+
   st.scan_token = (st.scan_token or 0) + 1
   local token = st.scan_token
   UIManager:scheduleIn(SCAN_SETTLE_S, function()

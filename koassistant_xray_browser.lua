@@ -5787,9 +5787,26 @@ function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapte
     local self_ref = self
     local ui = self.ui
     if not (ui and ui.document) then return end
-    local terms = collectSearchTerms(item, item_title)
-    if #terms == 0 then return end
     local dist = opts and opts.dist
+    local terms = collectSearchTerms(item, item_title)
+    if dist and dist.set then
+        -- The index path also matches a name's bracketed and alef-optional
+        -- forms: the search session a tap opens looks for the name or alias
+        -- each came from too, or it would jump away from the tapped hit
+        local seen, extra = {}, {}
+        for _idx, t in ipairs(terms) do seen[t.text:lower()] = true end
+        for _form, src in pairs(dist.set.source) do
+            if not seen[src:lower()] then
+                seen[src:lower()] = true
+                extra[#extra + 1] = src
+            end
+        end
+        table.sort(extra)
+        for _idx, src in ipairs(extra) do
+            terms[#terms + 1] = { text = src, regex = XrayParser.buildArabicSearchRegex(src) }
+        end
+    end
+    if #terms == 0 then return end
     local pre_hits = opts and opts.hits
     if not dist and not pre_hits and not ui.document.findAllText then return end
     local no_clip = opts and opts.no_clip

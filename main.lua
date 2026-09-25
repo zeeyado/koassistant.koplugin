@@ -19537,24 +19537,32 @@ function AskGPT:syncXrayMarks()
       return highlight._koassistant_original_onTap(hl_self, arg, ges)
     end
   end
-  -- Search session end (round 6): marks stay on during KOReader's own search
-  -- (the page-local scan never touches crengine's selection, where the
-  -- session's hit highlighting lives), but closing the search often restores
-  -- the origin page with no PageUpdate at all, which would leave the last
-  -- hit page's marks painted. Hook THIS session dialog's teardown —
-  -- onCloseWidget covers every close path (tap-outside, buttons, the X-Ray
-  -- return button's UIManager:close) — and rescan on the next tick.
+  -- Search-session flag for the marks scan (round 3): the scan's crengine
+  -- range reads re-select, which clears the search session's hit
+  -- highlighting, so the scan stands down for the whole session. The flag
+  -- must be set BEFORE the session's initial jump — do_search runs before
+  -- UIManager:show(search_dialog), so an isWidgetShown check alone would
+  -- miss the first hit. The marks module promotes/clears it from there.
   local search = self.ui and self.ui.search
   if search and not search._koassistant_original_onShowSearchDialog then
     search._koassistant_original_onShowSearchDialog = search.onShowSearchDialog
     local marks_self = self
     search.onShowSearchDialog = function(s_self, ...)
+      s_self._koassistant_search_session = true
       local ret = search._koassistant_original_onShowSearchDialog(s_self, ...)
+      -- Round 6: marks must RETURN when the session ends, not wait for the
+      -- next page turn (closing the search often restores the origin page
+      -- with no PageUpdate at all, and the close can race the final scan
+      -- while the dialog still counts as shown). Hook THIS session dialog's
+      -- teardown — onCloseWidget covers every close path (tap-outside,
+      -- buttons, the X-Ray return button's UIManager:close) — clear the
+      -- flag and rescan on the next tick.
       local sd = s_self.search_dialog
       if sd and not sd._koassistant_close_wrapped then
         sd._koassistant_close_wrapped = true
         local orig_close = sd.onCloseWidget
         sd.onCloseWidget = function(d_self, ...)
+          s_self._koassistant_search_session = nil
           UIManager:nextTick(function()
             marks_self:syncXrayMarks()
           end)
