@@ -2719,7 +2719,8 @@ end
 -- 19e: micro probe battery — universal since REVISION 2 M2 (any provider whose
 -- wire is OpenAI chat-shaped; see providerSupportsTest). Five cheap requests
 -- (~16 output tokens each; the two tool steps get room to finish a call)
--- against the provider's own chat endpoint; positive
+-- against the provider's own chat endpoint (the tool steps against the
+-- Responses endpoint for models whose book tools go there); positive
 -- findings land in the DERIVED capability layer (user override > curated >
 -- derived) via ModelOverrides.recordDerived — never in custom_models.lua.
 function AskGPT:testProvider(provider_id)
@@ -2787,18 +2788,38 @@ function AskGPT:testProvider(provider_id)
     return
   end
 
-  local function post(extra, max_tokens)
-    local body = {
-      model = model,
-      messages = { { role = "user", content = "Reply with only: ok" } },
-      max_tokens = max_tokens or 16,
-    }
-    -- The rename the real request makes (openai.lua, custom_openai.lua):
-    -- OpenAI's newer families reject max_tokens outright, so the probe failed
-    -- its first step on the default OpenAI model
-    if (provider_id == "openai" or provider.is_custom)
-        and require("model_constraints").usesMaxCompletionTokens(model) then
-      body.max_completion_tokens, body.max_tokens = body.max_tokens, nil
+  -- The route book tools really take (shouldUseResponses in openai.lua and
+  -- xai.lua): tool sessions on these models go to the Responses endpoint,
+  -- never to chat completions, so the tool steps probe there. On chat
+  -- completions OpenAI refused function tools for gpt-5.6-terra outright,
+  -- pointing at /v1/responses: a failure no book-tools request meets.
+  local tools_on_responses = (provider_id == "openai" or provider_id == "xai")
+    and require("model_constraints").supportsCapability(provider_id, model, "responses_web_search")
+
+  local function post(extra, max_tokens, responses)
+    local body
+    if responses then
+      -- The handlers' Responses shape (buildResponsesRequest): input items,
+      -- max_output_tokens, nothing stored server-side
+      body = {
+        model = model,
+        input = { { role = "user", content = "Reply with only: ok" } },
+        max_output_tokens = max_tokens or 16,
+        store = false,
+      }
+    else
+      body = {
+        model = model,
+        messages = { { role = "user", content = "Reply with only: ok" } },
+        max_tokens = max_tokens or 16,
+      }
+      -- The rename the real request makes (openai.lua, custom_openai.lua):
+      -- OpenAI's newer families reject max_tokens outright, so the probe failed
+      -- its first step on the default OpenAI model
+      if (provider_id == "openai" or provider.is_custom)
+          and require("model_constraints").usesMaxCompletionTokens(model) then
+        body.max_completion_tokens, body.max_tokens = body.max_tokens, nil
+      end
     end
     for k, v in pairs(extra or {}) do body[k] = v end
     local payload = json.encode(body)
@@ -2807,7 +2828,9 @@ function AskGPT:testProvider(provider_id)
       ["Content-Length"] = tostring(#payload),
     }
     if auth then hdrs["Authorization"] = auth end
-    local code, body, resp_headers = BaseHandler.fetchInSubprocess(url, {
+    -- The handlers derive the Responses endpoint the same way
+    local post_url = responses and url:gsub("/chat/completions", "/responses") or url
+    local code, body, resp_headers = BaseHandler.fetchInSubprocess(post_url, {
       method = "POST", headers = hdrs, body = payload, timeout = 20,
     })
     -- Per-minute admission limits (docs/tpm_admission_plan.md): the probe's
@@ -2822,14 +2845,15 @@ function AskGPT:testProvider(provider_id)
     return code, body
   end
 
-  local probe_tools = { { type = "function",
-    ["function"] = { name = "ping", description = "Connectivity test.",
-      parameters = { type = "object",
-        properties = { ping = { type = "string", description = "Any value." } } } } } }
-  -- 16 tokens leave no room to finish a tool call, and a call cut short can
-  -- be refused whole instead of returned truncated (gpt-5.6-terra failed
-  -- the tool step with a 400); 512 also leaves room for a model that
-  -- reasons before it calls
+  local ping = { name = "ping", description = "Connectivity test.",
+    parameters = { type = "object",
+      properties = { ping = { type = "string", description = "Any value." } } } }
+  -- Chat completions nest the definition; Responses takes it flat
+  local probe_tools = tools_on_responses
+    and { { type = "function", name = ping.name, description = ping.description, parameters = ping.parameters } }
+    or { { type = "function", ["function"] = ping } }
+  -- 16 tokens cannot hold a tool call, and a model that reasons before it
+  -- calls needs room for that too
   local TOOL_TOKENS = 512
 
   -- The server's own explanation of a refusal, when the body carries one
@@ -2879,16 +2903,16 @@ function AskGPT:testProvider(provider_id)
         return false, _("200 but not SSE - streaming may be unsupported")
       end },
     { label = _("Tool calling"), run = function()
-        local code, body = post({ tools = probe_tools }, TOOL_TOKENS)
+        local code, body = post({ tools = probe_tools }, TOOL_TOKENS, tools_on_responses)
         if tonumber(code) == 200 then
           caps.tools = true
-          return true
+          return true, tools_on_responses and _("sent to the Responses endpoint, which book tools use on this model") or nil
         end
         return false, failure(code, body)
       end },
     { label = _("Forced tool use (book-tools search)"), run = function()
         if not caps.tools then return nil, _("skipped - tools not accepted") end
-        local code, body = post({ tools = probe_tools, tool_choice = "required" }, TOOL_TOKENS)
+        local code, body = post({ tools = probe_tools, tool_choice = "required" }, TOOL_TOKENS, tools_on_responses)
         if tonumber(code) == 200 then return true end
         if serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - book tools' search phase may not work"), tostring(code))

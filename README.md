@@ -1840,17 +1840,15 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 
 Dictionary actions support three view modes, configurable per-action via Action Manager:
 
-**Dictionary Compact** (default for Dictionary, Quick Define): Small popup optimized for quick lookups, sized to its answer (up to 80% of the screen height, so there is room to tap outside and close it). Tap **Expand** to open in the full-size Dictionary view.
+**Dictionary Compact** (default for Dictionary, Quick Define): Small popup optimized for quick lookups. It opens at a fixed size and grows to fit a longer answer, up to 80% of the screen height (so there is always room to tap outside and close it). Tap **→ Chat** to continue in the standard chat viewer.
 
 **Dictionary** (default for Deep Analysis): Full-size window with the same dictionary-specific buttons. Provides more room for detailed content like morphology and etymology. Has a **→ Chat** button to expand to the standard chat viewer.
 
 **Standard**: Full chat viewer with all buttons (reply, save, tag, pin, export, etc.). No dictionary-specific buttons.
 
-The expansion chain: **Compact → Expand → Dictionary → → Chat → Standard**
-
 Both dictionary view modes share the same button layout:
 - **Row 1:** MD ON/TXT ON, Copy, +Note, Wiki, +Vocab
-- **Row 2:** Expand or → Chat, Language, Ctx, [Action], Close
+- **Row 2:** → Chat, Language, Ctx, [Action], Close
 
 **MD ON / TXT ON**: Toggle between Markdown and Plain Text view modes. Shows "MD ON" when Markdown is active, "TXT ON" when Plain Text is active. For RTL languages, this may default to TXT ON automatically based on your settings.
 
@@ -1862,9 +1860,7 @@ Both dictionary view modes share the same button layout:
 
 **+Vocab**: Add the looked-up word to KOReader's Vocabulary Builder. After adding, the button changes to "Added" (greyed out). See [Vocabulary Builder Integration](#vocabulary-builder-integration).
 
-**Expand** (compact only): Open the response in the full-size dictionary view with the same buttons but more room.
-
-**→ Chat** (dictionary view only): Open in the full standard chat viewer with all options (continue conversation, save, export, etc.).
+**→ Chat**: Open in the full standard chat viewer with all options (continue conversation, save, export, etc.).
 
 **Language**: Re-run the lookup in a different language (picks from your configured languages). Closes the current view and opens a new one with the updated result.
 
@@ -1909,7 +1905,7 @@ The vocab button appears in compact/minimal buttons view (dictionary bypass and 
 
 Dictionary lookups are **not auto-saved** by default (`Disable Auto-save` is on). This prevents cluttering your chat history with individual word lookups.
 
-- **Auto-save disabled** (default): Lookups are not saved automatically. If you expand a compact view chat, the Save button becomes active so you can save manually to the current document.
+- **Auto-save disabled** (default): Lookups are not saved automatically. If you open a lookup in the full chat (**→ Chat**), the Save button becomes active so you can save manually to the current document.
 - **Auto-save enabled** (toggle off): Dictionary chats follow your general chat saving settings (auto-save all or auto-save continued).
 
 ---
@@ -4100,11 +4096,8 @@ Your additional input is combined with the action's prompt template.
 
 Dictionary lookups use compact view by default (minimal UI). To save a lookup or continue the conversation:
 
-1. Tap **Expand** in compact view → opens the full-size Dictionary view (same buttons, bigger window)
-2. Tap **→ Chat** in the Dictionary view → opens the standard chat viewer
-3. The **Save** button becomes active and you can continue asking follow-up questions
-
-If the action uses Dictionary view directly (e.g., Deep Analysis), step 1 is skipped.
+1. Tap **→ Chat** in the dictionary window (compact or full-size) → opens the standard chat viewer
+2. The **Save** button becomes active and you can continue asking follow-up questions
 
 **Use case:** You looked up a word, got interested, and want to ask deeper questions about etymology or usage patterns.
 

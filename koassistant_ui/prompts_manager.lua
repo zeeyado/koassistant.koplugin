@@ -2247,7 +2247,7 @@ function PromptsManager:showViewModeSelector(state, refresh_callback)
                     text = _("View modes control how results are displayed:") .. "\n\n" ..
                            "• " .. _("Standard") .. ": " .. _("Full dialog with all response action buttons") .. "\n\n" ..
                            "• " .. _("Dictionary") .. ": " .. _("Full-size dialog with dictionary buttons (language, context, action switcher). Expands to full chat via → Chat button") .. "\n\n" ..
-                           "• " .. _("Dictionary Compact") .. ": " .. _("Smaller dialog optimized for quick lookups, with the same dictionary buttons. Expands to Dictionary view") .. "\n\n" ..
+                           "• " .. _("Dictionary Compact") .. ": " .. _("Smaller dialog for quick lookups, with the same dictionary buttons. Grows to fit a longer answer. Expands to full chat via → Chat button") .. "\n\n" ..
                            "• " .. _("Translate") .. ": " .. _("Translation view with language switch button and toggle to show/hide the original text"),
                 })
             end,

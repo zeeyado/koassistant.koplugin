@@ -3231,8 +3231,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         close_callback = function()
             -- Hand the slot back to the chat viewer a utility view stacked over (nil in
             -- the normal, non-stacked case). Also fills an EMPTY slot: the expand-view
-            -- wrappers (chatgptviewer expandToFullView/expandToDictionaryView) nil the
-            -- slot before delegating here, so equality alone could never restore.
+            -- wrapper (chatgptviewer expandToFullView) nils the slot before
+            -- delegating here, so equality alone could never restore.
             if _G.ActiveChatViewer == chatgpt_viewer or _G.ActiveChatViewer == nil then
                 _G.ActiveChatViewer = restore_active_viewer
             end
