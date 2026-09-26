@@ -101,11 +101,13 @@ do
     TestRunner.assert(built.headers["x-opencode-session"] == "17_9", "opencode_go sends the session header")
     local ConfigHelper = require("koassistant_config_helper")
     local merged = ConfigHelper:mergeWithDefaults({ provider = "opencode_go", features = {} })
-    TestRunner.assert(merged.base_url == "https://opencode.ai/zen/go/v1/chat/completions",
-        "opencode_go merges to the Go endpoint, got " .. tostring(merged.base_url))
+    local go_url = G:buildRequestBody(MESSAGES, merged).url
+    TestRunner.assert(go_url == "https://opencode.ai/zen/go/v1/chat/completions",
+        "opencode_go merges to the Go endpoint, got " .. tostring(go_url))
     local zen = ConfigHelper:mergeWithDefaults({ provider = "opencode", features = {} })
-    TestRunner.assert(zen.base_url == "https://opencode.ai/zen/v1/chat/completions",
-        "opencode merges to the Zen endpoint, got " .. tostring(zen.base_url))
+    local zen_url = require("opencode"):buildRequestBody(MESSAGES, zen).url
+    TestRunner.assert(zen_url == "https://opencode.ai/zen/v1/chat/completions",
+        "opencode merges to the Zen endpoint, got " .. tostring(zen_url))
 
     local Base = require("koassistant_api.base")
     local saved = package.loaded["apikeys"]

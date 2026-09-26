@@ -2460,6 +2460,13 @@ function AskGPT:getProviderDescriptor(provider_id)
     -- Active GUI server (model-menu server manager) beats the shipped default,
     -- so the fetch/derive/test tooling talks to the same server as the wire.
     base_url = self:ollamaRootUrl() .. "/api/chat"
+  else
+    -- The handler's own URL hook (Z.AI, Qwen and Kimi pick the host from the
+    -- Region setting), so a China or US key lists and tests on its own platform
+    local ok, handler = pcall(require, "koassistant_api." .. provider_id)
+    if ok and type(handler) == "table" and type(handler.customizeUrl) == "function" then
+      base_url = handler:customizeUrl(base_url, { features = self.settings:readSetting("features") or {} })
+    end
   end
   return {
     id = provider_id,

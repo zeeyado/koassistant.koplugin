@@ -31,6 +31,12 @@ print(string.rep("=", 50))
 
 local norm = ConfigHelper.normalizeServerUrl
 
+-- The URL the provider's handler puts on the wire for a merged config
+local function wireUrl(provider, merged)
+    local handler = require("koassistant_api." .. provider)
+    return handler:buildRequestBody({ { role = "user", content = "hi" } }, merged).url
+end
+
 TestRunner:test("normalize: bare host:port gets http scheme", function()
     TestRunner:assertEqual(norm("192.168.1.20:11434"), "http://192.168.1.20:11434", "bare host")
     TestRunner:assertEqual(norm("myserver.local:11434"), "http://myserver.local:11434", "hostname")
@@ -52,7 +58,7 @@ end)
 
 TestRunner:test("merge: no GUI endpoint keeps the shipped default", function()
     local merged = ConfigHelper:mergeWithDefaults({ provider = "ollama", features = {} })
-    TestRunner:assertEqual(merged.base_url, "http://localhost:11434/api/chat", "default wire url")
+    TestRunner:assertEqual(wireUrl("ollama", merged), "http://localhost:11434/api/chat", "default wire url")
 end)
 
 TestRunner:test("merge: active GUI endpoint routes the wire", function()
@@ -93,13 +99,13 @@ TestRunner:test("merge: other providers unaffected by ollama_endpoints", functio
         provider = "anthropic",
         features = { ollama_endpoints = { active = "http://guihost:11434" } },
     })
-    TestRunner:assertEqual(merged.base_url, "https://api.anthropic.com/v1/messages",
+    TestRunner:assertEqual(wireUrl("anthropic", merged), "https://api.anthropic.com/v1/messages",
         "anthropic untouched")
 end)
 
 TestRunner:test("merge: absent features table does not crash", function()
     local merged = ConfigHelper:mergeWithDefaults({ provider = "ollama" })
-    TestRunner:assertEqual(merged.base_url, "http://localhost:11434/api/chat", "default url")
+    TestRunner:assertEqual(wireUrl("ollama", merged), "http://localhost:11434/api/chat", "default url")
 end)
 
 return TestRunner:summary()

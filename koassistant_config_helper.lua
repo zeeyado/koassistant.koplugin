@@ -33,6 +33,9 @@ function ConfigHelper:mergeWithDefaults(config, provider)
     
     -- Merge with defaults
     local provider_settings = merged.provider_settings[provider]
+    -- A base_url present before the merge is the user's own (configuration.lua);
+    -- the loop below fills the slot with the shipped default otherwise.
+    local override_url = provider_settings.base_url
     for k, v in pairs(defaults) do
         if k == "additional_parameters" then
             provider_settings[k] = provider_settings[k] or {}
@@ -57,15 +60,19 @@ function ConfigHelper:mergeWithDefaults(config, provider)
         local eps = merged.features and merged.features.ollama_endpoints
         if type(eps) == "table" and type(eps.active) == "string" and eps.active ~= "" then
             provider_settings.base_url = eps.active .. "/api/chat"
+            override_url = provider_settings.base_url
             merged.base_url = nil  -- re-propagated below from the GUI value
         end
     end
 
-    -- Propagate provider-specific base_url to top-level for handler access.
-    -- Handlers read config.base_url, not config.provider_settings[provider].base_url.
+    -- Propagate a provider-specific base_url OVERRIDE to top-level for handler access.
+    -- Handlers read config.base_url, not config.provider_settings[provider].base_url,
+    -- and fall back to their own default when it is nil.
     -- This allows configuration.lua to set per-provider base_url overrides.
-    if not merged.base_url and provider_settings.base_url then
-        merged.base_url = provider_settings.base_url
+    -- Never the shipped default: a set config.base_url is an override to the
+    -- handlers, and Z.AI, Qwen and Kimi then skip their region setting.
+    if not merged.base_url and override_url then
+        merged.base_url = override_url
     end
 
     return merged

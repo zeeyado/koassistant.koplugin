@@ -264,6 +264,7 @@ The 104 files, with what each one pins:
 - `test_pinned_manager_parity.lua` - pinned save/load long-string round-trip against adversarial content
 - `test_prompt_building.lua` - MessageBuilder, ContextExtractor privacy gating and cache flow end to end
 - `test_prompt_chars.lua` - `RateLimits.promptChars` stays the router's own prompt-size arithmetic
+- `test_provider_regions.lua` - the Z.AI, Qwen and Kimi region settings reach the wire; a configuration.lua `base_url` still wins; every built-in keeps its default URL
 - `test_quick_preset_forces.lua` - `Dialogs.quickPresetForces`, the quick-preset facet-off rule
 - `test_quick_reply_overrides.lua` - reply-time re-derivation of web / tools / model / reasoning from the Quick baseline
 - `test_quiz_chapters.lua` - pure chapter-boundary resolution for the chapter-end quiz
