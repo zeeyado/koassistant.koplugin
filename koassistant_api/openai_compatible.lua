@@ -186,6 +186,11 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
         or ModelConstraints.resolveMaxTokens(constraints_key, model, default_params.max_tokens or 16384)
     request_body.max_tokens = ModelConstraints.clampMaxTokens(constraints_key, model, request_body.max_tokens)
 
+    -- Model parameter constraints (curated + custom_models.lua), before the child
+    -- hook so a mode-dependent rule there still wins (kimi drops the forced
+    -- temperature when thinking is disabled)
+    request_body = ModelConstraints.apply(constraints_key, model, request_body)
+
     -- Book-tool declarations from the neutral config.tools (set by the tool runner).
     -- Only reachable for providers with a `tools` capability in model_constraints.lua —
     -- some OpenAI-compatible backends silently ignore the tools param, so the capability

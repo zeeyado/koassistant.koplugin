@@ -236,6 +236,7 @@ The 104 files, with what each one pins:
 - `test_gemini_tools_request.lua` - Gemini tool request construction
 - `test_gettext_lang_cache.lua` - the gettext language cache (no settings re-read per `_()` call)
 - `test_gettext_unescape.lua` - the PO parser unescapes both msgid and msgstr
+- `test_handler_constraints.lua` - every curated parameter constraint (and a custom_models.lua one) reaches the request its provider's handler builds; kimi still drops temperature with thinking off
 - `test_handler_max_tokens.lua` - every provider handler both resolves and clamps max_tokens (the handler contract)
 - `test_image_gen.lua` - image-model inventory, provider resolution chain, the book-association index
 - `test_index_rebuild.lua` - index heal/rebuild (#92): refresh ops, per-book helpers, merge semantics, pruning

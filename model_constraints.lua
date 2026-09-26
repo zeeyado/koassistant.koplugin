@@ -31,10 +31,9 @@ local ModelConstraints = {
         -- kimi-k2.6 international (probed 2026-08-15): temperature is
         -- MODE-LOCKED — thinking on (the API default) accepts ONLY 1,
         -- thinking disabled accepts ONLY 0.6; omitting it works in both
-        -- modes. The plugin never disables kimi thinking today, so forcing
-        -- 1.0 keeps every current request valid (our old 0.7 default 400'd).
-        -- If a future tool-session accommodation disables thinking
-        -- (deepseek-class, verified viable), it must adjust/drop temp too.
+        -- modes. Forced here for the thinking-on default (our 0.7 default
+        -- 400s); kimi.lua drops it whenever it disables thinking (tool
+        -- sessions, reasoning off).
         ["kimi-k2.6"] = { temperature = 1.0 },
     },
     -- Add more providers/models as discovered
