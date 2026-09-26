@@ -1438,17 +1438,26 @@ function ChatGPTViewer:init()
   -- what we are centred in: expanded mode shrinks it to keep the status bar
   -- clear, so even the dynamically-sized views below never sit over the footer.
   self.align = "center"
+  -- The view flags arrive in the constructor, or (a rotation's recreate) only in
+  -- configuration.features, which the block further down reads after the
+  -- geometry: read them here too, or a recreated compact popup opens full size.
+  local view_features = self.configuration and self.configuration.features
+  if view_features and view_features.compact_view then self.compact_view = true end
+  if view_features and view_features.dictionary_view then self.dictionary_view = true end
   -- compact_view is deliberately excluded from the expanded setting, region
   -- included: its dismiss gesture is the tap outside, which needs a real outside.
   self.region = Geom:new(UIConstants.CHAT_REGION({ compact = self.compact_view }))
   self.width = self.width or UIConstants.CHAT_WIDTH({ compact = self.compact_view })
 
   -- Height calculation depends on view mode:
-  -- - compact_view: fixed compact height (60%)
+  -- - compact_view: dynamic height based on content, capped at 80%
   -- - translate_view: dynamic height based on content, capped at max
   -- - standard: full Wikipedia-style height
   if self.compact_view then
-    self.height = self.height or UIConstants.COMPACT_DIALOG_HEIGHT()
+    -- Sized to its text like the translate window, but never to the screen
+    -- edges: the tap outside is how a compact popup closes (Expand opens the
+    -- full-height view)
+    self.height = self.height or self:calculateDynamicHeight(math.floor(Screen:getHeight() * 0.8))
   elseif self.dictionary_view then
     self.height = self.height or UIConstants.CHAT_HEIGHT()
   elseif self.simple_view or self.translate_view or (self.configuration and self.configuration.features and self.configuration.features.translate_view) then
@@ -3710,11 +3719,12 @@ function ChatGPTViewer:onCloseWidget()
   end)
 end
 
--- Calculate dynamic height for translate view (Wikipedia-style sizing)
+-- Calculate dynamic height for translate and compact views (Wikipedia-style sizing)
 -- Estimates content height based on text length and caps at max available height
 -- Returns height that fits content or max, whichever is smaller
-function ChatGPTViewer:calculateDynamicHeight()
-  local max_height = UIConstants.CHAT_HEIGHT()  -- Maximum: Wikipedia-style full height
+-- @param max_height number|nil cap (default: the full chat height)
+function ChatGPTViewer:calculateDynamicHeight(max_height)
+  max_height = max_height or UIConstants.CHAT_HEIGHT()  -- Default: Wikipedia-style full height
 
   -- Estimate chrome height (title bar + buttons + padding)
   -- Title bar: ~50px, buttons (2 rows for translate): ~80px, padding/margins: ~40px
@@ -3728,7 +3738,10 @@ function ChatGPTViewer:calculateDynamicHeight()
 
   -- Estimate line height based on font size
   -- Default markdown font is 20, gives roughly 1.5x for line height with spacing
-  local font_size = self.markdown_font_size or 20
+  -- (init sizes the window before it reads the configured font size, which
+  -- wins over the default when set)
+  local size_features = self.configuration and self.configuration.features
+  local font_size = (size_features and size_features.markdown_font_size) or self.markdown_font_size or 20
   local estimated_line_height = Screen:scaleBySize(math.floor(font_size * 1.8))
 
   -- Estimate content width (width minus padding/margins)
@@ -5623,9 +5636,12 @@ function ChatGPTViewer:toggleDebugMode()
 
   -- Rebuild the display with debug info shown/hidden
   if self.original_history then
-    -- Create a temporary config with updated display setting
+    -- Create a temporary config with updated display setting (the view flags
+    -- too: dictionary windows render without prefixes or the reasoning line)
     local temp_config = {
       features = {
+        compact_view = self.compact_view,
+        dictionary_view = self.dictionary_view,
         show_debug_in_chat = self.show_debug_in_chat,
         debug_display_level = self.configuration.features and self.configuration.features.debug_display_level,
         hide_highlighted_text = self.configuration.features and self.configuration.features.hide_highlighted_text,
@@ -6176,6 +6192,9 @@ function ChatGPTViewer:showViewerSettings()
   -- it, not this. The empty row renders as ButtonTable's double rule, the same
   -- group break the action-manager carousel uses.
   -- Skipped on compact_view, which the setting does not govern.
+  -- Show Excerpt (dictionary windows) is the Dictionary Settings toggle,
+  -- surfaced here for the same reason, in the same group.
+  local shortcut_rows = false
   if not self.compact_view then
     table.insert(buttons, {
       {
@@ -6186,6 +6205,23 @@ function ChatGPTViewer:showViewerSettings()
         end,
       },
     })
+    shortcut_rows = true
+  end
+  if self.compact_view or self.dictionary_view then
+    local excerpt_on = self.configuration and self.configuration.features
+      and self.configuration.features.dictionary_show_excerpt == true
+    table.insert(buttons, {
+      {
+        text = T(_("Show Excerpt: %1"), excerpt_on and _("On") or _("Off")),
+        callback = function()
+          UIManager:close(dialog)
+          self:toggleExcerpt()
+        end,
+      },
+    })
+    shortcut_rows = true
+  end
+  if shortcut_rows then
     table.insert(buttons, {})
   end
 
@@ -6277,6 +6313,38 @@ function ChatGPTViewer:cycleAlignment()
   self:refreshMarkdownDisplay()
   UIManager:show(Notification:new{
     text = T(_("Alignment: %1"), getAlignmentDisplayName(next_align)),
+    timeout = 2,
+  })
+end
+
+-- Show Excerpt on the gear of dictionary windows: the Dictionary Settings
+-- toggle (saved), and this window redrawn with or without the excerpt. The
+-- line was worked out when the lookup ran (history.excerpt_line); a lookup
+-- that sent no context has none, and only the setting changes. A compact
+-- popup reopens at the height its new text needs.
+function ChatGPTViewer:toggleExcerpt()
+  local features = self.configuration and self.configuration.features
+  local on = not (features and features.dictionary_show_excerpt == true)
+  self:persistFeatureSetting("dictionary_show_excerpt", on)
+  local history = self.original_history
+  local line = history and history.excerpt_line
+  if line then
+    history.source_excerpt = on and line or nil
+    -- The excerpt stands in for the quote, which dictionary windows hide
+    self.hide_highlighted_text = not on
+    if features then features.hide_highlighted_text = not on end
+    local render_config = {}
+    for k, v in pairs(self.configuration) do render_config[k] = v end
+    render_config.features = {}
+    for k, v in pairs(features or {}) do render_config.features[k] = v end
+    render_config.features.show_debug_in_chat = self.show_debug_in_chat
+    self.text = history:createResultText(self.original_highlighted_text or "", render_config)
+    if not (self.compact_view and self:_handleScreenChange(true)) then
+      self:update(self.text, false)
+    end
+  end
+  UIManager:show(Notification:new{
+    text = T(_("Show Excerpt: %1"), on and _("On") or _("Off")),
     timeout = 2,
   })
 end

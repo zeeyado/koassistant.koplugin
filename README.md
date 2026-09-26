@@ -1137,7 +1137,7 @@ Actions like News Update that require [web search](#web-search) are available in
 - **Action hold menu**: Long-press any action button for its description and, in one place, **Add to / Remove from this menu**, **Other placements…**, **Edit…**, **Duplicate as custom action…** and **Reset to default**. The same menu appears on every trigger surface: the input dialog, the Quick Actions panel, the highlight menu, the dictionary popup, and the file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books).
 - **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **Show More Actions…** (expands the grid to every enabled action for this context; becomes **Show Fewer Actions** once expanded), **Restore last input** (appears only when a send failed or was cancelled — puts your typed text back), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Session Chips (Input)**: The row of chips above the input field controls this chat only — Domain, Web search, Book Tools, Quick Answer, Scope, Attach, and Spoiler. Tap to change the value for this chat; long-press to open the persistent (per-book / global) picker behind it. See [Managing the Input Dialog](#managing-the-input-dialog) for details on each chip. (These replaced the old fixed Web/Domain top row and the checkbox pile.)
-- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Window Size** (Standard / Expanded, the same setting as Display Settings; not offered on compact dictionary popups), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), **Export** (writes a file; use Copy for the clipboard — the copy-or-save chooser belongs to the Chat History browser), and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
+- **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Window Size** (Standard / Expanded, the same setting as Display Settings; not offered on compact dictionary popups), **Show Excerpt** (dictionary windows only; the same setting as Dictionary Settings ▸ Show Excerpt), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), **Export** (writes a file; use Copy for the clipboard — the copy-or-save chooser belongs to the Chat History browser), and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
 - **Show Sources**: When a response used [web search](#web-search) or [AI Book Tools](#ai-book-tools-experimental), a **Show Sources** viewer lists the web URLs and queries and/or the book lookups the AI performed. Per-message indicators also appear inline ("Searched the web", "Searched the book — N lookups"). Pre-search prose is preserved behind an inline `*[Searched the web]*` marker rather than being discarded. The Sources and Reasoning viewers support text selection, Copy, and Export like the main chat.
 - **Settings Icon (Panels)**: Both the Quick Settings and Quick Actions panels have a gear icon in the title bar for managing panel layout: reorder, show/hide buttons without leaving the panel
 - **Show/Hide Quote**: In the chat viewer, tap to show or hide the highlighted text quote for this chat (useful for long selections). Long-press the button for the global defaults: hide quotes by default, and auto-hide long quotes
@@ -1723,6 +1723,7 @@ You can add or substitute other highlight actions to this menu via **Manage Acti
 | **Response Language** | Language for definitions. Can follow Translation Language (`↵T`) or be set independently | `↵T` |
 | **Context Mode** | Surrounding text sent with lookup: None, Sentence, Paragraph, or Characters. Overridable per book (Book Settings → Chat behavior); while spoiler protection is on, the text after the word is clamped by "Context Under Spoiler Protection" | Sentence (use the popup's **Ctx** button to drop it for a single lookup) |
 | **Context Characters** | Character count when using "Characters" mode | 100 |
+| **Show Excerpt** | Open the answer with a short excerpt of the text around the word, the word in bold (display only; only for lookups that send context). Also on the gear menu of dictionary windows | Off |
 | **Disable Auto-save for Dictionary** | Don't auto-save dictionary lookups to chat history | On |
 | **Copy Content** | What to include when copying in dictionary view (follow global / ask / full / question + response / definition only / everything) | Definition only |
 | **Note Content** | What to include when saving a dictionary result to a note (same options as Copy Content) | Definition only |
@@ -1768,7 +1769,7 @@ Context mode sends surrounding text (sentence/paragraph/characters) with your lo
 **Context ON (default)**
 - Precise, disambiguated definition for THIS usage
 - Explains word's role in THIS specific sentence
-- The result opens with a short excerpt of the text around the word, the word in bold (display only; in the full-size view, Hide Quote hides it)
+- With **Show Excerpt** on (Dictionary Settings, or the gear menu of the dictionary window), the result opens with a short excerpt of the text around the word, the word in bold (display only; in the chat view, Hide Quote hides it)
 - May miss other meanings/senses of the word (context disambiguates, so homographs aren't shown)
 - Slightly slower (more text to process)
 
@@ -1839,7 +1840,7 @@ When bypass is enabled, selecting a word skips KOReader's dictionary popup entir
 
 Dictionary actions support three view modes, configurable per-action via Action Manager:
 
-**Dictionary Compact** (default for Dictionary, Quick Define): Small 60% height popup optimized for quick lookups. Tap **Expand** to open in the full-size Dictionary view.
+**Dictionary Compact** (default for Dictionary, Quick Define): Small popup optimized for quick lookups, sized to its answer (up to 80% of the screen height, so there is room to tap outside and close it). Tap **Expand** to open in the full-size Dictionary view.
 
 **Dictionary** (default for Deep Analysis): Full-size window with the same dictionary-specific buttons. Provides more room for detailed content like morphology and etymology. Has a **→ Chat** button to expand to the standard chat viewer.
 
@@ -2838,6 +2839,7 @@ Behavior settings for AI dictionary lookups. (The **AI buttons in the dictionary
 - **Response Language**: Language for definitions (`↵T` follows Translation Language by default). Can be overridden per book in [Book Settings](#book-settings) ▸ Languages.
 - **Context Mode**: Surrounding text to include: None, Sentence (default), Paragraph, or Characters
 - **Context Characters**: Character count for Characters mode (default: 100)
+- **Show Excerpt**: Open the answer with a short excerpt of the text around the word, the word in bold (default: off; also on the gear menu of dictionary windows)
 - **Disable Auto-save for Dictionary**: Don't auto-save dictionary lookups (default: on)
 - **Copy Content**: What to include when copying in compact dictionary view: Follow global setting, Ask every time, Full, Question + Response, or Definition only (default)
 - **Note Content**: What to include when saving dictionary results to a note via the +Note button, same options as Copy Content, defaults to Definition only
@@ -2984,7 +2986,7 @@ Backup and restore functionality, index maintenance, plus reset options. See [Ba
 - **Reasoning**: Per-model reasoning control. See [Reasoning/Thinking](#reasoningthinking) for the full explanation.
   - **Global stance**: Minimal / Default / Maximum — one dial applied to every model, as far as each allows (default: **Default** = each model's normal behavior). "Minimal" turns reasoning off where the model supports it (otherwise its lowest setting); "Maximum" requests the deepest reasoning.
   - **Per-model reasoning**: Browse a provider's models and override any individual model — Follow global / Off / a specific level. Only configurable models are listed.
-  - **Show Indicator in Chat**: Display "*[Reasoning/Thinking was used]*" in chat when reasoning is active (default: on). The full reasoning is always viewable via the "Show Reasoning" button regardless.
+  - **Show Indicator in Chat**: Display "*[Reasoning/Thinking was used]*" in chat when reasoning is active (default: on). Dictionary windows never show it. The full reasoning is always viewable via the "Show Reasoning" button regardless.
   - There is no global reasoning on/off switch — reasoning is per-model. The **Quick Answer** preset turns reasoning off for Quick chats (its "Turn Reasoning Off" component, on by default).
 - **Faster Models for Quick Actions**: Let actions carrying a speed hint (Translate, Quick Define) run on a faster model from the same provider (default: on). Turning it off disables the per-action speed-tier mechanism entirely; explicit model pins always win either way.
 - **Tier Models (Global)**: Pin a provider+model to a speed tier (ultrafast / fast / standard / flagship) for every tier-hinted request, across providers. Unset tiers fall back to the current provider's own tier ladder.
@@ -3705,7 +3707,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 
 > Temperature is forced to 1.0 automatically where a model's reasoning requires it (Claude adaptive/extended, Z.AI thinking). Opus 5, Fable 5, Sonnet 5, Opus 4.8, and Opus 4.7 reject sampling parameters entirely; the plugin strips them.
 
-**Viewing reasoning:** When a model returns its thinking (Anthropic, Gemini, DeepSeek, Z.AI, Mistral, and R1-style `<think>`-tag models on Groq/Together/Fireworks/SambaNova/Ollama/Perplexity), it's captured and viewable via the **Show Reasoning** button in the chat viewer gear menu. A "*[Reasoning was used]*" indicator appears in chat when enabled (Settings → Advanced → Reasoning → Show Indicator in Chat).
+**Viewing reasoning:** When a model returns its thinking (Anthropic, Gemini, DeepSeek, Z.AI, Mistral, and R1-style `<think>`-tag models on Groq/Together/Fireworks/SambaNova/Ollama/Perplexity), it's captured and viewable via the **Show Reasoning** button in the chat viewer gear menu. A "*[Reasoning was used]*" indicator appears in chat when enabled (Settings → Advanced → Reasoning → Show Indicator in Chat); dictionary windows leave it out.
 
 **Per-action overrides:** Any action can override reasoning for specific providers via Action Manager → hold action → Edit Settings → Advanced → Per-Provider Reasoning. This is the top layer — it wins over the global stance, per-model overrides, and session one-shots. Several built-in actions (e.g. Translate, Quick Define, Dictionary, Summarize) deliberately force reasoning off because the task doesn't benefit from it. See [Tuning Built-in Actions](#tuning-built-in-actions).
 

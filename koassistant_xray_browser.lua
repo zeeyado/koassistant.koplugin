@@ -7234,6 +7234,16 @@ function XrayBrowser:showOptions()
         end,
     }
     UIManager:show(self.options_dialog)
+    -- The shared version rows hide while a build or update runs: the menu
+    -- redraws when that changes (main.lua _trackLiveWindow)
+    local plugin = self.metadata.plugin
+    if plugin and plugin._trackLiveWindow then
+        plugin:_trackLiveWindow(self.options_dialog, function()
+            if self_ref.menu and UIManager:isWidgetShown(self_ref.menu) then
+                self_ref:showOptions()
+            end
+        end)
+    end
 end
 
 -- Get available non-xray artifacts for this book

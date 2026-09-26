@@ -1461,6 +1461,14 @@ local SettingsSchema = {
                     end,
                 },
                 {
+                    id = "dictionary_show_excerpt",
+                    type = "toggle",
+                    text = _("Show Excerpt"),
+                    path = "features.dictionary_show_excerpt",
+                    default = false,
+                    help_text = _("Show a short excerpt of the text around the looked-up word above the answer, with the word in bold. Only for lookups that send context (Context Mode is not None). Nothing extra is sent. Also on the gear menu of dictionary windows."),
+                },
+                {
                     id = "dictionary_disable_auto_save",
                     type = "toggle",
                     text = _("Disable Auto-save for Dictionary"),

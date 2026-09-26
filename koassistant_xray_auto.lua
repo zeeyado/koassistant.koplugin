@@ -61,6 +61,17 @@ local cancelled = false    -- set when an actual flight was cancelled (close/tap
 local discarded = false    -- set by the completion guard when it rejects the write
 local slept = false        -- set when a flight was stopped because the device went to sleep
 
+-- Windows that show this state (the X-Ray popup's build and update rows, the
+-- shared version rows, the version cards) redraw when it changes: main.lua
+-- sets the slot, and every transition below calls it. The slot only
+-- schedules; nothing runs inside the transition.
+XrayAuto.on_state_change = nil
+local function changed()
+  if type(XrayAuto.on_state_change) == "function" then
+    pcall(XrayAuto.on_state_change)
+  end
+end
+
 --- Resolve the user dials (schema: Reading & Library → X-Ray) into gate values.
 --- Pure; fallbacks MUST match the schema defaults (5% / 25% / 15 min). An inverted
 --- window (max < min) clamps to max = min rather than silently never firing.
@@ -131,12 +142,14 @@ end
 function XrayAuto.beginFlight(file)
   in_flight = true
   in_flight_file = file
+  changed()
 end
 
 function XrayAuto.endFlight()
   in_flight = false
   in_flight_file = nil
   cancel_fn = nil
+  changed()
 end
 
 function XrayAuto.isInFlight()
@@ -172,6 +185,7 @@ function XrayAuto.cancelInFlight()
   end
   in_flight = false
   in_flight_file = nil
+  changed()
 end
 
 --- The device is going to sleep with a request on the wire (AskGPT:onSuspend,
@@ -191,6 +205,7 @@ function XrayAuto.cancelForSleep()
   pcall(fn)
   in_flight = false
   in_flight_file = nil
+  changed()
   return true
 end
 
@@ -210,10 +225,12 @@ end
 
 function XrayAuto.recordFailure(file, message)
   last_failure = { file = file, message = message }
+  changed()
 end
 
 function XrayAuto.clearFailure()
   last_failure = nil
+  changed()
 end
 
 --- Session-scoped "last auto-update failed" trace for the scope popup.
@@ -231,6 +248,7 @@ function XrayAuto.recordSuccess(file)
   if last_failure and last_failure.file == file then
     last_failure = nil
   end
+  changed()
 end
 
 --- Classify a request-failure message into a short reason kind (item 45).
@@ -334,6 +352,7 @@ function XrayAuto.recordLadderStop(file, info)
   last_ladder_stop = { file = file, step = info and info.step,
     total = info and info.total, kind = info and info.kind,
     rebuild = info and info.rebuild }
+  changed()
 end
 
 --- @return table|nil { step, total, kind } for this file
@@ -779,6 +798,28 @@ function XrayAuto.chainBusy()
   return ladder_build ~= nil and not ladder_build.awaiting_network
 end
 
+--- Everything the windows showing this state display, as one string (a window
+--- redraws only when it differs): while a chain runs, its step and parking
+--- (the build row stands in for the update rows, so a step's flight is not
+--- shown); otherwise the book the update in flight belongs to; the last
+--- failure and chain stop always.
+--- @return string
+function XrayAuto.stateStamp()
+  local b = ladder_build
+  local run = "-"
+  if b then
+    run = table.concat({ "b", tostring(b.file), tostring(b.step or b.idx), tostring(b.total),
+      b.awaiting_network and "w" or "", b.cancel_requested and "c" or "" }, ":")
+  elseif in_flight then
+    run = "f:" .. tostring(in_flight_file)
+  end
+  local f, st = last_failure, last_ladder_stop
+  return table.concat({ run,
+    f and (tostring(f.file) .. ":" .. tostring(f.message)) or "-",
+    st and table.concat({ tostring(st.file), tostring(st.kind), tostring(st.step) }, ":") or "-",
+  }, "|")
+end
+
 --- @param labels table|nil sparse array parallel to rungs (snapLadderRungs output):
 --- labels[i] = chapter title for rungs[i], carried into each rung's cache entry
 --- @param opts table|nil { intro = true } → an INTRODUCTORY step runs before
@@ -812,6 +853,7 @@ function XrayAuto.beginLadderBuild(file, rungs, labels, opts)
   if last_ladder_stop and last_ladder_stop.file == file then
     last_ladder_stop = nil
   end
+  changed()
 end
 
 --- The step the chain should fire next: { target, intro } or nil when done.
@@ -830,6 +872,7 @@ function XrayAuto.completeIntro()
   if ladder_build and ladder_build.intro_pending then
     ladder_build.intro_pending = nil
     ladder_build.step = (ladder_build.step or 1) + 1
+    changed()
   end
 end
 
@@ -838,17 +881,31 @@ function XrayAuto.advanceLadderBuild()
   if not ladder_build then return nil end
   ladder_build.idx = ladder_build.idx + 1
   ladder_build.step = (ladder_build.step or ladder_build.idx) + 1
+  changed()
   return ladder_build.rungs[ladder_build.idx]
 end
 
 function XrayAuto.endLadderBuild()
   ladder_build = nil
+  changed()
 end
 
 --- Ask the chain to stop after the current rung completes (a rung mid-network
 --- additionally gets cancelInFlight from the caller).
 function XrayAuto.requestLadderCancel()
-  if ladder_build then ladder_build.cancel_requested = true end
+  if ladder_build then
+    ladder_build.cancel_requested = true
+    changed()
+  end
+end
+
+--- Park the build for the network (on = true: the device slept and KOReader
+--- turned Wi-Fi off, so nothing fires until the reconnect) or release it.
+function XrayAuto.setAwaitingNetwork(on)
+  if ladder_build then
+    ladder_build.awaiting_network = on or nil
+    changed()
+  end
 end
 
 -- Round 22 (D3): an explicit user cancel must mean something distinct from

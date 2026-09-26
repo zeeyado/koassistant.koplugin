@@ -4129,11 +4129,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 and (not temp_config.features.dictionary_context or temp_config.features.dictionary_context == "") then
             temp_config.features.dictionary_context = message_data.context
         end
-        -- Dictionary views show where the word sits (display only, nothing
+        -- Dictionary views can show where the word sits (display only, nothing
         -- sent): a short excerpt of the context this lookup used. It lives on
         -- the history so every re-render (quote toggle, expand, recreate)
-        -- shows the same line, and it stands in for the quote, so the quote
-        -- is shown.
+        -- shows the same line: excerpt_line always, so the gear's Show
+        -- Excerpt can bring it up later; source_excerpt (what renders) when
+        -- Show Excerpt is on (Dictionary Settings, off by default). It stands
+        -- in for the quote, so the quote is shown.
         if (temp_config.features.compact_view or temp_config.features.dictionary_view)
                 and message_data.context and message_data.context ~= "" then
             local ex_before, ex_word, ex_after = ScopeResolver.contextExcerpt(message_data.context)
@@ -4148,8 +4150,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                         or ex_line:find("^```") then
                     ex_line = "\u{00A0}" .. ex_line
                 end
-                history.source_excerpt = ex_line
-                temp_config.features.hide_highlighted_text = false
+                history.excerpt_line = ex_line
+                if temp_config.features.dictionary_show_excerpt == true then
+                    history.source_excerpt = ex_line
+                    temp_config.features.hide_highlighted_text = false
+                end
             end
         end
 

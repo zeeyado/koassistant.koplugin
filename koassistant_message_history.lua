@@ -698,6 +698,12 @@ function MessageHistory:createResultText(highlightedText, config)
     -- Controlled by show_reasoning_indicator setting (default: true)
     local show_reasoning_indicator = config and config.features and config.features.show_reasoning_indicator
     if show_reasoning_indicator == nil then show_reasoning_indicator = true end  -- Default to showing indicator
+    -- Dictionary windows skip it: a model that always thinks (Gemini 3.x
+    -- Flash cannot turn it off) opened every lookup with the line. Show
+    -- Reasoning on the gear still has the content; expanded chats keep it.
+    if config and config.features and (config.features.compact_view or config.features.dictionary_view) then
+        show_reasoning_indicator = false
+    end
 
     -- Check if web search indicator should be shown in chat
     -- Controlled by show_web_search_indicator setting (default: true)

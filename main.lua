@@ -226,6 +226,13 @@ function AskGPT:init()
   -- re-seed the members' carried lists (deferred, zero tokens)
   self:_installGroupSeedingHooks()
 
+  -- Open windows showing the X-Ray engine's state (build progress, an update
+  -- in flight) redraw when it changes (_trackLiveWindow)
+  local live_self = self
+  require("koassistant_xray_auto").on_state_change = function()
+    live_self:_scheduleLiveRedraw()
+  end
+
   -- Chat index validation deferred to first chat history browser open
   -- (see ChatHistoryDialog:showChatHistoryBrowser for lazy validation)
 
@@ -2711,7 +2718,8 @@ end
 
 -- 19e: micro probe battery — universal since REVISION 2 M2 (any provider whose
 -- wire is OpenAI chat-shaped; see providerSupportsTest). Five cheap requests
--- (~16 output tokens each) against the provider's own chat endpoint; positive
+-- (~16 output tokens each; the two tool steps get room to finish a call)
+-- against the provider's own chat endpoint; positive
 -- findings land in the DERIVED capability layer (user override > curated >
 -- derived) via ModelOverrides.recordDerived — never in custom_models.lua.
 function AskGPT:testProvider(provider_id)
@@ -2779,11 +2787,11 @@ function AskGPT:testProvider(provider_id)
     return
   end
 
-  local function post(extra)
+  local function post(extra, max_tokens)
     local body = {
       model = model,
       messages = { { role = "user", content = "Reply with only: ok" } },
-      max_tokens = 16,
+      max_tokens = max_tokens or 16,
     }
     -- The rename the real request makes (openai.lua, custom_openai.lua):
     -- OpenAI's newer families reject max_tokens outright, so the probe failed
@@ -2818,6 +2826,31 @@ function AskGPT:testProvider(provider_id)
     ["function"] = { name = "ping", description = "Connectivity test.",
       parameters = { type = "object",
         properties = { ping = { type = "string", description = "Any value." } } } } } }
+  -- 16 tokens leave no room to finish a tool call, and a call cut short can
+  -- be refused whole instead of returned truncated (gpt-5.6-terra failed
+  -- the tool step with a 400); 512 also leaves room for a model that
+  -- reasons before it calls
+  local TOOL_TOKENS = 512
+
+  -- The server's own explanation of a refusal, when the body carries one
+  -- (error.message, NVIDIA's detail): a bare "HTTP 400" names nothing to act on
+  local function serverSays(body)
+    if type(body) ~= "string" then return nil end
+    local ok, parsed = pcall(json.decode, body)
+    if not ok or type(parsed) ~= "table" then return nil end
+    local function str(v) return type(v) == "string" and v ~= "" and v or nil end
+    local err = parsed.error
+    local detail = str(parsed.detail) or str(parsed.message)
+      or (type(err) == "table" and str(err.message)) or str(err)
+    return detail and detail:sub(1, 200)
+  end
+  local function failure(code, body)
+    local n = tonumber(code)
+    if not n then return T(_("network error: %1"), tostring(body)) end
+    local detail = serverSays(body)
+    if detail then return T(_("HTTP %1 - %2"), n, detail) end
+    return "HTTP " .. n
+  end
 
   local results = {}  -- { {label, ok = true|false|nil(skipped), detail} }
   local caps = {}     -- positive findings for the derived layer
@@ -2830,27 +2863,15 @@ function AskGPT:testProvider(provider_id)
         if n == 401 or n == 403 then
           return false, T(_("auth failed (HTTP %1) - check the API key"), n)
         end
-        if not n then return false, T(_("network error: %1"), tostring(body)) end
         -- Surface the server's own explanation when it gives one: NVIDIA
         -- retires models with a 410 whose body names the end-of-life date,
         -- which "check base URL" would hide.
-        local detail
-        if type(body) == "string" then
-          local ok, parsed = pcall(json.decode, body)
-          if ok and type(parsed) == "table" then
-            local err = parsed.error
-            detail = parsed.detail or parsed.message
-                or (type(err) == "table" and err.message) or (type(err) == "string" and err)
-          end
-        end
-        if type(detail) == "string" and detail ~= "" then
-          return false, T(_("HTTP %1 - %2"), n, detail:sub(1, 200))
-        end
+        if not n or serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - check base URL and model id"), n)
       end },
     { label = _("Streaming (SSE)"), run = function()
         local code, body = post({ stream = true })
-        if tonumber(code) ~= 200 then return false, "HTTP " .. tostring(code) end
+        if tonumber(code) ~= 200 then return false, failure(code, body) end
         if type(body) == "string" and (body:find("^data:") or body:find("\ndata:")
             or body:find("^event:") or body:find("\nevent:")) then
           return true
@@ -2858,26 +2879,27 @@ function AskGPT:testProvider(provider_id)
         return false, _("200 but not SSE - streaming may be unsupported")
       end },
     { label = _("Tool calling"), run = function()
-        local code = post({ tools = probe_tools })
+        local code, body = post({ tools = probe_tools }, TOOL_TOKENS)
         if tonumber(code) == 200 then
           caps.tools = true
           return true
         end
-        return false, "HTTP " .. tostring(code)
+        return false, failure(code, body)
       end },
     { label = _("Forced tool use (book-tools search)"), run = function()
         if not caps.tools then return nil, _("skipped - tools not accepted") end
-        local code = post({ tools = probe_tools, tool_choice = "required" })
+        local code, body = post({ tools = probe_tools, tool_choice = "required" }, TOOL_TOKENS)
         if tonumber(code) == 200 then return true end
+        if serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - book tools' search phase may not work"), tostring(code))
       end },
     { label = _("Reasoning effort parameter"), run = function()
-        local code = post({ reasoning_effort = "low" })
+        local code, body = post({ reasoning_effort = "low" })
         if tonumber(code) == 200 then
           caps.reasoning = true
           return true, _("accepted (some hosts silently ignore it)")
         end
-        return false, "HTTP " .. tostring(code)
+        return false, failure(code, body)
       end },
   }
 
@@ -9471,6 +9493,50 @@ function AskGPT:_generateSummaryAndContinue(on_done, section_scope)
   end)
 end
 
+--- A window that shows the X-Ray engine's state (the X-Ray popup, the X-Ray
+--- browser's menu, the version cards) registers here once shown, and redraws
+--- when that state changes while it is open: `reopen` shows it again from
+--- current data after the old one closes. One window at a time; showing
+--- another replaces the registration.
+function AskGPT:_trackLiveWindow(dialog, reopen)
+  self._live_window = { dialog = dialog, reopen = reopen,
+    stamp = require("koassistant_xray_auto").stateStamp() }
+end
+
+--- Debounced (a finished step ends its flight, writes, advances and fires the
+--- next in one go): redraws the registered window when what it shows
+--- changed, and only while it is the top window, so a confirm or message put
+--- up over it stays in front (looked at again a second later).
+function AskGPT:_scheduleLiveRedraw(delay)
+  if not self._live_window then return end
+  if self._live_redraw then UIManager:unschedule(self._live_redraw) end
+  local self_ref = self
+  self._live_redraw = function()
+    self_ref._live_redraw = nil
+    local live = self_ref._live_window
+    if not live then return end
+    if not UIManager:isWidgetShown(live.dialog) then
+      self_ref._live_window = nil
+      return
+    end
+    if require("koassistant_xray_auto").stateStamp() == live.stamp then return end
+    if not UIManager.topdown_widgets_iter then return end  -- KOReader before 2023.02
+    for w in UIManager:topdown_widgets_iter() do
+      if not w.toast and not w.invisible then
+        if w ~= live.dialog then
+          self_ref:_scheduleLiveRedraw(1)
+          return
+        end
+        break
+      end
+    end
+    self_ref._live_window = nil
+    UIManager:close(live.dialog)
+    live.reopen()
+  end
+  UIManager:scheduleIn(delay or 0.5, self._live_redraw)
+end
+
 --- Show X-Ray scope popup: choose between partial (to reading position) or full-document X-Ray.
 --- Handles two cases: no cache (generate options), cached (view/update/redo/sections).
 --- @param action table: The action definition
@@ -10310,6 +10376,13 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
   end
 
   UIManager:show(dialog)
+  -- Build progress, Wi-Fi waits and updates in flight change while it is open
+  -- (fresh cache read on redraw; no book and no file = nothing to show)
+  self:_trackLiveWindow(dialog, function()
+    if (self_ref.ui and self_ref.ui.document) or (opts and opts.file) then
+      self_ref:showCacheActionPopup(action, action_id, on_update, opts)
+    end
+  end)
 end
 
 --- Show a TOC picker for selecting a section scope for Section X-Ray generation.
@@ -13138,6 +13211,10 @@ function AskGPT:_showXrayLadderRungOptions(rung, opts)
     buttons = buttons,
   }
   UIManager:show(card)
+  -- Install waits out an update in flight: redraws when that changes
+  self:_trackLiveWindow(card, function()
+    self_ref:_showXrayLadderRungOptions(rung, opts)
+  end)
 end
 
 --- Options card for one archived X-Ray version: view (read-only), restore
@@ -13268,6 +13345,10 @@ function AskGPT:_showXrayCheckpointOptions(cp, opts)
     buttons = buttons,
   }
   UIManager:show(options_dialog)
+  -- Install waits out an update in flight: redraws when that changes
+  self:_trackLiveWindow(options_dialog, function()
+    self_ref:_showXrayCheckpointOptions(cp, opts)
+  end)
 end
 
 --- View a cached action result, routing to the appropriate viewer.
@@ -15362,7 +15443,7 @@ function AskGPT:_fireXrayLadderRung()
       -- The device slept mid-request (onSuspend): the step never ran. The
       -- build stays alive and onNetworkConnected fires this same step again.
       if was_slept then
-        cur.awaiting_network = true
+        XrayAuto.setAwaitingNetwork(true)
         logger.dbg("KOAssistant: ladder step", cur.step or cur.idx,
           "interrupted by sleep, waiting for the network")
         return
@@ -15644,7 +15725,7 @@ function AskGPT:onSuspend()
   if build and not build.cancel_requested then
     -- The killed step, or a chain between rungs or in a retry wait: it
     -- waits for the reconnect instead of firing into a radio that is off
-    build.awaiting_network = true
+    XrayAuto.setAwaitingNetwork(true)
     if self._xray_ladder_retry then
       UIManager:unschedule(self._xray_ladder_retry)
       self._xray_ladder_retry = nil
@@ -15677,7 +15758,7 @@ function AskGPT:onNetworkConnected()
     -- Whichever build is parked now (one started meanwhile runs itself)
     local live = XrayAuto.ladderBuild()
     if live and live.awaiting_network and live.file == file then
-      live.awaiting_network = nil
+      XrayAuto.setAwaitingNetwork(false)
       logger.dbg("KOAssistant: network back, resuming the checkpoint build")
       self_ref:_fireXrayLadderRung()
     elseif self_ref._xray_update_after_sleep == file then
