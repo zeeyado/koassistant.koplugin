@@ -2501,15 +2501,61 @@ local function trimSpaces(s)
     return s:match("^%s*(.-)%s*$") or s
 end
 
+-- The writing system of a letter, coarse (Latin-1 and Latin Extended count
+-- as Latin; the Indic scripts share one entry). Digits, punctuation and
+-- symbols belong to none.
+local LETTER_SCRIPTS = {
+    { 0x00C0, 0x024F, "latin" }, { 0x1E00, 0x1EFF, "latin" },
+    { 0x0370, 0x03FF, "greek" }, { 0x1F00, 0x1FFF, "greek" },
+    { 0x0400, 0x052F, "cyrillic" }, { 0x0531, 0x058A, "armenian" },
+    { 0x05D0, 0x05F2, "hebrew" },
+    { 0x0620, 0x065F, "arabic" }, { 0x066E, 0x06D5, "arabic" }, { 0x06FA, 0x06FF, "arabic" },
+    { 0x0750, 0x077F, "arabic" }, { 0x08A0, 0x08FF, "arabic" },
+    { 0xFB50, 0xFDFF, "arabic" }, { 0xFE70, 0xFEFF, "arabic" },
+    { 0x0900, 0x0DFF, "indic" }, { 0x0E00, 0x0EFF, "thai" },
+    { 0x0F00, 0x0FFF, "tibetan" }, { 0x1000, 0x109F, "myanmar" },
+    { 0x10A0, 0x10FF, "georgian" }, { 0x1200, 0x139F, "ethiopic" },
+    { 0x1780, 0x17FF, "khmer" },
+    { 0x1100, 0x11FF, "hangul" }, { 0x3130, 0x318F, "hangul" }, { 0xAC00, 0xD7AF, "hangul" },
+    { 0x3041, 0x30FF, "kana" }, { 0x31F0, 0x31FF, "kana" },
+    { 0x3400, 0x4DBF, "han" }, { 0x4E00, 0x9FFF, "han" }, { 0xF900, 0xFAFF, "han" },
+    { 0x20000, 0x3FFFF, "han" },
+}
+
+--- The scripts a text's letters are written in: { latin = true, ... }.
+local function letterScripts(s)
+    local out = {}
+    local i, n = 1, #s
+    while i <= n do
+        local c = s:byte(i)
+        if c < 0x80 then
+            if (c >= 65 and c <= 90) or (c >= 97 and c <= 122) then out.latin = true end
+            i = i + 1
+        else
+            local len = c >= 0xF0 and 4 or c >= 0xE0 and 3 or c >= 0xC0 and 2 or 1
+            local cp = c % (len == 4 and 8 or len == 3 and 16 or 32)
+            for k = 1, len - 1 do cp = cp * 64 + (s:byte(i + k) or 0x80) % 64 end
+            for _r, r in ipairs(LETTER_SCRIPTS) do
+                if cp >= r[1] and cp <= r[2] then
+                    out[r[3]] = true
+                    break
+                end
+            end
+            i = i + len
+        end
+    end
+    return out
+end
+
 -- matchTermSet memo: the same item table asks many times per view (every
 -- other entity's containment check), keyed weakly with a name+aliases
 -- signature so an alias edited in place is never served stale
 local term_set_memo = setmetatable({}, { __mode = "k" })
 
---- The match forms of one entity: its name, a bracketed part of it that
---- reads as a name (capitalized or another script), and every alias,
---- normalized, plus the article-dropped (Arabic; English "the" while two
---- words remain) and Arabic alef-optional forms. `all` is longest first (the widest form present paints), `minimal`
+--- The match forms of one entity: its name, a bracketed part of it written
+--- in another script (the name in the book's other language), and every
+--- alias, normalized, plus the article-dropped (Arabic; English "the" while
+--- two words remain) and Arabic alef-optional forms. `all` is longest first (the widest form present paints), `minimal`
 --- the forms that contain no other form, `source` maps each form to the name
 --- or alias as written (what a tap on it opens). nil when the name is two
 --- bytes or shorter (the counting rule since the Mentions view shipped).
@@ -2554,14 +2600,26 @@ function XrayParser.matchTermSet(item, item_title)
     end
     local function addName(t)
         if type(t) ~= "string" then return end
-        addForm(trimSpaces((t:gsub("%s*%(.-%)%s*", " "))))
+        local outside = trimSpaces((t:gsub("%s*%(.-%)%s*", " ")))
+        addForm(outside)
+        if not t:find("(", 1, true) then return end
+        local own = letterScripts(outside)
         for inner in t:gmatch("%((.-)%)") do
-            local part = trimSpaces(inner)
-            -- A bracketed part that reads as another name is one: capitalized
-            -- ("Theosis (Deification)") or in another script (the Arabic after
-            -- an English name). A lowercase descriptor ("(archetype)", "(the
-            -- narrator)") is not: it would match every use of the word.
-            if not part:match("^%d+$") and not part:match("^%l") then addForm(part) end
+            -- A bracketed part tells entries apart ("Anna (the elder)",
+            -- "(archetype)", "(Norse tale)") and would match every use of
+            -- its words; other names are aliases. It is a name only when it
+            -- is the name in another script: every letter in a script the
+            -- rest of the name does not use ("The Old City (<Arabic>)",
+            -- "Tokyo (東京)", an Arabic name followed by its transliteration).
+            local scripts = letterScripts(inner)
+            local other = next(scripts) ~= nil
+            for s in pairs(scripts) do
+                if own[s] then
+                    other = false
+                    break
+                end
+            end
+            if other then addForm(trimSpaces(inner)) end
         end
     end
     addName(name)

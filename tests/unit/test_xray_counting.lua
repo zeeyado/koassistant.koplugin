@@ -190,12 +190,20 @@ function TestXrayCounting:runAll()
         self:assertEquals(count, 4, "All non-overlapping aliases counted")
     end)
 
-    self:test("parenthetical name counted as term", function()
+    self:test("parenthetical in the name's own script is a label, not a term", function()
         local item = { name = "Theosis (Deification)", description = "Test" }
         local text = "theosis is a concept. deification means becoming divine. theosis again."
         local count = XrayParser.countItemOccurrences(item, text)
-        -- 2 "theosis" + 1 "deification" = 3
-        self:assertEquals(count, 3, "Parenthetical content counted as separate term")
+        -- 2 "theosis"; "deification" only as an alias
+        self:assertEquals(count, 2, "Same-script parenthetical not counted")
+    end)
+
+    self:test("parenthetical in another script counted as term", function()
+        local item = { name = "Tokyo (東京)", description = "Test" }
+        local text = "tokyo, or 東京, is a city. tokyo again."
+        -- 2 "tokyo" + 1 "東京" = 3
+        self:assertEquals(XrayParser.countItemOccurrences(item, text), 3,
+            "Other-script parenthetical counted as separate term")
     end)
 
     self:test("short name/alias filtered out", function()
