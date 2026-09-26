@@ -77,6 +77,46 @@ ToolWire.adapters.anthropic = {
     end,
 }
 
+-- Bedrock Converse: replay its assistant content blocks verbatim, then send all
+-- tool results together in the required user turn.
+ToolWire.adapters.bedrock = {
+    appendToolTurn = function(messages, raw_assistant_turn, executed)
+        if raw_assistant_turn and raw_assistant_turn.content then
+            table.insert(messages, {
+                role = raw_assistant_turn.role or "assistant",
+                content = raw_assistant_turn.content,
+            })
+        end
+        local blocks, answered = {}, {}
+        for _, item in ipairs(executed or {}) do
+            if item.call.id then
+                table.insert(blocks, {
+                    toolResult = {
+                        toolUseId = item.call.id,
+                        content = { { json = item.result or {} } },
+                    },
+                })
+                answered[item.call.id] = true
+            end
+        end
+        for _, block in ipairs(raw_assistant_turn and raw_assistant_turn.content or {}) do
+            local tool_use = type(block) == "table" and block.toolUse
+            if type(tool_use) == "table" and tool_use.toolUseId and not answered[tool_use.toolUseId] then
+                table.insert(blocks, {
+                    toolResult = {
+                        toolUseId = tool_use.toolUseId,
+                        content = { { json = { ok = false, error = "tool call not handled" } } },
+                        status = "error",
+                    },
+                })
+            end
+        end
+        if #blocks > 0 then
+            table.insert(messages, { role = "user", content = blocks })
+        end
+    end,
+}
+
 -- OpenAI Responses shape (R3, responses_api_plan.md): the parser hands us the raw
 -- output[] array under raw_assistant_turn._responses_output. Echo reasoning /
 -- function_call / message items verbatim (reasoning items must precede their

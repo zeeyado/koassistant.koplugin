@@ -21,6 +21,7 @@ local function getDefaultModel(provider)
         mistral = "mistral-large-latest",
         xai = "grok-4.5",
         openrouter = "anthropic/claude-sonnet-5",
+        bedrock = "deepseek.v3.2",
         requesty = "openai/gpt-4o-mini",
         opencode = "deepseek-v4-flash",
         opencode_go = "kimi-k3",
@@ -143,6 +144,15 @@ local ProviderDefaults = {
         provider = "openrouter",
         model = getDefaultModel("openrouter"),
         base_url = "https://openrouter.ai/api/v1/chat/completions",
+        additional_parameters = {
+            temperature = 0.7,
+            max_tokens = 16384
+        }
+    },
+    bedrock = {
+        provider = "bedrock",
+        model = getDefaultModel("bedrock"),
+        base_url = "https://bedrock-runtime.us-east-1.amazonaws.com",
         additional_parameters = {
             temperature = 0.7,
             max_tokens = 16384

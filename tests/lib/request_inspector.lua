@@ -159,6 +159,14 @@ function RequestInspector:displayRequest(request, config, options)
         end
         print(string.format("  Token estimate: ~%d tokens", math.floor(total_chars / 4)))
 
+    elseif request.provider == "bedrock" then
+        local system = request.body.system
+        if system and system[1] and system[1].text then
+            TerminalFormatter.box_content(system[1].text, width - 4)
+        else
+            print("  " .. TerminalFormatter.colors.dim .. "(no system prompt)" .. TerminalFormatter.colors.reset)
+        end
+
     elseif request.provider == "gemini" then
         -- Gemini uses system_instruction with parts
         local si = request.body.system_instruction
@@ -213,6 +221,8 @@ function RequestInspector:displayRequest(request, config, options)
             -- Handle Gemini's parts format
             if msg.parts and msg.parts[1] then
                 content = msg.parts[1].text
+            elseif type(content) == "table" and content[1] then
+                content = content[1].text
             end
 
             print(string.format("\n  [%d] role: %s", non_system_count, role))

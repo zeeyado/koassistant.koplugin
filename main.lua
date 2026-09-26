@@ -2508,6 +2508,11 @@ function AskGPT:fetchProviderModels(provider_id, opts)
     local ModelLists = require("koassistant_model_lists")
     models_url = ModelLists._docs.gemini.api_list .. "?key=" .. key
     list_field, name_field = "models", "name"
+  elseif provider_id == "bedrock" then
+    if not key then return nil, _("Amazon Bedrock needs an API key to list models") end
+    models_url = require("koassistant_api.bedrock"):getModelsUrl(d.base_url)
+    headers = { ["Authorization"] = "Bearer " .. key }
+    list_field, name_field = "modelSummaries", "modelId"
   else
     models_url = d.base_url:gsub("/+$", ""):gsub("/chat/completions$", "")
     models_url = models_url:gsub("/+$", "") .. "/models"

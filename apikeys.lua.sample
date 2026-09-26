@@ -65,6 +65,10 @@ return {
     -- Get from: https://openrouter.ai/
     openrouter = "YOUR_OPENROUTER_API_KEY",
 
+    -- Amazon Bedrock API key (not an AWS access key)
+    -- Get from: https://console.aws.amazon.com/bedrock/home#/api-keys
+    bedrock = "YOUR_BEDROCK_API_KEY",
+
     -- Requesty API key (OpenAI-compatible model router)
     -- Get from: https://app.requesty.ai/api-keys
     requesty = "YOUR_REQUESTY_API_KEY",

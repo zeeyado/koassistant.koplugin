@@ -225,6 +225,129 @@ local ModelLists = {
         "minimax/minimax-m2.1",
     },
 
+	bedrock = {
+		-- https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+		-- Converse-compatible text models only. The API key selects the models
+		-- enabled for the account and the configured Bedrock region.
+
+		-- DeepSeek
+		"deepseek.v3.2", -- default
+		"deepseek.r1-v1:0",
+		"deepseek.v3-v1:0",
+
+		-- OpenAI
+		"openai.gpt-oss-120b-1:0",
+		"openai.gpt-oss-20b-1:0",
+		"openai.gpt-6-astra",
+		"openai.gpt-5-6-sol",
+		"openai.gpt-5-6-terra",
+		"openai.gpt-5-6-luna",
+		"openai.gpt-oss-safeguard-120b",
+		"openai.gpt-oss-safeguard-20b",
+
+		-- AI21
+		"ai21.jamba-1-5-large-v1:0",
+		"ai21.jamba-1-5-mini-v1:0",
+
+		-- Amazon Nova
+		"amazon.nova-2-lite-v1:0",
+		"amazon.nova-lite-v1:0",
+		"amazon.nova-micro-v1:0",
+		"amazon.nova-premier-v1:0",
+		"amazon.nova-pro-v1:0",
+
+		-- Anthropic Claude
+		"global.anthropic.claude-fable-5-1",
+		"global.anthropic.claude-mythos-5-1",
+		"global.anthropic.claude-sonnet-5",
+		"global.anthropic.claude-fable-5",
+		"anthropic.claude-3-haiku-20240307-v1:0",
+		"anthropic.claude-3-5-haiku-20241022-v1:0",
+		"us.anthropic.claude-haiku-4-5-20251001-v1:0",
+		"anthropic.claude-opus-4-1-20250805-v1:0",
+		"anthropic.claude-opus-4-5-20251101-v1:0",
+		"anthropic.claude-opus-4-6",
+		"anthropic.claude-opus-4-7",
+		"anthropic.claude-opus-4-8",
+		"anthropic.claude-sonnet-4-20250514-v1:0",
+		"anthropic.claude-sonnet-4-5-20250929-v1:0",
+		"global.anthropic.claude-sonnet-4-6",
+
+		-- Cohere
+		"cohere.command-r-v1:0",
+		"cohere.command-r-plus-v1:0",
+
+		-- Google Gemma
+		"google.gemma-3-4b-it",
+		"google.gemma-3-12b-it",
+		"google.gemma-3-27b-it",
+
+		-- Meta Llama
+		"meta.llama3-8b-instruct-v1:0",
+		"meta.llama3-70b-instruct-v1:0",
+		"meta.llama3-1-8b-instruct-v1:0",
+		"meta.llama3-1-70b-instruct-v1:0",
+		"meta.llama3-1-405b-instruct-v1:0",
+		"meta.llama3-2-1b-instruct-v1:0",
+		"meta.llama3-2-3b-instruct-v1:0",
+		"meta.llama3-2-11b-instruct-v1:0",
+		"meta.llama3-2-90b-instruct-v1:0",
+		"meta.llama3-3-70b-instruct-v1:0",
+		"meta.llama4-maverick-17b-instruct-v1:0",
+		"meta.llama4-scout-17b-instruct-v1:0",
+
+		-- MiniMax
+		"minimax.minimax-m2",
+		"minimax.minimax-m2.1",
+		"minimax.minimax-m2.5",
+
+		-- Mistral AI
+		"mistral.devstral-2-123b",
+		"mistral.magistral-small-2509",
+		"mistral.ministral-3-14b-instruct",
+		"mistral.ministral-3-8b-instruct",
+		"mistral.ministral-3-3b-instruct",
+		"mistral.mistral-7b-instruct-v0:2",
+		"mistral.mistral-large-2402-v1:0",
+		"mistral.mistral-large-3-675b-instruct",
+		"mistral.mistral-small-2402-v1:0",
+		"mistral.mixtral-8x7b-instruct-v0:1",
+		"mistral.pixtral-large-2502-v1:0",
+		"mistral.voxtral-mini-3b-2507",
+		"mistral.voxtral-small-24b-2507",
+
+		-- Moonshot AI
+		"moonshotai.kimi-k3",
+		"moonshot.kimi-k2-thinking",
+		"moonshotai.kimi-k2.5",
+
+		-- NVIDIA
+		"nvidia.nemotron-nano-9b-v2",
+		"nvidia.nemotron-nano-12b-v2",
+		"nvidia.nemotron-nano-3-30b",
+		"nvidia.nemotron-super-3-120b",
+
+		-- Qwen
+		"qwen.qwen3-235b-a22b-2507-v1:0",
+		"qwen.qwen3-32b-v1:0",
+		"qwen.qwen3-coder-480b-a35b-v1:0",
+		"qwen.qwen3-coder-next",
+		"qwen.qwen3-next-80b-a3b",
+		"qwen.qwen3-vl-235b-a22b",
+		"qwen.qwen3-coder-30b-a3b-v1:0",
+
+		-- Writer
+		"writer.palmyra-vision-7b",
+		"writer.palmyra-x4-v1:0",
+		"writer.palmyra-x5-v1:0",
+
+		-- xAI and Z.AI
+		"xai.grok-4.6",
+		"zai.glm-4.7",
+		"zai.glm-4.7-flash",
+		"zai.glm-5",
+	},
+
     requesty = {
         -- Requesty is an OpenAI-compatible model router (https://requesty.ai).
         -- Model naming: provider/model-name, but NOT the same convention as OpenRouter —
@@ -533,7 +656,7 @@ local ModelLists = {
         -- on the defaults, both native web-search wires probed working.)
         -- (groq PROMOTED 2026-09-07: keyed with a reader's free key (#106),
         -- discovery + the full battery green on all 4 seed ids; tier rows kept.)
-        together = true, sambanova = true,
+        together = true, sambanova = true, bedrock = true,
         requesty = true, doubao = true,
         -- M1 additions (ex hosted presets)
         cerebras = true, minimax = true, deepinfra = true, novita = true,
@@ -576,6 +699,7 @@ local ModelLists = {
         mistral    = { "mistral-large-latest" },
         xai        = { "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-beta-0309-non-reasoning", "grok-4-1-fast-non-reasoning" },
         openrouter = { "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5" },
+        bedrock    = { "deepseek.v3.2", "openai.gpt-oss-120b-1:0" },
         requesty   = { "openai/gpt-4o-mini" },
         qwen       = { "qwen3-max" },
         kimi       = { "kimi-k2.6", "kimi-k2.5", "kimi-k2-0905-preview" },
@@ -746,6 +870,10 @@ local ModelLists = {
         openrouter = {
             api_list = "https://openrouter.ai/api/v1/models",
             docs = "https://openrouter.ai/models",
+        },
+        bedrock = {
+            api_list = "https://bedrock.us-east-1.amazonaws.com/foundation-models?byOutputModality=TEXT&byInferenceType=ON_DEMAND",
+            docs = "https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html",
         },
         requesty = {
             api_list = "https://router.requesty.ai/v1/models",
