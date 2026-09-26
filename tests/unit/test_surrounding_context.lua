@@ -410,6 +410,52 @@ TestRunner:test("raw {surrounding_context} placeholder suppresses the append too
         "raw placeholder means the action labels it itself")
 end)
 
+TestRunner:suite("contextExcerpt (dictionary display excerpt)")
+
+TestRunner:test("short context passes through; marker word bolded by the caller", function()
+    local b, w, a = ScopeResolver.contextExcerpt("She found the >>>derelict<<< ship at dawn.")
+    TestRunner:assertEqual(b, "She found the", "before")
+    TestRunner:assertEqual(w, "derelict", "word")
+    TestRunner:assertEqual(a, "ship at dawn.", "after")
+end)
+
+TestRunner:test("no marker or empty word = nil", function()
+    TestRunner:assertNil(ScopeResolver.contextExcerpt("plain text"), "no marker")
+    TestRunner:assertNil(ScopeResolver.contextExcerpt(">>> <<<"), "blank word")
+    TestRunner:assertNil(ScopeResolver.contextExcerpt(nil), "nil")
+end)
+
+TestRunner:test("long sides cut to the budget on word boundaries, with ellipses", function()
+    local prev = string.rep("alpha ", 40)   -- 240 bytes
+    local nxt = string.rep("omega ", 40)
+    local b, w, a = ScopeResolver.contextExcerpt(prev .. ">>>word<<< " .. nxt, 30)
+    TestRunner:assertEqual(w, "word", "word")
+    TestRunner:assertEqual(b:sub(1, 3) == "…", true, "before marked as cut")
+    TestRunner:assertEqual(#b <= 30 + 3, true, "before within budget (+ ellipsis)")
+    TestRunner:assertEqual(b:find("^…alpha") ~= nil, true, "before starts on a whole word")
+    TestRunner:assertEqual(a:sub(-3) == "…", true, "after marked as cut")
+    TestRunner:assertEqual(a:find("omega…$") ~= nil, true, "after ends on a whole word")
+end)
+
+TestRunner:test("trimContext's own ellipses carry over; paragraph breaks bound each side", function()
+    local b, _w, a = ScopeResolver.contextExcerpt("...end of a sentence >>>word<<< more text...")
+    TestRunner:assertEqual(b, "…end of a sentence", "leading ... becomes …")
+    TestRunner:assertEqual(a, "more text…", "trailing ... becomes …")
+    local b2, _w2, a2 = ScopeResolver.contextExcerpt("Last para ends.\nNew para starts >>>here<<< and\nnext para.")
+    TestRunner:assertEqual(b2, "New para starts", "before stops at the paragraph break")
+    TestRunner:assertEqual(a2, "and", "after stops at the paragraph break")
+    local b3 = ScopeResolver.contextExcerpt("Earlier paragraph.\n>>>Opening<<< words")
+    TestRunner:assertEqual(b3, "", "word opening its paragraph = empty before")
+end)
+
+TestRunner:test("CJK: byte budget on character boundaries, no word snap", function()
+    local prev = string.rep("日本語の", 20)  -- 240 bytes, no spaces
+    local b = ScopeResolver.contextExcerpt(prev .. ">>>猫<<<です", 30)
+    TestRunner:assertEqual(b:sub(1, 3) == "…", true, "cut marked")
+    TestRunner:assertEqual(#b - 3 <= 30, true, "within budget")
+    TestRunner:assertEqual((#b - 3) % 3 == 0, true, "whole 3-byte characters only")
+end)
+
 print("")
 print(string.rep("-", 50))
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

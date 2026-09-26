@@ -481,4 +481,50 @@ function ScopeResolver.trimContext(prev, next_text, highlighted_text, mode, opts
     end
 end
 
+--- A short display excerpt around the selection, cut from a trimContext
+--- result (its ">>>word<<<" marker). Each side stays inside the word's own
+--- paragraph, takes up to `side_bytes` bytes (a byte budget keeps CJK and
+--- Latin lines comparable), snaps to whole characters and, where the script
+--- has spaces, to whole words; whitespace collapses to single spaces. A side
+--- that was cut here or already by trimContext ("...") gets "…". Display
+--- only: the dictionary views show it above the answer.
+--- @param context string|nil a trimContext result
+--- @param side_bytes number|nil per-side budget (default 100)
+--- @return string|nil before, string|nil word, string|nil after (nil = no marker)
+function ScopeResolver.contextExcerpt(context, side_bytes)
+    if type(context) ~= "string" then return nil end
+    local s = context:find(">>>", 1, true)
+    local e = s and context:find("<<<", s + 3, true)
+    if not e then return nil end
+    side_bytes = side_bytes or 100
+    local function squash(t)
+        return (t:gsub("%s+", " "):match("^ ?(.-) ?$"))
+    end
+    local word = squash(context:sub(s + 3, e - 1))
+    if word == "" then return nil end
+    local raw_before, raw_after = context:sub(1, s - 1), context:sub(e + 3)
+    local before_cut = raw_before:find("^%s*%.%.%.") ~= nil
+    local after_cut = raw_after:find("%.%.%.%s*$") ~= nil
+    -- Paragraph boundaries (crengine's "\n"): an excerpt never reaches into
+    -- the neighbouring paragraph
+    local nl_before = raw_before:match("^.*\n(.*)$")
+    if nl_before then raw_before, before_cut = nl_before, false end
+    local nl_after = raw_after:match("^(.-)\n")
+    if nl_after then raw_after, after_cut = nl_after, false end
+    local before = squash((raw_before:gsub("^%s*%.%.%.", "")))
+    local after = squash((raw_after:gsub("%.%.%.%s*$", "")))
+    if #before > side_bytes then
+        -- Start on a word boundary (unchanged where the script has no spaces)
+        before = squash((ScopeResolver.utf8Tail(before, side_bytes):gsub("^%S*%s", "", 1)))
+        before_cut = true
+    end
+    if #after > side_bytes then
+        after = squash((ScopeResolver.utf8Head(after, side_bytes):gsub("%s%S*$", "", 1)))
+        after_cut = true
+    end
+    if before_cut and before ~= "" then before = "…" .. before end
+    if after_cut and after ~= "" then after = after .. "…" end
+    return before, word, after
+end
+
 return ScopeResolver

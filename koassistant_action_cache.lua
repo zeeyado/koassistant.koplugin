@@ -2767,7 +2767,7 @@ local exact_route_index = nil -- { path, key, set }
 --- only — the actual lookup re-parses through handleLocalXrayLookup.
 --- @param document_path string
 --- @param query string
---- @return boolean
+--- @return boolean, string|nil the spelling that matched (query or opts.also)
 --- B269 ladder-meta memo: rung coverages + stamps per ladder file stamp,
 --- so the per-tap rung pick is arithmetic (the full ladder loads only when
 --- the route index actually rebuilds)
@@ -2885,8 +2885,19 @@ function ActionCache.matchAnyXrayExact(document_path, query, opts)
         end
         exact_route_index = { path = path, key = key, set = set }
     end
-    return require("koassistant_xray_parser")
-        .matchExactHandle(exact_route_index.set, query)
+    local XrayParser = require("koassistant_xray_parser")
+    if XrayParser.matchExactHandle(exact_route_index.set, query) then
+        return true, query
+    end
+    -- opts.also: a second spelling tried against the same index (the
+    -- dictionary wrapper's cleaned word), so one tap never pays for the
+    -- stats and ladder read above twice
+    local also = opts and opts.also
+    if type(also) == "string" and also ~= "" and also ~= query
+            and XrayParser.matchExactHandle(exact_route_index.set, also) then
+        return true, also
+    end
+    return false
 end
 
 function ActionCache.searchAllXrays(document_path, query, doc, opts)

@@ -1615,6 +1615,18 @@ function ModelConstraints.clampMaxTokens(provider, model, value)
     return value
 end
 
+--- OpenAI's newer model families (GPT-5.x, o-series, GPT-4.1) take
+--- max_completion_tokens and reject max_tokens outright. ONE rule for every
+--- body that names the output budget: the OpenAI handler, custom providers
+--- (a user-defined endpoint serving these ids) and the Test provider probe.
+--- @param model string|nil
+--- @return boolean
+function ModelConstraints.usesMaxCompletionTokens(model)
+    if type(model) ~= "string" then return false end
+    return model:match("^gpt%-5") ~= nil or model:match("^o%d") ~= nil
+        or model:match("^gpt%-4%.1") ~= nil
+end
+
 -- Target request size when the model's output ceiling is known (item 27,
 -- raise-where-known): generous enough that reasoning/thinking — which bills
 -- against the same budget on every provider — can never starve the answer,

@@ -953,6 +953,9 @@ It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a mi
             -- still announced itself as quiz generation on the device
             hidden_streaming_label = config.features and config.features.hidden_streaming_label,
             hidden_streaming_note = config.features and config.features.hidden_streaming_note,
+            -- The action's name for the window title (buildUnifiedRequestConfig
+            -- sets it; a freeform question has none)
+            request_title = config.features and config.features.loading_action_name,
             -- Quick-answer retry (input safety net S3): a ⚡ button in the stream window
             -- that aborts + resends with quick posture. Shown only for quick-ELIGIBLE runs
             -- (freeform sends + actions that opted into quick via accept_quick_answer; NOT

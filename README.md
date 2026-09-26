@@ -1768,6 +1768,7 @@ Context mode sends surrounding text (sentence/paragraph/characters) with your lo
 **Context ON (default)**
 - Precise, disambiguated definition for THIS usage
 - Explains word's role in THIS specific sentence
+- The result opens with a short excerpt of the text around the word, the word in bold (display only; in the full-size view, Hide Quote hides it)
 - May miss other meanings/senses of the word (context disambiguates, so homographs aren't shown)
 - Slightly slower (more text to process)
 

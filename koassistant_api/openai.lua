@@ -237,8 +237,7 @@ function OpenAIHandler:buildRequestBody(message_history, config)
     request_body.max_tokens = ModelConstraints.clampMaxTokens("openai", model, request_body.max_tokens)
 
     -- OpenAI's newer models (GPT-5.x, o-series, GPT-4.1) require max_completion_tokens instead of max_tokens
-    local needs_new_param = model:match("^gpt%-5") or model:match("^o%d") or model:match("^gpt%-4%.1")
-    if needs_new_param and request_body.max_tokens then
+    if ModelConstraints.usesMaxCompletionTokens(model) and request_body.max_tokens then
         request_body.max_completion_tokens = request_body.max_tokens
         request_body.max_tokens = nil
     end

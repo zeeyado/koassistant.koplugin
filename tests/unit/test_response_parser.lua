@@ -582,6 +582,47 @@ TestRunner:test("openai parser strips <think> tags from content into reasoning",
     TestRunner:assertEqual(reasoning, "plan", "think block surfaced as reasoning")
 end)
 
+TestRunner:test("orphan </think>: template-opened reasoning splits at the first closer", function()
+    local ok, content, reasoning = ResponseParser:parseResponse({
+        choices = { { message = { role = "assistant",
+            content = "Let me weigh this.\n</think>\n\nThe answer." }, finish_reason = "stop" } },
+    }, "openai")
+    TestRunner:assertTrue(ok, "success")
+    TestRunner:assertEqual(content, "The answer.", "answer after the closer")
+    TestRunner:assertEqual(reasoning, "Let me weigh this.", "text before the closer is reasoning")
+    -- Same through a parser that calls extractThinkTags unconditionally
+    local ok2, content2, reasoning2 = ResponseParser:parseResponse({
+        choices = { { message = { content = "plan</think>OK" } } },
+    }, "groq")
+    TestRunner:assertTrue(ok2, "groq success")
+    TestRunner:assertEqual(content2, "OK", "groq answer")
+    TestRunner:assertEqual(reasoning2, "plan", "groq reasoning")
+end)
+
+TestRunner:test("splitOrphanThink: guards (opener present, nothing after, bare closer)", function()
+    local split = ResponseParser.splitOrphanThink
+    -- A reply that quotes both tags keeps its text
+    local quoted = "Models wrap it in <think> and </think> tags."
+    local a1, r1 = split(quoted)
+    TestRunner:assertEqual(a1, quoted, "opener anywhere = untouched")
+    TestRunner:assertEqual(r1, nil, "no reasoning")
+    -- Nothing after the closer: keep the text (the reader must see something)
+    local a2, r2 = split("all reasoning</think>   ")
+    TestRunner:assertEqual(a2, "all reasoning</think>   ", "empty answer = untouched")
+    TestRunner:assertEqual(r2, nil, "no reasoning")
+    -- Empty reasoning: the closer is stripped, no reasoning recorded
+    local a3, r3 = split("</think>\n\nHello")
+    TestRunner:assertEqual(a3, "Hello", "bare closer stripped")
+    TestRunner:assertEqual(r3, nil, "empty reasoning = nil")
+    -- No closer at all, and non-strings, pass through
+    TestRunner:assertEqual(split("plain"), "plain", "no closer")
+    TestRunner:assertEqual(split(nil), nil, "nil")
+    -- Only the FIRST closer splits; a later one stays in the answer
+    local a4, r4 = split("r</think>a </think> b")
+    TestRunner:assertEqual(a4, "a </think> b", "first closer only")
+    TestRunner:assertEqual(r4, "r", "reasoning before the first")
+end)
+
 TestRunner:test("openai parser: no reasoning field = nil, content untouched", function()
     local ok, content, reasoning = ResponseParser:parseResponse({
         choices = { { message = { role = "assistant", content = "plain" }, finish_reason = "stop" } },

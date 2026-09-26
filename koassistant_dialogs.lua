@@ -4129,6 +4129,29 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 and (not temp_config.features.dictionary_context or temp_config.features.dictionary_context == "") then
             temp_config.features.dictionary_context = message_data.context
         end
+        -- Dictionary views show where the word sits (display only, nothing
+        -- sent): a short excerpt of the context this lookup used. It lives on
+        -- the history so every re-render (quote toggle, expand, recreate)
+        -- shows the same line, and it stands in for the quote, so the quote
+        -- is shown.
+        if (temp_config.features.compact_view or temp_config.features.dictionary_view)
+                and message_data.context and message_data.context ~= "" then
+            local ex_before, ex_word, ex_after = ScopeResolver.contextExcerpt(message_data.context)
+            if ex_word then
+                local ex_line = table.concat({ ex_before, "**" .. ex_word .. "**", ex_after }, " ")
+                    :match("^%s*(.-)%s*$")
+                -- Book text opening the line ("- " dialogue, "1914. ", "#",
+                -- "> ") would render as a list, heading or quote; luamd has no
+                -- escapes, and its line patterns never match a no-break space
+                if ex_line:find("^[%*%-] ") or ex_line:find("^> ") or ex_line:find("^#")
+                        or ex_line:find("^%d+%. ") or ex_line:find("^%[.-%]%s*:")
+                        or ex_line:find("^```") then
+                    ex_line = "\u{00A0}" .. ex_line
+                end
+                history.source_excerpt = ex_line
+                temp_config.features.hide_highlighted_text = false
+            end
+        end
 
         -- Surrounding context (surrounding_context_plan.md): per-action tri-state over
         -- the ambient per-book/global mode. Entry points pre-extract the raw window into

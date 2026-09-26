@@ -9,6 +9,7 @@ max_completion_tokens for newer OpenAI-style models.
 ]]
 
 local OpenAICompatibleHandler = require("koassistant_api.openai_compatible")
+local ModelConstraints = require("model_constraints")
 
 local CustomOpenAIHandler = OpenAICompatibleHandler:new()
 
@@ -58,10 +59,8 @@ end
 
 -- Handle max_completion_tokens for newer OpenAI models
 function CustomOpenAIHandler:customizeRequestBody(body, config)
-    local model = body.model or ""
     -- Newer OpenAI models use max_completion_tokens instead of max_tokens
-    local needs_new_param = model:match("^gpt%-5") or model:match("^o%d") or model:match("^gpt%-4%.1")
-    if needs_new_param and body.max_tokens then
+    if ModelConstraints.usesMaxCompletionTokens(body.model) and body.max_tokens then
         body.max_completion_tokens = body.max_tokens
         body.max_tokens = nil
     end

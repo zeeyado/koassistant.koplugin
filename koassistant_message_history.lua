@@ -484,6 +484,10 @@ function MessageHistory:createResultText(highlightedText, config)
         elseif is_multi then
             -- Multiple books selected
             table.insert(result, "Selected books:\n" .. highlightedText .. "\n\n")
+        elseif self.source_excerpt then
+            -- Dictionary lookup: the word in its sentence (set by the dictionary
+            -- views; display only)
+            table.insert(result, self.source_excerpt .. "\n\n")
         else
             -- Default: highlighted text from reader
             table.insert(result, "Highlighted text: \"" .. highlightedText .. "\"\n\n")

@@ -119,6 +119,55 @@ TestRunner:test("outcome flags: idle close doesn't poison; cancel/discard consum
     TestRunner:assertEqual(d, false, "consumed once")
 end)
 
+TestRunner:test("cancelForSleep: kills once, marks slept (not cancelled), idle is a no-op", function()
+    XrayAuto.consumeOutcomeFlags()
+    -- Idle: nothing to stop, no flag
+    TestRunner:assertEqual(XrayAuto.cancelForSleep(), false, "idle returns false")
+    local c, d, s = XrayAuto.consumeOutcomeFlags()
+    TestRunner:assertEqual(s, false, "idle sleep marks nothing")
+    -- In flight: the handle fires once, the flight clears, the outcome is a sleep
+    local calls = 0
+    XrayAuto.beginFlight("/books/a.epub")
+    XrayAuto.registerCancel(function() calls = calls + 1 end)
+    TestRunner:assertEqual(XrayAuto.cancelForSleep(), true, "in-flight returns true")
+    TestRunner:assertEqual(XrayAuto.cancelForSleep(), false, "second call is idle")
+    TestRunner:assertEqual(calls, 1, "handle fired once")
+    TestRunner:assertEqual(XrayAuto.isInFlight(), false, "flight cleared")
+    TestRunner:assertEqual(XrayAuto.inFlightFile(), nil, "flight file cleared")
+    c, d, s = XrayAuto.consumeOutcomeFlags()
+    TestRunner:assertEqual(c, false, "a sleep is not a user cancel")
+    TestRunner:assertEqual(d, false, "nothing discarded")
+    TestRunner:assertEqual(s, true, "sleep recorded")
+    c, d, s = XrayAuto.consumeOutcomeFlags()
+    TestRunner:assertEqual(s, false, "consumed once")
+    -- A real cancel never reads as a sleep
+    XrayAuto.beginFlight()
+    XrayAuto.cancelInFlight()
+    c, d, s = XrayAuto.consumeOutcomeFlags()
+    TestRunner:assertEqual(c, true, "cancel recorded")
+    TestRunner:assertEqual(s, false, "cancel is not a sleep")
+    -- A step still being prepared (in flight, no handle yet: the large-request
+    -- warning waiting for the reader) is left alone: nothing killed, no flag,
+    -- the flight stays so the reader's answer after waking proceeds normally
+    XrayAuto.beginFlight("/books/a.epub")
+    TestRunner:assertEqual(XrayAuto.cancelForSleep(), false, "nothing sent = nothing killed")
+    TestRunner:assertEqual(XrayAuto.isInFlight(), true, "preparing flight untouched")
+    c, d, s = XrayAuto.consumeOutcomeFlags()
+    TestRunner:assertEqual(s, false, "no stale sleep flag")
+    XrayAuto.endFlight()
+end)
+
+TestRunner:test("chainBusy: a build parked for the network is not busy", function()
+    TestRunner:assertEqual(XrayAuto.chainBusy(), false, "idle")
+    XrayAuto.beginLadderBuild("/books/a.epub", { 0.2, 0.4 }, nil, { silent = true })
+    TestRunner:assertEqual(XrayAuto.chainBusy(), true, "active chain is busy")
+    XrayAuto.ladderBuild().awaiting_network = true
+    TestRunner:assertEqual(XrayAuto.chainBusy(), false, "parked chain lets installs run")
+    TestRunner:assertEqual(XrayAuto.ladderBuild() ~= nil, true, "still the active build")
+    XrayAuto.endLadderBuild()
+    TestRunner:assertEqual(XrayAuto.chainBusy(), false, "ended")
+end)
+
 TestRunner:test("flight file scopes the display (watchdog retired 2026-08-05)", function()
     XrayAuto.consumeOutcomeFlags()
     XrayAuto.beginFlight("/books/a.epub")
@@ -1296,6 +1345,15 @@ TestRunner:test("matchAnyXrayExact: carried stubs route without the ahead peek (
     TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Nobody Here"), false, "miss stays a miss")
     TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Carried Gal", { include_ahead = false }),
         true, "Upcoming Entities off keeps the carried route (Q8)")
+    -- opts.also (the dictionary wrapper's cleaned word): the second spelling
+    -- is tried against the same index and reported back
+    local ok, form = ActionCache.matchAnyXrayExact(DOC_PATH, "Live Guy's", { also = "Live Guy" })
+    TestRunner:assertEqual(ok, true, "cleaned spelling routes")
+    TestRunner:assertEqual(form, "Live Guy", "the matching spelling is returned")
+    ok, form = ActionCache.matchAnyXrayExact(DOC_PATH, "Live Guy", { also = "Guy" })
+    TestRunner:assertEqual(form, "Live Guy", "the raw spelling wins when both could match")
+    TestRunner:assertEqual(ActionCache.matchAnyXrayExact(DOC_PATH, "Nobody's", { also = "Nobody" }),
+        false, "both spellings missing stays a miss")
 end)
 
 TestRunner:test("skippedBuiltRung (B282): the swing guard fires only past a skipped built rung", function()

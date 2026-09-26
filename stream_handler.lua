@@ -873,6 +873,18 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             end
         end
 
+        -- Orphan </think> (template-opened reasoning: no opener ever streamed, so
+        -- the think machine never engaged and the reasoning streamed as answer
+        -- text). Split it off before any notice is appended.
+        if #reasoning_buffer == 0 and not think_tag_active then
+            local answer, orphan_reasoning = require("koassistant_api.response_parser")
+                .splitOrphanThink(result)
+            if answer ~= result then
+                result = answer
+                if orphan_reasoning then reasoning_buffer[1] = orphan_reasoning end
+            end
+        end
+
         -- Append the incomplete-response notice, naming the actual cause
         if interrupted_detail then
             local ResponseParser = require("koassistant_api.response_parser")
@@ -1331,8 +1343,28 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         })
     end
 
+    -- Title: the action being run, else the generic state line. Capped so the
+    -- title stays on one line: InputDialog's title bar wraps, and the dialog
+    -- height above is sized for a single title line. The cap counts display
+    -- width, a 3- or 4-byte character (CJK, kana, Hangul) as two units.
+    local stream_title = _("AI is responding")
+    local req_title = settings and settings.request_title
+    if type(req_title) == "string" and req_title:find("%S") then
+        req_title = req_title:gsub("%s+", " "):match("^%s*(.-)%s*$")
+        local units, kept = 0, {}
+        stream_title = req_title
+        for ch in req_title:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+            units = units + (#ch >= 3 and 2 or 1)
+            if units > 32 then
+                stream_title = table.concat(kept) .. "…"
+                break
+            end
+            kept[#kept + 1] = ch
+        end
+    end
+
     streamDialog = InputDialog:new{
-        title = _("AI is responding"),
+        title = stream_title,
         inputtext_class = StreamText,
         input_face = Font:getFace("infofont", font_size),
 

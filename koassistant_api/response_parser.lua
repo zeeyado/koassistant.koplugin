@@ -95,6 +95,24 @@ ResponseParser.WEB_SEARCH_MARKER = "*[Searched the web]*"
 -- Pre-search prose segments shorter than this (trimmed) are treated as filler
 ResponseParser.WEB_PRESEARCH_FILLER_CHARS = 80
 
+--- Orphan </think>: chat templates that open <think> in the PROMPT (Qwen3
+--- Thinking-2507, DeepSeek-R1) return only the closer, so everything before
+--- the first </think> is reasoning. Split only when no <think> appears
+--- anywhere and a real answer follows the closer: a reply that merely quotes
+--- the tag keeps its text. Shared by extractThinkTags and the stream end.
+--- @param text string|nil
+--- @return string|nil answer (text unchanged when no split applies)
+--- @return string|nil reasoning (nil when unchanged or empty)
+function ResponseParser.splitOrphanThink(text)
+    if type(text) ~= "string" then return text, nil end
+    local s, e = text:find("</[Tt]hink>")
+    if not s or text:find("<[Tt]hink>") then return text, nil end
+    local answer = text:sub(e + 1):match("^%s*(.-)%s*$")
+    if answer == "" then return text, nil end
+    local reasoning = text:sub(1, s - 1):match("^%s*(.-)%s*$")
+    return answer, reasoning ~= "" and reasoning or nil
+end
+
 -- Helper to extract <think> tags from content (used by inference providers hosting R1)
 local function extractThinkTags(content)
     if not content or type(content) ~= "string" then
@@ -109,7 +127,7 @@ local function extractThinkTags(content)
         clean = clean:gsub("^%s+", ""):gsub("%s+$", "")
         return clean, thinking
     end
-    return content, nil
+    return ResponseParser.splitOrphanThink(content)
 end
 
 -- Web-search provenance helpers. Transformers that can see source data return a

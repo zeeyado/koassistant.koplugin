@@ -59,6 +59,7 @@ local last_ladder_stop = nil -- { file, step, total, kind } — why the chain la
 local session_updates = 0
 local cancelled = false    -- set when an actual flight was cancelled (close/tap-to-cancel)
 local discarded = false    -- set by the completion guard when it rejects the write
+local slept = false        -- set when a flight was stopped because the device went to sleep
 
 --- Resolve the user dials (schema: Reading & Library → X-Ray) into gate values.
 --- Pure; fallbacks MUST match the schema defaults (5% / 25% / 15 min). An inverted
@@ -173,6 +174,26 @@ function XrayAuto.cancelInFlight()
   in_flight_file = nil
 end
 
+--- The device is going to sleep with a request on the wire (AskGPT:onSuspend,
+--- only where KOReader turns Wi-Fi off for the sleep, so the request can never
+--- complete): the same kill as cancelInFlight, marked as a sleep instead of a
+--- cancel, so the fire callbacks keep a checkpoint build alive for the
+--- reconnect rather than ending it or recording a failure. Only a SENT
+--- request (its cancel handle registered) is killed: a step still being
+--- prepared (in flight, no handle yet: the large-request warning waiting for
+--- the reader) is left alone and returns false.
+--- @return boolean true when a request was killed
+function XrayAuto.cancelForSleep()
+  if not cancel_fn then return false end
+  slept = true
+  local fn = cancel_fn
+  cancel_fn = nil
+  pcall(fn)
+  in_flight = false
+  in_flight_file = nil
+  return true
+end
+
 --- Consume-once outcome markers so the fire callback classifies results honestly
 --- (plan §6: the visible trace must not record a guard-discard as a success, nor a
 --- book-close cancel as a failure).
@@ -180,10 +201,11 @@ function XrayAuto.markDiscarded()
   discarded = true
 end
 
+--- @return boolean cancelled, boolean discarded, boolean slept
 function XrayAuto.consumeOutcomeFlags()
-  local c, d = cancelled, discarded
-  cancelled, discarded = false, false
-  return c, d
+  local c, d, s = cancelled, discarded, slept
+  cancelled, discarded, slept = false, false, false
+  return c, d, s
 end
 
 function XrayAuto.recordFailure(file, message)
@@ -745,6 +767,16 @@ local ladder_build = nil  -- { file, rungs = {targets}, idx, total, cancel_reque
 --- @return table|nil the active build state (nil when idle)
 function XrayAuto.ladderBuild()
   return ladder_build
+end
+
+--- A chain that is actually working: an active build not parked for the
+--- network (onSuspend sets awaiting_network). A parked build has nothing in
+--- flight and fires nothing until the reconnect, so the automatic installs
+--- (page-turn promotion) may run around it; on a Kobo, Wi-Fi stays off after
+--- waking unless the reader restores it, and the parking can last the session.
+--- @return boolean
+function XrayAuto.chainBusy()
+  return ladder_build ~= nil and not ladder_build.awaiting_network
 end
 
 --- @param labels table|nil sparse array parallel to rungs (snapLadderRungs output):

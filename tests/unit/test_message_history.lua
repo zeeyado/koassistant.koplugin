@@ -480,6 +480,19 @@ local function runCreateResultTextTests()
         TestRunner:assertContains(result, "Response text")
     end)
 
+    TestRunner:test("dictionary excerpt stands in for the quote, hidden with it", function()
+        local h = MessageHistory:new()
+        h.source_excerpt = "She found the **derelict** ship"
+        h:addUserMessage("Q")
+        h:addAssistantMessage("Definition")
+        local shown = h:createResultText("derelict", emptyConfig())
+        TestRunner:assertContains(shown, "She found the **derelict** ship", "excerpt shown")
+        TestRunner:assertNotContains(shown, "Highlighted text:", "replaces the quote line")
+        local hidden = h:createResultText("derelict", { features = { hide_highlighted_text = true } })
+        TestRunner:assertNotContains(hidden, "She found the", "Hide Quote hides the excerpt")
+        TestRunner:assertContains(hidden, "Definition", "answer still shown")
+    end)
+
     TestRunner:test("cache notice shown when used_cache", function()
         local h = MessageHistory:new()
         h.used_cache = true

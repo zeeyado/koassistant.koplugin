@@ -2785,6 +2785,13 @@ function AskGPT:testProvider(provider_id)
       messages = { { role = "user", content = "Reply with only: ok" } },
       max_tokens = 16,
     }
+    -- The rename the real request makes (openai.lua, custom_openai.lua):
+    -- OpenAI's newer families reject max_tokens outright, so the probe failed
+    -- its first step on the default OpenAI model
+    if (provider_id == "openai" or provider.is_custom)
+        and require("model_constraints").usesMaxCompletionTokens(model) then
+      body.max_completion_tokens, body.max_tokens = body.max_tokens, nil
+    end
     for k, v in pairs(extra or {}) do body[k] = v end
     local payload = json.encode(body)
     local hdrs = {
@@ -4237,7 +4244,21 @@ function AskGPT:buildModelMenu(simplified, provider_override)
       end,
       hold_callback = createHoldCallback(model_copy, is_custom),
       keep_menu_open = true,
+      menu_item_id = "koassistant_model:" .. model_copy,
     })
+  end
+
+  -- Open on the page holding the model in effect (TouchMenu jumps to the row
+  -- whose menu_item_id this returns): OpenRouter, OpenCode Go and a live
+  -- Ollama list run to several pages. A non-active provider's panel opens on
+  -- its default, the row a tap there most likely wants.
+  items.open_on_menu_item_id_func = function()
+    local target = effective_default
+    if self_ref:getCurrentProvider() == provider then
+      local f = self_ref.settings:readSetting("features") or {}
+      target = f.model or effective_default
+    end
+    return "koassistant_model:" .. tostring(target)
   end
 
   -- Add management options (only in full mode)
@@ -9599,7 +9620,10 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       local nc_tgt = nc_step and tonumber(nc_step.target)
         and math.floor(nc_step.target * 100 + 0.5) or nil
       table.insert(buttons, {{
-        text = nc_build.total == 1
+        -- Parked by a sleep (onSuspend): nothing runs until Wi-Fi is back
+        text = nc_build.awaiting_network
+            and _("Waiting for Wi-Fi to continue the X-Ray build… (tap to cancel)")
+          or nc_build.total == 1
             and (nc_tgt and T(_("Generating X-Ray to %1% in the background… (tap to cancel)"), nc_tgt)
               or _("Generating X-Ray in the background… (tap to cancel)"))
           or (nc_tgt and T(_("Building checkpoints: %1 of %2, to %3%… (tap to cancel)"),
@@ -9932,7 +9956,10 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       local lb_tgt = lb_step and tonumber(lb_step.target)
         and math.floor(lb_step.target * 100 + 0.5) or nil
       table.insert(buttons, {{
-        text = ladder_building.total == 1
+        -- Parked by a sleep (onSuspend): nothing runs until Wi-Fi is back
+        text = ladder_building.awaiting_network
+            and _("Waiting for Wi-Fi to continue the X-Ray build… (tap to cancel)")
+          or ladder_building.total == 1
             and (lb_tgt and T(_("Generating X-Ray to %1% in the background… (tap to cancel)"), lb_tgt)
               or _("Generating X-Ray in the background… (tap to cancel)"))
           or (lb_tgt and T(_("Building checkpoints: %1 of %2, to %3%… (tap to cancel)"),
@@ -13935,7 +13962,9 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
   -- triggers the revert (the fire demotes back to the position rung).
   if state.rung_progress and state.live_progress and not self._xray_ladder_promo_pending then
     local XrayAuto = require("koassistant_xray_auto")
-    if not XrayAuto.ladderBuild() and not XrayAuto.isInFlight() then
+    -- chainBusy, not ladderBuild: a build parked for the network (onSuspend)
+    -- must not stop built checkpoints installing as the reader passes them
+    if not XrayAuto.chainBusy() and not XrayAuto.isInFlight() then
       local pos = pageno / total
       local PfBookSettings = require("koassistant_book_settings")
       local posture = PfBookSettings.resolveXrayPosture(
@@ -14274,8 +14303,13 @@ function AskGPT:_fireXrayAutoUpdate(opts)
     config_copy.features.book_metadata,
     function(result, meta_or_err)
       XrayAuto.endFlight()
-      local was_cancelled, was_discarded = XrayAuto.consumeOutcomeFlags()
-      if was_cancelled or was_discarded then
+      local was_cancelled, was_discarded, was_slept = XrayAuto.consumeOutcomeFlags()
+      if was_slept then
+        -- The device slept mid-request (onSuspend): not a failure. The reader
+        -- asked for this run, so it goes again once the network is back.
+        self_ref._xray_update_after_sleep = file
+        logger.dbg("KOAssistant: background X-Ray update interrupted by sleep, re-runs on reconnect")
+      elseif was_cancelled or was_discarded then
         -- Guard-discard (a manual run won the race / X-Ray deleted) or book-close
         -- cancel: a skip — neither a success (nothing written) nor a failure
         logger.dbg("KOAssistant: background X-Ray update skipped -",
@@ -14358,7 +14392,9 @@ end
 function AskGPT:_fireXrayLadderPromotion(opts)
   if not self.ui or not self.ui.document or not self.ui.document.file then return false end
   local XrayAuto = require("koassistant_xray_auto")
-  if (XrayAuto.ladderBuild() and not (opts and opts.mid_build)) or XrayAuto.isInFlight() then return false end
+  -- A parked build (chainBusy false) is between rungs with nothing in flight,
+  -- like the mid_build call
+  if (XrayAuto.chainBusy() and not (opts and opts.mid_build)) or XrayAuto.isInFlight() then return false end
   local file = self.ui.document.file
   local ActionCache = require("koassistant_action_cache")
   local ladder = ActionCache.getXrayLadder(file)
@@ -15139,6 +15175,10 @@ function AskGPT:_fireXrayLadderRung()
   local XrayAuto = require("koassistant_xray_auto")
   local build = XrayAuto.ladderBuild()
   if not build then return end
+  -- Slept mid-build (onSuspend): only the network hook resumes the chain; a
+  -- between-rung or retry timer landing in the wait must not fire the step
+  -- into a radio that is still off (onNetworkConnected clears the flag)
+  if build.awaiting_network then return end
   if not self.ui or not self.ui.document or self.ui.document.file ~= build.file then
     XrayAuto.endLadderBuild()
     return
@@ -15310,13 +15350,21 @@ function AskGPT:_fireXrayLadderRung()
     config_copy.features.book_metadata,
     function(result, meta_or_err)
       XrayAuto.endFlight()
-      local was_cancelled = XrayAuto.consumeOutcomeFlags()
+      local was_cancelled, _was_discarded, was_slept = XrayAuto.consumeOutcomeFlags()
       local cur = XrayAuto.ladderBuild()
       if not cur then return end  -- build ended (close/cancel) while in flight
       if was_cancelled or cur.cancel_requested then
         XrayAuto.endLadderBuild()
         UIManager:show(Notification:new{ text = cur.total == 1
           and _("X-Ray generation cancelled.") or _("Checkpoint build cancelled.") })
+        return
+      end
+      -- The device slept mid-request (onSuspend): the step never ran. The
+      -- build stays alive and onNetworkConnected fires this same step again.
+      if was_slept then
+        cur.awaiting_network = true
+        logger.dbg("KOAssistant: ladder step", cur.step or cur.idx,
+          "interrupted by sleep, waiting for the network")
         return
       end
       -- Honesty check: the rung must actually be on disk — truncated responses and
@@ -15563,6 +15611,82 @@ function AskGPT:_cancelXrayLadderBuild()
   UIManager:show(Notification:new{
     text = _("Build cancelled: resume from the X-Ray popup."),
   })
+end
+
+--- The device is about to sleep. Where KOReader turns Wi-Fi off for the sleep
+--- (Device:hasWifiManager: NetworkListener:onSuspend and the Kobo, Cervantes
+--- and reMarkable power handler kill the radio; Kindle and PocketBook leave
+--- it to the system, so they are left alone here), a background X-Ray request
+--- on the wire can never complete: its connection dies with the radio, and
+--- the child would block until its socket timeout while the popup reads
+--- "building". Stop it now (nothing is lost that the sleep had not already
+--- lost) and park the build for onNetworkConnected to pick the same step back
+--- up. Never returns true: Suspend is a broadcast every module must see.
+function AskGPT:onSuspend()
+  if not Device:hasWifiManager() then return end
+  -- A reconnect fire still in its settle delay would land in this sleep's
+  -- dead radio; its flags stay set for the next reconnect
+  if self._xray_reconnect_fire then
+    UIManager:unschedule(self._xray_reconnect_fire)
+    self._xray_reconnect_fire = nil
+  end
+  local XrayAuto = require("koassistant_xray_auto")
+  local build = XrayAuto.ladderBuild()
+  local was_in_flight = XrayAuto.isInFlight()
+  local killed = XrayAuto.cancelForSleep()
+  if killed then
+    logger.dbg("KOAssistant: device sleeping, background X-Ray request stopped until the network is back")
+  end
+  -- In flight but nothing killed: the step is still being prepared (its
+  -- large-request warning waits for the reader, nothing sent yet), so the
+  -- reader answers it after waking and the build is left as it is
+  if was_in_flight and not killed then return end
+  if build and not build.cancel_requested then
+    -- The killed step, or a chain between rungs or in a retry wait: it
+    -- waits for the reconnect instead of firing into a radio that is off
+    build.awaiting_network = true
+    if self._xray_ladder_retry then
+      UIManager:unschedule(self._xray_ladder_retry)
+      self._xray_ladder_retry = nil
+    end
+  end
+end
+
+--- Wi-Fi is back: a checkpoint build the sleep parked (onSuspend) fires its
+--- step again, and a background update the reader asked for runs again.
+--- Deferred a few seconds (the connection is announced before it is reliably
+--- usable); the parked state is consumed only when the fire actually goes out
+--- with the radio on, so a sleep inside the delay keeps it for the next
+--- reconnect. Never returns true (broadcast).
+function AskGPT:onNetworkConnected()
+  local file = self.ui and self.ui.document and self.ui.document.file
+  if not file then return end
+  local XrayAuto = require("koassistant_xray_auto")
+  local build = XrayAuto.ladderBuild()
+  if not ((build and build.awaiting_network and build.file == file)
+      or self._xray_update_after_sleep == file) then return end
+  if self._xray_reconnect_fire then
+    UIManager:unschedule(self._xray_reconnect_fire)
+  end
+  local self_ref = self
+  local fire = function()
+    self_ref._xray_reconnect_fire = nil
+    if not (self_ref.ui and self_ref.ui.document
+        and self_ref.ui.document.file == file) then return end
+    if not NetworkMgr:isWifiOn() or XrayAuto.isInFlight() then return end
+    -- Whichever build is parked now (one started meanwhile runs itself)
+    local live = XrayAuto.ladderBuild()
+    if live and live.awaiting_network and live.file == file then
+      live.awaiting_network = nil
+      logger.dbg("KOAssistant: network back, resuming the checkpoint build")
+      self_ref:_fireXrayLadderRung()
+    elseif self_ref._xray_update_after_sleep == file then
+      self_ref._xray_update_after_sleep = nil
+      self_ref:_fireXrayAutoUpdate({ manual = true })
+    end
+  end
+  self._xray_reconnect_fire = fire
+  UIManager:scheduleIn(3, fire)
 end
 
 --- Kill anything pending or in flight when the book closes. (The completion guard
@@ -16303,6 +16427,7 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
   end
 
   local buttons = {}
+  local checked_row  -- row of the first checked item (the scroll target below)
   for _idx, item in ipairs(menu_items) do
     -- TouchMenu semantics: separator = true on an ACTIONABLE item means "draw a
     -- line after this item", not "this item is a header" — treating any
@@ -16373,6 +16498,7 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
         end
       end
       table.insert(buttons, { btn })
+      if is_checked and not checked_row then checked_row = #buttons end
     end
   end
 
@@ -16402,6 +16528,23 @@ function AskGPT:showQuickSettingsPopup(title, menu_items, close_on_select, on_cl
       end
     end,
   }
+  -- A list taller than the screen scrolls (ButtonDialog wraps it in a
+  -- ScrollableContainer): open it on the page holding the checked row, as
+  -- KOReader's FontChooser does. The model list runs to several screens.
+  -- First paint anchors the offset on the row grid; clamped here as well.
+  local qs_dialog = self._quick_settings_dialog
+  local crop = qs_dialog.cropping_widget
+  local grid = checked_row and crop and qs_dialog.buttontable
+    and qs_dialog.buttontable.getStepScrollGrid and qs_dialog.buttontable:getStepScrollGrid()
+  if grid and grid[1] and grid[checked_row] and crop.dimen then
+    local row_h = grid[1].bottom + 1 - grid[1].top
+    if row_h > 0 then
+      local per_page = math.max(1, math.floor(crop.dimen.h / row_h))
+      local first = math.floor((checked_row - 1) / per_page) * per_page + 1
+      local max_y = math.max(0, qs_dialog.buttontable:getSize().h - crop.dimen.h)
+      qs_dialog:setScrolledOffset({ x = 0, y = math.min(grid[first].top, max_y) })
+    end
+  end
   UIManager:show(self._quick_settings_dialog)
 end
 
@@ -18882,6 +19025,15 @@ function AskGPT:syncDictionaryBypass()
 
     local self_ref = self
     dictionary.onLookupWord = function(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+      -- KOReader's own lookup cleans the selection first (readerdictionary.lua
+      -- onLookupWord → cleanSelection: edge punctuation, curly apostrophe,
+      -- possessive 's, French elisions): a PDF word box arrives as "word." and
+      -- a possessive as "Voss's". Our paths below use the cleaned word; every
+      -- fall-through still hands KOReader the RAW word (it cleans it itself).
+      local clean_word = word
+      if type(word) == "string" and dict_self.cleanSelection then
+        clean_word = dict_self:cleanSelection(word, is_sane)
+      end
       -- X-Ray intercept: exact entity hit → its X-Ray entry, ahead of any
       -- bypass action. Reads the lookup-book flag WITHOUT consuming (the
       -- fall-through paths hand it to the normal chain); consumes only when
@@ -18892,11 +19044,18 @@ function AskGPT:syncDictionaryBypass()
         local i_file = dict_self._koassistant_lookup_book
           or (self_ref.ui and self_ref.ui.document and self_ref.ui.document.file)
         -- Memoized route index (slice 2): a stat per tap instead of the old
-        -- full cache parse per tap — the #63 one-parse-per-tap cost is gone
-        if i_file and self_ref:_xrayInterceptEnabled(i_file)
-            and ActionCache.matchAnyXrayExact(i_file, word,
-              { include_ahead = self_ref:_xrayAheadEnabled(i_file),
-                position = self_ref:_xrayReaderPosition(i_file) }) then
+        -- full cache parse per tap — the #63 one-parse-per-tap cost is gone.
+        -- The raw word first (a name like "D'Arnel" matches as selected;
+        -- cleaning drops its "D'"), then the cleaned one ("Voss's" → Voss).
+        local hit_word
+        if i_file and self_ref:_xrayInterceptEnabled(i_file) then
+          local matched, form = ActionCache.matchAnyXrayExact(i_file, word,
+            { include_ahead = self_ref:_xrayAheadEnabled(i_file),
+              position = self_ref:_xrayReaderPosition(i_file),
+              also = clean_word })
+          if matched then hit_word = form or word end
+        end
+        if hit_word then
           logger.dbg("KOAssistant: X-Ray intercept - word matches entity, opening X-Ray")
           local lookup_book = dict_self._koassistant_lookup_book
           dict_self._koassistant_non_reader_lookup = nil
@@ -18931,12 +19090,14 @@ function AskGPT:syncDictionaryBypass()
           if lookup_book or card_boxes then
             card_opts = { document_path = lookup_book, sboxes = card_boxes }
           end
-          self_ref:openXrayCard(word, card_opts)
+          self_ref:openXrayCard(hit_word, card_opts)
           return
         end
       end
-      if not bypass_enabled then
-        -- Intercept-only install, no entity hit: the native dictionary
+      -- Intercept-only install with no entity hit (the native dictionary), or
+      -- nothing left after cleaning (a punctuation-only selection: KOReader's
+      -- "no result" window is what clears the highlight)
+      if not bypass_enabled or clean_word == "" then
         if dictionary._koassistant_original_onLookupWord then
           return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
         end
@@ -18990,7 +19151,7 @@ function AskGPT:syncDictionaryBypass()
           -- Live doc informs page context only when it IS the target book
           local doc = self_ref.ui and self_ref.ui.document
           if doc and doc.file ~= file then doc = nil end
-          local hits = ActionCache.searchAllXrays(file, word,
+          local hits = ActionCache.searchAllXrays(file, clean_word,
             doc, { skip_description = true })
           if #hits == 0 then
             logger.dbg("KOAssistant: Dictionary bypass - no X-Ray entry for word, falling through to dictionary")
@@ -19021,6 +19182,7 @@ function AskGPT:syncDictionaryBypass()
       local extraction_mode = (context_mode == "none") and "sentence" or context_mode
       local sc_window = nil
       if not non_reader_lookup and self_ref.ui and self_ref.ui.highlight then
+        -- The context's >>>marker<<< keeps the word as it stands on the page
         context = Dialogs.extractSurroundingContext(
           self_ref.ui,
           word,
@@ -19028,8 +19190,9 @@ function AskGPT:syncDictionaryBypass()
           context_chars
         )
         -- Pre-extract the surrounding-context window while the selection is alive
-        -- (highlight:clear() below kills it; handlePredefinedPrompt trims per mode)
-        sc_window = Dialogs.fetchSelectionContextWindow(self_ref.ui, word)
+        -- (highlight:clear() below kills it; handlePredefinedPrompt trims per mode).
+        -- Fingerprinted with the word the action receives, or it never attaches.
+        sc_window = Dialogs.fetchSelectionContextWindow(self_ref.ui, clean_word)
         if context and context ~= "" then
           logger.dbg("KOAssistant BYPASS: Got context (" .. #context .. " chars)")
         else
@@ -19067,7 +19230,7 @@ function AskGPT:syncDictionaryBypass()
       if bypass_action.local_handler then
         -- Local actions don't need network or dictionary-specific config
         self_ref:updateConfigFromSettings()
-        Dialogs.executeDirectAction(self_ref.ui, bypass_action, word, configuration, self_ref,
+        Dialogs.executeDirectAction(self_ref.ui, bypass_action, clean_word, configuration, self_ref,
           lookup_book_override and { document_path = lookup_book_override } or nil)
       else
         NetworkMgr:runWhenConnected(function()
@@ -19158,16 +19321,16 @@ function AskGPT:syncDictionaryBypass()
           if vocab_settings.enabled and features.dictionary_bypass_vocab_add ~= false then
             local book_title = (self_ref.ui.doc_props and self_ref.ui.doc_props.display_title) or _("AI Dictionary lookup")
             local Event = require("ui/event")
-            self_ref.ui:handleEvent(Event:new("WordLookedUp", word, book_title, false))
+            self_ref.ui:handleEvent(Event:new("WordLookedUp", clean_word, book_title, false))
             dict_config.features.vocab_word_auto_added = true
-            logger.dbg("KOAssistant: Auto-added word to vocabulary builder (bypass): " .. word)
+            logger.dbg("KOAssistant: Auto-added word to vocabulary builder (bypass): " .. clean_word)
           end
 
           -- Execute the action
           Dialogs.executeDirectAction(
             self_ref.ui,
             bypass_action,
-            word,
+            clean_word,
             dict_config,
             self_ref
           )
