@@ -143,6 +143,7 @@ function PromptsManager:getReasoningDisplayText(obj)
                 { key = "requesty", label = "RQ" },
                 { key = "together", label = "TG" }, { key = "fireworks", label = "FW" },
                 { key = "opencode", label = "OC" }, { key = "opencode_go", label = "OG" },
+                { key = "a2agent", label = "A2" },
                 { key = "xai", label = "X" }, { key = "perplexity", label = "PX" },
             }
             for _idx, p in ipairs(effort_providers) do
@@ -2576,6 +2577,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             fireworks = nil,
             opencode = nil,   -- nil = use global, false = off, { effort = "..." } = on
             opencode_go = nil,
+            a2agent = nil,    -- nil = use global, false = off, { effort = "..." } = on
             sambanova = nil,  -- nil = use global, false = off, true = on
             xai = nil,
             perplexity = nil,
@@ -2818,6 +2820,13 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
                 callback = function()
                     UIManager:close(self.per_provider_dialog)
                     showAlwaysOnEffortConfig("fireworks", _("Fireworks Reasoning Effort"), rd.fireworks.effort_options)
+                end,
+            },
+            {
+                text = _("A2Agent: ") .. getStatusText("a2agent"),
+                callback = function()
+                    UIManager:close(self.per_provider_dialog)
+                    showEffortConfig("a2agent", _("A2Agent Reasoning"), rd.a2agent.effort_options)
                 end,
             },
         },

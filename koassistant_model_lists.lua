@@ -515,6 +515,23 @@ local ModelLists = {
         "muse-spark-1.3-contributor",               -- OPT-IN (data-collection consent)
         "muse-spark-1.2-contributor",               -- OPT-IN (same)
     },
+    -- A2Agent (#108, added 2026-09-27; CURATED: donated key, /models read the
+    -- same day, every id below ran the full model_audit battery and a live
+    -- request through this handler). A gateway to DeepSeek, GLM, Kimi, Qwen
+    -- and MiniMax. Seed = the newest model per family; "Fetch models" brings
+    -- the rest (22 ids). Meta router: NO tier placements. Facts per id:
+    -- model_constraints.lua.
+    a2agent = {
+        "deepseek-v4-flash",                        -- default: the cheapest id with tools + a reasoning switch
+        "deepseek-v4-pro",
+        "deepseek-v4.1-flash",
+        "glm-5.3",
+        "glm-5.3-flash",
+        "kimi-k3",
+        "qwen3.8-max",                              -- no book tools: forced tool calls refused while thinking
+        "qwen3.8-flash",                            -- same
+        "MiniMax-M3",                               -- reasoning arrives as <think> tags (parser strips)
+    },
 
     ---------------------------------------------------------------------------
     -- CURATED vs COMMUNITY membership (REVISION 2). Community = docs-based, no
@@ -541,6 +558,7 @@ local ModelLists = {
         vercel = true,
         -- opencode: CURATED from day one (2026-09-05, #107): keyed + battery
         -- green on every seed id; a meta router, so no tier placements.
+        -- a2agent: CURATED from day one (2026-09-27, #108), same terms.
     },
 
     ---------------------------------------------------------------------------
@@ -837,6 +855,10 @@ local ModelLists = {
         opencode_go = {
             api_list = "https://opencode.ai/zen/go/v1/models",   -- public
             docs = "https://opencode.ai/docs/go/",
+        },
+        a2agent = {
+            api_list = "https://api.a2agent.me/v1/models",   -- public
+            docs = "https://docs.a2agent.me",
         },
     },
 

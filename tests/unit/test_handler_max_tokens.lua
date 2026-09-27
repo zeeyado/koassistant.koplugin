@@ -93,6 +93,8 @@ local CASES = {
     -- OpenCode (#107): no curated ceiling either; the 16384 fallback was probed accepted.
     { "opencode",   "koassistant_api.opencode",          "glm-5.3-flash",               nil },
     { "opencode_go", "koassistant_api.opencode_go",      "glm-5.3-flash",               nil },
+    -- A2Agent (#108): no curated ceiling; oversized asks were accepted and clamped upstream.
+    { "a2agent",    "koassistant_api.a2agent",           "deepseek-v4-flash",           nil },
 }
 
 for _idx, case in ipairs(CASES) do

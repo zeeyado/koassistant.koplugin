@@ -198,6 +198,51 @@ TestRunner:test("opencode_go: its own facts (glm-5.3-flash ladder low/high/max, 
     TestRunner:assertEqual(opt.axis, "none", "opt-in unprobed id on Go: axis none")
 end)
 
+TestRunner:suite("A2Agent reasoning injection (probed 2026-09-27)")
+
+local A2agentHandler = require("a2agent")
+
+local function a2agentWire(model, stance)
+    local d = ModelConstraints.resolveReasoning("a2agent", model, { global_stance = stance })
+    local params = {}
+    ModelConstraints.applyReasoningParams("a2agent", params, d)
+    return A2agentHandler:customizeRequestBody({ model = model, messages = {} },
+        { api_params = params, features = {} })
+end
+
+TestRunner:test("a2agent: off is thinking disabled, never effort 'none'", function()
+    for _idx, model in ipairs({ "deepseek-v4-flash", "deepseek-v4-pro", "kimi-k3", "qwen3.8-flash", "MiniMax-M3" }) do
+        local body = a2agentWire(model, "minimal")
+        TestRunner:assertEqual(body.thinking and body.thinking.type, "disabled", model .. " Minimal = thinking disabled")
+        TestRunner:assertNil(body.reasoning_effort, model .. " off sends no reasoning_effort")
+    end
+end)
+
+TestRunner:test("a2agent: effort models send the level, GLM cannot turn off", function()
+    TestRunner:assertEqual(a2agentWire("qwen3.8-max", "maximum").reasoning_effort, "max", "qwen Maximum = max")
+    TestRunner:assertEqual(a2agentWire("glm-5.3-flash", "minimal").reasoning_effort, "low",
+        "GLM Minimal = lowest level (every disable is refused upstream)")
+    TestRunner:assertNil(a2agentWire("glm-5.3", "minimal").thinking, "GLM never gets thinking disabled")
+end)
+
+TestRunner:test("a2agent: binary on sends enabled only where reasoning is not the default", function()
+    local flash = a2agentWire("deepseek-v4-flash", "maximum")
+    TestRunner:assertEqual(flash.thinking and flash.thinking.type, "enabled", "deepseek-v4-flash is off by default here")
+    TestRunner:assertNil(a2agentWire("MiniMax-M3", "maximum").thinking,
+        "MiniMax-M3 on = nothing sent (thinking enabled is refused)")
+    TestRunner:assertNil(a2agentWire("deepseek-v4-pro", "maximum").thinking, "deepseek-v4-pro reasons by default")
+end)
+
+TestRunner:test("a2agent: unprobed ids send nothing; kimi-k3 temperature forced; qwen gets no tools", function()
+    local d = ModelConstraints.resolveReasoning("a2agent", "glm-5", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.axis, "none", "unprobed id: axis none")
+    local params = ModelConstraints.apply("a2agent", "kimi-k3", { temperature = 0.7 })
+    TestRunner:assertEqual(params.temperature, 1.0, "kimi-k3 accepts only 0, 0.6 and 1.0")
+    TestRunner:assertFalse(ModelConstraints.supportsCapability("a2agent", "qwen3.8-max", "tools"),
+        "qwen refuses forced tool calls while thinking")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("a2agent", "deepseek-v4-flash", "tools"), "deepseek tools granted")
+end)
+
 TestRunner:test("opencode: an unprobed id sends nothing", function()
     local d = ModelConstraints.resolveReasoning("opencode", "gpt-5.6-luna", { global_stance = "maximum" })
     local params = {}
@@ -684,7 +729,7 @@ TestRunner:test("xAI has low/medium/high effort options", function()
 end)
 
 TestRunner:test("all effort providers default to high", function()
-    local providers = { "openrouter", "requesty", "groq", "together", "fireworks", "perplexity", "opencode", "opencode_go" }
+    local providers = { "openrouter", "requesty", "groq", "together", "fireworks", "perplexity", "opencode", "opencode_go", "a2agent" }
     for _idx, p in ipairs(providers) do
         TestRunner:assertEqual(ModelConstraints.reasoning_defaults[p].effort, "high",
             p .. " should default to high")

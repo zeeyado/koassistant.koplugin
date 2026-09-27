@@ -36,6 +36,11 @@ local ModelConstraints = {
         -- sessions, reasoning off).
         ["kimi-k2.6"] = { temperature = 1.0 },
     },
+    a2agent = {
+        -- kimi-k3 (probed 2026-09-27): accepts ONLY temperature 0, 0.6 and 1.0,
+        -- in both reasoning modes; the 0.7 default and most action pins 400.
+        ["kimi-k3"] = { temperature = 1.0 },
+    },
     -- Add more providers/models as discovered
 }
 
@@ -359,6 +364,34 @@ ModelConstraints.capabilities = {
             "hy3",
         },
     },
+    a2agent = {
+        -- Probed live 2026-09-27 (#108, donated key, model_audit battery on
+        -- every seed id). Every model reasons (MiniMax-M3 in <think> tags).
+        -- tools = forced tool_choice + two-round replay green, with reasoning
+        -- on and no reasoning_content echo. The Qwen ids answer tools but
+        -- refuse tool_choice="required" while thinking, so they get no tools
+        -- grant (the opencode_go precedent).
+        reasoning = {
+            "deepseek-v4-flash",
+            "deepseek-v4-pro",
+            "deepseek-v4.1-flash",
+            "glm-5.3-flash",
+            "glm-5.3",
+            "kimi-k3",
+            "qwen3.8-max",
+            "qwen3.8-flash",
+            "MiniMax-M3",
+        },
+        tools = {
+            "deepseek-v4-flash",
+            "deepseek-v4-pro",
+            "deepseek-v4.1-flash",
+            "glm-5.3-flash",
+            "glm-5.3",
+            "kimi-k3",
+            "MiniMax-M3",
+        },
+    },
     sambanova = {
         -- Models with thinking toggle (chat_template_kwargs.enable_thinking)
         thinking = { "DeepSeek-V3.1", "DeepSeek-V3.2" },
@@ -568,6 +601,17 @@ ModelConstraints._max_output_tokens = {
         ["hy4-preview"] = 1048576,
         ["hy3"] = 262144,
         ["longcat-2.0"] = 131072,
+    },
+    a2agent = {
+        -- Stated by the gateway's own oversized-max_tokens refusal (model_audit
+        -- battery 2026-09-27). The DeepSeek ids accepted an oversized ask
+        -- silently (fallback + self-heal).
+        ["glm-5.3-flash"] = 131072,
+        ["glm-5.3"] = 131072,
+        ["kimi-k3"] = 1048576,
+        ["qwen3.8-max"] = 131072,
+        ["qwen3.8-flash"] = 131072,
+        ["MiniMax-M3"] = 524288,
     },
     deepinfra = {
         -- Docs state output caps at 16384 regardless of model. The catalog's
@@ -822,6 +866,10 @@ ModelConstraints.reasoning_defaults = {
         effort_options = { "low", "medium", "high" },
     },
     opencode_go = {
+        effort = "high",
+        effort_options = { "low", "medium", "high" },
+    },
+    a2agent = {
         effort = "high",
         effort_options = { "low", "medium", "high" },
     },
@@ -1241,6 +1289,46 @@ ModelConstraints.reasoning_profiles = {
         { match = "deepseek-v4-flash-vision-exp", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+    },
+    a2agent = {
+        -- Probed live 2026-09-27 (#108). The gateway answers 200 to values
+        -- some backends ignore, so every control was checked against the
+        -- reply (reasoning present or absent), not the status code. Off is
+        -- thinking={type="disabled"} on every model that can turn off
+        -- (a2agent.lua); effort "none" leaves deepseek-v4-flash and MiniMax-M3
+        -- thinking. Longer ids before their prefixes (first match wins). No
+        -- provider-wide catch-all: an unprobed id sends nothing, always safe.
+        -- Temperature: the qwen ids reject 2.0 (recorded, not clamped, the
+        -- opencode_go precedent); kimi-k3 is forced to 1.0 in the table above.
+        { match = "deepseek-v4.1-flash", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- Any reasoning_effort (even "none" or an invalid value) turns thinking
+        -- on at one depth, and 4 of 5 bare requests did not reason: a switch,
+        -- off by default here (the direct DeepSeek API defaults on).
+        { match = "deepseek-v4-flash", axis = "binary", default_state = "off", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        -- Reasons by default; no clear effect of the level on the reply, so a
+        -- switch like the direct DeepSeek API.
+        { match = "deepseek-v4-pro", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        -- GLM always thinks and refuses every disable (effort "none", thinking
+        -- disabled, enable_thinking false); only low/high/max pass. Covers
+        -- glm-5.3-flash (same facts).
+        { match = "glm-5.3", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "high", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "low" }, maximum = { state = "on", option = "max" } } },
+        { match = "kimi-k3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "qwen3.8-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- Reasoning arrives as <think> tags; reasoning_effort is ignored and
+        -- thinking={type="enabled"} is refused (allowed: adaptive, disabled),
+        -- so on = the default (nothing sent), off = thinking disabled.
+        { match = "MiniMax-M3", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
     },
     xai = {
         -- grok-4.6 (probed 2026-08-14): reasons by default, effort "none" REJECTED
@@ -2513,6 +2601,7 @@ ModelConstraints.REASONING_WIRE_KEYS = {
     "deepseek_thinking", "zai_thinking", "sambanova_thinking", "kimi_thinking",
     "openrouter_reasoning", "requesty_reasoning", "groq_reasoning", "nvidia_reasoning",
     "together_reasoning", "fireworks_reasoning", "xai_reasoning", "opencode_reasoning",
+    "a2agent_reasoning",
     "perplexity_reasoning", "custom_reasoning", "_reasoning",
 }
 
@@ -2605,6 +2694,21 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
         -- api_params key for both providers, one handler family).
         if on then api_params.opencode_reasoning = { effort = decision.effort }
         elseif decision.off_option then api_params.opencode_reasoning = { effort = decision.off_option } end
+    elseif provider == "a2agent" then
+        -- On = the level (effort axis), or on a binary model a bare enable
+        -- only where reasoning is not already the default (MiniMax-M3 rejects
+        -- thinking={type="enabled"}). Off is thinking={type="disabled"},
+        -- never effort "none": deepseek-v4-flash and MiniMax-M3 keep thinking
+        -- on "none" (probed 2026-09-27). a2agent.lua translates.
+        if on then
+            if decision.effort then
+                api_params.a2agent_reasoning = { effort = decision.effort }
+            elseif not (decision.profile and decision.profile.default_state == "on") then
+                api_params.a2agent_reasoning = { enabled = true }
+            end
+        else
+            api_params.a2agent_reasoning = { enabled = false }
+        end
     elseif provider == "xai" then
         if on then
             api_params.xai_reasoning = { effort = decision.effort }

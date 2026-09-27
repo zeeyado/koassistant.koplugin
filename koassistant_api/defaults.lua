@@ -24,6 +24,7 @@ local function getDefaultModel(provider)
         requesty = "openai/gpt-4o-mini",
         opencode = "deepseek-v4-flash",
         opencode_go = "kimi-k3",
+        a2agent = "deepseek-v4-flash",
         qwen = "qwen3-max",
         kimi = "kimi-k2.6",
         together = "deepseek-ai/DeepSeek-V4-Pro",
@@ -341,6 +342,14 @@ local ProviderDefaults = {
         provider = "opencode_go",
         model = getDefaultModel("opencode_go"),
         base_url = "https://opencode.ai/zen/go/v1/chat/completions",
+        additional_parameters = { temperature = 0.7, max_tokens = 16384 }
+    },
+    -- A2Agent (#108): a gateway relaying DeepSeek, GLM, Kimi, Qwen and MiniMax
+    -- on the OpenAI chat wire; /v1/models is public.
+    a2agent = {
+        provider = "a2agent",
+        model = getDefaultModel("a2agent"),
+        base_url = "https://api.a2agent.me/v1/chat/completions",
         additional_parameters = { temperature = 0.7, max_tokens = 16384 }
     },
 }

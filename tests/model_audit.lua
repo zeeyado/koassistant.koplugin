@@ -575,6 +575,8 @@ local DISCOVERY = {
     -- only on the Responses/Messages doors — "+ NEW" is a candidate, --probe it.
     opencode = { headers = bearerHeaders, parse = parseOpenAIShapedList, marketplace = true },
     opencode_go = { headers = bearerHeaders, parse = parseOpenAIShapedList },
+    -- A2Agent (#108): /models is public, 22 ids across five families.
+    a2agent = { headers = bearerHeaders, parse = parseOpenAIShapedList },
 }
 
 -- One key per provider entry, no sharing (maintainer 2026-09-05: OpenCode
@@ -1151,6 +1153,7 @@ local OPENAI_FAMILY = {
                    extra_headers = { ["x-opencode-session"] = "koassistant-model-audit" } },
     opencode_go = { effort_key = "reasoning_effort",
                    extra_headers = { ["x-opencode-session"] = "koassistant-model-audit" } },
+    a2agent    = { effort_key = "reasoning_effort" },   -- #108: gateway to five families; the probe decides what each backend honors
     deepseek   = { binary_key = "thinking" },   -- {type="enabled"/"disabled"}
     zai        = { binary_key = "thinking" },
     mistral    = {},                            -- no reasoning params (magistral always-on)
@@ -2072,7 +2075,7 @@ local function probeModel(provider, model, api_key, verbose)
         facts = probeOpenAIFamily(provider, model, api_key, verbose)
     else
         printf("  %sno probe adapter for %q yet%s (have: anthropic, gemini, %s)",
-            C.red, provider, C.off, "openai/deepseek/xai/zai/mistral/perplexity/openrouter/groq/together/fireworks/qwen/kimi/opencode")
+            C.red, provider, C.off, "openai/deepseek/xai/zai/mistral/perplexity/openrouter/groq/together/fireworks/qwen/kimi/opencode/a2agent")
         return nil
     end
 

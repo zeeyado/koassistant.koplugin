@@ -69,6 +69,10 @@ return {
     -- Get from: https://app.requesty.ai/api-keys
     requesty = "YOUR_REQUESTY_API_KEY",
 
+    -- A2Agent API key (gateway to DeepSeek, GLM, Kimi, Qwen and MiniMax)
+    -- Get from: https://a2agent.me/
+    a2agent = "YOUR_A2AGENT_API_KEY",
+
     -- Qwen/DashScope API key (Alibaba)
     -- Get from: https://dashscope.console.aliyun.com/
     qwen = "YOUR_QWEN_API_KEY",

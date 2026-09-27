@@ -3073,6 +3073,7 @@ function AskGPT:getProviderDisplayName(provider_id)
     vercel = "Vercel AI Gateway",
     opencode = "OpenCode Zen",
     opencode_go = "OpenCode Go",
+    a2agent = "A2Agent",
   }
   if special[provider_id] then return special[provider_id] end
   -- Built-in provider: capitalize first letter
