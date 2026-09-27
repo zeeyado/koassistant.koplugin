@@ -2725,9 +2725,9 @@ end
 
 -- 19e: micro probe battery — universal since REVISION 2 M2 (any provider whose
 -- wire is OpenAI chat-shaped; see providerSupportsTest). Five cheap requests
--- (~16 output tokens each; the two tool steps get room to finish a call)
--- against the provider's own chat endpoint (the tool steps against the
--- Responses endpoint for models whose book tools go there); positive
+-- (~16 output tokens each; the two tool steps get room to finish a call), each
+-- built by the provider's own handler (koassistant_provider_probe.lua), so they
+-- take the route and shape real requests take; positive
 -- findings land in the DERIVED capability layer (user override > curated >
 -- derived) via ModelOverrides.recordDerived — never in custom_models.lua.
 function AskGPT:testProvider(provider_id)
@@ -2777,7 +2777,6 @@ function AskGPT:testProvider(provider_id)
 
   local BaseHandler = require("koassistant_api.base")
   local json = require("json")
-  local url = provider.base_url
   local auth
   local key = BaseHandler.getApiKey(provider_id, self.settings)
   if type(key) == "string" and key ~= "" and not BaseHandler.isPlaceholderKey(key) then
@@ -2795,50 +2794,23 @@ function AskGPT:testProvider(provider_id)
     return
   end
 
-  -- The route book tools really take (shouldUseResponses in openai.lua and
-  -- xai.lua): tool sessions on these models go to the Responses endpoint,
-  -- never to chat completions, so the tool steps probe there. On chat
-  -- completions OpenAI refused function tools for gpt-5.6-terra outright,
-  -- pointing at /v1/responses: a failure no book-tools request meets.
-  local tools_on_responses = (provider_id == "openai" or provider_id == "xai")
-    and require("model_constraints").supportsCapability(provider_id, model, "responses_web_search")
+  -- Each step's request comes from the provider's own handler, on the config
+  -- the router builds: the defaults merge carries the region and a
+  -- configuration.lua base_url, a custom provider its own URL. So the tool
+  -- steps take the Responses endpoint where book tools do (OpenAI, xAI) and
+  -- switch thinking off where book tools do (DeepSeek, Kimi).
+  local ProviderProbe = require("koassistant_provider_probe")
+  local handler = require("koassistant_api." .. (provider.is_custom and "custom_openai" or provider_id))
+  local base = require("koassistant_config_helper"):mergeWithDefaults({
+    provider = provider_id, model = model, api_key = auth and key or nil,
+    features = probe_features, provider_settings = configuration.provider_settings,
+  })
+  if provider.is_custom then base.base_url = provider.base_url end
 
-  local function post(extra, max_tokens, responses)
-    local body
-    if responses then
-      -- The handlers' Responses shape (buildResponsesRequest): input items,
-      -- max_output_tokens, nothing stored server-side
-      body = {
-        model = model,
-        input = { { role = "user", content = "Reply with only: ok" } },
-        max_output_tokens = max_tokens or 16,
-        store = false,
-      }
-    else
-      body = {
-        model = model,
-        messages = { { role = "user", content = "Reply with only: ok" } },
-        max_tokens = max_tokens or 16,
-      }
-      -- The rename the real request makes (openai.lua, custom_openai.lua):
-      -- OpenAI's newer families reject max_tokens outright, so the probe failed
-      -- its first step on the default OpenAI model
-      if (provider_id == "openai" or provider.is_custom)
-          and require("model_constraints").usesMaxCompletionTokens(model) then
-        body.max_completion_tokens, body.max_tokens = body.max_tokens, nil
-      end
-    end
-    for k, v in pairs(extra or {}) do body[k] = v end
-    local payload = json.encode(body)
-    local hdrs = {
-      ["Content-Type"] = "application/json",
-      ["Content-Length"] = tostring(#payload),
-    }
-    if auth then hdrs["Authorization"] = auth end
-    -- The handlers derive the Responses endpoint the same way
-    local post_url = responses and url:gsub("/chat/completions", "/responses") or url
-    local code, body, resp_headers = BaseHandler.fetchInSubprocess(post_url, {
-      method = "POST", headers = hdrs, body = payload, timeout = 20,
+  local function post(step)
+    local req = ProviderProbe.request(handler, base, step)
+    local code, body, resp_headers = BaseHandler.fetchInSubprocess(req.url, {
+      method = "POST", headers = req.headers, body = req.payload, timeout = 20,
     })
     -- Per-minute admission limits (docs/tpm_admission_plan.md): the probe's
     -- response headers name the plan's tokens-per-minute allowance, so the
@@ -2849,19 +2821,8 @@ function AskGPT:testProvider(provider_id)
       logger.dbg("KOAssistant: test probe learned per-minute allowance",
         RL.known(provider_id, key_model).limit_tokens, "for", provider_id, key_model)
     end
-    return code, body
+    return code, body, req.responses
   end
-
-  local ping = { name = "ping", description = "Connectivity test.",
-    parameters = { type = "object",
-      properties = { ping = { type = "string", description = "Any value." } } } }
-  -- Chat completions nest the definition; Responses takes it flat
-  local probe_tools = tools_on_responses
-    and { { type = "function", name = ping.name, description = ping.description, parameters = ping.parameters } }
-    or { { type = "function", ["function"] = ping } }
-  -- 16 tokens cannot hold a tool call, and a model that reasons before it
-  -- calls needs room for that too
-  local TOOL_TOKENS = 512
 
   -- The server's own explanation of a refusal, when the body carries one
   -- (error.message, NVIDIA's detail): a bare "HTTP 400" names nothing to act on
@@ -2888,7 +2849,7 @@ function AskGPT:testProvider(provider_id)
 
   local steps = {
     { label = _("Reachability"), run = function()
-        local code, body = post(nil)
+        local code, body = post("plain")
         local n = tonumber(code)
         if n == 200 then return true end
         if n == 401 or n == 403 then
@@ -2901,7 +2862,7 @@ function AskGPT:testProvider(provider_id)
         return false, T(_("HTTP %1 - check base URL and model id"), n)
       end },
     { label = _("Streaming (SSE)"), run = function()
-        local code, body = post({ stream = true })
+        local code, body = post("stream")
         if tonumber(code) ~= 200 then return false, failure(code, body) end
         if type(body) == "string" and (body:find("^data:") or body:find("\ndata:")
             or body:find("^event:") or body:find("\nevent:")) then
@@ -2910,22 +2871,22 @@ function AskGPT:testProvider(provider_id)
         return false, _("200 but not SSE - streaming may be unsupported")
       end },
     { label = _("Tool calling"), run = function()
-        local code, body = post({ tools = probe_tools }, TOOL_TOKENS, tools_on_responses)
+        local code, body, responses = post("tools")
         if tonumber(code) == 200 then
           caps.tools = true
-          return true, tools_on_responses and _("sent to the Responses endpoint, which book tools use on this model") or nil
+          return true, responses and _("sent to the Responses endpoint, which book tools use on this model") or nil
         end
         return false, failure(code, body)
       end },
     { label = _("Forced tool use (book-tools search)"), run = function()
         if not caps.tools then return nil, _("skipped - tools not accepted") end
-        local code, body = post({ tools = probe_tools, tool_choice = "required" }, TOOL_TOKENS, tools_on_responses)
+        local code, body = post("forced_tools")
         if tonumber(code) == 200 then return true end
         if serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - book tools' search phase may not work"), tostring(code))
       end },
     { label = _("Reasoning effort parameter"), run = function()
-        local code, body = post({ reasoning_effort = "low" })
+        local code, body = post("effort")
         if tonumber(code) == 200 then
           caps.reasoning = true
           return true, _("accepted (some hosts silently ignore it)")

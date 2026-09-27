@@ -124,8 +124,9 @@ ModelConstraints.capabilities = {
         -- V4: both models support thinking toggle (type: enabled/disabled), ON by default
         -- ("deepseek" = family fallback — the toggle is universal since V3.2)
         thinking = { "deepseek-v4-pro", "deepseek-v4-flash", "deepseek" },
-        -- Keep reasoning list for tier system (which models are "reasoning-class")
-        reasoning = { "deepseek-v4-pro" },
+        -- Reasoning-class models: both V4 models think by default (in sync with
+        -- reasoning_profiles; read by the debug view)
+        reasoning = { "deepseek-v4-pro", "deepseek-v4-flash" },
         -- Function calling for the book-tool workflows (tools wave 1; both V4 models
         -- per api-docs.deepseek.com — works in thinking AND non-thinking mode since V3.2).
         -- Wire gotchas (deepseek.lua): (1) replayed tool-call turns MUST carry

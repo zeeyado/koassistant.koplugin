@@ -2591,7 +2591,7 @@ These launch entries sit at the top of the menu:
   - Models for the selected provider are listed under it
   - Custom models appear with ★ prefix (see [Adding Custom Models](#adding-custom-models))
   - Long-press any model to set it as your default for that provider (see [Setting Default Models](#setting-default-models))
-  - **Fetch models from provider…** and **Test provider…** are available in every provider's model menu: Fetch pulls the live model list from that provider (useful for community providers, whose built-in lists are seed lists); Test sends a small request to confirm your key and connection work
+  - **Fetch models from provider…** and **Test provider…** sit in the provider's model menu: Fetch pulls the live model list from that provider (useful for community providers, whose built-in lists are seed lists; every provider except the OpenAI Subscription); Test sends a small request to confirm your key and connection work. Test covers providers that use the OpenAI-style chat format, so Anthropic, Gemini, Cohere, Ollama and the OpenAI Subscription don't have it; for those, select the provider and use **Settings → Advanced → Test Connection**
   - **Model tiers…** (same menu) pins which of that provider's models fills each speed tier (ultrafast / fast / standard / flagship / frontier); actions with a speed hint and the Quick Answer preset's tier modes resolve through it. **Settings → Advanced → Tier Models (Global)** can pin a tier to one provider+model for every tier-hinted request
   - **Ollama**: the model menu has a **"Server: …"** row for managing multiple local endpoints (tap to switch, hold to manage), lists only models actually installed on the active server, has a "Refresh installed models" row, and a **"Context window"** row deciding how big a window KOAssistant asks Ollama for (default **"Server decides"**, so your Modelfile or `OLLAMA_CONTEXT_LENGTH` stays in charge; the other choices size the window to each request up to a cap you pick). KOAssistant checks the model's effective window before sending an oversized prompt and warns rather than letting Ollama silently cut the text
 
@@ -3892,7 +3892,7 @@ Several built-in hosted providers (Cerebras, MiniMax, DeepInfra, Novita AI, Hype
 1. In the model menu, tap **Fetch models from provider...** to pull the live model list and tap-to-add the ones you want
 2. Tap **Test provider...** to run a quick capability check (streaming, tool calling, reasoning parameter) — recorded capabilities make features like AI Book Tools work where the model supports them
 
-Both of these work for any provider you have a key for, curated or community.
+Both of these work for any provider you have a key for, curated or community, with two exceptions: Test provider needs the OpenAI-style chat format (not Anthropic, Gemini, Cohere, Ollama or the OpenAI Subscription), and the OpenAI Subscription has no model list to fetch.
 
 **Manual setup (cloud services or unlisted endpoints):**
 
@@ -3977,7 +3977,7 @@ The first model in each provider's list is its default. Current defaults (subjec
 |----------|---------|----------------------|
 | **Anthropic** | `claude-sonnet-5` | `claude-opus-4-8` (most capable / reasoning), `claude-haiku-4-5` (fast), `claude-sonnet-4-6` (1M context) |
 | **OpenAI** | `gpt-5.6-terra` | `gpt-5.6-sol` (most capable), `gpt-5.6-luna` (cost-saver), `gpt-5.5`, `gpt-5.4-mini` |
-| **DeepSeek** | `deepseek-v4-pro` | `deepseek-v4-flash` (V4, 1M context, thinking on by default) |
+| **DeepSeek** | `deepseek-v4-flash` | `deepseek-v4-pro` (most capable; both V4, 1M context, thinking on by default) |
 | **Gemini** | `gemini-3.7-flash` | `gemini-3.6-flash`, `gemini-3.1-pro-preview` (paid only), `gemini-3.5-flash-lite` (ultrafast), `gemini-2.5-flash/pro` (older accounts only) |
 | **Groq** | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` (fast), `groq/compound`, `groq/compound-mini` |
 | **Mistral** | `mistral-large-latest` | `mistral-medium-latest`, `mistral-small-latest`, `magistral-medium-latest` (reasoning) |

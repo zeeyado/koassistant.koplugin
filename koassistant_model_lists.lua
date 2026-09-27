@@ -61,8 +61,8 @@ local ModelLists = {
 
     deepseek = {
         -- DeepSeek V4 (current generation, 1M context, thinking on by default)
-        "deepseek-v4-pro",              -- flagship (default) + reasoning
-        "deepseek-v4-flash",            -- standard/fast
+        "deepseek-v4-flash",            -- standard/fast (default)
+        "deepseek-v4-pro",              -- flagship + reasoning
     },
 
     gemini = {
@@ -588,7 +588,7 @@ local ModelLists = {
         openai     = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4", "gpt-5.2" },
         openai_codex = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4" },
         gemini     = { "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3-flash-preview" },
-        deepseek   = { "deepseek-v4-pro", "deepseek-chat" },
+        deepseek   = { "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat" },
         ollama     = { "llama4", "llama3.3" },
         groq       = { "openai/gpt-oss-120b", "llama-3.3-70b-versatile" },
         mistral    = { "mistral-large-latest" },
