@@ -227,7 +227,7 @@ end)
 
 TestRunner:test("a2agent: binary on sends enabled only where reasoning is not the default", function()
     local flash = a2agentWire("deepseek-v4-flash", "maximum")
-    TestRunner:assertEqual(flash.thinking and flash.thinking.type, "enabled", "deepseek-v4-flash is off by default here")
+    TestRunner:assertEqual(flash.thinking and flash.thinking.type, "enabled", "deepseek-v4-flash: the gateway default varies, Maximum sends an explicit enable")
     TestRunner:assertNil(a2agentWire("MiniMax-M3", "maximum").thinking,
         "MiniMax-M3 on = nothing sent (thinking enabled is refused)")
     TestRunner:assertNil(a2agentWire("deepseek-v4-pro", "maximum").thinking, "deepseek-v4-pro reasons by default")

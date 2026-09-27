@@ -1305,8 +1305,10 @@ ModelConstraints.reasoning_profiles = {
           options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
         -- Any reasoning_effort (even "none" or an invalid value) turns thinking
-        -- on at one depth, and 4 of 5 bare requests did not reason: a switch,
-        -- off by default here (the direct DeepSeek API defaults on).
+        -- on at one depth: a switch. With nothing sent, the gateway reasons on
+        -- some requests and not others (4 of 5 probes off, the 2026-09-27
+        -- device run on), so the default is recorded "off" and Maximum sends
+        -- an explicit enable instead of trusting it.
         { match = "deepseek-v4-flash", axis = "binary", default_state = "off", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         -- Reasons by default; no clear effect of the level on the reply, so a
