@@ -117,6 +117,11 @@ function XAIHandler:buildResponsesRequest(message_history, config, model)
         or ModelConstraints.resolveMaxTokens("xai", model, default_params.max_tokens or 16384)
     request_body.max_output_tokens = ModelConstraints.clampMaxTokens("xai", model, max_tokens)
 
+    -- Model parameter constraints (curated + custom_models.lua), as on the chat wire
+    local constrained
+    request_body, constrained = ModelConstraints.apply("xai", model, request_body)
+    for param, adj in pairs(constrained) do adjustments[param] = adj end
+
     -- Reasoning effort from the per-model resolver, nested like OpenAI's
     -- Responses shape ("none" is xAI's explicit-off effort value).
     if api_params.xai_reasoning and api_params.xai_reasoning.effort then

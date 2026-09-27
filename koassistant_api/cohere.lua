@@ -54,6 +54,8 @@ function CohereHandler:buildRequestBody(message_history, config)
     request_body.max_tokens = api_params.max_tokens
         or ModelConstraints.resolveMaxTokens("cohere", model, default_params.max_tokens or 16384)
     request_body.max_tokens = ModelConstraints.clampMaxTokens("cohere", model, request_body.max_tokens)
+    -- Model parameter constraints (curated + custom_models.lua)
+    request_body = ModelConstraints.apply("cohere", model, request_body)
 
     local headers = {
         ["Content-Type"] = "application/json",
@@ -110,6 +112,8 @@ function CohereHandler:query(message_history, config)
     request_body.max_tokens = api_params.max_tokens
         or ModelConstraints.resolveMaxTokens("cohere", model, default_params.max_tokens or 16384)
     request_body.max_tokens = ModelConstraints.clampMaxTokens("cohere", model, request_body.max_tokens)
+    -- Model parameter constraints (curated + custom_models.lua)
+    request_body = ModelConstraints.apply("cohere", model, request_body)
 
     -- Check if streaming is enabled
     local use_streaming = config.features and config.features.enable_streaming ~= false

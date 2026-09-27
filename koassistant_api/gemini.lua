@@ -139,6 +139,12 @@ function GeminiHandler:buildRequestBody(message_history, config)
     -- Gemini 2.5 uses thinkingBudget (0=off, -1=dynamic, 128-24576=specific)
     local adjustments = {}
 
+    -- Model parameter constraints (curated + custom_models.lua), under Gemini's
+    -- own key names (temperature, maxOutputTokens)
+    local constrained
+    request_body.generationConfig, constrained = ModelConstraints.apply("gemini", model, request_body.generationConfig)
+    for param, adj in pairs(constrained) do adjustments[param] = adj end
+
     if api_params.thinking_level and
        ModelConstraints.supportsCapability("gemini", model, "thinking") then
         -- Gemini 3: thinkingLevel

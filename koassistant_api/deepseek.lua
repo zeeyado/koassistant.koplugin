@@ -78,6 +78,9 @@ function DeepSeekHandler:buildRequestBody(message_history, config)
         or ModelConstraints.resolveMaxTokens("deepseek", model, default_params.max_tokens or 16384)
     request_body.max_tokens = ModelConstraints.clampMaxTokens("deepseek", model, request_body.max_tokens)
 
+    -- Model parameter constraints (curated + custom_models.lua)
+    request_body = ModelConstraints.apply("deepseek", model, request_body)
+
     -- DeepSeek V4 thinking toggle (resolved upstream by the reasoning resolver).
     -- When the resolver emits nothing (model behaves at its API default) we omit
     -- `thinking` entirely so V4's default-on behaviour applies; an explicit
