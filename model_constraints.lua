@@ -481,6 +481,31 @@ ModelConstraints.capabilities = {
         -- pick still pinned to one keeps its effort. The presets themselves carry
         -- the effort Perplexity tuned for them (no profile).
         reasoning = { "sonar-reasoning-pro", "sonar-deep-research" },
+        -- Direct models that refuse any temperature: "invalid request" with one,
+        -- 200 without, alone or with the search preset (probed 2026-09-28 across
+        -- the /v1/models catalog). The Claude ids mirror anthropic's list.
+        no_sampling_params = {
+            "anthropic/claude-opus-5",    -- prefix: opus-5-5 too
+            "anthropic/claude-fable-5",   -- prefix: fable-5-1 too
+            "anthropic/claude-sonnet-5",
+            "anthropic/claude-opus-4-8",
+            "anthropic/claude-opus-4-7",
+            "openai/gpt-6-astra",
+        },
+        -- Direct models that cannot run with reasoning off: the search preset
+        -- sets effort "none" and they refuse it ("invalid request"); with effort
+        -- "low" on top they answer (probed 2026-09-28).
+        reasoning_mandatory = {
+            "google/gemini-3.1-pro",
+            "openai/gpt-6-astra",
+        },
+        -- Direct models that refuse the search preset whatever effort rides on
+        -- it (none, low, high; null does not clear the preset's), and effort
+        -- "none" alone: they go alone with the web_search tool (probed 2026-09-28).
+        no_search_preset = {
+            "xai/grok-4.20-reasoning",
+            "xai/grok-4.20-multi-agent",
+        },
     },
     mistral = {
         -- Magistral models always think (no toggle, extraction only)

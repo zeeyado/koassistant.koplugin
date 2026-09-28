@@ -12,8 +12,13 @@ Model ids on this wire:
   2026-09-27), so a request with web search off goes to Perplexity's own Sonar
   model without tools instead (WEB_OFF_MODEL).
 - A "provider/model" id is a DIRECT model (e.g. "perplexity/sonar"), sent as
-  `model`; it searches only when given the web_search tool, and the model
-  decides when to use it.
+  `model`. With web search on it rides with the fast preset (SEARCH_PRESET),
+  which swaps in the model and keeps the preset's search and citation rules, as
+  picking a model in Perplexity's own app does. Alone, a model searches only
+  when it decides to and writes no [n] markers (probed 2026-09-28). With web
+  search off it goes alone, without tools. Models the preset's settings break
+  are listed in ModelConstraints.capabilities.perplexity (no_sampling_params,
+  reasoning_mandatory, no_search_preset; the whole catalog probed 2026-09-28).
 - A retired Sonar id (sonar-pro, ...) maps to Perplexity's own suggested preset
   (ModelLists._retired), so an old pick anywhere in the settings keeps working.
 
@@ -38,6 +43,9 @@ local PerplexityHandler = OpenAICompatibleHandler:new()
 -- Where a request with web search off goes when the chosen id is a preset
 local WEB_OFF_MODEL = "perplexity/sonar"
 PerplexityHandler.WEB_OFF_MODEL = WEB_OFF_MODEL
+-- The preset a direct model rides with while web search is on
+local SEARCH_PRESET = "fast"
+PerplexityHandler.SEARCH_PRESET = SEARCH_PRESET
 
 function PerplexityHandler:getProviderName()
     return "Perplexity"
@@ -107,6 +115,15 @@ function PerplexityHandler:buildRequestBody(message_history, config)
         request_body.preset = target
     else
         request_body.model = target
+        if web_on and not ModelConstraints.supportsCapability("perplexity", target, "no_search_preset") then
+            request_body.preset = SEARCH_PRESET
+            adjustments.preset = { from = "none", to = SEARCH_PRESET,
+                reason = "the preset searches and cites for the chosen model" }
+            -- The preset turns reasoning off, which some models refuse
+            if ModelConstraints.supportsCapability("perplexity", target, "reasoning_mandatory") then
+                request_body.reasoning = { effort = "low" }
+            end
+        end
     end
 
     if config.system and config.system.text and config.system.text ~= "" then
@@ -129,9 +146,10 @@ function PerplexityHandler:buildRequestBody(message_history, config)
     local api_params = config.api_params or {}
     local default_params = defaults.additional_parameters or {}
     -- A preset carries its own sampling: the low preset refuses any temperature
-    -- ("invalid request", probed 2026-09-27) while fast accepts one. Direct
-    -- models take it (probed on OpenAI, Anthropic, Google and Perplexity-hosted).
-    if not is_preset then
+    -- ("invalid request", probed 2026-09-27) while fast accepts one. A direct
+    -- model takes one, alone or with the search preset, unless it refuses
+    -- sampling params (no_sampling_params, probed 2026-09-28).
+    if not is_preset and not ModelConstraints.supportsCapability("perplexity", target, "no_sampling_params") then
         request_body.temperature = api_params.temperature or default_params.temperature or 0.7
     end
     local max_tokens = api_params.max_tokens
@@ -152,15 +170,16 @@ function PerplexityHandler:buildRequestBody(message_history, config)
     end
 
     -- Web search: a preset brings its own web_search tool (listing it here only
-    -- overrides that tool's options), a direct model searches only with the tool
-    -- given. The effort dial maps to search_context_size; standard sends nothing.
+    -- overrides that tool's options); a model riding alone (no_search_preset)
+    -- searches only with the tool given, when it decides to. The effort dial
+    -- maps to search_context_size; standard sends nothing.
     if web_on then
         local tool = { type = "web_search" }
         local effort = ModelConstraints.webSearchEffort(config.features)
         if effort ~= "standard" then
             tool.search_context_size = effort == "light" and "low" or "high"
         end
-        if not is_preset or tool.search_context_size then
+        if not request_body.preset or tool.search_context_size then
             request_body.tools = { tool }
         end
     end

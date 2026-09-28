@@ -1083,11 +1083,13 @@ TestRunner:test("thorough sends search_context_size high", function()
     TestRunner:assertEqual(perplexityBody("fast", { web_search_effort = "thorough" }).tools[1].search_context_size, "high")
 end)
 
-TestRunner:test("a direct model gets the web_search tool at standard", function()
+TestRunner:test("a direct model rides the search preset: standard sends no tool", function()
     local body = perplexityBody("perplexity/sonar", { web_search_effort = "standard" })
     TestRunner:assertEqual(body.model, "perplexity/sonar")
-    TestRunner:assertEqual(body.tools[1].type, "web_search")
-    TestRunner:assertNil(body.tools[1].search_context_size)
+    TestRunner:assertEqual(body.preset, "fast", "the preset brings the search")
+    TestRunner:assertNil(body.tools)
+    TestRunner:assertEqual(perplexityBody("perplexity/sonar", { web_search_effort = "thorough" }).tools[1].search_context_size,
+        "high")
 end)
 
 TestRunner:test("web search off sends no tool, whatever the dial", function()

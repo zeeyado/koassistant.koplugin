@@ -78,11 +78,18 @@ TestRunner:test("each turn stays its own item (consecutive user turns are accept
     TestRunner:assertEqual(replay.input[2].role, "assistant", "assistant turn replayed")
 end)
 
-TestRunner:test("a provider/model id rides as a direct model with the web_search tool", function()
-    local body = build("perplexity/sonar").body
-    TestRunner:assertEqual(body.model, "perplexity/sonar", "model")
-    TestRunner:assertEqual(body.preset, nil, "no preset")
-    TestRunner:assertEqual(body.tools and body.tools[1].type, "web_search", "search needs the tool")
+TestRunner:test("a provider/model id rides with the search preset while web search is on", function()
+    local built = build("perplexity/sonar")
+    local body = built.body
+    TestRunner:assertEqual(body.model, "perplexity/sonar", "the chosen model")
+    TestRunner:assertEqual(body.preset, Handler.SEARCH_PRESET, "the preset searches and cites for it")
+    TestRunner:assertEqual(Handler.SEARCH_PRESET, "fast", "Perplexity's own mapping for Sonar and Sonar Pro")
+    TestRunner:assertEqual(body.tools, nil, "standard effort: the preset's own search")
+    TestRunner:assertEqual(built.adjustments.preset and built.adjustments.preset.to, "fast", "adjustment logged")
+    local thorough = build("anthropic/claude-haiku-4-5", { web_search_effort = "thorough" }).body
+    TestRunner:assertEqual(thorough.preset, "fast", "any catalog model")
+    TestRunner:assertEqual(thorough.tools and thorough.tools[1].search_context_size, "high",
+        "the effort dial still reaches the search")
 end)
 
 TestRunner:test("retired Sonar ids map to Perplexity's suggested presets", function()
@@ -111,7 +118,8 @@ TestRunner:test("web search off leaves the preset for the direct Sonar model, wi
     TestRunner:assertEqual(build("low").body.preset, "low", "untouched global searches")
     local direct = build("perplexity/sonar", { enable_web_search = false }).body
     TestRunner:assertEqual(direct.model, "perplexity/sonar", "a direct model stays")
-    TestRunner:assertEqual(direct.tools, nil, "and loses the tool")
+    TestRunner:assertEqual(direct.preset, nil, "and goes alone, without the search preset")
+    TestRunner:assertEqual(direct.tools, nil, "and without a tool")
 end)
 
 TestRunner:test("a preset gets no temperature, a direct model keeps it and its constraints", function()
@@ -124,6 +132,33 @@ TestRunner:test("a preset gets no temperature, a direct model keeps it and its c
     ModelOverrides._setUserForTests(saved)
     TestRunner:assertEqual(direct, 0.3, "custom_models.lua constraint reaches a direct model")
     TestRunner:assertEqual(web_off, 0.3, "and the web-off Sonar request")
+end)
+
+TestRunner:test("a direct model that refuses sampling gets no temperature, with or without the preset", function()
+    local ModelConstraints = require("model_constraints")
+    for _idx, model in ipairs({ "anthropic/claude-opus-4-7", "anthropic/claude-opus-5-5",
+            "anthropic/claude-fable-5-1", "anthropic/claude-sonnet-5", "openai/gpt-6-astra" }) do
+        TestRunner:assertEqual(build(model).body.temperature, nil, model)
+        TestRunner:assertEqual(build(model, { enable_web_search = false }).body.temperature, nil, model .. " alone")
+        TestRunner:assertEqual(ModelConstraints.temperatureSupport("perplexity", model), "rejected",
+            model .. " reads as rejected in the UI")
+    end
+    TestRunner:assertEqual(build("anthropic/claude-opus-4-6").body.temperature, 0.7, "an older Claude keeps it")
+end)
+
+TestRunner:test("models the search preset breaks: the lowest effort on top, or alone with the tool", function()
+    local gemini = build("google/gemini-3.1-pro-preview").body
+    TestRunner:assertEqual(gemini.preset, "fast", "rides the preset")
+    TestRunner:assertEqual(gemini.reasoning and gemini.reasoning.effort, "low", "the preset's effort none is refused")
+    TestRunner:assertEqual(build("openai/gpt-6-luna").body.reasoning, nil, "others keep the preset's effort")
+    TestRunner:assertEqual(build("google/gemini-3.1-pro-preview", { enable_web_search = false }).body.reasoning, nil,
+        "alone, nothing to override")
+    local grok = build("xai/grok-4.20-reasoning").body
+    TestRunner:assertEqual(grok.model, "xai/grok-4.20-reasoning", "the chosen model")
+    TestRunner:assertEqual(grok.preset, nil, "refuses the preset whatever effort rides on it")
+    TestRunner:assertEqual(grok.reasoning, nil, "and no reasoning setting")
+    TestRunner:assertEqual(grok.tools and grok.tools[1].type, "web_search", "alone it searches with the tool")
+    TestRunner:assertEqual(build("xai/grok-4.20-non-reasoning").body.preset, "fast", "its sibling rides the preset")
 end)
 
 TestRunner:test("a base URL override for the old chat wire points at the agent endpoint", function()
