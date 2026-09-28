@@ -193,7 +193,8 @@ TestRunner:test("opencode_go: its own facts (glm-5.3-flash ladder low/high/max, 
     TestRunner:assertEqual(kp.opencode_reasoning and kp.opencode_reasoning.effort, "none", "Go kimi-k3 Minimal = off via none")
     TestRunner:assertTrue(ModelConstraints.supportsCapability("opencode_go", "kimi-k3", "tools"), "kimi-k3 tools granted on Go")
     TestRunner:assertFalse(ModelConstraints.supportsCapability("opencode_go", "kimi-k2.6", "tools"), "kimi-k2.6 NO tools on Go (forced calls rejected)")
-    TestRunner:assertTrue(ModelConstraints.supportsCapability("opencode", "kimi-k2.6", "tools"), "kimi-k2.6 tools on Zen (probed there)")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("opencode", "qwen3.8-max", "tools"), "qwen3.8-max tools on Zen (forced calls accepted there)")
+    TestRunner:assertFalse(ModelConstraints.supportsCapability("opencode_go", "qwen3.8-max", "tools"), "qwen3.8-max NO tools on Go (forced calls rejected)")
     local opt = ModelConstraints.resolveReasoning("opencode_go", "deepseek-v4-flash", { global_stance = "maximum" })
     TestRunner:assertEqual(opt.axis, "none", "opt-in unprobed id on Go: axis none")
 end)
@@ -677,7 +678,7 @@ local capability_checks = {
     { "together", "Qwen/Qwen3-235B-A22B", "reasoning", true },
     { "together", "Qwen/Qwen3.5-397B-A17B", "reasoning", true },
     { "together", "meta-llama/Llama-4-Maverick", "reasoning", false },
-    { "fireworks", "accounts/fireworks/models/deepseek-v4-flash-0731", "reasoning", true },
+    { "fireworks", "accounts/fireworks/models/deepseek-v4p1-flash", "reasoning", true },
     { "fireworks", "accounts/fireworks/models/llama-v3p3-70b", "reasoning", false },
     { "sambanova", "DeepSeek-V3.1", "thinking", true },
     { "sambanova", "DeepSeek-V3.2", "thinking", true },
@@ -1403,6 +1404,59 @@ TestRunner:test("unknown and custom models default to free, and nil args are saf
     TestRunner:assertEqual(ModelConstraints.temperatureSupport("custom_lmstudio", "local-model"),
         "free", "custom provider defaults to free")
     TestRunner:assertEqual(ModelConstraints.temperatureSupport(nil, nil), "free", "nil-safe")
+end)
+
+-- Model refresh 2026-09-28: the off wires a new model needs, each from its probe
+local function offWire(provider, model, layers)
+    local d = ModelConstraints.resolveReasoning(provider, model, layers or { global_stance = "minimal" })
+    local ap = {}
+    ModelConstraints.applyReasoningParams(provider, ap, d)
+    return ap, d
+end
+
+TestRunner:test("refresh 2026-09-28: off reaches the wire only in a form the model accepts", function()
+    local ap = offWire("openai", "gpt-6-luna")
+    TestRunner:assertEqual(ap.reasoning and ap.reasoning.effort, "none", "gpt-6 luna turns off with none")
+    ap = offWire("openai", "gpt-6-astra")
+    TestRunner:assertEqual(ap.reasoning and ap.reasoning.effort, "low", "gpt-6 astra cannot turn off: lowest")
+    ap = offWire("openai", "gpt-5.6-terra")
+    TestRunner:assertEqual(ap.reasoning, nil, "gpt-5.6 is off by default: off stays silent")
+    ap = offWire("anthropic", "claude-opus-5-5")
+    TestRunner:assertEqual(ap.thinking and ap.thinking.type, "adaptive", "opus 5.5 never gets disabled")
+    ap = offWire("anthropic", "claude-fable-5-1")
+    TestRunner:assertEqual(ap.thinking, nil, "fable 5.1 is off by sending nothing")
+    ap = offWire("openrouter", "anthropic/claude-fable-5.1", { action_override = { force = "off" } })
+    TestRunner:assertEqual(ap.openrouter_reasoning, nil, "OR fable 5.1: an explicit off sends nothing")
+    ap = offWire("openrouter", "anthropic/claude-fable-5")
+    TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.effort, "low",
+        "OR fable 5 refuses enabled=false: lowest")
+    ap = offWire("openrouter", "deepseek/deepseek-v4-flash")
+    TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.enabled, false,
+        "the generic catch-all keeps the explicit off")
+    ap = offWire("fireworks", "accounts/fireworks/models/kimi-k3")
+    TestRunner:assertEqual(ap.fireworks_reasoning and ap.fireworks_reasoning.effort, "none",
+        "fireworks models reason by default: off is sent as none")
+    ap = offWire("fireworks", "accounts/fireworks/models/glm-5p3")
+    TestRunner:assertEqual(ap.fireworks_reasoning and ap.fireworks_reasoning.effort, "low",
+        "glm-5p3 is thinking-only on fireworks: lowest")
+    ap = offWire("zai", "glm-5.3")
+    TestRunner:assertEqual(ap.zai_thinking, nil, "glm-5.3 always thinks: Minimal sends nothing")
+    ap = offWire("xai", "grok-4.7")
+    TestRunner:assertEqual(ap.xai_reasoning and ap.xai_reasoning.effort, "minimal", "grok 4.7 never gets none")
+end)
+
+TestRunner:test("refresh 2026-09-28: new prefixes do not catch neighbouring ids", function()
+    local p = ModelConstraints.getReasoningProfile("qwen", "qwen3-8b")
+    TestRunner:assertEqual(p.default_state == "on" and p.axis == "none", false, "qwen3-8b is not a 3.8 model")
+    TestRunner:assertEqual(ModelConstraints.clampMaxTokens("qwen", "qwen3-8b", 500000), 500000,
+        "the qwen3.8- cap does not clamp qwen3-8b")
+    TestRunner:assertEqual(ModelConstraints.clampMaxTokens("qwen", "qwen3.8-flash", 500000), 131072, "3.8 capped")
+    TestRunner:assertEqual(ModelConstraints.apply("qwen", "qwen3.8-flash", { temperature = 2.0 }).temperature, 1.9,
+        "DashScope refuses 2.0: capped at 1.9")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("openrouter", "qwen/qwen3.8-max", "no_forced_tool_choice"),
+        "every OR qwen3.8 id gets auto on gather rounds")
+    TestRunner:assertFalse(ModelConstraints.supportsCapability("openrouter", "qwen/qwen3-max", "no_forced_tool_choice"),
+        "qwen3-max keeps the forced call")
 end)
 
 -- Summary

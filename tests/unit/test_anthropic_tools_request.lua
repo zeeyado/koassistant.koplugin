@@ -117,6 +117,29 @@ TestRunner:test("gather pass (mode ANY) sets tool_choice any", function()
         "mode ANY renders tool_choice {type=any} (gather rounds force a tool call)")
 end)
 
+TestRunner:test("gather pass on a model that refuses a forced call sends auto", function()
+    for _i, model in ipairs({ "claude-opus-5-5", "claude-fable-5-1" }) do
+        local result = AnthropicHandler:buildRequestBody({
+            { role = "user", content = "q" },
+        }, {
+            model = model,
+            api_key = "test",
+            tools = { specs = SPECS, mode = "ANY" },
+            features = {},
+        })
+        TestRunner:assertEqual(result.body.tool_choice and result.body.tool_choice.type, "auto",
+            model .. ": mode ANY renders tool_choice {type=auto} (no_forced_tool_choice)")
+    end
+    local final = AnthropicHandler:buildRequestBody({ { role = "user", content = "q" } },
+        { model = "claude-opus-5-5", api_key = "test", tools = { specs = SPECS, mode = "NONE" }, features = {} })
+    TestRunner:assertEqual(final.body.tool_choice and final.body.tool_choice.type, "none",
+        "the final pass keeps tool_choice none (accepted by the same models)")
+    local opus5 = AnthropicHandler:buildRequestBody({ { role = "user", content = "q" } },
+        { model = "claude-opus-5", api_key = "test", tools = { specs = SPECS, mode = "ANY" }, features = {} })
+    TestRunner:assertEqual(opus5.body.tool_choice and opus5.body.tool_choice.type, "any",
+        "claude-opus-5 keeps the forced call (the prefix must not catch it)")
+end)
+
 TestRunner:test("Sonnet 5 default (no thinking param) gets visible summarized thinking", function()
     -- send_nothing carve-out: adaptive is Sonnet 5's API default and it thinks silently;
     -- display=summarized is behaviorally identical but streams the reasoning.

@@ -165,7 +165,13 @@ function AnthropicRequest:build(config)
         if config.tools.mode == "NONE" then
             request_body.tool_choice = { type = "none" }
         elseif config.tools.mode == "ANY" then
-            request_body.tool_choice = { type = "any" }
+            -- Opus 5.5 / Fable 5.1 refuse a forced call outright: auto, and the
+            -- runner accepts a round that answers in prose.
+            if ModelConstraints.supportsCapability("anthropic", request_body.model, "no_forced_tool_choice") then
+                request_body.tool_choice = { type = "auto" }
+            else
+                request_body.tool_choice = { type = "any" }
+            end
         end
     end
 

@@ -349,7 +349,8 @@ function OpenAIHandler:query(message_history, config)
         -- (top-level reasoning_effort on Chat Completions, nested on Responses)
         local stream_reasoning_effort = request_body.reasoning_effort
             or (type(request_body.reasoning) == "table" and request_body.reasoning.effort)
-        if stream_reasoning_effort then
+        -- "none" is the off setting (gpt-6 sol/luna), not a reasoning request
+        if stream_reasoning_effort and stream_reasoning_effort ~= "none" then
             return {
                 _stream_fn = stream_fn,
                 _reasoning_requested = true,
@@ -363,6 +364,7 @@ function OpenAIHandler:query(message_history, config)
     -- Non-streaming mode: use background request for non-blocking UI
     local reasoning_effort = request_body.reasoning_effort
         or (type(request_body.reasoning) == "table" and request_body.reasoning.effort)
+    if reasoning_effort == "none" then reasoning_effort = nil end  -- the off setting
     local parser_key = built.parser or "openai"
     local debug_enabled = config and config.features and config.features.debug
 

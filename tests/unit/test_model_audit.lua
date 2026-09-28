@@ -505,6 +505,128 @@ local rtext_rej = table.concat(ModelAudit.draftStanzas(rfacts_rej, rcurrent), "\
 TestRunner:check("Responses rejection drafts the cannot-route note",
     rtext_rej:find("Responses wire REJECTED", 1, true) ~= nil)
 
+--------------------------------------------------------------------------------
+TestRunner:suite("Undated lists, reviewed catalogs, never-listed ids (2026-09-28)")
+
+TestRunner:check("one shared created value = undated (Perplexity 0, NVIDIA 1993)",
+    ModelAudit.undatedList({ a = { created = 0 }, b = { created = 0 }, c = { created = 0 } }))
+TestRunner:check("real release dates = dated",
+    not ModelAudit.undatedList({ a = { created = 100 }, b = { created = 200 } }))
+TestRunner:check("a single dated entry proves nothing",
+    not ModelAudit.undatedList({ a = { created = 100 }, b = {} }))
+TestRunner:check("no timestamps at all = not undated (the no-`now` rule already applies)",
+    not ModelAudit.undatedList({ a = {}, b = {} }))
+
+local saved_reviewed = ModelAudit.REVIEWED.probe_host
+ModelAudit.REVIEWED.probe_host = { date = "2026-09-28", ids = { "old-model" } }
+local rdiff = ModelAudit.diffLists("probe_host", { "cur" },
+    { cur = {}, ["old-model"] = {}, ["brand-new"] = {} }, nil)
+ModelAudit.REVIEWED.probe_host = saved_reviewed
+TestRunner:check("reviewed id leaves the new bucket",
+    #rdiff.reviewed == 1 and rdiff.reviewed[1] == "old-model")
+TestRunner:check("unreviewed id still prints as new",
+    #rdiff.new == 1 and rdiff.new[1] == "brand-new")
+
+local udiff = ModelAudit.diffLists("perplexity", { "fast", "perplexity/sonar", "perplexity/gone" },
+    { ["perplexity/sonar"] = {} }, nil,
+    { unlisted = function(id) return not id:find("/", 1, true) end })
+TestRunner:check("never-listed preset is not reported removed",
+    #udiff.removed == 1 and udiff.removed[1] == "perplexity/gone")
+
+local together = ModelAudit.parseTogetherList({
+    { id = "org/chat-model", type = "chat" },
+    { id = "org/embed-model", type = "embedding" },
+    { id = "org/base-model", type = "language" },
+})
+TestRunner:check("Together: bare array parsed, chat entries only",
+    together and together["org/chat-model"] ~= nil and together["org/embed-model"] == nil
+    and together["org/base-model"] == nil)
+TestRunner:check("Together: an object body is rejected",
+    ModelAudit.parseTogetherList({ data = {} }) == nil)
+local cohere = ModelAudit.parseCohereList({ models = { { name = "command-x" }, { id = "no-name" } } })
+TestRunner:check("Cohere: models keyed by name",
+    cohere and cohere["command-x"] ~= nil and cohere["no-name"] == nil)
+
+TestRunner:check("qwen speech/realtime/vision-language ids are noise",
+    ModelAudit.isNoise("qwen", "qwen3-tts-flash") ~= nil
+    and ModelAudit.isNoise("qwen", "qwen3.5-omni-plus-realtime") ~= nil
+    and ModelAudit.isNoise("qwen", "qwen3-vl-plus") ~= nil)
+TestRunner:check("qwen chat and coder ids are not noise (coder is curated)",
+    ModelAudit.isNoise("qwen", "qwen3.8-flash") == nil
+    and ModelAudit.isNoise("qwen", "qwen3-coder-plus") == nil)
+TestRunner:check("together LoRA and base weights are noise",
+    ModelAudit.isNoise("together", "Qwen/Qwen3.5-2B-Lora") ~= nil
+    and ModelAudit.isNoise("together", "Qwen/Qwen3-8B-Base") ~= nil
+    and ModelAudit.isNoise("together", "zai-org/GLM-5.3") == nil)
+
+TestRunner:check("request-id digits are never a ceiling; the stated range wins",
+    ModelAudit.parseCeiling("Invalid max_tokens value, the valid range of max_tokens is [1, 393216] "
+        .. "(request_id: fe922218-5da4-4ae2-a51b-1605698c5c50)", 10000000) == 393216)
+TestRunner:check("a bare request id alone yields no ceiling",
+    ModelAudit.parseCeiling("Bad request (request_id: 12345678-1605698)", 10000000) == nil)
+TestRunner:check("a validation 400 inviting a retry is not transient",
+    not ModelAudit.isTransient(400, "Thinking level MINIMAL is not supported. Please retry with other thinking levels"))
+TestRunner:check("429 and 5xx stay transient",
+    ModelAudit.isTransient(429, "") and ModelAudit.isTransient(503, "") and ModelAudit.isTransient(nil, ""))
+TestRunner:check("openai voice model is noise", ModelAudit.isNoise("openai", "gpt-live-1") ~= nil)
+
+--------------------------------------------------------------------------------
+TestRunner:suite("recheck: key limitations and skipped temperature")
+
+TestRunner:check("new-account lockout is a key limitation, not drift",
+    rlevel({ served = nil, err = "This model models/gemini-2.5-flash is no longer available to new users." },
+        {}) == "warn")
+TestRunner:check("lapsed subscription is a key limitation",
+    rlevel({ served = nil, err = "An active OpenCode Go subscription is required to use Go models." },
+        {}) == "warn")
+TestRunner:check("spent credits are a key limitation",
+    rlevel({ served = nil, err = "Credit limit exceeded, please add credits" }, {}) == "warn")
+TestRunner:check("a skipped temperature leg (preset) is not 'inconclusive'",
+    rlevel({ served = true, temp_skipped = true }, { temp_after_apply = 0.7, caps = {} }) == "ok")
+
+--------------------------------------------------------------------------------
+TestRunner:suite("Perplexity Agent API facts")
+
+local agent_ok = {
+    output = {
+        { type = "search_results", results = { { url = "https://example.org" } } },
+        { type = "message", content = { { type = "output_text", text = "Argentina won [1]." } } },
+    },
+    usage = { output_tokens_details = { reasoning_tokens = 120 } },
+}
+local searched, cited = ModelAudit.agentSearchFacts(agent_ok)
+TestRunner:check("search_results item + [n] marker detected", searched and cited)
+local _s2, cited2 = ModelAudit.agentSearchFacts({ output = {
+    { type = "message", content = { { type = "output_text", text = "Argentina [web:2]." } } } } })
+TestRunner:check("[web:n] marker counts as a citation", cited2)
+TestRunner:check("reasoning tokens are evidence",
+    ModelAudit.agentReasoningEvidence(agent_ok) == "reasoning_tokens=120")
+TestRunner:check("a reasoning output item is evidence",
+    ModelAudit.agentReasoningEvidence({ output = { { type = "reasoning" } } }) ~= nil)
+TestRunner:check("plain answer: no evidence",
+    ModelAudit.agentReasoningEvidence({ output = {}, usage = {} }) == nil)
+
+local pfacts = { family = "perplexity", provider = "perplexity", model = "newvendor/model-1",
+    efforts = {}, probes = {}, reachable = true, searched = true, cited = true,
+    isolated = { "reasoning_mandatory" }, temp_ok = false, ceiling = 65536 }
+local ptext = table.concat(ModelAudit.draftStanzas(pfacts,
+    ModelAudit.currentResolution("perplexity", "newvendor/model-1")), "\n")
+TestRunner:check("draft names both exception lists the probe implies",
+    ptext:find('reasoning_mandatory%s+%+= "newvendor/model%-1"') ~= nil
+    and ptext:find('no_sampling_params%s+%+= "newvendor/model%-1"') ~= nil)
+TestRunner:check("draft carries the probed ceiling", ptext:find("65536", 1, true) ~= nil)
+local covered = table.concat(ModelAudit.draftStanzas(
+    { family = "perplexity", provider = "perplexity", model = "openai/gpt-6-astra",
+      efforts = {}, probes = {}, reachable = true, searched = true, cited = true,
+      isolated = { "no_sampling_params", "reasoning_mandatory" } },
+    ModelAudit.currentResolution("perplexity", "openai/gpt-6-astra")), "\n")
+TestRunner:check("already-listed model reads as covered",
+    covered:find("NEEDS CURATION", 1, true) == nil and covered:find("already covered", 1, true) ~= nil)
+TestRunner:check("preset drafts nothing",
+    table.concat(ModelAudit.draftStanzas({ family = "perplexity", provider = "perplexity",
+        model = "fast", is_preset = true, efforts = {}, probes = {} },
+        ModelAudit.currentResolution("perplexity", "fast")), "\n"):find("nothing to curate", 1, true) ~= nil)
+
 -- Summary
 print(string.format("\n%d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

@@ -16,6 +16,7 @@ local ModelConstraints = {
     openai = {
         -- Models requiring temperature=1.0 (reject other values)
         -- Discovered via: lua tests/run_tests.lua --models openai
+        ["gpt-6"] = { temperature = 1.0 },     -- sol/luna/astra (prefix); rejects temp!=1 (probed 2026-09-28)
         ["gpt-5.6"] = { temperature = 1.0 },   -- luna/sol/terra (prefix); rejects temp!=1 (verified 2026-07-24)
         ["gpt-5.5"] = { temperature = 1.0 },
         ["gpt-5.4"] = { temperature = 1.0 },
@@ -35,11 +36,20 @@ local ModelConstraints = {
         -- 400s); kimi.lua drops it whenever it disables thinking (tool
         -- sessions, reasoning off).
         ["kimi-k2.6"] = { temperature = 1.0 },
+        -- kimi-k3 (probed 2026-09-28): "only 1 is allowed" while thinking (the
+        -- default); 0.6 accepted with thinking off, where kimi.lua drops it anyway.
+        ["kimi-k3"] = { temperature = 1.0 },
     },
     a2agent = {
         -- kimi-k3 (probed 2026-09-27): accepts ONLY temperature 0, 0.6 and 1.0,
         -- in both reasoning modes; the 0.7 default and most action pins 400.
         ["kimi-k3"] = { temperature = 1.0 },
+    },
+    qwen = {
+        -- DashScope refuses 2.0 on every id probed ("Temperature should be in
+        -- [0.0, 2.0)", 2026-09-28: the 3.8 family and 3.7-plus); 1.9 answers. The
+        -- settings allow up to 2.0.
+        _provider_max_temperature = 1.9,
     },
     -- Add more providers/models as discovered
 }
@@ -53,6 +63,8 @@ ModelConstraints.capabilities = {
         -- Models that support adaptive thinking (4.6+)
         -- New mode: thinking = {type = "adaptive"}, output_config = {effort = "..."}
         adaptive_thinking = {
+            "claude-opus-5-5",        -- Opus 5.5 (adaptive ON at API default, disable REJECTED)
+            "claude-fable-5-1",       -- Fable 5.1 (off at API default, disable REJECTED: off = send nothing)
             "claude-opus-5",          -- Opus 5 (adaptive ON at API default, disable accepted)
             "claude-fable-5",         -- Fable 5 (frontier; adaptive ALWAYS-ON, no disable)
             "claude-sonnet-5",        -- 5 Sonnet
@@ -66,11 +78,23 @@ ModelConstraints.capabilities = {
         -- (Opus 5: "temperature is deprecated for this model", verified 2026-07-25);
         -- the builder strips them.
         no_sampling_params = {
+            "claude-opus-5-5",
+            "claude-fable-5-1",
             "claude-opus-5",
             "claude-fable-5",
             "claude-sonnet-5",
             "claude-opus-4-8",
             "claude-opus-4-7",
+        },
+        -- Models that refuse a FORCED tool call ("tool_choice: type tool and any are
+        -- not supported for this model", probed 2026-09-28, on a body with no
+        -- thinking param: a refusal of the model itself). The book-tool gather rounds
+        -- send tool_choice auto instead (anthropic_request.lua); a round that answers
+        -- in prose is accepted by the runner. Under auto both called the tool and the
+        -- two-round replay held.
+        no_forced_tool_choice = {
+            "claude-opus-5-5",
+            "claude-fable-5-1",
         },
         -- Models that support extended thinking (manual budget_tokens mode)
         -- Deprecated in favor of adaptive; NOTE: NOT supported on Opus 4.7/4.8 or Sonnet 5 (would 400).
@@ -90,6 +114,7 @@ ModelConstraints.capabilities = {
         -- Models that support reasoning.effort parameter
         -- ("gpt-5" = family fallback, item 19a: new 5.x minors inherit)
         reasoning = {
+            "gpt-6",                                -- sol/luna/astra (prefix; probed 2026-09-28)
             "gpt-5.6",                              -- luna/sol/terra (prefix)
             "gpt-5.5",
             "gpt-5.4", "gpt-5.4-mini", "gpt-5.4-nano",
@@ -106,6 +131,7 @@ ModelConstraints.capabilities = {
         -- Function calling for the book-tool workflows (prefix match covers -mini/-nano/-sol/etc.;
         -- "gpt-5" = family fallback).
         tools = {
+            "gpt-6",   -- chat wire refuses function tools with reasoning; Responses + required OK (2026-09-28)
             "gpt-5.6", "gpt-5.5", "gpt-5.4",
             "gpt-5",
         },
@@ -116,6 +142,7 @@ ModelConstraints.capabilities = {
         -- _web_search_providers below. Prefix match covers -mini/-nano;
         -- "gpt-5" = family fallback.
         responses_web_search = {
+            "gpt-6",   -- bare, web_search tool and SSE all green on /v1/responses (2026-09-28)
             "gpt-5.6", "gpt-5.5", "gpt-5.4",
             "gpt-5",
         },
@@ -123,10 +150,10 @@ ModelConstraints.capabilities = {
     deepseek = {
         -- V4: both models support thinking toggle (type: enabled/disabled), ON by default
         -- ("deepseek" = family fallback — the toggle is universal since V3.2)
-        thinking = { "deepseek-v4-pro", "deepseek-v4-flash", "deepseek" },
+        thinking = { "deepseek-v4-pro", "deepseek-flash", "deepseek-v4-flash", "deepseek" },
         -- Reasoning-class models: both V4 models think by default (in sync with
         -- reasoning_profiles; read by the debug view)
-        reasoning = { "deepseek-v4-pro", "deepseek-v4-flash" },
+        reasoning = { "deepseek-v4-pro", "deepseek-flash", "deepseek-v4-flash" },
         -- Function calling for the book-tool workflows (tools wave 1; both V4 models
         -- per api-docs.deepseek.com — works in thinking AND non-thinking mode since V3.2).
         -- Wire gotchas (deepseek.lua): (1) replayed tool-call turns MUST carry
@@ -141,7 +168,7 @@ ModelConstraints.capabilities = {
         -- Gemini 3 models use thinkingLevel (minimal/low/medium/high).
         -- "gemini-3" = FAMILY FALLBACK (item 19a): new 3.x minors inherit without a
         -- plugin update; the specific entries stay for documentation value.
-        thinking = { "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-3" },
+        thinking = { "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite", "gemini-3" },
         -- Gemini 2.5 models use thinkingBudget (0=off, -1=dynamic, 128-24576).
         -- gemini-3.1-pro-preview ALSO accepts thinkingBudget (probed 2026-08-15,
         -- budget 0 rejected "only works in thinking mode") but its curated axis is
@@ -149,14 +176,14 @@ ModelConstraints.capabilities = {
         thinking_budget = { "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite" },
         -- Google Search grounding ("gemini-3" = family fallback)
         google_search = {
-            "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
+            "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
             "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
             "gemini-3",
         },
         -- Function calling for the book-tool workflows (same models as google_search).
         -- The runner's shouldUse gates on this + a tool_wire.lua adapter being registered.
         tools = {
-            "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
+            "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.1-pro-preview", "gemini-3.1-flash-lite",
             "gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.5-flash-lite",
             "gemini-3",
         },
@@ -177,7 +204,7 @@ ModelConstraints.capabilities = {
         -- (No bare "glm" family fallback — it would wrongly cover pre-4.5
         -- non-thinking ids like glm-4-plus; "glm-5" already covers 5.x minors.)
         thinking = {
-            "glm-5.2", "glm-5.1", "glm-5-turbo", "glm-5",
+            "glm-5.3", "glm-5.2", "glm-5.1", "glm-5-turbo", "glm-5",
             "glm-4.7", "glm-4.7-flash",
         },
     },
@@ -192,8 +219,17 @@ ModelConstraints.capabilities = {
         -- `tools` in supported_parameters (verified live via tests/model_audit.lua
         -- marketplace cross-check). Prefixes kept generation-scoped where older
         -- siblings might differ (deepseek-v4, grok-4, kimi-k2, minimax-m2).
+        -- Refuse a forced tool call through OpenRouter as on their own API (probed
+        -- 2026-09-28: "Provider returned error"; auto calls the tool, replay holds):
+        -- openai_compatible.lua sends auto on gather rounds.
+        no_forced_tool_choice = {
+            "anthropic/claude-opus-5.5", "anthropic/claude-fable-5.1",
+            "qwen/qwen3.8-",   -- Qwen backends refuse "required" (probed on 3.8-flash here and all four
+                               -- 3.8 ids direct); "qwen/qwen3" grants their tools
+        },
         tools = {
-            "anthropic/claude", "openai/gpt-5", "google/gemini-3", "google/gemini-2.5",
+            "anthropic/claude", "openai/gpt-6", "openai/gpt-5", "google/gemini-3", "google/gemini-2.5",
+            "z-ai/glm-5.3", "moonshotai/kimi-k3", "minimax/minimax-m3",   -- batteries 2026-09-28
             "deepseek/deepseek-v4", "x-ai/grok-4", "meta-llama/llama-3.3-70b-instruct",
             "mistralai/mistral-large", "mistralai/mistral-medium", "qwen/qwen3",
             "moonshotai/kimi-k2", "minimax/minimax-m2",
@@ -213,6 +249,7 @@ ModelConstraints.capabilities = {
         -- supported with this model") and stays out of this list.
         reasoning = {
             "openai/gpt-oss-120b", "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",   -- probed 2026-09-28: off by default, none/low/medium/high
             "qwen/qwen3-32b",
         },
         -- Function calling for the book-tool workflows (tools wave 1; per
@@ -229,6 +266,7 @@ ModelConstraints.capabilities = {
         tools = {
             "llama-3.3-70b-versatile", "llama-3.1-8b-instant",
             "openai/gpt-oss-120b", "openai/gpt-oss-20b",
+            "qwen/qwen3.8-27b",   -- forced call + replay green 2026-09-28 (battery capped at 900 tokens: free OTPM 1000)
         },
     },
     together = {
@@ -244,23 +282,26 @@ ModelConstraints.capabilities = {
         -- serving id in the curated list): reasoning_content comes back by
         -- DEFAULT on all of them; tools + forced tool_choice + two-round
         -- replay green (wave 2 — ToolWire alias added the same day).
+        -- 2026-09-28 refresh: the five ids below qwen3p8-max probed green on the
+        -- same battery; deepseek-v4-pro, deepseek-v4-flash-0731, kimi-k2p6 and
+        -- gpt-oss-20b stopped serving ("not found ... not deployed") and left.
         reasoning = {
-            "accounts/fireworks/models/deepseek-v4-pro",
-            "accounts/fireworks/models/deepseek-v4-flash-0731",
             "accounts/fireworks/models/qwen3p8-max",
-            "accounts/fireworks/models/kimi-k2p6",
             "accounts/fireworks/models/glm-5p2",
             "accounts/fireworks/models/gpt-oss-120b",
-            "accounts/fireworks/models/gpt-oss-20b",
+            "accounts/fireworks/models/deepseek-v4p1-flash",
+            "accounts/fireworks/models/glm-5p3",
+            "accounts/fireworks/models/kimi-k3",
+            "accounts/fireworks/models/minimax-m3",
         },
         tools = {
-            "accounts/fireworks/models/deepseek-v4-pro",
-            "accounts/fireworks/models/deepseek-v4-flash-0731",
             "accounts/fireworks/models/qwen3p8-max",
-            "accounts/fireworks/models/kimi-k2p6",
             "accounts/fireworks/models/glm-5p2",
             "accounts/fireworks/models/gpt-oss-120b",
-            "accounts/fireworks/models/gpt-oss-20b", -- not probed directly; same model as the probed 120b/groq pair
+            "accounts/fireworks/models/deepseek-v4p1-flash",
+            "accounts/fireworks/models/glm-5p3",     -- prefix: glm-5p3-flash too (probed)
+            "accounts/fireworks/models/kimi-k3",
+            "accounts/fireworks/models/minimax-m3",
         },
     },
     opencode = {
@@ -269,43 +310,43 @@ ModelConstraints.capabilities = {
         -- every model reasons by DEFAULT (reasoning_content / reasoning
         -- present bare); tools + forced tool_choice + two-round replay + SSE
         -- green on all of them. See the model list for what was left out.
+        -- Third sweep 2026-09-28: deepseek-v4.1-flash and qwen3.8-max green on the
+        -- same battery; kimi-k2.6/k2.5, deepseek-v4-flash-vision-exp and
+        -- nemotron-3.5-lightning-free stopped serving on this door and left.
+        -- ("glm-5" stays: deprecated as a model, it is the glm-5.x family prefix.)
         reasoning = {
             "glm-5.3-flash",
             "glm-5.3",
             "deepseek-v4-flash",
+            "deepseek-v4.1-flash",
             "deepseek-v4-pro",
             "kimi-k3",
-            "kimi-k2.6",
             "minimax-m3",
             "minimax-m2.7",
             "glm-5.2",
             "glm-5.1",
             "glm-5",
             "minimax-m2.5",
-            "kimi-k2.5",
+            "qwen3.8-max",
             "qwen3.6-plus",
             "qwen3.5-plus",
-            "deepseek-v4-flash-vision-exp",
-            "nemotron-3.5-lightning-free",
         },
         tools = {
             "glm-5.3-flash",
             "glm-5.3",
             "deepseek-v4-flash",
+            "deepseek-v4.1-flash",
             "deepseek-v4-pro",
             "kimi-k3",
-            "kimi-k2.6",
             "minimax-m3",
             "minimax-m2.7",
             "glm-5.2",
             "glm-5.1",
             "glm-5",
             "minimax-m2.5",
-            "kimi-k2.5",
+            "qwen3.8-max",   -- forced tool_choice accepted on this door (the Qwen API refuses it)
             "qwen3.6-plus",
             "qwen3.5-plus",
-            "deepseek-v4-flash-vision-exp",
-            "nemotron-3.5-lightning-free",
         },
     },
     opencode_go = {
@@ -413,14 +454,16 @@ ModelConstraints.capabilities = {
         -- "incompatible with thinking enabled") — kimi.lua forces the disable
         -- on tool sessions (deepseek precedent) and drops temperature
         -- (mode-locked, see forced params).
-        thinking = { "kimi-k2.6" },
-        tools = { "kimi-k2.6" },
+        -- kimi-k3 (probed 2026-09-28): same disable shape; tools + forced
+        -- tool_choice + replay green with thinking on AND with it off.
+        thinking = { "kimi-k3", "kimi-k2.6" },
+        tools = { "kimi-k3", "kimi-k2.6" },
     },
     xai = {
         -- grok-4.6 supports reasoning_effort minimal..xhigh ("none" rejected — probe 2026-08-14);
         -- grok-4.5/4.3 and the grok-4.20 reasoning variant support reasoning_effort (none/low/medium/high)
         -- The grok-4.20 non-reasoning slug has no effort control
-        reasoning = { "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-0309-reasoning" },
+        reasoning = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-0309-reasoning" },
         -- Grok-4-family models take the native web_search agent tool on xAI's
         -- Responses endpoint (/v1/responses, OpenAI-compatible wire — the old
         -- chat-completions live search returns 410 Gone since 2026-01-12).
@@ -471,9 +514,10 @@ ModelConstraints.capabilities = {
         --   minimaxai/minimax-m3               rate-limited, inconclusive
         -- nano-9b-v2, llama-3.3-nemotron-super-49b, llama-3.1-70b and
         -- step-3.7-flash were retired by NVIDIA 2026-08-26 (HTTP 410).
-        tools = {
-            "nvidia/nemotron-3-nano-30b-a3b",
-        },
+        -- The one grant, nvidia/nemotron-3-nano-30b-a3b, was retired 2026-09-01
+        -- (410); nemotron-3.5-lightning passes forced calls but stays excluded
+        -- (see the model list note), so no curated NVIDIA model has tools now.
+        tools = {},
     },
     perplexity = {
         -- Retired Sonar ids (B078): the handler maps them to perplexity/sonar at the
@@ -491,6 +535,11 @@ ModelConstraints.capabilities = {
             "anthropic/claude-opus-4-8",
             "anthropic/claude-opus-4-7",
             "openai/gpt-6-astra",
+            -- Refuse a temperature ALONE (web off), where they reason by default;
+            -- the search preset turns reasoning off and accepts one (probed
+            -- 2026-09-28, model refresh; --recheck perplexity flagged both).
+            "openai/gpt-6-sol",
+            "openai/gpt-6-luna",
         },
         -- Direct models that cannot run with reasoning off: the search preset
         -- sets effort "none" and they refuse it ("invalid request"); with effort
@@ -547,12 +596,14 @@ ModelConstraints._max_output_tokens = {
         ["claude-haiku-4-5"] = 64000,
     },
     openai = {
+        ["gpt-6"] = 128000,              -- sol/luna/astra (oversized-request error text, 2026-09-28)
         ["gpt-5"] = 128000,              -- whole 5.x family incl. 5.4-mini/nano (docs + OpenRouter catalog)
         ["gpt-4.1"] = 32768,             -- documented output cap
         ["gpt-4o"] = 16384,              -- documented output cap (guard for fetched models)
     },
     deepseek = {
         ["deepseek-v4-pro"] = 384000,    -- documented (1M ctx / 384K out)
+        ["deepseek-flash"] = 393216,     -- API error text: "valid range of max_tokens is [1, 393216]" (2026-09-28)
         ["deepseek-v4-flash"] = 131072,  -- OpenRouter catalog 2026-08-06
     },
     gemini = {
@@ -571,6 +622,16 @@ ModelConstraints._max_output_tokens = {
     },
     qwen = {
         ["qwen3-max"] = 65536,           -- ceiling from oversized-max_tokens error (probed 2026-08-15)
+        -- Oversized-max_tokens error text, --recheck --ceilings / battery 2026-09-28:
+        ["qwen3.8-"] = 131072,           -- max, flash, 27b, 2.4t-a95b ("-": "." is a wildcard here)
+        ["qwen3.7-"] = 131072,           -- plus (battery); max/flash unprobed, same family
+        ["qwen3.5-plus"] = 65536,
+        ["qwen3.5-flash"] = 65536,
+        ["qwen3-coder-plus"] = 65536,
+        ["qwen-turbo"] = 16384,
+    },
+    nvidia = {
+        ["openai/gpt-oss-20b"] = 131072,  -- oversized-request error text (recheck 2026-09-28)
     },
     openrouter = {
         -- All values = top_provider.max_completion_tokens from the public
@@ -663,6 +724,7 @@ ModelConstraints._max_output_tokens = {
         ["groq/compound"] = 8192,
         ["groq/compound-mini"] = 8192,
         ["meta-llama/llama-4-scout"] = 8192,
+        ["qwen/qwen3.8-27b"] = 16384,        -- oversized-request error text 2026-09-28
         -- Production models: cap to each model's documented max completion tokens
         -- so actions requesting a high max_tokens (e.g. X-Ray's 65536) don't get a
         -- bare HTTP 400 from Groq. (issue #89)
@@ -708,6 +770,7 @@ ModelConstraints._context_windows = {
         -- input is the load-bearing number. 922,000 stated verbatim on the
         -- 5.6 pages; 5.5/5.4 [inferred] window-minus-output reproduces the
         -- stated max input on every page that carries one.
+        ["gpt-6"]        = 922000,  -- [inferred] 1,050,000 window (OpenRouter) minus 128K output, as on 5.6
         ["gpt-5.6"]      = 922000,  -- [docs] "Maximum input tokens: 922,000"
         ["gpt-5.5"]      = 922000,  -- [inferred]
         ["gpt-5.4"]      = 922000,  -- [inferred]
@@ -720,6 +783,7 @@ ModelConstraints._context_windows = {
     -- openai_codex aliased below (same hosted models, same slugs)
     deepseek = {
         ["deepseek-v4"] = 1000000,  -- [docs] pricing table: 1M for v4-pro AND v4-flash; [OR] 1048576
+        ["deepseek-flash"] = 1000000,  -- the renamed v4-flash line ([OR] v4.1-flash 1048576)
     },
     gemini = {
         ["gemini-3"]   = 1048576,   -- [probe] models-endpoint inputTokenLimit, all curated 3.x ids
@@ -742,6 +806,7 @@ ModelConstraints._context_windows = {
     xai = {
         -- [probe] GET /v1/models field context_length, 2026-08-14. Also
         -- adjudicates grok-4.20: xAI's own API says 1M ([OR]'s 2M rejected).
+        ["grok-4.7"]   = 500000,  -- [OR] 2026-09-28 (xAI list field not re-read)
         ["grok-4.6"]   = 500000,
         ["grok-4.5"]   = 500000,
         ["grok-4.3"]   = 1000000,
@@ -750,6 +815,7 @@ ModelConstraints._context_windows = {
     },
     zai = {
         -- [docs] per-model pages (the /models listing carries no metadata).
+        ["glm-5.3"] = 1000000,      -- [OR] 1310720 (flashx 1048576); 1M floor for the family
         ["glm-5.2"] = 1000000,      -- 1M context (5x jump from 5.1)
         ["glm-5"]   = 200000,       -- glm-5 / 5.1 / 5-turbo
         ["glm-4.7"] = 200000,       -- covers glm-4.7-flash
@@ -931,6 +997,27 @@ ModelConstraints.reasoning_defaults = {
 --   budget_map     budget axis only: option key -> numeric budget
 ModelConstraints.reasoning_profiles = {
     anthropic = {
+        -- Fable 5.1 (2026-09-01, $10/$50, probed 2026-09-28). Unlike Fable 5 it does NOT
+        -- think at the API default (no thinking block with nothing sent, on the math probe
+        -- and a harder prompt), yet thinking.type:disabled is rejected. Off = send nothing
+        -- (the wire emits no `thinking` for off on a default-off profile), so off stays
+        -- reachable. Full effort ladder incl. xhigh/max, 128K out, rejects sampling.
+        -- Listed BEFORE claude-fable-5, which would prefix-match it.
+        { match = "claude-fable-5-1", axis = "adaptive_effort", default_state = "off",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_no_sampling = true },
+        -- Opus 5.5 (2026-09-22, $4/$20, probed 2026-09-28): adaptive thinking ON at the API
+        -- default like Opus 5, but thinking.type:disabled is REJECTED ("Use
+        -- thinking.type.adaptive"), so minimal drops to the lowest effort. Full effort
+        -- ladder incl. xhigh/max, 128K out, rejects sampling, budget mode rejected.
+        -- Listed BEFORE claude-opus-5 (disable accepted), which would prefix-match it.
+        { match = "claude-opus-5-5", axis = "adaptive_effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "max" } },
+          needs_no_sampling = true },
         -- Fable 5: frontier model. Adaptive thinking is ALWAYS ON (thinking.type:disabled is
         -- rejected — verified 2026-07-24), rejects sampling params, full effort ladder incl.
         -- xhigh/max (max accepted). can_disable=false → minimal stance drops to lowest effort,
@@ -992,6 +1079,20 @@ ModelConstraints.reasoning_profiles = {
           needs_temp_1 = true },
     },
     openai = {
+        -- GPT-6 (probed 2026-09-28): REASONS BY DEFAULT, unlike 5.6 (unset effort spends
+        -- about what medium does; "none" spends 0). Effort none/low/medium/high/xhigh
+        -- (minimal and max rejected). Astra refuses "none", so it cannot turn off and is
+        -- listed BEFORE the family entry; sol and luna turn off by SENDING "none"
+        -- (off_option), since omission keeps them reasoning.
+        { match = "gpt-6-astra", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "xhigh" } } },
+        { match = "gpt-6", axis = "effort", default_state = "on",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } },
+          off_option = "none" },
         -- GPT-5.6 (luna/sol/terra): gated — reasoning OFF by default (verified 0 reasoning
         -- tokens with nothing sent, 2026-07-24). Opt-in effort none..xhigh (NO max — rejected).
         { match = "gpt-5.6", axis = "effort", default_state = "off",
@@ -1031,6 +1132,13 @@ ModelConstraints.reasoning_profiles = {
     gemini = {
         -- Gemini 3 (thinkingLevel). Pro has no "minimal" floor; flash variants do.
         { match = "gemini-3.1-pro-preview", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- gemini-3.8-flash (battery 2026-09-28, paid key): the 3.7 shape. MINIMAL
+        -- rejected, low/medium/high OK, thinks by default (934 thought tokens bare),
+        -- temp free, tools + ANY/NONE + replay + SSE green, grounding green.
+        { match = "gemini-3.8-flash", axis = "effort", default_state = "on",
           can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
@@ -1094,6 +1202,15 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
     },
     zai = {
+        -- glm-5.3 / -flash / -flashx (probed 2026-09-28): thinking ALWAYS on —
+        -- thinking.type "disabled" is rejected ("please use low, high, or max"), so
+        -- the glm-5 entry below (disable accepted) must not catch them. The effort
+        -- values ride top-level reasoning_effort (low/high/max; medium rejected),
+        -- which zai.lua does not send yet: binary with no off. Any temperature is
+        -- accepted while it thinks (0.0 to 2.0 probed), so no needs_temp_1, and the
+        -- stances send nothing (sending thinking=enabled makes zai.lua force 1.0).
+        { match = "glm-5.3", axis = "binary", default_state = "on", can_disable = false, can_enable = true,
+          stance_map = {} },
         -- GLM-4.5+: thinking on by default, disableable; temp must be 1.0 when on.
         -- glm-5.2 first so it wins over the generic "glm-5" prefix below.
         { match = "glm-5.2", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
@@ -1127,6 +1244,22 @@ ModelConstraints.reasoning_profiles = {
         -- (unknown/unprobeable) — they resolve to passthrough.
         { match = "kimi-k2.6", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        -- kimi-k3 (probed 2026-09-28): the same shape (229 reasoning tokens bare on a
+        -- harder prompt, thinking {type="disabled"} honoured).
+        { match = "kimi-k3", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+    },
+    qwen = {
+        -- Probed 2026-09-28 (DashScope international): the 3.8 and 3.5 families and
+        -- qwen3.7-plus reason by DEFAULT. enable_thinking=false turns it off on the wire
+        -- (probed; forced tool calls then work too), but qwen.lua sends no reasoning
+        -- param yet, so they read as always-on with no control (the magistral shape).
+        -- qwen3-max does not reason by default (no profile: passthrough).
+        -- (Trailing "-": prefixMatch leaves "." unescaped, so a bare "qwen3.8" would
+        -- also catch qwen3-8b.)
+        { match = "qwen3.8-", axis = "none", default_state = "on", can_disable = false, can_enable = false },
+        { match = "qwen3.7-", axis = "none", default_state = "on", can_disable = false, can_enable = false },
+        { match = "qwen3.5-", axis = "none", default_state = "on", can_disable = false, can_enable = false },
     },
     openrouter = {
         -- OpenRouter is a meta-provider: reasoning-disable support varies by backend, so
@@ -1141,6 +1274,60 @@ ModelConstraints.reasoning_profiles = {
         { match = "openai/gpt-5.5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- Probed 2026-09-28 (every effort value accepted; OpenRouter normalizes them).
+        -- Reasoning-MANDATORY: Opus 5.5, Fable 5.1 and GPT-6 Astra refuse none and
+        -- enabled=false. Fable 5.1 still reasons only when asked (its direct API
+        -- default), so its off is "send nothing" (can_disable + the openrouter wire's
+        -- default-off rule). GPT-6 sol/luna reason by default and accept off.
+        { match = "anthropic/claude-opus-5.5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
+        { match = "anthropic/claude-fable-5.1", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- Fable 5 (always thinks on its own API): enabled=false 400s "Reasoning is
+        -- mandatory" here (probed 2026-09-28); the catch-all sent it on Minimal.
+        -- After fable-5.1, which this prefix would otherwise catch.
+        { match = "anthropic/claude-fable-5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
+        { match = "openai/gpt-6-astra", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
+        { match = "openai/gpt-6", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        -- Mirrors that reason by default (batteries 2026-09-28): GLM-5.3 is mandatory
+        -- here too; the others accept off. Before these rows the catch-all below
+        -- reported them off by default (the recheck's drift on deepseek-v4-pro).
+        { match = "z-ai/glm-5.3", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- Grok 4.7 and 4.6: "Reasoning is mandatory" for enabled=false and effort none
+        -- (probed 2026-09-28; the catch-all sent enabled=false on Minimal). 4.3 and
+        -- 4.20 accept off, so this is not a grok-4 family row.
+        { match = "x-ai/grok-4.7", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "x-ai/grok-4.6", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        { match = "moonshotai/kimi-k3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        -- (deepseek/deepseek-v4-flash showed no default reasoning here: catch-all)
+        { match = "deepseek/deepseek-v4-pro", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        { match = "deepseek/deepseek-v4.1-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        { match = "minimax/minimax-m3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        { match = "qwen/qwen3.8-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
         -- Perplexity: ONLY sonar-reasoning* models reason; the plain sonar/sonar-pro
         -- rows below stop them falling through to the effort catch-all (their
         -- endpoints report no `reasoning` — a whole-vendor "perplexity/" prefix
@@ -1180,6 +1367,9 @@ ModelConstraints.reasoning_profiles = {
         { match = "nvidia/nemotron-3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- gpt-oss-20b reasons by default (recheck 2026-09-28); its effort ladder on
+        -- this host is unprobed, so it reads as always-on with no control.
+        { match = "openai/gpt-oss-20b", axis = "none", default_state = "on", can_disable = false, can_enable = false },
     },
     groq = {
         -- Both gpt-oss entries probed live 2026-09-07: default ON, effort
@@ -1193,6 +1383,11 @@ ModelConstraints.reasoning_profiles = {
         { match = "qwen/qwen3-32b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- qwen/qwen3.8-27b (probed 2026-09-28): no reasoning with nothing sent, so
+        -- off = send nothing; low/medium/high accepted (minimal/xhigh/max rejected).
+        { match = "qwen/qwen3.8-27b", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
     },
     together = {
         { match = "deepseek-ai/DeepSeek-V4-Pro", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
@@ -1217,6 +1412,15 @@ ModelConstraints.reasoning_profiles = {
         { match = "accounts/fireworks/models/gpt-oss", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- GLM-5.3 (probed 2026-09-28, model + flash + the fast router): thinking-only,
+        -- "none" rejected ("disabling thinking is not supported"), so the catch-all's
+        -- off would 400 on the Minimal stance.
+        { match = "accounts/fireworks/models/glm-5p3", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "max" } } },
+        { match = "accounts/fireworks/routers/glm-5p3", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "max" } } },
         { match = "accounts/fireworks/", axis = "effort", default_state = "on", can_disable = true, can_enable = true, generic = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
@@ -1260,6 +1464,15 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
         { match = "nemotron-3.5-lightning-free", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- Third sweep 2026-09-28: both reason by default and take none + low..max
+        -- ("minimal" rejected). ("deepseek-v4-flash" above does not prefix-match
+        -- the dotted v4.1 id.)
+        { match = "deepseek-v4.1-flash", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        { match = "qwen3.8-max", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
     },
     opencode_go = {
@@ -1358,6 +1571,11 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
     },
     xai = {
+        -- grok-4.7 (probed 2026-09-28): the grok-4.6 shape — reasons by default,
+        -- effort "none" and "max" REJECTED, minimal..xhigh accepted.
+        { match = "grok-4.7", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "xhigh" } } },
         -- grok-4.6 (probed 2026-08-14): reasons by default, effort "none" REJECTED
         -- (cannot disable — unlike 4.5/4.3, so the family fallback's off_option would
         -- 400 on the Minimal stance); ladder gains minimal + xhigh, "max" rejected.
@@ -1739,7 +1957,8 @@ end
 --- @return boolean
 function ModelConstraints.usesMaxCompletionTokens(model)
     if type(model) ~= "string" then return false end
-    return model:match("^gpt%-5") ~= nil or model:match("^o%d") ~= nil
+    -- gpt-5 onward (gpt-6 refuses max_tokens too, probed 2026-09-28)
+    return model:match("^gpt%-[5-9]") ~= nil or model:match("^o%d") ~= nil
         or model:match("^gpt%-4%.1") ~= nil
 end
 
@@ -2679,7 +2898,10 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
         -- else (off + default-off, e.g. Opus/Sonnet 4.6): emit nothing (Anthropic reasons
         -- only when `thinking` is present).
     elseif provider == "openai" or provider == "openai_codex" then
-        if on then api_params.reasoning = { effort = decision.effort } end
+        if on then api_params.reasoning = { effort = decision.effort }
+        -- A model that reasons by default turns off only when told (gpt-6 sol/luna:
+        -- effort "none"); a default-off model (gpt-5.6) has no off_option and stays silent.
+        elseif decision.off_option then api_params.reasoning = { effort = decision.off_option } end
     elseif provider == "gemini" then
         if decision.axis == "budget" then
             api_params.thinking_budget = on and (decision.budget or -1) or 0
@@ -2702,8 +2924,14 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
     elseif provider == "openrouter" then
         -- off reaches here only for disable-CAPABLE backends (mandatory families carry
         -- can_disable=false so their minimal stance resolves to lowest effort, never off).
+        -- A curated row that is off by default is off by sending nothing (Fable 5.1
+        -- refuses enabled=false yet does not think unasked, as on its own API); the
+        -- generic catch-all keeps the explicit off.
+        local p = decision.profile
         if on then api_params.openrouter_reasoning = { effort = decision.effort }
-        else api_params.openrouter_reasoning = { enabled = false } end
+        elseif not (p and p.default_state == "off" and not p.generic) then
+            api_params.openrouter_reasoning = { enabled = false }
+        end
     elseif provider == "requesty" then
         if on then api_params.requesty_reasoning = { effort = decision.effort }
         else api_params.requesty_reasoning = { enabled = false } end
@@ -2716,7 +2944,11 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
     elseif provider == "together" then
         if on then api_params.together_reasoning = { effort = decision.effort } end
     elseif provider == "fireworks" then
-        if on then api_params.fireworks_reasoning = { effort = decision.effort } end
+        -- Every model reasons by default here, so off has to be SENT: the catch-all's
+        -- off_option "none" (accepted by every curated id that can turn off; glm-5p3
+        -- and gpt-oss carry can_disable=false and never resolve to off).
+        if on then api_params.fireworks_reasoning = { effort = decision.effort }
+        elseif decision.off_option then api_params.fireworks_reasoning = { effort = decision.off_option } end
     elseif provider == "opencode" or provider == "opencode_go" then
         -- "none" disables where the profile says it can (probed 2026-09-05 on
         -- each endpoint); opencode.lua puts either onto reasoning_effort (one

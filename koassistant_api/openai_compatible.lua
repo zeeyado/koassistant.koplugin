@@ -212,8 +212,14 @@ function OpenAICompatibleHandler:buildRequestBody(message_history, config)
             request_body.tool_choice = "none"
         elseif config.tools.mode == "ANY" then
             -- Gather rounds force a tool call (search or done) so the model can never
-            -- answer in prose on the non-streamed gather path.
-            request_body.tool_choice = "required"
+            -- answer in prose on the non-streamed gather path. A model that refuses a
+            -- forced call gets auto (no_forced_tool_choice; the runner accepts a round
+            -- that answers in prose).
+            if ModelConstraints.supportsCapability(constraints_key, model, "no_forced_tool_choice") then
+                request_body.tool_choice = "auto"
+            else
+                request_body.tool_choice = "required"
+            end
         else
             request_body.tool_choice = "auto"
         end

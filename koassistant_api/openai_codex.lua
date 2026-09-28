@@ -114,7 +114,8 @@ function CodexHandler:query(message_history, config)
     if use_streaming then
         local stream_fn = self:backgroundRequest(base_url, headers, requestBody)
         local effort = request_body.reasoning and request_body.reasoning.effort
-        if effort then
+        -- "none" is the off setting (gpt-6 sol/luna), not a reasoning request
+        if effort and effort ~= "none" then
             return {
                 _stream_fn = stream_fn,
                 _reasoning_requested = true,
@@ -126,6 +127,7 @@ function CodexHandler:query(message_history, config)
 
     local parser_key = built.parser or "openai_responses"
     local reasoning_effort = request_body.reasoning and request_body.reasoning.effort
+    if reasoning_effort == "none" then reasoning_effort = nil end  -- the off setting
     local debug_enabled = config and config.features and config.features.debug
 
     local response_parser = function(response)

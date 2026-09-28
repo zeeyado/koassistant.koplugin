@@ -152,23 +152,25 @@ TestRunner.assert(ModelLists.normalizeTier(nil) == "standard", "nil tier -> stan
 print("== getModelForTier ==")
 
 -- Direct hits
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "frontier", false) == "claude-fable-5",
-    "anthropic frontier = claude-fable-5")
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5",
-    "anthropic flagship = claude-opus-5")
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "frontier", false) == "claude-fable-5-1",
+    "anthropic frontier = claude-fable-5-1")
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5-5",
+    "anthropic flagship = claude-opus-5-5")
+TestRunner.assert(ModelLists.getModelForTier("openai", "frontier", false) == "gpt-6-astra",
+    "openai frontier = gpt-6-astra")
 
 -- Legacy "reasoning" request resolves to the flagship entry, never frontier
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "reasoning", true) == "claude-opus-5",
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "reasoning", true) == "claude-opus-5-5",
     "reasoning alias resolves to flagship model")
 
 -- Fallback only DESCENDS: providers without frontier fall to flagship...
-TestRunner.assert(ModelLists.getModelForTier("openai", "frontier", true) == "gpt-5.6-sol",
-    "openai frontier request falls back to flagship")
+TestRunner.assert(ModelLists.getModelForTier("deepseek", "frontier", true) == "deepseek-v4-pro",
+    "deepseek frontier request falls back to flagship")
 -- ...and without fallback a sparse tier returns nil
-TestRunner.assert(ModelLists.getModelForTier("openai", "frontier", false) == nil,
-    "openai has no frontier entry")
+TestRunner.assert(ModelLists.getModelForTier("deepseek", "frontier", false) == nil,
+    "deepseek has no frontier entry")
 -- A flagship request never climbs into frontier
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", true) ~= "claude-fable-5",
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", true) ~= "claude-fable-5-1",
     "flagship request must not climb to frontier")
 
 -- Unknown provider (e.g. custom without overrides) resolves to nothing
@@ -193,7 +195,7 @@ TestRunner.assert(ModelLists.getModelForTier("custom_lm_studio", "ultrafast", tr
     "ultrafast is the floor — no upward fallback")
 TestRunner.assert(ModelLists.getModelForTier("anthropic", "ultrafast", false) == "claude-haiku-x",
     "user tier overrides curated entry")
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5",
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5-5",
     "unrelated curated tiers unaffected by user override")
 TestRunner.assert(ModelOverrides.tierOverride("anthropic", "flagship") == nil,
     "tierOverride returns nil where the user has no opinion")
@@ -209,7 +211,8 @@ TestRunner.assert(fastest ~= nil, "fastest resolves for a curated provider")
 TestRunner.assert(fastest == ModelLists.getModelForTier("anthropic", "ultrafast", false)
     or fastest == ModelLists.getModelForTier("anthropic", "fast", false),
     "fastest picks the quickest listed tier")
-TestRunner.assert(fastest ~= "claude-fable-5", "fastest never lands on frontier")
+TestRunner.assert(fastest ~= ModelLists.getModelForTier("anthropic", "frontier", false),
+    "fastest never lands on frontier")
 
 -- Named tiers are EXACT (2026-08-14): a tier is a class pick, not a direction —
 -- a miss returns nil (caller keeps the current/default model); only "fastest"
@@ -263,7 +266,7 @@ print("== GUI tier placements (tier GUI, features.tier_overrides) ==")
 ModelOverrides.setGuiTiers({ anthropic = { ultrafast = "claude-haiku-gui" } })
 TestRunner.assert(ModelLists.getModelForTier("anthropic", "ultrafast", false) == "claude-haiku-gui",
     "GUI placement overrides curated entry")
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5",
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5-5",
     "unrelated tiers unaffected by GUI placement")
 
 -- GUI layer beats the custom_models.lua file layer on the same slot

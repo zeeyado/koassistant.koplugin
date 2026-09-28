@@ -16,8 +16,10 @@ local ModelLists = {
     anthropic = {
         -- Claude 5 / 4.x (current generation)
         "claude-sonnet-5",              -- default (balanced speed/cost); adaptive thinking on, rejects sampling params
-        "claude-opus-5",                -- deep reasoning flagship (2026-07-24, $5/$25 like Opus 4.8); adaptive thinking on, disable ok, rejects sampling
-        "claude-fable-5",               -- most capable / frontier; adaptive thinking ALWAYS-ON (no disable), rejects sampling, premium price
+        "claude-opus-5-5",              -- deep reasoning flagship (2026-09-22, $4/$20); thinking on, NO disable, no forced tool calls
+        "claude-fable-5-1",             -- most capable / frontier (2026-09-01, $10/$50); thinks only when asked, no forced tool calls
+        "claude-opus-5",                -- previous flagship (2026-07-24, $5/$25); adaptive thinking on, disable ok, rejects sampling
+        "claude-fable-5",               -- previous frontier; adaptive thinking ALWAYS-ON (no disable), rejects sampling, premium price
         "claude-sonnet-4-6",            -- previous flagship (kept available), 1M context
         "claude-opus-4-8",              -- deep reasoning / agentic (adaptive thinking)
         "claude-haiku-4-5-20251001",    -- fast
@@ -29,8 +31,15 @@ local ModelLists = {
         -- All: reasoning opt-in (OFF by default; none..xhigh, NO max), 128K output,
         -- tools + web search (Responses API), ~1M context, temperature=1.0 only.
         "gpt-5.6-terra",                -- balanced (default)
-        "gpt-5.6-sol",                  -- flagship (most capable)
-        "gpt-5.6-luna",                 -- cost-optimized
+        -- GPT-6 (2026-09): astra (frontier, $10/$50) > sol ($2/$10) > luna ($0.10/$0.50).
+        -- Unlike 5.6 they REASON BY DEFAULT (medium; sol and luna turn off with "none",
+        -- astra cannot), temperature=1.0 only, 128K output, tools + web search on the
+        -- Responses API (probed 2026-09-28).
+        "gpt-6-sol",                    -- flagship (most capable of the everyday models)
+        "gpt-6-luna",                   -- cost-optimized
+        "gpt-6-astra",                  -- frontier, premium price
+        "gpt-5.6-sol",
+        "gpt-5.6-luna",                 -- cost-optimized, reasoning opt-in
         -- GPT-5.5 (previous flagship; reasons by default at medium, cannot disable)
         "gpt-5.5",
         -- GPT-5.4 (affordable tier)
@@ -61,17 +70,21 @@ local ModelLists = {
 
     deepseek = {
         -- DeepSeek V4 (current generation, 1M context, thinking on by default)
-        "deepseek-v4-flash",            -- standard/fast (default)
+        "deepseek-flash",               -- standard/fast (default). DeepSeek's list renamed
+                                        -- deepseek-v4-flash to this 2026-09 (the old id still
+                                        -- answers, served as deepseek-flash); probed 2026-09-28
         "deepseek-v4-pro",              -- flagship + reasoning
     },
 
     gemini = {
         -- Gemini 3.x (current generation)
-        "gemini-3.7-flash",             -- newest flash (default since 2026-08-15; full free-key
-                                        -- battery: default thinking ON, effort low/medium/high,
-                                        -- MINIMAL rejected (unlike 3.6), tools + streaming green,
-                                        -- free-tier grounding gated like the rest of 3.x)
-        "gemini-3.6-flash",             -- previous default (kept available)
+        "gemini-3.8-flash",             -- newest flash (default since 2026-09-28; same price as 3.7,
+                                        -- battery 2026-09-28: default thinking ON, effort
+                                        -- low/medium/high, MINIMAL rejected, tools + replay +
+                                        -- streaming green, grounding on the paid key, answers
+                                        -- on a free key)
+        "gemini-3.7-flash",             -- previous default (kept available)
+        "gemini-3.6-flash",
         "gemini-3.5-flash",             -- previous flash (kept available)
         "gemini-3.1-pro-preview",       -- frontier tier, reasoning (paid only; no 3.5/3.6 pro yet;
                                         -- full battery green on a paid key 2026-08-15: effort
@@ -119,15 +132,15 @@ local ModelLists = {
         -- Production models (FREE tier with rate limits)
         "openai/gpt-oss-120b",                          -- flagship (default)
         "openai/gpt-oss-20b",                           -- fast
+        "qwen/qwen3.8-27b",                             -- replaced qwen3.6-27b 2026-09-14; reasoning off by default, free OTPM 1000
         -- (llama-3.3-70b-versatile + llama-3.1-8b-instant — the former default
         -- and fast picks — deprecated by Groq effective 2026-08-16, vendor-
         -- recommended replacements = the two gpt-oss models above (T9 refresh
         -- 2026-08-14). qwen/qwen3-32b + meta-llama/llama-4-scout deprecated
         -- 2026-07-17. Removed from the picker; constraint entries kept for
         -- users with the model still persisted in settings.)
-        -- Compound AI (agentic)
-        "groq/compound",                                -- web search + code exec
-        "groq/compound-mini",
+        -- (groq/compound + compound-mini decommissioned by Groq 2026-09-21, no
+        -- vendor replacement; saved picks move to the gpt-oss pair via _retired.)
     },
 
     mistral = {
@@ -150,10 +163,14 @@ local ModelLists = {
     },
 
     xai = {
-        -- Grok 4.6 (flagship since 2026-08-12; 500K context, $2/$6 — grok-4.5
-        -- successor. Probed 2026-08-14: effort minimal..xhigh, effort "none"
+        -- Grok 4.7 (2026-09-21; 500K context, $1.60/$4.80 — cheaper than 4.6.
+        -- Probed 2026-09-28: the 4.6 shape — effort minimal..xhigh, "none" and "max"
+        -- REJECTED, thinks by default, temp free, tools + forced + replay + web green)
+        "grok-4.7",                     -- flagship (default) + reasoning
+        -- Grok 4.6 (flagship 2026-08-12 to 2026-09-28; 500K context, $2/$6.
+        -- Probed 2026-08-14: effort minimal..xhigh, effort "none"
         -- REJECTED (cannot disable reasoning — unlike 4.5/4.3), temp free, tools OK)
-        "grok-4.6",                     -- flagship (default) + reasoning
+        "grok-4.6",                     -- previous flagship + reasoning
         -- Grok 4.5 (500K context; the documented agent-tools
         -- model — native web search rides its Responses endpoint)
         "grok-4.5",                     -- reasoning
@@ -172,12 +189,18 @@ local ModelLists = {
 
         -- Anthropic
         "anthropic/claude-sonnet-5",    -- default (flagship); slug confirmed on openrouter.ai
-        "anthropic/claude-opus-5",      -- deep reasoning flagship (a -fast variant exists at 2x price; not listed)
-        "anthropic/claude-fable-5",     -- most capable / frontier
+        "anthropic/claude-opus-5.5",    -- deep reasoning flagship (2026-09-22; battery 2026-09-28)
+        "anthropic/claude-fable-5.1",   -- most capable / frontier (2026-09-01; battery 2026-09-28)
+        "anthropic/claude-opus-5",      -- previous flagship (a -fast variant exists at 2x price; not listed)
+        "anthropic/claude-fable-5",     -- previous frontier
         "anthropic/claude-sonnet-4.6",
         "anthropic/claude-opus-4.8",
         "anthropic/claude-haiku-4.5",
 
+        -- OpenAI (gpt-6: astra > sol > luna, reason by default; battery 2026-09-28)
+        "openai/gpt-6-sol",
+        "openai/gpt-6-luna",
+        "openai/gpt-6-astra",
         -- OpenAI (gpt-5.6: sol > terra > luna)
         "openai/gpt-5.6-sol",
         "openai/gpt-5.6-terra",
@@ -191,6 +214,7 @@ local ModelLists = {
         "openai/gpt-oss-20b",
 
         -- Google
+        "google/gemini-3.8-flash",      -- battery 2026-09-28 (reasoning mandatory here)
         "google/gemini-3.7-flash",      -- catalog-verified 2026-08-15 ($0.38/$1.88, half of 3.6 there)
         "google/gemini-3.6-flash",
         "google/gemini-3.5-flash",
@@ -198,9 +222,14 @@ local ModelLists = {
 
         -- DeepSeek
         "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v4.1-flash",                 -- 2026-09-10; battery 2026-09-28
         "deepseek/deepseek-v4-flash",
 
+        -- Z.AI
+        "z-ai/glm-5.3",                                 -- battery 2026-09-28 (reasoning mandatory here)
+
         -- xAI Grok
+        "x-ai/grok-4.7",                                -- probed 2026-09-28 (reasoning mandatory here, forced tools OK)
         "x-ai/grok-4.3",
         "x-ai/grok-4.20",
 
@@ -212,6 +241,7 @@ local ModelLists = {
         "mistralai/mistral-medium-3.1",
 
         -- Qwen
+        "qwen/qwen3.8-flash",                           -- battery 2026-09-28 (forced tool calls refused: auto)
         "qwen/qwen3-max",
         "qwen/qwen3-235b-a22b",
 
@@ -220,9 +250,10 @@ local ModelLists = {
         "perplexity/sonar-reasoning-pro",
         "perplexity/sonar",
 
-        -- Other notable
-        "moonshotai/kimi-k2-thinking",
-        "minimax/minimax-m2.1",
+        -- Other notable (batteries 2026-09-28; they replace kimi-k2-thinking and
+        -- minimax-m2.1, which reasoned by default under an off-by-default row)
+        "moonshotai/kimi-k3",
+        "minimax/minimax-m3",
     },
 
     requesty = {
@@ -256,7 +287,12 @@ local ModelLists = {
 
     qwen = {
         -- Qwen3 / Qwen3.5 (current)
-        "qwen3-max",                    -- flagship (default)
+        "qwen3-max",                    -- flagship (default; no default reasoning, book tools)
+        -- Qwen3.8 (2026-08/09, 1M context). Probed 2026-09-28: reason by default
+        -- (enable_thinking=false turns it off on the wire; not sent yet), temp
+        -- [0, 2), 128K out; forced tool calls refused while thinking, so no tools.
+        "qwen3.8-max",
+        "qwen3.8-flash",
         "qwen3.5-plus",                 -- standard
         "qwen3.5-flash",                -- fast
         "qwen-turbo",                   -- ultrafast
@@ -271,7 +307,11 @@ local ModelLists = {
         -- there ("Not found ... or Permission denied") but stay listed for
         -- CN-platform users (region split; codex-precedent: never strip
         -- models that other plans/regions may serve — the error is clear).
-        "kimi-k2.6",                    -- flagship (default; the one id served internationally)
+        "kimi-k2.6",                    -- default (the id served on both platforms)
+        -- Kimi K3 (2026-07, 1M context; international platform, probed 2026-09-28):
+        -- thinks by default, disable works, temperature 1 only while thinking,
+        -- tools + forced tool_choice + replay green.
+        "kimi-k3",                      -- flagship
         "kimi-k2.6-thinking",           -- reasoning (CN platform)
         "kimi-k2-turbo-preview",        -- fast (CN platform)
     },
@@ -297,12 +337,17 @@ local ModelLists = {
         -- Default = the cheap workhorse, not the flagship (maintainer,
         -- same-day device round): deepseek-v4-pro stays the flagship tier.
         "accounts/fireworks/models/gpt-oss-120b",                    -- standard/fast (default)
-        "accounts/fireworks/models/deepseek-v4-pro",                 -- flagship + reasoning
-        "accounts/fireworks/models/deepseek-v4-flash-0731",          -- fast deepseek
+        "accounts/fireworks/models/glm-5p3",                         -- flagship (thinking-only)
+        "accounts/fireworks/models/glm-5p3-flash",
+        "accounts/fireworks/models/kimi-k3",
+        "accounts/fireworks/models/deepseek-v4p1-flash",             -- fast deepseek (reasoning can turn off)
+        "accounts/fireworks/models/minimax-m3",
         "accounts/fireworks/models/qwen3p8-max",
-        "accounts/fireworks/models/kimi-k2p6",                       -- reasoning
         "accounts/fireworks/models/glm-5p2",
-        "accounts/fireworks/models/gpt-oss-20b",                     -- small/fast
+        -- (2026-09-28: deepseek-v4-pro, deepseek-v4-flash-0731, kimi-k2p6 and
+        -- gpt-oss-20b stopped serving — still LISTED but "not found ... not
+        -- deployed" on request; deepseek-v4-pro-0813 too. Listed != served here.
+        -- The five ids above qwen3p8-max probed green on the full battery.)
         -- (Dead ids dropped 2026-08-15, absent from the live catalog:
         -- deepseek-r1, qwen3-235b-a22b, kimi-k2-thinking. Earlier removals
         -- per Fireworks' changelog, T9 refresh 2026-08-14: llama-v3p3-70b
@@ -364,7 +409,13 @@ local ModelLists = {
 
     zai = {
         -- GLM-5.x (200K context)
-        "glm-5.2",                      -- flagship (default), released 2026-06-16
+        "glm-5.2",                      -- default (released 2026-06-16; thinking can be turned off)
+        -- GLM-5.3 (2026-08; 1M+ context). Probed 2026-09-28: thinking ALWAYS on (effort
+        -- low/high/max rides top-level reasoning_effort, not wired yet), temp free,
+        -- 128K out, tools + forced tool_choice + replay green.
+        "glm-5.3",                      -- flagship
+        "glm-5.3-flash",                -- cheap ($0.15/$0.50)
+        "glm-5.3-flashx",
         "glm-5.1",                      -- previous flagship (kept available), coding leader
         "glm-5",
         "glm-5-turbo",                  -- fast
@@ -412,11 +463,12 @@ local ModelLists = {
     nvidia = {
         "nvidia/nemotron-3-super-120b-a12b",        -- default: tools + forced tools + effort all probed
         "nvidia/nemotron-3-ultra-550b-a55b",
-        "nvidia/nemotron-3-nano-30b-a3b",           -- ultrafast (~0.15s measured 2026-08-29, 3 samples)
-        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- fast (~1.2s); battery 2026-08-29: effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant
-        "openai/gpt-oss-120b",                      -- answers live 2026-08-29 (reachability only)
-        "openai/gpt-oss-20b",
-        "minimaxai/minimax-m3",
+        "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- ~1.2s 2026-08-29 (effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant); answered 2026-09-28 15:47 then HUNG (3 x 90 s) at 16:40 while the rest answered in 0-2 s, so it lost the fast/ultrafast picks
+        "openai/gpt-oss-20b",                       -- fast + ultrafast (1 s, 2026-09-28); reasons by default, 131072 out
+        -- RETIRED BY NVIDIA 2026-09-01 (HTTP 410 Gone, recheck 2026-09-28):
+        --   nvidia/nemotron-3-nano-30b-a3b (was the ultrafast pick and the only
+        --   tools grant), openai/gpt-oss-120b, minimaxai/minimax-m3. Listed but NOT
+        --   served (404 "Function not found"): nvidia/nemotron-nano-3-30b-a3b.
         -- RETIRED BY NVIDIA (HTTP 410 Gone, end of life 2026-08-26/28, re-probed
         -- 2026-08-29; the reader-visible "HTTP 400/404" report on 0.21.2):
         --   nvidia/nvidia-nemotron-nano-9b-v2, nvidia/llama-3.3-nemotron-super-49b-v1.5,
@@ -429,12 +481,17 @@ local ModelLists = {
         --   mistralai/mistral-nemotron -- HTTP 500 on 5 of 8 calls.
         --   deepseek-ai/deepseek-v4-flash-0731 -- 15-45s for a one-word answer,
         --     one 529; deepseek-v4-pro-0813 still hangs.
+        --   2026-09-28: moonshotai/kimi-k3, z-ai/glm-5.3, z-ai/glm-5.3-flash and
+        --     deepseek-ai/deepseek-v4.1-flash never answered the first request
+        --     (read timeout after 60 s, three tries each).
         -- EXCLUDED, do not re-add without re-probing (device round 2026-08-20):
         --   nvidia/nemotron-3.5-lightning-30b-a3b -- reasoning never terminates on
         --     constraint-shaped prompts ("translate this", "answer in N words"):
         --     content comes back byte-identical to reasoning_content with no answer
         --     after it, on every sample. Only reasoning_effort="none" works, and our
         --     default stance sends nothing, so reasoning is ON by default.
+        --     Re-probed 2026-09-28: the full battery is green (forced tool calls
+        --     3/3), but both constraint prompts still hang past 60 s. Still out.
     },
     nebius = {
         "meta-llama/Llama-3.3-70B-Instruct",        -- seed (unverified)
@@ -463,11 +520,12 @@ local ModelLists = {
     -- NO tier placements (the 2026-08-17 openrouter/requesty ruling).
     opencode = {
         "deepseek-v4-flash",                        -- default: fast, strong, the only fully controllable reasoning ladder (none..max)
+        "deepseek-v4.1-flash",                      -- third sweep 2026-09-28
         "deepseek-v4-pro",
         "glm-5.3-flash",
         "glm-5.3",
         "kimi-k3",
-        "kimi-k2.6",
+        "qwen3.8-max",                              -- third sweep 2026-09-28 (forced tools OK here)
         "minimax-m3",
         "minimax-m2.7",
         -- Second sweep 2026-09-05 (every remaining open-weight Zen id ran the
@@ -479,13 +537,16 @@ local ModelLists = {
         -- (free pool too slow to finish a battery).
         "glm-5.2",
         "glm-5.1",
-        "glm-5",
         "minimax-m2.5",
-        "kimi-k2.5",
         "qwen3.6-plus",                             -- effort low..xhigh, off = none; rejects temperature 2.0
         "qwen3.5-plus",                             -- effort minimal..xhigh, off = none; rejects temperature 2.0
-        "deepseek-v4-flash-vision-exp",
-        "nemotron-3.5-lightning-free",              -- free pool, but every leg green; stated ceiling 1M
+        -- Third sweep 2026-09-28. Stopped serving on this door (saved picks move via
+        -- _retired): glm-5 ("deprecated, use glm-5.3"), kimi-k2.6 + kimi-k2.5
+        -- ("Endpoint is unavailable", twice), deepseek-v4-flash-vision-exp (no chat
+        -- route), nemotron-3.5-lightning-free (free models now answer only inside
+        -- OpenCode's own client). Left out: qwen3.8-flash (refuses the forced tool
+        -- call; no tools grant, the opencode_go precedent), jev-1.13 ("does not
+        -- support this protocol" on the chat door).
     },
     -- OpenCode Go (the subscription catalog; CURATED 2026-09-05: all 35
     -- /zen/go/v1/models ids ran the model_audit battery on the Go endpoint
@@ -505,17 +566,13 @@ local ModelLists = {
         "glm-5.3-flash",                            -- green; effort low/high/max only on this endpoint
         "glm-5.3",
         "glm-5.2",
-        "glm-5.1",
-        "glm-5",
         "deepseek-v4-flash-vision-exp",
-        "minimax-m2.5",
-        "qwen3.7-max",
-        "qwen3.6-plus",
-        "qwen3.5-plus",
         "mimo-v2.5-pro",
         "mimo-v2.5",
         "hy3",
-        "kimi-k2.6",                                -- reasoning-only: forced tool_choice rejected here (accepted on Zen)
+        -- (2026-09-28, answered even without a Go subscription: glm-5.1, minimax-m2.5,
+        -- qwen3.7-max, qwen3.6-plus and kimi-k2.6 "deprecated, use ...", glm-5 and
+        -- qwen3.5-plus "unavailable"; saved picks move via _retired.)
         "qwen3.8-max",                              -- reasoning-only
         "qwen3.8-flash",                            -- reasoning-only
         "qwen3.7-plus",                             -- reasoning-only
@@ -596,12 +653,12 @@ local ModelLists = {
         anthropic  = { "claude-sonnet-5", "claude-sonnet-4-6", "claude-sonnet-4-5-20250929" },
         openai     = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4", "gpt-5.2" },
         openai_codex = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4" },
-        gemini     = { "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3-flash-preview" },
-        deepseek   = { "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat" },
+        gemini     = { "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3-flash-preview" },
+        deepseek   = { "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat" },
         ollama     = { "llama4", "llama3.3" },
         groq       = { "openai/gpt-oss-120b", "llama-3.3-70b-versatile" },
         mistral    = { "mistral-large-latest" },
-        xai        = { "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-beta-0309-non-reasoning", "grok-4-1-fast-non-reasoning" },
+        xai        = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-beta-0309-non-reasoning", "grok-4-1-fast-non-reasoning" },
         openrouter = { "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5" },
         requesty   = { "openai/gpt-4o-mini" },
         qwen       = { "qwen3-max" },
@@ -629,6 +686,40 @@ local ModelLists = {
             ["sonar-reasoning-pro"] = "perplexity/sonar",
             ["sonar-deep-research"] = "perplexity/sonar",
         },
+        -- Stopped serving 2026-09 (recheck 2026-09-28): NVIDIA's are HTTP 410 end of
+        -- life; Fireworks' still list but answer "not found ... not deployed"; Groq
+        -- decommissioned the compound pair 2026-09-21 (deprecations page).
+        groq = {
+            ["groq/compound"] = "openai/gpt-oss-120b",
+            ["groq/compound-mini"] = "openai/gpt-oss-20b",
+        },
+        nvidia = {
+            ["nvidia/nemotron-3-nano-30b-a3b"] = "openai/gpt-oss-20b",
+            ["openai/gpt-oss-120b"] = "openai/gpt-oss-20b",
+            ["minimaxai/minimax-m3"] = "nvidia/nemotron-3-super-120b-a12b",
+        },
+        opencode_go = {   -- the server's own "use ..." where we list it (kimi-k2.7-code is not curated here)
+            ["glm-5.1"] = "glm-5.3",
+            ["glm-5"] = "glm-5.3",
+            ["minimax-m2.5"] = "minimax-m3",
+            ["qwen3.7-max"] = "qwen3.8-max",
+            ["qwen3.6-plus"] = "qwen3.7-plus",
+            ["qwen3.5-plus"] = "qwen3.7-plus",
+            ["kimi-k2.6"] = "kimi-k3",
+        },
+        opencode = {
+            ["glm-5"] = "glm-5.3",
+            ["kimi-k2.6"] = "kimi-k3",
+            ["kimi-k2.5"] = "kimi-k3",
+            ["deepseek-v4-flash-vision-exp"] = "deepseek-v4-flash",
+            ["nemotron-3.5-lightning-free"] = "deepseek-v4-flash",
+        },
+        fireworks = {
+            ["accounts/fireworks/models/deepseek-v4-pro"] = "accounts/fireworks/models/glm-5p3",
+            ["accounts/fireworks/models/deepseek-v4-flash-0731"] = "accounts/fireworks/models/deepseek-v4p1-flash",
+            ["accounts/fireworks/models/kimi-k2p6"] = "accounts/fireworks/models/kimi-k3",
+            ["accounts/fireworks/models/gpt-oss-20b"] = "accounts/fireworks/models/gpt-oss-120b",
+        },
     },
 
     _tiers = {
@@ -646,29 +737,30 @@ local ModelLists = {
         -- REQUEST falls to flagship; a flagship request never climbs here).
         -- Sparse by design: most providers have no frontier-class model.
         frontier = {
-            anthropic = "claude-fable-5",
+            anthropic = "claude-fable-5-1",
+            openai = "gpt-6-astra",                  -- $10/$50; cannot turn reasoning off
             gemini = "gemini-3.1-pro-preview",       -- paid-only deep reasoning
         },
 
         -- Provider's most capable general-purpose model
         flagship = {
-            anthropic = "claude-opus-5",             -- deep-reasoning flagship; sonnet-5 is the standard tier
-            openai = "gpt-5.6-sol",
+            anthropic = "claude-opus-5-5",           -- deep-reasoning flagship; sonnet-5 is the standard tier
+            openai = "gpt-6-sol",                    -- same price as 5.6-sol; reasons by default
             openai_codex = "gpt-5.6-terra", -- best slug served on ALL plans (sol 400s on free accounts; still pickable manually)
             deepseek = "deepseek-v4-pro",
-            gemini = "gemini-3.7-flash",             -- Pro models are paid-only; keep tier free-tier usable (3.7-flash battery-probed on a free key 2026-08-15)
+            gemini = "gemini-3.8-flash",             -- Pro models are paid-only; keep tier free-tier usable (3.8-flash answers on a free key 2026-09-28)
             groq = "openai/gpt-oss-120b",            -- llama picks deprecated by Groq 2026-08-16
             mistral = "mistral-large-latest",
-            xai = "grok-4.6",
+            xai = "grok-4.7",
             cohere = "command-a-plus-05-2026",
             ollama = "llama4",
             together = "deepseek-ai/DeepSeek-V4-Pro",
-            fireworks = "accounts/fireworks/models/deepseek-v4-pro",
+            fireworks = "accounts/fireworks/models/glm-5p3",       -- deepseek-v4-pro stopped serving 2026-09
             sambanova = "gpt-oss-120b",              -- Maverick deprecated 2026-06-09
             qwen = "qwen3-max",
-            kimi = "kimi-k2.6",
+            kimi = "kimi-k2.6",                      -- kimi-k3 probed on the international platform only; China-region keys exist (the pre-v0.21 migration), tier hints must never 400
             doubao = "doubao-seed-2.0-pro-32k",
-            zai = "glm-5.2",
+            zai = "glm-5.3",                         -- always thinks (the 5.2 default can turn it off)
             nvidia = "nvidia/nemotron-3-ultra-550b-a55b",
         },
 
@@ -677,8 +769,8 @@ local ModelLists = {
             anthropic = "claude-sonnet-5",
             openai = "gpt-5.6-terra",  -- standard/default
             openai_codex = "gpt-5.6-terra",
-            deepseek = "deepseek-v4-flash",
-            gemini = "gemini-3.7-flash",
+            deepseek = "deepseek-flash",
+            gemini = "gemini-3.8-flash",
             groq = "openai/gpt-oss-120b",
             mistral = "mistral-medium-latest",
             xai = "grok-4.20-0309-non-reasoning",
@@ -699,7 +791,7 @@ local ModelLists = {
             anthropic = "claude-haiku-4-5-20251001",
             openai = "gpt-5.6-luna",
             openai_codex = "gpt-5.6-luna",
-            deepseek = "deepseek-v4-flash",
+            deepseek = "deepseek-flash",
             gemini = "gemini-3.5-flash-lite",   -- lite = the no-default-thinking class; 3.6-flash here duplicated standard and can't turn thinking off (floor = minimal)
             groq = "openai/gpt-oss-20b",        -- 8b-instant deprecated 2026-08-16; gpt-oss-20b is Groq's own replacement (reasons at medium by default — no non-reasoning production model remains)
             mistral = "ministral-14b-latest",
@@ -713,7 +805,7 @@ local ModelLists = {
             kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
-            nvidia = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",  -- ~1.2s; lightning pulled: see the array note
+            nvidia = "openai/gpt-oss-20b",  -- 1 s; nano-omni hung 2026-09-28, lightning pulled: see the array note
         },
 
         -- Smallest/cheapest models for basic tasks
@@ -721,7 +813,7 @@ local ModelLists = {
             anthropic = "claude-haiku-4-5-20251001",
             openai = "gpt-5.4-nano",
             openai_codex = "gpt-5.4-mini", -- smallest slug served on ALL plans (nano 400s on free accounts; still pickable manually)
-            deepseek = "deepseek-v4-flash",
+            deepseek = "deepseek-flash",
             gemini = "gemini-3.5-flash-lite",
             groq = "openai/gpt-oss-20b",            -- see fast-tier note: Groq retired every non-reasoning production model 2026-08-16
             mistral = "ministral-3b-latest",
@@ -729,13 +821,13 @@ local ModelLists = {
             cohere = "command-r7b-12-2024",
             ollama = "tinyllama",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            fireworks = "accounts/fireworks/models/gpt-oss-20b", -- smaller/faster sibling (in the array since the 2026-08-15 catalog refresh)
+            fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-20b stopped serving 2026-09; reasoning can turn off
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen-turbo",
             kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
-            nvidia = "nvidia/nemotron-3-nano-30b-a3b",  -- ~0.15s measured (3 samples 2026-08-29); replaces the retired nano-9b-v2 (410, EOL 2026-08-26)
+            nvidia = "openai/gpt-oss-20b",  -- nano-30b retired 2026-09-01 (410); nano-omni and lightning hang
         },
     },
 
@@ -791,9 +883,11 @@ local ModelLists = {
             docs = "https://requesty.ai/",
         },
         qwen = {
+            api_list = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models",  -- international
             docs = "https://help.aliyun.com/zh/model-studio/getting-started/models",
         },
         kimi = {
+            api_list = "https://api.moonshot.ai/v1/models",  -- international
             docs = "https://platform.moonshot.cn/docs/intro",
             -- International platform: platform.kimi.ai (separate accounts,
             -- region-locked keys — see features.kimi_region)
@@ -803,6 +897,7 @@ local ModelLists = {
             docs = "https://docs.together.ai/docs/inference-models",
         },
         fireworks = {
+            api_list = "https://api.fireworks.ai/inference/v1/models",
             docs = "https://docs.fireworks.ai/getting-started/quickstart",
         },
         sambanova = {
