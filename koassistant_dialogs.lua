@@ -394,8 +394,13 @@ end
 -- when the action accepts quick) > base provider. Reads only; consumption stays in
 -- the bake.
 local function effectiveDispatchProvider(features, action, base_provider)
-    if action and action.provider then return base_provider end
     features = features or {}
+    -- A run option's picked model beats even the action's own pin (B345); its
+    -- Quick part stands in for the chip, below the pin like the bake
+    local rv = features._run_variant
+    if type(rv) ~= "table" then rv = nil end
+    if rv and rv.provider then return rv.provider end
+    if action and action.provider then return base_provider end
     -- The *_active consumables are set just-in-time at dispatch; before that point
     -- (freeform Send's scope-consent check) the same pending state lives in the
     -- _session_* chip keys. Direct entries drop inherited chip state, then may
@@ -405,6 +410,10 @@ local function effectiveDispatchProvider(features, action, base_provider)
     local override = features._model_override_active or features._session_model
     if override and override.provider then return override.provider end
     local quick = features._quick_answer_active or features._session_quick_answer
+    if rv and rv.quick ~= nil
+            and not require("koassistant_run_options").isModelOnly(action) then
+        quick = rv.quick
+    end
     if quick and action and action.accept_quick_answer ~= true then quick = nil end
     if quick then
         local preset = resolveQuickPresetModel(features, base_provider)
@@ -492,6 +501,46 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     features._quick_answer_active = nil
     features._reasoning_override_active = nil
     features._model_override_active = nil
+    -- Run option (B345, docs/run_options_plan.md): the reader's one-run pick from
+    -- an action's hold menu. Its Quick, reasoning and web parts stand in for the
+    -- chips (the action's own settings still win over them); a picked MODEL also
+    -- beats the action's own pin. Artifact actions take the model only.
+    -- _run_model / _run_reasoning record the pick for this chat's saved state.
+    local run_variant = features._run_variant
+    features._run_variant = nil
+    -- This chat's records start empty: a config copied from an earlier chat
+    -- (a viewer's) must not save that chat's pick as this one's
+    features._run_model = nil
+    features._run_reasoning = nil
+    local run_model, run_web
+    if type(run_variant) == "table" then
+        local model_only = require("koassistant_run_options").isModelOnly(action)
+        if not model_only then
+            if run_variant.quick == true then
+                quick_answer = true
+                features._session_quick_answer = true
+            elseif run_variant.quick == false then
+                quick_answer = false
+                features._session_quick_answer = nil
+            end
+            if run_variant.reasoning == "on" or run_variant.reasoning == "off" then
+                reasoning_override = { force = run_variant.reasoning }
+                if not (action and ModelConstraints.parseActionReasoning(action, run_variant.provider
+                        or config.provider or config.default_provider or "anthropic")) then
+                    features._run_reasoning = run_variant.reasoning
+                end
+            end
+            run_web = run_variant.web
+            if run_web ~= nil then
+                -- A web pick is a touched facet: the Quick preset stands down for
+                -- it here and on this chat's replies (pin-beats-preset)
+                features._session_web_touched = true
+            end
+        end
+        if run_variant.provider then
+            run_model = { provider = run_variant.provider, model = run_variant.model }
+        end
+    end
     -- Quick Answer reaches predefined actions only by opt-in (accept_quick_answer
     -- = true on Explain-type actions; never X-Ray/translate/quiz — §10). This one
     -- gate covers the WHOLE preset (two-source rule, maintainer 2026-07-19): every
@@ -508,8 +557,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     end
     -- Preset model component: switch model for this chat per quick_preset_model_mode
     -- (fastest / tier / pinned model — resolveQuickPresetModel above). Manual
-    -- ⚡-menu model picks win.
-    if quick_answer and not model_override then
+    -- ⚡-menu model picks win, and a run option's picked model wins over both.
+    if quick_answer and not model_override and not run_model then
         model_override = resolveQuickPresetModel(features,
             config.provider or config.default_provider or "anthropic")
     end
@@ -519,10 +568,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- provider+model (tier GUI phase 2; effectiveDispatchProvider mirrors this
     -- so extraction trust is judged against the pin's provider). Weakest rung
     -- of the model precedence: action provider/model pins, the ⚡ session pick,
-    -- and the Quick preset model all win; the hint fills in only when nothing
-    -- else chose. No placement anywhere → nil → current model kept.
-    -- Default-true check pattern (~= false).
-    if not model_override and features.use_action_tiers ~= false
+    -- the Quick preset model and a run option's model all win; the hint fills in
+    -- only when nothing else chose. No placement anywhere → nil → current model
+    -- kept. Default-true check pattern (~= false). The model this writes onto the
+    -- dispatch config becomes the viewer's config; the dispatch stash undoes it
+    -- at the next dispatch from that config (RunOptions.beginDispatch).
+    if not model_override and not run_model and features.use_action_tiers ~= false
             and action and action.model_tier
             and not action.provider and not action.model then
         local tier_provider = config.provider or config.default_provider or "anthropic"
@@ -530,29 +581,6 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             .resolveTierTarget(tier_provider, action.model_tier)
         if tier_model then
             model_override = { provider = target_provider, model = tier_model }
-            -- The hint belongs to THIS action, but the bake below writes the
-            -- resolved model onto the dispatch config — which becomes the viewer's
-            -- config. Switching to an action with no hint re-dispatches from it and
-            -- has nothing to re-derive, so the fast model would silently persist.
-            -- Record what it replaces; the dispatch seam restores it. `false` = the
-            -- field was unset (nil cannot be stored as "I stashed nothing"). The
-            -- provider is recorded too: the stash is only valid for it — restoring
-            -- provider P's model onto a config whose next action pinned provider Q
-            -- would send a foreign model id. (_tier_model_prev_ps is the bucket the
-            -- bake clobbers below — [target_provider], not [tier_provider].)
-            features._tier_model_prev = config.model or false
-            features._tier_model_prev_ps = (config.provider_settings
-                and config.provider_settings[target_provider]
-                and config.provider_settings[target_provider].model) or false
-            features._tier_model_prev_provider = target_provider
-            if target_provider ~= tier_provider then
-                -- A global pin moved the WHOLE dispatch to another provider.
-                -- Record the original so the next non-hinted action comes home
-                -- (the model stash alone can't: its provider guard would see a
-                -- foreign provider and drop it, stranding the chat on the pin).
-                features._tier_prev_provider = config.provider or false
-                features._tier_installed_provider = target_provider
-            end
         end
     end
     -- Provider-only action pin + tier hint (maintainer 2026-08-09): the pin
@@ -561,14 +589,15 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- and must not be hijacked to another provider). createTempConfig applied
     -- the provider; without this the action would sit on the provider's
     -- default model and the hint would be dead. Written like the override
-    -- apply above (model + cloned per-provider table) — the model_override
-    -- path skips pinned actions by design. No stash: a pinned action's chat
-    -- staying on its pin is existing semantics.
-    if features.use_action_tiers ~= false and action and action.model_tier
+    -- apply below (model + cloned per-provider table) — the model_override
+    -- path skips pinned actions by design. A run option's picked model beats
+    -- the pin, so the tier stands down for it.
+    if not run_model and features.use_action_tiers ~= false and action and action.model_tier
             and action.provider and not action.model then
         local m = require("koassistant_model_lists")
             .resolveTierModel(action.provider, action.model_tier)
         if m then
+            require("koassistant_run_options").stashBucket(config, action.provider)
             config.model = m
             config.provider_settings = config.provider_settings or {}
             local ps = {}
@@ -582,15 +611,23 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- One-shot provider/model override — applied BEFORE every provider-dependent
     -- read below (caching gate, Perplexity check, reasoning resolution). An
     -- action's own provider pin (already applied by createTempConfig/
-    -- handlePredefinedPrompt) wins.
-    if model_override and model_override.provider and not (action and action.provider) then
-        config.provider = model_override.provider
+    -- handlePredefinedPrompt) wins, except over a run option's picked model.
+    local apply_model = run_model
+    if not apply_model and model_override and model_override.provider
+            and not (action and action.provider) then
+        apply_model = model_override
+    end
+    if apply_model then
+        if action then
+            require("koassistant_run_options").stashBucket(config, apply_model.provider)
+        end
+        config.provider = apply_model.provider
         -- model may be NIL (provider+tier pin whose exact tier the provider
         -- lacks, 2026-08-14): clear the top-level model (never send the old
         -- provider's id across the switch) and leave the per-provider bucket
         -- alone, so the pinned provider's own configured/default model applies.
-        config.model = model_override.model
-        if model_override.model then
+        config.model = apply_model.model
+        if apply_model.model then
             -- Clone the per-provider table before writing: the freeform rebase copy is
             -- shallow-2-level, so this sub-table can still be SHARED with the module
             -- config — a configuration.lua provider_settings entry must not absorb a
@@ -600,9 +637,12 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
             for k, v in pairs(config.provider_settings[config.provider] or {}) do
                 ps[k] = v
             end
-            ps.model = model_override.model
+            ps.model = apply_model.model
             config.provider_settings[config.provider] = ps
         end
+    end
+    if run_model then
+        features._run_model = { provider = run_model.provider, model = run_model.model }
     end
     if quickPresetForces("tools", quick_answer, features) then
         -- Preset "no slow features": book tools off for this chat (explicit false —
@@ -674,6 +714,9 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- Baked BEFORE the system prompt so the prose nudge below can see the decision.
     if action and action.enable_web_search ~= nil then
         config.enable_web_search = action.enable_web_search
+    elseif run_web ~= nil then
+        -- A run option's web pick takes the per-chat toggle's place (B345)
+        config.enable_web_search = run_web == true
     elseif features._web_search_active ~= nil then
         config.enable_web_search = features._web_search_active
     else
@@ -1592,6 +1635,11 @@ local function applyQuickReplyOverrides(config, plugin)
     -- quick state, so "off" re-derives from globals — and thereby follows a
     -- global provider change). Only an explicit per-chat pick pins a model.
     local model_override = f._session_model
+    if model_override == nil and type(f._run_model) == "table" and f._run_model.provider then
+        -- A run option's model (B345) is this chat's explicit pick: it outranks
+        -- the Quick preset's model, as a chat pick does
+        model_override = f._run_model
+    end
     local qa_off = f._session_quick_answer == false
     if (model_override and model_override.follow) or (qa_off and not model_override) then
         local gp = plugin and plugin.getCurrentProvider and plugin:getCurrentProvider()
@@ -1644,6 +1692,11 @@ local function applyQuickReplyOverrides(config, plugin)
     -- {follow=true} sentinel = reply-time "Follow settings" pick on a chat with
     -- a baked reasoning override: resolve WITHOUT a session layer (prefs/stance).
     local sr = f._session_reasoning
+    if sr == nil and (f._run_reasoning == "on" or f._run_reasoning == "off") then
+        -- A run option's reasoning pick (B345; recorded only when the action
+        -- does not set reasoning itself)
+        sr = { force = f._run_reasoning }
+    end
     if sr and sr.follow then sr = nil end
     local decision = ModelConstraints.resolveReasoning(provider, model, {
         global_stance = ReasoningPrefs.getStance(f),
@@ -2657,7 +2710,9 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- Attach chip — every initial-send site consume-and-clears.
             do
                 local A = require("koassistant_attachments")
-                local attach_msg = A.buildMessage(A.getList())
+                -- The notebook's consent, again, for the provider this reply goes to
+                local attach_msg = A.buildMessage(A.forProvider(A.getList(), cfg.features,
+                    cfg.provider or cfg.default_provider, ui_instance))
                 if attach_msg then
                     history:addUserMessage(attach_msg, true)
                     A.clear()
@@ -3499,6 +3554,11 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         local prompts, _ = getAllPrompts(config, plugin)
         prompt = prompts[prompt_type_or_action]
         if not prompt then
+            -- A run option (B345) set just-in-time for this dispatch must not stay
+            -- on a shared config for the next request
+            if config and config.features then
+                config.features._run_variant = nil
+            end
             local err = "Prompt '" .. prompt_type_or_action .. "' not found"
             if on_complete then
                 on_complete(nil, err)
@@ -3524,6 +3584,9 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         config.features._chat_view_mode = nil
         config.features._session_reasoning = nil
         config.features._session_model = nil
+        -- Run option (B345): set just-in-time by executeDirectAction / the input
+        -- dialog; the copy in temp_config is consumed by the bake
+        config.features._run_variant = nil
     end
     -- DIRECT entries (highlight menu / gestures / QA tiles — no dialog) must not
     -- inherit chip state: a reply-⚡ write on a shared-identity chat config can
@@ -3593,59 +3656,12 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             end
         end
     end
-    -- Per-action model tier (item 18e): undo a previous action's baked tier model.
-    -- The hint is per-action, but buildUnifiedRequestConfig writes the RESOLVED
-    -- model onto the dispatch config; inherited, it outlives the action that asked
-    -- for it (quick_define's fast model answering a dictionary action). This
-    -- dispatch re-bakes below if its own action carries a hint.
-    do
-        local tf = temp_config.features
-        if tf and tf._tier_model_prev ~= nil then
-            local prev, prev_ps = tf._tier_model_prev, tf._tier_model_prev_ps
-            local prev_prov = tf._tier_model_prev_provider
-            local orig_provider = tf._tier_prev_provider
-            local installed = tf._tier_installed_provider
-            tf._tier_model_prev, tf._tier_model_prev_ps = nil, nil
-            tf._tier_model_prev_provider = nil
-            tf._tier_prev_provider, tf._tier_installed_provider = nil, nil
-            -- The stash is only valid for the provider it was made under. If THIS
-            -- action pinned a different provider (createTempConfig already applied
-            -- it), the stashed model is a foreign id — drop the stash, the pinned
-            -- provider's own defaults apply. nil prev_prov = pre-guard stash from
-            -- a live config; same-provider was the only shape then, so restore.
-            local valid
-            if orig_provider ~= nil then
-                -- Cross-provider stash (a GLOBAL tier pin moved the dispatch):
-                -- valid only while the config still sits on the installed provider
-                -- AND this action didn't pin its own (a pin — even to the same
-                -- provider — wins; restoring would clobber it).
-                valid = temp_config.provider == installed
-                    and not (prompt and prompt.provider)
-            else
-                valid = prev_prov == nil or prev_prov == temp_config.provider
-            end
-            if valid then
-                if orig_provider ~= nil then
-                    temp_config.provider = (orig_provider ~= false) and orig_provider or nil
-                end
-                temp_config.model = (prev ~= false) and prev or nil
-                -- Restore into the bucket the bake clobbered (prev_prov = the
-                -- provider the stash was made under — equals temp_config.provider
-                -- in the same-provider shape, the PIN provider in the cross shape).
-                local prov = prev_prov or temp_config.provider
-                local ps_src = prov and temp_config.provider_settings
-                    and temp_config.provider_settings[prov]
-                if ps_src then
-                    -- Clone before writing: createTempConfig's copy is 2 levels deep,
-                    -- so this per-provider sub-table is still SHARED with the source.
-                    local ps = {}
-                    for k, v in pairs(ps_src) do ps[k] = v end
-                    ps.model = (prev_ps ~= false) and prev_ps or nil
-                    temp_config.provider_settings[prov] = ps
-                end
-            end
-        end
-    end
+    -- Dispatch-scoped model writes (B295, B345): a previous dispatch's pin, tier
+    -- hint, Quick preset model or run option wrote its model onto the config this
+    -- dispatch copied (a viewer's config: compact-window action swap, re-run).
+    -- Undo those first, so they never outlive the chat they were made for; this
+    -- action's own pin is re-applied below and the bake records its writes.
+    require("koassistant_run_options").beginDispatch(temp_config, config, prompt)
     -- Attach chip: consume the just-in-time dispatch flag from the SOURCE config,
     -- same staleness rule as above. The block itself is built from the module
     -- staging list at the injection site below (never stored on features — the
@@ -3720,6 +3736,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         temp_config.provider = prompt.provider
         temp_config.model = prompt.model
         if prompt.model then
+            require("koassistant_run_options").stashBucket(temp_config, prompt.provider)
             temp_config.provider_settings = temp_config.provider_settings or {}
             local ps = {}
             for k, v in pairs(temp_config.provider_settings[prompt.provider] or {}) do
@@ -4516,6 +4533,19 @@ if prune_book_text then
                     logger.dbg("KOAssistant: Extracted data key=", key, "value_len=", type(value) == "string" and #value or "non-string")
                 end
                 logger.dbg("KOAssistant: Context extraction complete")
+                -- Smart-retrieval passages are book text gathered under the gather's
+                -- consent. A run option or the Quick preset's model can send this
+                -- request to another provider (B345): judge them again for it.
+                if source_mode == "smart_retrieval" and message_data.full_document
+                        and not extractor:isBookTextExtractionEnabled() then
+                    message_data.full_document = nil
+                    logger.warn("KOAssistant: smart retrieval passages left out: book text not allowed for",
+                        effective_provider)
+                    UIManager:show(require("ui/widget/notification"):new{
+                        text = _("The book passages were left out: book text sharing is off for this provider."),
+                        timeout = 3,
+                    })
+                end
 
                 -- Compute flow fingerprint for cache staleness detection
                 message_data.flow_visible_pages = ContextExtractor.getFlowFingerprint(ui.document)
@@ -5122,7 +5152,9 @@ if prune_book_text then
     -- FIRST user message as THE context message.
     if attachments_active then
         local Attachments = require("koassistant_attachments")
-        local attach_msg = Attachments.buildMessage(Attachments.getList())
+        -- The notebook's consent, again, for the provider this request goes to
+        local attach_msg = Attachments.buildMessage(Attachments.forProvider(
+            Attachments.getList(), config.features, effective_provider, ui))
         if attach_msg then
             history:addUserMessage(attach_msg, true)
         end
@@ -5156,6 +5188,12 @@ if prune_book_text then
     -- handleResponse — one upvalue instead of nine (upvalue-cap discipline)
     local retry_args = { prompt_type_or_action, highlightedText, ui, configuration,
         existing_history, plugin, additional_input, on_complete, book_metadata }
+    -- The model a run option applied (B345): the unusable-X-Ray retry runs on it
+    -- again (X-Ray takes a run option's model only; the bake consumed the pick)
+    local applied_run_model = temp_config.features and temp_config.features._run_model
+    if type(applied_run_model) == "table" and applied_run_model.provider then
+        retry_args.run_variant = { provider = applied_run_model.provider, model = applied_run_model.model }
+    end
 
     -- Get response from AI with callback for async streaming
     local function handleResponse(success, answer, err, reasoning, web_search_used, usage)
@@ -5846,6 +5884,10 @@ if prune_book_text then
                         text = T(_("X-Ray not saved: %1.\n\nNothing was overwritten. Models sometimes return a broken response; trying again usually works."), xray_unusable),
                         ok_text = _("Try again"),
                         ok_callback = function()
+                            local src = retry_args[4]
+                            if retry_args.run_variant and src and src.features then
+                                src.features._run_variant = retry_args.run_variant
+                            end
                             handlePredefinedPrompt(unpack(retry_args, 1, 9))
                         end,
                         cancel_text = _("Close"),
@@ -6540,15 +6582,8 @@ local function showAttachMenu(opts)
                     -- Same gate as use_notebook (attach_plan.md §4); trusted
                     -- providers bypass as elsewhere; the per-book privacy
                     -- override wins in both directions (deny beats trusted).
-                    local allowed = feats.enable_notebook_sharing == true
-                        or Attachments.isTrustedProvider(feats, configuration.provider)
-                    local nb_ok, nb_ds = pcall(function()
-                        return require("koassistant_doc_settings").resolve(book_path, ui_instance)
-                    end)
-                    if nb_ok and nb_ds then
-                        local ov = require("koassistant_book_settings").effectivePrivacyOverrides(nb_ds).notebook
-                        if ov ~= nil then allowed = ov end
-                    end
+                    local allowed = Attachments.notebookAllowed(feats, configuration.provider,
+                        Attachments.notebookOverrideFor(book_path, ui_instance))
                     if not allowed then
                         UIManager:show(InfoMessage:new{
                             text = _("Attaching your notebook needs \"Notebook sharing\" (Settings → Privacy & Data, or this book's Privacy overrides)."),
@@ -7138,12 +7173,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- Shared action execution for grid buttons, More Actions, and expanded in-grid buttons.
     -- Handles: getInputText, close dialog, _checkRequirements, showCacheActionPopup,
     -- cache viewer redirect, and handlePredefinedPrompt with full onPromptComplete.
-    local function executeInputAction(action, action_id)
+    -- run_variant / run_label: a run option from the action's hold menu (B345)
+    local function executeInputAction(action, action_id, run_variant, run_label)
         -- Pre-flight checks run BEFORE closing dialog so it stays open on failure
 
         -- Pre-flight: block when declared requirements are unmet
         if plugin and plugin._checkRequirements then
-            if plugin:_checkRequirements(action) then
+            if plugin:_checkRequirements(action, nil, run_variant and run_variant.provider) then
                 return
             end
         end
@@ -7178,6 +7214,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         end
         UIManager:close(input_dialog)
         if plugin then plugin.current_input_dialog = nil end
+        if run_variant and run_label and (action.use_response_caching or action.source_selection) then
+            UIManager:show(require("ui/widget/notification"):new{
+                text = T(_("Runs once with %1"), run_label), timeout = 3,
+            })
+        end
 
         -- Local-only actions (X-Ray Lookup): run the local handler and stop —
         -- this dispatch used to fall through to the API path, context-extracting
@@ -7201,7 +7242,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- Rerun row (switcher/Language/Ctx) for compact/translate views.
                         -- Runtime self-require: a file-local reference here would add an
                         -- upvalue to showChatGPTDialog (60-upvalue LuaJIT cap).
-                        require("koassistant_dialogs").attachRerunContext(temp_config, action, ui_instance, plugin)
+                        require("koassistant_dialogs").attachRerunContext(temp_config, action, ui_instance, plugin, run_variant)
                         local function addMessage(message, is_context, on_complete)
                             history:addUserMessage(message, is_context)
                             local answer_result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, function(success, answer, err, reasoning, web_search_used)
@@ -7320,6 +7361,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 -- flush-exposed features table.
                 configuration.features._attachments_active =
                     require("koassistant_attachments").count() > 0 or nil
+                -- Run option (B345): same just-in-time set-or-clear
+                configuration.features._run_variant = run_variant
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
@@ -7366,8 +7409,30 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 configuration.features._highlight_section_scope = nil
                 configuration.features._tool_reading_scope =
                     popup_state.scope == "read_so_far" and "current" or "full"
+                -- A run option's model (B345) runs the gather too: eligibility and
+                -- book-text consent judged for the provider the passages reach. The
+                -- copy shares the features table (the gather's transients).
+                local gather_config = configuration
+                if run_variant and run_variant.provider then
+                    gather_config = {}
+                    for k, v in pairs(configuration) do gather_config[k] = v end
+                    gather_config.provider = run_variant.provider
+                    gather_config.model = run_variant.model
+                    if not BookToolRunner.smartRetrievalAllowed(gather_config, ui_instance) then
+                        -- No gather: the action's own extraction instead (judged for
+                        -- the run's provider), as the direct entries fall back
+                        configuration.features._tool_reading_scope = nil
+                        configuration.features._source_mode = nil
+                        UIManager:show(InfoMessage:new{
+                            text = _("The chosen model can't search this book here, so the action runs without the book search."),
+                            timeout = 3,
+                        })
+                        runAction()
+                        return
+                    end
+                end
                 runSmartRetrieval(action, action_id, highlighted_text, ui_instance,
-                    configuration, plugin, runAction)
+                    gather_config, plugin, runAction)
                 return
             end
             runAction()
@@ -7578,6 +7643,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     book_title = cfg_bm.title,
                     book_author = cfg_bm.author,
                 }
+            end
+            -- The X-Ray popup's direct rows read the run option from here (B345)
+            if run_variant then
+                cache_opts = cache_opts or {}
+                cache_opts.run_variant = run_variant
             end
             plugin:showCacheActionPopup(action, action_id, runAction, cache_opts)
             return
@@ -9493,7 +9563,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     -- require on purpose (60-upvalue cap).
                     do
                         local A = require("koassistant_attachments")
-                        local attach_msg = A.buildMessage(A.getList())
+                        -- The notebook's consent, again, for the provider this Send
+                        -- goes to (a pending ⚡ preset model re-points it at bake)
+                        local attach_msg = A.buildMessage(A.forProvider(A.getList(),
+                            configuration.features,
+                            require("koassistant_dialogs").effectiveDispatchProvider(
+                                configuration.features, nil, configuration.provider),
+                            ui_instance))
                         if attach_msg then
                             history:addUserMessage(attach_msg, true)
                         end
@@ -9875,6 +9951,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         require("koassistant_action_hold").show(plugin, prompt, {
                             surface = "input", ctx = input_context,
                             on_change = refreshInputDialog,
+                            -- Run once with… (B345), on top of this dialog's chips
+                            run = available and function(variant, label)
+                                executeInputAction(prompt, custom_prompt_type, variant, label)
+                            end or nil,
+                            session = {
+                                quick = configuration.features._session_quick_answer == true,
+                                web = indicator_opts.effective_web_search,
+                                web_touched = configuration.features._session_web_touched == true,
+                            },
                         })
                     end,
                 })
@@ -9951,6 +10036,15 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         require("koassistant_action_hold").show(plugin, action, {
                             surface = "input", ctx = input_context,
                             on_change = refreshInputDialog,
+                            -- Run once with… (B345), on top of this dialog's chips
+                            run = available and function(variant, label)
+                                executeInputAction(action, action.id, variant, label)
+                            end or nil,
+                            session = {
+                                quick = configuration.features._session_quick_answer == true,
+                                web = indicator_opts.effective_web_search,
+                                web_touched = configuration.features._session_web_touched == true,
+                            },
                         })
                     end,
                 })
@@ -12294,11 +12388,14 @@ local executeActionForResult
 -- path historically skipped this, leaving the row dead with a "?" switcher).
 -- NOTE: Only store complex objects at config top level, not in features (deepCopy
 -- would overflow on them); the viewer's re-run callbacks exclude ^_rerun_ keys.
-local function attachRerunContext(temp_config, action, ui, plugin)
+local function attachRerunContext(temp_config, action, ui, plugin, run_variant)
     if temp_config and temp_config.features and (temp_config.features.minimal_buttons or temp_config.features.translate_view) then
         temp_config._rerun_action = action
         temp_config._rerun_ui = ui
         temp_config._rerun_plugin = plugin
+        -- A run option (B345) stays with its answer window: the Language and Ctx
+        -- re-runs repeat the same action with it (the action switcher does not)
+        temp_config._rerun_run_variant = run_variant
         -- Preserve original context across re-runs (don't overwrite if already set)
         if not temp_config.features._original_context then
             temp_config.features._original_context = temp_config.features.dictionary_context or ""
@@ -12425,7 +12522,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     local function onComplete(history, temp_config_or_error)
         if history then
             local temp_config = temp_config_or_error
-            attachRerunContext(temp_config, action, ui, plugin)
+            attachRerunContext(temp_config, action, ui, plugin, opts and opts.run_variant)
             -- For Section X-Ray: open browser directly from section cache
             if configuration and configuration.features and configuration.features._section_xray and ui and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")
@@ -12748,13 +12845,20 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             UIManager:show(wiki_viewer)
         end
 
+        -- A run option (B345) asks for a new entry on its model: past the cached
+        -- one, which the new entry replaces only once it succeeds
+        local wiki_variant = opts and opts.run_variant
         local cached_wiki = ActionCache.getWikiEntry(document_path, wiki_category, normalized)
-        if cached_wiki and cached_wiki.result then
+        if cached_wiki and cached_wiki.result and not wiki_variant then
             showWikiArtifact(cached_wiki.result)
             return
         end
 
         -- No cached wiki: run headless, store as artifact, show in simple_view
+        if wiki_variant and configuration and configuration.features then
+            -- just-in-time, consumed by handlePredefinedPrompt
+            configuration.features._run_variant = wiki_variant
+        end
         executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata,
             function(result, metadata)
                 if result then
@@ -12789,9 +12893,16 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     -- book/global layer. An action's own enable_web_search pin wins over the session
     -- layer (governance matrix), so a pinned action (fact_check) is never offered a
     -- web-off retry it could not honor.
+    -- A run option's web pick (B345) is this request's web layer when it applies.
+    local run_web = opts and opts.run_variant and opts.run_variant.web
+    if run_web ~= nil and require("koassistant_run_options").isModelOnly(action) then
+        run_web = nil
+    end
     if action.enable_web_search == nil and not web_off then
         local ws = bookWebSearchOverride(configuration and configuration.features)
-        if ws ~= nil then
+        if run_web ~= nil then
+            retry_web_was_on = run_web == true
+        elseif ws ~= nil then
             retry_web_was_on = ws == true
         else
             retry_web_was_on = (configuration and configuration.features
@@ -12811,17 +12922,46 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 configuration.features._web_search_active = false
             end
         end
-        executeDirectAction(ui, action, highlighted_text, configuration, plugin)
+        -- Same run option (B345) on the retry: "Try again" repeats the same run,
+        -- minus its web pick when the retry strips web (the run option's web
+        -- would otherwise beat the stripped session layer at bake)
+        local retry_opts = opts
+        if (drop or web_off) and run_web ~= nil then
+            retry_opts = {}
+            for k, v in pairs(opts) do retry_opts[k] = v end
+            local rv = {}
+            for k, v in pairs(opts.run_variant) do rv[k] = v end
+            rv.web = nil
+            retry_opts.run_variant = rv
+        end
+        executeDirectAction(ui, action, highlighted_text, configuration, plugin, retry_opts)
     end
 
     -- Silent smart-retrieval default on direct entries (maintainer 2026-07-11): flagged
     -- actions gather first when the session allows it — the same default the popup gives
     -- on the input-dialog path, without adding a tap. Posture "off" or an ineligible
     -- session falls through to the action's normal flags (full extraction).
+    -- A run option's model (B345) runs the gather too, so its eligibility and its
+    -- book-text consent are judged for the provider the passages will reach. The
+    -- copy shares the features table: the gather's transients land where
+    -- handlePredefinedPrompt reads them.
+    local gather_config = configuration
+    local rv = opts and opts.run_variant
+    if rv and rv.provider and configuration then
+        gather_config = {}
+        for k, v in pairs(configuration) do gather_config[k] = v end
+        gather_config.provider = rv.provider
+        gather_config.model = rv.model
+    end
     if action.smart_retrieval == true
-            and BookToolRunner.smartRetrievalAllowed(configuration, ui) then
+            and BookToolRunner.smartRetrievalAllowed(gather_config, ui) then
         runSmartRetrieval(action, action.id or (action.text or "action"), highlighted_text,
-            ui, configuration, plugin, function()
+            ui, gather_config, plugin, function()
+                -- Run option (B345), set just-in-time: the gather can be cancelled,
+                -- and a value parked on a shared config would reach a later request
+                if opts and opts.run_variant and configuration and configuration.features then
+                    configuration.features._run_variant = opts.run_variant
+                end
                 handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil,
                     plugin, nil, onComplete, book_metadata)
             end)
@@ -12831,6 +12971,10 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     -- Call handlePredefinedPrompt with the action object directly
     -- (avoids re-lookup which fails for special actions not in ActionService cache)
     logger.dbg("KOAssistant: executeDirectAction calling handlePredefinedPrompt with highlighted_text:", highlighted_text and #highlighted_text or "nil/empty")
+    -- Run option (B345): just-in-time, consumed from this config by handlePredefinedPrompt
+    if opts and opts.run_variant and configuration and configuration.features then
+        configuration.features._run_variant = opts.run_variant
+    end
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
 end
 
@@ -13161,6 +13305,12 @@ return {
     -- (same 60-upvalue cap)
     attachRerunContext = attachRerunContext,
     -- Exported for main.lua's global tier pins screen (tier GUI phase 2) — the
-    -- same key-filtered provider→model picker the ⚡ menu uses
+    -- same key-filtered provider→model picker the ⚡ menu uses (and the hold
+    -- menu's "Other model…", B345)
     pickProviderModel = pickProviderModel,
+    -- Exported for the hold menu's run buttons (koassistant_run_options.stateFor):
+    -- what a Quick run's model is, read the way the bake reads it
+    resolveQuickPresetModel = resolveQuickPresetModel,
+    -- Test seam (tests/unit/test_run_options.lua): the request bake
+    _buildUnifiedRequestConfig = buildUnifiedRequestConfig,
 }

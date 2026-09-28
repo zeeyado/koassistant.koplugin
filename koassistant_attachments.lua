@@ -107,6 +107,53 @@ function Attachments.isTrustedProvider(features, provider)
     return false
 end
 
+--- The notebook's consent for the provider a request goes to (the use_notebook
+--- gate, attach_plan.md §4): the book's privacy override wins in both
+--- directions (deny beats trusted), else notebook sharing or a trusted provider.
+function Attachments.notebookAllowed(features, provider, book_override)
+    if book_override ~= nil then return book_override == true end
+    return (features and features.enable_notebook_sharing == true)
+        or Attachments.isTrustedProvider(features, provider)
+end
+
+--- A book's notebook privacy override (nil = follow the global setting).
+function Attachments.notebookOverrideFor(path, ui)
+    if not path then return nil end
+    local ok, ds = pcall(function()
+        return require("koassistant_doc_settings").resolve(path, ui)
+    end)
+    if not (ok and ds) then return nil end
+    return require("koassistant_book_settings").effectivePrivacyOverrides(ds).notebook
+end
+
+--- The staged list minus notebook entries this provider may not receive. A
+--- notebook is checked when it is staged, against the dialog's provider; a run
+--- option or the Quick preset's model can send the request to another provider
+--- (B345). Tells the reader when one is left out.
+--- @return table|nil the list to send (nil when empty)
+function Attachments.forProvider(list, features, provider, ui)
+    if not list then return nil end
+    local out, dropped = {}, 0
+    for _idx, e in ipairs(list) do
+        if e.type == "notebook" and not Attachments.notebookAllowed(features, provider,
+                Attachments.notebookOverrideFor(e.path, ui)) then
+            dropped = dropped + 1
+        else
+            out[#out + 1] = e
+        end
+    end
+    if dropped > 0 then
+        require("koassistant_logger").warn("KOAssistant: notebook attachment left out: not allowed for", provider)
+        local UIManager = require("ui/uimanager")
+        UIManager:show(require("ui/widget/notification"):new{
+            text = _("Your notebook was left out: notebook sharing is off for this provider."),
+            timeout = 3,
+        })
+    end
+    if #out == 0 then return nil end
+    return out
+end
+
 -- --------------------------------------------------------------- builders ---
 
 --- Notebook (this book). Privacy: caller must have checked
@@ -125,6 +172,8 @@ function Attachments.makeNotebook(document_path)
         label = _("Notebook (this book)"),
         text = text,
         note = note,
+        -- The book, for the send-time consent check (forProvider)
+        path = document_path,
     }
 end
 

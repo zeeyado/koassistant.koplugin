@@ -95,6 +95,7 @@ Registry.SETTINGS_SUBKEYS = {
         "model_explicit",                                   -- which providers have a deliberate model pick
         "tier_overrides",                                   -- tier GUI placements (docs/tier_gui_plan.md)
         "global_tier_models",                               -- global tier pins (tier GUI phase 2)
+        "run_options",                                      -- the hold menu's "Run once with:" list (B345; nil = defaults)
         "ollama_endpoints",                                 -- Ollama server list + active pick (model menu server manager)
         "ollama_live_models",                               -- cached /api/tags list for the active server (safe to lose; refetched)
     },

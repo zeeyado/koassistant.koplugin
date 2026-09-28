@@ -169,7 +169,9 @@ function XrayRows.versionRows(ctx)
                         text = _("Update in background (keep reading)"),
                         callback = function()
                             if retire then retire() end
-                            plugin:_fireXrayAutoUpdate({ manual = true })
+                            -- a run option from the popup (B345) rides along
+                            plugin:_fireXrayAutoUpdate({ manual = true,
+                                run_variant = ctx.list_opts and ctx.list_opts.run_variant })
                         end,
                     }}} or nil,
                 })

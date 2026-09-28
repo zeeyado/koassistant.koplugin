@@ -56,6 +56,22 @@ TestRunner:test("plan: local-handler pseudo actions have no editor or duplicate;
         "placements,edit:builtin,duplicate", "surface without membership")
 end)
 
+-- Layout (B345, run_options_plan.md Q1): membership and Edit stay in the menu,
+-- the rest folds under More…; a single folded row is not worth a sub-menu.
+TestRunner:test("layout: membership and Edit stay, placements/duplicate/reset fold", function()
+    local primary, more = ActionHold.layout(ActionHold.plan(
+        { id = "explain", source = "builtin", has_override = true }, "highlight", true))
+    TestRunner:assertEqual(ids(primary), "membership,edit:builtin", "primary")
+    TestRunner:assertEqual(ids(more), "placements,duplicate,reset", "more")
+end)
+
+TestRunner:test("layout: a single folded row is shown directly", function()
+    local primary, more = ActionHold.layout(ActionHold.plan(
+        { id = "xray_lookup", source = "builtin", local_handler = true }, "highlight", true))
+    TestRunner:assertEqual(ids(primary), "membership,placements", "primary")
+    TestRunner:assertEqual(#more, 0, "no More…")
+end)
+
 TestRunner:test("labels: Add/Remove name the surface", function()
     TestRunner:assertEqual(ActionHold.rowLabel({ id = "membership", on = true }, "highlight"),
         "Remove from the highlight menu", "remove")

@@ -843,7 +843,20 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
         end,
         hold_callback = function()
           -- rows rebuild on the next long-press (separator generator, 2026-08-17)
-          require("koassistant_action_hold").show(self_ref, action_for_hold, { surface = "file_browser" })
+          require("koassistant_action_hold").show(self_ref, action_for_hold, {
+            surface = "file_browser",
+            book_file = file,
+            -- Run once with… (B345): close the file dialog like the tap does
+            run = function(variant, label)
+              local UIManager = require("ui/uimanager")
+              local current_dialog = UIManager:getTopmostVisibleWidget()
+              if current_dialog then
+                UIManager:close(current_dialog)
+              end
+              self_ref:executeFileBrowserAction(file, title, authors, book_props, fb_action.id,
+                variant, label)
+            end,
+          })
         end,
       })
     end
@@ -6403,7 +6416,7 @@ end
 -- reader (e.g. the chat viewer) so book context must NOT be extracted.
 -- `lookup_book`: the originating surface's own book (chat-viewer lookups) —
 -- local X-Ray lookups target it instead of whatever the reader has open.
-function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup, lookup_book)
+function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup, lookup_book, run_variant)
   local features = self.settings:readSetting("features") or {}
 
   -- FIRST: Capture selection_data for "Save to Note" feature (before popup closes)
@@ -6564,7 +6577,8 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup, l
         action,        -- action
         word,          -- highlighted_text
         dict_config,   -- local config copy (not global)
-        self           -- plugin
+        self,          -- plugin
+        run_variant and { run_variant = run_variant } or nil  -- run option (B345)
       )
     end)
   end
@@ -6624,8 +6638,15 @@ function AskGPT:syncDictButtons()
     end
     -- Long press: the shared hold menu (the popup keeps its buttons; the next
     -- lookup re-syncs through the showDict wrap)
-    spec.hold_callback = function()
-      require("koassistant_action_hold").show(self_ref, act, { surface = "dictionary" })
+    spec.hold_callback = function(popup)
+      require("koassistant_action_hold").show(self_ref, act, {
+        surface = "dictionary",
+        -- Run once with… (B345): the popup (and the selection) is still open
+        run = popup and function(variant)
+          self_ref:executeDictAction(act, popup.word, popup, popup._koassistant_non_reader,
+            popup._koassistant_lookup_book, variant)
+        end or nil,
+      })
     end
     dictionary:addToDictButtons(spec)
   end
@@ -7911,7 +7932,8 @@ end
 --- Shows an error popup identifying which gate is the problem.
 --- @param action table: Action definition (checks action.requires array)
 --- @return boolean: true if blocked (showed popup), false if OK to proceed
-function AskGPT:_checkRequirements(action, target_file)
+--- @param run_provider string|nil the provider a run option's picked model sends to (B345)
+function AskGPT:_checkRequirements(action, target_file, run_provider)
   if not action.requires then
     return false
   end
@@ -7922,10 +7944,11 @@ function AskGPT:_checkRequirements(action, target_file)
   local hint = action.blocked_hint and ("\n\n" .. action.blocked_hint) or ""
 
   -- Check if the provider this action dispatches to is trusted (bypasses global privacy gates).
-  -- Must match the extraction gate: use the action's pinned provider when set, else the global —
-  -- otherwise pre-flight and extraction disagree on trust (audit v0.20.0 finding C4).
+  -- Must match the extraction gate: a run option's picked model, else the action's pinned
+  -- provider when set, else the global — otherwise pre-flight and extraction disagree on
+  -- trust (audit v0.20.0 finding C4).
   local function isProviderTrusted()
-    local provider = action.provider or features.provider
+    local provider = run_provider or action.provider or features.provider
     if not provider then return false end
     for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
       if trusted_id == provider then return true end
@@ -8113,7 +8136,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
         text = T(_("Generate %1"), action_name),
         callback = function()
           UIManager:close(no_cache_dialog)
-          if self_ref:_checkRequirements(action) then return end
+          if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           on_update()
         end,
       }})
@@ -8162,11 +8185,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
         text = _("Focus on a section…"),
         callback = function()
           UIManager:close(no_cache_dialog)
-          if self_ref:_checkRequirements(action) then return end
+          if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           self_ref:_showSectionPicker(action, {
             title = T(_("Select Section for %1"), action_name),
             on_select = function(entry)
-              self_ref:_showSectionNameInput(action, action_id, entry)
+              self_ref:_showSectionNameInput(action, action_id, entry,
+                opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
             end,
           })
         end,
@@ -8183,7 +8207,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
       }
       UIManager:show(no_cache_dialog)
     else
-      if self:_checkRequirements(action) then return end
+      if self:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
       self:_confirmClosedBookSpoilerRun(action, file, on_update)
     end
     return
@@ -8289,7 +8313,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
     text = update_text,
     callback = function()
       UIManager:close(dialog)
-      if self_ref:_checkRequirements(action) then return end
+      if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
       self_ref:_confirmClosedBookSpoilerRun(action, file, on_update)
     end,
   }})
@@ -8309,11 +8333,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
       text = _("Focus on a section…"),
       callback = function()
         UIManager:close(dialog)
-        if self_ref:_checkRequirements(action) then return end
+        if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
         self_ref:_showSectionPicker(action, {
           title = T(_("Select Section for %1"), action_name),
           on_select = function(entry)
-            self_ref:_showSectionNameInput(action, action_id, entry)
+            self_ref:_showSectionNameInput(action, action_id, entry,
+                opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
           end,
         })
       end,
@@ -8370,7 +8395,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
 
   if not cached_entry or not cached_entry.result then
     -- No cache: Generate (to X%) / Generate (complete) / Cancel
-    if self:_checkRequirements(action) then return end
+    if self:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
 
     -- "to X%" only when not already at ~100%
     if current_progress and current_progress.decimal < 0.995 then
@@ -8389,7 +8414,8 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
         if is_file_browser then
           on_update({ complete_analysis = true })
         else
-          self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+          self_ref:_executeBookLevelActionDirect(action, action_id,
+            { complete_analysis = true, run_variant = opts and opts.run_variant })
         end
       end,
     }})
@@ -8443,7 +8469,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
         text = update_text,
         callback = function()
           UIManager:close(dialog)
-          if self_ref:_checkRequirements(action) then return end
+          if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           on_update()
         end,
       }})
@@ -8454,11 +8480,12 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
       text = T(_("Redo %1 (complete)"), action_name),
       callback = function()
         UIManager:close(dialog)
-        if self_ref:_checkRequirements(action) then return end
+        if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
         if is_file_browser then
           on_update({ complete_analysis = true })
         else
-          self_ref:_executeBookLevelActionDirect(action, action_id, { complete_analysis = true })
+          self_ref:_executeBookLevelActionDirect(action, action_id,
+            { complete_analysis = true, run_variant = opts and opts.run_variant })
         end
       end,
     }})
@@ -9593,7 +9620,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
   end
 
   if not cached_entry or not cached_entry.result then
-    if self:_checkRequirements(action) then
+    if self:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then
       return
     end
     -- Round 16: the unified creation chooser replaces the two legacy generate
@@ -9656,14 +9683,15 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           text = _("Generate Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionPicker(action)
+            self_ref:_showSectionPicker(action,
+              opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
           end,
         }})
         table.insert(nc_sec_rows, {{
           text = _("Generate for a section range…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionRangePicker(action)
+            self_ref:_showSectionRangePicker(action, opts and opts.run_variant)
           end,
         }})
       end
@@ -10191,14 +10219,15 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           text = _("Generate Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionPicker(action)
+            self_ref:_showSectionPicker(action,
+              opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
           end,
         }})
         table.insert(c_sec_rows, {{
           text = _("Generate for a section range…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionRangePicker(action)
+            self_ref:_showSectionRangePicker(action, opts and opts.run_variant)
           end,
         }})
       end
@@ -10751,7 +10780,7 @@ function AskGPT:_showSectionPicker(action, opts)
     if opts and opts.on_select then
       opts.on_select(entry)
     else
-      self_ref:_showSectionXrayNameInput(action, entry)
+      self_ref:_showSectionXrayNameInput(action, entry, opts and opts.run_variant)
     end
     return true
   end
@@ -10785,7 +10814,7 @@ end
 --- TOC picks → one synthetic entry spanning both (union span, composite label),
 --- which rides the normal name-input + generate path — one API call instead of
 --- build-per-chapter + merge. Picks may come in either order.
-function AskGPT:_showSectionRangePicker(action)
+function AskGPT:_showSectionRangePicker(action, run_variant)
   local self_ref = self
   self:_showSectionPicker(action, {
     title = _("Section range: pick the first section"),
@@ -10794,7 +10823,7 @@ function AskGPT:_showSectionRangePicker(action)
         title = _("Section range: pick the last section"),
         on_cancel = function()
           -- Back one step: re-open the first pick, not abandon the flow
-          self_ref:_showSectionRangePicker(action)
+          self_ref:_showSectionRangePicker(action, run_variant)
         end,
         on_select = function(second)
           local a, b = first, second
@@ -10810,7 +10839,7 @@ function AskGPT:_showSectionRangePicker(action)
               depth = math.min(a.depth or 1, b.depth or 1),
             }
           end
-          self_ref:_showSectionXrayNameInput(action, entry)
+          self_ref:_showSectionXrayNameInput(action, entry, run_variant)
         end,
       })
     end,
@@ -10918,7 +10947,8 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       buttons = {
         {{ text = _("The whole book"), callback = function()
           UIManager:close(fb_dialog)
-          self_ref:_executeBookLevelActionDirect(action, action_id, { full_document = true })
+          self_ref:_executeBookLevelActionDirect(action, action_id,
+            { full_document = true, run_variant = opts and opts.run_variant })
         end }},
         {{ text = _("Up to my reading position"), callback = function()
           UIManager:close(fb_dialog)
@@ -11112,7 +11142,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
           -- Position update in background: the plain background UPDATE of
           -- the installed artifact — the ladder one-shot plans from the
           -- rung top and no-ops when a rung is built ahead of the reader
-          self_ref:_fireXrayAutoUpdate({ manual = true })
+          self_ref:_fireXrayAutoUpdate({ manual = true, run_variant = opts and opts.run_variant })
         else
           -- Item 50(a): whole-book/position single request through the
           -- silent one-step machinery (install + notification; cancel like
@@ -11121,6 +11151,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
             one_shot = true,
             rebuild = rebuild_pick or nil,
             target = cr.coverage == "position" and decimal or nil,
+            run_variant = opts and opts.run_variant,
           })
         end
       else
@@ -11130,7 +11161,8 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
             -- deferred swap (the old path cleared eagerly then ran the
             -- foreground update against the void)
             self_ref:_startXrayLadderBuild({
-              one_shot = true, rebuild = true, target = decimal })
+              one_shot = true, rebuild = true, target = decimal,
+              run_variant = opts and opts.run_variant })
           else
             on_update()
           end
@@ -11138,15 +11170,17 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
           if mode == "extend" and not rebuild_pick then
             -- Round 23: extending an incremental base to 100% is an UPDATE,
             -- not a fresh complete-track analysis
-            self_ref:_executeBookLevelActionDirect(action, action_id, { update_to_full = true })
+            self_ref:_executeBookLevelActionDirect(action, action_id,
+              { update_to_full = true, run_variant = opts and opts.run_variant })
           else
             self_ref:_executeBookLevelActionDirect(action, action_id,
-              { full_document = true, xray_rebuild = rebuild_pick or nil })
+              { full_document = true, xray_rebuild = rebuild_pick or nil,
+                run_variant = opts and opts.run_variant })
           end
         else
           self_ref:_startXrayLadderBuild({
             target = cr.target, target_label = cr.target_label, one_shot = true,
-            rebuild = rebuild_pick or nil })
+            rebuild = rebuild_pick or nil, run_variant = opts and opts.run_variant })
         end
       end
     end
@@ -11918,7 +11952,7 @@ end
 --- Show name input for a Section X-Ray, then trigger generation.
 --- @param action table: The base xray action definition
 --- @param entry table: TOC entry { title, start_page, end_page, depth }
-function AskGPT:_showSectionXrayNameInput(action, entry)
+function AskGPT:_showSectionXrayNameInput(action, entry, run_variant)
   local InputDialog = require("ui/widget/inputdialog")
   local ActionCache = require("koassistant_action_cache")
   local Actions = require("prompts/actions")
@@ -11977,7 +12011,7 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
                     text = _("Replace"),
                     callback = function()
                       UIManager:close(confirm_dialog)
-                      self_ref:_generateSectionXray(action, entry, label, cache_label)
+                      self_ref:_generateSectionXray(action, entry, label, cache_label, run_variant)
                     end,
                   }},
                   {{
@@ -11990,7 +12024,7 @@ function AskGPT:_showSectionXrayNameInput(action, entry)
               }
               UIManager:show(confirm_dialog)
             else
-              self_ref:_generateSectionXray(action, entry, label, cache_label)
+              self_ref:_generateSectionXray(action, entry, label, cache_label, run_variant)
             end
           end,
         },
@@ -12053,7 +12087,7 @@ end
 --- @param entry table: TOC entry { title, start_page, end_page }
 --- @param label string: Display label for the section
 --- @param cache_label string: Sanitized label for cache key
-function AskGPT:_generateSectionXray(action, entry, label, cache_label)
+function AskGPT:_generateSectionXray(action, entry, label, cache_label, run_variant)
   local Actions = require("prompts/actions")
   local ActionCache = require("koassistant_action_cache")
 
@@ -12075,7 +12109,8 @@ function AskGPT:_generateSectionXray(action, entry, label, cache_label)
   section_action.cache_as_xray = false
   section_action._section_scope = scope
 
-  self:_executeBookLevelActionDirect(section_action, "section_xray", { section_xray = scope })
+  self:_executeBookLevelActionDirect(section_action, "section_xray",
+    { section_xray = scope, run_variant = run_variant })
 end
 
 --- Execute a generic section action (non-X-Ray).
@@ -12167,6 +12202,8 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
   end
 
   local exec_opts = { section_scope = scope }
+  -- A run option from the entry popup (B345)
+  exec_opts.run_variant = opts and opts.run_variant
   if opts and opts.source_mode then
     exec_opts.source_mode = opts.source_mode
   elseif action.source_selection then
@@ -14165,7 +14202,8 @@ end
 --- Silent consent check shared by every unattended X-Ray fire (background update,
 --- auto-create, ladder rungs): the book_text gate incl. trusted-provider bypass,
 --- without _checkRequirements' UI.
-function AskGPT:_xrayBackgroundConsentOk(action, features)
+--- @param run_provider string|nil a one-shot run option's provider (B345)
+function AskGPT:_xrayBackgroundConsentOk(action, features, run_provider)
   if action.use_book_text == false then return false end
   -- Per-book privacy override wins in both directions (deny beats trusted)
   if self.ui and self.ui.doc_settings then
@@ -14174,7 +14212,7 @@ function AskGPT:_xrayBackgroundConsentOk(action, features)
     if ov ~= nil then return ov end
   end
   if features.enable_book_text_extraction == true then return true end
-  local provider = action.provider or features.provider
+  local provider = run_provider or action.provider or features.provider
   for _idx, trusted_id in ipairs(features.trusted_providers or {}) do
     if trusted_id == provider then return true end
   end
@@ -14347,7 +14385,8 @@ function AskGPT:_fireXrayAutoUpdate(opts)
   -- Consent gate, mirroring _checkRequirements' book_text gate (the background path
   -- never runs that UI pre-flight): revoking text extraction after a book was opted
   -- in must stop background fires. Trusted providers bypass, same as everywhere.
-  if not self:_xrayBackgroundConsentOk(action, features) then
+  if not self:_xrayBackgroundConsentOk(action, features,
+      manual and opts.run_variant and opts.run_variant.provider or nil) then
     logger.dbg("KOAssistant: background X-Ray update declined: text extraction consent off")
     return
   end
@@ -14360,6 +14399,10 @@ function AskGPT:_fireXrayAutoUpdate(opts)
   config_copy.features.is_book_context = true
   config_copy.features._background_request = true
   config_copy.features._is_book_level_action = true
+  -- A manual update started from a run option (B345) runs on the picked model
+  if manual and opts.run_variant then
+    config_copy.features._run_variant = opts.run_variant
+  end
 
   local doc_props = self.ui.doc_props or {}
   local title = doc_props.display_title or doc_props.title or "Unknown"
@@ -14394,6 +14437,8 @@ function AskGPT:_fireXrayAutoUpdate(opts)
         -- The device slept mid-request (onSuspend): not a failure. The reader
         -- asked for this run, so it goes again once the network is back.
         self_ref._xray_update_after_sleep = file
+        -- the run option it ran with (B345) goes again with it
+        self_ref._xray_update_after_sleep_variant = manual and opts.run_variant or nil
         logger.dbg("KOAssistant: background X-Ray update interrupted by sleep, re-runs on reconnect")
       elseif was_cancelled or was_discarded then
         -- Guard-discard (a manual run won the race / X-Ray deleted) or book-close
@@ -15000,7 +15045,8 @@ function AskGPT:_startXrayLadderBuild(build_opts)
 
   local action = self.action_service and self.action_service:getAction("book", "xray")
   if not action or not action.update_prompt then return end
-  if self:_checkRequirements(action) then return end
+  if self:_checkRequirements(action, nil, build_opts and build_opts.one_shot
+      and build_opts.run_variant and build_opts.run_variant.provider or nil) then return end
   if not NetworkMgr:isWifiOn() then
     UIManager:show(InfoMessage:new{ text = _("WiFi is off."), timeout = 2 })
     return
@@ -15188,7 +15234,9 @@ function AskGPT:_startXrayLadderBuild(build_opts)
             -- Round 22 (D3): an explicit build start ends any cancel pause
             XrayAuto.clearAutoSuppression(file)
             XrayAuto.beginLadderBuild(file, rungs, rung_labels,
-              { intro = plan_intro, rebuild = chain_rebuild, one_shot = one_shot })
+              { intro = plan_intro, rebuild = chain_rebuild, one_shot = one_shot,
+                -- a run option (B345) rides a one-shot build only; chains keep the default
+                run_variant = one_shot and build_opts and build_opts.run_variant or nil })
             self_ref:_fireXrayLadderRung()
           end,
         }},
@@ -15287,7 +15335,8 @@ function AskGPT:_fireXrayLadderRung()
   end
   -- Consent re-check per rung: revoking text extraction mid-build stops the chain
   -- (same rule as the background update path)
-  if not self:_xrayBackgroundConsentOk(action, features) then
+  if not self:_xrayBackgroundConsentOk(action, features,
+      build.one_shot and build.run_variant and build.run_variant.provider or nil) then
     XrayAuto.endLadderBuild()
     UIManager:show(InfoMessage:new{ text = _("Checkpoint build stopped: text extraction is disabled."), timeout = 3 })
     return
@@ -15363,6 +15412,10 @@ function AskGPT:_fireXrayLadderRung()
   config_copy.features._background_create = create_mode or nil
   config_copy.features._is_book_level_action = true
   config_copy.features._ladder_build = true
+  -- A one-shot build started from a run option (B345) runs on the picked model
+  if build.one_shot and build.run_variant then
+    config_copy.features._run_variant = build.run_variant
+  end
   config_copy.features._ladder_target_ratio = target
   config_copy.features._ladder_base = base
   config_copy.features._ladder_intro = is_intro or nil
@@ -15768,7 +15821,9 @@ function AskGPT:onNetworkConnected()
       self_ref:_fireXrayLadderRung()
     elseif self_ref._xray_update_after_sleep == file then
       self_ref._xray_update_after_sleep = nil
-      self_ref:_fireXrayAutoUpdate({ manual = true })
+      local rv = self_ref._xray_update_after_sleep_variant
+      self_ref._xray_update_after_sleep_variant = nil
+      self_ref:_fireXrayAutoUpdate({ manual = true, run_variant = rv })
     end
   end
   self._xray_reconnect_fire = fire
@@ -15970,7 +16025,9 @@ end
 
 --- Helper function to execute book-level actions (X-Ray, Recap, Analyze My Notes)
 --- @param action_id string: The action ID from Actions.book
-function AskGPT:executeBookLevelAction(action_id)
+--- @param run_variant table|nil a run option from the hold menu (B345)
+--- @param run_label string|nil its label, for the notice on popup entries
+function AskGPT:executeBookLevelAction(action_id, run_variant, run_label)
   -- Check if we have a document open
   if not self.ui or not self.ui.document then
     UIManager:show(InfoMessage:new{
@@ -15991,8 +16048,15 @@ function AskGPT:executeBookLevelAction(action_id)
   end
 
   -- Block actions when declared requirements are unmet
-  if self:_checkRequirements(action) then
+  if self:_checkRequirements(action, nil, run_variant and run_variant.provider) then
     return
+  end
+
+  -- Run option (B345): rides every run this entry starts right away (Update,
+  -- Redo, New, Create); the popups on the way are the usual ones
+  local rv_opts = run_variant and { run_variant = run_variant } or nil
+  if run_variant and run_label and (action.use_response_caching or action.source_selection) then
+    UIManager:show(Notification:new{ text = T(_("Runs once with %1"), run_label), timeout = 3 })
   end
 
   -- Cache actions with source_selection: View/Sections/New popup (or direct to unified popup)
@@ -16091,7 +16155,8 @@ function AskGPT:executeBookLevelAction(action_id)
           callback = function()
             UIManager:close(dialog)
             -- Use cached source_mode for update/redo (same source)
-            self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = cached.source_mode })
+            self_ref:_executeBookLevelActionDirect(action, action_id,
+              { source_mode = cached.source_mode, run_variant = run_variant })
           end,
         }})
       end
@@ -16115,7 +16180,8 @@ function AskGPT:executeBookLevelAction(action_id)
           UIManager:close(dialog)
           self_ref:_showUnifiedActionPopup(action, action_id, {
             on_execute = function(popup_state)
-              self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+              self_ref:_executeBookLevelActionDirect(action, action_id,
+              { source_mode = popup_state.source, run_variant = run_variant })
             end,
           })
         end,
@@ -16184,7 +16250,8 @@ function AskGPT:executeBookLevelAction(action_id)
             UIManager:close(nc_dialog)
             self_ref:_showUnifiedActionPopup(action, action_id, {
               on_execute = function(popup_state)
-                self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+                self_ref:_executeBookLevelActionDirect(action, action_id,
+              { source_mode = popup_state.source, run_variant = run_variant })
               end,
             })
           end,
@@ -16203,7 +16270,8 @@ function AskGPT:executeBookLevelAction(action_id)
       else
         self:_showUnifiedActionPopup(action, action_id, {
           on_execute = function(popup_state)
-            self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+            self_ref:_executeBookLevelActionDirect(action, action_id,
+              { source_mode = popup_state.source, run_variant = run_variant })
           end,
         })
       end
@@ -16215,8 +16283,8 @@ function AskGPT:executeBookLevelAction(action_id)
   if action.use_response_caching then
     local self_ref = self
     self:showCacheActionPopup(action, action_id, function()
-      self_ref:_executeBookLevelActionDirect(action, action_id)
-    end)
+      self_ref:_executeBookLevelActionDirect(action, action_id, rv_opts)
+    end, rv_opts)
     return
   end
 
@@ -16225,13 +16293,14 @@ function AskGPT:executeBookLevelAction(action_id)
     local self_ref = self
     self:_showUnifiedActionPopup(action, action_id, {
       on_execute = function(popup_state)
-        self_ref:_executeBookLevelActionDirect(action, action_id, { source_mode = popup_state.source })
+        self_ref:_executeBookLevelActionDirect(action, action_id,
+              { source_mode = popup_state.source, run_variant = run_variant })
       end,
     })
     return
   end
 
-  self:_executeBookLevelActionDirect(action, action_id)
+  self:_executeBookLevelActionDirect(action, action_id, rv_opts)
 end
 
 --- Internal: Execute a book-level action directly (after popup, if any)
@@ -16320,7 +16389,8 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
       action,
       book_context,
       config_copy,
-      self
+      self,
+      opts and opts.run_variant and { run_variant = opts.run_variant } or nil
     )
   end)
 end
@@ -16332,7 +16402,9 @@ end
 --- @param authors string: Book authors
 --- @param book_props table: Book properties from file manager
 --- @param action_id string: The action ID to execute
-function AskGPT:executeFileBrowserAction(file, title, authors, book_props, action_id)
+--- @param run_variant table|nil a run option from the hold menu (B345)
+--- @param run_label string|nil its label, for the notice on popup entries
+function AskGPT:executeFileBrowserAction(file, title, authors, book_props, action_id, run_variant, run_label)
   -- Normalize multi-author strings (KOReader stores as newline-separated)
   if authors and authors:find("\n") then
     authors = authors:gsub("\n", ", ")
@@ -16374,7 +16446,7 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
     -- Signal synthetic book metadata (same as _executeBookLevelActionDirect)
     config_copy.features._is_book_level_action = true
 
-    if self:_checkRequirements(action, file) then return end
+    if self:_checkRequirements(action, file, run_variant and run_variant.provider) then return end
 
     -- Consolidation Q4 (2026-08-16): the old `use_response_caching and
     -- source_selection` arm here (a bespoke View/New dialog carrying the
@@ -16382,16 +16454,21 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
     -- long-press list filters out every source_selection action via
     -- requiresOpenBook — so it is gone, and the consent lives at the live
     -- closed-book dispatch points instead (_confirmClosedBookSpoilerRun).
+    -- Run option (B345): rides every run this entry starts
+    local rv_opts = run_variant and { run_variant = run_variant } or nil
     if action.use_response_caching then
+      if run_variant and run_label then
+        UIManager:show(Notification:new{ text = T(_("Runs once with %1"), run_label), timeout = 3 })
+      end
       local self_ref = self
       self:showCacheActionPopup(action, action_id, function(update_opts)
         if update_opts and update_opts.complete_analysis then
           config_copy.features._complete_analysis = true
         end
-        Dialogs.executeDirectAction(self_ref.ui, action, book_context, config_copy, self_ref)
-      end, { file = file, book_title = title, book_author = authors })
+        Dialogs.executeDirectAction(self_ref.ui, action, book_context, config_copy, self_ref, rv_opts)
+      end, { file = file, book_title = title, book_author = authors, run_variant = run_variant })
     else
-      Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self)
+      Dialogs.executeDirectAction(self.ui, action, book_context, config_copy, self, rv_opts)
     end
   end)
 end
@@ -18025,6 +18102,11 @@ function AskGPT:onKOAssistantQuickActions()
               UIManager:close(dialog)
               self_ref:onKOAssistantQuickActions()
             end,
+            -- Run once with… (B345)
+            run = function(variant, label)
+              UIManager:close(dialog)
+              self_ref:executeBookLevelAction(action_id, variant, label)
+            end,
           })
         end,
       })
@@ -19001,6 +19083,64 @@ function AskGPT:registerHighlightMenuActions()
         -- returned table unconditionally (readerhighlight.lua)
         return { text = "", show_in_highlight_dialog_func = function() return false end }
       end
+      -- Tap runs the action as set up; the hold menu's "Run once with:" buttons
+      -- run it once another way (B345) through the same capture, while the
+      -- menu (and so the selection) is still open under the hold dialog
+      local function runSlot(variant)
+        -- Capture text and extract context BEFORE closing highlight overlay
+        local selected_text = reader_highlight_instance.selected_text.text
+        local context = ""
+        -- Check if highlight module has the getSelectedWordContext method
+        -- Note: Method is on self.ui.highlight, not reader_highlight_instance
+        if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
+          local context_mode = require("koassistant_book_settings")
+            .resolveDictionaryContext(self.ui and self.ui.doc_settings, cur_features)
+          -- Skip context extraction if mode is "none"
+          if context_mode ~= "none" then
+            local context_chars = cur_features.dictionary_context_chars or 100
+            context = Dialogs.extractSurroundingContext(
+              self.ui,
+              selected_text,
+              context_mode,
+              context_chars
+            )
+          end
+        end
+        -- Pre-extract the surrounding-context window while the selection is alive
+        -- (onClose clears it; handlePredefinedPrompt trims per the resolved mode)
+        local sc_window = Dialogs.fetchSelectionContextWindow(self.ui, selected_text)
+
+        -- Capture full selection data for "Save to Note" feature (before onClose clears it)
+        local selection_data = nil
+        if reader_highlight_instance.selected_text then
+          local st = reader_highlight_instance.selected_text
+          selection_data = {
+            text = st.text,
+            pos0 = st.pos0,
+            pos1 = st.pos1,
+            sboxes = st.sboxes,
+            pboxes = st.pboxes,
+            ext = st.ext,
+            drawer = st.drawer,
+            color = st.color,
+          }
+        end
+
+        -- Close highlight overlay to prevent darkening on saved highlights
+        reader_highlight_instance:onClose()
+
+        if action.local_handler then
+          -- Local actions don't need network
+          self:updateConfigFromSettings()
+          self:executeQuickAction(action, selected_text, context, selection_data, sc_window)
+        else
+          NetworkMgr:runWhenConnected(function()
+            self:updateConfigFromSettings()
+            -- Pass extracted context and selection data to executeQuickAction
+            self:executeQuickAction(action, selected_text, context, selection_data, sc_window, variant)
+          end)
+        end
+      end
       return {
         text = ActionService.getActionDisplayText(action, cur_features) .. " (KOA)",
         enabled = Device:hasClipboard(),
@@ -19008,63 +19148,12 @@ function AskGPT:registerHighlightMenuActions()
         hold_callback = function()
           -- The menu stays open (the selection lives in it); a removed row leaves
           -- on the next open
-          require("koassistant_action_hold").show(self, action, { surface = "highlight" })
+          require("koassistant_action_hold").show(self, action, {
+            surface = "highlight",
+            run = Device:hasClipboard() and runSlot or nil,
+          })
         end,
-        callback = function()
-          -- Capture text and extract context BEFORE closing highlight overlay
-          local selected_text = reader_highlight_instance.selected_text.text
-          local context = ""
-          -- Check if highlight module has the getSelectedWordContext method
-          -- Note: Method is on self.ui.highlight, not reader_highlight_instance
-          if self.ui.highlight and self.ui.highlight.getSelectedWordContext then
-            local context_mode = require("koassistant_book_settings")
-              .resolveDictionaryContext(self.ui and self.ui.doc_settings, cur_features)
-            -- Skip context extraction if mode is "none"
-            if context_mode ~= "none" then
-              local context_chars = cur_features.dictionary_context_chars or 100
-              context = Dialogs.extractSurroundingContext(
-                self.ui,
-                selected_text,
-                context_mode,
-                context_chars
-              )
-            end
-          end
-          -- Pre-extract the surrounding-context window while the selection is alive
-          -- (onClose clears it; handlePredefinedPrompt trims per the resolved mode)
-          local sc_window = Dialogs.fetchSelectionContextWindow(self.ui, selected_text)
-
-          -- Capture full selection data for "Save to Note" feature (before onClose clears it)
-          local selection_data = nil
-          if reader_highlight_instance.selected_text then
-            local st = reader_highlight_instance.selected_text
-            selection_data = {
-              text = st.text,
-              pos0 = st.pos0,
-              pos1 = st.pos1,
-              sboxes = st.sboxes,
-              pboxes = st.pboxes,
-              ext = st.ext,
-              drawer = st.drawer,
-              color = st.color,
-            }
-          end
-
-          -- Close highlight overlay to prevent darkening on saved highlights
-          reader_highlight_instance:onClose()
-
-          if action.local_handler then
-            -- Local actions don't need network
-            self:updateConfigFromSettings()
-            self:executeQuickAction(action, selected_text, context, selection_data, sc_window)
-          else
-            NetworkMgr:runWhenConnected(function()
-              self:updateConfigFromSettings()
-              -- Pass extracted context and selection data to executeQuickAction
-              self:executeQuickAction(action, selected_text, context, selection_data, sc_window)
-            end)
-          end
-        end,
+        callback = function() runSlot(nil) end,
       }
     end)
   end
@@ -20032,6 +20121,9 @@ function AskGPT:_scrubContextFeatures(features)
   -- would exempt a facet from the preset in the NEXT quick chat
   features._session_web_touched = nil
   features._session_tools_touched = nil
+  -- A run option (B345) is set just-in-time and consumed at dispatch; a stray
+  -- dies here
+  features._run_variant = nil
 end
 
 function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_instance)
@@ -20252,7 +20344,7 @@ end
 -- @param highlighted_text: The selected text
 -- @param context: Optional surrounding context (for dictionary actions)
 -- @param selection_data: Optional selection position data (for "Save to Note" feature)
-function AskGPT:executeQuickAction(action, highlighted_text, context, selection_data, sc_window)
+function AskGPT:executeQuickAction(action, highlighted_text, context, selection_data, sc_window, run_variant)
   -- Scrub stale cross-context state for highlight context (default context)
   configuration.features = configuration.features or {}
   self:_scrubContextFeatures(configuration.features)
@@ -20269,10 +20361,12 @@ function AskGPT:executeQuickAction(action, highlighted_text, context, selection_
       (not action.local_handler or action.local_handler == "image_gen")
       and sc_window or nil
   -- Block actions when declared requirements are unmet
-  if self:_checkRequirements(action) then
+  if self:_checkRequirements(action, nil, run_variant and run_variant.provider) then
     return
   end
-  Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self)
+  -- run_variant: a run option from the hold menu (B345)
+  Dialogs.executeDirectAction(self.ui, action, highlighted_text, configuration, self,
+    run_variant and { run_variant = run_variant } or nil)
 end
 
 function AskGPT:restoreDefaultPrompts()

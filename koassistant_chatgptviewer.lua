@@ -2187,7 +2187,10 @@ function ChatGPTViewer:init()
             local Dialogs = require("koassistant_dialogs")
             Dialogs.executeDirectAction(
               self.configuration._rerun_ui, self.configuration._rerun_action,
-              self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+              self.original_highlighted_text, new_config, self.configuration._rerun_plugin,
+              -- Same action again: its run option (B345) stays with the window
+              self.configuration._rerun_run_variant
+                and { run_variant = self.configuration._rerun_run_variant } or nil
             )
           end,
         }})
@@ -2261,7 +2264,10 @@ function ChatGPTViewer:init()
       local Dialogs = require("koassistant_dialogs")
       Dialogs.executeDirectAction(
         self.configuration._rerun_ui, self.configuration._rerun_action,
-        self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+        self.original_highlighted_text, new_config, self.configuration._rerun_plugin,
+        -- Same action again: its run option (B345) stays with the window
+        self.configuration._rerun_run_variant
+          and { run_variant = self.configuration._rerun_run_variant } or nil
       )
     end,
     hold_callback = function()
@@ -2534,7 +2540,10 @@ function ChatGPTViewer:init()
             local Dialogs = require("koassistant_dialogs")
             Dialogs.executeDirectAction(
               self.configuration._rerun_ui, self.configuration._rerun_action,
-              self.original_highlighted_text, new_config, self.configuration._rerun_plugin
+              self.original_highlighted_text, new_config, self.configuration._rerun_plugin,
+              -- Same action again: its run option (B345) stays with the window
+              self.configuration._rerun_run_variant
+                and { run_variant = self.configuration._rerun_run_variant } or nil
             )
           end,
         }})

@@ -848,6 +848,8 @@ function XrayAuto.beginLadderBuild(file, rungs, labels, opts)
     -- regardless of the promotion posture (the user explicitly asked for that
     -- coverage) — the completion handler keys off this flag
     one_shot = (opts and opts.one_shot) or nil,
+    -- A run option (B345) on a one-shot build: its rung runs on that model
+    run_variant = (opts and opts.one_shot and opts.run_variant) or nil,
     step = 1 }
   -- A (re)start supersedes the last pause reason (item 45)
   if last_ladder_stop and last_ladder_stop.file == file then

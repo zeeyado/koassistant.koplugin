@@ -164,10 +164,18 @@ function ChatHistoryManager.captureControlState(config)
         cs.quick_answer = f._session_quick_answer == true
     end
     local sr = f._session_reasoning
-    if sr and sr.force then cs.reasoning = { force = sr.force } end
+    if sr and sr.force then
+        cs.reasoning = { force = sr.force }
+    elseif sr == nil and (f._run_reasoning == "on" or f._run_reasoning == "off") then
+        -- A run option's reasoning pick (B345): the resumed chat keeps it
+        cs.reasoning = { force = f._run_reasoning }
+    end
     local sm = f._session_model
     if sm and sm.provider then
         cs.model = { provider = sm.provider, model = sm.model }
+    elseif sm == nil and type(f._run_model) == "table" and f._run_model.provider then
+        -- A run option's model (B345): the resumed chat continues on it
+        cs.model = { provider = f._run_model.provider, model = f._run_model.model }
     end
     if config and config.enable_web_search ~= nil then
         cs.web_search = config.enable_web_search == true
