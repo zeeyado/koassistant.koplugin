@@ -128,6 +128,9 @@ TestRunner:test("a custom_models.lua constraint reaches every built-in and a cus
     for _idx, provider in ipairs(sortedProviders()) do
         local expected = SWEPT
         if provider == "openai_codex" then expected = nil end  -- sends no temperature at all
+        -- A bare id on Perplexity is a preset, which carries its own sampling (the
+        -- direct-model case is in test_perplexity_agent.lua)
+        if provider == "perplexity" then expected = nil end
         TestRunner:assertEqual(sentTemperature(build(provider, "sweep-model")), expected, provider)
     end
     TestRunner:assertEqual(build("custom_lab", "m1", nil,

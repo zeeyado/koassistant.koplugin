@@ -81,8 +81,6 @@ TestRunner.assert(ModelConstraints.resolveMaxTokens("openrouter", "qwen/qwen3-23
     "openrouter qwen3-235b caps the default at its 8192 ceiling")
 TestRunner.assert(ModelConstraints.resolveMaxTokens("openrouter", "perplexity/sonar-pro", FALLBACK) == 8000,
     "openrouter sonar-pro caps the default at its 8000 ceiling")
-TestRunner.assert(ModelConstraints.resolveMaxTokens("perplexity", "sonar-pro", FALLBACK) == 8192,
-    "direct sonar-pro caps the default at its curated ceiling")
 
 -- Unknown models keep the provider fallback (never a raise, never a 400 risk)
 local unknown = {

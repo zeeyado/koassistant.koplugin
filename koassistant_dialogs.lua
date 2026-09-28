@@ -781,15 +781,15 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         config.enable_web_search = false
     end
     -- Effective boolean for the system-prompt nudge (mirrors the handlers' read:
-    -- override-first, else global; Perplexity searches unconditionally)
+    -- override-first, else global; an untouched global keeps Perplexity's native
+    -- default, search on, while turning it off there now really means no search)
     local web_search_effective
     if config.enable_web_search ~= nil then
         web_search_effective = config.enable_web_search == true
-    else
+    elseif features.enable_web_search ~= nil then
         web_search_effective = features.enable_web_search == true
-    end
-    if (config.provider or config.default_provider) == "perplexity" then
-        web_search_effective = true
+    else
+        web_search_effective = (config.provider or config.default_provider) == "perplexity"
     end
 
     -- Quick preset identity components (A6, picker rework 2026-08-11 —

@@ -81,10 +81,10 @@ local _exz1, winz1 = ModelConstraints.checkContextWindow("zai", "glm-5.2", 40000
 local _exz2, winz2 = ModelConstraints.checkContextWindow("zai", "glm-5-turbo", 400000)
 TestRunner:check("longest prefix: glm-5.2 (1M) beats glm-5 (200K); glm-5-turbo gets glm-5",
     winz1 == 1000000 and winz2 == 200000)
-local _exp1, winp1 = ModelConstraints.checkContextWindow("perplexity", "sonar-pro", 400000)
-local _exp2, winp2 = ModelConstraints.checkContextWindow("perplexity", "sonar", 400000)
-TestRunner:check("perplexity: sonar-pro 200K, bare sonar 127072",
-    winp1 == 200000 and winp2 == 127072)
+local _exp1, winp1 = ModelConstraints.checkContextWindow("perplexity", "perplexity/sonar", 400000)
+local _exp2, winp2 = ModelConstraints.checkContextWindow("perplexity", "fast", 400000)
+TestRunner:check("perplexity: the direct Sonar model 127072; a preset publishes none (fail-open)",
+    winp1 == 127072 and winp2 == nil)
 local _exc, winc = ModelConstraints.checkContextWindow("openai_codex", "gpt-5.6-terra", 400000)
 TestRunner:check("openai_codex aliases the openai table (gpt-5.6 -> 922K max input)",
     winc == 922000)

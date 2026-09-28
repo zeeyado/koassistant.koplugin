@@ -33,7 +33,7 @@ local function getDefaultModel(provider)
         cohere = "command-a-plus-05-2026",
         doubao = "doubao-seed-2.0-pro-32k",
         zai = "glm-5.2",
-        perplexity = "sonar-pro",
+        perplexity = "fast",
     }
     return fallbacks[provider] or "unknown"
 end
@@ -237,7 +237,8 @@ local ProviderDefaults = {
     perplexity = {
         provider = "perplexity",
         model = getDefaultModel("perplexity"),
-        base_url = "https://api.perplexity.ai/chat/completions",
+        -- Agent API (B078): the Sonar chat completions wire retired 2026-09-27
+        base_url = "https://api.perplexity.ai/v1/agent",
         additional_parameters = {
             temperature = 0.7,
             max_tokens = 16384

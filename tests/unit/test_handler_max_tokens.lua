@@ -86,7 +86,8 @@ local CASES = {
     { "openrouter", "koassistant_api.openrouter",        "anthropic/claude-sonnet-5",128000 },
     { "cohere",     "koassistant_api.cohere",            "command-a-plus-05-2026",      nil },
     { "groq",       "koassistant_api.groq",              "llama-3.3-70b-versatile",   32768 },
-    { "perplexity", "koassistant_api.perplexity",        "sonar-pro",                  8192 },
+    -- Perplexity Agent API (B078): a preset publishes no ceiling (its model moves)
+    { "perplexity", "koassistant_api.perplexity",        "fast",                        nil },
     -- No curated ceiling: NVIDIA states none and any real cap is learned by the
     -- max_tokens self-heal. Exercises the no-ceiling resolve+clamp path.
     { "nvidia",     "koassistant_api.nvidia",            "nvidia/nemotron-3-super-120b-a12b", nil },

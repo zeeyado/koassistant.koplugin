@@ -262,6 +262,7 @@ The 104 files, with what each one pins:
 - `test_openai_compatible.lua` - the OpenAI-compatible base handler and its hooks
 - `test_openai_responses.lua` - the OpenAI Responses path: routing, request builder, transformer, stream events
 - `test_openai_tools_request.lua` - OpenAI chat-completions tool declarations and the message-copy loop
+- `test_perplexity_agent.lua` - the Perplexity Agent API request: presets vs direct models, retired Sonar ids mapped, web off to the direct Sonar model without tools, the system prompt as an input item, no temperature on presets, the old chat-wire base URL rewritten
 - `test_pinned_manager_parity.lua` - pinned save/load long-string round-trip against adversarial content
 - `test_prompt_building.lua` - MessageBuilder, ContextExtractor privacy gating and cache flow end to end
 - `test_prompt_chars.lua` - `RateLimits.promptChars` stays the router's own prompt-size arithmetic
@@ -526,7 +527,7 @@ its own provider id in code). `ModelLists.getAllProviders()` is the live list, a
 | cohere | Command models (v2 API) |
 | doubao | ByteDance |
 | zai | Z.AI GLM models |
-| perplexity | Sonar models (built-in web search) |
+| perplexity | Agent API presets + direct models (built-in web search) |
 | nvidia | Nemotron family + hosted open models (no web search) |
 | cerebras | Very fast open-model inference |
 | minimax | MiniMax M-series |

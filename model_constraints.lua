@@ -476,8 +476,10 @@ ModelConstraints.capabilities = {
         },
     },
     perplexity = {
-        -- Reasoning models (always-on, but effort is controllable)
-        -- sonar-reasoning-pro uses <think> tags, sonar-deep-research also supports effort
+        -- Retired Sonar ids (B078): the handler maps them to presets at the wire
+        -- (ModelLists._retired) and forwards this effort as reasoning.effort, so a
+        -- pick still pinned to one keeps its effort. The presets themselves carry
+        -- the effort Perplexity tuned for them (no profile).
         reasoning = { "sonar-reasoning-pro", "sonar-deep-research" },
     },
     mistral = {
@@ -645,9 +647,6 @@ ModelConstraints._max_output_tokens = {
         ["openai/gpt-oss-20b"] = 65536,
         -- llama-3.1-8b-instant allows 131072 output (no cap needed)
     },
-    perplexity = {
-        ["sonar-pro"] = 8192,
-    },
 }
 
 --- MAX INPUT tokens per model, for the model-aware extraction pre-check.
@@ -731,10 +730,10 @@ ModelConstraints._context_windows = {
         ["glm-4.7"] = 200000,       -- covers glm-4.7-flash
     },
     perplexity = {
-        ["sonar-pro"]           = 200000, -- [docs]; [OR] agrees
-        ["sonar-reasoning-pro"] = 128000, -- [docs]
-        ["sonar-deep-research"] = 128000, -- [docs]
-        ["sonar"]               = 127072, -- [OR] exact value (docs round to "128K"; smaller = safer)
+        -- Agent API (B078): presets publish no window (their model moves with
+        -- Perplexity's tuning), so they get no pre-check. The direct Sonar model
+        -- keeps sonar's value.
+        ["perplexity/sonar"]    = 127072, -- [OR] exact value for sonar (docs round to "128K"; smaller = safer)
     },
     openrouter = {
         -- [OR] live catalog 2026-08-14 (all 31 curated mirror ids resolved).
@@ -1364,7 +1363,8 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
     },
     perplexity = {
-        -- Always-on (web-grounded); effort only, cannot fully disable.
+        -- Always-on (web-grounded); effort only, cannot fully disable. Retired
+        -- Sonar ids (B078): see the capabilities entry for why they stay.
         { match = "sonar-reasoning-pro", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
@@ -1391,7 +1391,8 @@ ModelConstraints.reasoning_profiles = {
 --   mode = "all"                  -> every model of this provider can search
 --   mode = "capability:<name>"    -> only models with that capability (e.g. Gemini's google_search)
 -- Mechanisms today: anthropic (web_search_20250305 tool), openrouter (:online / Exa),
--- perplexity (built-in Sonar, always on), gemini (googleSearch grounding, capable models),
+-- perplexity (Agent API web_search tool: every preset searches, a direct model when
+-- given the tool), gemini (googleSearch grounding, capable models),
 -- OpenAI, OpenAI Subscription, and xAI use the web_search tool on their Responses
 -- APIs (the handlers route web-on requests to their Responses endpoints; see
 -- responses_api_plan.md), zai uses a web_search tool on the chat

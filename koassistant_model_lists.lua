@@ -346,11 +346,14 @@ local ModelLists = {
     },
 
     perplexity = {
-        -- All Sonar models include built-in web search with citations
-        "sonar-pro",                    -- flagship (default, advanced search)
-        "sonar-reasoning-pro",          -- reasoning + search
-        "sonar-deep-research",          -- deep research
-        "sonar",                        -- fast search (lightweight)
+        -- Agent API (B078, 2026-09-27). Bare ids are PRESETS, Perplexity's managed
+        -- bundles named by research depth; every preset searches the web and cites.
+        "fast",                         -- one search, quickest (default; replaces sonar and sonar-pro)
+        "low",                          -- everyday research, a few steps (replaces sonar-reasoning-pro)
+        "medium",                       -- multi-step research across many sources
+        "high",                         -- deep research, slowest and costliest (replaces sonar-deep-research)
+        -- A direct model: searches only when it decides to, and runs web-off requests
+        "perplexity/sonar",
     },
 
     zai = {
@@ -602,8 +605,23 @@ local ModelLists = {
         sambanova  = { "gpt-oss-120b", "Llama-4-Maverick-17B-128E-Instruct", "Meta-Llama-4-Maverick-17B-128E-Instruct" },
         cohere     = { "command-a-plus-05-2026", "command-a-03-2025" },
         doubao     = { "doubao-seed-2.0-pro-32k", "doubao-1.8-pro-32k" },
-        perplexity = { "sonar-pro", "sonar" },
+        perplexity = { "fast", "sonar-pro", "sonar" },
         zai        = { "glm-5.2", "glm-5.1", "glm-5-turbo", "glm-5" },
+    },
+
+    -- Ids a provider no longer serves, mapped to their replacement. The startup
+    -- refresh moves a stored pick even when it was deliberate (the old id would
+    -- fail), with a one-time notice; the provider's handler maps any other stored
+    -- copy (an action's or a tier's pinned model) at the wire. Perplexity: the
+    -- Sonar chat wire retired 2026-09-27; the replacements are Perplexity's own
+    -- suggested presets (docs "Migrate from Sonar").
+    _retired = {
+        perplexity = {
+            ["sonar"] = "fast",
+            ["sonar-pro"] = "fast",
+            ["sonar-reasoning-pro"] = "low",
+            ["sonar-deep-research"] = "high",
+        },
     },
 
     _tiers = {
@@ -644,7 +662,7 @@ local ModelLists = {
             kimi = "kimi-k2.6",
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5.2",
-            perplexity = "sonar-pro",
+            perplexity = "low",                      -- everyday research preset; "fast" is the default
             nvidia = "nvidia/nemotron-3-ultra-550b-a55b",
         },
 
@@ -667,7 +685,7 @@ local ModelLists = {
             kimi = "kimi-k2.6",
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5",
-            perplexity = "sonar",
+            perplexity = "fast",
             nvidia = "nvidia/nemotron-3-super-120b-a12b",
         },
 
@@ -690,7 +708,7 @@ local ModelLists = {
             kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
-            perplexity = "sonar",
+            perplexity = "fast",
             nvidia = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",  -- ~1.2s; lightning pulled: see the array note
         },
 
@@ -713,7 +731,7 @@ local ModelLists = {
             kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
-            perplexity = "sonar",
+            perplexity = "fast",
             nvidia = "nvidia/nemotron-3-nano-30b-a3b",  -- ~0.15s measured (3 samples 2026-08-29); replaces the retired nano-9b-v2 (410, EOL 2026-08-26)
         },
     },
@@ -796,7 +814,8 @@ local ModelLists = {
             docs = "https://www.volcengine.com/docs/82379/1263482",
         },
         perplexity = {
-            docs = "https://docs.perplexity.ai/",
+            api_list = "https://api.perplexity.ai/v1/models",  -- direct models only, no presets
+            docs = "https://docs.perplexity.ai/docs/agent-api/presets",
         },
         zai = {
             api_list = "https://api.z.ai/api/paas/v4/models",
@@ -1124,12 +1143,24 @@ function ModelLists.getDocs(provider)
     return ModelLists._docs[provider]
 end
 
+--- The id that replaces a model the provider no longer serves (_retired).
+--- @param provider string|nil
+--- @param model string|nil
+--- @return string|nil replacement id, nil when the model is not retired
+function ModelLists.retiredReplacement(provider, model)
+    local retired = provider and ModelLists._retired[provider]
+    local replacement = retired and model and retired[model]
+    return type(replacement) == "string" and replacement or nil
+end
+
 --- Decide what to do with a persisted `features.model` when the provider's default may have
 --- moved on, or when the id no longer exists (defaults_propagation_plan.md §3, gaps G2/G3).
 --- PURE: no settings/UI access, so it is unit-testable and safe to call on every load.
 ---
 --- Decision order:
 ---   nil/empty model           -> keep    (nil already resolves to the provider default)
+---   retired id                -> retired (the provider no longer serves it; even a
+---                                         deliberate pick moves, to its replacement)
 ---   explicit user pick        -> keep    (never clobber a deliberate choice)
 ---   no current default        -> keep    (custom providers may have none)
 ---   already the default       -> keep
@@ -1143,13 +1174,16 @@ end
 ---   explicit         boolean|nil user explicitly picked a model for this provider
 ---   known_models     table|nil   valid ids for this provider (built-ins + user customs)
 ---   shipped_defaults table|nil   ids ever shipped as this provider's default
+---   retired          table|nil   retired id -> replacement (ModelLists._retired[provider])
 --- }
---- @return string action  "keep" | "refresh" | "reset"
+--- @return string action  "keep" | "refresh" | "reset" | "retired"
 --- @return string|nil new_model  the id to move to (nil when action == "keep")
 function ModelLists.resolveModelRefresh(opts)
     opts = opts or {}
     local model = opts.model
     if type(model) ~= "string" or model == "" then return "keep", nil end
+    local replacement = type(opts.retired) == "table" and opts.retired[model]
+    if type(replacement) == "string" and replacement ~= "" then return "retired", replacement end
     if opts.explicit then return "keep", nil end
 
     local current_default = opts.current_default

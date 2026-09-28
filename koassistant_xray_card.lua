@@ -184,6 +184,14 @@ local function carriedLine(hit)
     end
 end
 
+--- B329 (maintainer 2026-09-27): a hit from a section X-Ray names the
+--- section, so it never reads as the book's own X-Ray.
+local function sectionLine(hit)
+    if hit.source == "section" and type(hit.section_label) == "string" and hit.section_label ~= "" then
+        return T(_("From the section X-Ray: %1"), hit.section_label)
+    end
+end
+
 --- G2 (group hub plan, 2026-09-06): the other group books holding this
 --- entry (hit.also_in, the chain walk on a hit) in one clause. Later books
 --- are named as such; under protection none ride, not even their existence.
@@ -264,9 +272,16 @@ local function cardContent(hit, opts)
     end
     local text = itemText(hit.item)
     if opts.card_length ~= "full" then text = XrayCard.firstSentence(text) end
-    return { name = hit.name or "", kind = kindLabel(hit), line = alsoLine(hit), body = text,
+    local line, also = sectionLine(hit), alsoLine(hit)
+    if line and also then
+        line = line .. " \u{00B7} " .. also
+    else
+        line = line or also
+    end
+    return { name = hit.name or "", kind = kindLabel(hit), line = line, body = text,
         hint = _("Tap for the full entry") }
 end
+XrayCard._cardContent = cardContent  -- test seam
 
 --- The inside-tap action for a card: advance a staged card in place
 --- (close + re-show with the next stage — FootnoteWidget builds its HTML
@@ -295,7 +310,8 @@ end
 ---   source = "live"|"section"|"carried"|"predecessor"|"ahead",
 ---   ahead_progress, query; carried hits add source_title + stub_idx;
 ---   predecessor hits add source_title (the ORIGINAL book for a transitive
----   ledger hit) + pred_file + pred_title (+ pred_stub); carried and
+---   ledger hit) + pred_file + pred_title (+ pred_stub); section hits add
+---   section_label (B329); carried and
 ---   predecessor hits may add also_ahead (Q6 hint, 0..1); live and section
 ---   hits may add also_in (G2: the other group books holding the entry, as
 ---   far as the chain reaches — ActionCache.alsoInGroup's rows) }
@@ -360,7 +376,11 @@ function XrayCard.resolve(file, query, opts)
     for _idx, sec in ipairs(ActionCache.getSectionXrays(file)) do
         if sec.data and sec.data.result then
             local r = findIn(sec.data.result)
-            if r then return withAlsoIn(makeHit(r, "section")) end
+            if r then
+                local hit = makeHit(r, "section")
+                hit.section_label = sec.label
+                return withAlsoIn(hit)
+            end
         end
     end
     -- One probe for the ahead rung, shared by the final peek tier and the

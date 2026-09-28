@@ -660,66 +660,96 @@ for _, provider in ipairs(openai_compatible) do
     end)
 end
 
--- Test Perplexity (always-on web search + citations)
+-- Test Perplexity (Agent API, B078: Responses-shaped output[] with search_results items)
 TestRunner:suite("Perplexity")
 
-TestRunner:test("web_search_used is evidence-based (2026-08-14: disable_search is real)", function()
-    local bare = {
-        choices = { { message = { content = "Hello from Perplexity" } } }
-    }
-    local success, result, _r, web_search_used = ResponseParser:parseResponse(bare, "perplexity")
+local function pplxMessage(text)
+    return { type = "message", role = "assistant", status = "completed",
+        content = { { type = "output_text", text = text, annotations = {} } } }
+end
+local function pplxResults(results, queries)
+    return { type = "search_results", results = results, queries = queries }
+end
+local PPLX_RESULTS = {
+    { id = 1, url = "https://example.com/article", title = "Article", snippet = "s" },
+    { id = 2, url = "https://en.wikipedia.org/wiki/Topic", title = "Topic", snippet = "s" },
+    { id = 3, url = "https://www.uncited.org/page", title = "Uncited", snippet = "s" },
+}
+
+TestRunner:test("web_search_used is evidence-based (a web-off request carries no results)", function()
+    local success, result, _r, web_search_used = ResponseParser:parseResponse(
+        { status = "completed", output = { pplxMessage("Hello from Perplexity") } }, "perplexity")
     TestRunner:assertTrue(success, "success")
     TestRunner:assertEqual(result, "Hello from Perplexity", "content")
-    TestRunner:assertTrue(web_search_used == nil, "no citations/search_results -> no search claim")
-    local searched = {
-        choices = { { message = { content = "Grounded answer" } } },
-        search_results = { { url = "https://s.example/1", title = "Source" } },
-    }
-    local _s2, _c2, _r2, used2 = ResponseParser:parseResponse(searched, "perplexity")
-    TestRunner:assertTrue(type(used2) == "table" and used2.web_search == true,
-        "search artifacts -> provenance table")
+    TestRunner:assertTrue(web_search_used == nil, "no search results -> no search claim")
+    local _s2, _c2, _r2, used2 = ResponseParser:parseResponse({ status = "completed", output = {
+        pplxResults(PPLX_RESULTS, { "topic history" }), pplxMessage("Grounded answer"),
+    } }, "perplexity")
+    TestRunner:assertTrue(type(used2) == "table" and used2.web_search == true, "provenance table")
+    TestRunner:assertEqual(#used2.sources, 3, "every result is a source")
+    TestRunner:assertEqual(used2.sources[2].title, "Topic", "titles kept")
+    TestRunner:assertEqual(used2.queries[1], "topic history", "queries kept")
 end)
 
-TestRunner:test("appends citation footnotes", function()
-    local response = {
-        choices = { { message = { content = "Answer with [1] and [2] refs" } } },
-        citations = { "https://example.com/article", "https://en.wikipedia.org/wiki/Topic" }
-    }
-    local success, result = ResponseParser:parseResponse(response, "perplexity")
+TestRunner:test("footnotes list the cited results, [web:n] becomes [n]", function()
+    local success, result = ResponseParser:parseResponse({ status = "completed", output = {
+        pplxResults(PPLX_RESULTS), pplxMessage("First claim[1]. Second claim [web:2][1]."),
+    } }, "perplexity")
     TestRunner:assertTrue(success, "success")
-    TestRunner:assertContains(result, "**Sources:**", "sources header")
-    TestRunner:assertContains(result, "[1] [example.com](https://example.com/article)", "citation 1")
-    TestRunner:assertContains(result, "[2] [en.wikipedia.org](https://en.wikipedia.org/wiki/Topic)", "citation 2")
+    TestRunner:assertEqual(result, "First claim[1]. Second claim [2][1]."
+        .. "\n\n---\n**Sources:**\n\n- [1] [example.com](https://example.com/article)"
+        .. "\n- [2] [en.wikipedia.org](https://en.wikipedia.org/wiki/Topic)", "normalized + cited only")
 end)
 
-TestRunner:test("handles response without citations", function()
-    local response = {
-        choices = { { message = { content = "No citations here" } } }
-    }
-    local success, result = ResponseParser:parseResponse(response, "perplexity")
+TestRunner:test("an answer that cites nothing gets no footnotes", function()
+    local success, result = ResponseParser:parseResponse({ status = "completed", output = {
+        pplxResults(PPLX_RESULTS), pplxMessage("No citations here"),
+    } }, "perplexity")
     TestRunner:assertTrue(success, "success")
     TestRunner:assertEqual(result, "No citations here", "content unchanged")
 end)
 
-TestRunner:test("handles error response", function()
-    local response = {
-        error = { message = "Error from Perplexity" }
-    }
-    local success, result = ResponseParser:parseResponse(response, "perplexity")
-    TestRunner:assertFalse(success, "error success")
-    TestRunner:assertEqual(result, "Error from Perplexity", "error message")
+TestRunner:test("pages the agent read count as sources", function()
+    local _s, _c, _r, prov = ResponseParser:parseResponse({ status = "completed", output = {
+        { type = "fetch_url_results", contents = { { url = "https://read.example/p", title = "Read", snippet = "x" } } },
+        pplxMessage("Answer"),
+    } }, "perplexity")
+    TestRunner:assertTrue(type(prov) == "table" and prov.sources[1].url == "https://read.example/p", "fetched page")
 end)
 
-TestRunner:test("extracts reasoning from <think> tags (sonar-reasoning-pro)", function()
-    local response = {
-        choices = { { message = { content = "<think>Let me reason about this</think>The answer is 42" } } },
-        citations = { "https://example.com/answer" }
-    }
-    local success, result, reasoning, web_search_used = ResponseParser:parseResponse(response, "perplexity")
+TestRunner:test("handles error response", function()
+    local success, result = ResponseParser:parseResponse({
+        error = { message = "validation failed: model \"sonar-pro\" is not supported", type = "invalid_request", code = 400 },
+    }, "perplexity")
+    TestRunner:assertFalse(success, "error success")
+    TestRunner:assertEqual(result, "validation failed: model \"sonar-pro\" is not supported", "error message")
+end)
+
+TestRunner:test("a decoded JSON null error is not an error", function()
+    -- luajson decodes the "error": null of every success to a truthy function sentinel
+    local success, result = ResponseParser:parseResponse({ status = "completed", error = function() end,
+        output = { pplxMessage("Fine") } }, "perplexity")
     TestRunner:assertTrue(success, "success")
-    TestRunner:assertEqual(result, "The answer is 42\n\n---\n**Sources:**\n\n- [1] [example.com](https://example.com/answer)", "content without think tags")
+    TestRunner:assertEqual(result, "Fine", "content")
+end)
+
+TestRunner:test("truncation notice sits before the footnotes", function()
+    local success, result = ResponseParser:parseResponse({ status = "incomplete",
+        incomplete_details = { reason = "max_output_tokens" },
+        output = { pplxResults(PPLX_RESULTS), pplxMessage("Cut short[1]") } }, "perplexity")
+    TestRunner:assertTrue(success, "success")
+    local notice_at = result:find(ResponseParser.TRUNCATION_NOTICE, 1, true)
+    local sources_at = result:find("**Sources:**", 1, true)
+    TestRunner:assertTrue(notice_at ~= nil and sources_at ~= nil and notice_at < sources_at, "notice, then sources")
+end)
+
+TestRunner:test("extracts reasoning from <think> tags a direct model writes", function()
+    local success, result, reasoning = ResponseParser:parseResponse({ status = "completed", output = {
+        pplxMessage("<think>Let me reason about this</think>The answer is 42"),
+    } }, "perplexity")
+    TestRunner:assertTrue(success, "success")
+    TestRunner:assertEqual(result, "The answer is 42", "content without think tags")
     TestRunner:assertEqual(reasoning, "Let me reason about this", "reasoning extracted")
-    TestRunner:assertTrue(web_search_used, "web_search_used always true")
 end)
 
 -- Test unknown provider

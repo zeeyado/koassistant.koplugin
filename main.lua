@@ -1651,13 +1651,15 @@ function AskGPT:initSettings()
           explicit = (features.model_explicit or {})[provider],
           known_models = known,
           shipped_defaults = ModelLists._shipped_defaults[provider],
+          retired = ModelLists._retired[provider],
         })
         if action ~= "keep" and new_model then
           logger.info(string.format("KOAssistant: model %s '%s' -> '%s' (%s)",
             action, tostring(features.model), tostring(new_model), provider))
           -- Surfaced once by the UI so the switch is never silent (cost/behavior change).
-          if action == "refresh" then
-            features._model_switch_notice = { from = features.model, to = new_model }
+          if action == "refresh" or action == "retired" then
+            features._model_switch_notice = { from = features.model, to = new_model,
+              retired = action == "retired" or nil }
           end
           features.model = new_model
           needs_save = true
@@ -1687,8 +1689,11 @@ function AskGPT:initSettings()
   if notice and notice.to then
     UIManager:scheduleIn(3, function()
       UIManager:show(InfoMessage:new{
-        text = T(_("Model updated to %1.\n\nYour provider's default changed (you were on %2). Pick a different model any time in Settings."),
-          notice.to, notice.from or "?"),
+        text = notice.retired
+          and T(_("Model updated to %1.\n\nYour provider no longer offers %2. Pick a different model any time in Settings."),
+            notice.to, notice.from or "?")
+          or T(_("Model updated to %1.\n\nYour provider's default changed (you were on %2). Pick a different model any time in Settings."),
+            notice.to, notice.from or "?"),
         timeout = 8,
       })
     end)
@@ -2522,6 +2527,10 @@ function AskGPT:fetchProviderModels(provider_id, opts)
     local ModelLists = require("koassistant_model_lists")
     models_url = ModelLists._docs.gemini.api_list .. "?key=" .. key
     list_field, name_field = "models", "name"
+  elseif provider_id == "perplexity" then
+    -- Agent API: {base}/v1/agent lists its direct models at {base}/v1/models
+    models_url = d.base_url:gsub("/v1/agent$", "") .. "/v1/models"
+    headers = key and { ["Authorization"] = "Bearer " .. key } or nil
   else
     models_url = d.base_url:gsub("/+$", ""):gsub("/chat/completions$", "")
     models_url = models_url:gsub("/+$", "") .. "/models"
@@ -3743,9 +3752,10 @@ function AskGPT:showAddCustomProviderDialog(preset, on_change)
           text = _("Add"),
           callback = function()
             local fields = dialog:getFields()
-            local name = fields[1]
-            local base_url = fields[2]
-            local default_model = fields[3]
+            -- D6: trimmed, a trailing space from an e-reader keyboard broke the URL or the id
+            local name = (fields[1] or ""):match("^%s*(.-)%s*$")
+            local base_url = (fields[2] or ""):match("^%s*(.-)%s*$")
+            local default_model = (fields[3] or ""):match("^%s*(.-)%s*$")
 
             local api_key_required = true
             if preset and preset.api_key_required ~= nil then api_key_required = preset.api_key_required end
@@ -3814,9 +3824,10 @@ function AskGPT:showEditCustomProviderDialog(provider, on_change)
           text = _("Save"),
           callback = function()
             local fields = dialog:getFields()
-            local name = fields[1]
-            local base_url = fields[2]
-            local default_model = fields[3]
+            -- D6: trimmed, a trailing space from an e-reader keyboard broke the URL or the id
+            local name = (fields[1] or ""):match("^%s*(.-)%s*$")
+            local base_url = (fields[2] or ""):match("^%s*(.-)%s*$")
+            local default_model = (fields[3] or ""):match("^%s*(.-)%s*$")
 
             if name == "" then
               UIManager:show(Notification:new{
@@ -4471,8 +4482,9 @@ function AskGPT:buildModelMenu(simplified, provider_override)
                   text = _("Add"),
                   is_enter_default = true,
                   callback = function()
-                    local new_model = input_dialog:getInputText()
-                    if new_model and new_model ~= "" then
+                    -- D6: trimmed, a trailing space from an e-reader keyboard made the id fail
+                    local new_model = (input_dialog:getInputText() or ""):match("^%s*(.-)%s*$")
+                    if new_model ~= "" then
                       local success, err = self_ref:saveCustomModel(provider, new_model)
                       if success then
                         -- Select the new model (a hand-added model is by definition a
@@ -19945,8 +19957,39 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
       opts.back()
     end }})
   end
+  -- B329 (maintainer 2026-09-27): say which X-Rays the marks and lookups read
+  -- (the index's own sources, xray_marks ensureIndex), so a book marked from
+  -- its section X-Rays or its group's books is not a mystery. The upcoming
+  -- checkpoint has its own row above.
+  local title = _("Marking & lookup")
+  local file = (opts and opts.file) or (self.ui and self.ui.document and self.ui.document.file)
+  if file then
+    local ActionCache = require("koassistant_action_cache")
+    local sources = {}
+    local live = ActionCache.getXrayCache(file)
+    if live and live.result and live.source_mode ~= "ai_knowledge"
+        and require("koassistant_xray_parser").isJSON(live.result) then
+      table.insert(sources, _("this book's X-Ray"))
+    end
+    local n_sections = ActionCache.getSectionXrayCount(file)
+    if n_sections == 1 then
+      table.insert(sources, _("1 section X-Ray"))
+    elseif n_sections > 1 then
+      table.insert(sources, T(_("%1 section X-Rays"), n_sections))
+    end
+    local ok_g, group_list = pcall(ActionCache.groupXrays, file)
+    local n_group = (ok_g and type(group_list) == "table") and #group_list or 0
+    if n_group == 1 then
+      table.insert(sources, _("1 other book in its group"))
+    elseif n_group > 1 then
+      table.insert(sources, T(_("%1 other books in its group"), n_group))
+    end
+    if #sources > 0 then
+      title = title .. "\n" .. T(_("Marks and lookups use: %1"), table.concat(sources, ", "))
+    end
+  end
   dialog = ButtonDialog:new{
-    title = _("Marking & lookup"),
+    title = title,
     buttons = buttons,
   }
   UIManager:show(dialog)

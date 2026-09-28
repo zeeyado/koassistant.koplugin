@@ -290,8 +290,9 @@ Actions.highlight = {
         include_book_context = true,
         skip_domain = true,  -- Speed posture: no domain layer, like the dictionary family
         model_tier = "fast",
-        compact_view = true,
-        minimal_buttons = true,
+        -- No compact_view / minimal_buttons (B263, maintainer 2026-09-27): not a
+        -- dictionary action, so an answer the minimal popup cannot fit opens the
+        -- normal chat window, never the compact dictionary one.
         api_params = {
             temperature = 0.4,
         },

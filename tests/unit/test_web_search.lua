@@ -1060,26 +1060,40 @@ TestRunner:test("web search off emits no plugins regardless of dial", function()
     TestRunner:assertNil(result.plugins)
 end)
 
-TestRunner:suite("Effort dial: Perplexity search_context_size")
+TestRunner:suite("Effort dial: Perplexity search_context_size (Agent API web_search tool)")
 
 local PerplexityHandler = require("perplexity")
 
-TestRunner:test("standard sends no web_search_options (API default)", function()
-    local result = PerplexityHandler:customizeRequestBody({ model = "sonar-pro" },
-        { features = { web_search_effort = "standard" } })
-    TestRunner:assertNil(result.web_search_options)
+local function perplexityBody(model, features)
+    return PerplexityHandler:buildRequestBody({ { role = "user", content = "q" } },
+        { model = model, api_key = "k", features = features }).body
+end
+
+TestRunner:test("standard on a preset sends no tools (the preset's own search)", function()
+    TestRunner:assertNil(perplexityBody("fast", { web_search_effort = "standard" }).tools)
 end)
 
 TestRunner:test("light sends search_context_size low", function()
-    local result = PerplexityHandler:customizeRequestBody({ model = "sonar-pro" },
-        { features = { web_search_effort = "light" } })
-    TestRunner:assertEqual(result.web_search_options.search_context_size, "low")
+    local body = perplexityBody("fast", { web_search_effort = "light" })
+    TestRunner:assertEqual(body.tools[1].type, "web_search")
+    TestRunner:assertEqual(body.tools[1].search_context_size, "low")
 end)
 
 TestRunner:test("thorough sends search_context_size high", function()
-    local result = PerplexityHandler:customizeRequestBody({ model = "sonar-pro" },
-        { features = { web_search_effort = "thorough" } })
-    TestRunner:assertEqual(result.web_search_options.search_context_size, "high")
+    TestRunner:assertEqual(perplexityBody("fast", { web_search_effort = "thorough" }).tools[1].search_context_size, "high")
+end)
+
+TestRunner:test("a direct model gets the web_search tool at standard", function()
+    local body = perplexityBody("perplexity/sonar", { web_search_effort = "standard" })
+    TestRunner:assertEqual(body.model, "perplexity/sonar")
+    TestRunner:assertEqual(body.tools[1].type, "web_search")
+    TestRunner:assertNil(body.tools[1].search_context_size)
+end)
+
+TestRunner:test("web search off sends no tool, whatever the dial", function()
+    local body = perplexityBody("fast", { enable_web_search = false, web_search_effort = "thorough" })
+    TestRunner:assertNil(body.tools)
+    TestRunner:assertNil(body.preset, "a preset always searches, so off leaves it")
 end)
 
 --------------------------------------------------------------------------------
@@ -1158,38 +1172,31 @@ TestRunner:test("OpenRouter captures url_citation annotations", function()
     TestRunner:assertEqual(prov.sources[1].title, "Exa X", "annotation title captured")
 end)
 
-TestRunner:test("Perplexity prefers search_results over bare citations", function()
-    local response = {
-        choices = { { message = { content = "Sonar answer" } } },
-        citations = { "https://p.example/1", "https://p.example/2" },
-        search_results = {
-            { url = "https://p.example/1", title = "Titled One" },
-        },
-    }
+local function pplxAnswer(text)
+    return { type = "message", role = "assistant", status = "completed",
+        content = { { type = "output_text", text = text } } }
+end
+
+TestRunner:test("Perplexity search_results items become titled sources", function()
+    local response = { status = "completed", output = {
+        { type = "search_results", queries = { "q one" },
+          results = { { id = 1, url = "https://p.example/1", title = "Titled One" } } },
+        pplxAnswer("Agent answer"),
+    } }
     local success, _c, _r, prov = ResponseParser:parseResponse(response, "perplexity")
     TestRunner:assertTrue(success, "parse succeeds")
     TestRunner:assertEqual(type(prov), "table", "provenance table returned")
-    TestRunner:assertEqual(#prov.sources, 1, "search_results win over citations")
+    TestRunner:assertEqual(#prov.sources, 1, "one source")
     TestRunner:assertEqual(prov.sources[1].title, "Titled One", "title captured")
+    TestRunner:assertEqual(prov.queries[1], "q one", "query captured")
 end)
 
-TestRunner:test("Perplexity falls back to citation URLs", function()
-    local response = {
-        choices = { { message = { content = "Sonar answer" } } },
-        citations = { "https://p.example/1", "https://p.example/2" },
-    }
-    local _s, _c, _r, prov = ResponseParser:parseResponse(response, "perplexity")
-    TestRunner:assertEqual(type(prov), "table", "provenance table returned")
-    TestRunner:assertEqual(#prov.sources, 2, "citation URLs become sources")
-    TestRunner:assertNil(prov.sources[1].title, "no title on bare citation")
-end)
-
-TestRunner:test("Perplexity without any source data reports NO search (honest provenance)", function()
-    -- 2026-08-14: disable_search is real on the wire (probed) — a response
-    -- carrying no citations/search_results must not claim a search happened.
-    local response = {
-        choices = { { message = { content = "Sonar answer" } } },
-    }
+TestRunner:test("Perplexity without any results reports NO search (honest provenance)", function()
+    -- A web-off request goes to a model without tools: nothing came back, so
+    -- nothing may claim a search happened. An empty results item is no search either.
+    local response = { status = "completed", output = {
+        { type = "search_results", results = {} }, pplxAnswer("Agent answer"),
+    } }
     local _s, _c, _r, prov = ResponseParser:parseResponse(response, "perplexity")
     TestRunner:assertNil(prov, "no search artifacts -> web_search_used nil")
 end)
@@ -1278,6 +1285,32 @@ TestRunner:test("harvests Perplexity search_results", function()
         search_results = { { url = "https://p.example", title = "P" } },
     }, prov)
     TestRunner:assertEqual(#prov.sources, 1, "search_results harvested")
+end)
+
+TestRunner:test("harvests the Perplexity Agent API search events", function()
+    local prov = newProv()
+    StreamHandler.harvestWebSources({ type = "response.reasoning.search_queries",
+        queries = { "novel first edition" }, thought = "Searching the web..." }, prov)
+    StreamHandler.harvestWebSources({ type = "response.reasoning.search_results",
+        results = { { id = 1, url = "https://a.example/1", title = "A" } } }, prov)
+    StreamHandler.harvestWebSources({ type = "response.reasoning.fetch_url_results",
+        contents = { { url = "https://b.example/page", title = "B", snippet = "x" } } }, prov)
+    -- the terminal event carries the same results again: no duplicates
+    StreamHandler.harvestWebSources({ type = "response.completed", response = { output = {
+        { type = "search_results", queries = { "novel first edition" },
+          results = { { id = 1, url = "https://a.example/1", title = "A" } } },
+    } } }, prov)
+    TestRunner:assertEqual(#prov.queries, 1, "query once")
+    TestRunner:assertEqual(#prov.sources, 2, "search result + fetched page, once each")
+    TestRunner:assertEqual(prov.sources[1].title, "A", "title kept")
+end)
+
+TestRunner:test("a Perplexity search start shows the searching status", function()
+    local content = StreamHandler:extractContentFromSSE({ type = "response.reasoning.search_queries",
+        queries = { "q" } })
+    TestRunner:assertEqual(content, "__WEB_SEARCH_START__")
+    TestRunner:assertNil((StreamHandler:extractContentFromSSE({ type = "response.reasoning.started" })),
+        "lifecycle events show nothing")
 end)
 
 TestRunner:test("tolerates luajson null sentinels and junk shapes", function()

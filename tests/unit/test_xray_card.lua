@@ -182,6 +182,20 @@ TestRunner:test("Q8: include_ahead=false keeps the carried tier, kills the peek"
     TestRunner:eq(XrayCard.resolve(DOC, "Hester Lune", { include_ahead = false }), nil,
         "peek stood down")
 end)
+TestRunner:test("B329: a section hit names its section on the card", function()
+    assert(ActionCache.set(DOC, "_xray_section:Ch. 3",
+        '{"characters":[{"name":"Mira Fenn","description":"Rows the night ferry. Hums."}]}',
+        0.4, { model = "m", used_book_text = true, scope_label = "Ch. 3" }))
+    local hit = XrayCard.resolve(DOC, "Mira Fenn", { include_ahead = false })
+    TestRunner:eq(hit and hit.source, "section", "section tier")
+    TestRunner:eq(hit.section_label, "Ch. 3", "the section's label rides the hit")
+    TestRunner:eq(XrayCard._cardContent(hit, {}).line, "From the section X-Ray: Ch. 3", "provenance line")
+    hit.also_in = { { title = "Vol 2" } }
+    TestRunner:eq(XrayCard._cardContent(hit, {}).line,
+        "From the section X-Ray: Ch. 3 \u{00B7} Also in Vol 2's X-Ray", "joined with the group line")
+    local live = XrayCard.resolve(DOC, "Tamsin Vael", { include_ahead = false })
+    TestRunner:eq(XrayCard._cardContent(live, {}).line, nil, "a live hit has no provenance line")
+end)
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 print(string.format("\n  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

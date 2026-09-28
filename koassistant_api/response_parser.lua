@@ -188,15 +188,13 @@ local function extractOpenAIToolCalls(message)
     return nil
 end
 
--- Format Perplexity citations as clickable footnotes
--- @param citations table: Array of URL strings from Perplexity response
--- @return string: Formatted sources section (or empty string if no citations)
-local function formatCitations(citations)
-    if not citations or type(citations) ~= "table" or #citations == 0 then
-        return ""
-    end
+-- Numbered source footnotes as clickable links
+-- @param entries table: { {n = number, url = string}, ... } in display order
+-- @return string: Formatted sources section (or empty string if nothing to list)
+local function formatSourceList(entries)
     local parts = {}
-    for i, url in ipairs(citations) do
+    for _idx, entry in ipairs(entries) do
+        local url = entry.url
         if type(url) == "string" and url ~= "" then
             -- Sanitize URL: strip whitespace (API artifacts break markdown links)
             url = url:gsub("%s", "")
@@ -204,7 +202,7 @@ local function formatCitations(citations)
             local domain = url:match("^https?://([^/]+)") or url
             -- Remove www. prefix for cleaner display
             domain = domain:gsub("^www%.", "")
-            table.insert(parts, string.format("- [%d] [%s](%s)", i, domain, url))
+            table.insert(parts, string.format("- [%d] [%s](%s)", entry.n, domain, url))
         end
     end
     if #parts == 0 then
@@ -212,6 +210,54 @@ local function formatCitations(citations)
     end
     -- Markdown list items are block-level — guaranteed separate lines in any renderer
     return "\n\n---\n**Sources:**\n\n" .. table.concat(parts, "\n")
+end
+
+-- Format a top-level citations array (URL strings, e.g. Perplexity models on
+-- OpenRouter) as clickable footnotes numbered by position
+-- @param citations table: Array of URL strings
+-- @return string: Formatted sources section (or empty string if no citations)
+local function formatCitations(citations)
+    if not citations or type(citations) ~= "table" or #citations == 0 then
+        return ""
+    end
+    local entries = {}
+    for i, url in ipairs(citations) do
+        table.insert(entries, { n = i, url = url })
+    end
+    return formatSourceList(entries)
+end
+
+--- Perplexity Agent API citations (B078): the fast preset cites [n], the other
+--- presets [web:n], where n is a search result's id. Both become [n], and the
+--- results the answer cites are listed as footnotes ("Show Sources" keeps every
+--- result). Shared by the non-streaming transformer and the stream end.
+--- @param text string answer text
+--- @param results table|nil search results ({id, url, title, ...})
+--- @return string text with the markers normalized and the footnotes appended
+function ResponseParser.agentCitations(text, results)
+    if type(text) ~= "string" then return text end
+    text = text:gsub("%[web:(%d+)%]", "[%1]")
+    local url_by_id = {}
+    for _idx, result in ipairs(type(results) == "table" and results or {}) do
+        local id = type(result) == "table" and tonumber(result.id)
+        if id and type(result.url) == "string" and result.url ~= "" and not url_by_id[id] then
+            url_by_id[id] = result.url
+        end
+    end
+    local cited, seen = {}, {}
+    for marker in text:gmatch("%[(%d+)%]") do
+        local n = tonumber(marker)
+        if url_by_id[n] and not seen[n] then
+            seen[n] = true
+            table.insert(cited, n)
+        end
+    end
+    table.sort(cited)
+    local entries = {}
+    for _idx, n in ipairs(cited) do
+        table.insert(entries, { n = n, url = url_by_id[n] })
+    end
+    return text .. formatSourceList(entries)
 end
 
 -- Collect a mandatory Responses SSE stream into the ordinary response object used
@@ -1304,49 +1350,69 @@ local RESPONSE_TRANSFORMERS = {
         return false, "Unexpected response format"
     end,
 
+    -- Perplexity Agent API (/v1/agent, B078). Responses-shaped output[]:
+    -- message items (output_text parts), search_results items (results with
+    -- {id, url, title} + the queries), fetch_url_results items (pages the agent
+    -- read), and the agent's own search_web function_call items (ignored).
+    -- Honest provenance: web search is reported only when results came back
+    -- (a web-off request goes to a model without tools and carries none).
     perplexity = function(response)
-        if response.error then
-            return false, response.error.message or response.error.type or "Unknown error"
+        -- Type-checked: luajson decodes the "error": null of a success to a truthy sentinel
+        if type(response.error) == "table" and (response.error.message or response.error.code) then
+            return false, response.error.message or tostring(response.error.code)
         end
-        if response.choices and response.choices[1] and response.choices[1].message then
-            local content = response.choices[1].message.content
-            -- Extract <think> tags from reasoning models (sonar-reasoning-pro)
-            local reasoning = nil
-            if content then
-                content, reasoning = extractThinkTags(content)
-            end
-            -- Check for truncation
-            local finish_reason = response.choices[1].finish_reason
-            if content and content ~= "" and finish_reason == "length" then
-                content = content .. ResponseParser.TRUNCATION_NOTICE
-            end
-            -- Append citation footnotes (Perplexity returns citations as top-level array)
-            if content and response.citations then
-                content = content .. formatCitations(response.citations)
-            end
-            -- Provenance: prefer search_results (title+url) over bare citation URLs
-            local web_prov = {}
-            if type(response.search_results) == "table" then
-                for _idx, item in ipairs(response.search_results) do
-                    if type(item) == "table" then
-                        addProvSource(web_prov, item.url, item.title)
+        if response.status == "failed" then
+            return false, "Request failed"
+        end
+        if type(response.output) ~= "table" then
+            return false, "Unexpected response format"
+        end
+
+        local texts, results, web_prov = {}, {}, {}
+        local searched = false
+        for _idx, item in ipairs(response.output) do
+            if type(item) == "table" then
+                if item.type == "message" and type(item.content) == "table" then
+                    for _j, part in ipairs(item.content) do
+                        if type(part) == "table" and part.type == "output_text"
+                                and type(part.text) == "string" and part.text ~= "" then
+                            table.insert(texts, part.text)
+                        end
+                    end
+                elseif item.type == "search_results" and type(item.results) == "table" then
+                    if type(item.queries) == "table" then
+                        for _j, query in ipairs(item.queries) do
+                            addProvQuery(web_prov, query)
+                        end
+                    end
+                    for _j, result in ipairs(item.results) do
+                        if type(result) == "table" then
+                            searched = true
+                            table.insert(results, result)
+                            addProvSource(web_prov, result.url, result.title)
+                        end
+                    end
+                elseif item.type == "fetch_url_results" and type(item.contents) == "table" then
+                    for _j, page in ipairs(item.contents) do
+                        if type(page) == "table" then
+                            searched = true
+                            addProvSource(web_prov, page.url, page.title)
+                        end
                     end
                 end
             end
-            if not web_prov.sources and type(response.citations) == "table" then
-                for _idx, url in ipairs(response.citations) do
-                    addProvSource(web_prov, url)
-                end
-            end
-            -- Honest provenance (2026-08-14): web_search_used only when search
-            -- artifacts actually came back — with disable_search (the toggle is
-            -- real, probed) a response carries no citations/search_results and
-            -- must not claim a search happened.
-            local searched = (type(response.search_results) == "table" and #response.search_results > 0)
-                or (type(response.citations) == "table" and #response.citations > 0)
-            return true, content, reasoning, searched and finishProv(web_prov) or nil
         end
-        return false, "Unexpected response format"
+        if #texts == 0 then
+            return false, "Unexpected response format"
+        end
+
+        local content, reasoning = extractThinkTags(table.concat(texts, "\n\n"))
+        if response.status == "incomplete" and type(response.incomplete_details) == "table"
+                and response.incomplete_details.reason == "max_output_tokens" then
+            content = content .. ResponseParser.TRUNCATION_NOTICE
+        end
+        content = ResponseParser.agentCitations(content, results)
+        return true, content, reasoning, searched and finishProv(web_prov) or nil
     end
 }
 

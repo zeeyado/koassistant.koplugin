@@ -424,32 +424,30 @@ TestRunner:suite("Perplexity reasoning injection")
 
 local PerplexityHandler = require("perplexity")
 
-TestRunner:test("adds reasoning_effort for sonar-reasoning-pro", function()
-    local body = { model = "sonar-reasoning-pro", messages = { { role = "user", content = "hi" } } }
-    local config = { api_params = { perplexity_reasoning = { effort = "high" } }, features = {} }
-    local result = PerplexityHandler:customizeRequestBody(body, config)
-    TestRunner:assertEqual(result.reasoning_effort, "high", "reasoning_effort")
+-- Agent API (B078): the resolver's effort for a retired Sonar reasoning id
+-- rides the preset it maps to as reasoning.effort
+local function perplexityBody(model, api_params, features)
+    return PerplexityHandler:buildRequestBody({ { role = "user", content = "hi" } }, {
+        model = model, api_key = "k", api_params = api_params or {}, features = features or {},
+    }).body
+end
+
+TestRunner:test("sonar-reasoning-pro's effort rides the low preset", function()
+    local body = perplexityBody("sonar-reasoning-pro", { perplexity_reasoning = { effort = "high" } })
+    TestRunner:assertEqual(body.preset, "low", "mapped preset")
+    TestRunner:assertEqual(body.reasoning and body.reasoning.effort, "high", "reasoning.effort")
+    TestRunner:assertNil(body.reasoning_effort, "no chat-wire reasoning_effort")
 end)
 
-TestRunner:test("no reasoning for sonar (non-reasoning model)", function()
-    local body = { model = "sonar", messages = { { role = "user", content = "hi" } } }
-    local config = { api_params = { perplexity_reasoning = { effort = "high" } }, features = {} }
-    local result = PerplexityHandler:customizeRequestBody(body, config)
-    TestRunner:assertNil(result.reasoning_effort, "should not add reasoning_effort")
+TestRunner:test("no effort sent without a resolver decision", function()
+    TestRunner:assertNil(perplexityBody("fast").reasoning, "preset keeps its tuned effort")
 end)
 
-TestRunner:test("merges consecutive same-role messages", function()
-    local body = {
-        model = "sonar",
-        messages = {
-            { role = "user", content = "context" },
-            { role = "user", content = "question" },
-        },
-    }
-    local config = { api_params = {}, features = {} }
-    local result = PerplexityHandler:customizeRequestBody(body, config)
-    TestRunner:assertEqual(#result.messages, 1, "should merge to 1 message")
-    TestRunner:assertTrue(result.messages[1].content:find("question"), "should contain question")
+TestRunner:test("no effort on the web-off Sonar model", function()
+    local body = perplexityBody("sonar-reasoning-pro", { perplexity_reasoning = { effort = "high" } },
+        { enable_web_search = false })
+    TestRunner:assertEqual(body.model, "perplexity/sonar", "web off goes to the direct model")
+    TestRunner:assertNil(body.reasoning, "a direct model gets no preset effort")
 end)
 
 --------------------------------------------------------------------------------
@@ -642,13 +640,12 @@ TestRunner:test("SambaNova extracts <think> tags", function()
     TestRunner:assertNotNil(reasoning, "should extract reasoning")
 end)
 
-TestRunner:test("Perplexity extracts <think> tags from sonar-reasoning-pro", function()
+TestRunner:test("Perplexity extracts <think> tags a direct model writes", function()
     local response = {
-        choices = { {
-            message = {
-                content = "<think>Sonar reasoning.</think>Web-grounded answer.",
-            },
-            finish_reason = "stop",
+        status = "completed",
+        output = { {
+            type = "message", role = "assistant", status = "completed",
+            content = { { type = "output_text", text = "<think>Sonar reasoning.</think>Web-grounded answer." } },
         } },
     }
     local ok, content, reasoning = ResponseParser:parseResponse(response, "perplexity")
