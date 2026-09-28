@@ -5,21 +5,23 @@ Perplexity's Agent API (POST /v1/agent, Responses-shaped). The Sonar chat
 completions wire this handler used before retired 2026-09-27 (B078).
 
 Model ids on this wire:
+- A "provider/model" id is a model (e.g. "perplexity/sonar", the default; the
+  model list holds only these), sent as `model`. With web search on it rides
+  with the fast preset (SEARCH_PRESET), which swaps in the model and keeps the
+  preset's search and citation rules, as picking a model in Perplexity's own app
+  does. Alone, a model searches only when it decides to and writes no [n]
+  markers (probed 2026-09-28). With web search off it goes alone, without tools.
+  Models the preset's settings break are listed in
+  ModelConstraints.capabilities.perplexity (no_sampling_params,
+  reasoning_mandatory, no_search_preset; the whole catalog probed 2026-09-28).
 - A bare id is a PRESET ("fast", "low", "medium", "high"): Perplexity's managed
-  bundle of model + search setup + system prompt with citation rules, sent as
-  `preset`. A preset ALWAYS searches: the API has no public way to take its
+  bundle of search setup + system prompt with citation rules + a model it picks,
+  sent as `preset`. None is listed (a preset is not a model), but a typed one
+  works. A preset ALWAYS searches: the API has no public way to take its
   web_search tool away (`tool_choice` and `max_tool_calls` are ignored, probed
   2026-09-27), so a request with web search off goes to Perplexity's own Sonar
   model without tools instead (WEB_OFF_MODEL).
-- A "provider/model" id is a DIRECT model (e.g. "perplexity/sonar"), sent as
-  `model`. With web search on it rides with the fast preset (SEARCH_PRESET),
-  which swaps in the model and keeps the preset's search and citation rules, as
-  picking a model in Perplexity's own app does. Alone, a model searches only
-  when it decides to and writes no [n] markers (probed 2026-09-28). With web
-  search off it goes alone, without tools. Models the preset's settings break
-  are listed in ModelConstraints.capabilities.perplexity (no_sampling_params,
-  reasoning_mandatory, no_search_preset; the whole catalog probed 2026-09-28).
-- A retired Sonar id (sonar-pro, ...) maps to Perplexity's own suggested preset
+- A retired Sonar id (sonar-pro, ...) maps to perplexity/sonar
   (ModelLists._retired), so an old pick anywhere in the settings keeps working.
 
 Our system prompt rides as a system INPUT item, never `instructions`: that field
@@ -161,9 +163,10 @@ function PerplexityHandler:buildRequestBody(message_history, config)
     request_body, constrained = ModelConstraints.apply("perplexity", target, request_body)
     for param, adj in pairs(constrained or {}) do adjustments[param] = adj end
 
-    -- Reasoning effort from the per-model resolver. Only the retired Sonar
-    -- reasoning ids carry a profile; they land on presets, which take an effort
-    -- override. Every other preset keeps the effort Perplexity tuned for it.
+    -- Reasoning effort from the per-model resolver, forwarded to a typed preset
+    -- only. The profiles that yield one belong to the retired Sonar reasoning
+    -- ids, which now land on perplexity/sonar (no reasoning), so on the listed
+    -- models nothing reaches here (docs/perplexity_agent_plan.md, open question).
     local reasoning = api_params.perplexity_reasoning
     if is_preset and type(reasoning) == "table" and reasoning.effort then
         request_body.reasoning = { effort = reasoning.effort }

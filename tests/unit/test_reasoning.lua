@@ -424,19 +424,25 @@ TestRunner:suite("Perplexity reasoning injection")
 
 local PerplexityHandler = require("perplexity")
 
--- Agent API (B078): the resolver's effort for a retired Sonar reasoning id
--- rides the preset it maps to as reasoning.effort
+-- Agent API (B078): a resolver effort rides a typed preset as reasoning.effort;
+-- the retired Sonar reasoning ids that carry the profiles land on Sonar
 local function perplexityBody(model, api_params, features)
     return PerplexityHandler:buildRequestBody({ { role = "user", content = "hi" } }, {
         model = model, api_key = "k", api_params = api_params or {}, features = features or {},
     }).body
 end
 
-TestRunner:test("sonar-reasoning-pro's effort rides the low preset", function()
-    local body = perplexityBody("sonar-reasoning-pro", { perplexity_reasoning = { effort = "high" } })
-    TestRunner:assertEqual(body.preset, "low", "mapped preset")
+TestRunner:test("a resolver effort rides a typed preset as reasoning.effort", function()
+    local body = perplexityBody("low", { perplexity_reasoning = { effort = "high" } })
+    TestRunner:assertEqual(body.preset, "low", "typed preset")
     TestRunner:assertEqual(body.reasoning and body.reasoning.effort, "high", "reasoning.effort")
     TestRunner:assertNil(body.reasoning_effort, "no chat-wire reasoning_effort")
+end)
+
+TestRunner:test("a retired reasoning id lands on Sonar, which gets no effort", function()
+    local body = perplexityBody("sonar-reasoning-pro", { perplexity_reasoning = { effort = "high" } })
+    TestRunner:assertEqual(body.model, "perplexity/sonar", "retired id mapped")
+    TestRunner:assertNil(body.reasoning, "Sonar does not reason; the preset keeps its own effort")
 end)
 
 TestRunner:test("no effort sent without a resolver decision", function()

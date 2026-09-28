@@ -33,7 +33,7 @@ local function getDefaultModel(provider)
         cohere = "command-a-plus-05-2026",
         doubao = "doubao-seed-2.0-pro-32k",
         zai = "glm-5.2",
-        perplexity = "fast",
+        perplexity = "perplexity/sonar",
     }
     return fallbacks[provider] or "unknown"
 end

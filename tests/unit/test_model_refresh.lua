@@ -115,17 +115,18 @@ end)
 
 TestRunner:test("resolveModelRefresh — a retired id moves even when picked on purpose", function()
     local retired = ModelLists._retired.perplexity
-    local action, to = resolve({ model = "sonar-reasoning-pro", explicit = true, current_default = "fast",
+    local action, to = resolve({ model = "sonar-reasoning-pro", explicit = true,
+        current_default = "openai/gpt-6-luna",
         known_models = ModelLists.perplexity, shipped_defaults = ModelLists._shipped_defaults.perplexity,
         retired = retired })
     TestRunner:assertEqual(action, "retired", "the provider no longer serves it")
-    TestRunner:assertEqual(to, "low", "moves to its own replacement, not the default")
-    local action2, to2 = resolve({ model = "sonar-pro", current_default = "fast",
+    TestRunner:assertEqual(to, "perplexity/sonar", "moves to its own replacement, not the default")
+    local action2, to2 = resolve({ model = "sonar-pro", current_default = "perplexity/sonar",
         known_models = ModelLists.perplexity, shipped_defaults = ModelLists._shipped_defaults.perplexity,
         retired = retired })
     TestRunner:assertEqual(action2, "retired", "an auto-baked retired id says retired, not refresh")
-    TestRunner:assertEqual(to2, "fast", "sonar-pro -> fast")
-    local action3 = resolve({ model = "perplexity/sonar", explicit = true, current_default = "fast",
+    TestRunner:assertEqual(to2, "perplexity/sonar", "sonar-pro -> perplexity/sonar")
+    local action3 = resolve({ model = "openai/gpt-6-luna", explicit = true, current_default = "perplexity/sonar",
         known_models = ModelLists.perplexity, retired = retired })
     TestRunner:assertEqual(action3, "keep", "a live id is untouched")
 end)

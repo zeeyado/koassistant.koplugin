@@ -476,10 +476,10 @@ ModelConstraints.capabilities = {
         },
     },
     perplexity = {
-        -- Retired Sonar ids (B078): the handler maps them to presets at the wire
-        -- (ModelLists._retired) and forwards this effort as reasoning.effort, so a
-        -- pick still pinned to one keeps its effort. The presets themselves carry
-        -- the effort Perplexity tuned for them (no profile).
+        -- Retired Sonar ids (B078): the handler maps them to perplexity/sonar at the
+        -- wire (ModelLists._retired), which does not reason, so this effort now
+        -- reaches nothing; kept pending the plan's open question on a reasoning
+        -- dial for Perplexity's models (docs/perplexity_agent_plan.md).
         reasoning = { "sonar-reasoning-pro", "sonar-deep-research" },
         -- Direct models that refuse any temperature: "invalid request" with one,
         -- 200 without, alone or with the search preset (probed 2026-09-28 across
@@ -756,8 +756,8 @@ ModelConstraints._context_windows = {
     },
     perplexity = {
         -- Agent API (B078): presets publish no window (their model moves with
-        -- Perplexity's tuning), so they get no pre-check. The direct Sonar model
-        -- keeps sonar's value.
+        -- Perplexity's tuning), so they get no pre-check. Sonar keeps its value;
+        -- the other listed models have none published here yet (fail-open).
         ["perplexity/sonar"]    = 127072, -- [OR] exact value for sonar (docs round to "128K"; smaller = safer)
     },
     openrouter = {
@@ -1416,8 +1416,8 @@ ModelConstraints.reasoning_profiles = {
 --   mode = "all"                  -> every model of this provider can search
 --   mode = "capability:<name>"    -> only models with that capability (e.g. Gemini's google_search)
 -- Mechanisms today: anthropic (web_search_20250305 tool), openrouter (:online / Exa),
--- perplexity (Agent API web_search tool: every preset searches, a direct model when
--- given the tool), gemini (googleSearch grounding, capable models),
+-- perplexity (Agent API: a model answers inside the fast preset, which searches;
+-- a few ride alone with the web_search tool), gemini (googleSearch grounding, capable models),
 -- OpenAI, OpenAI Subscription, and xAI use the web_search tool on their Responses
 -- APIs (the handlers route web-on requests to their Responses endpoints; see
 -- responses_api_plan.md), zai uses a web_search tool on the chat

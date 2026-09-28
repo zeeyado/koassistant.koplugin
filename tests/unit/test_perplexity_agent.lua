@@ -45,7 +45,7 @@ local function build(model, features, extra)
     return Handler:buildRequestBody(HISTORY, config)
 end
 
-TestRunner:test("a preset rides as preset, the system prompt as an input item", function()
+TestRunner:test("a typed preset rides as preset, the system prompt as an input item", function()
     local built = build("fast")
     local body = built.body
     TestRunner:assertEqual(body.preset, "fast", "preset")
@@ -62,9 +62,23 @@ TestRunner:test("a preset rides as preset, the system prompt as an input item", 
     TestRunner:assertEqual(built.parser, "perplexity", "agent parser")
 end)
 
-TestRunner:test("no model or an empty one falls to the default preset", function()
-    TestRunner:assertEqual(build(nil).body.preset, "fast", "nil")
-    TestRunner:assertEqual(build("").body.preset, "fast", "empty string")
+TestRunner:test("no model or an empty one falls to the default model, Sonar", function()
+    for _idx, model in ipairs({ false, "" }) do
+        local body = build(model or nil).body
+        TestRunner:assertEqual(body.model, "perplexity/sonar", tostring(model))
+        TestRunner:assertEqual(body.preset, "fast", tostring(model) .. ": searching through the preset")
+    end
+end)
+
+TestRunner:test("the model list holds models only, with no tier placements", function()
+    local ModelLists = require("koassistant_model_lists")
+    TestRunner:assertEqual(ModelLists.perplexity[1], "perplexity/sonar", "default first")
+    for _idx, id in ipairs(ModelLists.perplexity) do
+        TestRunner:assertTrue(id:find("/", 1, true) ~= nil, id .. " is a provider/model id, not a preset")
+    end
+    for tier, map in pairs(ModelLists._tiers) do
+        TestRunner:assertEqual(map.perplexity, nil, tier .. ": a gateway gets no placement")
+    end
 end)
 
 TestRunner:test("each turn stays its own item (consecutive user turns are accepted)", function()
@@ -92,14 +106,13 @@ TestRunner:test("a provider/model id rides with the search preset while web sear
         "the effort dial still reaches the search")
 end)
 
-TestRunner:test("retired Sonar ids map to Perplexity's suggested presets", function()
-    local cases = { sonar = "fast", ["sonar-pro"] = "fast", ["sonar-reasoning-pro"] = "low",
-        ["sonar-deep-research"] = "high" }
-    for old_id, preset in pairs(cases) do
+TestRunner:test("retired Sonar ids map to perplexity/sonar", function()
+    for _idx, old_id in ipairs({ "sonar", "sonar-pro", "sonar-reasoning-pro", "sonar-deep-research" }) do
         local built = build(old_id)
-        TestRunner:assertEqual(built.body.preset, preset, old_id)
-        TestRunner:assertEqual(built.adjustments.retired_model and built.adjustments.retired_model.to, preset,
-            old_id .. " adjustment logged")
+        TestRunner:assertEqual(built.body.model, "perplexity/sonar", old_id)
+        TestRunner:assertEqual(built.body.preset, "fast", old_id .. " searches through the preset")
+        TestRunner:assertEqual(built.adjustments.retired_model and built.adjustments.retired_model.to,
+            "perplexity/sonar", old_id .. " adjustment logged")
     end
 end)
 

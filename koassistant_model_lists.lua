@@ -345,15 +345,21 @@ local ModelLists = {
         "doubao-seed-2.0-code",         -- coding
     },
 
+    -- Perplexity (Agent API, B078): a gateway to its own Sonar and other
+    -- companies' models (/v1/models, 49 ids on 2026-09-28; "Fetch models"
+    -- brings the rest). With web search on each model answers inside the fast
+    -- preset, which searches and cites (koassistant_api/perplexity.lua); every
+    -- id below searched and cited that way (probed 2026-09-28). Presets are not
+    -- models, so none is listed (a typed one still works). Meta router: NO tier
+    -- placements (maintainer ruling 2026-09-28, after preset tiers read as
+    -- "low: flagship").
     perplexity = {
-        -- Agent API (B078, 2026-09-27). Bare ids are PRESETS, Perplexity's managed
-        -- bundles named by research depth; every preset searches the web and cites.
-        "fast",                         -- one search, quickest (default; replaces sonar and sonar-pro)
-        "low",                          -- everyday research, a few steps (replaces sonar-reasoning-pro)
-        "medium",                       -- multi-step research across many sources
-        "high",                         -- deep research, slowest and costliest (replaces sonar-deep-research)
-        -- A direct model: searches only when it decides to, and runs web-off requests
-        "perplexity/sonar",
+        "perplexity/sonar",             -- default: Perplexity's own model (every retired Sonar id lands here)
+        "openai/gpt-6-luna",            -- the model Perplexity's own fast/low/medium presets run
+        "openai/gpt-6-sol",
+        "anthropic/claude-sonnet-5",
+        "google/gemini-3.8-flash",
+        "xai/grok-4.7",
     },
 
     zai = {
@@ -605,7 +611,7 @@ local ModelLists = {
         sambanova  = { "gpt-oss-120b", "Llama-4-Maverick-17B-128E-Instruct", "Meta-Llama-4-Maverick-17B-128E-Instruct" },
         cohere     = { "command-a-plus-05-2026", "command-a-03-2025" },
         doubao     = { "doubao-seed-2.0-pro-32k", "doubao-1.8-pro-32k" },
-        perplexity = { "fast", "sonar-pro", "sonar" },
+        perplexity = { "perplexity/sonar", "fast", "sonar-pro", "sonar" },
         zai        = { "glm-5.2", "glm-5.1", "glm-5-turbo", "glm-5" },
     },
 
@@ -613,14 +619,15 @@ local ModelLists = {
     -- refresh moves a stored pick even when it was deliberate (the old id would
     -- fail), with a one-time notice; the provider's handler maps any other stored
     -- copy (an action's or a tier's pinned model) at the wire. Perplexity: the
-    -- Sonar chat wire retired 2026-09-27; the replacements are Perplexity's own
-    -- suggested presets (docs "Migrate from Sonar").
+    -- Sonar chat wire retired 2026-09-27; sonar lives on as perplexity/sonar on
+    -- the Agent API, the other Sonar models are gone and land on it too (the
+    -- default).
     _retired = {
         perplexity = {
-            ["sonar"] = "fast",
-            ["sonar-pro"] = "fast",
-            ["sonar-reasoning-pro"] = "low",
-            ["sonar-deep-research"] = "high",
+            ["sonar"] = "perplexity/sonar",
+            ["sonar-pro"] = "perplexity/sonar",
+            ["sonar-reasoning-pro"] = "perplexity/sonar",
+            ["sonar-deep-research"] = "perplexity/sonar",
         },
     },
 
@@ -662,7 +669,6 @@ local ModelLists = {
             kimi = "kimi-k2.6",
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5.2",
-            perplexity = "low",                      -- everyday research preset; "fast" is the default
             nvidia = "nvidia/nemotron-3-ultra-550b-a55b",
         },
 
@@ -685,7 +691,6 @@ local ModelLists = {
             kimi = "kimi-k2.6",
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5",
-            perplexity = "fast",
             nvidia = "nvidia/nemotron-3-super-120b-a12b",
         },
 
@@ -708,7 +713,6 @@ local ModelLists = {
             kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
-            perplexity = "fast",
             nvidia = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning",  -- ~1.2s; lightning pulled: see the array note
         },
 
@@ -731,7 +735,6 @@ local ModelLists = {
             kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
-            perplexity = "fast",
             nvidia = "nvidia/nemotron-3-nano-30b-a3b",  -- ~0.15s measured (3 samples 2026-08-29); replaces the retired nano-9b-v2 (410, EOL 2026-08-26)
         },
     },
@@ -815,7 +818,7 @@ local ModelLists = {
         },
         perplexity = {
             api_list = "https://api.perplexity.ai/v1/models",  -- direct models only, no presets
-            docs = "https://docs.perplexity.ai/docs/agent-api/presets",
+            docs = "https://docs.perplexity.ai/docs/agent-api/models",
         },
         zai = {
             api_list = "https://api.z.ai/api/paas/v4/models",
