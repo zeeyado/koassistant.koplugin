@@ -122,7 +122,10 @@ function XrayRows.versionRows(ctx)
                 if not act and plugin.action_service then
                     act = plugin.action_service:getAction("book", "xray")
                 end
-                if act and plugin._checkRequirements and plugin:_checkRequirements(act) then
+                -- A run option's model (B345) is the provider the update reaches
+                local rv = ctx.list_opts and ctx.list_opts.run_variant
+                if act and plugin._checkRequirements
+                        and plugin:_checkRequirements(act, nil, rv and rv.provider or nil) then
                     return
                 end
                 -- Mid-ladder honesty lines, recomputed from disk at tap time

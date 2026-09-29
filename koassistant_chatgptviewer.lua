@@ -3562,15 +3562,13 @@ function ChatGPTViewer:askAnotherQuestion()
   local quick_btn
   do
     local qa_on = cfg_features._session_quick_answer == true
-    -- {follow=true} sentinels are "explicitly back to settings" — not overrides
-    local sr = cfg_features._session_reasoning
-    local sm = cfg_features._session_model
-    local has_override = (sr ~= nil and not sr.follow) or (sm ~= nil and not sm.follow)
+    -- ON/OFF, the input dialog's wording. A chat's own model or reasoning pick
+    -- (a resumed chat, a run option) is not a Quick state: no third label.
     local label
     if enable_emoji then
-      label = "\u{26A1} " .. (qa_on and _("ON") or (has_override and _("SET") or _("OFF")))
+      label = "\u{26A1} " .. (qa_on and _("ON") or _("OFF"))
     else
-      label = qa_on and _("Quick ON") or (has_override and _("Quick SET") or _("Quick"))
+      label = qa_on and _("Quick ON") or _("Quick")
     end
     quick_btn = {
       text = label,

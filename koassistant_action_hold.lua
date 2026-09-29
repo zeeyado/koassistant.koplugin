@@ -8,8 +8,9 @@ Settings. Now every surface opens the same small menu: the description, add to
 or remove from THIS menu, the other placements, and the editor.
 
 Surfaces that can run the action pass `opts.run(variant, label)`: the menu
-then opens with "Run once with:" buttons on top (B345, docs/run_options_plan.md),
-each running the action once another way (a model, Quick, reasoning, web).
+then opens with run buttons on top (B345, docs/run_options_plan.md), each
+running the action once another way (Quick, a model, no reasoning, web), then
+a double line, then the rows that change the action for good.
 
 `plan(action, surface, on_surface)` and `layout(rows)` are pure (rows as data,
 unit-tested); `show(plugin, action, opts)` renders them as a ButtonDialog.
@@ -182,8 +183,8 @@ function ActionHold.layout(rows)
     return primary, more
 end
 
---- The "Run once with:" buttons: the run options that apply to this action here,
---- then "Other model…". Each entry is { label, run = function() }.
+--- The run buttons: the run options that apply to this action here, then
+--- "More models…". Each entry is { label, run = function() }.
 function ActionHold.runButtons(plugin, action, opts)
     local RunOptions = require("koassistant_run_options")
     local st = RunOptions.stateFor(plugin, action, opts)
@@ -194,12 +195,16 @@ function ActionHold.runButtons(plugin, action, opts)
         out[#out + 1] = { label = label, run = function() opts.run(variant, label) end }
     end
     out[#out + 1] = {
-        label = _("Other model…"),
+        label = (st.emoji and "\u{1F916} " or "") .. _("More models…"),
         run = function()
             require("koassistant_dialogs").pickProviderModel({
                 plugin = plugin,
                 current = st.base,
+                -- Opens on the models of the provider a tap would use
+                start_provider = st.base.provider,
                 on_pick = function(provider, model)
+                    -- The pick fills a model spot from now on
+                    RunOptions.rememberPick(plugin, provider, model)
                     opts.run({ provider = provider, model = model }, model)
                 end,
             })
@@ -276,35 +281,51 @@ function ActionHold.show(plugin, action, opts)
         end
         if #row > 0 then table.insert(buttons, row) end
     end
+    local manage = {}
     for _idx, row in ipairs(primary) do
         local r = row
-        table.insert(buttons, { {
+        table.insert(manage, {
             text = ActionHold.rowLabel(r, opts.surface),
             callback = function()
                 UIManager:close(dialog)
                 ActionHold.run(plugin, action, r, opts)
             end,
-        } })
+        })
     end
     if #more > 0 then
-        table.insert(buttons, { {
+        table.insert(manage, {
             text = _("More…"),
             callback = function()
                 UIManager:close(dialog)
                 showMore(plugin, action, more, opts)
             end,
-        } })
+        })
     end
-    local title = action.text or action.id or ""
+    if #buttons > 0 and #manage > 0 then
+        -- KOReader's group separator (an empty row, as in the file browser's
+        -- long-press dialog): what runs now above, what changes the action below
+        table.insert(buttons, {})
+    end
+    -- The membership row reads longest, so it stands alone; the rest pair up
+    local i = 1
+    if primary[1] and primary[1].id == "membership" then
+        table.insert(buttons, { manage[1] })
+        i = 2
+    end
+    while i <= #manage do
+        table.insert(buttons, { manage[i], manage[i + 1] })
+        i = i + 2
+    end
+    -- The description alone: the reader knows which action they held
+    local title
     if action.description and action.description ~= "" then
-        title = title .. "\n" .. action.description
-    end
-    if run_buttons then
-        title = title .. "\n\n" .. _("Run once with:")
+        title = action.description
     end
     dialog = ButtonDialog:new{
         title = title,
         title_align = "left",
+        -- Narrower than the 0.9 default, so the menu underneath shows at the edges
+        width_factor = 0.7,
         buttons = buttons,
     }
     UIManager:show(dialog)

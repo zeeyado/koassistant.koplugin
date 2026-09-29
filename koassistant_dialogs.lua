@@ -1036,14 +1036,17 @@ end
 --          on_provider(provider_id, provider_label)|nil — when set, picking a
 --            provider ends the flow here (no model stage; used by the Quick
 --            preset's provider+tier pick),
---          provider_title|nil (title for the provider stage) }
+--          provider_title|nil (title for the provider stage),
+--          start_provider|nil — open on this provider's models, with an
+--            "Other provider…" row (the hold menu's "More models…") }
 local function pickProviderModel(opts)
     local ButtonDialog = require("ui/widget/buttondialog")
     local ModelLists = require("koassistant_model_lists")
     local plugin = opts.plugin
     local current = opts.current
+    local pickProvider
 
-    local function pickModelFor(provider_id, provider_label)
+    local function pickModelFor(provider_id, provider_label, provider_row)
         local sub
         -- Built-in list, or for custom providers their default model + saved
         -- customs (same sources as the Quick Edit selector)
@@ -1063,6 +1066,15 @@ local function pickProviderModel(opts)
             models = ModelLists[provider_id] or {}
         end
         local buttons = {}
+        if provider_row then
+            table.insert(buttons, {{
+                text = _("Other provider…"),
+                callback = function()
+                    UIManager:close(sub)
+                    pickProvider(false)
+                end,
+            }})
+        end
         for _idx, m in ipairs(models) do
             local model_name = m
             local is_current = current and current.provider == provider_id
@@ -1086,7 +1098,6 @@ local function pickProviderModel(opts)
         UIManager:show(sub)
     end
 
-    local pickProvider
     pickProvider = function(show_all)
         local sub
         local buttons = {}
@@ -1158,7 +1169,16 @@ local function pickProviderModel(opts)
         UIManager:show(sub)
     end
 
-    pickProvider(false)
+    if opts.start_provider then
+        local p = opts.start_provider
+        local custom = plugin and plugin.getCustomProvider and plugin:getCustomProvider(p)
+        local name = (custom and (custom.name or p))
+            or (plugin and plugin.getProviderDisplayName and plugin:getProviderDisplayName(p))
+            or p
+        pickModelFor(p, name, true)
+    else
+        pickProvider(false)
+    end
 end
 
 -- Quick Answer preset: model-component mode picker — Keep current / Fastest /

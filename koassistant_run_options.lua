@@ -2,18 +2,20 @@
 koassistant_run_options.lua - run an action another way, once (B345,
 docs/run_options_plan.md), plus the dispatch-scoped model stash.
 
-A run option is a one-run pick from an action's hold menu: a model (a tier or
-an exact provider/model), Quick on/off, reasoning on/off, web on/off. It stands
-in for the chips for that run, so the action's own settings still win over its
-Quick, reasoning and web parts; a picked MODEL also beats the action's own
-model pin. Artifact actions (cached, parsed or incremental) take the model only.
+A run option is a one-run pick from an action's hold menu: Quick on/off, a
+model (up to three spots: the reader's recent "More models…" picks, then the
+provider's Fast model), no reasoning, web on/off. It stands in for the chips
+for that run, so the action's own settings still win over its Quick, reasoning
+and web parts; a picked MODEL also beats the action's own model pin. Artifact
+actions (cached, parsed or incremental) take the model only.
 
 Request side: the pick rides features._run_variant, always with an exact
-provider/model (tiers are resolved here, when the button is built, so the label
-and the request agree). Dialogs.executeDirectAction and the input dialog set it
-just-in-time; buildUnifiedRequestConfig consumes it.
+provider/model (the Fast tier is resolved here, when the button is built, so
+the label and the request agree). Dialogs.executeDirectAction and the input
+dialog set it just-in-time; buildUnifiedRequestConfig consumes it.
 
-`buttons()` is pure (unit-tested); `stateFor()` reads the live settings.
+`buttons()` and `addRecent()` are pure (unit-tested); `stateFor()` reads the
+live settings.
 
 The stash: a dispatch-scoped model write (an action's pin, a tier hint, the
 Quick preset's model, a run option) must not outlive the chat it was made for.
@@ -23,30 +25,77 @@ stashBucket() records a per-provider model slot before a write overwrites it.
 ]]
 
 local _ = require("koassistant_gettext")
-local T = require("ffi/util").template
 
 local RunOptions = {}
 
--- The shipped list, read through while features.run_options is unset. Each
--- pair shows only the half that changes something for the run.
+-- The shipped options, in menu order. Each pair shows only the half that
+-- changes something for the run; list() puts the recent picks ahead of Fast.
 RunOptions.DEFAULTS = {
     { id = "quick_on", quick = true },
     { id = "quick_off", quick = false },
     { id = "fast", tier = "fast" },
-    { id = "flagship", tier = "flagship" },
     { id = "reasoning_off", reasoning = "off" },
-    { id = "reasoning_on", reasoning = "on" },
     { id = "web_off", web = false },
     { id = "web_on", web = true },
 }
 
--- Run buttons shown in the hold menu before "Other model…"
-RunOptions.MAX_BUTTONS = 5
+-- Model buttons in the hold menu (recent picks, then Fast), before "More models…"
+RunOptions.MODEL_SPOTS = 3
+-- Recent picks kept: more than the spots, since some are hidden for an action
+RunOptions.RECENT_KEEP = 5
 
+--- The reader's recent "More models…" picks, newest first.
+function RunOptions.recentModels(features)
+    local out = {}
+    local l = features and features.run_recent_models
+    if type(l) ~= "table" then return out end
+    for _idx, r in ipairs(l) do
+        if type(r) == "table" and type(r.provider) == "string" and type(r.model) == "string" then
+            out[#out + 1] = { provider = r.provider, model = r.model }
+        end
+    end
+    return out
+end
+
+--- The hold menu's options: the defaults, with the recent picks ahead of Fast.
 function RunOptions.list(features)
-    local l = features and features.run_options
-    if type(l) == "table" then return l end
-    return RunOptions.DEFAULTS
+    local out = {}
+    for _idx, e in ipairs(RunOptions.DEFAULTS) do
+        if e.tier then
+            for _idx2, r in ipairs(RunOptions.recentModels(features)) do
+                out[#out + 1] = r
+            end
+        end
+        out[#out + 1] = e
+    end
+    return out
+end
+
+--- A "More models…" pick joins the recent list: a new model goes first, one
+--- already there keeps its place (the spots stay put), the oldest drops.
+--- @return table|nil the new list, nil when nothing changes
+function RunOptions.addRecent(list, provider, model)
+    if not (provider and model) then return nil end
+    for _idx, r in ipairs(list or {}) do
+        if r.provider == provider and r.model == model then return nil end
+    end
+    local out = { { provider = provider, model = model } }
+    for _idx, r in ipairs(list or {}) do
+        if #out >= RunOptions.RECENT_KEEP then break end
+        out[#out + 1] = r
+    end
+    return out
+end
+
+--- Save a "More models…" pick to the recent list.
+function RunOptions.rememberPick(plugin, provider, model)
+    if not (plugin and plugin.settings) then return end
+    local f = plugin.settings:readSetting("features") or {}
+    local nxt = RunOptions.addRecent(RunOptions.recentModels(f), provider, model)
+    if not nxt then return end
+    f.run_recent_models = nxt
+    plugin.settings:saveSetting("features", f)
+    plugin.settings:flush()
 end
 
 --- Artifact actions take the model part of a run option only: their output is
@@ -78,51 +127,24 @@ function RunOptions.variantTarget(e, base_provider, resolve_tier)
     return nil
 end
 
-local TIER_LABELS = {
-    fastest = function(m) return T(_("Fastest (%1)"), m) end,
-    ultrafast = function(m) return T(_("Ultrafast (%1)"), m) end,
-    fast = function(m) return T(_("Fast (%1)"), m) end,
-    standard = function(m) return T(_("Standard (%1)"), m) end,
-    flagship = function(m) return T(_("Flagship (%1)"), m) end,
-    frontier = function(m) return T(_("Frontier (%1)"), m) end,
-}
+-- The facet's icon (the chips' and Quick Settings' own) when emoji icons are on
+local function withIcon(icon, text, st)
+    return st.emoji and (icon .. " " .. text) or text
+end
 
-local function labelFor(e, v, st)
+local function labelFor(v, st)
     if v.provider then
-        local text
-        if e.name and e.name ~= "" then
-            text = e.name
-        elseif e.tier and TIER_LABELS[e.tier] then
-            return TIER_LABELS[e.tier](v.model)
-        else
-            text = v.model
-            if v.reasoning == "off" then
-                text = T(_("%1, no reasoning"), text)
-            elseif v.reasoning == "on" then
-                text = T(_("%1, with reasoning"), text)
-            end
-            if v.web == true then
-                text = T(_("%1, with web search"), text)
-            elseif v.web == false then
-                text = T(_("%1, without web search"), text)
-            end
-        end
-        return text
-    end
-    if v.quick == true then
-        return (st.emoji and "\u{26A1} " or "") .. _("Quick answer")
+        return withIcon("\u{1F916}", v.model, st)
+    elseif v.quick == true then
+        return withIcon("\u{26A1}", _("Quick answer"), st)
     elseif v.quick == false then
-        return _("Without Quick")
+        return withIcon("\u{26A1}", _("Without Quick"), st)
     elseif v.reasoning == "off" then
-        return _("No reasoning")
-    elseif v.reasoning == "on" then
-        return _("With reasoning")
+        return withIcon("\u{1F9E0}", _("No reasoning"), st)
     elseif v.web == true then
-        return _("With web search")
-    elseif v.web == false then
-        return _("Without web search")
+        return withIcon("\u{1F310}", _("With web search"), st)
     end
-    return e.name or "?"
+    return withIcon("\u{1F310}", _("Without web search"), st)
 end
 
 --- One entry as a button for this action, or nil when it cannot apply here or
@@ -134,64 +156,49 @@ end
 function RunOptions.button(e, model_only, st)
     if type(e) ~= "table" then return nil end
     local v = {}
-    local changes = false
     if e.tier ~= nil or e.provider ~= nil then
         local p, m = RunOptions.variantTarget(e, st.tier_base, st.resolveTier)
         if not p or not m then return nil end
         if st.configured and not st.configured(p) then return nil end
+        -- The model a normal tap already uses changes nothing
+        if p == st.base.provider and m == st.base.model then return nil end
         v.provider, v.model = p, m
-        changes = not (p == st.base.provider and m == st.base.model)
-        -- A combo's other facets ride along, minus what the action sets itself
-        if not model_only then
-            if (e.reasoning == "on" or e.reasoning == "off") and not st.reasoning.pinned then
-                v.reasoning = e.reasoning
-                changes = true
-            end
-            if e.web ~= nil and not st.web.pinned then
-                v.web = e.web == true
-                changes = true
-            end
-        end
-    elseif not model_only then
-        if e.quick ~= nil then
-            if st.quick.receptive and (e.quick == true) ~= st.quick.on then
-                v.quick = e.quick == true
-                changes = true
-            end
-        elseif e.reasoning == "off" then
-            local r = st.reasoning
-            if not r.pinned and r.mode == "on" and r.can_disable then
-                v.reasoning = "off"
-                changes = true
-            end
-        elseif e.reasoning == "on" then
-            local r = st.reasoning
-            if not r.pinned and r.mode == "off" and r.can_enable then
-                v.reasoning = "on"
-                changes = true
-            end
-        elseif e.web ~= nil then
-            local w = st.web
-            if not w.pinned and w.capable and (e.web == true) ~= w.on then
-                v.web = e.web == true
-                changes = true
-            end
-        end
+    elseif model_only then
+        return nil
+    elseif e.quick ~= nil then
+        if not st.quick.receptive or (e.quick == true) == st.quick.on then return nil end
+        v.quick = e.quick == true
+    elseif e.reasoning == "off" then
+        local r = st.reasoning
+        if r.pinned or r.mode ~= "on" or not r.can_disable then return nil end
+        v.reasoning = "off"
+    elseif e.web ~= nil then
+        local w = st.web
+        if w.pinned or not w.capable or (e.web == true) == w.on then return nil end
+        v.web = e.web == true
+    else
+        return nil
     end
-    if not changes then return nil end
-    return { label = labelFor(e, v, st), variant = v }
+    return { label = labelFor(v, st), variant = v }
 end
 
---- The run buttons for an action, in list order, capped at MAX_BUTTONS.
+--- The run buttons for an action, in list order; at most MODEL_SPOTS model
+--- buttons, each model once (a recent pick can be the Fast model).
 function RunOptions.buttons(list, action, st)
-    local out = {}
+    local out, seen, models = {}, {}, 0
     local model_only = RunOptions.isModelOnly(action)
     for _idx, e in ipairs(list or {}) do
         local b = RunOptions.button(e, model_only, st)
-        if b then
-            out[#out + 1] = b
-            if #out >= RunOptions.MAX_BUTTONS then break end
+        if b and b.variant.provider then
+            local key = b.variant.provider .. "/" .. b.variant.model
+            if seen[key] or models >= RunOptions.MODEL_SPOTS then
+                b = nil
+            else
+                seen[key] = true
+                models = models + 1
+            end
         end
+        if b then out[#out + 1] = b end
     end
     return out
 end
@@ -289,7 +296,6 @@ function RunOptions.stateFor(plugin, action, opts)
             pinned = action_reasoning ~= nil,
             mode = decision.mode,
             can_disable = controllable and prof.can_disable == true,
-            can_enable = controllable and (prof.can_enable == true or prof.default_state == "on"),
         },
         web = {
             pinned = action.enable_web_search ~= nil,

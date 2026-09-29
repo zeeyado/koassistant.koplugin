@@ -24,14 +24,14 @@ require("mock_koreader")
 local RunOptions = require("koassistant_run_options")
 local TestRunner = require("test_runner"):new()
 
-local TIERS = { fast = "claude-haiku-4-5", flagship = "claude-opus-5-5" }
+local TIERS = { fast = "claude-haiku-4-5" }
 
 local function state(over)
     local st = {
         base = { provider = "anthropic", model = "claude-sonnet-5" },
         tier_base = "anthropic",
         quick = { receptive = true, on = false },
-        reasoning = { pinned = false, mode = "on", can_disable = true, can_enable = true },
+        reasoning = { pinned = false, mode = "on", can_disable = true },
         web = { pinned = false, on = false, capable = true },
         configured = function() return true end,
         resolveTier = function(p, tier)
@@ -56,51 +56,55 @@ local PROSE = { id = "explain", accept_quick_answer = true }
 
 TestRunner:test("defaults: a receptive prose action gets one button per pair", function()
     local b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, state())
-    TestRunner:assertEqual(labels(b),
-        "Quick answer | Fast (claude-haiku-4-5) | Flagship (claude-opus-5-5) | No reasoning | With web search",
+    TestRunner:assertEqual(labels(b), "Quick answer | claude-haiku-4-5 | No reasoning | With web search",
         "labels")
     TestRunner:assertEqual(b[1].variant.quick, true, "quick on")
-    TestRunner:assertEqual(b[4].variant.reasoning, "off", "reasoning off")
-    TestRunner:assertEqual(b[5].variant.web, true, "web on")
+    TestRunner:assertEqual(b[3].variant.reasoning, "off", "reasoning off")
+    TestRunner:assertEqual(b[4].variant.web, true, "web on")
 end)
 
-TestRunner:test("tier buttons carry the resolved provider and model, never the tier", function()
+TestRunner:test("icons: the facet's own icon on every button when emoji icons are on", function()
+    local b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, state({ emoji = true }))
+    TestRunner:assertEqual(labels(b),
+        "\u{26A1} Quick answer | \u{1F916} claude-haiku-4-5 | \u{1F9E0} No reasoning | \u{1F310} With web search",
+        "labels")
+end)
+
+TestRunner:test("the Fast button carries the resolved provider and model, never the tier", function()
     local b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, state())
     TestRunner:assertEqual(b[2].variant.provider, "anthropic", "provider")
     TestRunner:assertEqual(b[2].variant.model, "claude-haiku-4-5", "model")
     TestRunner:assertEqual(b[2].variant.tier, nil, "no tier on the request")
 end)
 
-TestRunner:test("each pair shows only the half that changes something", function()
+TestRunner:test("each pair shows only the half that changes something; no reasoning-on button", function()
     local st = state({
         quick = { receptive = true, on = true },
-        reasoning = { pinned = false, mode = "off", can_disable = true, can_enable = true },
+        reasoning = { pinned = false, mode = "off", can_disable = true },
         web = { pinned = false, on = true, capable = true },
     })
     local b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, st)
-    TestRunner:assertEqual(labels(b),
-        "Without Quick | Fast (claude-haiku-4-5) | Flagship (claude-opus-5-5) | With reasoning | Without web search",
-        "labels")
+    TestRunner:assertEqual(labels(b), "Without Quick | claude-haiku-4-5 | Without web search", "labels")
     TestRunner:assertEqual(b[1].variant.quick, false, "quick off")
 end)
 
 TestRunner:test("the chip rule: what the action sets itself gets no button", function()
     local st = state({
-        reasoning = { pinned = true, mode = "off", can_disable = true, can_enable = true },
+        reasoning = { pinned = true, mode = "on", can_disable = true },
         web = { pinned = true, on = false, capable = true },
         quick = { receptive = false, on = false },
     })
     local b = RunOptions.buttons(RunOptions.DEFAULTS, { id = "eli5" }, st)
-    TestRunner:assertEqual(labels(b), "Fast (claude-haiku-4-5) | Flagship (claude-opus-5-5)", "model only")
+    TestRunner:assertEqual(labels(b), "claude-haiku-4-5", "model only")
 end)
 
-TestRunner:test("no reasoning buttons when the model cannot switch; no web when it cannot search", function()
+TestRunner:test("no reasoning button when the model cannot turn it off; no web when it cannot search", function()
     local st = state({
-        reasoning = { pinned = false, mode = "off", can_disable = false, can_enable = false },
+        reasoning = { pinned = false, mode = "on", can_disable = false },
         web = { pinned = false, on = false, capable = false },
     })
     local b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, st)
-    TestRunner:assertEqual(labels(b), "Quick answer | Fast (claude-haiku-4-5) | Flagship (claude-opus-5-5)", "labels")
+    TestRunner:assertEqual(labels(b), "Quick answer | claude-haiku-4-5", "labels")
 end)
 
 TestRunner:test("artifact actions take model buttons only", function()
@@ -111,20 +115,18 @@ TestRunner:test("artifact actions take model buttons only", function()
         { id = "recap", update_prompt = "…" },
     }) do
         local b = RunOptions.buttons(RunOptions.DEFAULTS, a, state())
-        TestRunner:assertEqual(labels(b), "Fast (claude-haiku-4-5) | Flagship (claude-opus-5-5)", a.id)
+        TestRunner:assertEqual(labels(b), "claude-haiku-4-5", a.id)
         TestRunner:assertTrue(RunOptions.isModelOnly(a), a.id .. " is model-only")
     end
     TestRunner:assertFalse(RunOptions.isModelOnly(PROSE), "prose is not")
 end)
 
-TestRunner:test("a tier equal to what the action runs on, a missing tier, a keyless provider: hidden", function()
+TestRunner:test("Fast equal to what the action runs on, a missing tier, a keyless provider: hidden", function()
     local b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE,
         state({ base = { provider = "anthropic", model = "claude-haiku-4-5" } }))
-    TestRunner:assertFalse(labels(b):find("Fast", 1, true) ~= nil, "Fast equals the base")
-    b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, state({
-        resolveTier = function(p, tier) if tier == "fast" then return p, "claude-haiku-4-5" end end,
-    }))
-    TestRunner:assertFalse(labels(b):find("Flagship", 1, true) ~= nil, "no flagship placement")
+    TestRunner:assertFalse(labels(b):find("claude-haiku", 1, true) ~= nil, "Fast equals the base")
+    b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, state({ resolveTier = function() return nil end }))
+    TestRunner:assertEqual(labels(b), "Quick answer | No reasoning | With web search", "no fast placement")
     b = RunOptions.buttons(RunOptions.DEFAULTS, PROSE, state({
         resolveTier = function(_p, tier) if tier == "fast" then return "groq", "llama-fast" end end,
         configured = function(p) return p ~= "groq" end,
@@ -132,30 +134,61 @@ TestRunner:test("a tier equal to what the action runs on, a missing tier, a keyl
     TestRunner:assertFalse(labels(b):find("llama", 1, true) ~= nil, "keyless global tier pin")
 end)
 
-TestRunner:test("a combo keeps its model and drops the facets the action sets", function()
-    local list = { { provider = "openai", model = "gpt-5.5", reasoning = "on", web = true } }
-    local st = state({
-        reasoning = { pinned = true, mode = "off", can_disable = true, can_enable = true },
-        web = { pinned = false, on = false, capable = true },
-    })
-    local b = RunOptions.buttons(list, { id = "eli5" }, st)
-    TestRunner:assertEqual(#b, 1, "one button")
-    TestRunner:assertEqual(b[1].variant.provider, "openai", "model applies")
-    TestRunner:assertEqual(b[1].variant.reasoning, nil, "reasoning dropped (pinned)")
-    TestRunner:assertEqual(b[1].variant.web, true, "web kept")
-    TestRunner:assertEqual(b[1].label, "gpt-5.5, with web search", "label names what applies")
+-- ---------------------------------------------------------------- recent picks
+
+TestRunner:test("recent picks fill the model spots ahead of Fast: at most three, each model once", function()
+    local recent = {
+        { provider = "openai", model = "gpt-6-luna" },
+        { provider = "anthropic", model = "claude-sonnet-5" },   -- what a tap uses: skipped
+        { provider = "anthropic", model = "claude-haiku-4-5" },  -- the Fast model: shown once
+        { provider = "groq", model = "llama-x" },                -- keyless: skipped
+    }
+    local st = state({ configured = function(p) return p ~= "groq" end })
+    local b = RunOptions.buttons(RunOptions.list({ run_recent_models = recent }), PROSE, st)
+    TestRunner:assertEqual(labels(b), "Quick answer | gpt-6-luna | claude-haiku-4-5 | No reasoning | With web search",
+        "recents first, Fast deduped, base and keyless skipped")
+    recent = {
+        { provider = "openai", model = "a" }, { provider = "openai", model = "b" },
+        { provider = "openai", model = "c" }, { provider = "openai", model = "d" },
+    }
+    b = RunOptions.buttons(RunOptions.list({ run_recent_models = recent }), { id = "xray", cache_as_xray = true }, state())
+    TestRunner:assertEqual(labels(b), "a | b | c", "three spots; Fast waits for a free one")
 end)
 
-TestRunner:test("at most MAX_BUTTONS run buttons", function()
-    local list = {}
-    for i = 1, 8 do list[i] = { provider = "p" .. i, model = "m" .. i } end
-    TestRunner:assertEqual(#RunOptions.buttons(list, PROSE, state()), RunOptions.MAX_BUTTONS, "capped")
+TestRunner:test("list(): the defaults with recent picks ahead of Fast; bad entries skipped", function()
+    local l = RunOptions.list({})
+    TestRunner:assertEqual(#l, #RunOptions.DEFAULTS, "no recents: the defaults")
+    l = RunOptions.list({ run_recent_models = { { provider = "openai", model = "gpt-6-luna" }, "junk", { provider = 1 } } })
+    TestRunner:assertEqual(l[3].model, "gpt-6-luna", "recent before Fast")
+    TestRunner:assertEqual(l[4].tier, "fast", "then Fast")
+    TestRunner:assertEqual(#l, #RunOptions.DEFAULTS + 1, "junk dropped")
 end)
 
-TestRunner:test("the list reads through the defaults until the reader saves one", function()
-    TestRunner:assertEqual(RunOptions.list({}), RunOptions.DEFAULTS, "defaults")
-    local mine = { { provider = "openai", model = "gpt-5.5" } }
-    TestRunner:assertEqual(RunOptions.list({ run_options = mine }), mine, "saved list")
+TestRunner:test("addRecent: a new pick goes first, a known one keeps its place, the oldest drops", function()
+    local l = RunOptions.addRecent({}, "openai", "a")
+    TestRunner:assertEqual(l[1].model, "a", "first pick")
+    l = RunOptions.addRecent(l, "openai", "b")
+    TestRunner:assertEqual(l[1].model .. l[2].model, "ba", "newest first")
+    TestRunner:assertEqual(RunOptions.addRecent(l, "openai", "a"), nil, "reuse changes nothing")
+    for _idx, m in ipairs({ "c", "d", "e", "f" }) do l = RunOptions.addRecent(l, "openai", m) end
+    TestRunner:assertEqual(#l, RunOptions.RECENT_KEEP, "capped")
+    TestRunner:assertEqual(l[#l].model, "b", "oldest dropped")
+    TestRunner:assertEqual(RunOptions.addRecent(l, nil, "x"), nil, "needs a provider")
+end)
+
+TestRunner:test("rememberPick saves the pick to the settings; a known pick writes nothing", function()
+    local saved, flushed = nil, 0
+    local features = {}
+    local plugin = { settings = {
+        readSetting = function(_self, key) if key == "features" then return features end end,
+        saveSetting = function(_self, key, value) if key == "features" then saved = value end end,
+        flush = function() flushed = flushed + 1 end,
+    } }
+    RunOptions.rememberPick(plugin, "openai", "gpt-6-luna")
+    TestRunner:assertEqual(saved and saved.run_recent_models[1].model, "gpt-6-luna", "saved")
+    TestRunner:assertEqual(flushed, 1, "flushed")
+    RunOptions.rememberPick(plugin, "openai", "gpt-6-luna")
+    TestRunner:assertEqual(flushed, 1, "no second write")
 end)
 
 -- ---------------------------------------------------------------- live state
