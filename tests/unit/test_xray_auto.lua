@@ -1459,6 +1459,101 @@ TestRunner:test("updateBaseFor (B336): a checkpoint step never falls back to the
   TestRunner:assertEqual(XrayAuto.updateBaseFor({}, getLive), live, "an ordinary update continues the live X-Ray")
 end)
 
+TestRunner:test("stepWritten (B354): only a checkpoint the step saved itself counts", function()
+  local started = 1000
+  -- A rebuild before its swap: the old lineage (to 90%, with an intro) is on disk
+  local old = {
+    { result = "{}", intro = true, progress_decimal = 0, timestamp = 900 },
+    { result = "{}", progress_decimal = 0.5, timestamp = 900 },
+    { result = "{}", progress_decimal = 0.9, timestamp = 950 },
+  }
+  TestRunner:assertEqual(XrayAuto.stepWritten(old, 0.1, false, started), false,
+    "a refused step does not pass on the old lineage")
+  TestRunner:assertEqual(XrayAuto.stepWritten(old, 0.1, true, started), false,
+    "nor a refused introduction on the old one")
+  local landed = { old[1], { result = "{}", progress_decimal = 0.1, timestamp = 1000 }, old[3] }
+  TestRunner:assertEqual(XrayAuto.stepWritten(landed, 0.1, false, started), true, "its own rung, same second")
+  TestRunner:assertEqual(XrayAuto.stepWritten(landed, 0.2, false, started), false, "a rung short of the target")
+  local intro = { { result = "{}", intro = true, progress_decimal = 0, timestamp = 1003 } }
+  TestRunner:assertEqual(XrayAuto.stepWritten(intro, 0.1, true, started), true, "its own introduction")
+  TestRunner:assertEqual(XrayAuto.stepWritten(intro, 0.1, false, started), false,
+    "an introduction is not a rung")
+  TestRunner:assertEqual(XrayAuto.stepWritten({ { progress_decimal = 0.1, timestamp = 1001 } }, 0.1, false, started),
+    false, "a rung without a result")
+end)
+
+TestRunner:test("skipFrontMatterStep (B353): the plan loses the step, the next reads further", function()
+  -- A build to 30%: the 10% step was front matter only
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.1, 0.2, 0.3 }, { [1] = "Intro", [3] = "III" })
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "skipped")
+  local b = XrayAuto.ladderBuild()
+  TestRunner:assertEqual(table.concat(b.rungs, ","), "0.2,0.3", "10% left the plan")
+  TestRunner:assertEqual(b.total, 2, "one step fewer")
+  TestRunner:assertEqual(b.labels[2], "III", "labels follow their rungs")
+  TestRunner:assertEqual(b.labels[1], nil, "the dropped rung's label went with it")
+  TestRunner:assertEqual(XrayAuto.currentLadderStep().target, 0.2, "the next step reads to 20%")
+  -- The build's goal is still front matter: nothing to build
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.3 })
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), false, "no skip past the goal")
+  TestRunner:assertEqual(XrayAuto.currentLadderStep().target, 0.3, "plan untouched")
+  XrayAuto.endLadderBuild()
+end)
+
+TestRunner:test("skipFrontMatterStep (B353): a follow chain takes its next grid point; the intro reads it", function()
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.1 }, nil,
+    { intro = true, grid = { 0.1, 0.176, 0.3 }, grid_labels = { [2] = "Chapter 1" } })
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "the introduction's slice was front matter")
+  local step = XrayAuto.currentLadderStep()
+  TestRunner:assertEqual(step.intro, true, "the introduction still comes first")
+  TestRunner:assertEqual(step.target, 0.176, "and reads the next grid point's slice")
+  local b = XrayAuto.ladderBuild()
+  TestRunner:assertEqual(b.total, 2, "introduction + one checkpoint, as before")
+  TestRunner:assertEqual(b.labels[1], "Chapter 1", "the grid point keeps its chapter")
+  XrayAuto.endLadderBuild()
+end)
+
+TestRunner:test("skipFrontMatterStep (B353): bounded (half the book, three skips)", function()
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.5, 0.6 })
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), false, "half the book is never front matter only")
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.05, 0.1, 0.15, 0.2, 0.25 })
+  for i = 1, XrayAuto.FRONT_MATTER_SKIPS do
+    TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "skip " .. i)
+  end
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), false, "the budget is spent")
+  TestRunner:assertEqual(XrayAuto.currentLadderStep().target, 0.2, "the chain keeps its place")
+  XrayAuto.endLadderBuild()
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), false, "no build, no skip")
+  local kind, transient = XrayAuto.classifyStopReason("front matter only")
+  TestRunner:assertEqual(kind, "front_matter", "a stop that cannot skip is named")
+  TestRunner:assertEqual(transient, false, "never retried")
+end)
+
+TestRunner:test("B001: the dedup ask waits for a running checkpoint build (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  local body = main:match("function AskGPT:maybeOfferDedupAsk%(file%)(.-)\nend\n")
+  TestRunner:assertTrue(body, "the ask found")
+  local gate = body:find("build.dedup_pending = true", 1, true)
+  local stamp = body:find("ActionCache.addDedupOfferedPairs(file, fresh)", 1, true)
+  TestRunner:assertTrue(gate and stamp and gate < stamp, "deferred before any pair is stamped")
+  TestRunner:assertTrue(main:find("if cur.dedup_pending then", 1, true), "a finished build asks once")
+end)
+
+TestRunner:test("B359: a paused automatic build keeps Extend and Rebuild in the popup (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  local paused = main:find("      if c_auto_on and XrayAuto.isAutoSuppressed(sx_file) then\n", 1, true)
+  -- The authoring rows sit at the paused branch's own level, after it closes
+  local rows = main:find("\n      local a_mode, a_base = self:_xrayAuthoringMode(sx_file)\n", 1, true)
+  TestRunner:assertTrue(paused and rows and paused < rows, "the authoring rows follow the paused branch, outside it")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

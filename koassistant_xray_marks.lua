@@ -229,9 +229,13 @@ local function ensureIndex(plugin, pageno)
   if st.ladder and #st.ladder > 0 then
     local live_p = st.live and (st.live.full_document and 1.0
       or tonumber(st.live.progress_decimal)) or 0
-    local total = plugin.ui and plugin.ui.document and plugin.ui.document.info
-      and plugin.ui.document.info.number_of_pages
-    local position = (pageno and total and total > 0) and (pageno / total) or nil
+    -- The flow position, as the card picks its checkpoint (B335: page /
+    -- total read a later checkpoint in a book with hidden flows, so dashed
+    -- names near the reader opened nothing)
+    local doc = plugin.ui and plugin.ui.document
+    local total = doc and doc.info and doc.info.number_of_pages
+    local position = (pageno and total and total > 0)
+      and require("koassistant_context_extractor").flowFraction(doc, pageno) or nil
     local rg = require("koassistant_xray_auto").pickAheadRung(st.ladder, live_p, position)
     if rg then
       st.ahead = { result = rg.result, stamp = tostring(rg.timestamp),

@@ -497,6 +497,12 @@ function BookTools:getReadCeiling()
         local total = self:getTotalPages()
         if total > 0 then return total end
     end
+    -- settings.read_ceiling: a text that ends elsewhere than the reader's page
+    -- (an X-Ray checkpoint's target, B337b)
+    local fixed = tonumber(self.settings.read_ceiling)
+    if fixed and fixed >= 1 then
+        return math.min(math.floor(fixed), math.max(1, self:getTotalPages()))
+    end
     return self:getCurrentPage() or self:getTotalPages()
 end
 
@@ -1363,6 +1369,33 @@ function BookTools:getOutline()
         hidden = info.hidden,
         reading_scope = self.reading_scope,
     }
+end
+
+--- The contents of an X-Ray create's text, for the request (B337b): the table of
+--- contents entries up to where that text ends, in order and nested, so the
+--- model can tell front matter from the work in a book it does not know (and
+--- a checkpoint that is front matter only, B353). Entries in hidden flows are
+--- left out, as their pages are; no page numbers (the text carries none).
+--- @param ui table ReaderUI
+--- @param end_page number|nil last raw page of the text (nil = the reader's page)
+--- @param full boolean|nil the text is the whole book
+--- @return string|nil nil without a table of contents
+function BookTools.xrayOutlineBlock(ui, end_page, full)
+    local tools = BookTools:new(ui, { reading_scope = full and "full" or "current",
+        read_ceiling = end_page })
+    if not tools:isAvailable() then return nil end
+    local outline = tools:getOutline()
+    if not outline.has_toc or #(outline.entries or {}) == 0 then return nil end
+    local lines = { full and "Table of contents of the text above (the whole book):"
+        or "Table of contents of the text above (its entries in order; the book's later entries are not listed):" }
+    for _idx, entry in ipairs(outline.entries) do
+        lines[#lines + 1] = string.format("%s- %s%s", string.rep("  ", (entry.depth or 1) - 1),
+            entry.title or "", entry.continues_past_position and " (the text ends inside it)" or "")
+    end
+    if (outline.omitted or 0) > 0 then
+        lines[#lines + 1] = string.format("... and %d more entries at these levels.", outline.omitted)
+    end
+    return table.concat(lines, "\n")
 end
 
 function BookTools:toc(args)

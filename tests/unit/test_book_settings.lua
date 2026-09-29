@@ -855,7 +855,7 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_background missing from SIDECAR_KEYS (book_background_plan.md)")
     TestRunner:assertEqual(found[BookSettings.KEY_XRAY_SPACING] == true, true,
         "koassistant_book_xray_spacing missing from SIDECAR_KEYS (spacing slice)")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 38, "38 per-book keys expected (incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25) + book text language (2026-09-10); xray highlights removed with reader engagement 2026-08-18)")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 39, "39 per-book keys expected (incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25) + book text language (2026-09-10) + xray type (B337c, 2026-09-29); xray highlights removed with reader engagement 2026-08-18)")
 end)
 
 TestRunner:suite("resolveXrayMarking (2026-08-15: popup edits the book layer)")
@@ -1454,6 +1454,24 @@ TestRunner:test("junk values fall through; nil doc settings still honours the gl
     local d2, layer2 = BookSettings.resolveXrayDepth(nil, { xray_default_depth = "deep" })
     TestRunner:assertEqual(d2, "deep", "nil ds"); TestRunner:assertEqual(layer2, "global", "layer")
     TestRunner:assertEqual(BookSettings.xrayDepthLabel(nil), "Standard", "label")
+end)
+
+TestRunner:suite("resolveXrayType (B337c: book > global default > auto)")
+TestRunner:test("nothing set = auto, no layer; global and book picks; explicit book auto pins auto", function()
+    local t, layer = BookSettings.resolveXrayType(makeDocSettings({}), {})
+    TestRunner:assertEqual(t, nil, "auto"); TestRunner:assertEqual(layer, nil, "layer")
+    t, layer = BookSettings.resolveXrayType(makeDocSettings({}), { xray_default_type = "nonfiction" })
+    TestRunner:assertEqual(t, "nonfiction", "global"); TestRunner:assertEqual(layer, "global", "layer")
+    t, layer = BookSettings.resolveXrayType(
+        makeDocSettings({ [BookSettings.KEY_XRAY_TYPE] = "fiction" }), { xray_default_type = "nonfiction" })
+    TestRunner:assertEqual(t, "fiction", "book beats global"); TestRunner:assertEqual(layer, "book", "layer")
+    t, layer = BookSettings.resolveXrayType(
+        makeDocSettings({ [BookSettings.KEY_XRAY_TYPE] = "auto" }), { xray_default_type = "academic" })
+    TestRunner:assertEqual(t, nil, "pinned auto"); TestRunner:assertEqual(layer, "book", "layer")
+    t = BookSettings.resolveXrayType(makeDocSettings({ [BookSettings.KEY_XRAY_TYPE] = "poetry" }), { xray_default_type = "bogus" })
+    TestRunner:assertEqual(t, nil, "junk falls through to auto")
+    TestRunner:assertEqual(BookSettings.xrayTypeLabel(nil), "Auto", "label")
+    TestRunner:assertEqual(BookSettings.xrayTypeLabel("academic"), "Academic", "label")
 end)
 
 TestRunner:suite("resolveXrayCategories (book > global default > Reference)")

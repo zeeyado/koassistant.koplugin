@@ -807,4 +807,34 @@ TestRunner:test("isRoutineNote: caps are routine, unreachable parts of the book 
     TestRunner:assertTrue(not BookTools.isRoutineNote(range.notes[1]), "live range note is material")
 end)
 
+TestRunner:test("xrayOutlineBlock (B337b): the contents of an X-Ray create's text, to where it ends", function()
+    local pages = {}
+    for page = 1, 30 do pages[page] = "Page " .. page .. "." end
+    local toc = {
+        { title = "Introduction", page = 1, depth = 1 },
+        { title = "Chronology", page = 8, depth = 1 },
+        { title = "Part One", page = 12, depth = 1 },
+        { title = "Chapter 1", page = 12, depth = 2 },
+        { title = "Chapter 2", page = 20, depth = 2 },
+        { title = "Part Two", page = 26, depth = 1 },
+    }
+    local ui = makeToolsWithPages(pages, 28, toc).ui
+    -- A checkpoint whose text ends on page 10: front matter only
+    local block = BookTools.xrayOutlineBlock(ui, 10)
+    TestRunner:assertTrue(block:find("- Introduction\n", 1, true), "listed")
+    TestRunner:assertTrue(block:find("- Chronology (the text ends inside it)", 1, true), "where the text ends")
+    TestRunner:assertTrue(not block:find("Part One", 1, true), "nothing past the text's end")
+    -- To page 21: nested, the text ends inside chapter 2
+    block = BookTools.xrayOutlineBlock(ui, 21)
+    TestRunner:assertTrue(block:find("\n  - Chapter 2 (the text ends inside it)", 1, true), "nested entry")
+    TestRunner:assertTrue(not block:find("Part Two", 1, true), "later part not listed")
+    -- No end page: the reader's page (28)
+    TestRunner:assertTrue(BookTools.xrayOutlineBlock(ui):find("Part Two", 1, true), "to the reader's page")
+    -- The whole book
+    block = BookTools.xrayOutlineBlock(ui, nil, true)
+    TestRunner:assertTrue(block:find("(the whole book)", 1, true) and block:find("Part Two", 1, true), "whole book")
+    TestRunner:assertTrue(not block:find("ends inside", 1, true), "nothing continues past the end")
+    TestRunner:assertEqual(BookTools.xrayOutlineBlock(makeToolsWithPages(pages, 28, {}).ui, 10), nil, "no contents, no block")
+end)
+
 return TestRunner:summary()

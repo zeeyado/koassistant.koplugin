@@ -1034,13 +1034,17 @@ local function assemble_xray_prompt(template, replacements, selection, depth)
     return build_xray_prompt(template, merged)
 end
 
+-- The create prompt's type decision (B337a), its own string so a type the
+-- reader set replaces exactly this (applyXrayType, B337c)
+local XRAY_TYPE_DECISION = "First, decide whether the WORK is FICTION or NON-FICTION. If you know this title and author, that decides it: a novel is fiction even when this edition opens with a biographical or critical introduction. Otherwise judge from the main text, never from front matter (an introduction, preface, foreword, translator's or editor's note, chronology or author biography). Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below."
+
 local XRAY_PROMPT_TEMPLATE = [[Create a structured reader's companion for "{title}"{author_clause}.{doi_clause}
 
 __SCOPE_LINE__
 
 __TEXT_SECTION__
 
-First, decide whether the WORK is FICTION or NON-FICTION. If you know this title and author, that decides it: a novel is fiction even when this edition opens with a biographical or critical introduction. Otherwise judge from the main text, never from front matter (an introduction, preface, foreword, translator's or editor's note, chronology or author biography). Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. __SCOPE_INSTRUCTION__. Order characters by narrative importance.
+]] .. XRAY_TYPE_DECISION .. [[ __SCOPE_INSTRUCTION__. Order characters by narrative importance.
 
 ---
 
@@ -1074,7 +1078,9 @@ __CLOSING__
 
 Base the X-Ray on the provided text. You do not need to recognize this work — analyze the text on its own terms whether or not you know it (what you know of it may settle fiction or non-fiction, nothing else). Do NOT add characters, events, or details that are not in the provided text or clearly implied by it.
 If no text is provided, or the text is unreadable or too fragmentary to analyze, respond with ONLY this JSON:
-{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}]]
+{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}
+If the text holds none of the work itself yet, only front matter (an introduction, preface or foreword by someone other than the author, a biography, a chronology, a note on the text, a table of contents), respond with ONLY this JSON:
+{"error": "front_matter_only"}]]
 
 local XRAY_PARTIAL_REPLACEMENTS = {
     __SCOPE_LINE__ = [[I'm at {reading_progress}.]],
@@ -1328,6 +1334,46 @@ Actions.XRAY_DEPTH_ORDER = XRAY_DEPTH_ORDER
 
 --- Normalize a stored depth ("light" | "deep" | nil = standard).
 Actions.normalizeXrayDepth = normalizeXrayDepth
+
+--- Normalize a stored X-Ray type (B337c): "fiction" | "nonfiction" |
+--- "academic" | nil (= auto, the AI decides).
+function Actions.normalizeXrayType(value)
+    if value == "fiction" or value == "nonfiction" or value == "academic" then return value end
+    return nil
+end
+
+--- A create prompt with the reader's type set (B337c): the other schema's
+--- section leaves and the type decision becomes the reader's pick. Fiction or
+--- nonfiction only (Academic is the research template); a prompt of any other
+--- shape comes back unchanged.
+--- @param text string an assembled create prompt (default, narrowed or complete)
+--- @param xray_type string "fiction" | "nonfiction"
+--- @return string
+function Actions.applyXrayType(text, xray_type)
+    if type(text) ~= "string" or (xray_type ~= "fiction" and xray_type ~= "nonfiction") then
+        return text
+    end
+    -- head --- fiction --- non-fiction, whose guidance block (single-line
+    -- bullets) ends at the first blank line, where the closing starts
+    local SEP = "\n\n---\n\n"
+    local head_end = text:find(SEP, 1, true)
+    local fic_end = head_end and text:find(SEP, head_end + #SEP, true)
+    if not fic_end then return text end
+    local head = text:sub(1, head_end - 1)
+    local fiction = text:sub(head_end + #SEP, fic_end - 1)
+    local rest = text:sub(fic_end + #SEP)
+    local guide = rest:find("Guidance for non-fiction:\n", 1, true)
+    local tail_at = guide and rest:find("\n\n", guide, true)
+    local s, e = head:find(XRAY_TYPE_DECISION, 1, true)
+    if not (s and tail_at and fiction:find("^FOR FICTION") and rest:find("^FOR NON%-FICTION")) then
+        return text
+    end
+    local set = xray_type == "fiction"
+        and "This work is FICTION (the reader set its type). Output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the schema below."
+        or "This work is NON-FICTION (the reader set its type). Output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the schema below."
+    return head:sub(1, s - 1) .. set .. head:sub(e + 1) .. SEP
+        .. (xray_type == "fiction" and fiction or rest:sub(1, tail_at - 1)) .. rest:sub(tail_at)
+end
 
 --- JSON keys a selection maps to for an artifact type (update-clause helper).
 --- @param selection string canonical csv

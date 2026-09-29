@@ -4357,6 +4357,21 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         research_mode_active = require("koassistant_book_settings").resolveResearch(
             per_book_ds, config.features, { doi = has_doi })
     end
+    -- B337(c): a type set for the book's X-Rays picks the create's track.
+    -- Academic is the research template; Fiction and Nonfiction the general
+    -- one with that schema alone (applied after the category assembly). An
+    -- update re-swaps to its lineage's own track in the cache branch.
+    local xray_type
+    if prompt and prompt.id == "xray" and prompt.cache_as_xray
+            and not (config.features and (config.features._section_scope
+                or config.features._section_xray)) then
+        xray_type = require("koassistant_book_settings").resolveXrayType(per_book_ds, config.features)
+        if xray_type == "academic" then
+            research_mode_active = true
+        elseif xray_type then
+            research_mode_active = false
+        end
+    end
 
     -- Research mode active: swap to academic prompt track (if available)
     -- Must happen BEFORE full-document swap so doi_complete_prompt is available
@@ -4436,6 +4451,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             logger.dbg("KOAssistant: X-Ray create narrowed to categories:", xr_sel,
                 "depth:", xr_depth)
         end
+    end
+    -- B337(c): Fiction or Nonfiction set for the book: that schema alone
+    if xray_type == "fiction" or xray_type == "nonfiction" then
+        if not prompt._is_copy then
+            local original_prompt = prompt
+            prompt = {}
+            for k, v in pairs(original_prompt) do prompt[k] = v end
+            prompt._is_copy = true
+        end
+        prompt.prompt = PromptsActions.applyXrayType(prompt.prompt, xray_type)
     end
     -- Introduction step of a checkpoint build: the premise-only instruction
     -- goes on the FINAL create prompt, after the research, full-document and
@@ -4858,10 +4883,9 @@ if prune_book_text then
         local lt = message_data._ladder_target
         message_data.progress_decimal = tostring(lt)
         message_data.reading_progress = math.floor(lt * 100 + 0.5) .. "%"
-        local lt_total = ui.document.info and ui.document.info.number_of_pages
-        if lt_total and lt_total > 0 then
-            message_data.progress_page = math.max(1, math.floor(lt * lt_total))
-        end
+        -- The target is a flow position; the saved page is raw (B335)
+        message_data.progress_page = require("koassistant_context_extractor")
+            .rawPageAt(ui.document, lt) or message_data.progress_page
     end
 
     -- Get domain context if a domain is set (skip if action opts out)
@@ -4924,6 +4948,17 @@ if prune_book_text then
             -- Only applies when cache explicitly tracked research mode (non-nil).
             -- Legacy caches (nil) follow the current research mode setting.
             local cache_research = cached_entry.used_research_mode
+            -- B337(c): a build without research stamps nothing, so a nil stamp
+            -- cannot tell a fiction lineage from a legacy one. An X-Ray names
+            -- its track in its own JSON; read it when research is on now (the
+            -- type set to Academic, or research switched on since the build)
+            if cache_research == nil and research_mode_active and prompt.id == "xray" then
+                local lineage = require("koassistant_xray_parser").parse(cached_entry.result)
+                local lineage_type = type(lineage) == "table" and lineage.type
+                if lineage_type == "fiction" or lineage_type == "nonfiction" then
+                    cache_research = false
+                end
+            end
             if cache_research ~= nil and cache_research ~= (research_mode_active or false) then
                 research_mode_active = cache_research
                 -- Re-apply (or undo) the academic prompt swap
@@ -5108,9 +5143,9 @@ if prune_book_text then
                     -- (flow-aware progress * total_pages gives wrong pages when hidden flows active)
                     local total_pages = ui.document.info and ui.document.info.number_of_pages or 0
                     local from_page = cached_entry.progress_page
-                        or math.floor(cached_progress * total_pages)
+                        or ContextExtractor.rawPageAt(ui.document, cached_progress) or 0
                     local to_page = tonumber(message_data.progress_page)
-                        or math.floor(current_progress * total_pages)
+                        or ContextExtractor.rawPageAt(ui.document, current_progress) or 0
                     local from_raw = total_pages > 0 and from_page / total_pages or cached_progress
                     local to_raw = total_pages > 0 and to_page / total_pages or current_progress
                     local range_result = extractor:getBookTextRange(from_raw, to_raw)
@@ -5233,6 +5268,20 @@ if prune_book_text then
         consolidated_message = require("koassistant_xray_merge").injectPayload(
             consolidated_message, message_data._merge_payload)
     end
+    -- B337(b): an X-Ray create carries the table of contents of the text it
+    -- sends, up to where that text ends (a checkpoint's target, the reader's
+    -- page, or the whole book), so front matter reads as front matter. After
+    -- the placeholder pass, like the payload: titles are book data.
+    if prompt and prompt.cache_as_xray and not using_cache and ui and ui.document
+            and ((message_data.book_text or "") ~= "" or (message_data.full_document or "") ~= "")
+            and not (config.features and (config.features._section_scope
+                or config.features._section_xray)) then
+        local full = config.features and config.features._full_document_xray
+        local end_page = message_data._ladder_target and require("koassistant_context_extractor")
+            .rawPageAt(ui.document, message_data._ladder_target, true)
+        local outline = require("koassistant_book_tools").xrayOutlineBlock(ui, end_page, full)
+        if outline then consolidated_message = consolidated_message .. "\n\n" .. outline end
+    end
     history:addUserMessage(consolidated_message, true)
 
     -- Attach chip (attach_plan.md §4): staged attachments follow the action's
@@ -5314,7 +5363,14 @@ if prune_book_text then
             if action.cache_as_xray then
                 local XrayParser = require("koassistant_xray_parser")
                 local parsed, parse_err = XrayParser.parse(answer)
-                if parsed and parsed.error then
+                if XrayParser.isFrontMatterOnly(parsed) then
+                    -- B353: the text sent was front matter only; a checkpoint
+                    -- step reads the mark on its config and skips the step
+                    display_answer = _("No X-Ray was built: the text sent holds only front matter (an introduction, notes, a chronology), none of the work itself.")
+                    cache_answer = nil
+                    temp_config._xray_front_matter = true
+                    logger.dbg("KOAssistant: X-Ray found only front matter, skipping cache")
+                elseif parsed and parsed.error then
                     -- AI returned error (e.g., "I don't recognize this work") — show as plain text, skip caching
                     display_answer = parsed.error
                     cache_answer = nil  -- Signal to skip caching below
@@ -6228,6 +6284,15 @@ if prune_book_text then
             if on_complete then on_complete(nil, "background: extraction truncated") end
             return nil
         end
+        -- B335: a background X-Ray step with no book text never sends. The
+        -- model could only refuse or answer from memory, and the step would
+        -- be saved as a reading of the book. The chain stops and names it.
+        if prompt and prompt.cache_as_xray and (message_data.book_text_extraction_empty
+                or (using_cache and (message_data.incremental_book_text or "") == "")) then
+            logger.dbg("KOAssistant: background X-Ray aborted - no book text in its range")
+            if on_complete then on_complete(nil, "background: no book text") end
+            return nil
+        end
         -- A2 naming canon on the DEFAULT create path (maintainer 2026-08-11:
         -- silent injection). Background and ladder creates never reach the
         -- attended fold ask (Step 0 below), so grouped background creates
@@ -6354,8 +6419,8 @@ if prune_book_text then
     -- Step 0.5 (A8): extraction attempted but produced ZERO text — a scanned
     -- or image-only file is the real case. Without this the request sends
     -- with {text_fallback_nudge} and the reader pays for an answer that never
-    -- saw their book. Attended paths only; background X-Ray machinery is
-    -- flowing-only and never reaches this with an empty extraction.
+    -- saw their book. Attended paths only; a background X-Ray with no text
+    -- stops before this (the "no book text" abort above).
     if not message_data._background_request
             and (message_data.book_text_extraction_empty
                 or message_data.full_document_extraction_empty) then

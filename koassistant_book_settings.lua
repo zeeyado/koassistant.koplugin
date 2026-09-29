@@ -227,6 +227,9 @@ BookSettings.KEY_XRAY_CATEGORIES = "koassistant_book_xray_categories"
 -- | "deep" | nil (follow global). An explicit "standard" pins Standard under a
 -- narrowed global, the categories "full" sentinel's role.
 BookSettings.KEY_XRAY_DEPTH = "koassistant_book_xray_depth"
+-- Type of NEW X-Rays (B337c): "fiction" | "nonfiction" | "academic" | "auto" |
+-- nil (follow global). An explicit "auto" pins Auto under a set global.
+BookSettings.KEY_XRAY_TYPE = "koassistant_book_xray_type"
 --- Effective X-Ray marking & lookup config for a book: book override > global
 --- > default. Pure. Read pattern must match the schema defaults (marking ON,
 --- tap ON, density "10", families "all", ahead ON, intercept ON, card
@@ -842,6 +845,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_XRAY_AHEAD_CARD,
     BookSettings.KEY_XRAY_CATEGORIES,
     BookSettings.KEY_XRAY_DEPTH,
+    BookSettings.KEY_XRAY_TYPE,
     BookSettings.KEY_QUICK_ANSWER,
     BookSettings.KEY_TOOL_EFFORT,
     BookSettings.KEY_WEB_EFFORT,
@@ -2163,6 +2167,96 @@ function BookSettings.showXrayDepthPicker(opts)
     }, opts)
 end
 
+--- Type of NEW X-Rays (B337c): book pick > global default > auto. A stored
+--- "auto" pins Auto under a set global and returns nil like the default: the
+--- AI tells fiction from nonfiction itself.
+--- @param doc_settings table|nil
+--- @param features table|nil
+--- @return string|nil type ("fiction"/"nonfiction"/"academic"; nil = auto), string|nil layer ("book"/"global")
+function BookSettings.resolveXrayType(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
+    local Actions = require("prompts.actions")
+    local raw = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_TYPE)
+    if raw == "auto" then return nil, "book" end
+    local t = Actions.normalizeXrayType(raw)
+    if t then return t, "book" end
+    local g = Actions.normalizeXrayType(features and features.xray_default_type)
+    if g then return g, "global" end
+    return nil, nil
+end
+
+--- Label for a type value (nil/"auto" = Auto).
+function BookSettings.xrayTypeLabel(v)
+    if v == "fiction" then return _("Fiction")
+    elseif v == "nonfiction" then return _("Nonfiction")
+    elseif v == "academic" then return _("Academic") end
+    return _("Auto")
+end
+
+--- After a type pick (B337c): when the open book's X-Ray has another type,
+--- offer the rebuild (a type applies from a new build on; updates keep the
+--- X-Ray's own). Shown on the next tick, above the screen the picker
+--- returns to.
+--- @param plugin table the plugin instance (its ui is the reader)
+local function offerXrayTypeRebuild(plugin)
+    local ui = plugin and plugin.ui
+    local file = ui and ui.document and ui.document.file
+    if not file then return end
+    local features = plugin.settings and plugin.settings:readSetting("features") or {}
+    local want = BookSettings.resolveXrayType(ui.doc_settings, features)
+    if not want then return end
+    local parsed = require("koassistant_action_cache").parsedXrayFor(file)
+    local have = type(parsed) == "table" and parsed.type
+    if not have or have == want then return end
+    UIManager:nextTick(function()
+        local ConfirmBox = require("ui/widget/confirmbox")
+        UIManager:show(ConfirmBox:new{
+            text = T(_("This book's X-Ray was built as %1. Rebuild it as %2? The current X-Ray stays until the new one is ready."),
+                BookSettings.xrayTypeLabel(have), BookSettings.xrayTypeLabel(want)),
+            ok_text = _("Rebuild…"),
+            cancel_text = _("Not now"),
+            ok_callback = function()
+                local action = plugin.action_service and plugin.action_service:getAction("book", "xray")
+                if action and plugin._showXrayCreationChooser then
+                    plugin:_showXrayCreationChooser(action, "xray", nil, nil, true)
+                end
+            end,
+        })
+    end)
+end
+
+--- Type picker for new X-Rays (B337c): the two-layer spec. Book: Follow global
+--- (X) / Auto / Fiction / Nonfiction / Academic (KEY_XRAY_TYPE); Global:
+--- features.xray_default_type. Fiction and Nonfiction send that schema alone;
+--- Academic is the research template.
+--- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showXrayTypePicker(opts)
+    BookSettings.showLayeredPicker({
+        title = _("Type of new X-Rays") .. "\n"
+            .. _("Auto lets the AI tell fiction from nonfiction. Set it when an X-Ray came out as the wrong type. Applies to new builds and rebuilds; updates keep the X-Ray's own type."),
+        key = BookSettings.KEY_XRAY_TYPE,
+        field = "xray_default_type",
+        global = function(f)
+            return require("prompts.actions").normalizeXrayType(f.xray_default_type) or "auto"
+        end,
+        read_book = function(ds)
+            local raw = ds:readSetting(BookSettings.KEY_XRAY_TYPE)
+            if raw == "auto" then return "auto" end
+            return require("prompts.actions").normalizeXrayType(raw)
+        end,
+        options = {
+            { value = "auto", label = _("Auto (the AI decides from the work)") },
+            { value = "fiction", label = _("Fiction (characters, places, story)") },
+            { value = "nonfiction", label = _("Nonfiction (people, concepts, argument)") },
+            { value = "academic", label = _("Academic (concepts, methods, findings, cited works)") },
+        },
+        value_label = BookSettings.xrayTypeLabel,
+        on_commit = function(plugin)
+            if not (opts and opts.no_rebuild_offer) then offerXrayTypeRebuild(plugin) end
+        end,
+    }, opts)
+end
+
 --- Short label for a stored category selection (row/button text).
 --- @param value string|nil raw stored value (normalized internally)
 --- @return string "All" / "Characters only" / "Characters and story" / "Reference" / "N of 5"
@@ -3140,6 +3234,25 @@ function BookSettings.showXrayConfig(opts)
             picker = ButtonDialog:new{ title = title, buttons = rows,
                 tap_close_callback = function() BookSettings.showXrayConfig(opts) end }
             UIManager:show(picker)
+        end }})
+
+    -- Type of NEW X-Rays (B337c): same shape as depth.
+    local type_val, type_layer = BookSettings.resolveXrayType(doc_settings, features)
+    table.insert(buttons, {{ text = T(_("New X-Ray type: %1"),
+            type_layer == "book"
+                and (BookSettings.followGroupLabel(doc_settings, BookSettings.KEY_XRAY_TYPE,
+                        BookSettings.xrayTypeLabel(type_val)) or BookSettings.xrayTypeLabel(type_val))
+                or T(_("Follow global (%1)"), BookSettings.xrayTypeLabel(type_val))),
+        callback = function()
+            closeDialog()
+            BookSettings.showXrayTypePicker({
+                ui = ui, document_path = opts.document_path, plugin = plugin,
+                target_override = "book",
+                on_close = function()
+                    syncConfig()
+                    BookSettings.showXrayConfig(opts)
+                end,
+            })
         end }})
 
     -- Depth for NEW X-Rays (depth axis 2026-08-25): same shape as categories.

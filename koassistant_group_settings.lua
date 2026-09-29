@@ -43,7 +43,7 @@ function GroupSettings.keys()
     local BS = bookSettings()
     return {
         BS.KEY_DOMAIN, BS.KEY_RESEARCH, BS.KEY_BACKGROUND, BS.KEY_SPOILER_FREE, BS.KEY_XRAY_AUTO,
-        BS.KEY_XRAY_CATEGORIES, BS.KEY_XRAY_DEPTH,
+        BS.KEY_XRAY_CATEGORIES, BS.KEY_XRAY_DEPTH, BS.KEY_XRAY_TYPE,
         BS.KEY_RESPONSE_LANG, BS.KEY_TRANSLATION_LANG, BS.KEY_DICTIONARY_LANG, BS.KEY_TEXT_LANG,
     }
 end
@@ -59,6 +59,7 @@ function GroupSettings.keyLabel(key)
         [BS.KEY_XRAY_AUTO] = _("Automatic X-Ray"),
         [BS.KEY_XRAY_CATEGORIES] = _("New X-Ray categories"),
         [BS.KEY_XRAY_DEPTH] = _("New X-Ray depth"),
+        [BS.KEY_XRAY_TYPE] = _("New X-Ray type"),
         [BS.KEY_RESPONSE_LANG] = _("AI response language"),
         [BS.KEY_TRANSLATION_LANG] = _("Translation language"),
         [BS.KEY_DICTIONARY_LANG] = _("Dictionary language"),
@@ -92,6 +93,7 @@ function GroupSettings.valueLabel(key, v, features, facade)
         return BS.xrayCategoriesLabel(v ~= "full" and v or nil)
     end
     if key == BS.KEY_XRAY_DEPTH then return BS.xrayDepthLabel(v) end
+    if key == BS.KEY_XRAY_TYPE then return BS.xrayTypeLabel(v) end
     if key == BS.KEY_RESPONSE_LANG or key == BS.KEY_TRANSLATION_LANG
         or key == BS.KEY_DICTIONARY_LANG then
         return require("koassistant_languages").getDisplay(v)
@@ -377,6 +379,7 @@ function GroupSettings.show(opts)
         picker(BS.showXrayAutoPicker, { on_change = reopen, on_cancel = reopen }))
     row(T(_("New X-Ray categories: %1"), value(BS.KEY_XRAY_CATEGORIES)), picker(BS.showXrayCategoriesPicker))
     row(T(_("New X-Ray depth: %1"), value(BS.KEY_XRAY_DEPTH)), picker(BS.showXrayDepthPicker))
+    row(T(_("New X-Ray type: %1"), value(BS.KEY_XRAY_TYPE)), picker(BS.showXrayTypePicker))
     local langs = 0
     for _idx, key in ipairs({ BS.KEY_RESPONSE_LANG, BS.KEY_TRANSLATION_LANG, BS.KEY_DICTIONARY_LANG, BS.KEY_TEXT_LANG }) do
         if facade:has(key) then langs = langs + 1 end

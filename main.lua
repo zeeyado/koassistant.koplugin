@@ -10239,44 +10239,46 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
             end,
           }})
         end
-        -- Round 24: no flowing gate — the form's one-request picks (incl. the
-        -- redo replacement: below-coverage rebuilds) apply to PDFs too; the
-        -- checkpoint/follow rows gate themselves on flowing inside the form
-        local a_mode, a_base = self:_xrayAuthoringMode(sx_file)
-        if a_mode == "extend" and (a_base or 0) < 0.995 then
-          -- Spacing slice (build-shapes): the SPLIT entry — [Extend…] grows
-          -- forward from the base, [Rebuild…] opens the same form forced
-          -- from-scratch. Before it, a mid-book incremental book had no
-          -- whole-book from-scratch path at all (whole-book in extend mode
-          -- is an update; only below-base picks rebuilt).
-          table.insert(buttons, {
-            { text = _("Extend…"), callback = function()
-              UIManager:close(dialog)
-              self_ref:_showXrayCreationChooser(action, action_id, on_update, opts)
-            end },
-            { text = _("Rebuild…"), callback = function()
-              UIManager:close(dialog)
-              self_ref:_showXrayCreationChooser(action, action_id, on_update, opts, true)
-            end },
-          })
-        else
-          -- Fully covered incremental (100%): "Extend" would be a lie; the row
-          -- reads "Rebuild X-Ray…" and the form's picks all rebuild from scratch.
-          -- The 100% extend base rides the FORCED-rebuild form (2026-08-25):
-          -- unforced, the position row gated on "position past the base" and
-          -- vanished behind a complete X-Ray, so a short book at 34% could not
-          -- rebuild to position without deleting first
-          local a_label = (a_mode == "rebuild" or a_mode == "extend")
-            and _("Rebuild X-Ray…") or _("Create X-Ray…")
-          table.insert(buttons, {{
-            text = a_label,
-            callback = function()
-              UIManager:close(dialog)
-              self_ref:_showXrayCreationChooser(action, action_id, on_update, opts,
-                a_mode == "extend" or nil)
-            end,
-          }})
-        end
+      end
+      -- B359: the authoring rows show beside a paused Resume too: a cancelled
+      -- automatic build hid Extend and Rebuild for the rest of the session
+      -- Round 24: no flowing gate — the form's one-request picks (incl. the
+      -- redo replacement: below-coverage rebuilds) apply to PDFs too; the
+      -- checkpoint/follow rows gate themselves on flowing inside the form
+      local a_mode, a_base = self:_xrayAuthoringMode(sx_file)
+      if a_mode == "extend" and (a_base or 0) < 0.995 then
+        -- Spacing slice (build-shapes): the SPLIT entry — [Extend…] grows
+        -- forward from the base, [Rebuild…] opens the same form forced
+        -- from-scratch. Before it, a mid-book incremental book had no
+        -- whole-book from-scratch path at all (whole-book in extend mode
+        -- is an update; only below-base picks rebuilt).
+        table.insert(buttons, {
+          { text = _("Extend…"), callback = function()
+            UIManager:close(dialog)
+            self_ref:_showXrayCreationChooser(action, action_id, on_update, opts)
+          end },
+          { text = _("Rebuild…"), callback = function()
+            UIManager:close(dialog)
+            self_ref:_showXrayCreationChooser(action, action_id, on_update, opts, true)
+          end },
+        })
+      else
+        -- Fully covered incremental (100%): "Extend" would be a lie; the row
+        -- reads "Rebuild X-Ray…" and the form's picks all rebuild from scratch.
+        -- The 100% extend base rides the FORCED-rebuild form (2026-08-25):
+        -- unforced, the position row gated on "position past the base" and
+        -- vanished behind a complete X-Ray, so a short book at 34% could not
+        -- rebuild to position without deleting first
+        local a_label = (a_mode == "rebuild" or a_mode == "extend")
+          and _("Rebuild X-Ray…") or _("Create X-Ray…")
+        table.insert(buttons, {{
+          text = a_label,
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_showXrayCreationChooser(action, action_id, on_update, opts,
+              a_mode == "extend" or nil)
+          end,
+        }})
       end
     end
     -- Section X-Rays: list existing + new
@@ -11622,6 +11624,8 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       self.settings and self.settings:readSetting("features"))
     local depth_value = BookSettings.resolveXrayDepth(self.ui.doc_settings,
       self.settings and self.settings:readSetting("features"))
+    local type_value = BookSettings.resolveXrayType(self.ui.doc_settings,
+      self.settings and self.settings:readSetting("features"))
     -- A locked extend continues the lineage's OWN stamps (the update branch
     -- overwrites the pick from the cache entry), so the grayed buttons show
     -- the stamps, not the preference (2026-09-07: a Light / Characters-only
@@ -11630,6 +11634,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       local PA = require("prompts/actions")
       cat_value = PA.normalizeXrayCategories(base_entry.xray_categories)
       depth_value = PA.normalizeXrayDepth(base_entry.xray_depth)
+      -- The type is the X-Ray's own (its JSON names it, B337c)
+      local lineage = require("koassistant_action_cache").parsedXrayFor(self.ui.document.file)
+      type_value = type(lineage) == "table" and PA.normalizeXrayType(lineage.type) or nil
     end
     local ButtonTableO = require("ui/widget/buttontable")
     -- The row's header is its FIRST ROW inside the same table (maintainer
@@ -11712,10 +11719,24 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         })
       end,
     }
+    option_buttons[#option_buttons + 1] = {
+      text = BookSettings.xrayTypeLabel(type_value) .. "…",
+      font_size = 16, font_bold = false,
+      enabled = categories_on,
+      callback = function()
+        UIManager:close(current_dialog)
+        -- The form is the rebuild already: no offer after the pick
+        BookSettings.showXrayTypePicker({
+          ui = self_ref.ui, plugin = self_ref, target_override = "book",
+          no_rebuild_offer = true,
+          on_close = function() buildAndShow() end,
+        })
+      end,
+    }
     local options_row = ButtonTableO:new{
       width = content_width,
       buttons = {
-        {{ text = _("Checkpoint spacing, categories, depth:"),
+        {{ text = _("Checkpoint spacing, categories, depth, type:"),
            font_size = 16, font_bold = false, enabled = false }},
         option_buttons,
       },
@@ -12627,6 +12648,15 @@ end
 --- Background builds/promotions never ask (no dialog mid-reading).
 function AskGPT:maybeOfferDedupAsk(file)
   if not file then return end
+  -- B001: never while a checkpoint build for this book runs. The ask stamps
+  -- its pairs, so a "Not now" between two steps spent their one offer; the
+  -- build asks once when it finishes (a stopped or cancelled one leaves the
+  -- pairs unasked for the next install)
+  local build = require("koassistant_xray_auto").ladderBuild()
+  if build and build.file == file then
+    build.dedup_pending = true
+    return
+  end
   local self_ref = self
   pcall(function()
     local ActionCache = require("koassistant_action_cache")
@@ -14149,6 +14179,10 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
   if not doc_info or doc_info.has_pages then return end
   local total = doc_info.number_of_pages
   if not total or total <= 0 then return end
+  -- The position the installs and fires read (B335: page / total ran ahead
+  -- of it in a book with hidden flows, so every turn scheduled a fire that
+  -- then declined)
+  local pos = require("koassistant_context_extractor").flowFraction(self.ui.document, pageno)
 
   -- Ladder promotion pre-filter (§6 slice 1, decision 11: unconditional — no
   -- opt-in, no consent, no rate limit; the fire is a local file swap). Pure
@@ -14164,7 +14198,6 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
     -- chainBusy, not ladderBuild: a build parked for the network (onSuspend)
     -- must not stop built checkpoints installing as the reader passes them
     if not XrayAuto.chainBusy() and not XrayAuto.isInFlight() then
-      local pos = pageno / total
       local PfBookSettings = require("koassistant_book_settings")
       local posture = PfBookSettings.resolveXrayPosture(
         self.ui.doc_settings, self.settings:readSetting("features") or {})
@@ -14216,7 +14249,6 @@ function AskGPT:_xrayAutoOnPageUpdate(pageno)
     return
   end
   local XrayAuto = require("koassistant_xray_auto")
-  local pos = pageno / total
   local goal_bound = state.goal or 1.0
   if pos >= goal_bound - 0.01 then return end
   -- BUILD_LAG: the next build waits until the newest checkpoint has installed
@@ -14391,16 +14423,19 @@ function AskGPT:_fireXrayAutoCheckpoints(opts)
   -- live lost at the swap (2026-08-15 device round)
   local plan_base = nil
   if not chain_rebuild then plan_base = work.base end
-  local rungs, labels = self:_planXrayGrid(plan_base,
+  local grid, grid_labels = self:_planXrayGrid(plan_base,
     spacing, work.goal, decimal, boundaries, chain_rebuild)
-  rungs, labels = XrayAuto.truncateToOneAhead(rungs, decimal, labels)
+  local rungs, labels = XrayAuto.truncateToOneAhead(grid, decimal, grid_labels)
   if #rungs == 0 then return end
   local plan_intro = not chain_rebuild and work.plan_intro
   XrayAuto.markScheduled(os.time())
   logger.dbg("KOAssistant: automatic X-Ray building", #rungs + (plan_intro and 1 or 0),
     "checkpoint(s) to", rungs[#rungs], chain_rebuild and "(rebuild)" or "")
+  -- The whole grid rides along: a step skipped as front matter takes its
+  -- next point (B353)
   XrayAuto.beginLadderBuild(file, rungs, labels,
-    { intro = plan_intro, silent = not (opts and opts.notify), rebuild = chain_rebuild })
+    { intro = plan_intro, silent = not (opts and opts.notify), rebuild = chain_rebuild,
+      grid = grid, grid_labels = grid_labels })
   self:_fireXrayLadderRung()
 end
 
@@ -14966,7 +15001,7 @@ function AskGPT:_installAheadXrayRung(opts)
 end
 
 --- Chapter-end boundaries for ladder rung snapping (P3): ascending
---- { ratio, title } where ratio = the chapter's last page over the page count
+--- { ratio, title } where ratio = the flow position of the chapter's last page
 --- and title = the chapter that ENDS there. Chapter set = the quiz auto-level
 --- heuristic (leaf-at-N, 5-page floor) — deliberately independent of the
 --- per-book quiz settings. Ends inside the final 3% are excluded (that close
@@ -14980,10 +15015,15 @@ function AskGPT:_ladderChapterBoundaries()
   local QuizChapters = require("koassistant_quiz_chapters")
   local level = QuizChapters.autoLevel(toc, total, 5)
   local indices = QuizChapters.chapterIndices(toc, level)
+  local ContextExtractor = require("koassistant_context_extractor")
+  local hidden = doc.hasHiddenFlows and doc:hasHiddenFlows()
   local out = {}
   for k = 1, #indices - 1 do
     local end_page = (toc[indices[k + 1]].page or 1) - 1
-    local ratio = end_page / total
+    -- Flow ratios, like the rung targets; a chapter that ends in a hidden
+    -- flow (front matter hidden with flows) is never a snap target (B335)
+    local ratio = ContextExtractor.flowFraction(doc, end_page)
+    if hidden and end_page >= 1 and doc:getPageFlow(end_page) ~= 0 then ratio = 0 end
     if ratio > 0 and ratio <= 0.97 then
       local title = toc[indices[k]].title or ""
       if self.ui.toc.cleanUpTocTitle then
@@ -15554,6 +15594,7 @@ function AskGPT:_fireXrayLadderRung()
       UIManager:show(Notification:new{ text = toast_text })
     end
   end
+  local step_started = os.time()
   Dialogs.executeActionForResult(action, config_copy.features.book_context, self.ui, config_copy, self,
     config_copy.features.book_metadata,
     function(result, meta_or_err)
@@ -15578,23 +15619,28 @@ function AskGPT:_fireXrayLadderRung()
       -- Honesty check: the rung must actually be on disk — truncated responses and
       -- silent save failures never advance the chain. The intro writes at
       -- progress 0, so it is verified by presence, not by coverage progress.
-      local rung_written
-      if is_intro then
-        for _idx, r in ipairs(ActionCache.getXrayLadder(file)) do
-          if r.intro and r.result then rung_written = true break end
-        end
-        rung_written = result and rung_written
-      else
-        local on_disk = ActionCache.highestXrayLadderProgress(ActionCache.getXrayLadder(file))
-        rung_written = result and on_disk and on_disk >= target - XrayAuto.LADDER_TOLERANCE
-      end
+      -- B354: only a checkpoint THIS step saved counts (a rebuild keeps the old
+      -- lineage on disk until its swap).
+      local rung_written = result
+        and XrayAuto.stepWritten(ActionCache.getXrayLadder(file), target, is_intro, step_started)
       if not rung_written then
+        -- B353: the step's text was front matter only. A step that creates
+        -- from scratch (nothing built by this chain yet) is skipped, and the
+        -- next one reads a longer slice from the start.
+        local front_matter = type(meta_or_err) == "table" and meta_or_err._xray_front_matter
+        if front_matter and create_mode and XrayAuto.skipFrontMatterStep() then
+          cur.retried = nil
+          logger.dbg("KOAssistant: ladder step", cur.step or cur.idx, "held only front matter, skipped")
+          UIManager:scheduleIn(1, function() self_ref:_fireXrayLadderRung() end)
+          return
+        end
         -- The completion callback is (history, temp_config) on SUCCESS and
         -- (nil, err_string) on failure, so a request that SUCCEEDED but whose
         -- rung failed to write arrives here with a TABLE in the error slot —
         -- tostring gave "table: 0x…" as the stop reason, which is what the
         -- device log showed when a rung was rejected as invalid JSON.
-        local err_text = type(meta_or_err) == "string" and meta_or_err
+        local err_text = (front_matter and "front matter only")
+            or (type(meta_or_err) == "string" and meta_or_err)
             or (result and "rung not written (response rejected or save failed)")
             or "rung not saved"
         -- Item 50 follow-up: declining the size warning is a clean user
@@ -15746,6 +15792,10 @@ function AskGPT:_fireXrayLadderRung()
           })
         end
         self_ref:_refreshXrayAutoState()
+        -- B001: the dedup ask the build deferred, once, now that it is done
+        if cur.dedup_pending then
+          UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+        end
         -- B261: a completed chain lifts the cooldown — the next due
         -- checkpoint may fire on the next page turn
         XrayAuto.clearScheduled()
@@ -15801,6 +15851,10 @@ function AskGPT:_xrayStopReasonLabel(kind)
   -- (the surfaces render it as "stopped: nothing was sent").
   if kind == "too_large" then return _("request too large") end
   if kind == "aborted" then return _("nothing was sent") end
+  -- B335: the step's pages hold no text (nothing was sent either)
+  if kind == "no_text" then return _("no book text in this part") end
+  -- B353: the goal's text is still front matter (or the skips ran out)
+  if kind == "front_matter" then return _("only front matter so far") end
   -- An account wall (credits, balance, a spending cap): never retried, the
   -- reader must act on the account.
   if kind == "billing" then return _("account credits or billing") end
@@ -20945,6 +20999,13 @@ end
 function AskGPT:showXrayDefaultDepthPicker()
   local BookSettings = require("koassistant_book_settings")
   BookSettings.showXrayDepthPicker({ plugin = self, ui = self.ui, target_override = "global" })
+end
+
+--- Global default type for new X-Rays (B337c); settings menu row
+function AskGPT:showXrayDefaultTypePicker()
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.showXrayTypePicker({ plugin = self, ui = self.ui, target_override = "global",
+    no_rebuild_offer = true })
 end
 
 function AskGPT:showSetupWizardDev()

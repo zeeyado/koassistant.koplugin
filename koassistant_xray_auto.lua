@@ -278,7 +278,7 @@ end
 --- and a context/output-cap 400 are deterministic, so transient is false: the
 --- retry would be a guaranteed second failure.
 --- @param err string|nil The error text (handler-formatted, e.g. "gemini/…: HTTP 503: …")
---- @return string kind "aborted"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
+--- @return string kind "aborted"|"no_text"|"front_matter"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
 --- @return boolean transient True when a short wait plausibly heals it (retry-worthy)
 function XrayAuto.classifyStopReason(err)
   local text = type(err) == "string" and err:lower() or ""
@@ -288,8 +288,14 @@ function XrayAuto.classifyStopReason(err)
   -- "background: delta truncated" matched the bare "truncated" below and was
   -- reported to the reader as an "unusable response" for a request never sent.
   if text:find("^background:") then
+    -- B335: a step whose range holds no book text (a scanned file, pages of
+    -- images) is named, so the reader knows no retry will help
+    if text:find("^background: no book text") then return "no_text", false end
     return "aborted", false
   end
+  -- B353: the model found only front matter and the step could not be
+  -- skipped (the build's goal, or the skip budget spent)
+  if text:find("^front matter only") then return "front_matter", false end
   -- Inline requires: both modules are pure and loadable from here, and this file
   -- deliberately keeps no file-level dependency on the api/constraints layer.
   local RateLimits = require("koassistant_rate_limits")
@@ -791,6 +797,30 @@ function XrayAuto.pickAheadRung(ladder, live_progress, position)
   return best
 end
 
+--- Whether a chain step landed (B354): only a checkpoint the step saved
+--- itself counts, a rung at its target (or an introduction for the intro
+--- step) stamped at or after the step started. The highest rung on disk was
+--- not enough: before a rebuild's swap the old lineage is still there, and a
+--- step the model refused passed on it. Pure.
+--- @param ladder table rung array (ActionCache.getXrayLadder)
+--- @param target number the step's target
+--- @param is_intro boolean the introduction step
+--- @param started number os.time() when the step fired
+--- @return boolean
+function XrayAuto.stepWritten(ladder, target, is_intro, started)
+  for _idx, r in ipairs(ladder or {}) do
+    if r.result and (tonumber(r.timestamp) or 0) >= started then
+      if is_intro then
+        if r.intro then return true end
+      elseif not r.intro
+          and (tonumber(r.progress_decimal) or 0) >= target - XrayAuto.LADDER_TOLERANCE then
+        return true
+      end
+    end
+  end
+  return false
+end
+
 --- The update base of a cached request (B336). A checkpoint step continues
 --- from the base its fire path chose (the newest built rung or the live
 --- X-Ray, never an introduction) and creates from scratch without one; any
@@ -876,6 +906,10 @@ function XrayAuto.beginLadderBuild(file, rungs, labels, opts)
     one_shot = (opts and opts.one_shot) or nil,
     -- A run option (B345) on a one-shot build: its rung runs on that model
     run_variant = (opts and opts.one_shot and opts.run_variant) or nil,
+    -- B353: a follow chain's whole grid (the rungs are its prefix to one
+    -- ahead of the reader); a front-matter skip takes its next point
+    grid = (opts and opts.grid) or nil,
+    grid_labels = (opts and opts.grid_labels) or nil,
     step = 1 }
   -- A (re)start supersedes the last pause reason (item 45)
   if last_ladder_stop and last_ladder_stop.file == file then
@@ -902,6 +936,50 @@ function XrayAuto.completeIntro()
     ladder_build.step = (ladder_build.step or 1) + 1
     changed()
   end
+end
+
+XrayAuto.FRONT_MATTER_MAX = 0.5   -- B353: no slice past half the book is front matter only
+XrayAuto.FRONT_MATTER_SKIPS = 3   -- B353: skips per chain (each one is a paid request)
+
+--- B353: skip the step whose slice held only front matter (the model's
+--- front-matter answer). Its target leaves the plan, so the next step reads a
+--- longer slice from the start; an introduction step drops the rung it reads
+--- and reads the next slice. A chain with nothing after the dropped target
+--- takes the next point of its grid (a follow chain), else it cannot skip:
+--- a build's goal that is still front matter has nothing to build. False
+--- too past FRONT_MATTER_MAX or FRONT_MATTER_SKIPS.
+--- @return boolean skipped
+function XrayAuto.skipFrontMatterStep()
+  local b = ladder_build
+  if not b then return false end
+  local idx = b.idx
+  local dropped = b.rungs[idx]
+  if not dropped or dropped >= XrayAuto.FRONT_MATTER_MAX
+      or (b.front_matter_skips or 0) >= XrayAuto.FRONT_MATTER_SKIPS then
+    return false
+  end
+  local next_gi
+  if b.rungs[idx + 1] == nil then
+    for gi, t in ipairs(b.grid or {}) do
+      if t > dropped + XrayAuto.LADDER_TOLERANCE then next_gi = gi break end
+    end
+    if not next_gi then return false end
+  end
+  table.remove(b.rungs, idx)
+  local labels = {}
+  for i, l in pairs(b.labels or {}) do
+    if i < idx then labels[i] = l elseif i > idx then labels[i - 1] = l end
+  end
+  b.labels = labels
+  if next_gi then
+    b.rungs[idx] = b.grid[next_gi]
+    labels[idx] = b.grid_labels and b.grid_labels[next_gi] or nil
+  else
+    b.total = b.total - 1
+  end
+  b.front_matter_skips = (b.front_matter_skips or 0) + 1
+  changed()
+  return true
 end
 
 --- Advance to the next rung. Returns the next target ratio, or nil when done.

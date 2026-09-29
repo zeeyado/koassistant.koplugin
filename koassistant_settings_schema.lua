@@ -979,6 +979,14 @@ local SettingsSchema = {
                             help_text = _("How much each X-Ray entry carries by default. Light: one line per entry, only recurring figures and turning points, about half the cost. Standard: a few sentences per entry, everything the reader meets. Deep: longer entries, every figure and development, richer connections. Applies when an X-Ray is created or rebuilt; checkpoints and updates keep the depth the X-Ray was started with. Individual books can pick their own depth in Book Settings."),
                         },
                         {
+                            id = "xray_default_type_picker",
+                            type = "action",
+                            text = _("Type of New X-Rays"),
+                            callback = "showXrayDefaultTypePicker",
+                            keep_menu_open = true,
+                            help_text = _("Whether a new X-Ray uses the fiction schema (characters, places, story), the nonfiction one (people, concepts, argument) or the academic one (concepts, methods, findings, cited works). Auto, the default, lets the AI decide from the work. Applies when an X-Ray is created or rebuilt; updates keep the X-Ray's own type. Individual books can pick their own type in Book Settings, which is where a book whose X-Ray came out as the wrong type is fixed."),
+                        },
+                        {
                             id = "xray_selection_intercept",
                             type = "toggle",
                             text = _("X-Ray Entry for Matching Selections"),

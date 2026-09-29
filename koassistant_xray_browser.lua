@@ -2969,7 +2969,9 @@ function XrayBrowser:showEntityHistory(item, category_key, reveal)
             local ui = self.ui
             if ui and ui.document and ui.document.info
                 and (ui.document.info.number_of_pages or 0) > 0 then
-                g = math.max(g, (getCurrentPage(ui) or 0) / ui.document.info.number_of_pages)
+                -- Flow position, like the versions' coverage (B335)
+                g = math.max(g, require("koassistant_context_extractor")
+                    .flowFraction(ui.document, getCurrentPage(ui) or 0))
             elseif ds and ds.readSetting then
                 local pf = tonumber(ds:readSetting("percent_finished"))
                 if pf then g = math.max(g, pf) end
@@ -5766,7 +5768,9 @@ function XrayBrowser:_spoilerGate()
     local total = ui.document.info and ui.document.info.number_of_pages
     local gate = getCurrentPage(ui) or 0
     if total and md and md.progress_decimal then
-        local coverage = math.floor(md.progress_decimal * total + 0.5)
+        -- The coverage is a flow position; the gate is a raw page (B335)
+        local coverage = require("koassistant_context_extractor")
+            .rawPageAt(ui.document, tonumber(md.progress_decimal) or 0, true) or 0
         if coverage > gate then gate = coverage end
     end
     if gate == 0 or (total and gate >= total) then return nil end

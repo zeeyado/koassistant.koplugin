@@ -64,6 +64,59 @@ function ContextExtractor.getFlowFingerprint(document)
     return visible
 end
 
+--- Flow position of a raw page (B335). With hidden flows the reader's percent
+--- counts only the visible (flow 0) pages, and so do checkpoint targets,
+--- installs and the card; raw page numbers count every page. KOReader's flow
+--- cache numbers a visible page by its place in flow 0, which is the count of
+--- visible pages up to it; a hidden page counts the visible pages before it
+--- (the same number getReadingProgress computes). Without hidden flows:
+--- page / total.
+--- @param document table KOReader document object
+--- @param page number Raw page number
+--- @return number fraction 0..1
+function ContextExtractor.flowFraction(document, page)
+    local total = document and document.info and document.info.number_of_pages or 0
+    if not page or total <= 0 then return 0 end
+    local visible = document.hasHiddenFlows and document:hasHiddenFlows()
+        and document:getTotalPagesInFlow(0) or 0
+    if visible <= 0 then
+        return math.max(0, math.min(1, page / total))
+    end
+    local p = math.min(page, total)
+    while p >= 1 and document:getPageFlow(p) ~= 0 do p = p - 1 end
+    if p < 1 then return 0 end
+    return math.min(1, document:getPageNumberInFlow(p) / visible)
+end
+
+--- The raw page at a flow position (B335): the k-th visible page, k = the
+--- fraction of the visible pages rounded down (round_up: up, for an extraction
+--- bound that must include the page the position falls on), at least 1.
+--- Without hidden flows: the page at fraction x total.
+--- @param document table KOReader document object
+--- @param fraction number Flow position 0..1
+--- @param round_up boolean|nil Round the page count up
+--- @return number|nil raw page, nil without a page count
+function ContextExtractor.rawPageAt(document, fraction, round_up)
+    local total = document and document.info and document.info.number_of_pages or 0
+    if total <= 0 or type(fraction) ~= "number" then return nil end
+    local visible = document.hasHiddenFlows and document:hasHiddenFlows()
+        and document:getTotalPagesInFlow(0) or 0
+    local count = visible > 0 and visible or total
+    -- A fraction made from a page count (k / count) must map back to k
+    local x = fraction * count
+    local k = round_up and math.ceil(x - 1e-9) or math.floor(x + 1e-9)
+    k = math.max(1, math.min(count, k))
+    if visible <= 0 then return k end
+    local seen = 0
+    for page = 1, total do
+        if document:getPageFlow(page) == 0 then
+            seen = seen + 1
+            if seen == k then return page end
+        end
+    end
+    return total
+end
+
 --- End-of-document xpointer for reflowable documents (parity audit F242, 2026-09-04).
 --- getPageXPointer(N) is the START of page N, so a range that ended on the last
 --- page silently lost that page's text: every whole-document extraction dropped the
@@ -559,8 +612,10 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
     if not self.ui.document.info.has_pages then
         -- EPUB/flowing document: use XPointers
         local document = self.ui.document
-        local from_page = math.max(1, math.floor(from_progress * total_pages))
-        local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
+        -- Callers pass raw page fractions (page / total); 1e-9 maps them back
+        -- to exactly that page, where float rounding could add or drop one
+        local from_page = math.max(1, math.floor(from_progress * total_pages + 1e-9))
+        local to_page = math.min(total_pages, math.ceil(to_progress * total_pages - 1e-9))
 
         if document.hasHiddenFlows and document:hasHiddenFlows() then
             -- Flow-aware path: extract only visible (flow 0) pages in range
@@ -608,8 +663,8 @@ function ContextExtractor:getBookTextRange(from_progress, to_progress, options)
         local success, text = pcall(function()
             local document = self.ui.document
             -- Calculate page range from progress
-            local from_page = math.max(1, math.floor(from_progress * total_pages))
-            local to_page = math.min(total_pages, math.ceil(to_progress * total_pages))
+            local from_page = math.max(1, math.floor(from_progress * total_pages + 1e-9))
+            local to_page = math.min(total_pages, math.ceil(to_progress * total_pages - 1e-9))
 
             -- Limit the range to max_pages
             if to_page - from_page > max_pages then
@@ -1495,7 +1550,14 @@ function ContextExtractor:extractForAction(action)
             local ladder_to = tonumber(self.settings._ladder_target_ratio)
             local book_text_result
             if ladder_to and ladder_to > 0 and ladder_to <= 1 then
-                book_text_result = self:getBookTextRange(0, ladder_to, options)
+                -- The target is a flow position, like the reader's percent;
+                -- the range reads raw pages (B335: read raw, a book with its
+                -- front matter hidden sent the first checkpoints no text)
+                local doc = self:isAvailable() and self.ui.document
+                local total = doc and doc.info and doc.info.number_of_pages
+                local to_page = doc and ContextExtractor.rawPageAt(doc, ladder_to, true)
+                book_text_result = self:getBookTextRange(0,
+                    (to_page and total) and to_page / total or ladder_to, options)
             else
                 book_text_result = self:getBookText(options)
             end
