@@ -264,7 +264,7 @@ Actions.highlight = {
         description = _("Explains the selected passage clearly, matching the tone of the source material."),
         context = "highlight",
         template = "explain",
-        in_highlight_menu = 2,  -- Default in highlight menu
+        in_highlight_menu = 3,  -- Default in highlight menu
         -- Uses global behavior variant (full/minimal)
         api_params = {
             temperature = 0.5,  -- More focused for explanations
@@ -283,7 +283,7 @@ Actions.highlight = {
         -- Joined the menu defaults + DEFAULT_MINIMAL_POPUP_ACTIONS in the A9
         -- follow-up 2026-08-17 (maintainer): the minimal-popup registry needs a
         -- launch surface, and this is the popup's natural resident.
-        in_highlight_menu = 3,
+        in_highlight_menu = 4,
         text = _("Quick Explain"),
         description = _("A two-or-three-sentence plain-language explanation of the selection, on a fast model."),
         context = "highlight",
@@ -331,7 +331,7 @@ Actions.highlight = {
             temperature = 0.4,  -- More deterministic for summaries
         },
         include_book_context = true,
-        in_highlight_menu = 4,  -- A9 pare-down 2026-08-17 (2026-08-21: shifted up, the conditional xray_lookup moved to the tail)
+        in_highlight_menu = 5,  -- A9 pare-down 2026-08-17 (2026-08-21: shifted up, the conditional xray_lookup moved to the tail)
         builtin = true,
     },
     elaborate = {
@@ -686,7 +686,7 @@ Use plain language first, adding the technical term in parentheses when it helps
         local_handler = "xray_lookup",
         requires_open_book = true,
         requires_xray_cache = true,
-        in_highlight_menu = 7,  -- 2026-08-21: second-to-last, beside image_gen — it is conditional (maintainer)
+        in_highlight_menu = 8,  -- 2026-08-21: second-to-last, beside image_gen — it is conditional (maintainer)
         in_dictionary_popup = 6,
         exclude_from_compact = true,
         no_duplicate = true,
@@ -705,21 +705,25 @@ Use plain language first, adding the technical term in parentheses when it helps
         local_handler = "image_gen",
         local_note = _("This action skips the chat pipeline, but it does send one AI request: the framed prompt below goes to the image provider's API. Provider, model, size and prompt framing are set in Settings → Advanced → Image Generation."),
         requires_image_provider = true,
-        in_highlight_menu = 8,  -- A9 pare-down 2026-08-17: last, it is conditional (maintainer)
+        in_highlight_menu = 9,  -- A9 pare-down 2026-08-17: last, it is conditional (maintainer)
         exclude_from_compact = true,
         no_duplicate = true,
         builtin = true,
     },
     -- The model button (#86, B345 step 4): shows your model; a tap lists your
     -- favorites and recent picks and switches the model for good (main.lua
-    -- draws it, koassistant_model_switch.lua). Opt-in: no default placement;
-    -- added from either editor, it goes first among KOAssistant's buttons.
+    -- draws it, koassistant_model_switch.lua). In the highlight menu by
+    -- default, first among KOAssistant's buttons (maintainer 2026-09-29); not
+    -- in the dictionary popup by default (maintainer: its actions are to lean
+    -- on model tiers, and a long-press runs one on another model). Added from
+    -- either editor, it goes first.
     model_switch = {
         id = "model_switch",
         text = _("Switch model"),
         description = _("Shows your model. Tap it to switch to a favorite, a recent pick or any other model; the menu stays open. Actions with a model of their own keep it."),
         context = "highlight",
         local_handler = "model_switch",
+        in_highlight_menu = 1,
         local_note = _("A button, not an action: it sends nothing. A pick changes your model for everything after, as Settings → Model does. The highlight menu and the dictionary popup can show it."),
         menu_button = true,
         exclude_from_compact = true,
@@ -2420,7 +2424,7 @@ Actions.special = {
         description = _("Translates the selected text into your configured translation language. This action also controls the Translate Current Page function."),
         context = "highlight",  -- Only for highlighted text
         behavior_variant = "translator_direct",  -- Use built-in translation behavior
-        in_highlight_menu = 1,  -- Default in highlight menu
+        in_highlight_menu = 2,  -- Default in highlight menu (after the model button)
         prompt = "Translate this to {translation_language}: {highlighted_text}",
         include_book_context = false,
         reasoning_config = "off",  -- Translations don't benefit from reasoning
@@ -2443,7 +2447,7 @@ Actions.special = {
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         use_surrounding_context = false,  -- {context_section} channel already carries the passage
         in_dictionary_popup = 2,  -- Default order in dictionary popup
-        in_highlight_menu = 5,    -- A9 pare-down 2026-08-17: dict pair joins the menu
+        in_highlight_menu = 6,    -- A9 pare-down 2026-08-17: dict pair joins the menu
         prompt = [[Define "{highlighted_text}"
 
 Write entirely in {dictionary_language}. Only the headword stays in original language.
@@ -2476,7 +2480,7 @@ One line only. No etymology, no synonyms. No headers.]],
         behavior_variant = "dictionary_direct",  -- Use built-in dictionary behavior
         use_surrounding_context = false,  -- {context_section} channel already carries the passage
         in_dictionary_popup = 1,  -- Default order in dictionary popup
-        in_highlight_menu = 6,    -- A9 pare-down 2026-08-17: dict pair joins the menu
+        in_highlight_menu = 7,    -- A9 pare-down 2026-08-17: dict pair joins the menu
         prompt = [[Dictionary entry for "{highlighted_text}"
 
 Write entirely in {dictionary_language}. Only the headword, lemma, and synonyms stay in original language.
