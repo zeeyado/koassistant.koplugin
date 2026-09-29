@@ -4437,6 +4437,18 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 "depth:", xr_depth)
         end
     end
+    -- Introduction step of a checkpoint build: the premise-only instruction
+    -- goes on the FINAL create prompt, after the research, full-document and
+    -- category swaps above (B336)
+    if message_data._ladder_intro and prompt and prompt.id == "xray" then
+        if not prompt._is_copy then
+            local original_prompt = prompt
+            prompt = {}
+            for k, v in pairs(original_prompt) do prompt[k] = v end
+            prompt._is_copy = true
+        end
+        prompt.prompt = (prompt.prompt or "") .. PromptsActions.XRAY_INTRO_CLAUSE
+    end
 
     -- Source mode: skip expensive text extraction when user chose summary or AI knowledge
     -- Also propagate _source_mode to message_data for {document_context_section} resolution
@@ -4893,15 +4905,13 @@ if prune_book_text then
         local ActionCache = require("koassistant_action_cache")
         -- Ladder chain: rung N+1 continues from rung N (injected by the fire path),
         -- never from the live cache — the live X-Ray tracks the reader throughout
-        -- the build (§6 slice 1). A pre-swap REBUILD rung carries no base BY
-        -- DESIGN (_ladder_fresh): nil here must not fall through to the
-        -- surviving old artifact, or the rebuild silently merges the very
-        -- lineage it is replacing back in (2026-08-15 device round, log:
-        -- "Using cached response from 9%" on a from-scratch rebuild step)
-        local cached_entry = message_data._ladder_base
-        if not cached_entry and not message_data._ladder_fresh then
-            cached_entry = ActionCache.get(cache_file, prompt.id)
-        end
+        -- the build (§6 slice 1). A step with no base creates from scratch: a
+        -- pre-swap REBUILD rung (the surviving old artifact would merge the
+        -- lineage it replaces back in, 2026-08-15 device round), the
+        -- introduction and the rung after it (the installed introduction read
+        -- as rung 1's base, B336)
+        local cached_entry = require("koassistant_xray_auto").updateBaseFor(message_data,
+            function() return ActionCache.get(cache_file, prompt.id) end)
         cache_entry_existed = (cached_entry ~= nil and cached_entry.result ~= nil)
 
         if cached_entry and message_data.progress_decimal then

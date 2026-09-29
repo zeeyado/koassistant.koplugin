@@ -1766,6 +1766,10 @@ function XrayParser.searchAll(data, query, opts)
     -- descriptions never match
     local exact = opts and opts.exact
     if exact then skip_description = true end
+    -- One exact rule with the route index and the marks (B338): a bracketed
+    -- name answers to the name without its gloss and to a bracketed name in
+    -- another script
+    local qkeys = exact and XrayParser.exactQueryKeys(query)
 
     local categories = XrayParser.getCategories(data)
     -- A pasted "_" spelling finds the dotted entry (#90)
@@ -1788,32 +1792,34 @@ function XrayParser.searchAll(data, query, opts)
                 -- Check primary name/term/event
                 local name = item.name or item.term or item.event or ""
                 if name ~= "" then
-                    local n = normalize(name:lower())
                     if exact then
-                        if n == query_lower
-                            or (query_stripped and n == query_stripped) then
+                        if XrayParser.exactHandleHit(name, qkeys) then
                             match_field = "name"
                         end
-                    elseif n:find(query_lower, 1, true)
-                        or (query_stripped and n:find(query_stripped, 1, true)) then
-                        match_field = "name"
+                    else
+                        local n = normalize(name:lower())
+                        if n:find(query_lower, 1, true)
+                            or (query_stripped and n:find(query_stripped, 1, true)) then
+                            match_field = "name"
+                        end
                     end
                 end
                 -- Check aliases
                 local i_aliases = ensure_array(item.aliases)
                 if not match_field and i_aliases then
                     for _idx3, alias in ipairs(i_aliases) do
-                        local a = normalize(alias:lower())
                         if exact then
-                            if a == query_lower
-                                or (query_stripped and a == query_stripped) then
+                            if XrayParser.exactHandleHit(alias, qkeys) then
                                 match_field = "alias"
                                 break
                             end
-                        elseif a:find(query_lower, 1, true)
-                            or (query_stripped and a:find(query_stripped, 1, true)) then
-                            match_field = "alias"
-                            break
+                        else
+                            local a = normalize(alias:lower())
+                            if a:find(query_lower, 1, true)
+                                or (query_stripped and a:find(query_stripped, 1, true)) then
+                                match_field = "alias"
+                                break
+                            end
                         end
                     end
                 end
@@ -1873,13 +1879,11 @@ function XrayParser.searchLedger(data, query, opts)
         local s = stripArabicArticle(query_lower)
         if s ~= query_lower and #s > 4 then query_stripped = s end
     end
+    local qkeys = exact and XrayParser.exactQueryKeys(query)
     local function matches(text)
         if type(text) ~= "string" or text == "" then return false end
+        if exact then return XrayParser.exactHandleHit(text, qkeys) end
         local t = normalize(text:lower())
-        if exact then
-            if t == query_lower then return true end
-            return (query_stripped and t == query_stripped) and true or false
-        end
         if t:find(query_lower, 1, true) then return true end
         return (query_stripped and t:find(query_stripped, 1, true)) and true or false
     end
@@ -1934,9 +1938,9 @@ local function exactKey(s)
 end
 
 --- Fold every exact-matchable handle (name/term/event + aliases) of data's
---- entities into `set`. Each handle folds BOTH its raw form and its
---- parenthetical-stripped form — the SAME reduction collectSearchTerms
---- applies for marking/searching, so anything the marks layer underlines is
+--- entities into `set`. Each handle folds its exactKeys: the raw form, the
+--- form without its bracketed gloss and a bracketed name in another script,
+--- the names the marks match, so anything the marks layer underlines is
 --- reachable by selecting exactly the underlined words (device 2026-08-14:
 --- a parenthetical-suffixed entity was marked via its stripped form but the
 --- raw-handle-only set refused the selection). Skips the
@@ -1946,15 +1950,7 @@ end
 --- @param set table Accumulator: normalized handle -> true
 function XrayParser.foldExactHandles(data, set)
     local function fold(h)
-        if type(h) ~= "string" or h == "" then return end
-        local k = exactKey(h)
-        if k ~= "" then set[k] = true end
-        -- Parenthetical-stripped variant: "Theosis (Deification)" → "Theosis"
-        local stripped = h:gsub("%s*%(.-%)%s*", " ")
-        if stripped ~= h then
-            k = exactKey(stripped)
-            if k ~= "" then set[k] = true end
-        end
+        for _i, k in ipairs(XrayParser.exactKeys(h)) do set[k] = true end
     end
     for _idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
         if cat.key ~= "current_state" and cat.key ~= "current_position"
@@ -1980,13 +1976,8 @@ end
 --- @param query string Raw query text
 --- @return boolean
 function XrayParser.matchExactHandle(set, query)
-    if type(query) ~= "string" or query == "" then return false end
-    local q = exactKey(query)
-    if q == "" then return false end
-    if set[q] then return true end
-    if XrayParser.containsArabic(q) then
-        local s = stripArabicArticle(q)
-        if s ~= q and #s > 4 and set[s] then return true end
+    for _i, k in ipairs(XrayParser.exactQueryKeys(query)) do
+        if set[k] then return true end
     end
     return false
 end
@@ -2002,14 +1993,7 @@ function XrayParser.foldLedgerHandles(data, set)
     local ledger = type(data) == "table" and data[XrayParser.DORMANT_KEY]
     if type(ledger) ~= "table" then return end
     local function fold(h)
-        if type(h) ~= "string" or h == "" then return end
-        local k = exactKey(h)
-        if k ~= "" then set[k] = true end
-        local stripped = h:gsub("%s*%(.-%)%s*", " ")
-        if stripped ~= h then
-            k = exactKey(stripped)
-            if k ~= "" then set[k] = true end
-        end
+        for _i, k in ipairs(XrayParser.exactKeys(h)) do set[k] = true end
     end
     for _idx, stub in ipairs(ledger) do
         if type(stub) == "table" then
@@ -2356,9 +2340,67 @@ local function skipBoundaryCheck(str)
     return false
 end
 
+--- True when the two bytes at p are an Arabic letter (marks, digits and
+--- punctuation are not: the matcher's text has its marks stripped).
+local function isArabicLetterAt(t, p)
+    local b1, b2 = t:byte(p, p + 1)
+    if not b1 or b1 < 0xD8 or b1 > 0xDB or not b2 then return false end
+    local cp = (b1 - 0xC0) * 64 + (b2 - 0x80)
+    return (cp >= 0x0620 and cp <= 0x064A) or (cp >= 0x066E and cp <= 0x06D3)
+end
+
+--- The Arabic letters in s (0 for text in any other script).
+local function arabicLetterCount(s)
+    local n = 0
+    for p = 1, #s - 1 do
+        if isArabicLetterAt(s, p) then n = n + 1 end
+    end
+    return n
+end
+
+-- What an Arabic word may carry before a name, in order: the question alef,
+-- a conjunction (و ف), a preposition or the future marker (ب ك ل س), the
+-- article (ال, written لل after ل). Skeleton letters, alef forms unified.
+local ARABIC_PREFIXES = {}
+do
+    local ALIF, LAM = "\216\167", "\217\132"
+    for _i, q in ipairs({ "", ALIF }) do
+        for _j, c in ipairs({ "", "\217\136", "\217\129" }) do
+            for _k, p in ipairs({ "", "\216\168", "\217\131", "\216\179", LAM }) do
+                for _m, a in ipairs({ "", ALIF .. LAM }) do
+                    if p == LAM and a ~= "" then
+                        ARABIC_PREFIXES[q .. c .. LAM .. LAM] = true
+                    else
+                        ARABIC_PREFIXES[q .. c .. p .. a] = true
+                    end
+                end
+            end
+        end
+    end
+end
+-- Letters a word may carry after a name: a pronoun or a plural ending
+local MAX_ARABIC_SUFFIX = 3
+
+--- An Arabic match counts where a word starts (after its allowed prefixes)
+--- and ends within MAX_ARABIC_SUFFIX letters of the word's end (B339: "رض"
+--- from "الأرض" matched inside "معرضون").
+local function arabicWordMatch(text, s, e)
+    local ws = s
+    while ws > 2 and isArabicLetterAt(text, ws - 2) do ws = ws - 2 end
+    if not ARABIC_PREFIXES[text:sub(ws, s - 1)] then return false end
+    local we, letters = e, 0
+    while isArabicLetterAt(text, we + 1) do
+        we = we + 2
+        letters = letters + 1
+        if letters > MAX_ARABIC_SUFFIX then return false end
+    end
+    return true
+end
+
 --- Collect match spans of a substring in text (plain search).
 --- For Latin/Cyrillic/Greek: uses word-boundary matching to prevent false positives.
---- For CJK/Thai/Arabic/Hebrew: skips boundary matching (see skipBoundaryCheck).
+--- For Arabic: the start of a word, allowed prefixes and short endings (arabicWordMatch).
+--- For CJK/Thai/Hebrew: skips boundary matching (see skipBoundaryCheck).
 --- @param text string Haystack (already lowered)
 --- @param needle string Needle (already lowered)
 --- @return table spans Array of {start, end_pos} pairs
@@ -2368,11 +2410,16 @@ function XrayParser._collectMatchSpans(text, needle)
     local needle_len = #needle
     local text_len = #text
     local skip_boundaries = skipBoundaryCheck(needle)
+    local arabic = skip_boundaries and XrayParser.containsArabic(needle)
     while true do
         local start = text:find(needle, pos, true)
         if not start then break end
         local end_pos = start + needle_len - 1
-        if skip_boundaries then
+        if arabic then
+            if arabicWordMatch(text, start, end_pos) then
+                spans[#spans + 1] = {start, end_pos}
+            end
+        elseif skip_boundaries then
             spans[#spans + 1] = {start, end_pos}
         else
             -- Check word boundaries: character before/after must be non-word
@@ -2400,12 +2447,13 @@ end
 -- index (koassistant_xray_index.lua) all match X-Ray names against book text
 -- through matchNormalize + matchTermSet + _collectMatchSpans, so an
 -- underline, a count and a mention list agree. Latin, Cyrillic and Greek
--- names match whole words; Arabic, Hebrew, CJK and Thai match substrings
--- (attached prefixes, particles, no spaces between words). Arabic follows
--- the engine regex the marks searched with before (buildArabicSearchRegex):
--- every combining mark of the text is optional, the dagger alef included
--- (Uthmani spelling writes a long vowel as a mark), every alef of a name is
--- optional, and the article may drop.
+-- names match whole words; Hebrew, CJK and Thai match substrings (particles,
+-- no spaces between words). Arabic names match where a word starts, after
+-- the prefixes a word carries (و ف ب ك ل س, the article), with at most three
+-- letters after them (B339): every combining mark of the text is optional,
+-- the dagger alef included (Uthmani spelling writes a long vowel as a mark),
+-- an alef inside a word of the name is optional, the article may drop, and
+-- a form needs three letters.
 
 -- Case fold: KOReader's utf8proc NFKC case fold (Cyrillic, Greek and
 -- accented Latin fold like ASCII; ligatures, superscripts and presentation
@@ -2464,9 +2512,11 @@ function XrayParser.matchNormalize(s)
     return (s:gsub("\194\160", " "):gsub("%s+", " "))
 end
 
--- Alef-optional forms of an Arabic name: each alef kept or dropped (the
--- engine regex made every alef optional). More alefs than this keep only
--- the all-kept and all-dropped forms (16 forms at most).
+-- Alef-optional forms of an Arabic name: each alef inside a word kept or
+-- dropped (Uthmani spelling writes a long vowel as a dagger alef, which the
+-- skeleton drops). A word's first alef is always written, so it stays (B339:
+-- "رض" from "الأرض" matched inside other words). More alefs than this keep
+-- only the all-kept and all-dropped forms (16 forms at most).
 local ALEF_VARIANT_CAP = 4
 local function alefVariants(term)
     local positions = {}
@@ -2474,12 +2524,18 @@ local function alefVariants(term)
     while true do
         local s = term:find(ALEF, from, true)
         if not s then break end
-        positions[#positions + 1] = s
+        if s > 1 and term:byte(s - 1) ~= 32 then positions[#positions + 1] = s end
         from = s + #ALEF
     end
     if #positions == 0 then return { term } end
     if #positions > ALEF_VARIANT_CAP then
-        return { term, (term:gsub(ALEF, "")) }
+        local parts, last = {}, 1
+        for _k, pos in ipairs(positions) do
+            parts[#parts + 1] = term:sub(last, pos - 1)
+            last = pos + #ALEF
+        end
+        parts[#parts + 1] = term:sub(last)
+        return { term, table.concat(parts) }
     end
     local out = {}
     for mask = 0, 2 ^ #positions - 1 do
@@ -2547,6 +2603,83 @@ local function letterScripts(s)
     return out
 end
 
+--- The names one name or alias stands for: the text without its bracketed
+--- parts, plus each bracketed part that is the name in another script. A
+--- bracketed part tells entries apart ("Anna (the elder)", "(archetype)",
+--- "(Norse tale)") and would match every use of its words; other names are
+--- aliases. It is a name only when every letter is in a script the rest of
+--- the name does not use ("The Old City (<Arabic>)", "Tokyo (東京)", an Arabic
+--- name followed by its transliteration).
+--- @param t string a name or alias as written
+--- @return table names, the bracket-less one first (trimmed, not normalized)
+local function handleNames(t)
+    local outside = trimSpaces((t:gsub("%s*%(.-%)%s*", " ")))
+    local names = { outside }
+    if not t:find("(", 1, true) then return names end
+    local own = letterScripts(outside)
+    for inner in t:gmatch("%((.-)%)") do
+        local scripts = letterScripts(inner)
+        local other = next(scripts) ~= nil
+        for s in pairs(scripts) do
+            if own[s] then
+                other = false
+                break
+            end
+        end
+        if other then names[#names + 1] = trimSpaces(inner) end
+    end
+    return names
+end
+
+--- The exact-lookup keys of one name or alias: the text as written and each
+--- of its names (handleNames), through the one exactKey rule. Exact search,
+--- the route index and the carried list read the same keys, so a tap on
+--- anything the marks underline finds its entry (B338).
+--- @param h string
+--- @return table keys, deduplicated and non-empty
+function XrayParser.exactKeys(h)
+    local keys, seen = {}, {}
+    if type(h) ~= "string" or h == "" then return keys end
+    local function add(s)
+        local k = exactKey(s)
+        if k ~= "" and not seen[k] then
+            seen[k] = true
+            keys[#keys + 1] = k
+        end
+    end
+    add(h)
+    for _i, n in ipairs(handleNames(h)) do add(n) end
+    return keys
+end
+
+--- The query side of exact matching: the query's key, plus the ال-stripped
+--- variant for Arabic (query side only: a handle is never article-stripped).
+--- @param query string
+--- @return table keys (empty for an empty query)
+function XrayParser.exactQueryKeys(query)
+    if type(query) ~= "string" or query == "" then return {} end
+    local q = exactKey(query)
+    if q == "" then return {} end
+    local keys = { q }
+    if XrayParser.containsArabic(q) then
+        local s = stripArabicArticle(q)
+        if s ~= q and #s > 4 then keys[2] = s end
+    end
+    return keys
+end
+
+--- True when one of a handle's exact keys is one of the query's keys.
+--- @param h string a name or alias as written
+--- @param qkeys table XrayParser.exactQueryKeys(query)
+function XrayParser.exactHandleHit(h, qkeys)
+    for _i, k in ipairs(XrayParser.exactKeys(h)) do
+        for _j, q in ipairs(qkeys) do
+            if k == q then return true end
+        end
+    end
+    return false
+end
+
 -- matchTermSet memo: the same item table asks many times per view (every
 -- other entity's containment check), keyed weakly with a name+aliases
 -- signature so an alias edited in place is never served stale
@@ -2579,6 +2712,14 @@ function XrayParser.matchTermSet(item, item_title)
         if XrayParser.containsArabic(norm) then
             local stripped = trimSpaces(stripArabicArticle(norm))
             if stripped ~= norm and #stripped > 4 then forms[2] = stripped end
+            -- li- + al- drops the article's alef ("للأرض"), and three lams
+            -- in a row are written as two ("لله", "لليل"). B339: the first
+            -- alef of a word is otherwise never optional.
+            if norm:sub(1, AL_PREFIX_LEN) == AL_PREFIX then
+                local lil = "\217\132" .. norm:sub(#ALEF + 1)
+                if lil:sub(1, 6) == "\217\132\217\132\217\132" then lil = lil:sub(3) end
+                forms[#forms + 1] = lil
+            end
         else
             -- A leading English article: "The Wise Old Man" is as often "a
             -- wise old man" or "this wise old man". The phrase without it
@@ -2590,7 +2731,10 @@ function XrayParser.matchTermSet(item, item_title)
         for _f, form in ipairs(forms) do
             for _v, v in ipairs(alefVariants(form)) do
                 v = trimSpaces(v)
-                if #v > 2 and not seen[v] then
+                -- An Arabic form of two letters sits inside countless words
+                -- (a pronoun, a dropped-alef skeleton): three letters at least
+                local letters = arabicLetterCount(v)
+                if #v > 2 and not seen[v] and (letters == 0 or letters >= 3) then
                     seen[v] = true
                     all[#all + 1] = v
                     source[v] = text
@@ -2600,27 +2744,7 @@ function XrayParser.matchTermSet(item, item_title)
     end
     local function addName(t)
         if type(t) ~= "string" then return end
-        local outside = trimSpaces((t:gsub("%s*%(.-%)%s*", " ")))
-        addForm(outside)
-        if not t:find("(", 1, true) then return end
-        local own = letterScripts(outside)
-        for inner in t:gmatch("%((.-)%)") do
-            -- A bracketed part tells entries apart ("Anna (the elder)",
-            -- "(archetype)", "(Norse tale)") and would match every use of
-            -- its words; other names are aliases. It is a name only when it
-            -- is the name in another script: every letter in a script the
-            -- rest of the name does not use ("The Old City (<Arabic>)",
-            -- "Tokyo (東京)", an Arabic name followed by its transliteration).
-            local scripts = letterScripts(inner)
-            local other = next(scripts) ~= nil
-            for s in pairs(scripts) do
-                if own[s] then
-                    other = false
-                    break
-                end
-            end
-            if other then addForm(trimSpaces(inner)) end
-        end
+        for _i, n in ipairs(handleNames(t)) do addForm(n) end
     end
     addName(name)
     if aliases then

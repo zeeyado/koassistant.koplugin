@@ -26,8 +26,21 @@ XrayAuto.CATCHUP_DELAY_S = 30    -- session-start catch-up delay (update-checker
 -- models; big one-shots). True hangs are rare and covered: the child's own
 -- socket timeouts self-resolve dead connections, every in-progress state has
 -- a tap-to-cancel row, and book close cancels the flight.)
-XrayAuto.RETRY_DELAY_S = 60      -- item 45: single transient-failure retry per ladder step.
+XrayAuto.RETRY_DELAY_S = 60      -- item 45: transient-failure retry wait per ladder step.
 XrayAuto.RETRY_MAX_WAIT_S = 600  -- a provider-named wait past this holds no build session
+XrayAuto.STEP_RETRIES = 2        -- B322: silent retries per step before the chain stops
+
+--- The wait before the next retry of a failed step, or nil when the step's
+--- budget is spent (the chain stops with its notice). The second retry waits
+--- twice as long (B322: a reporter saw 1-3 stops per 40 checkpoints, each
+--- healing on a later resume). Pure.
+--- @param retried number retries already made for this step
+--- @param wait number|nil the first wait (retryDelayFor); nil = no retry
+--- @return number|nil seconds
+function XrayAuto.nextRetryWait(retried, wait)
+  if not wait or retried >= XrayAuto.STEP_RETRIES then return nil end
+  return math.min(wait * (retried + 1), XrayAuto.RETRY_MAX_WAIT_S)
+end
 
 --- Seconds the one retry waits: the provider's own delay when it named one
 --- (the wording, or the retry-after header: RateLimits.retryAfter), plus a
@@ -776,6 +789,19 @@ function XrayAuto.pickAheadRung(ladder, live_progress, position)
     end
   end
   return best
+end
+
+--- The update base of a cached request (B336). A checkpoint step continues
+--- from the base its fire path chose (the newest built rung or the live
+--- X-Ray, never an introduction) and creates from scratch without one; any
+--- other request continues from the live entry.
+--- @param message_data table the request's markers (_ladder_build, _ladder_base, _ladder_fresh)
+--- @param get_live function returns the live cache entry (called only when it may serve)
+--- @return table|nil entry
+function XrayAuto.updateBaseFor(message_data, get_live)
+  if message_data._ladder_base then return message_data._ladder_base end
+  if message_data._ladder_build or message_data._ladder_fresh then return nil end
+  return get_live()
 end
 
 -- Build-chain session state (module-local, survives instance teardown like the

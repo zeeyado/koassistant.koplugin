@@ -876,13 +876,16 @@ local function handleTextSelection(text, hold_duration, opts)
     end
 
     if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
-        -- Single word + short hold: auto dictionary lookup (fast path)
-        if ui and ui.dictionary then
-            ui.dictionary._koassistant_non_reader_lookup = true
+        -- Single word + short hold: auto dictionary lookup (fast path), in the
+        -- reader or file browser on screen (B341: ui is nil for another book's
+        -- X-Ray, and a kept one can have closed)
+        local dict_ui = ChatGPTViewer.liveUI(ui)
+        if dict_ui and dict_ui.dictionary then
+            dict_ui.dictionary._koassistant_non_reader_lookup = true
             -- Carry the X-Ray's SOURCE book so a bypass / dict-popup X-Ray
             -- lookup targets it, not whatever the reader has open
-            ui.dictionary._koassistant_lookup_book = opts.book_file or nil
-            ui.dictionary:onLookupWord(text)
+            dict_ui.dictionary._koassistant_lookup_book = opts.book_file or nil
+            dict_ui.dictionary:onLookupWord(text)
             clear_highlight()
             return
         end

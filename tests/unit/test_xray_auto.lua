@@ -1435,6 +1435,30 @@ TestRunner:test("skippedBuiltRung (B282): the swing guard fires only past a skip
     TestRunner:assertEqual(XrayAuto.skippedBuiltRung(ladder, 0.4, 0.45), false, "nothing promotable: nothing to guard")
 end)
 
+TestRunner:test("nextRetryWait (B322): two retries per step, the second after twice the wait", function()
+  TestRunner:assertEqual(XrayAuto.nextRetryWait(0, 60), 60, "first retry: the wait as named")
+  TestRunner:assertEqual(XrayAuto.nextRetryWait(1, 60), 120, "second retry: twice the wait")
+  TestRunner:assertEqual(XrayAuto.nextRetryWait(2, 60), nil, "the budget is spent: the chain stops")
+  TestRunner:assertEqual(XrayAuto.nextRetryWait(1, 400), XrayAuto.RETRY_MAX_WAIT_S, "capped")
+  TestRunner:assertEqual(XrayAuto.nextRetryWait(0, nil), nil, "no wait named or allowed: no retry")
+end)
+
+TestRunner:test("updateBaseFor (B336): a checkpoint step never falls back to the live X-Ray", function()
+  local live = { result = "{}", intro = true }
+  local asked = 0
+  local function getLive() asked = asked + 1; return live end
+  local base = { result = "{}", progress_decimal = 0.2 }
+  TestRunner:assertEqual(XrayAuto.updateBaseFor({ _ladder_build = true, _ladder_base = base }, getLive),
+    base, "the base the fire path chose")
+  TestRunner:assertEqual(XrayAuto.updateBaseFor({ _ladder_build = true, _ladder_intro = true }, getLive),
+    nil, "the introduction creates from scratch")
+  TestRunner:assertEqual(XrayAuto.updateBaseFor({ _ladder_build = true }, getLive),
+    nil, "rung 1 after an installed introduction creates from scratch")
+  TestRunner:assertEqual(XrayAuto.updateBaseFor({ _ladder_fresh = true }, getLive), nil, "a pre-swap rebuild step")
+  TestRunner:assertEqual(asked, 0, "the live X-Ray is never read for a checkpoint step")
+  TestRunner:assertEqual(XrayAuto.updateBaseFor({}, getLive), live, "an ordinary update continues the live X-Ray")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

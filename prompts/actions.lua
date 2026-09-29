@@ -1017,7 +1017,7 @@ __SCOPE_LINE__
 
 __TEXT_SECTION__
 
-First, determine if this is FICTION or NON-FICTION. Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. __SCOPE_INSTRUCTION__. Order characters by narrative importance.
+First, decide whether the WORK is FICTION or NON-FICTION. If you know this title and author, that decides it: a novel is fiction even when this edition opens with a biographical or critical introduction. Otherwise judge from the main text, never from front matter (an introduction, preface, foreword, translator's or editor's note, chronology or author biography). Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below. __SCOPE_INSTRUCTION__. Order characters by narrative importance.
 
 ---
 
@@ -1049,7 +1049,7 @@ __NONFICTION_OUTPUT_SIZE__
 
 __CLOSING__
 
-Base the X-Ray on the provided text. You do not need to recognize this work — analyze the text on its own terms whether or not you know it. Do NOT add characters, events, or details that are not in the provided text or clearly implied by it.
+Base the X-Ray on the provided text. You do not need to recognize this work — analyze the text on its own terms whether or not you know it (what you know of it may settle fiction or non-fiction, nothing else). Do NOT add characters, events, or details that are not in the provided text or clearly implied by it.
 If no text is provided, or the text is unreadable or too fragmentary to analyze, respond with ONLY this JSON:
 {"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}]]
 
@@ -1069,7 +1069,7 @@ local XRAY_PARTIAL_REPLACEMENTS = {
     "building_toward": ["What the author appears to be building toward"]
   }]],
     __NONFICTION_STATUS_GUIDANCE__ = "**Current Position**: A paragraph-length summary of what's been established so far, the current line of inquiry, and where the author seems to be heading.",
-    __CLOSING__ = [[CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must be written in {response_language}, regardless of the language of the source text.]],
+    __CLOSING__ = [[CRITICAL: Do not reveal ANYTHING beyond {reading_progress}. This must be completely spoiler-free. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must be written in {response_language}, regardless of the language of the source text.]],
 }
 
 local XRAY_COMPLETE_REPLACEMENTS = {
@@ -1088,7 +1088,7 @@ local XRAY_COMPLETE_REPLACEMENTS = {
     "implications": ["Practical implication, recommendation, or open question"]
   }]],
     __NONFICTION_STATUS_GUIDANCE__ = "**Conclusion**: A paragraph-length summary of the document's overall conclusions and key findings, plus practical implications.",
-    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the work comprehensively, including all events, resolutions, and conclusions. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must be written in {response_language}, regardless of the language of the source text.]],
+    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the work comprehensively, including all events, resolutions, and conclusions. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must be written in {response_language}, regardless of the language of the source text.]],
 }
 
 -- Section X-Ray: uses complete-style analysis but scoped to a specific section
@@ -1100,7 +1100,7 @@ local XRAY_SECTION_REPLACEMENTS = {
     __FICTION_STATUS_GUIDANCE__ = XRAY_COMPLETE_REPLACEMENTS.__FICTION_STATUS_GUIDANCE__,
     __NONFICTION_STATUS__ = XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS__,
     __NONFICTION_STATUS_GUIDANCE__ = XRAY_COMPLETE_REPLACEMENTS.__NONFICTION_STATUS_GUIDANCE__,
-    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the section comprehensively. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must be written in {response_language}, regardless of the language of the source text.]],
+    __CLOSING__ = [[Output ONLY valid JSON — no other text. Cover the section comprehensively. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values (descriptions, summaries, significance, definitions, connections, etc.) must be written in {response_language}, regardless of the language of the source text.]],
 }
 
 -- ============================================================
@@ -1265,6 +1265,13 @@ Actions.normalizeXrayCategories = normalizeXrayCategories
 --- timeline is the single heaviest block and Recap covers it; places and
 --- terms cost a fraction and feed every lookup surface.
 Actions.XRAY_DEFAULT_CATEGORIES = "people,places,ideas,terms"
+
+--- The introduction step of a checkpoint build (round 20): rung 1's slice,
+--- premise only. The request assembly appends it to the FINAL create prompt,
+--- after the research, full-document and category swaps (B336: appended at
+--- the fire site, the category assembly replaced it whenever categories
+--- resolved, the default since v0.22.1).
+Actions.XRAY_INTRO_CLAUSE = "\n\nIMPORTANT — INTRODUCTORY X-RAY: This X-Ray is a spoiler-free introduction for a reader who has NOT started the book yet. Cover only the premise, the setting, and the characters, concepts, or terms as they stand when first introduced in this opening portion. Do not mention any developments, reveals, relationships, or events beyond the initial setup."
 
 --- Is a stored categories value an explicit "everything" pick: the "full"
 --- sentinel, or a csv naming every group? (normalizeXrayCategories folds
@@ -1536,7 +1543,7 @@ Guidelines:
 - Add new timeline/argument_development entries for events in the new content. These lists are the ONE exception to the re-emit rule: they are permanent records with no name matching, and every entry you send is APPENDED as-is — re-sending an existing event, even reworded, creates a duplicate. Never re-send existing events; do record the significant events of the newly provided text.
 
 
-CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values must be written in {response_language}, regardless of the language of the source text.]],
+CRITICAL: This must remain spoiler-free up to {reading_progress}. Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values must be written in {response_language}, regardless of the language of the source text.]],
     },
     -- X-Ray (Simple): Prose companion from AI knowledge (no text extraction)
     xray_simple = {

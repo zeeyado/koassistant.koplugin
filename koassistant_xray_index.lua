@@ -15,7 +15,7 @@ so that layout gets its own entry, found again in the background. Two
 layouts are kept (portrait and landscape readers flip between them).
 
 File <sidecar>/koassistant_xray_index.lua:
-  { version = 1, layouts = { { stamp = "<rendering hash>:<pages>:<size>",
+  { version = VERSION, layouts = { { stamp = "<rendering hash>:<pages>:<size>",
     forms = { [form] = "<page delta>:<offset>.<offset>,..." } }, ... } }
 Offsets are byte starts in that page's normalized text, so an entity's
 occurrences (union of its forms, minus containment) are exact at query time,
@@ -31,7 +31,9 @@ local _ = require("koassistant_gettext")
 local XrayIndex = {}
 
 XrayIndex.FILE = "koassistant_xray_index.lua"
-local VERSION = 1
+-- Bumped whenever the matcher finds different spans for the same form, so
+-- a stored index is found again (2: Arabic matches start a word, B339)
+local VERSION = 2
 local MAX_LAYOUTS = 2
 -- A background request waits this long (debounced) before its pass starts:
 -- the book's own opening work and the first page turns go first
@@ -105,6 +107,9 @@ function XrayIndex.load(file)
             if ok and type(res) == "table" and res.version == VERSION
                     and type(res.layouts) == "table" then
                 data = res
+            elseif ok and type(res) == "table" and type(res.version) == "number" then
+                logger.dbg("KOAssistant XrayIndex: index from matcher version", res.version,
+                    "- indexing the book again")
             else
                 logger.warn("KOAssistant XrayIndex: unreadable index file, starting over")
             end

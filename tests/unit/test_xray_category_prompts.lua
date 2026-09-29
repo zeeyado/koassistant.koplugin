@@ -153,6 +153,68 @@ TestRunner:test("depth axis: nil and standard are the shipped wording, light/dee
     TestRunner:assertEqual(#Actions.XRAY_DEPTH_ORDER, 3)
 end)
 
+TestRunner:test("the type is the work's, never its front matter's (B337a)", function()
+    -- Device 2026-09-28: a novella opening with an editor's introduction was
+    -- typed nonfiction from that introduction, and the type sticks for the
+    -- lineage. Every create prompt lets a known title and author decide the
+    -- type, names front matter, and keeps the entries to the text.
+    local x = Actions.book.xray
+    local prompts = {
+        x.prompt, x.complete_prompt,
+        Actions.buildXrayCategoryPrompt("people", "partial"),
+        Actions.buildXrayCategoryPrompt("people,events", "complete", "light"),
+        Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false),
+    }
+    for _i, p in ipairs(prompts) do
+        assert(p:find("decide whether the WORK is FICTION or NON-FICTION", 1, true),
+            "the type sentence names the work")
+        assert(p:find("that decides it", 1, true), "a known title and author decide the type")
+        assert(p:find("never from front matter", 1, true), "front matter never decides it")
+        assert(p:find("settle fiction or non-fiction, nothing else", 1, true),
+            "knowledge settles the type only; the entries come from the text")
+        assert(not p:find("First, determine if this is FICTION", 1, true), "the old sentence is gone")
+    end
+end)
+
+TestRunner:test("aliases are names, never pronouns (B339)", function()
+    -- Device 2026-09-28: a pronoun alias ("he") marked 39 of 45 pages
+    local x = Actions.book.xray
+    local Merge = require("koassistant_xray_merge")
+    local prompts = {
+        create = x.prompt, complete = x.complete_prompt, update = x.update_prompt,
+        section = Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false),
+        merge = Merge.COMPLETE_PROMPT, delta = Merge.DELTA_PROMPT,
+        cross_book = Merge.CROSS_BOOK_DELTA_PROMPT,
+    }
+    for name, p in pairs(prompts) do
+        assert(p:find("never pronouns", 1, true), name .. " prompt says aliases are never pronouns")
+    end
+end)
+
+TestRunner:test("the checkpoint introduction keeps its instruction (B336)", function()
+    -- v0.22.1: the fire site appended the premise-only clause to the action's
+    -- prompt, and the category assembly then replaced that prompt whole, so
+    -- every default introduction was a full X-Ray of rung 1's slice. The clause
+    -- now has one home and is applied after every create-prompt swap.
+    local clause = Actions.XRAY_INTRO_CLAUSE
+    assert(type(clause) == "string" and clause:find("INTRODUCTORY X-RAY", 1, true), "one home for the clause")
+    local here = debug.getinfo(1, "S").source:match("@?(.*)")
+    local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+    local function source(path)
+        local f = assert(io.open(plugin_dir .. "/" .. path, "r"))
+        local s = f:read("*a")
+        f:close()
+        return s
+    end
+    local main_src = source("main.lua")
+    assert(not main_src:find("INTRODUCTORY X-RAY", 1, true), "main.lua no longer writes the clause")
+    local dialogs = source("koassistant_dialogs.lua")
+    local assembled = dialogs:find("PromptsActions.buildXrayCategoryPrompt(", 1, true)
+    local applied = dialogs:find("PromptsActions.XRAY_INTRO_CLAUSE", 1, true)
+    assert(assembled and applied, "both sites present in the request assembly")
+    assert(applied > assembled, "the clause is applied after the category assembly")
+end)
+
 TestRunner:test("section prompt stays full", function()
     local sec = Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false)
     for _g, key in pairs(FICTION_KEYS) do

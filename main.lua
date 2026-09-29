@@ -923,6 +923,17 @@ function AskGPT:addFileDialogButtons()
   -- Row cache avoids recomputing for each row slot in the same dialog open
   -- Stored on self so delete callbacks can invalidate it
   self._file_dialog_row_cache = { file = nil, rows = nil }
+  -- The plugin instance on screen when a dialog is built: these closures bind
+  -- the registering instance forever (register-once per id), whose ui may be
+  -- a FileManager that has since closed, and a window opened from the rows
+  -- handed that dead ui to the dictionary (B341)
+  local function liveSelf()
+    local fm = FileManager.instance
+    if fm and fm.koassistant then return fm.koassistant end
+    local rui = require("apps/reader/readerui").instance
+    if rui and rui.koassistant then return rui.koassistant end
+    return self
+  end
   local row_generators = {}
   -- Key set MUST stay in sync with removeFileDialogButtons' list
   local row_keys = { "zzz_koassistant_1a", "zzz_koassistant_1b", "zzz_koassistant_1c" }
@@ -931,7 +942,7 @@ function AskGPT:addFileDialogButtons()
     row_generators[slot] = function(file, is_file, book_props)
       if self._file_dialog_row_cache.file ~= file then
         self._file_dialog_row_cache.file = file
-        self._file_dialog_row_cache.rows = self:generateFileDialogRows(file, is_file, book_props)
+        self._file_dialog_row_cache.rows = liveSelf():generateFileDialogRows(file, is_file, book_props)
       end
       return self._file_dialog_row_cache.rows and self._file_dialog_row_cache.rows[row_index]
     end
@@ -955,15 +966,16 @@ function AskGPT:addFileDialogButtons()
     -- — duplicates are silently ignored), while toggles/dismissals may be saved
     -- by the OTHER instance (FileManager vs ReaderUI). readSetting is an
     -- in-memory read, so without this the rows only healed on restart.
-    self:updateConfigFromSettings()
+    local live = liveSelf()
+    live:updateConfigFromSettings()
     self._file_dialog_row_cache.file = file
-    self._file_dialog_row_cache.rows = self:generateFileDialogRows(file, is_file, book_props)
+    self._file_dialog_row_cache.rows = live:generateFileDialogRows(file, is_file, book_props)
     local rows = self._file_dialog_row_cache.rows
     if rows and rows[1] then return {} end
   end
 
   local multi_file_generator = function(file, is_file, book_props)
-    return self:generateMultiSelectButtons(file, is_file, book_props)
+    return liveSelf():generateMultiSelectButtons(file, is_file, book_props)
   end
 
   local success_count = 0
@@ -15527,16 +15539,9 @@ function AskGPT:_fireXrayLadderRung()
   -- chains always show a tap-to-cancel row, and slow is not stuck
   local self_ref = self
 
-  -- Intro step (round 20): same slice as rung 1, but the prompt asks for a
-  -- premise-only, spoiler-free introduction (action copy — never mutate the
-  -- shared action table). Prompt text is wire content, not UI — no _().
-  local fire_action = action
-  if is_intro then
-    fire_action = {}
-    for k, v in pairs(action) do fire_action[k] = v end
-    fire_action.prompt = (action.prompt or "")
-      .. "\n\nIMPORTANT — INTRODUCTORY X-RAY: This X-Ray is a spoiler-free introduction for a reader who has NOT started the book yet. Cover only the premise, the setting, and the characters, concepts, or terms as they stand when first introduced in this opening portion. Do not mention any developments, reveals, relationships, or events beyond the initial setup."
-  end
+  -- Intro step (round 20): same slice as rung 1, premise only. Its
+  -- instruction rides _ladder_intro to the request assembly, which appends
+  -- it to the final create prompt (B336)
 
   local step_no = build.step or build.idx
   if is_intro then
@@ -15563,7 +15568,7 @@ function AskGPT:_fireXrayLadderRung()
       UIManager:show(Notification:new{ text = toast_text })
     end
   end
-  Dialogs.executeActionForResult(fire_action, config_copy.features.book_context, self.ui, config_copy, self,
+  Dialogs.executeActionForResult(action, config_copy.features.book_context, self.ui, config_copy, self,
     config_copy.features.book_metadata,
     function(result, meta_or_err)
       XrayAuto.endFlight()
@@ -15634,24 +15639,26 @@ function AskGPT:_fireXrayLadderRung()
           XrayAuto.recordLadderStop(file, { step = cur.step or cur.idx, total = cur.total,
             kind = "step_too_large",
             rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil })
-          UIManager:show(InfoMessage:new{
-            text = T(_("Checkpoint build paused at %1 of %2: the next step is a large request. Resume from the X-Ray popup to review it."),
+          self_ref:_showXrayLadderStop(file,
+            T(_("Checkpoint build paused at %1 of %2: the next step is a large request."),
               cur.step or cur.idx, cur.total),
-            timeout = 5,
-          })
+            (cur.rebuild and not cur.rebuild_swapped) or nil)
           return
         end
         local kind, transient = XrayAuto.classifyStopReason(err_text)
-        -- Item 45: one silent retry per step for transient provider failures
-        -- (503/429/5xx/network) — the field specimen healed on a resume 76s
-        -- later. The build state stays ALIVE through the wait so cancel works.
-        -- The wait is the provider's own when it named one (Groq's "try again
-        -- in 5.289s", Anthropic's retry-after header), else the fixed 60 s; a
-        -- wait past XrayAuto.RETRY_MAX_WAIT_S means no retry (nil).
-        local retry_in = transient and XrayAuto.retryDelayFor(err_text, config_copy.provider,
-          require("model_constraints").dispatchModel(config_copy)) or nil
-        if retry_in and (cur.retried or 0) < 1 and not cur.cancel_requested then
-          cur.retried = 1
+        -- Item 45 / B322: silent retries per step for transient provider
+        -- failures (503/429/5xx/network): the field specimen healed on a resume
+        -- 76s later. The build state stays ALIVE through the wait so cancel
+        -- works. The first wait is the provider's own when it named one (Groq's
+        -- "try again in 5.289s", Anthropic's retry-after header), else the
+        -- fixed 60 s, the second twice that; a wait past
+        -- XrayAuto.RETRY_MAX_WAIT_S means no retry (nil).
+        local retry_in = transient and not cur.cancel_requested
+          and XrayAuto.nextRetryWait(cur.retried or 0, XrayAuto.retryDelayFor(err_text,
+            config_copy.provider, require("model_constraints").dispatchModel(config_copy)))
+          or nil
+        if retry_in then
+          cur.retried = (cur.retried or 0) + 1
           logger.dbg("KOAssistant: ladder step", cur.step or cur.idx, "transient failure (",
             kind, ") - retrying in", retry_in, "s:", err_text)
           if not cur.silent or features.xray_auto_notify == true then
@@ -15683,14 +15690,11 @@ function AskGPT:_fireXrayLadderRung()
         logger.dbg("KOAssistant: ladder build stopped at step", cur.step or cur.idx, "-",
           err_text)
         local reason = self_ref:_xrayStopReasonLabel(kind)
-        UIManager:show(InfoMessage:new{
-          text = reason
-            and T(_("Checkpoint build stopped at %1 of %2 (%3): resume it from the X-Ray popup."),
+        self_ref:_showXrayLadderStop(file, reason
+            and T(_("Checkpoint build stopped at %1 of %2 (%3)."),
               cur.step or cur.idx, cur.total, reason)
-            or T(_("Checkpoint build stopped at %1 of %2: resume it from the X-Ray popup."),
-              cur.step or cur.idx, cur.total),
-          timeout = 4,
-        })
+            or T(_("Checkpoint build stopped at %1 of %2."), cur.step or cur.idx, cur.total),
+          (cur.rebuild and not cur.rebuild_swapped) or nil)
         return
       end
       -- A landed rung refreshes the step's retry budget (item 45)
@@ -15765,6 +15769,32 @@ function AskGPT:_fireXrayLadderRung()
         end
       end
     end)
+end
+
+--- The notice a stopped or paused checkpoint build leaves (B322): it stays
+--- until closed (a 4 s message vanished before the reader saw it, and a long
+--- chain gave no other sign it had stopped) and resumes in one tap, as the X-Ray
+--- popup's Resume row does (that row stays too).
+--- @param file string the book the build belongs to
+--- @param text string what happened
+--- @param rebuild boolean|nil a stopped pre-swap rebuild resumes as a rebuild
+function AskGPT:_showXrayLadderStop(file, text, rebuild)
+  local self_ref = self
+  local dialog
+  dialog = ButtonDialog:new{
+    title = text,
+    buttons = {{
+      { text = _("Close"), callback = function() UIManager:close(dialog) end },
+      { text = _("Resume"), callback = function()
+        UIManager:close(dialog)
+        -- The book may have closed while the notice waited
+        if not (self_ref.ui and self_ref.ui.document
+            and self_ref.ui.document.file == file) then return end
+        self_ref:_startXrayLadderBuild(rebuild and { rebuild = true } or nil)
+      end },
+    }},
+  }
+  UIManager:show(dialog)
 end
 
 --- Short translated label for a chain-stop reason kind (item 45); nil for
@@ -19373,6 +19403,11 @@ function AskGPT:syncDictionaryBypass()
           return
         end
       end
+      -- The bypass settings per call, never frozen at install (B341: a wrapper
+      -- installed while the bypass was off kept sending every word to
+      -- KOReader's dictionary after it was turned on)
+      features = self_ref.settings:readSetting("features") or features
+      bypass_enabled = features.dictionary_bypass_enabled
       -- Intercept-only install with no entity hit (the native dictionary), or
       -- nothing left after cleaning (a punctuation-only selection: KOReader's
       -- "no result" window is what clears the highlight)

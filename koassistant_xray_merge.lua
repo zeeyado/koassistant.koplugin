@@ -76,7 +76,7 @@ Output ONE complete merged JSON object using exactly the same JSON keys and stru
 
 @@KOA_MERGE_NEVER@@
 
-CRITICAL: Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values must be written in {response_language}, regardless of the language of the source text.]]
+CRITICAL: Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values must be written in {response_language}, regardless of the language of the source text.]]
 
 XrayMerge.DELTA_PROMPT = [[Update this X-Ray for "{title}"{author_clause} by folding in the %COUNT% section X-Rays below.
 
@@ -101,7 +101,7 @@ Output ONLY the new or changed entries as a JSON object. Use exactly the same JS
 
 @@KOA_MERGE_NEVER@@
 
-CRITICAL: Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values must be written in {response_language}, regardless of the language of the source text.]]
+CRITICAL: Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values must be written in {response_language}, regardless of the language of the source text.]]
 
 -- Cross-book merge (items 43/44, #90): fold ANOTHER book's X-Ray into this
 -- book's main as BACKGROUND. Recurring entities are NEVER rewritten by the
@@ -135,7 +135,7 @@ Output ONLY a JSON object in this delta format — it will be programmatically m
 
 @@KOA_MERGE_NEVER@@
 
-CRITICAL: Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. All other string values, including all background texts, must be written in {response_language}, regardless of the language of the source text.]]
+CRITICAL: Output ONLY valid JSON — no other text. JSON keys must remain in English. Character names, location names, terms, and aliases must be in the same language and script as the source text. Aliases are other names for the same entry (a nickname, title, short form or spelling), never pronouns. All other string values, including all background texts, must be written in {response_language}, regardless of the language of the source text.]]
 
 --- Coverage-tagged inputs block (the shape the series merge reuses later:
 --- swap section labels for book labels). Rides the {incremental_book_text}

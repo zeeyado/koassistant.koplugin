@@ -76,6 +76,14 @@ TestRunner:test("quick_web_strip hides the badge ONLY for accepting actions", fu
     TestRunner:has(non_accepting, "(🌐)", "non-accepting actions ignore Quick and keep the badge")
 end)
 
+TestRunner:test("local-handler actions never carry a web badge (B340)", function()
+    -- Generate Image and the X-Ray lookup send no search, whatever the global says
+    local img = DT({ text = "Generate Image", local_handler = "image_gen" }, IND,
+        { effective_web_search = true })
+    TestRunner:hasnt(img, "🌐", "no follows-default badge on a local handler")
+    TestRunner:eq(img, "Generate Image")
+end)
+
 TestRunner:test("smart retrieval badge only when tools could actually run", function()
     local off = DT({ text = "A", smart_retrieval = true }, IND, { tools_allowed = false })
     TestRunner:hasnt(off, "🔍")

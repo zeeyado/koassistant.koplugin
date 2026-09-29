@@ -1999,7 +1999,9 @@ function ActionService.getActionDisplayText(action, features, opts)
     if opts and opts.effective_web_search ~= nil then
         effective_web = opts.effective_web_search == true
     end
-    if action.enable_web_search == true then
+    if action.local_handler then
+        -- Runs a handler of its own (Generate Image, the X-Ray lookup): no search is sent
+    elseif action.enable_web_search == true then
         -- Forced on: solid icon
         table.insert(indicators, "🌐")
     elseif action.enable_web_search == nil and effective_web

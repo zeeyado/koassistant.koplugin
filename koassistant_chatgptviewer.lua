@@ -4510,7 +4510,7 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
 
   if word_count == 1 and not ChatGPTViewer.isLongHold(hold_duration) then
     -- Single word + short hold: auto dictionary lookup (fast path)
-    local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
+    local ui = ChatGPTViewer.liveUI(self._ui or (self.configuration and self.configuration._rerun_ui))
     if ui and ui.dictionary then
       ui.dictionary._koassistant_non_reader_lookup = true
       -- Carry this chat's book so a bypass / dict-popup X-Ray lookup targets
@@ -4562,6 +4562,23 @@ function ChatGPTViewer:clearTextHighlight()
       inner:redrawHighlight()
     end
   end
+end
+
+--- The UI a word selected in a plugin window is looked up in: the reader or
+--- file browser on screen now, else the one the window was opened with. A
+--- window keeps its UI, which can close under it (B341: an artifact window
+--- opened from the file browser rows held a closed FileManager, whose
+--- dictionary wrapper never saw the bypass turned on), and 8 of the 14
+--- artifact windows carry none. The lookup carries its book separately
+--- (_koassistant_lookup_book), so any live UI serves.
+--- @param captured table|nil the window's own UI
+--- @return table|nil
+function ChatGPTViewer.liveUI(captured)
+  local ok_r, ReaderUI = pcall(require, "apps/reader/readerui")
+  if ok_r and type(ReaderUI) == "table" and ReaderUI.instance then return ReaderUI.instance end
+  local ok_f, FileManager = pcall(require, "apps/filemanager/filemanager")
+  if ok_f and type(FileManager) == "table" and FileManager.instance then return FileManager.instance end
+  return captured
 end
 
 --- Check if hold_duration qualifies as a "long hold" (for single-word popup instead of dictionary).
@@ -4616,28 +4633,33 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
     end,
   })
 
-  -- Dictionary
-  if ui and ui.dictionary then
+  -- Dictionary and Wikipedia: the live UI (B341), resolved when the row is
+  -- tapped; the actions below keep the window's own
+  local lookup_ui = ChatGPTViewer.liveUI(ui)
+  if lookup_ui and lookup_ui.dictionary then
     table.insert(flat_buttons, {
       text = _("Dictionary"),
       callback = function()
         close_and_clear()
-        ui.dictionary._koassistant_non_reader_lookup = true
+        local dui = ChatGPTViewer.liveUI(ui)
+        if not (dui and dui.dictionary) then return end
+        dui.dictionary._koassistant_non_reader_lookup = true
         -- Carry the surface's own book for bypass / dict-popup X-Ray lookups
-        ui.dictionary._koassistant_lookup_book = book_path
-        ui.dictionary:onLookupWord(text)
+        dui.dictionary._koassistant_lookup_book = book_path
+        dui.dictionary:onLookupWord(text)
       end,
     })
   end
 
   -- Wikipedia (KOReader's own lookup; ReaderWikipedia handles the
   -- offline case itself via willRerunWhenOnline)
-  if ui and ui.wikipedia then
+  if lookup_ui and lookup_ui.wikipedia then
     table.insert(flat_buttons, {
       text = _("Wikipedia"),
       callback = function()
         close_and_clear()
-        ui.wikipedia:onLookupWikipedia(text)
+        local wui = ChatGPTViewer.liveUI(ui)
+        if wui and wui.wikipedia then wui.wikipedia:onLookupWikipedia(text) end
       end,
     })
   end
