@@ -3620,7 +3620,7 @@ The max extraction setting is a safety cap, not a target. The default (4M chars)
 | Provider | Context Window | Max English Text (~4 chars/token) |
 |----------|---------------|----------------------------------|
 | Gemini 2.5/3 (Pro & Flash) | 1M tokens | ~4M chars — handles any book |
-| Claude (Sonnet 5, Sonnet 4.6) | 1M tokens | ~4M chars — handles any book |
+| Claude (Sonnet 5.5, Sonnet 5, Sonnet 4.6) | 1M tokens | ~4M chars — handles any book |
 | Claude (Haiku 4.5) | 200k tokens | ~800k chars — most novels |
 | OpenAI (GPT-5.6 family) | ~1M tokens | ~4M chars |
 | OpenAI (GPT-5.5, GPT-5.4) | 400k tokens | ~1.6M chars |
@@ -3687,6 +3687,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 
 | Model family | Nature | Control |
 |---|---|---|
+| Claude Sonnet 5.5 | Adaptive, **on** by default (thinks on harder questions) | Off (Anthropic's lowest setting) / effort (low…max, incl. xhigh) |
 | Claude Sonnet 5, Opus 5 | Adaptive, **on** by default | Off / effort (low…max, incl. xhigh) |
 | Claude Opus 5.5 | Adaptive, **on** by default | Effort (low…max, incl. xhigh); can't be fully disabled |
 | Claude Fable 5.1 | Adaptive, off by default (thinks when asked) | Off / effort (low…max, incl. xhigh) |
@@ -3709,7 +3710,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 | Fireworks models | Reason by default | Off / effort (GLM-5.3 and gpt-oss: effort only) |
 | Mistral Magistral | Always reasons, no control | — (thinking is extracted and viewable) |
 
-> Temperature is forced to 1.0 automatically where a model's reasoning requires it (Claude adaptive/extended, Z.AI thinking). Opus 5.5, Opus 5, Fable 5.1, Fable 5, Sonnet 5, Opus 4.8, and Opus 4.7 reject sampling parameters entirely; the plugin strips them.
+> Temperature is forced to 1.0 automatically where a model's reasoning requires it (Claude adaptive/extended, Z.AI thinking). Sonnet 5.5, Opus 5.5, Opus 5, Fable 5.1, Fable 5, Sonnet 5, Opus 4.8, and Opus 4.7 reject sampling parameters entirely; the plugin strips them.
 
 **Viewing reasoning:** When a model returns its thinking (Anthropic, Gemini, DeepSeek, Z.AI, Mistral, and R1-style `<think>`-tag models on Groq/Together/Fireworks/SambaNova/Ollama/Perplexity), it's captured and viewable via the **Show Reasoning** button in the chat viewer gear menu. A "*[Reasoning was used]*" indicator appears in chat when enabled (Settings → Advanced → Reasoning → Show Indicator in Chat); dictionary windows leave it out.
 
@@ -3983,14 +3984,14 @@ The first model in each provider's list is its default. Current defaults (subjec
 
 | Provider | Default | Notable alternatives |
 |----------|---------|----------------------|
-| **Anthropic** | `claude-sonnet-5` | `claude-opus-5-5` (deep reasoning), `claude-fable-5-1` (most capable, premium price), `claude-haiku-4-5` (fast), `claude-sonnet-4-6` (1M context) |
+| **Anthropic** | `claude-sonnet-5-5` | `claude-opus-5-5` (deep reasoning), `claude-fable-5-1` (most capable, premium price), `claude-sonnet-5` (previous default), `claude-haiku-4-5` (fast), `claude-sonnet-4-6` (1M context) |
 | **OpenAI** | `gpt-5.6-terra` | `gpt-6-sol` (most capable, reasons by default), `gpt-6-luna` (cost-saver), `gpt-6-astra` (frontier, premium price), `gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.5` |
 | **DeepSeek** | `deepseek-flash` | `deepseek-v4-pro` (most capable; both 1M context, thinking on by default). `deepseek-flash` is DeepSeek's new name for the V4 flash model |
 | **Gemini** | `gemini-3.8-flash` | `gemini-3.7-flash`, `gemini-3.1-pro-preview` (paid only), `gemini-3.5-flash-lite` (ultrafast), `gemini-2.5-flash/pro` (older accounts only) |
 | **Groq** | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` (fast), `qwen/qwen3.8-27b` |
 | **Mistral** | `mistral-large-latest` | `mistral-medium-latest`, `mistral-small-latest`, `magistral-medium-latest` (reasoning) |
 | **xAI** | `grok-4.7` | `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-4.20-0309-reasoning`/`-non-reasoning` |
-| **Perplexity** | `perplexity/sonar` | `openai/gpt-6-luna`, `openai/gpt-6-sol`, `anthropic/claude-sonnet-5`, `google/gemini-3.8-flash`, `xai/grok-4.7` |
+| **Perplexity** | `perplexity/sonar` | `openai/gpt-6-luna`, `openai/gpt-6-sol`, `anthropic/claude-sonnet-5-5`, `google/gemini-3.8-flash`, `xai/grok-4.7` |
 | **Z.AI** | `glm-5.2` | `glm-5.3` (most capable, always thinks), `glm-5.3-flash`, `glm-5.1`, `glm-4.7` (reasoning), `glm-4.7-flash` (free) |
 | **Cohere** | `command-a-plus-05-2026` | `command-a-reasoning-08-2025`, `command-r7b-12-2024` (fast) |
 | **Kimi** | `kimi-k2.6` | `kimi-k3` (most capable), `kimi-k2.6-thinking` (reasoning), `kimi-k2-turbo-preview` (fast) -- these two are China-platform only; the international platform serves `kimi-k2.6` and `kimi-k3` |
@@ -4002,7 +4003,7 @@ The first model in each provider's list is its default. Current defaults (subjec
 
 ### Provider Quirks
 
-- **Anthropic**: Temperature capped at 1.0; Extended/adaptive thinking forces temp to exactly 1.0; Opus 4.7/4.8 and Sonnet 5 reject all sampling params (temperature is stripped entirely); explicit prompt caching gives up to 90% savings on repeated context
+- **Anthropic**: Temperature capped at 1.0; Extended/adaptive thinking forces temp to exactly 1.0; Opus 4.7/4.8 and Sonnet 5/5.5 reject all sampling params (temperature is stripped entirely); Sonnet 5.5 cannot switch thinking fully off, so Off sends Anthropic's lowest setting; explicit prompt caching gives up to 90% savings on repeated context
 - **OpenAI**: Reasoning models (GPT-5.x) force temp to 1.0; newer models use `max_completion_tokens`; **native web search** rides the Responses API (`/v1/responses`) for capable models — Chat Completions has no native search, so a web-search request on an unsupported model simply runs without it
 - **Gemini**: Uses "model" role instead of "assistant"; thinking uses camelCase REST API format; 2.5 models use `thinkingBudget` (0=off, -1=dynamic, 128-24576=specific), 3.x models use `thinkingLevel`; web search uses Google Search grounding; streaming may arrive in larger chunks than other providers (cosmetic); Google's content filter is relaxed for book passages by default (Settings → Advanced → Provider Settings → Gemini Content Filter)
 - **Ollama**: Local only; NDJSON streaming (not SSE); for remote instances, set the endpoint via Settings → Model: … → Quick setup: Local provider, or in `configuration.lua`

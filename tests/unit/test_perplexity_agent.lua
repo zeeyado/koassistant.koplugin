@@ -150,7 +150,8 @@ end)
 TestRunner:test("a direct model that refuses sampling gets no temperature, with or without the preset", function()
     local ModelConstraints = require("model_constraints")
     for _idx, model in ipairs({ "anthropic/claude-opus-4-7", "anthropic/claude-opus-5-5",
-            "anthropic/claude-fable-5-1", "anthropic/claude-sonnet-5", "openai/gpt-6-astra" }) do
+            "anthropic/claude-fable-5-1", "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-5-5",
+            "openai/gpt-6-astra" }) do
         TestRunner:assertEqual(build(model).body.temperature, nil, model)
         TestRunner:assertEqual(build(model, { enable_web_search = false }).body.temperature, nil, model .. " alone")
         TestRunner:assertEqual(ModelConstraints.temperatureSupport("perplexity", model), "rejected",

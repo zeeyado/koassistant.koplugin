@@ -1459,5 +1459,31 @@ TestRunner:test("refresh 2026-09-28: new prefixes do not catch neighbouring ids"
         "qwen3-max keeps the forced call")
 end)
 
+-- Sonnet 5.5 (probed 2026-09-29): its own rows, not Sonnet 5's by prefix
+TestRunner:test("Sonnet 5.5: off is its named lowest setting, never disabled", function()
+    local ap, d = offWire("anthropic", "claude-sonnet-5-5")
+    TestRunner:assertEqual(d.mode, "off", "Minimal turns it off")
+    TestRunner:assertEqual(ap.thinking and ap.thinking.type, "between_tools", "the API refuses disabled")
+    TestRunner:assertFalse(ModelConstraints.reasoningDisplayEnabled(ap), "between_tools does not read as reasoning on")
+    ap = offWire("anthropic", "claude-sonnet-5-5", { action_override = { force = "off" } })
+    TestRunner:assertEqual(ap.thinking and ap.thinking.type, "between_tools", "an action's off too")
+    ap = offWire("anthropic", "claude-sonnet-5")
+    TestRunner:assertEqual(ap.thinking and ap.thinking.type, "disabled", "Sonnet 5 keeps disabled")
+    d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5-5", { global_stance = "default" })
+    TestRunner:assertTrue(d.send_nothing and d.mode == "on", "thinks by default: Default sends nothing, reads on")
+    d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5-5", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.effort, "max", "max effort")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("anthropic", "claude-sonnet-5-5", "no_forced_tool_choice"),
+        "refuses a forced tool call")
+    TestRunner:assertFalse(ModelConstraints.supportsCapability("anthropic", "claude-sonnet-5", "no_forced_tool_choice"),
+        "Sonnet 5 keeps the forced call")
+    ap = offWire("openrouter", "anthropic/claude-sonnet-5.5")
+    TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.effort, "low",
+        "OR sonnet 5.5 refuses enabled=false: lowest")
+    ap = offWire("openrouter", "anthropic/claude-sonnet-5")
+    TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.enabled, false,
+        "OR sonnet 5 still turns off")
+end)
+
 -- Summary
 return TestRunner:summary()

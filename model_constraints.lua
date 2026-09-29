@@ -63,6 +63,7 @@ ModelConstraints.capabilities = {
         -- Models that support adaptive thinking (4.6+)
         -- New mode: thinking = {type = "adaptive"}, output_config = {effort = "..."}
         adaptive_thinking = {
+            "claude-sonnet-5-5",      -- Sonnet 5.5 (adaptive ON at API default, off = "between_tools")
             "claude-opus-5-5",        -- Opus 5.5 (adaptive ON at API default, disable REJECTED)
             "claude-fable-5-1",       -- Fable 5.1 (off at API default, disable REJECTED: off = send nothing)
             "claude-opus-5",          -- Opus 5 (adaptive ON at API default, disable accepted)
@@ -78,6 +79,7 @@ ModelConstraints.capabilities = {
         -- (Opus 5: "temperature is deprecated for this model", verified 2026-07-25);
         -- the builder strips them.
         no_sampling_params = {
+            "claude-sonnet-5-5",
             "claude-opus-5-5",
             "claude-fable-5-1",
             "claude-opus-5",
@@ -91,8 +93,9 @@ ModelConstraints.capabilities = {
         -- thinking param: a refusal of the model itself). The book-tool gather rounds
         -- send tool_choice auto instead (anthropic_request.lua); a round that answers
         -- in prose is accepted by the runner. Under auto both called the tool and the
-        -- two-round replay held.
+        -- two-round replay held. Sonnet 5.5 the same (probed 2026-09-29).
         no_forced_tool_choice = {
+            "claude-sonnet-5-5",
             "claude-opus-5-5",
             "claude-fable-5-1",
         },
@@ -223,7 +226,7 @@ ModelConstraints.capabilities = {
         -- 2026-09-28: "Provider returned error"; auto calls the tool, replay holds):
         -- openai_compatible.lua sends auto on gather rounds.
         no_forced_tool_choice = {
-            "anthropic/claude-opus-5.5", "anthropic/claude-fable-5.1",
+            "anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "anthropic/claude-fable-5.1",
             "qwen/qwen3.8-",   -- Qwen backends refuse "required" (probed on 3.8-flash here and all four
                                -- 3.8 ids direct); "qwen/qwen3" grants their tools
         },
@@ -531,7 +534,7 @@ ModelConstraints.capabilities = {
         no_sampling_params = {
             "anthropic/claude-opus-5",    -- prefix: opus-5-5 too
             "anthropic/claude-fable-5",   -- prefix: fable-5-1 too
-            "anthropic/claude-sonnet-5",
+            "anthropic/claude-sonnet-5",  -- prefix: sonnet-5-5 too (probed 2026-09-29)
             "anthropic/claude-opus-4-8",
             "anthropic/claude-opus-4-7",
             "openai/gpt-6-astra",
@@ -990,7 +993,9 @@ ModelConstraints.reasoning_defaults = {
 --   can_enable     can reasoning be turned on when off by default?
 --   options        ordered levels: effort labels (effort/adaptive) or budget keys (budget)
 --   default_option level used for "on" without an explicit choice
---   off_option     effort axis only: explicit "off" value to send (e.g. xAI "none")
+--   off_option     explicit "off" value to send where omission keeps reasoning on
+--                  (effort axes: e.g. xAI "none"; Anthropic adaptive: the thinking
+--                  type, Sonnet 5.5 "between_tools")
 --   stance_map     { minimal = {state=,option=}, maximum = {state=,option=} } (data-driven)
 --   needs_temp_1   builder must force temperature=1.0 when reasoning on (informational)
 --   needs_no_sampling builder strips all sampling params (Opus 4.7/4.8)
@@ -1056,6 +1061,19 @@ ModelConstraints.reasoning_profiles = {
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
           needs_temp_1 = true },
+        -- Sonnet 5.5 (2026-09-28, $2/$10, probed 2026-09-29): adaptive thinking ON at the
+        -- API default like Sonnet 5, but it thinks on fewer prompts (none on the math and
+        -- page-count probes, a silent thinking block on a number-theory one).
+        -- thinking.type:disabled is REJECTED; the API names "between_tools" as the lowest
+        -- setting (no thinking block on chat turns or a tool exchange; only this model
+        -- takes it), sent for off. Full effort ladder incl. xhigh/max, 128K out, rejects
+        -- sampling, budget mode rejected, refuses forced tool calls.
+        -- Listed BEFORE claude-sonnet-5 (disable accepted), which would prefix-match it.
+        { match = "claude-sonnet-5-5", axis = "adaptive_effort", default_state = "on",
+          can_disable = true, can_enable = true, off_option = "between_tools",
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } },
+          needs_no_sampling = true },
         -- Sonnet 5: adaptive-only, rejects sampling params, full effort ladder incl.
         -- xhigh/max. Unlike the Opus family, adaptive thinking is ON at the API default
         -- (omitting `thinking` runs adaptive) → default_state = "on"; disable is accepted.
@@ -1285,6 +1303,13 @@ ModelConstraints.reasoning_profiles = {
         { match = "anthropic/claude-fable-5.1", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- Sonnet 5.5 (probed 2026-09-29): mandatory here (none and enabled=false
+        -- refused). Thinks unasked on a hard prompt (309 reasoning tokens with nothing
+        -- sent); low thought for 0 on the same prompt. The catch-all below would send
+        -- enabled=false on Minimal.
+        { match = "anthropic/claude-sonnet-5.5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
         -- Fable 5 (always thinks on its own API): enabled=false 400s "Reasoning is
         -- mandatory" here (probed 2026-09-28); the catch-all sent it on Minimal.
         -- After fable-5.1, which this prefix would otherwise catch.
@@ -2855,8 +2880,9 @@ ModelConstraints.REASONING_WIRE_KEYS = {
 
 --- Display-only: does this request's computed api_params actually ENABLE
 -- reasoning? The loading dialog used a bare truthiness check, so an explicit
--- disable (thinking={type="disabled"}, {enabled=false}, {on=false},
--- effort "none", budget 0) displayed as "Reasoning enabled" (maintainer device
+-- disable (thinking={type="disabled"} or Sonnet 5.5's "between_tools",
+-- {enabled=false}, {on=false}, effort "none", budget 0) displayed as
+-- "Reasoning enabled" (maintainer device
 -- report 2026-08-02, translate action). Mirrors applyReasoningParams' off
 -- shapes; anything non-nil that is not an explicit disable counts as on.
 function ModelConstraints.reasoningDisplayEnabled(api_params)
@@ -2865,7 +2891,7 @@ function ModelConstraints.reasoningDisplayEnabled(api_params)
         local v = api_params[key]
         if v ~= nil and v ~= false and v ~= 0 and v ~= "none" then
             if type(v) ~= "table" then return true end
-            if v.type ~= "disabled" and v.enabled ~= false
+            if v.type ~= "disabled" and v.type ~= "between_tools" and v.enabled ~= false
                     and v.on ~= false and v.effort ~= "none" then
                 return true
             end
@@ -2892,8 +2918,10 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
             end
         elseif decision.profile and decision.profile.default_state == "on" then
             -- Model thinks by DEFAULT (e.g. Sonnet 5: omitting `thinking` runs adaptive).
-            -- Omission would still think, so emit an explicit disable to honor the off decision.
-            api_params.thinking = { type = "disabled" }
+            -- Omission would still think, so emit an explicit disable to honor the off
+            -- decision; a model that refuses "disabled" names its lowest setting
+            -- (off_option: Sonnet 5.5 "between_tools").
+            api_params.thinking = { type = decision.off_option or "disabled" }
         end
         -- else (off + default-off, e.g. Opus/Sonnet 4.6): emit nothing (Anthropic reasons
         -- only when `thinking` is present).

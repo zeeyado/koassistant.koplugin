@@ -29,7 +29,7 @@
 --   Env: KOA_PROBE_MAX_TOKENS=900  cap chat-wire token asks (free per-minute output buckets)
 --        KOA_KEY_ALIAS_<PROVIDER>  pick a key entry by alias (default: the first)
 --
--- Probes make real API micro-requests (max_tokens 32..1024); a full battery is
+-- Probes make real API micro-requests (max_tokens 32..4096); a full battery is
 -- ~20-30 requests (T7 hardening 2026-08-14 added the temperature-value sweep,
 -- the real-dispatch-shape leg incl. the Anthropic cache-engagement pair, and
 -- the two-round tool replay through the plugin's own ToolWire adapters with
@@ -277,7 +277,9 @@ ModelAudit.REVIEWED = {
             "anthropic/claude-opus-4-6", "anthropic/claude-opus-4-7",
             "anthropic/claude-opus-4-8", "anthropic/claude-opus-5",
             "anthropic/claude-opus-5-5", "anthropic/claude-sonnet-4-5",
-            "anthropic/claude-sonnet-4-6", "google/gemini-3-flash-preview",
+            "anthropic/claude-sonnet-4-6",
+            "anthropic/claude-sonnet-5",   -- listed until 2026-09-29, replaced by sonnet-5-5
+            "google/gemini-3-flash-preview",
             "google/gemini-3.1-flash-lite", "google/gemini-3.1-pro-preview",
             "google/gemini-3.5-flash", "google/gemini-3.5-flash-lite",
             "google/gemini-3.6-flash", "google/gemini-3.7-flash", "openai/gpt-5",
@@ -961,6 +963,11 @@ local PROBE_PROMPT = "Reply with only: ok"
 -- models skip thinking on trivial prompts, which would misread as "default OFF"
 -- (bit the first claude-opus-5 probe run - it thinks by default, but not for "ok").
 local REASONING_PROBE_PROMPT = "If a book has 300 pages and I read 40 percent and then 25 more pages, what page am I on? Reply with only the number."
+-- ...and some skip it on the math prompt too: claude-sonnet-5-5 (2026-09-29) thought
+-- on neither the math prompt nor a three-book page count, yet thinks unasked on this
+-- one, directly and through OpenRouter. A baseline with no reasoning evidence asks
+-- this before reading the model as off by default.
+local HARD_REASONING_PROBE_PROMPT = "Find the number of ordered pairs of positive integers (a, b) with a <= b such that 1/a + 1/b = 1/2026. Reply with only the number."
 local ABSURD_MAX_TOKENS = 10000000
 
 -- Free tiers with a small per-minute OUTPUT bucket (Groq: OTPM 1000 on
@@ -1199,6 +1206,14 @@ end
 
 local ANTHROPIC_LADDER = { "low", "medium", "high", "xhigh", "max" }
 
+local function anthropicThinks(decoded)
+    for _i, block in ipairs(type(decoded) == "table" and type(decoded.content) == "table"
+            and decoded.content or {}) do
+        if type(block) == "table" and block.type == "thinking" then return true end
+    end
+    return false
+end
+
 local function probeAnthropic(model, api_key, verbose)
     local facts = newFacts("anthropic", "anthropic", model)
     local url = Defaults.ProviderDefaults.anthropic.base_url
@@ -1219,12 +1234,18 @@ local function probeAnthropic(model, api_key, verbose)
         return facts
     end
     facts.reachable = true
-    local has_thinking = false
-    for _i, block in ipairs(type(decoded.content) == "table" and decoded.content or {}) do
-        if type(block) == "table" and block.type == "thinking" then has_thinking = true end
+    local has_thinking = anthropicThinks(decoded)
+    facts.evidence = has_thinking and "thinking block in bare response" or "no thinking block"
+    if not has_thinking then
+        local hcode, hdec = req(nil, 4096, HARD_REASONING_PROBE_PROMPT)
+        if hcode == 200 and anthropicThinks(hdec) then
+            has_thinking = true
+            facts.evidence = "thinking block on the harder prompt only"
+        elseif hcode == 200 then
+            facts.evidence = "no thinking block (math and harder prompt)"
+        end
     end
     facts.default_reasoning = has_thinking
-    facts.evidence = has_thinking and "thinking block in bare response" or "no thinking block"
     recordProbe(facts, "baseline (bare request)", true,
         facts.evidence .. " -> default " .. (has_thinking and "ON" or "OFF"))
 
@@ -1239,6 +1260,27 @@ local function probeAnthropic(model, api_key, verbose)
     facts.disable_ok = verdict(dcode)
     if not facts.disable_ok then facts.disable_err = ModelAudit.errText(ddec, draw) end
     recordProbe(facts, 'thinking={type="disabled"}', facts.disable_ok, facts.disable_err)
+
+    -- 3b. a refusal that names the model's lowest setting (claude-sonnet-5-5: 'Use
+    -- "thinking.type.between_tools" for the lowest thinking setting'): it becomes the
+    -- profile's off_option only if the harder prompt then shows no thinking block.
+    facts.lowest_type = facts.disable_err and ModelAudit.lowestThinkingType(facts.disable_err)
+    if facts.lowest_type then
+        local lcode, ldec, lraw = req({ thinking = { type = facts.lowest_type } }, 4096,
+            HARD_REASONING_PROBE_PROMPT)
+        facts.lowest_ok = verdict(lcode)
+        local detail
+        if lcode ~= 200 then
+            detail = ModelAudit.errText(ldec, lraw)
+        elseif anthropicThinks(ldec) then
+            facts.lowest_ok = false
+            detail = "still thinks on the harder prompt - not an off"
+        else
+            detail = "no thinking block on the harder prompt -> off_option"
+        end
+        recordProbe(facts, string.format('thinking={type="%s"} (named lowest)', facts.lowest_type),
+            facts.lowest_ok, detail)
+    end
 
     -- 4. adaptive + effort ladder
     facts.ladder = ANTHROPIC_LADDER
@@ -1462,13 +1504,20 @@ local function probeOpenAIFamily(provider, model, api_key, verbose)
     end
     facts.reachable = true
     facts.evidence = ModelAudit.reasoningEvidence(decoded)
+    local hard_only = false
+    if facts.evidence == nil then
+        local hcode, hdec = req(nil, 4096, HARD_REASONING_PROBE_PROMPT)
+        facts.evidence = hcode == 200 and ModelAudit.reasoningEvidence(hdec) or nil
+        hard_only = facts.evidence ~= nil
+    end
     facts.default_reasoning = facts.evidence ~= nil
     -- A handful of reasoning tokens on a math prompt is a weak ON signal
     -- (could be bookkeeping overhead rather than a reasoning default).
     local rt = facts.evidence and tonumber(facts.evidence:match("^reasoning_tokens=(%d+)$"))
     facts.weak_reasoning_evidence = (rt ~= nil and rt < 64) or nil
     recordProbe(facts, "baseline (bare request)", true,
-        (facts.evidence or "no reasoning evidence") ..
+        (facts.evidence or "no reasoning evidence (math and harder prompt)") ..
+        (hard_only and " on the harder prompt only" or "") ..
         " -> default " .. (facts.default_reasoning and "ON" or "OFF") ..
         (facts.weak_reasoning_evidence and " (weak signal - verify)" or "") ..
         (facts.needs_max_completion_tokens and " (needs max_completion_tokens)" or ""))
@@ -1885,13 +1934,56 @@ function ModelAudit.currentResolution(provider, model)
     end
     local params = { temperature = 0.7 }
     params = ModelConstraints.apply(provider, model, params)
+    -- What the Minimal stance puts on the wire today (applyReasoningParams' keys)
+    local minimal_params = {}
+    ModelConstraints.applyReasoningParams(provider, minimal_params,
+        ModelConstraints.resolveReasoning(provider, model, { global_stance = "minimal" }))
     return {
         profile = ModelConstraints.getReasoningProfile(provider, model),
         caps = caps,
         temp_after_apply = params and params.temperature,
         clamped = ModelConstraints.clampMaxTokens(provider, model, ABSURD_MAX_TOKENS),
         resolved_default = ModelConstraints.resolveMaxTokens(provider, model, 8192),
+        minimal_params = minimal_params,
     }
+end
+
+-- Pure: the thinking type an Anthropic refusal names as the model's lowest
+-- setting ('Use "thinking.type.between_tools" for the lowest thinking setting',
+-- claude-sonnet-5-5 2026-09-29), or nil.
+function ModelAudit.lowestThinkingType(err)
+    if type(err) ~= "string" then return nil end
+    return err:match('thinking%.type%.([%w_]+)"?%s+for the lowest')
+end
+
+-- Pure: does the Minimal stance send a shape the battery saw refused? A new id
+-- that inherits a sibling's prefix profile is the main 400 source (opus-5-5 under
+-- claude-opus-5 and grok-4.7 under grok-4 on 2026-09-28, sonnet-5-5 under
+-- claude-sonnet-5 on 2026-09-29), and the axis/default-state comparison cannot
+-- see it. Only shapes a battery leg sent verbatim are judged; the rest is nil.
+function ModelAudit.minimalRefused(minimal_params, facts)
+    if type(minimal_params) ~= "table" or type(facts) ~= "table" then return nil end
+    for _i, key in ipairs(ModelConstraints.REASONING_WIRE_KEYS) do
+        local v = minimal_params[key]
+        local shape, ok
+        if type(v) == "table" then
+            if v.enabled == false then
+                -- only OpenRouter's battery sends this shape (a2agent/requesty translate it)
+                if key == "openrouter_reasoning" then shape, ok = "enabled=false", facts.disable_ok end
+            elseif v.type == "disabled" then
+                shape, ok = 'type "disabled"', facts.disable_ok
+            elseif v.type and v.type ~= "adaptive" and v.type ~= "enabled" then
+                shape = string.format('type "%s"', v.type)
+                if facts.lowest_type == v.type then ok = facts.lowest_ok end
+            elseif v.effort and type(facts.efforts) == "table" then
+                shape, ok = string.format('effort "%s"', v.effort), facts.efforts[v.effort]
+            end
+        end
+        if ok == false then
+            return string.format("Minimal sends %s %s, which the model refused", key, shape)
+        end
+    end
+    return nil
 end
 
 local function orderedAccepted(facts, exclude)
@@ -2025,8 +2117,10 @@ function ModelAudit.draftStanzas(facts, current)
         add('--   %-20s += "%s"  (forced refused; auto called the tool%s)%s', "no_forced_tool_choice", model,
             facts.tool_replay_ok and ", replay accepted" or ", replay NOT accepted",
             mark(not current.caps.no_forced_tool_choice))
-        if provider ~= "anthropic" then
-            add("%s--   (only anthropic_request.lua honors this list today)%s", C.yellow, C.off)
+        if facts.family == "gemini" or provider == "openai" or provider == "xai" then
+            add("%s--   (read by anthropic_request.lua and openai_compatible.lua only; this provider's%s",
+                C.yellow, C.off)
+            add("%s--   own tool builder still forces the call)%s", C.yellow, C.off)
         end
     elseif facts.auto_prose then
         add("%s-- NOTE: forced refused and auto answered in PROSE - no tools grant%s", C.yellow, C.off)
@@ -2061,8 +2155,14 @@ function ModelAudit.draftStanzas(facts, current)
             or (facts.family == "gemini" and facts.budget_ok and "budget") or "none"
     end
 
+    local refused_off = ModelAudit.minimalRefused(current.minimal_params, facts)
     local profile_differs = (profile.axis or "none") ~= axis
         or (axis ~= "none" and (profile.default_state == "on") ~= (facts.default_reasoning == true))
+        or refused_off ~= nil
+    if refused_off then
+        add("%s-- NOTE: %s today (the inherited profile 400s on Minimal and on an action's off)%s",
+            C.yellow, refused_off, C.off)
+    end
     if axis == "none" then
         add("-- reasoning profile: no controls accepted -> axis \"none\" / passthrough%s",
             mark(profile_differs))
@@ -2070,14 +2170,17 @@ function ModelAudit.draftStanzas(facts, current)
         add("-- reasoning_profiles.%s - insert BEFORE any family fallback entries:%s",
             provider, mark(profile_differs))
         if facts.family == "anthropic" and facts.adaptive_ok and not facts.default_reasoning then
-            add('-- CAUTION: default_state "off" inferred from one prompt; adaptive models may')
-            add("-- skip thinking even on the math probe - verify against the model announcement")
+            add('-- CAUTION: default_state "off" inferred from two prompts; adaptive models may')
+            add("-- skip thinking on both - verify against the model announcement")
         end
         if facts.weak_reasoning_evidence then
             add('-- CAUTION: default_state "on" rests on a small reasoning-token count - verify')
         end
         local default_state = facts.default_reasoning and "on" or "off"
-        local can_disable = facts.disable_ok and true or false
+        -- A model that refuses "disabled" but names a working lowest setting turns
+        -- off with it (the profile's off_option; applyReasoningParams sends it).
+        local off_type = facts.family == "anthropic" and facts.lowest_ok and facts.lowest_type or nil
+        local can_disable = (facts.disable_ok or off_type) and true or false
         if axis == "binary" then
             add('    { match = "%s", axis = "binary", default_state = "%s",', model, default_state)
             add('      can_disable = %s, can_enable = %s },',
@@ -2101,6 +2204,9 @@ function ModelAudit.draftStanzas(facts, current)
             end
             if facts.efforts and facts.efforts.none and facts.family ~= "anthropic" then
                 table.insert(flags, 'off_option = "none"')
+            end
+            if off_type then
+                table.insert(flags, string.format('off_option = "%s"', off_type))
             end
             add('      %s},', #flags > 0 and (table.concat(flags, ", ") .. " ") or "")
         end
@@ -2552,7 +2658,7 @@ local function probeModel(provider, model, api_key, verbose)
         printf("  %sno API key for %s in apikeys.lua%s", C.red, provider, C.off)
         return nil
     end
-    printf("  %s~13-19 micro-requests (max_tokens 32..1024) - fractions of a cent%s", C.dim, C.off)
+    printf("  %s~13-19 micro-requests (max_tokens 32..4096) - fractions of a cent%s", C.dim, C.off)
 
     local facts
     if provider == "anthropic" then
@@ -2581,7 +2687,8 @@ end
 
 --------------------------------------------------------------------------------
 -- Recheck (curated-constraints drift sweep): 2 micro-requests per CURATED
--- model - baseline (math prompt, reasoning-default evidence) + temperature=0.7
+-- model - baseline (math prompt, reasoning-default evidence; the harder prompt
+-- too when a default-on profile shows none) + temperature=0.7
 -- - compared against the resolution layer. The cheap standing answer to the
 -- pre-freeze "recheck constraints" checklist item: catches delisted-and-dead
 -- ids, reasoning-default flips, and temperature rules that would 400 in the
@@ -2629,7 +2736,8 @@ function ModelAudit.recheckCompare(obs, current)
     elseif pstate == "on" then
         -- Some wires report no reasoning evidence even when thinking ran, so
         -- absence alone never claims drift.
-        warn("no reasoning evidence on math prompt (profile default on) - verify")
+        warn("no reasoning evidence on " .. (obs.hard_prompt and "the math or harder prompt" or "math prompt")
+            .. " (profile default on) - verify")
     elseif obs.weak_evidence then
         warn("weak reasoning evidence (" .. tostring(obs.weak_evidence)
             .. " tokens) on a default-off profile - verify")
@@ -2670,6 +2778,12 @@ function ModelAudit.recheckCompare(obs, current)
     return level, reasons
 end
 
+-- A curated "thinks by default" with no evidence on the math prompt gets the
+-- harder prompt before the sweep warns (adaptive models skip easy prompts).
+local function profileSaysOn(provider, model)
+    return ModelConstraints.getReasoningProfile(provider, model).default_state == "on"
+end
+
 local function recheckObserve(provider, model, api_key, opts)
     local obs = { model = model }
     if provider == "anthropic" then
@@ -2679,9 +2793,12 @@ local function recheckObserve(provider, model, api_key, opts)
             messages = { { role = "user", content = REASONING_PROBE_PROMPT } } })
         if code ~= 200 then obs.err = ModelAudit.errText(decoded, raw); return obs end
         obs.served = true
-        obs.default_reasoning = false
-        for _i, block in ipairs(type(decoded.content) == "table" and decoded.content or {}) do
-            if type(block) == "table" and block.type == "thinking" then obs.default_reasoning = true end
+        obs.default_reasoning = anthropicThinks(decoded)
+        if not obs.default_reasoning and profileSaysOn(provider, model) then
+            obs.hard_prompt = true
+            local hcode, hdec = httpPostJson(url, headers, { model = model, max_tokens = 4096,
+                messages = { { role = "user", content = HARD_REASONING_PROBE_PROMPT } } })
+            obs.default_reasoning = hcode == 200 and anthropicThinks(hdec)
         end
         local tcode, tdec, traw = httpPostJson(url, headers, { model = model, max_tokens = 32,
             temperature = 0.7, messages = { { role = "user", content = PROBE_PROMPT } } })
@@ -2775,6 +2892,11 @@ local function recheckObserve(provider, model, api_key, opts)
         -- Same weak-signal rule as the full battery: a handful of reasoning
         -- tokens on a math prompt is bookkeeping noise, not a reasoning default.
         local evidence = ModelAudit.reasoningEvidence(decoded)
+        if evidence == nil and profileSaysOn(provider, model) then
+            obs.hard_prompt = true
+            local hcode, hdec = req(nil, 4096, HARD_REASONING_PROBE_PROMPT)
+            evidence = hcode == 200 and ModelAudit.reasoningEvidence(hdec) or nil
+        end
         local rt = evidence and tonumber(evidence:match("^reasoning_tokens=(%d+)$"))
         if rt and rt < 64 then
             obs.weak_evidence = rt

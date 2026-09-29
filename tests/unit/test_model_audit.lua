@@ -627,6 +627,59 @@ TestRunner:check("preset drafts nothing",
         model = "fast", is_preset = true, efforts = {}, probes = {} },
         ModelAudit.currentResolution("perplexity", "fast")), "\n"):find("nothing to curate", 1, true) ~= nil)
 
+--------------------------------------------------------------------------------
+TestRunner:suite("Inherited off shapes and the named lowest setting (2026-09-29)")
+
+local SONNET55_DISABLE_ERR = '"thinking.type.disabled" is not supported for this model. Use '
+    .. '"thinking.type.between_tools" for the lowest thinking setting, or "thinking.type.adaptive" '
+    .. 'and "output_config.effort" to control thinking behavior.'
+TestRunner:check("lowest setting parsed from the refusal",
+    ModelAudit.lowestThinkingType(SONNET55_DISABLE_ERR) == "between_tools")
+TestRunner:check("a refusal naming no lowest setting -> nil",
+    ModelAudit.lowestThinkingType('"thinking.type.disabled" is not supported for this model. Use '
+        .. '"thinking.type.adaptive" and "output_config.effort" to control thinking behavior.') == nil
+    and ModelAudit.lowestThinkingType(nil) == nil)
+
+TestRunner:check("disabled refused -> Minimal flagged",
+    ModelAudit.minimalRefused({ thinking = { type = "disabled" } }, { disable_ok = false }) ~= nil)
+TestRunner:check("the named lowest setting accepted -> not flagged",
+    ModelAudit.minimalRefused({ thinking = { type = "between_tools" } },
+        { lowest_type = "between_tools", lowest_ok = true }) == nil)
+TestRunner:check("OpenRouter enabled=false refused -> flagged",
+    ModelAudit.minimalRefused({ openrouter_reasoning = { enabled = false } }, { disable_ok = false }) ~= nil)
+TestRunner:check("a translated enabled=false (a2agent) is not judged",
+    ModelAudit.minimalRefused({ a2agent_reasoning = { enabled = false } }, { disable_ok = false }) == nil)
+TestRunner:check("effort none refused -> flagged",
+    ModelAudit.minimalRefused({ xai_reasoning = { effort = "none" } }, { efforts = { none = false } }) ~= nil)
+TestRunner:check("adaptive low accepted -> not flagged",
+    ModelAudit.minimalRefused({ thinking = { type = "adaptive" }, output_config = { effort = "low" } },
+        { efforts = { low = true } }) == nil)
+TestRunner:check("not probed -> not flagged",
+    ModelAudit.minimalRefused({ thinking = { type = "disabled" } }, {}) == nil)
+
+-- A new id under claude-sonnet-5's profile (disable accepted there) that refuses
+-- disabled and names between_tools: the sonnet-5-5 case, read right.
+local lfacts = {
+    family = "anthropic", provider = "anthropic", model = "claude-sonnet-5-9",
+    reachable = true, default_reasoning = true, temp_ok = false,
+    disable_ok = false, disable_err = SONNET55_DISABLE_ERR,
+    lowest_type = "between_tools", lowest_ok = true,
+    adaptive_ok = true, budget_ok = false,
+    ladder = { "low", "medium", "high", "xhigh", "max" },
+    efforts = { low = true, medium = true, high = true, xhigh = true, max = true },
+    tools_ok = true, probes = {},
+}
+local ltext = table.concat(ModelAudit.draftStanzas(lfacts,
+    ModelAudit.currentResolution("anthropic", "claude-sonnet-5-9")), "\n")
+TestRunner:check("inherited disable named in a NOTE",
+    ltext:find('NOTE: Minimal sends thinking type "disabled"', 1, true) ~= nil)
+TestRunner:check("profile flagged although axis and default state match the sibling",
+    (ltext:match("[^\n]*reasoning_profiles%.anthropic[^\n]*") or ""):find("NEEDS CURATION", 1, true) ~= nil)
+TestRunner:check("drafted off is the named lowest setting",
+    ltext:find('off_option = "between_tools"', 1, true) ~= nil
+    and ltext:find("can_disable = true", 1, true) ~= nil
+    and ltext:find('minimal = { state = "off" }', 1, true) ~= nil)
+
 -- Summary
 print(string.format("\n%d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

@@ -118,7 +118,7 @@ TestRunner:test("gather pass (mode ANY) sets tool_choice any", function()
 end)
 
 TestRunner:test("gather pass on a model that refuses a forced call sends auto", function()
-    for _i, model in ipairs({ "claude-opus-5-5", "claude-fable-5-1" }) do
+    for _i, model in ipairs({ "claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1" }) do
         local result = AnthropicHandler:buildRequestBody({
             { role = "user", content = "q" },
         }, {
@@ -178,6 +178,24 @@ TestRunner:test("explicit disabled thinking survives the carve-out (Sonnet 5)", 
     })
     TestRunner:assertEqual(result.body.thinking and result.body.thinking.type, "disabled",
         "explicit off stays off — carve-out only fires when NO thinking param exists")
+end)
+
+TestRunner:test("Sonnet 5.5 off reaches the wire as between_tools (it refuses disabled)", function()
+    local ModelConstraints = require("model_constraints")
+    local d = ModelConstraints.resolveReasoning("anthropic", "claude-sonnet-5-5", { global_stance = "minimal" })
+    local api_params = {}
+    ModelConstraints.applyReasoningParams("anthropic", api_params, d)
+    local result = AnthropicHandler:buildRequestBody({
+        { role = "user", content = "q" },
+    }, {
+        model = "claude-sonnet-5-5",
+        api_key = "test",
+        api_params = api_params,
+        features = {},
+    })
+    TestRunner:assertEqual(result.body.thinking and result.body.thinking.type, "between_tools",
+        "the builder keeps the named lowest setting (not dropped as an unknown budget mode)")
+    TestRunner:assertEqual(result.body.temperature, nil, "sampling stripped")
 end)
 
 TestRunner:test("output_config merges field-wise; the effort clamp never mutates api_params", function()

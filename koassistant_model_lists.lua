@@ -15,9 +15,10 @@ local ModelLists = {
 
     anthropic = {
         -- Claude 5 / 4.x (current generation)
-        "claude-sonnet-5",              -- default (balanced speed/cost); adaptive thinking on, rejects sampling params
+        "claude-sonnet-5-5",            -- default (2026-09-28, $2/$10, balanced); adaptive thinking on, off = "between_tools", no forced tool calls
         "claude-opus-5-5",              -- deep reasoning flagship (2026-09-22, $4/$20); thinking on, NO disable, no forced tool calls
         "claude-fable-5-1",             -- most capable / frontier (2026-09-01, $10/$50); thinks only when asked, no forced tool calls
+        "claude-sonnet-5",              -- previous default; adaptive thinking on, disable ok, rejects sampling params
         "claude-opus-5",                -- previous flagship (2026-07-24, $5/$25); adaptive thinking on, disable ok, rejects sampling
         "claude-fable-5",               -- previous frontier; adaptive thinking ALWAYS-ON (no disable), rejects sampling, premium price
         "claude-sonnet-4-6",            -- previous flagship (kept available), 1M context
@@ -189,6 +190,7 @@ local ModelLists = {
 
         -- Anthropic
         "anthropic/claude-sonnet-5",    -- default (flagship); slug confirmed on openrouter.ai
+        "anthropic/claude-sonnet-5.5",  -- 2026-09-28 (battery 2026-09-29); reasoning cannot be turned off here, so not the default
         "anthropic/claude-opus-5.5",    -- deep reasoning flagship (2026-09-22; battery 2026-09-28)
         "anthropic/claude-fable-5.1",   -- most capable / frontier (2026-09-01; battery 2026-09-28)
         "anthropic/claude-opus-5",      -- previous flagship (a -fast variant exists at 2x price; not listed)
@@ -402,7 +404,7 @@ local ModelLists = {
         "perplexity/sonar",             -- default: Perplexity's own model (every retired Sonar id lands here)
         "openai/gpt-6-luna",            -- the model Perplexity's own fast/low/medium presets run
         "openai/gpt-6-sol",
-        "anthropic/claude-sonnet-5",
+        "anthropic/claude-sonnet-5-5",  -- replaces claude-sonnet-5 (same price; searched and cited 2026-09-29)
         "google/gemini-3.8-flash",
         "xai/grok-4.7",
     },
@@ -650,7 +652,7 @@ local ModelLists = {
     -- Explicit picks are recorded in features.model_explicit from 2026-07-25 onward, so this
     -- heuristic only has to cover users who predate that.
     _shipped_defaults = {
-        anthropic  = { "claude-sonnet-5", "claude-sonnet-4-6", "claude-sonnet-4-5-20250929" },
+        anthropic  = { "claude-sonnet-5-5", "claude-sonnet-5", "claude-sonnet-4-6", "claude-sonnet-4-5-20250929" },
         openai     = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4", "gpt-5.2" },
         openai_codex = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4" },
         gemini     = { "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3-flash-preview" },
@@ -744,7 +746,7 @@ local ModelLists = {
 
         -- Provider's most capable general-purpose model
         flagship = {
-            anthropic = "claude-opus-5-5",           -- deep-reasoning flagship; sonnet-5 is the standard tier
+            anthropic = "claude-opus-5-5",           -- deep-reasoning flagship; sonnet-5-5 is the standard tier
             openai = "gpt-6-sol",                    -- same price as 5.6-sol; reasons by default
             openai_codex = "gpt-5.6-terra", -- best slug served on ALL plans (sol 400s on free accounts; still pickable manually)
             deepseek = "deepseek-v4-pro",
@@ -766,7 +768,7 @@ local ModelLists = {
 
         -- Balanced performance and cost
         standard = {
-            anthropic = "claude-sonnet-5",
+            anthropic = "claude-sonnet-5-5",
             openai = "gpt-5.6-terra",  -- standard/default
             openai_codex = "gpt-5.6-terra",
             deepseek = "deepseek-flash",

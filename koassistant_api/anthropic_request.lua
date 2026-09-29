@@ -249,12 +249,14 @@ function AnthropicRequest:build(config)
                     reason = "model " .. model .. " does not support adaptive thinking"
                 }
             end
-        elseif params.thinking.type == "disabled" then
+        elseif params.thinking.type == "disabled" or params.thinking.type == "between_tools" then
             -- Explicit disable — needed for models that think by default (Sonnet 5), where
             -- omitting `thinking` would still reason. Accepted on adaptive-capable models
             -- (Opus 4.6+, Sonnet 5); skip on models without the thinking parameter.
+            -- Sonnet 5.5 refuses "disabled" and takes "between_tools", its lowest setting
+            -- (the profile's off_option).
             if ModelConstraints.supportsCapability("anthropic", model, "adaptive_thinking") then
-                request_body.thinking = { type = "disabled" }
+                request_body.thinking = { type = params.thinking.type }
             else
                 adjustments.thinking_skipped = {
                     reason = "model " .. model .. " has no thinking parameter to disable"
