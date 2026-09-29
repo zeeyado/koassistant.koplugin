@@ -1042,7 +1042,7 @@ function PromptsManager:showPromptDetails(prompt)
                 local now_in_popup = self.plugin.action_service:toggleDictionaryPopupAction(prompt.id)
                 UIManager:close(self.details_dialog)
                 UIManager:show(InfoMessage:new{
-                    text = now_in_popup and _("Removed from dictionary popup.") or _("Added to dictionary popup."),
+                    text = now_in_popup and _("Added to dictionary popup.") or _("Removed from dictionary popup."),
                     timeout = 2,
                 })
             end,

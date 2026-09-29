@@ -6664,30 +6664,6 @@ function AskGPT:syncDictButtons()
   local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book, document_path)
 
   local self_ref = self
-  -- The model button (#86, opt-in): its own row, first ("00" sorts before our
-  -- action ids; the ID_PREFIX keeps it in the stale-key sweep above)
-  if features.show_model_in_dictionary == true then
-    local ModelSwitch = require("koassistant_model_switch")
-    local model_id = DictButtons.ID_PREFIX .. "00_model"
-    dictionary:addToDictButtons({
-      id = model_id,
-      text_func = function() return ModelSwitch.label(self_ref) end,
-      conditional = true,
-      row_group = DictButtons.ID_PREFIX .. "row0",
-      show_func = function(popup)
-        return not popup.is_wiki and popup.word ~= nil and popup.word ~= ""
-      end,
-      callback = function(popup)
-        ModelSwitch.show(self_ref, function()
-          local btn = popup.button_table and popup.button_table:getButtonById(model_id)
-          if btn then
-            btn:setText(ModelSwitch.label(self_ref), btn.width)
-            btn:refresh()
-          end
-        end)
-      end,
-    })
-  end
   for i, action in ipairs(popup_actions) do
     local act = action  -- capture per-iteration for closures
     local spec = DictButtons.scaffold(act, i, ActionService.getActionDisplayText(act, features))
@@ -6703,9 +6679,23 @@ function AskGPT:syncDictButtons()
       DictButtons.consumeNonReader(popup, self_ref.ui and self_ref.ui.dictionary)
       return true
     end
-    spec.callback = function(popup)
-      self_ref:executeDictAction(act, popup.word, popup, popup._koassistant_non_reader,
-        popup._koassistant_lookup_book)
+    if act.local_handler == "model_switch" then
+      -- The model button (#86): shows your model; a pick switches it for good
+      -- and the button relabels in place, the popup stays open
+      local ModelSwitch = require("koassistant_model_switch")
+      local spec_id = spec.id
+      spec.text, spec.font_bold = nil, nil
+      spec.text_func = function() return ModelSwitch.label(self_ref) end
+      spec.callback = function(popup)
+        ModelSwitch.show(self_ref, function()
+          ModelSwitch.relabel(self_ref, popup.button_table, spec_id)
+        end)
+      end
+    else
+      spec.callback = function(popup)
+        self_ref:executeDictAction(act, popup.word, popup, popup._koassistant_non_reader,
+          popup._koassistant_lookup_book)
+      end
     end
     -- Long press: the shared hold menu (the popup keeps its buttons; the next
     -- lookup re-syncs through the showDict wrap)
@@ -6802,6 +6792,19 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
 
   -- Helper function to create a button for an action
   local function createActionButton(action)
+    if action.local_handler == "model_switch" then
+      -- The model button (#86), as on the new API
+      local ModelSwitch = require("koassistant_model_switch")
+      return {
+        id = "koassistant_model",
+        text = ModelSwitch.label(self_ref),
+        callback = function()
+          ModelSwitch.show(self_ref, function()
+            ModelSwitch.relabel(self_ref, dict_popup.button_table, "koassistant_model")
+          end)
+        end,
+      }
+    end
     return {
       text = ActionService.getActionDisplayText(action, features) .. " (KOA)",
       font_bold = true,
@@ -6817,23 +6820,6 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
     table.insert(buttons, createActionButton(action))
   end
   local plugin_rows = require("koassistant_dict_buttons").splitRows(buttons)
-  -- The model button (#86, opt-in), its own row first, as on the new API
-  if features.show_model_in_dictionary == true then
-    local ModelSwitch = require("koassistant_model_switch")
-    table.insert(plugin_rows, 1, { {
-      id = "koassistant_model",
-      text = ModelSwitch.label(self_ref),
-      callback = function()
-        ModelSwitch.show(self_ref, function()
-          local btn = dict_popup.button_table and dict_popup.button_table:getButtonById("koassistant_model")
-          if btn then
-            btn:setText(ModelSwitch.label(self_ref), btn.width)
-            btn:refresh()
-          end
-        end)
-      end,
-    } })
-  end
 
   -- Insert all rows at position 2 (after the first row of standard buttons)
   -- Insert in reverse order so they appear in correct order
@@ -19155,32 +19141,6 @@ end
 function AskGPT:registerHighlightMenuActions()
   if not self.ui or not self.ui.highlight then return end
 
-  -- The model button (#86, opt-in): "00_" sorts before every KOReader id, so it
-  -- opens the menu's first row. A tap lists favorites and recent picks; a pick
-  -- switches the model for good and the button relabels in place (the list
-  -- stacks on the menu, so the menu and the selection stay open).
-  self.ui.highlight:addToHighlightDialog("00_koa_model", function(reader_highlight_instance)
-    local ModelSwitch = require("koassistant_model_switch")
-    return {
-      id = "koa_model",
-      text = ModelSwitch.label(self),
-      show_in_highlight_dialog_func = function()
-        local f = self.settings:readSetting("features") or {}
-        return f.show_model_in_highlight_menu == true
-      end,
-      callback = function()
-        ModelSwitch.show(self, function()
-          local dlg = reader_highlight_instance.highlight_dialog
-          local btn = dlg and dlg:getButtonById("koa_model")
-          if btn then
-            btn:setText(ModelSwitch.label(self), btn.width)
-            btn:refresh()
-          end
-        end)
-      end,
-    }
-  end)
-
   local MAX_SLOTS = 15
 
   -- Per-menu-open memo shared by all slot closures. KOReader calls every registered
@@ -19216,6 +19176,25 @@ function AskGPT:registerHighlightMenuActions()
         -- Empty/hidden slot. NEVER return nil here: onShowHighlightMenu indexes the
         -- returned table unconditionally (readerhighlight.lua)
         return { text = "", show_in_highlight_dialog_func = function() return false end }
+      end
+      if action.local_handler == "model_switch" then
+        -- The model button (#86): takes no selection. A tap lists favorites and
+        -- recent picks; a pick switches the model for good and the button
+        -- relabels in place (the list stacks on the menu, so the menu and the
+        -- selection stay open). Hold: remove it, other placements
+        local ModelSwitch = require("koassistant_model_switch")
+        return {
+          id = "koa_model",
+          text = ModelSwitch.label(self),
+          hold_callback = function()
+            require("koassistant_action_hold").show(self, action, { surface = "highlight" })
+          end,
+          callback = function()
+            ModelSwitch.show(self, function()
+              ModelSwitch.relabel(self, reader_highlight_instance.highlight_dialog, "koa_model")
+            end)
+          end,
+        }
       end
       -- Tap runs the action as set up; the hold menu's "Run once with:" buttons
       -- run it once another way (B345) through the same capture, while the
@@ -20377,8 +20356,12 @@ function AskGPT:buildHighlightBypassActionMenu()
   local menu_items = {}
   local features = self.settings:readSetting("features") or {}
 
-  -- Get all highlight-context actions using action_service (handles built-in + custom)
-  local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
+  -- Get all highlight-context actions using action_service (handles built-in + custom);
+  -- the model button is no action to bypass to
+  local all_actions = {}
+  for _i, item in ipairs(self.action_service:getAllHighlightActionsWithMenuState()) do
+    if not item.action.menu_button then table.insert(all_actions, item) end
+  end
 
   -- Also add special actions (translate, dictionary) if not already included
   local Actions = require("prompts/actions")
@@ -20430,8 +20413,12 @@ function AskGPT:buildDictionaryBypassActionMenu()
   local menu_items = {}
   local features = self.settings:readSetting("features") or {}
 
-  -- Get all highlight-context actions using action_service (handles built-in + custom)
-  local all_actions = self.action_service:getAllHighlightActionsWithMenuState()
+  -- Get all highlight-context actions using action_service (handles built-in + custom);
+  -- the model button is no action to bypass to
+  local all_actions = {}
+  for _i, item in ipairs(self.action_service:getAllHighlightActionsWithMenuState()) do
+    if not item.action.menu_button then table.insert(all_actions, item) end
+  end
 
   -- Also add special actions (translate, dictionary) if not already included
   local Actions = require("prompts/actions")

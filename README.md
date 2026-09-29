@@ -1664,7 +1664,7 @@ Add frequently-used highlight actions directly to KOReader's highlight popup for
 
 Propagation runs one way. A built-in that gains a default placement **is** injected into an existing install's menu at its default position on the next read, unless that install had previously removed it (removals are remembered). A built-in that *loses* its default placement stays where it is; only ids that no longer resolve at all are pruned.
 
-**Other built-in actions you can add**: ELI5, Elaborate, Connect, Connect (With Notes), Fact Check, AI Wiki, Grammar, Counterpoint, Explain in Context, Analyze in Context, Thematic Connection, Current Context, Deep Analysis
+**Other built-in actions you can add**: ELI5, Elaborate, Connect, Connect (With Notes), Fact Check, AI Wiki, Grammar, Counterpoint, Explain in Context, Analyze in Context, Thematic Connection, Current Context, Deep Analysis, and **Switch model** (the model button below)
 
 **Adding more actions**:
 1. Go to **Manage Actions**
@@ -1682,7 +1682,7 @@ Actions appear as "Explain (KOA)", "Translate (KOA)", etc. in the highlight popu
 
 **Note**: Changes take effect the next time the highlight menu opens.
 
-**Model button** (off by default, **Settings → Menus & Buttons → Highlight menu → Show Model button**): the first button of the highlight menu shows your model ("🤖 claude-sonnet-5", or "Model: …" without emoji icons). Tap it for your [favorite models](#favorite-models) and recent picks, then **More models…**; a pick changes your model, the button updates, and the menu and your selection stay open, so the next action you tap runs on it. Actions with a model of their own keep it; to run one action once on another model, long-press it instead. The dictionary popup has the same button (**Menus & Buttons → Dictionary popup → Show Model button**).
+**Model button** (not in the menu by default): tap **Switch model** in **Settings → Menus & Buttons → Highlight Menu Actions** and it becomes the first KOAssistant button of the highlight menu, showing your model ("🤖 claude-sonnet-5", or "Model: …" without emoji icons); hold it in that list to move it like any other entry. Tap the button for your [favorite models](#favorite-models) and recent picks, then **More models…**; a pick changes your model, the button updates, and the menu and your selection stay open, so the next action you tap runs on it. Actions with a model of their own keep it; to run one action once on another model, long-press it instead. Long-pressing the button itself offers **Remove from the highlight menu** and its other placements. **Dictionary Popup Actions** has the same entry for the dictionary popup. Turning off "Show quick actions" hides it with the rest of KOAssistant's action buttons.
 
 > **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → Menus & Buttons**. "Show Chat/Action button" (the main button) and "Show quick actions" (shortcuts like Translate, Explain) have separate toggles. There is also "Show Add to Notebook button" (off by default; turn it on to save selected text straight to the book's notebook). Generate Image is an ordinary action now, so add or remove it in Highlight Menu Actions.
 
@@ -1752,6 +1752,8 @@ When "Show AI buttons" is enabled (**Settings → Menus & Buttons → Dictionary
 | **AI Wiki** | Encyclopedia entry | Wikipedia-style overview: definition, history, key facts, significance |
 
 A fifth entry, **Look up in X-Ray**, appears conditionally when the current book has an X-Ray cache. It is a local, offline lookup (no AI call) that opens the tapped word's X-Ray entry when one exists.
+
+You can also add **Switch model**, the [model button](#highlight-menu-actions): it goes first among the AI buttons, shows your model, and switches it without closing the popup.
 
 Quick Define is the default action if you turn on Bypass mode (chosen for speed); the full Dictionary action can be picked instead. You can set any action as the **Bypass Action** for instant one-tap lookups.
 
@@ -3958,7 +3960,7 @@ Add models not in the built-in list for any provider (built-in or custom).
 
 ### Favorite Models
 
-Long-press a model in any model list (**Settings → Model**, the Quick Settings model button, **More models…** in a long-press menu, an action's model editor, the tier screens) to add it to or remove it from your favorites. ♥ marks a favorite (★ still marks a custom model). Favorites take the first model buttons of every long-press menu, for actions and for **Send**, in the order you added them; **More models…** lists all of them first, and the highlight menu's [model button](#highlight-menu-actions) switches between them.
+Long-press a model in any model list (**Settings → Model**, the Quick Settings model button, **More models…** in a long-press menu, an action's model editor, the tier screens) to add it to or remove it from your favorites. ♥ marks a favorite (★ still marks a custom model). Favorites take the first model buttons of every long-press menu, for actions and for **Send**, in the order you added them; **More models…** lists all of them first, and the [model button](#highlight-menu-actions) (an entry you can add to the highlight menu and the dictionary popup) switches between them.
 
 ### Setting Default Models
 

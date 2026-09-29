@@ -66,6 +66,9 @@ local Constants = require("koassistant_constants")
 --   local_note       - Details-view note replacing the generic "local action: no AI
 --                      call is made" line — for local handlers that DO call an API
 --                      (image_gen); translated string (optional)
+--   menu_button      - A button of the highlight menu and the dictionary popup, not an
+--                      action on the selection (model_switch): it goes first when added,
+--                      and the input dialogs and the bypass pickers leave it out
 
 local _ = require("koassistant_gettext")
 
@@ -703,6 +706,22 @@ Use plain language first, adding the technical term in parentheses when it helps
         local_note = _("This action skips the chat pipeline, but it does send one AI request: the framed prompt below goes to the image provider's API. Provider, model, size and prompt framing are set in Settings → Advanced → Image Generation."),
         requires_image_provider = true,
         in_highlight_menu = 8,  -- A9 pare-down 2026-08-17: last, it is conditional (maintainer)
+        exclude_from_compact = true,
+        no_duplicate = true,
+        builtin = true,
+    },
+    -- The model button (#86, B345 step 4): shows your model; a tap lists your
+    -- favorites and recent picks and switches the model for good (main.lua
+    -- draws it, koassistant_model_switch.lua). Opt-in: no default placement;
+    -- added from either editor, it goes first among KOAssistant's buttons.
+    model_switch = {
+        id = "model_switch",
+        text = _("Switch model"),
+        description = _("Shows your model. Tap it to switch to a favorite, a recent pick or any other model; the menu stays open. Actions with a model of their own keep it."),
+        context = "highlight",
+        local_handler = "model_switch",
+        local_note = _("A button, not an action: it sends nothing. A pick changes your model for everything after, as Settings → Model does. The highlight menu and the dictionary popup can show it."),
+        menu_button = true,
         exclude_from_compact = true,
         no_duplicate = true,
         builtin = true,

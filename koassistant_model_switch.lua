@@ -2,13 +2,17 @@
 koassistant_model_switch.lua - the model button in the highlight menu and the
 dictionary popup (issue #86; B345 step 4, docs/run_options_plan.md 3.6 and Q5).
 
-The button shows your model. A tap lists your favorites and recent picks, then
-"More models…"; a pick switches your model for good (AskGPT:switchModel, the
-model menu's own switch) and the button relabels in place, so the menu and the
-selection stay open. Actions with their own model keep it: this changes what
-"your model" is, while an action's long-press menu runs it once on another one.
+The button is the `model_switch` pseudo-action (prompts/actions.lua), placed and
+ordered in the Highlight Menu Actions and Dictionary Popup Actions editors like
+any action; main.lua draws it. It shows your model. A tap lists your favorites
+and recent picks, then "More models…"; a pick switches your model for good
+(AskGPT:switchModel, the model menu's own switch) and the button relabels in
+place, so the menu and the selection stay open. Actions with their own model
+keep it: this changes what "your model" is, while an action's long-press menu
+runs it once on another one.
 
-`entries()` is pure (unit-tested); `show()` draws the list.
+`entries()` is pure (unit-tested); `show()` draws the list; `relabel()` updates
+the button.
 ]]
 
 local UIManager = require("ui/uimanager")
@@ -25,6 +29,18 @@ function ModelSwitch.label(plugin)
         return "\u{1F916} " .. model
     end
     return T(_("Model: %1"), model)
+end
+
+--- Relabel the button in place after a switch.
+--- @param holder table|nil what holds the button (the highlight menu's
+---   ButtonDialog, the dictionary popup's ButtonTable)
+--- @param id string the button's id
+function ModelSwitch.relabel(plugin, holder, id)
+    local btn = holder and holder:getButtonById(id)
+    if btn then
+        btn:setText(ModelSwitch.label(plugin), btn.width)
+        btn:refresh()
+    end
 end
 
 --- The list's models: the favorites in their order, then the recent "More

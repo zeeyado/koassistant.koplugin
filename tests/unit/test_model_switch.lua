@@ -56,4 +56,22 @@ TestRunner:test("label: the model in effect, with the robot when emoji icons are
     TestRunner:assertEqual(ModelSwitch.label(plugin), "Model: claude-sonnet-5", "words")
 end)
 
+TestRunner:test("relabel: the held button gets the new label at its own width", function()
+    local plugin = {
+        settings = { readSetting = function() return {} end },
+        getCurrentModel = function() return "gpt-6" end,
+    }
+    local calls = {}
+    local btn = { width = 240 }
+    function btn:setText(text, width) calls[#calls + 1] = text .. "@" .. width end
+    function btn:refresh() calls[#calls + 1] = "refresh" end
+    local holder = { getButtonById = function(_self, id) return id == "koa_model" and btn or nil end }
+    ModelSwitch.relabel(plugin, holder, "koa_model")
+    TestRunner:assertEqual(table.concat(calls, " "), "Model: gpt-6@240 refresh", "set then refresh")
+    -- A closed menu (no holder) or a missing button changes nothing
+    ModelSwitch.relabel(plugin, nil, "koa_model")
+    ModelSwitch.relabel(plugin, holder, "other")
+    TestRunner:assertEqual(#calls, 2, "no call without a button")
+end)
+
 return TestRunner:summary()
