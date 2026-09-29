@@ -2290,6 +2290,15 @@ local SettingsSchema = {
                     default = false,
                     help_text = _("Add an 'Add to notebook' button to the highlight menu, saving the selected text directly to this book's notebook. Takes effect the next time the menu opens."),
                 },
+                {
+                    id = "show_model_in_highlight_menu",
+                    type = "toggle",
+                    text = _("Show Model button"),
+                    path = "features.show_model_in_highlight_menu",
+                    -- Opt-in (#86, B345 step 4); read `== true` in main.lua
+                    default = false,
+                    help_text = _("A button at the top of the highlight menu that shows your model. Tap it to change your model: a favorite, a recent pick or any other. The menu stays open, and actions with a model of their own keep it. Takes effect the next time the menu opens."),
+                },
                 -- (The old "Show Generate Image button" toggle is retired:
                 -- image generation is the image_gen ACTION since 2026-08-13 —
                 -- visibility/order via Highlight Menu Actions below; an
@@ -2316,6 +2325,16 @@ local SettingsSchema = {
                     path = "features.enable_dictionary_hook",
                     default = true,
                     help_text = _("Add AI buttons to KOReader's dictionary popup."),
+                },
+                {
+                    id = "show_model_in_dictionary",
+                    type = "toggle",
+                    text = _("Show Model button"),
+                    path = "features.show_model_in_dictionary",
+                    -- Opt-in (#86, B345 step 4); read `== true` in main.lua
+                    default = false,
+                    depends_on = { id = "enable_dictionary_hook", value = true },
+                    help_text = _("A button above the AI buttons in the dictionary popup that shows your model. Tap it to change your model: a favorite, a recent pick or any other. Actions with a model of their own keep it."),
                 },
                 {
                     id = "dictionary_popup_actions",

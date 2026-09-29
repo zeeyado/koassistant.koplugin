@@ -1045,6 +1045,42 @@ local function pickProviderModel(opts)
     local plugin = opts.plugin
     local current = opts.current
     local pickProvider
+    local RunOptions = require("koassistant_run_options")
+
+    -- The favorites (B345), any provider with a key, as the first rows of a
+    -- screen: more of them than the long-press menus' model spots hold stay one
+    -- tap away. `here` = the provider whose models follow (its own need no name).
+    local function favoriteRows(close, reopen, here)
+        local rows = {}
+        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
+        local filter = plugin and plugin.hasAnyRealApiKey and plugin:hasAnyRealApiKey()
+        for _idx, fav in ipairs(RunOptions.favoriteModels(features)) do
+            local f = fav
+            if not filter or plugin:isProviderConfigured(f.provider) then
+                local is_current = current and current.provider == f.provider and current.model == f.model
+                local label = (is_current and "● " or "○ ") .. RunOptions.FAVORITE_MARK .. f.model
+                if f.provider ~= here then
+                    local cp = plugin.getCustomProvider and plugin:getCustomProvider(f.provider)
+                    label = label .. " · " .. ((cp and (cp.name or f.provider))
+                        or (plugin.getProviderDisplayName and plugin:getProviderDisplayName(f.provider))
+                        or f.provider)
+                end
+                table.insert(rows, {{
+                    text = label,
+                    callback = function()
+                        close()
+                        opts.on_pick(f.provider, f.model)
+                    end,
+                    hold_callback = function()
+                        close()
+                        RunOptions.toggleFavorite(plugin, f.provider, f.model)
+                        reopen()
+                    end,
+                }})
+            end
+        end
+        return rows
+    end
 
     local function pickModelFor(provider_id, provider_label, provider_row)
         local sub
@@ -1074,8 +1110,15 @@ local function pickProviderModel(opts)
                     pickProvider(false)
                 end,
             }})
+            -- "More models…": every favorite first, then this provider's list
+            if plugin then
+                local favs = favoriteRows(function() UIManager:close(sub) end,
+                    function() pickModelFor(provider_id, provider_label, provider_row) end, provider_id)
+                for _idx, r in ipairs(favs) do table.insert(buttons, r) end
+                -- KOReader's group separator (an empty row)
+                if #favs > 0 then table.insert(buttons, {}) end
+            end
         end
-        local RunOptions = require("koassistant_run_options")
         local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
         for _idx, m in ipairs(models) do
             local model_name = m
@@ -1118,6 +1161,13 @@ local function pickProviderModel(opts)
                     opts.top_row.callback()
                 end,
             }})
+        end
+        -- A model pick (not the provider-only one): the favorites first
+        if plugin and not opts.on_provider then
+            local favs = favoriteRows(function() UIManager:close(sub) end,
+                function() pickProvider(show_all) end, nil)
+            for _idx, r in ipairs(favs) do table.insert(buttons, r) end
+            if #favs > 0 then table.insert(buttons, {}) end
         end
         local all_providers = {}
         for _idx, provider in ipairs(ModelLists.getAllProviders()) do

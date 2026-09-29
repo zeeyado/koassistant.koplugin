@@ -3975,6 +3975,54 @@ end
 
 -- Helper: Build model selection sub-menu for current provider
 -- @param simplified: if true, shows only model list without management options (for quick settings)
+--- Switch the model for good: the model menu's tap, and the model button in the
+--- highlight menu and the dictionary popup (#86, koassistant_model_switch.lua).
+function AskGPT:switchModel(provider, model, provider_display_name)
+  if not provider_display_name then
+    local cp = self:getCustomProvider(provider)
+    provider_display_name = (cp and cp.name) or self:getProviderDisplayName(provider)
+  end
+  local switching = self:getCurrentProvider() ~= provider
+  local f = self.settings:readSetting("features") or {}
+  -- Hub one-tap switch (maintainer 2026-08-14): picking a model under a
+  -- non-active provider sets provider + model TOGETHER — the old
+  -- switch-provider/back/reopen-models dance collapses into this tap.
+  if switching then f.provider = provider end
+  f.model = model
+  -- Mark this as a DELIBERATE pick so default bumps never overwrite it
+  -- (defaults_propagation_plan.md §3 — features.model alone can't tell an
+  -- explicit choice from one auto-baked on provider switch).
+  f.model_explicit = f.model_explicit or {}
+  f.model_explicit[provider] = true
+  self.settings:saveSetting("features", f)
+  self.settings:flush()
+  self:updateConfigFromSettings()
+  UIManager:show(Notification:new{
+    text = switching
+      and T(_("Provider: %1 — Model: %2"), provider_display_name, model)
+      or T(_("Model: %1"), model),
+    timeout = 1.5,
+  })
+  -- Ollama: derive this model's capabilities from /api/show (tools gate —
+  -- local model names can't be curated). Deferred so the notification
+  -- paints first; server-down failure is silent, retried on next pick.
+  if provider == "ollama" then
+    self:recordOllamaModelPick(model)
+    UIManager:scheduleIn(0.2, function()
+      self:fetchDerivedModelCaps("ollama", model)
+    end)
+  end
+  -- Same key-setup offer as the provider picker (the selection stands
+  -- either way — Cancel just leaves the key for later).
+  if switching and not self:isProviderConfigured(provider) then
+    if provider == "openai_codex" then
+      require("koassistant_openai_codex_oauth").showManageDialog(self)
+    else
+      self:showApiKeyDialog(provider, provider_display_name, false)
+    end
+  end
+end
+
 function AskGPT:buildModelMenu(simplified, provider_override)
   local self_ref = self
   -- provider_override = a specific provider's panel inside the provider/model
@@ -4258,45 +4306,7 @@ function AskGPT:buildModelMenu(simplified, provider_override)
       end,
       radio = true,
       callback = function()
-        local switching = self_ref:getCurrentProvider() ~= provider
-        local f = self_ref.settings:readSetting("features") or {}
-        -- Hub one-tap switch (maintainer 2026-08-14): picking a model under a
-        -- non-active provider sets provider + model TOGETHER — the old
-        -- switch-provider/back/reopen-models dance collapses into this tap.
-        if switching then f.provider = provider end
-        f.model = model_copy
-        -- Mark this as a DELIBERATE pick so default bumps never overwrite it
-        -- (defaults_propagation_plan.md §3 — features.model alone can't tell an
-        -- explicit choice from one auto-baked on provider switch).
-        f.model_explicit = f.model_explicit or {}
-        f.model_explicit[provider] = true
-        self_ref.settings:saveSetting("features", f)
-        self_ref.settings:flush()
-        self_ref:updateConfigFromSettings()
-        UIManager:show(Notification:new{
-          text = switching
-            and T(_("Provider: %1 — Model: %2"), provider_display_name, model_copy)
-            or T(_("Model: %1"), model_copy),
-          timeout = 1.5,
-        })
-        -- Ollama: derive this model's capabilities from /api/show (tools gate —
-        -- local model names can't be curated). Deferred so the notification
-        -- paints first; server-down failure is silent, retried on next pick.
-        if provider == "ollama" then
-          self_ref:recordOllamaModelPick(model_copy)
-          UIManager:scheduleIn(0.2, function()
-            self_ref:fetchDerivedModelCaps("ollama", model_copy)
-          end)
-        end
-        -- Same key-setup offer as the provider picker (the selection stands
-        -- either way — Cancel just leaves the key for later).
-        if switching and not self_ref:isProviderConfigured(provider) then
-          if provider == "openai_codex" then
-            require("koassistant_openai_codex_oauth").showManageDialog(self_ref)
-          else
-            self_ref:showApiKeyDialog(provider, provider_display_name, false)
-          end
-        end
+        self_ref:switchModel(provider, model_copy, provider_display_name)
       end,
       hold_callback = createHoldCallback(model_copy, is_custom),
       keep_menu_open = true,
@@ -6642,6 +6652,30 @@ function AskGPT:syncDictButtons()
   local popup_actions = self.action_service:getDictionaryPopupActionObjects(has_open_book, document_path)
 
   local self_ref = self
+  -- The model button (#86, opt-in): its own row, first ("00" sorts before our
+  -- action ids; the ID_PREFIX keeps it in the stale-key sweep above)
+  if features.show_model_in_dictionary == true then
+    local ModelSwitch = require("koassistant_model_switch")
+    local model_id = DictButtons.ID_PREFIX .. "00_model"
+    dictionary:addToDictButtons({
+      id = model_id,
+      text_func = function() return ModelSwitch.label(self_ref) end,
+      conditional = true,
+      row_group = DictButtons.ID_PREFIX .. "row0",
+      show_func = function(popup)
+        return not popup.is_wiki and popup.word ~= nil and popup.word ~= ""
+      end,
+      callback = function(popup)
+        ModelSwitch.show(self_ref, function()
+          local btn = popup.button_table and popup.button_table:getButtonById(model_id)
+          if btn then
+            btn:setText(ModelSwitch.label(self_ref), btn.width)
+            btn:refresh()
+          end
+        end)
+      end,
+    })
+  end
   for i, action in ipairs(popup_actions) do
     local act = action  -- capture per-iteration for closures
     local spec = DictButtons.scaffold(act, i, ActionService.getActionDisplayText(act, features))
@@ -6771,6 +6805,23 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
     table.insert(buttons, createActionButton(action))
   end
   local plugin_rows = require("koassistant_dict_buttons").splitRows(buttons)
+  -- The model button (#86, opt-in), its own row first, as on the new API
+  if features.show_model_in_dictionary == true then
+    local ModelSwitch = require("koassistant_model_switch")
+    table.insert(plugin_rows, 1, { {
+      id = "koassistant_model",
+      text = ModelSwitch.label(self_ref),
+      callback = function()
+        ModelSwitch.show(self_ref, function()
+          local btn = dict_popup.button_table and dict_popup.button_table:getButtonById("koassistant_model")
+          if btn then
+            btn:setText(ModelSwitch.label(self_ref), btn.width)
+            btn:refresh()
+          end
+        end)
+      end,
+    } })
+  end
 
   -- Insert all rows at position 2 (after the first row of standard buttons)
   -- Insert in reverse order so they appear in correct order
@@ -19073,6 +19124,32 @@ end
 -- Membership beyond the slot cap appears only after the plugin re-inits (book reopen).
 function AskGPT:registerHighlightMenuActions()
   if not self.ui or not self.ui.highlight then return end
+
+  -- The model button (#86, opt-in): "00_" sorts before every KOReader id, so it
+  -- opens the menu's first row. A tap lists favorites and recent picks; a pick
+  -- switches the model for good and the button relabels in place (the list
+  -- stacks on the menu, so the menu and the selection stay open).
+  self.ui.highlight:addToHighlightDialog("00_koa_model", function(reader_highlight_instance)
+    local ModelSwitch = require("koassistant_model_switch")
+    return {
+      id = "koa_model",
+      text = ModelSwitch.label(self),
+      show_in_highlight_dialog_func = function()
+        local f = self.settings:readSetting("features") or {}
+        return f.show_model_in_highlight_menu == true
+      end,
+      callback = function()
+        ModelSwitch.show(self, function()
+          local dlg = reader_highlight_instance.highlight_dialog
+          local btn = dlg and dlg:getButtonById("koa_model")
+          if btn then
+            btn:setText(ModelSwitch.label(self), btn.width)
+            btn:refresh()
+          end
+        end)
+      end,
+    }
+  end)
 
   local MAX_SLOTS = 15
 

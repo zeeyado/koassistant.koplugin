@@ -1682,6 +1682,8 @@ Actions appear as "Explain (KOA)", "Translate (KOA)", etc. in the highlight popu
 
 **Note**: Changes take effect the next time the highlight menu opens.
 
+**Model button** (off by default, **Settings → Menus & Buttons → Highlight menu → Show Model button**): the first button of the highlight menu shows your model ("🤖 claude-sonnet-5", or "Model: …" without emoji icons). Tap it for your [favorite models](#favorite-models) and recent picks, then **More models…**; a pick changes your model, the button updates, and the menu and your selection stay open, so the next action you tap runs on it. Actions with a model of their own keep it; to run one action once on another model, long-press it instead. The dictionary popup has the same button (**Menus & Buttons → Dictionary popup → Show Model button**).
+
 > **Prefer a cleaner menu?** You can disable KOAssistant's highlight menu integration entirely via **Settings → Menus & Buttons**. "Show Chat/Action button" (the main button) and "Show quick actions" (shortcuts like Translate, Explain) have separate toggles. There is also "Show Add to Notebook button" (off by default; turn it on to save selected text straight to the book's notebook). Generate Image is an ordinary action now, so add or remove it in Highlight Menu Actions.
 
 ---
@@ -3956,7 +3958,7 @@ Add models not in the built-in list for any provider (built-in or custom).
 
 ### Favorite Models
 
-Long-press a model in any model list (**Settings → Model**, the Quick Settings model button, **More models…** in a long-press menu, an action's model editor, the tier screens) to add it to or remove it from your favorites. ♥ marks a favorite (★ still marks a custom model). Favorites take the first model buttons of every long-press menu, for actions and for **Send**, in the order you added them.
+Long-press a model in any model list (**Settings → Model**, the Quick Settings model button, **More models…** in a long-press menu, an action's model editor, the tier screens) to add it to or remove it from your favorites. ♥ marks a favorite (★ still marks a custom model). Favorites take the first model buttons of every long-press menu, for actions and for **Send**, in the order you added them; **More models…** lists all of them first, and the highlight menu's [model button](#highlight-menu-actions) switches between them.
 
 ### Setting Default Models
 
