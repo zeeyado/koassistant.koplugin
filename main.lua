@@ -9689,7 +9689,12 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           UIManager:close(dialog)
           self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
         end }}
-        dialog = ButtonDialog:new{ title = group_title, buttons = rows }
+        dialog = ButtonDialog:new{ title = group_title, buttons = rows,
+          -- A tap outside is Back (B360)
+          tap_close_callback = function()
+            self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+          end,
+        }
         UIManager:show(dialog)
       end,
     }})
@@ -12755,6 +12760,8 @@ function AskGPT:_showSectionXrayOptions(sec, file, opts)
                 end,
               }},
             },
+            -- A tap outside is Cancel (B360)
+            tap_close_callback = function() self_ref:_showSectionXrayList(opts) end,
           }
           UIManager:show(confirm_dialog)
         end,
@@ -12767,6 +12774,7 @@ function AskGPT:_showSectionXrayOptions(sec, file, opts)
         end,
       }},
     },
+    tap_close_callback = function() self_ref:_showSectionXrayList(opts) end,
   }
   UIManager:show(options_dialog)
 end
@@ -13035,6 +13043,8 @@ function AskGPT:_showXrayCheckpointList(opts)
                 end,
               }},
             },
+            -- A tap outside is Cancel (B360)
+            tap_close_callback = function() self_ref:_showXrayCheckpointList(opts) end,
           }
         else
           local detail
@@ -13061,6 +13071,7 @@ function AskGPT:_showXrayCheckpointList(opts)
                 end,
               }},
             },
+            tap_close_callback = function() self_ref:_showXrayCheckpointList(opts) end,
           }
         end
         UIManager:show(confirm)
@@ -13237,6 +13248,8 @@ function AskGPT:_showXrayLadderRungOptions(rung, opts)
                   end,
                 }},
               },
+              -- A tap outside is Cancel (B360)
+              tap_close_callback = function() self_ref:_showXrayLadderRungOptions(rung, opts) end,
             }
             UIManager:show(confirm)
           else
@@ -13346,6 +13359,7 @@ function AskGPT:_showXrayLadderRungOptions(rung, opts)
       confirm = ButtonDialog:new{
         title = title_text,
         buttons = confirm_rows,
+        tap_close_callback = function() self_ref:_showXrayLadderRungOptions(rung, opts) end,
       }
       UIManager:show(confirm)
     end,
@@ -13360,6 +13374,7 @@ function AskGPT:_showXrayLadderRungOptions(rung, opts)
   card = ButtonDialog:new{
     title = T(_("Checkpoint: %1"), label),
     buttons = buttons,
+    tap_close_callback = function() self_ref:_showXrayCheckpointList(opts) end,
   }
   UIManager:show(card)
   -- Install waits out an update in flight: redraws when that changes
@@ -13447,6 +13462,8 @@ function AskGPT:_showXrayCheckpointOptions(cp, opts)
               end,
             }},
           },
+          -- A tap outside is Cancel (B360)
+          tap_close_callback = function() self_ref:_showXrayCheckpointList(opts) end,
         }
         UIManager:show(confirm_dialog)
       end,
@@ -13479,6 +13496,7 @@ function AskGPT:_showXrayCheckpointOptions(cp, opts)
             end,
           }},
         },
+        tap_close_callback = function() self_ref:_showXrayCheckpointList(opts) end,
       }
       UIManager:show(confirm_dialog)
     end,
@@ -13494,6 +13512,7 @@ function AskGPT:_showXrayCheckpointOptions(cp, opts)
   options_dialog = ButtonDialog:new{
     title = T(_("X-Ray version: %1"), label),
     buttons = buttons,
+    tap_close_callback = function() self_ref:_showXrayCheckpointList(opts) end,
   }
   UIManager:show(options_dialog)
   -- Install waits out an update in flight: redraws when that changes
@@ -20265,6 +20284,10 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
   dialog = ButtonDialog:new{
     title = title,
     buttons = buttons,
+    -- A tap outside is Back (B360)
+    tap_close_callback = function()
+      if opts and opts.back then opts.back() end
+    end,
   }
   UIManager:show(dialog)
 end

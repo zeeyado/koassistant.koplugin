@@ -6400,6 +6400,11 @@ if prune_book_text then
                 title = T(_("Large text extraction: ~%1K characters (~%2K-%3K tokens) in this background request. Make sure your model's context window can accommodate this."), chars_k, tokens_low, tokens_high)
                     .. (ladder_cw_note and ("\n\n" .. ladder_cw_note) or ""),
                 buttons = size_buttons,
+                -- A tap outside is Cancel: the build step waits for this
+                -- answer, and without one it never finishes (B360)
+                tap_close_callback = function()
+                    if on_complete then on_complete(nil, "size_warning_declined") end
+                end,
             }
             UIManager:show(size_dialog)
             return nil
@@ -8405,6 +8410,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         editor_dialog = ButtonDialog:new{
             title = T(#books == 1 and _("%1 item selected: tap to remove") or _("%1 items selected: tap to remove"), #books),
             buttons = menu_buttons,
+            -- A tap outside is Done: the input dialog shows the new count (B360)
+            tap_close_callback = function() refreshInputDialog() end,
         }
         UIManager:show(editor_dialog)
     end
@@ -11938,6 +11945,8 @@ local function showAliasTargetPicker(ctx)
             title = T(_("Add \"%1\" as an alias of which entry?"), query)
                 .. (total_pages > 1 and ("  (" .. page .. "/" .. total_pages .. ")") or ""),
             buttons = rows,
+            -- A tap outside is Back (B360)
+            tap_close_callback = function() show_category_pick() end,
         }
         UIManager:show(pd)
     end
@@ -11983,6 +11992,7 @@ local function showAliasTargetPicker(ctx)
             title = T(_("Add \"%1\" as an alias of which entry?"), query)
                 .. (total_pages > 1 and ("  (" .. page .. "/" .. total_pages .. ")") or ""),
             buttons = rows,
+            tap_close_callback = function() show_category_pick() end,
         }
         UIManager:show(pd)
     end

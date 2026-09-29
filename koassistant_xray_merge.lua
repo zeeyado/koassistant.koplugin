@@ -3281,6 +3281,8 @@ function XrayMerge.startCrossBookFlow(opts)
                             end,
                         }},
                     },
+                    -- A tap outside is Back (B360)
+                    tap_close_callback = function() XrayMerge.startCrossBookFlow(opts) end,
                 }
                 UIManager:show(confirm)
             end,
@@ -3383,7 +3385,9 @@ function XrayMerge.startCrossBookFlow(opts)
                             UIManager:close(confirm)
                             XrayMerge.startCrossBookFlow(opts)
                         end }}
-                        confirm = ButtonDialog:new{ title = confirm_title, buttons = btns }
+                        confirm = ButtonDialog:new{ title = confirm_title, buttons = btns,
+                            tap_close_callback = function() XrayMerge.startCrossBookFlow(opts) end,
+                        }
                         UIManager:show(confirm)
                     end,
                 }})
@@ -3493,6 +3497,7 @@ function XrayMerge.startCrossBookFlow(opts)
                 confirm = ButtonDialog:new{
                     title = confirm_title,
                     buttons = chain_buttons,
+                    tap_close_callback = function() XrayMerge.startCrossBookFlow(opts) end,
                 }
                 UIManager:show(confirm)
             end,
@@ -3533,6 +3538,7 @@ function XrayMerge.startCrossBookFlow(opts)
                 other_picker = ButtonDialog:new{
                     title = T(_("Merge into \"%1\": other books with an X-Ray"), opts.title or "?"),
                     buttons = orows,
+                    tap_close_callback = function() XrayMerge.startCrossBookFlow(opts) end,
                 }
                 UIManager:show(other_picker)
             end,

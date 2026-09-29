@@ -3717,9 +3717,12 @@ function BookSettings.showQuizConfig(opts)
             value_step = 1,
             ok_always_enabled = true,
             extra_text = _("Follow global"),
-            extra_callback = function() setField(field, nil); reopen() end,
-            callback = function(spin) setField(field, spin.value); reopen() end,
-            cancel_callback = function() reopen() end,
+            extra_callback = function() setField(field, nil) end,
+            callback = function(spin) setField(field, spin.value) end,
+            -- Every way out (the buttons, a tap outside) comes back here:
+            -- SpinWidget runs close_callback on each close, after the
+            -- button's own callback (B360)
+            close_callback = function() reopen() end,
         })
     end
 

@@ -1582,6 +1582,8 @@ function PromptsManager:showContextSelectorWizard(state)
     self.context_dialog = ButtonDialog:new{
         title = _("Select Context"),
         buttons = buttons,
+        -- A tap outside is Cancel: back to the step it came from (B360)
+        tap_close_callback = function() self:showStep1_NameAndContext(state) end,
     }
 
     UIManager:show(self.context_dialog)
@@ -1654,6 +1656,7 @@ function PromptsManager:showWizardBehaviorSelector(state)
     self.wizard_behavior_dialog = ButtonDialog:new{
         title = _("AI Behavior"),
         buttons = buttons,
+        tap_close_callback = function() self:showStep3_Settings(state) end,
     }
 
     UIManager:show(self.wizard_behavior_dialog)
@@ -2136,12 +2139,12 @@ function PromptsManager:showTemperatureSelector(state)
         extra_text = _("Global"),
         extra_callback = function()
             state.temperature = nil
-            UIManager:close(self.advanced_dialog)
+            UIManager:close(self.step3_dialog)
             self:showStep3_Settings(state)
         end,
         callback = function(spin)
             state.temperature = spin.value
-            UIManager:close(self.advanced_dialog)
+            UIManager:close(self.step3_dialog)
             self:showStep3_Settings(state)
         end,
     }
@@ -2494,8 +2497,8 @@ function PromptsManager:showThinkingSelector(state, refresh_callback)
             UIManager:close(self.builtin_settings_dialog)
             self:showBuiltinSettingsDialog(state)
         else
-            -- Custom action wizard: refresh step 4
-            UIManager:close(self.advanced_dialog)
+            -- Custom action wizard: refresh step 3
+            UIManager:close(self.step3_dialog)
             self:showStep3_Settings(state)
         end
     end
@@ -2628,8 +2631,8 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
             UIManager:close(self.builtin_settings_dialog)
             self:showBuiltinSettingsDialog(state)
         else
-            -- Custom action wizard: refresh step 4
-            UIManager:close(self.advanced_dialog)
+            -- Custom action wizard: refresh step 3
+            UIManager:close(self.step3_dialog)
             self:showStep3_Settings(state)
         end
     end
@@ -2652,6 +2655,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
                     self:showPerProviderReasoningMenu(state)
                 end } },
             },
+            tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
         }
         UIManager:show(self.binary_dialog)
     end
@@ -2681,6 +2685,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         self.effort_dialog = ButtonDialog:new{
             title = title,
             buttons = btns,
+            tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
         }
         UIManager:show(self.effort_dialog)
     end
@@ -2708,6 +2713,7 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         self.effort_dialog = ButtonDialog:new{
             title = title,
             buttons = btns,
+            tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
         }
         UIManager:show(self.effort_dialog)
     end
@@ -2861,6 +2867,8 @@ function PromptsManager:showPerProviderReasoningMenu(state, refresh_callback)
         title = _("Per-Provider Reasoning"),
         info_text = _("Configure reasoning per provider.\nToggleable providers: Global/OFF/ON.\nAlways-on providers: effort level only (cannot be turned off)."),
         buttons = buttons,
+        -- A tap outside is Done: the screen below shows the new values (B360)
+        tap_close_callback = function() refreshParent() end,
     }
 
     UIManager:show(self.per_provider_dialog)
@@ -2922,6 +2930,7 @@ function PromptsManager:showAnthropicReasoningConfig(state)
         title = _("Anthropic Reasoning"),
         info_text = _("Adaptive thinking (4.6): Claude decides when to think.\nExtended thinking (4.5): Manual budget mode.\n\nBoth can coexist: effort for 4.6, budget for 4.5 models."),
         buttons = buttons,
+        tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
     }
 
     UIManager:show(self.anthropic_dialog)
@@ -2953,8 +2962,11 @@ function PromptsManager:showAnthropicBudgetSelector(state)
                 new_config.effort = existing.effort
             end
             state.reasoning_config.anthropic = new_config
-            self:showPerProviderReasoningMenu(state)
         end,
+        -- Every way out (Set, Cancel, a tap outside) returns to the menu:
+        -- SpinWidget runs close_callback on each close, after the button's
+        -- callback (B360; Cancel used to leave the reader with no menu)
+        close_callback = function() self:showPerProviderReasoningMenu(state) end,
     }
 
     UIManager:show(spin_widget)
@@ -3032,6 +3044,7 @@ function PromptsManager:showAnthropicEffortSelector(state)
         title = _("Adaptive Thinking Effort"),
         info_text = _("For Claude models with adaptive thinking. Claude decides when and how much to think.\n\nLow = may skip thinking\nMedium = balanced\nHigh = almost always thinks\nXHigh / Max = deepest thinking (top-tier models only)"),
         buttons = buttons,
+        tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
     }
 
     UIManager:show(self.anthropic_effort_dialog)
@@ -3115,6 +3128,7 @@ function PromptsManager:showOpenAIReasoningConfig(state)
         title = _("OpenAI Reasoning"),
         info_text = _("Reasoning effort for per-action override.\nGlobal toggle affects GPT-5.1+ only.\nOther models (o3, GPT-5) always reason at factory defaults."),
         buttons = buttons,
+        tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
     }
 
     UIManager:show(self.openai_dialog)
@@ -3167,6 +3181,7 @@ function PromptsManager:showGeminiReasoningConfig(state)
         title = _("Gemini Thinking"),
         info_text = _("Level options: Gemini 3 models (thinkingLevel).\nBudget options: Gemini 2.5 models (thinkingBudget).\nOFF disables thinking for both."),
         buttons = buttons,
+        tap_close_callback = function() self:showPerProviderReasoningMenu(state) end,
     }
 
     UIManager:show(self.gemini_dialog)
@@ -3194,7 +3209,7 @@ function PromptsManager:showThinkingBudgetSelector(state)
             state.reasoning_config = {
                 anthropic = { budget = spin.value },
             }
-            UIManager:close(self.advanced_dialog)
+            UIManager:close(self.step3_dialog)
             self:showStep3_Settings(state)
         end,
     }
@@ -3253,7 +3268,7 @@ function PromptsManager:showProviderSelector(state, show_all)
                     state.provider = nil
                     state.model = nil  -- Clear model when clearing provider
                     UIManager:close(self.provider_dialog)
-                    UIManager:close(self.advanced_dialog)
+                    UIManager:close(self.step3_dialog)
                     self:showStep3_Settings(state)
                 end,
             },
@@ -3287,7 +3302,7 @@ function PromptsManager:showProviderSelector(state, show_all)
                         -- via the Model row if wanted.
                         state.model = nil
                         UIManager:close(self.provider_dialog)
-                        UIManager:close(self.advanced_dialog)
+                        UIManager:close(self.step3_dialog)
                         self:showStep3_Settings(state)
                     end,
                 },
@@ -3345,7 +3360,7 @@ function PromptsManager:showModelSelector(state)
             callback = function()
                 state.model = nil
                 UIManager:close(self.model_dialog)
-                UIManager:close(self.advanced_dialog)
+                UIManager:close(self.step3_dialog)
                 self:showStep3_Settings(state)
             end,
         },
@@ -3362,7 +3377,7 @@ function PromptsManager:showModelSelector(state)
                 callback = function()
                     state.model = model
                     UIManager:close(self.model_dialog)
-                    UIManager:close(self.advanced_dialog)
+                    UIManager:close(self.step3_dialog)
                     self:showStep3_Settings(state)
                 end,
                 hold_callback = self.plugin and function()
@@ -3417,7 +3432,7 @@ function PromptsManager:showCustomModelInput(state)
                     text = _("Cancel"),
                     callback = function()
                         UIManager:close(dialog)
-                        UIManager:close(self.advanced_dialog)
+                        UIManager:close(self.step3_dialog)
                         self:showStep3_Settings(state)
                     end,
                 },
@@ -3429,7 +3444,7 @@ function PromptsManager:showCustomModelInput(state)
                             state.model = model
                         end
                         UIManager:close(dialog)
-                        UIManager:close(self.advanced_dialog)
+                        UIManager:close(self.step3_dialog)
                         self:showStep3_Settings(state)
                     end,
                 },
@@ -3933,6 +3948,7 @@ function PromptsManager:showBuiltinBehaviorSelector(state)
     self.builtin_behavior_dialog = ButtonDialog:new{
         title = _("AI Behavior"),
         buttons = buttons,
+        tap_close_callback = function() self:showBuiltinSettingsDialog(state) end,
     }
 
     UIManager:show(self.builtin_behavior_dialog)
@@ -4045,6 +4061,9 @@ function PromptsManager:showDomainSelector(state, return_callback)
     self.domain_selector_dialog = ButtonDialog:new{
         title = _("Domain"),
         buttons = buttons,
+        tap_close_callback = function()
+            if return_callback then return_callback() end
+        end,
     }
 
     UIManager:show(self.domain_selector_dialog)
@@ -4974,6 +4993,7 @@ function PromptsManager:showCustomBehaviorQuickSelector(state)
     self.custom_behavior_dialog = ButtonDialog:new{
         title = _("Select AI Behavior"),
         buttons = buttons,
+        tap_close_callback = function() self:showCustomQuickSettingsDialog(state) end,
     }
     UIManager:show(self.custom_behavior_dialog)
 end

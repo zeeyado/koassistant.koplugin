@@ -257,6 +257,8 @@ local function runSeriesScan(group_id, seed_path, sp, candidates, source_label, 
                     done()
                 end }},
             },
+            -- A tap outside is Cancel, as in offerSeriesScan (B360)
+            tap_close_callback = done,
         }
         UIManager:show(ask)
     end)
@@ -460,9 +462,11 @@ function GroupsUI.showMoveDialog(group_id, path, opts)
                     callback = function(spin)
                         BookGroups.moveBookTo(group_id, path, spin.value)
                         GroupsUI.showGroup(group_id, opts)
-                        GroupsUI.showMoveDialog(group_id, path, opts)
                     end,
-                    cancel_callback = function()
+                    -- Every way out (Move, Cancel, a tap outside) comes back
+                    -- to the move dialog: SpinWidget runs close_callback on
+                    -- each close, after the Move callback (B360)
+                    close_callback = function()
                         GroupsUI.showMoveDialog(group_id, path, opts)
                     end,
                 })
@@ -1109,6 +1113,10 @@ function GroupsUI.showBookRow(path, opts)
     dialog = ButtonDialog:new{
         title = T(_("Groups — %1"), BookGroups.displayTitle(path, opts.ui)),
         buttons = rows,
+        -- A tap outside is Back (B360)
+        tap_close_callback = function()
+            if opts.on_close then opts.on_close() end
+        end,
     }
     UIManager:show(dialog)
 end

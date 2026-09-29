@@ -945,6 +945,8 @@ function XrayDedup.startFlow(opts)
                 .. pair.name_a .. ": " .. snippet(pair.item_a) .. "\n\n"
                 .. pair.name_b .. ": " .. snippet(pair.item_b),
             buttons = rows,
+            -- A tap outside is Back (B360)
+            tap_close_callback = function() showList(false) end,
         }
         UIManager:show(dialog)
     end
@@ -987,6 +989,7 @@ function XrayDedup.startFlow(opts)
         dialog = ButtonDialog:new{
             title = _("Never-merge pairs: tap one to allow it again"),
             buttons = rows,
+            tap_close_callback = function() showList(false) end,
         }
         UIManager:show(dialog)
     end
