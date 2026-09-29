@@ -3649,6 +3649,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- Create a temporary configuration using the passed config as base
     local temp_config = createTempConfig(prompt, config)
+    -- The X-Ray outcome marks describe THIS request's answer: a config copied
+    -- from an earlier one (a re-run from its window) must not bring them along
+    temp_config._xray_front_matter = nil
+    temp_config._xray_not_saved = nil
     -- The per-chat Web value (if any) rode into temp_config with the features copy;
     -- consume it from the SOURCE config so it can't go stale on the shared table.
     if config and config.features then
@@ -5537,6 +5541,12 @@ if prune_book_text then
                         logger.dbg("KOAssistant: X-Ray response is not valid JSON, using as-is")
                     end
                 end
+                -- B361: nothing from this answer becomes the X-Ray (front matter,
+                -- the model's error answer, no entries, unreadable over an existing
+                -- one); an attended run shows the answer, never the X-Ray on disk
+                if cache_answer == nil then
+                    temp_config._xray_not_saved = true
+                end
             end
 
             -- If user typed additional input, add it as a visible message before the response
@@ -5727,14 +5737,15 @@ if prune_book_text then
                     -- sticky-true permission reconciliation as the live write below.
                     -- DEFERRED REBUILD SWAP (2026-08-14, the absolute round-25 rule):
                     -- a rebuild chain touches nothing until THIS moment — its first
-                    -- successful real rung. Archive the outgoing live (even a promoted
+                    -- successful write, the introduction when it has one (B361: a
+                    -- rebuild is a create). Archive the outgoing live (even a promoted
                     -- rung: the old ladder dies in the same breath, so this is the only
                     -- copy kept), clear the live cache and the OLD ladder, then store
                     -- the new rung below. A chain cancelled or failed before this point
                     -- leaves the book exactly as it was.
                     local xa_build = require("koassistant_xray_auto").ladderBuild()
                     if xa_build and xa_build.rebuild and not xa_build.rebuild_swapped
-                        and cache_answer and not message_data._ladder_intro then
+                        and cache_answer then
                         local prev_live = ActionCache.getXrayCache(cache_file)
                         if prev_live and prev_live.result then
                             ActionCache.pushXrayCheckpoint(cache_file, prev_live,
@@ -12724,11 +12735,11 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         if history then
             local temp_config = temp_config_or_error
             attachRerunContext(temp_config, action, ui, plugin, opts and opts.run_variant)
-            -- B353: an X-Ray answer of front matter only saved nothing. The
-            -- branches below open what is on disk (an older X-Ray; after a
-            -- section create, the book's main one) and would hide the answer,
-            -- so it goes to the chat viewer
-            local nothing_saved = type(temp_config) == "table" and temp_config._xray_front_matter
+            -- B353/B361: an X-Ray answer that saved nothing (front matter, the
+            -- model's error answer, no entries). The branches below open what is
+            -- on disk (an older X-Ray; after a section create, the book's main
+            -- one) and would hide the answer, so it goes to the chat viewer
+            local nothing_saved = type(temp_config) == "table" and temp_config._xray_not_saved
             -- For Section X-Ray: open browser directly from section cache
             if not nothing_saved and configuration and configuration.features and configuration.features._section_xray and ui and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")

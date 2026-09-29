@@ -960,7 +960,7 @@ Deleting a book's X-Ray also turns that book's Automatic X-Ray off, so nothing r
 
 Spend guards keep it conservative and predictable:
 
-- It works on the **incremental** track only, and never touches complete, AI-knowledge, legacy, or section X-Rays. A build that starts from nothing opens with a spoiler-free introduction (a run bounded at your current position skips it), then [checkpoints](#x-ray-version-ladder) at chapter-sized steps, always keeping the next one ready ahead of you: reaching a checkpoint installs it instantly and the one after starts building.
+- It works on the **incremental** track only, and never touches complete, AI-knowledge, legacy, or section X-Rays. A build that starts from nothing, and a rebuild, opens with a spoiler-free introduction (a run bounded at your current position skips it; a rebuild replaces your X-Ray once its introduction is saved), then [checkpoints](#x-ray-version-ladder) at chapter-sized steps, always keeping the next one ready ahead of you: reaching a checkpoint installs it instantly and the one after starts building.
 - After a step is declined, fails or is cancelled it waits out the **cooldown** (default 15 minutes) before trying again; a build that completes does not wait. Each background step is bounded by the book's checkpoint spacing, so a single step is never oversized.
 - It runs only when **WiFi is already on**, it never toggles the radio, and after the first build is confirmed it never prompts again.
 - It sends exactly what a manual "Update to X%" sends (the cached result + entity index + only the newly-read text) to your configured provider, and it re-checks text-extraction consent (or a trusted provider) at fire time, just like a manual update. Revoking consent silently stops it.

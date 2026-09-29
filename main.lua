@@ -9878,11 +9878,15 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
               rebuild = (nc_stop and nc_stop.rebuild) or nil })
           end,
         }})
-      elseif not nc_xa.isAutoSuppressed(self.ui.document.file)
+      elseif not nc_auto_on and not nc_xa.isAutoSuppressed(self.ui.document.file)
           and nc_rungs > 0 and (nc_highest or 0) < 1.0 - 0.005 then
         -- Round 24b: a cancel this session means "stop" — with auto toggled
         -- off afterwards the manual Resume row must not reappear either.
         -- The suppression clears on book close, so next open offers it again.
+        -- B361: automatic building builds on as the reader reads, so with it on
+        -- there is nothing to resume (checkpoints ahead and none installed is
+        -- its normal state after front matter; the row front-loaded the rest),
+        -- as in the popup with an installed X-Ray
         local nc_stop = nc_xa.lastLadderStop(self.ui.document.file)
         local nc_reason = nc_stop and self:_xrayStopReasonLabel(nc_stop.kind)
         table.insert(buttons, {{
@@ -11100,17 +11104,16 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
   end
 
   -- Extend picks never plan an intro; create picks do unless a leftover intro
-  -- rung exists. Rebuild chains deliberately never plan one (the reader keeps
-  -- the old live X-Ray until rung 1 lands, so a premise-only step buys
-  -- nothing — the engine forces has_intro there), and the count here must
-  -- match or the "In checkpoints, now" row overcounts by 1 (2026-08-15).
+  -- rung exists. A rebuild is a create (B361): it plans its own intro, and
+  -- the old lineage's intro rung is not its. The count here must match the
+  -- engine's or the "In checkpoints, now" row miscounts by 1 (2026-08-15).
   local function planIntroStep()
-    if pickIsRebuild() then return false end
-    if mode == "extend" then return false end
     -- To-position plans build no intro (2026-08-25): the chain ends AT the
     -- reader's position whatever the spacing, and a premise-only step ahead of
     -- a bounded plan the reader asked for is a spend they did not ask for
     if cr.coverage == "position" then return false end
+    if pickIsRebuild() then return true end
+    if mode == "extend" then return false end
     return not has_intro_rung
   end
 
@@ -11882,7 +11885,8 @@ end
 --- missing checkpoints to the position + one ahead. Mirrors the fire path's
 --- planning exactly (planAutoWork + shared grid + truncation). nil when
 --- nothing would build. opts.rebuild (deferred rebuild): from-scratch plan,
---- ignoring the disk lineage entirely (no intro — rebuild chains skip it).
+--- ignoring the disk lineage entirely, introduction included (a rebuild is a
+--- create; B361).
 function AskGPT:_xrayEstablishmentSteps(opts)
   if not self.ui or not self.ui.document or not self.ui.document.file
       or not self.ui.doc_settings then return nil end
@@ -11922,7 +11926,7 @@ function AskGPT:_xrayEstablishmentSteps(opts)
     spacing, work.goal, decimal, boundaries, rebuild)
   rungs = XrayAuto.truncateToOneAhead(rungs, decimal, labels)
   if #rungs == 0 then return nil end
-  return #rungs + ((not rebuild and work.plan_intro) and 1 or 0)
+  return #rungs + ((rebuild or work.plan_intro) and 1 or 0)
 end
 
 --- The follow pick's engine start, shared with the tri-state picker's "On"
@@ -14449,7 +14453,8 @@ function AskGPT:_fireXrayAutoCheckpoints(opts)
     spacing, work.goal, decimal, boundaries, chain_rebuild)
   local rungs, labels = XrayAuto.truncateToOneAhead(grid, decimal, grid_labels)
   if #rungs == 0 then return end
-  local plan_intro = not chain_rebuild and work.plan_intro
+  -- A rebuild plans from scratch, introduction included (B361)
+  local plan_intro = chain_rebuild or work.plan_intro
   XrayAuto.markScheduled(os.time())
   logger.dbg("KOAssistant: automatic X-Ray building", #rungs + (plan_intro and 1 or 0),
     "checkpoint(s) to", rungs[#rungs], chain_rebuild and "(rebuild)" or "")
@@ -15266,11 +15271,12 @@ function AskGPT:_startXrayLadderBuild(build_opts)
     if r.intro then has_intro = true else resume = true end
   end
   -- Rebuild chains: old rungs are the OLD lineage (they die at the swap), so
-  -- this is never a resume; no intro either — the reader keeps the old live
-  -- X-Ray until rung 1 lands, which then covers to their position (seed), so
-  -- a premise-only step would buy nothing and complicate the swap ordering
+  -- this is never a resume, and an old intro rung is not this build's. A
+  -- rebuild is a create (B361): it plans its own intro, which swaps in first.
+  -- (It used to skip the intro because rung 1 sat at the reader's position;
+  -- a front-matter skip moves rung 1 past the reader, who then had nothing.)
   if chain_rebuild then
-    resume, has_intro = false, true
+    resume, has_intro = false, false
   end
   -- To-position chains (form, 2026-08-25) skip the intro too: the plan ends
   -- at the reader's position, and the form's step count assumes no intro
@@ -15312,7 +15318,7 @@ function AskGPT:_startXrayLadderBuild(build_opts)
     end
     local state_line
     if chain_rebuild then
-      state_line = _("Replaces your current X-Ray from scratch. Nothing is touched until the first new checkpoint arrives; the outgoing version is archived then.")
+      state_line = _("Replaces your current X-Ray from scratch. Nothing is touched until the first part of the new one arrives; the outgoing version is archived then.")
       -- The foreground rebuild confirm names the checkpoint deletion; this
       -- path routes past that ConfirmBox, so it has to say it itself. A
       -- rebuild clears the whole prepared ladder, and only the installed
@@ -15492,7 +15498,9 @@ function AskGPT:_fireXrayLadderRung()
   local ActionCache = require("koassistant_action_cache")
   local XrayParser = require("koassistant_xray_parser")
   local ladder = ActionCache.getXrayLadder(file)
-  if is_intro then
+  -- Before its swap, a rebuild's intro runs even with an X-Ray on disk: the
+  -- live X-Ray and any intro rung there are the old lineage's, which it replaces (B361)
+  if is_intro and not (build.rebuild and not build.rebuild_swapped) then
     -- Skip the intro when one already exists (resume) or a live X-Ray appeared
     -- mid-chain — the intro's whole point is "something openable before rung 1"
     local have_intro = false

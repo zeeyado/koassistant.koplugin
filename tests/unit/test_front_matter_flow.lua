@@ -1,7 +1,8 @@
 -- B353, the whole hand-off: a create whose text held only front matter saves
 -- nothing and marks the config it ran on; the checkpoint step (headless, via
--- executeActionForResult) skips the step, and an attended run shows the answer
--- instead of opening an X-Ray from disk.
+-- executeActionForResult) skips the step. B361: any X-Ray answer that saved
+-- nothing (front matter, the model's error answer, no entries) marks it too, and
+-- an attended run then shows the answer instead of opening an X-Ray from disk.
 --
 -- The first build of this read the mark from a hand-picked meta copy that never
 -- carried it, and its guard only checked that each side's source text existed,
@@ -57,14 +58,25 @@ local function history(content)
     end }
 end
 
--- The mark's name, from the line that sets it in the response handler
+-- The marks' names, from the lines that set them in the response handler
 local MARK = dialogs_src:match(
     "temp_config%.([%w_]+) = true\n%s*logger%.dbg%(\"KOAssistant: X%-Ray found only front matter")
+local NOT_SAVED = dialogs_src:match("if cache_answer == nil then\n%s*temp_config%.([%w_]+) = true")
 
 print("\n  [the headless hand-off carries the request's config]")
 
 TestRunner:test("the response handler marks the config it ran on", function()
     TestRunner:assertTrue(MARK, "the front-matter branch sets a mark on temp_config")
+    TestRunner:assertTrue(NOT_SAVED, "an answer that saved nothing sets a mark on temp_config")
+end)
+
+TestRunner:test("the marks describe this request only", function()
+    -- A re-run from a window builds its config from that window's (the earlier
+    -- request's): its marks must not ride in
+    local body = dialogs_src:match("local temp_config = createTempConfig%(prompt, config%)\n(.-)\n%s*if config and config%.features then")
+    TestRunner:assertTrue(body, "the request's config is created")
+    TestRunner:assertTrue(body:find("temp_config." .. MARK .. " = nil", 1, true), "front-matter mark cleared")
+    TestRunner:assertTrue(body:find("temp_config." .. NOT_SAVED .. " = nil", 1, true), "nothing-saved mark cleared")
 end)
 
 TestRunner:test("success: the reply, the old fields, and the very config the request ran on", function()
@@ -112,10 +124,10 @@ end)
 
 print("\n  [an attended run shows the answer]")
 
-TestRunner:test("the attended completion reads the same mark", function()
+TestRunner:test("the attended completion reads the nothing-saved mark", function()
     local read = readerFrom(dialogs_src, "local nothing_saved = (.-)\n", "temp_config",
         "dialogs nothing_saved")
-    TestRunner:assertTrue(read({ [MARK] = true }), "marked")
+    TestRunner:assertTrue(read({ [NOT_SAVED] = true }), "marked")
     TestRunner:assertFalse(read({}), "unmarked")
     TestRunner:assertFalse(read(nil), "no config")
 end)

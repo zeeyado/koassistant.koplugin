@@ -247,6 +247,20 @@ TestRunner:test("front matter only has its own answer, and the parser knows it (
     -- test_front_matter_flow.lua, through the real result hand-off
 end)
 
+TestRunner:test("a section X-Ray has no front-matter answer: the reader picked it (B361)", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local sentinel = XrayParser.FRONT_MATTER_ERROR
+    for _idx, academic in ipairs({ false, true }) do
+        local p = Actions.buildSectionXrayPrompt("Introduction", "pp. 1-12", academic)
+        local name = academic and "academic section" or "section"
+        assert(not p:find(sentinel, 1, true), name .. ": no front-matter answer")
+        assert(p:find("respond with ONLY this JSON", 1, true), name .. ": its other refusal stays")
+        assert(not p:find("%s$"), name .. ": no trailing whitespace where the rule was")
+    end
+    assert(Actions.buildSectionXrayPrompt("I", "pp. 1-5", true):find("broader field.\n\nIf you cannot identify", 1, true),
+        "academic section: the text around the rule joins as before")
+end)
+
 TestRunner:test("an X-Ray create carries its text's contents, after the placeholder pass (B337b)", function()
     local here = debug.getinfo(1, "S").source:match("@?(.*)")
     local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."

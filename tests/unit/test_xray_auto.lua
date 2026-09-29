@@ -1581,6 +1581,53 @@ TestRunner:test("B359: a paused automatic build keeps Extend and Rebuild in the 
   TestRunner:assertTrue(paused and rows and paused < rows, "the authoring rows follow the paused branch, outside it")
 end)
 
+TestRunner:test("B361: a rebuild's introduction skips front matter like a create's", function()
+  -- Rebuild as you read at 4%: introduction + a checkpoint at your position +
+  -- one ahead; the first two slices hold only front matter
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.038, 0.1 }, nil,
+    { intro = true, rebuild = true, grid = { 0.038, 0.1, 0.2, 0.3 } })
+  TestRunner:assertEqual(XrayAuto.ladderBuild().total, 3, "introduction + two checkpoints")
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "4% was front matter")
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "10% too")
+  local step = XrayAuto.currentLadderStep()
+  TestRunner:assertEqual(step.intro, true, "the introduction still comes first")
+  TestRunner:assertEqual(step.target, 0.2, "reading the first slice with the story in it")
+  TestRunner:assertEqual(XrayAuto.ladderBuild().single_step, nil, "still a chain")
+  XrayAuto.endLadderBuild()
+end)
+
+TestRunner:test("B361: a rebuild plans the introduction like a create, which swaps in first (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local function src(rel)
+    local f = assert(io.open(plugin_dir .. "/" .. rel, "r"))
+    local s = f:read("*a")
+    f:close()
+    return s
+  end
+  local main, dialogs = src("main.lua"), src("koassistant_dialogs.lua")
+  -- Every planner agrees, or a confirm's count and the build differ by one
+  TestRunner:assertTrue(main:find("if chain_rebuild then\n    resume, has_intro = false, false\n  end", 1, true),
+    "the checkpoint build: a rebuild's intro is its own")
+  TestRunner:assertTrue(main:find("local plan_intro = chain_rebuild or work.plan_intro", 1, true),
+    "the automatic engine")
+  TestRunner:assertTrue(main:find("return #rungs + ((rebuild or work.plan_intro) and 1 or 0)", 1, true),
+    "the as-I-read confirm's count")
+  local form = main:match("local function planIntroStep%(%)(.-)\n  end\n")
+  TestRunner:assertTrue(form, "the form's count found")
+  local pos = form:find('if cr.coverage == "position" then return false end', 1, true)
+  local reb = form:find("if pickIsRebuild() then return true end", 1, true)
+  TestRunner:assertTrue(pos and reb and pos < reb, "the form: a rebuild plans one, except to your position")
+  -- The step runs it over the old lineage, and its save is the swap
+  TestRunner:assertTrue(main:find("if is_intro and not (build.rebuild and not build.rebuild_swapped) then", 1, true),
+    "a rebuild's intro is not skipped for the old X-Ray")
+  TestRunner:assertTrue(dialogs:find("if xa_build and xa_build.rebuild and not xa_build.rebuild_swapped\n%s*and cache_answer then"),
+    "the first saved part swaps, the intro included")
+  -- With automatic building on nothing is resumed by hand: it builds on as you read
+  TestRunner:assertTrue(main:find("elseif not nc_auto_on and not nc_xa.isAutoSuppressed(self.ui.document.file)", 1, true),
+    "the Resume row waits for automatic building to be off")
+end)
+
 TestRunner:test("a tap outside the spacing picker is Back: the form comes back (source guard)", function()
   local here = debug.getinfo(1, "S").source:match("@?(.*)")
   local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
