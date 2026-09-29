@@ -222,29 +222,29 @@ TestRunner:test("front matter only has its own answer, and the parser knows it (
     local XrayParser = require("koassistant_xray_parser")
     local sentinel = '{"error": "' .. XrayParser.FRONT_MATTER_ERROR .. '"}'
     local x = Actions.book.xray
-    assert(x.prompt:find(sentinel, 1, true), "the create prompt carries the answer")
-    local narrowed = Actions.buildXrayCategoryPrompt("people,places", "partial")
-    assert(narrowed:find(sentinel, 1, true), "so does the category-assembled create prompt")
+    -- Every create prompt a checkpoint step can send: the default, a narrowed
+    -- or deeper assembly, a type the reader set, and the research track
+    local creates = {
+        default = x.prompt,
+        narrowed = Actions.buildXrayCategoryPrompt("people,places", "partial"),
+        light = Actions.buildXrayCategoryPrompt("people,places,ideas,terms", "partial", "light"),
+        deep = Actions.buildXrayCategoryPrompt("people,places,ideas,terms", "partial", "deep"),
+        fiction = Actions.applyXrayType(x.prompt, "fiction"),
+        nonfiction = Actions.applyXrayType(x.prompt, "nonfiction"),
+        academic = x.doi_prompt,
+    }
+    for name, p in pairs(creates) do
+        assert(type(p) == "string" and p:find(sentinel, 1, true), name .. ": carries the front-matter answer")
+    end
+    assert(creates.fiction ~= x.prompt and creates.nonfiction ~= x.prompt, "fixture: the type swaps applied")
     assert(XrayParser.isFrontMatterOnly(XrayParser.parse(sentinel)), "parsed as front matter only")
     assert(XrayParser.isFrontMatterOnly({ error = "Front matter only" }), "wording variants fold")
     assert(not XrayParser.isFrontMatterOnly(XrayParser.parse(
         '{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}')),
         "the unusable-text error stays an error")
     assert(not XrayParser.isFrontMatterOnly(nil), "nil")
-    -- The request marks its config; the checkpoint step reads the mark
-    local here = debug.getinfo(1, "S").source:match("@?(.*)")
-    local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
-    local function source(path)
-        local f = assert(io.open(plugin_dir .. "/" .. path, "r"))
-        local s = f:read("*a")
-        f:close()
-        return s
-    end
-    assert(source("koassistant_dialogs.lua"):find("temp_config._xray_front_matter = true", 1, true),
-        "the request marks its config")
-    local main_src = source("main.lua")
-    assert(main_src:find("meta_or_err._xray_front_matter", 1, true)
-        and main_src:find("XrayAuto.skipFrontMatterStep()", 1, true), "the checkpoint step skips on it")
+    -- What happens to the answer (the checkpoint skip, the attended viewer):
+    -- test_front_matter_flow.lua, through the real result hand-off
 end)
 
 TestRunner:test("an X-Ray create carries its text's contents, after the placeholder pass (B337b)", function()

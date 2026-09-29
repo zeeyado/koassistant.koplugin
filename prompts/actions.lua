@@ -1225,6 +1225,8 @@ __CLOSING__
 
 If web search is available, consider searching for the DOI or key referenced works to enrich your analysis with citation context and connections to the broader field.
 
+If the text holds none of the work itself yet, only front matter (an introduction, preface or foreword by someone other than the author, a biography, a chronology, a note on the text, a table of contents), respond with ONLY this JSON:
+{"error": "front_matter_only"}
 If you cannot identify this as an academic paper or lack sufficient detail, respond with ONLY this JSON:
 {"error": "I cannot identify this as an academic paper. Please provide more context."}
 Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]]

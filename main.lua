@@ -9803,7 +9803,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         -- Parked by a sleep (onSuspend): nothing runs until Wi-Fi is back
         text = nc_build.awaiting_network
             and _("Waiting for Wi-Fi to continue the X-Ray build… (tap to cancel)")
-          or nc_build.total == 1
+          or nc_build.single_step
             and (nc_tgt and T(_("Generating X-Ray to %1% in the background… (tap to cancel)"), nc_tgt)
               or _("Generating X-Ray in the background… (tap to cancel)"))
           or (nc_tgt and T(_("Building checkpoints: %1 of %2, to %3%… (tap to cancel)"),
@@ -10139,7 +10139,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         -- Parked by a sleep (onSuspend): nothing runs until Wi-Fi is back
         text = ladder_building.awaiting_network
             and _("Waiting for Wi-Fi to continue the X-Ray build… (tap to cancel)")
-          or ladder_building.total == 1
+          or ladder_building.single_step
             and (lb_tgt and T(_("Generating X-Ray to %1% in the background… (tap to cancel)"), lb_tgt)
               or _("Generating X-Ray in the background… (tap to cancel)"))
           or (lb_tgt and T(_("Building checkpoints: %1 of %2, to %3%… (tap to cancel)"),
@@ -15605,7 +15605,7 @@ function AskGPT:_fireXrayLadderRung()
   -- xray_auto_notify opt-in; failures below stay visible regardless
   if not build.silent or features.xray_auto_notify == true then
     -- Item 50(a): a one-step build is a background one-shot, not a chain
-    local toast_text = build.total == 1
+    local toast_text = build.single_step
         and T(_("Generating X-Ray in the background (to %1%)…"),
           math.floor(target * 100 + 0.5))
       or is_intro
@@ -15630,7 +15630,7 @@ function AskGPT:_fireXrayLadderRung()
       if not cur then return end  -- build ended (close/cancel) while in flight
       if was_cancelled or cur.cancel_requested then
         XrayAuto.endLadderBuild()
-        UIManager:show(Notification:new{ text = cur.total == 1
+        UIManager:show(Notification:new{ text = cur.single_step
           and _("X-Ray generation cancelled.") or _("Checkpoint build cancelled.") })
         return
       end
@@ -15652,8 +15652,10 @@ function AskGPT:_fireXrayLadderRung()
       if not rung_written then
         -- B353: the step's text was front matter only. A step that creates
         -- from scratch (nothing built by this chain yet) is skipped, and the
-        -- next one reads a longer slice from the start.
-        local front_matter = type(meta_or_err) == "table" and meta_or_err._xray_front_matter
+        -- next one reads a longer slice from the start. The mark sits on the
+        -- config the request ran on (meta.config, Dialogs headlessResult).
+        local front_matter = type(meta_or_err) == "table" and type(meta_or_err.config) == "table"
+          and meta_or_err.config._xray_front_matter
         if front_matter and create_mode and XrayAuto.skipFrontMatterStep() then
           cur.retried = nil
           logger.dbg("KOAssistant: ladder step", cur.step or cur.idx, "held only front matter, skipped")
@@ -15673,7 +15675,7 @@ function AskGPT:_fireXrayLadderRung()
         -- cancel, not a failure — no stop record, no resume nudge
         if err_text == "size_warning_declined" then
           XrayAuto.endLadderBuild()
-          UIManager:show(Notification:new{ text = cur.total == 1
+          UIManager:show(Notification:new{ text = cur.single_step
             and _("X-Ray generation cancelled.") or _("Checkpoint build cancelled.") })
           return
         end
@@ -15813,7 +15815,7 @@ function AskGPT:_fireXrayLadderRung()
         if not cur.silent or features.xray_auto_notify == true then
           UIManager:show(Notification:new{
             text = installed_pct and T(_("X-Ray ready (covers to %1%)."), installed_pct)
-              or cur.total == 1 and _("X-Ray ready.")
+              or cur.single_step and _("X-Ray ready.")
               or T(_("X-Ray checkpoints built (%1)."), cur.total),
           })
         end

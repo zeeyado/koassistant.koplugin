@@ -5775,8 +5775,10 @@ if prune_book_text then
                     })
                     if rung_ok then
                         logger.dbg("KOAssistant: ladder rung saved at", progress)
-                    else
+                    elseif cache_answer then
                         -- A built rung that did not land on disk: paid work lost.
+                        -- (No answer to save = a rejected response, logged where
+                        -- it was rejected: front matter, an error, no entries.)
                         logger.warn("KOAssistant: ladder rung SAVE FAILED at", progress)
                     end
                 elseif action.cache_as_xray then
@@ -6360,7 +6362,7 @@ if prune_book_text then
             -- Follow-up 3: one-shots offer the checkpoint escape here too
             -- (chains don't — they ARE checkpoints; their recourse is the
             -- confirm's spacing adjuster)
-            if xb_build and xb_build.total == 1 then
+            if xb_build and xb_build.single_step then
                 size_buttons[#size_buttons + 1] = {{
                     text = _("In checkpoints instead…"),
                     callback = function()
@@ -12722,8 +12724,13 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         if history then
             local temp_config = temp_config_or_error
             attachRerunContext(temp_config, action, ui, plugin, opts and opts.run_variant)
+            -- B353: an X-Ray answer of front matter only saved nothing. The
+            -- branches below open what is on disk (an older X-Ray; after a
+            -- section create, the book's main one) and would hide the answer,
+            -- so it goes to the chat viewer
+            local nothing_saved = type(temp_config) == "table" and temp_config._xray_front_matter
             -- For Section X-Ray: open browser directly from section cache
-            if configuration and configuration.features and configuration.features._section_xray and ui and ui.document and ui.document.file then
+            if not nothing_saved and configuration and configuration.features and configuration.features._section_xray and ui and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")
                 local scope = configuration.features._section_xray
                 local section_cache = ActionCache.get(ui.document.file, scope.cache_key)
@@ -12803,7 +12810,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             end
             -- For X-Ray: open browser directly instead of chat viewer
             -- The result is already saved to the X-Ray cache; the chat viewer is unnecessary
-            if action.cache_as_xray and ui and ui.document and ui.document.file then
+            if action.cache_as_xray and not nothing_saved and ui and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")
                 local xray_cache = ActionCache.getXrayCache(ui.document.file)
                 if xray_cache and xray_cache.result then
@@ -12928,7 +12935,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
 
             -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
             -- The result is already saved to ActionCache; the full chat viewer is unnecessary
-            if action.use_response_caching and action.id and plugin then
+            if action.use_response_caching and not nothing_saved and action.id and plugin then
                 local ActionCache = require("koassistant_action_cache")
                 local file = ui and ui.document and ui.document.file or document_path
                 if file then
@@ -13177,6 +13184,29 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, onComplete, book_metadata)
 end
 
+--- What a headless run hands its caller, from handlePredefinedPrompt's
+--- completion (history, temp_config) or (nil, err): the reply text and a meta
+--- table, or nil and the error. meta.config is the config the request ran on,
+--- so every mark its response handler leaves for the caller arrives (B353's
+--- front-matter mark was lost while meta was a hand-picked copy).
+local function headlessResult(history, temp_config_or_error)
+    if not history then
+        return nil, temp_config_or_error or "Unknown error"
+    end
+    local messages = history:getMessages()
+    local last = messages[#messages]
+    if not (last and last.content) then
+        return nil, "No response received"
+    end
+    local model_info = last.model_info
+    return last.content, {
+        model = model_info and model_info.model or "",
+        used_reasoning = last.reasoning ~= nil,
+        web_search_used = last.web_search_used or false,
+        config = type(temp_config_or_error) == "table" and temp_config_or_error or nil,
+    }
+end
+
 --- Execute an action and return just the result text + metadata via callback.
 --- Thin wrapper around handlePredefinedPrompt for programmatic use (no viewer shown).
 --- @param action table Action definition from prompts/actions.lua
@@ -13185,7 +13215,8 @@ end
 --- @param configuration table Plugin configuration
 --- @param plugin table Plugin instance
 --- @param book_metadata table Book title/author metadata
---- @param on_result function Callback: on_result(result_text, metadata) or on_result(nil, error_string)
+--- @param on_result function Callback: on_result(result_text, metadata) or on_result(nil, error_string);
+---   metadata.config = the config the request ran on (see headlessResult)
 executeActionForResult = function(action, highlighted_text, ui, configuration, plugin, book_metadata, on_result)
     -- Headless one-shot execution has no session chip: clear any spoiler session
     -- residue a prior chat's Send left on this (possibly shared) config, so the §3
@@ -13196,22 +13227,7 @@ executeActionForResult = function(action, highlighted_text, ui, configuration, p
         configuration.features._spoiler_free_active = nil
     end
     handlePredefinedPrompt(action, highlighted_text, ui, configuration, nil, plugin, nil, function(history, temp_config_or_error)
-        if history then
-            local messages = history:getMessages()
-            local last = messages[#messages]
-            if last and last.content then
-                local model_info = last.model_info
-                on_result(last.content, {
-                    model = model_info and model_info.model or "",
-                    used_reasoning = last.reasoning ~= nil,
-                    web_search_used = last.web_search_used or false,
-                })
-            else
-                on_result(nil, "No response received")
-            end
-        else
-            on_result(nil, temp_config_or_error or "Unknown error")
-        end
+        on_result(headlessResult(history, temp_config_or_error))
     end, book_metadata)
 end
 
@@ -13512,4 +13528,6 @@ return {
     resolveQuickPresetModel = resolveQuickPresetModel,
     -- Test seam (tests/unit/test_run_options.lua): the request bake
     _buildUnifiedRequestConfig = buildUnifiedRequestConfig,
+    -- Test seam (tests/unit/test_front_matter_flow.lua): what a headless run hands back
+    _headlessResult = headlessResult,
 }

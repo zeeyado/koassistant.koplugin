@@ -895,8 +895,13 @@ end
 --- live X-Ray and an unarchived checkpoint on a build the user then DECLINED
 --- (device 2026-08-14) — nothing may be destroyed before a run completes.
 function XrayAuto.beginLadderBuild(file, rungs, labels, opts)
+  local total = #rungs + ((opts and opts.intro) and 1 or 0)
   ladder_build = { file = file, rungs = rungs, labels = labels, idx = 1,
-    total = #rungs + ((opts and opts.intro) and 1 or 0),
+    total = total,
+    -- Planned as ONE request: every surface words it as a background
+    -- generation, never a chain. Fixed here, because total shrinks when a
+    -- front-matter step leaves the plan (B353) and a chain stays a chain.
+    single_step = (total == 1) or nil,
     intro_pending = (opts and opts.intro) or nil,
     silent = (opts and opts.silent) or nil,
     rebuild = (opts and opts.rebuild) or nil,

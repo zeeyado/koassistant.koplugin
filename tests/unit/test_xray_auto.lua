@@ -1528,6 +1528,33 @@ TestRunner:test("skipFrontMatterStep (B353): bounded (half the book, three skips
   TestRunner:assertEqual(transient, false, "never retried")
 end)
 
+TestRunner:test("skipFrontMatterStep (B353): a chain that shrinks to one step still reads as a chain", function()
+  -- Rebuild as you read at 4%: a checkpoint at your position and one ahead;
+  -- the first held only front matter
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.038, 0.1 }, nil, { rebuild = true })
+  TestRunner:assertEqual(XrayAuto.ladderBuild().single_step, nil, "planned as a chain")
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "skipped")
+  TestRunner:assertEqual(XrayAuto.ladderBuild().total, 1, "one step left")
+  TestRunner:assertEqual(XrayAuto.ladderBuild().single_step, nil,
+    "still a chain (its end notice is not \"X-Ray ready.\" with nothing installed)")
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.1 }, nil, { grid = { 0.1, 0.2 } })
+  TestRunner:assertEqual(XrayAuto.ladderBuild().single_step, true, "planned as one request")
+  TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), true, "takes the next grid point")
+  TestRunner:assertEqual(XrayAuto.ladderBuild().single_step, true, "and stays one request")
+  XrayAuto.beginLadderBuild("/books/a.epub", { 0.1 }, nil, { intro = true })
+  TestRunner:assertEqual(XrayAuto.ladderBuild().single_step, nil, "an introduction + one checkpoint is a chain")
+  XrayAuto.endLadderBuild()
+  -- Every surface words the build by its planned kind, never by the steps left
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  for _idx, rel in ipairs({ "main.lua", "koassistant_dialogs.lua" }) do
+    local f = assert(io.open(plugin_dir .. "/" .. rel, "r"))
+    local src = f:read("*a")
+    f:close()
+    TestRunner:assertEqual(src:find("%.total == 1"), nil, rel .. ": a build's kind read from its steps left")
+  end
+end)
+
 TestRunner:test("B001: the dedup ask waits for a running checkpoint build (source guard)", function()
   local here = debug.getinfo(1, "S").source:match("@?(.*)")
   local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
