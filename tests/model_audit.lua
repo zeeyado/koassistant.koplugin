@@ -25,6 +25,11 @@
 --                                                      # reasoning default? temp rule still right?
 --   lua tests/model_audit.lua --recheck --ceilings     # + output-ceiling check (3rd request/model;
 --                                                      # gemini rides free metadata instead)
+--   lua tests/model_audit.lua --pins [providers]       # the largest action max_tokens pin (the
+--                                                      # X-Ray's 65536) to every listed model,
+--                                                      # curated and community, that no ceiling
+--                                                      # clamps (LIVE, 1 request each); a refusal
+--                                                      # must parse (B355, the Cohere class)
 --   Options: --verbose   full error bodies + ignored-id lists
 --   Env: KOA_PROBE_MAX_TOKENS=900  cap chat-wire token asks (free per-minute output buckets)
 --        KOA_KEY_ALIAS_<PROVIDER>  pick a key entry by alias (default: the first)
@@ -3047,6 +3052,137 @@ local function runRecheck(provider, api_key, verbose, opts)
 end
 
 --------------------------------------------------------------------------------
+-- Action pins (B355, 2026-09-29)
+--------------------------------------------------------------------------------
+-- B351 reached users because nothing sent an action's max_tokens pin to a
+-- model with no recorded output ceiling: the X-Ray's 65536 went out as is to
+-- every Cohere model, and Cohere refused it in words the one-time resend could
+-- not read. This leg sends the largest pin, built by each provider's REAL
+-- handler, to every listed model (curated and community) that no ceiling
+-- clamps, and grades the reply. A refusal must parse (parseMaxTokensError);
+-- one that states its limit in a new wording belongs in the corpus
+-- (tests/unit/test_error_wordings.lua).
+
+--- The largest max_tokens a built-in action pins (scanned: a new pin is
+--- covered without editing this file).
+function ModelAudit.largestActionPin()
+    local Actions = require("prompts.actions")
+    local best = 0
+    for _idx, ctx in ipairs({ "highlight", "book", "library", "general", "special" }) do
+        for _id, a in pairs(type(Actions[ctx]) == "table" and Actions[ctx] or {}) do
+            local n = type(a) == "table" and type(a.api_params) == "table"
+                and tonumber(a.api_params.max_tokens)
+            if n and n > best then best = n end
+        end
+    end
+    local mok, Merge = pcall(require, "koassistant_xray_merge")
+    local m = mok and type(Merge) == "table" and type(Merge.API_PARAMS) == "table"
+        and tonumber(Merge.API_PARAMS.max_tokens)
+    if m and m > best then best = m end
+    return best
+end
+
+--- Grade one pinned request's reply. Pure.
+--- @return string "ok" (accepted) | "heals" (refused in words the resend reads)
+---   | "drift" (refused over the output length in words it cannot read: every
+---   such request fails in the field) | "stale" (the listed model is gone)
+---   | "inconclusive" (account: key, credits, rate) | "error" (anything else)
+--- @return table|nil parseMaxTokensError's reading, for "heals"
+function ModelAudit.pinVerdict(code, err_text)
+    if code == 200 then return "ok" end
+    local n = tonumber(code)
+    if not n or n == 401 or n == 402 or n == 403 or n == 429 then return "inconclusive" end
+    local text = tostring(err_text or "")
+    local parsed = ModelConstraints.parseMaxTokensError(text)
+    if parsed then return "heals", parsed end
+    local lower = text:lower()
+    for _idx, sig in ipairs({ "max_tokens", "max tokens", "maxtokens", "max_completion_tokens",
+            "max_output_tokens", "maxoutputtokens", "output tokens", "output length",
+            "too many tokens" }) do
+        if lower:find(sig, 1, true) then return "drift" end
+    end
+    if n == 404 or lower:find("not found", 1, true) or lower:find("decommission", 1, true)
+            or lower:find("does not exist", 1, true) or lower:find("no longer", 1, true) then
+        return "stale"
+    end
+    return "error"
+end
+
+local function runPins(providers, apikeys, verbose)
+    local pin = ModelAudit.largestActionPin()
+    banner(string.format("ACTION PINS: max_tokens %d to every listed model with no recorded ceiling", pin))
+    local counts = { ok = 0, heals = 0, drift = 0, stale = 0, inconclusive = 0, error = 0, skipped = 0 }
+    local stanzas = {}
+    local Base = require("koassistant_api.base")
+    for _i, p in ipairs(providers) do
+        local todo = {}
+        for _j, m in ipairs(type(ModelLists[p]) == "table" and ModelLists[p] or {}) do
+            if type(m) == "string" and ModelConstraints.clampMaxTokens(p, m, pin) == pin then
+                todo[#todo + 1] = m
+            end
+        end
+        local key = keyFor(apikeys, p)
+        local hok, Handler = pcall(require, "koassistant_api." .. p)
+        if #todo == 0 then
+            if verbose then printf("  %s%s: every model has a ceiling%s", C.dim, p, C.off) end
+        elseif not TestConfig.isValidApiKey(key) then
+            printf("  %s%s: %d without a ceiling, skipped (no API key)%s", C.dim, p, #todo, C.off)
+            counts.skipped = counts.skipped + #todo
+        elseif not hok or type(Handler) ~= "table" or type(Handler.buildRequestBody) ~= "function" then
+            printf("  %s%s: %d without a ceiling, skipped (no request builder)%s", C.dim, p, #todo, C.off)
+            counts.skipped = counts.skipped + #todo
+        else
+            printf("%s%s%s: %d without a ceiling", C.bold, p, C.off, #todo)
+            for _j, m in ipairs(todo) do
+                local bok, built = pcall(Handler.buildRequestBody, Handler,
+                    { { role = "user", content = PROBE_PROMPT } },
+                    { provider = p, model = m, api_key = key, system = { text = "Answer briefly." },
+                      api_params = { max_tokens = pin }, conversation_id = "koa-model-audit",
+                      features = { enable_streaming = false, enable_web_search = false } })
+                local verdict, parsed, err
+                if not bok or type(built) ~= "table" or not built.url or type(built.body) ~= "table" then
+                    verdict, err = "error", "request not built: " .. tostring(built)
+                else
+                    if built.body.stream then built.body.stream = false end
+                    -- Cloudflare answers 1010 to a library's own User-Agent
+                    local code, dec, raw = httpPostJson(built.url, Base.withUserAgent(built.headers), built.body)
+                    err = code ~= 200 and ModelAudit.errText(dec, raw) or nil
+                    verdict, parsed = ModelAudit.pinVerdict(code, err)
+                    if err then err = "HTTP " .. tostring(code) .. ": " .. err end
+                end
+                counts[verdict] = counts[verdict] + 1
+                local color = (verdict == "ok" and C.green) or (verdict == "drift" and C.red)
+                    or (verdict == "inconclusive" and C.dim) or C.yellow
+                local note = ""
+                if verdict == "heals" then
+                    local limit = parsed.cap or parsed.retry_at
+                    note = string.format("refused, resend reads %s %d", parsed.kind, limit)
+                    if parsed.cap then
+                        stanzas[#stanzas + 1] = string.format('-- _max_output_tokens.%s\n    ["%s"] = %d,', p, m, parsed.cap)
+                    end
+                elseif verdict == "drift" then
+                    note = "refused in words the resend cannot read (add the wording to the corpus): "
+                        .. tostring(err):sub(1, verbose and 400 or 160)
+                elseif verdict ~= "ok" then
+                    note = tostring(err):sub(1, verbose and 400 or 120)
+                end
+                printf("  %s%-12s%s %-44s %s", color, verdict:upper(), C.off, m, note)
+            end
+        end
+    end
+    printf("\n  %ssummary: %d ok, %d heal on the resend, %d drift, %d stale, %d inconclusive, %d other, %d skipped%s",
+        counts.drift > 0 and C.red or ((counts.heals + counts.stale + counts.error) > 0 and C.yellow or C.green),
+        counts.ok, counts.heals, counts.drift, counts.stale, counts.inconclusive, counts.error,
+        counts.skipped, C.off)
+    if #stanzas > 0 then
+        printf("\n  %sCeilings the refusals stated (review, then add to model_constraints.lua so the first request lands):%s",
+            C.bold, C.off)
+        for _idx, s in ipairs(stanzas) do print("  " .. s:gsub("\n", "\n  ")) end
+    end
+    return counts
+end
+
+--------------------------------------------------------------------------------
 -- Main
 --------------------------------------------------------------------------------
 
@@ -3062,7 +3198,7 @@ local function main()
         local a = arg[i]
         if a == "--help" or a == "-h" then
             print("Usage: lua tests/model_audit.lua [providers...] [--probe <provider> <model>] " ..
-                  "[--probe-new] [--recheck [--ceilings]] [--verbose]")
+                  "[--probe-new] [--recheck [--ceilings]] [--pins] [--verbose]")
             os.exit(0)
         elseif a == "--verbose" or a == "-v" then
             verbose = true
@@ -3080,6 +3216,8 @@ local function main()
             mode = "recheck"
         elseif a == "--ceilings" then
             recheck_ceilings = true
+        elseif a == "--pins" then
+            mode = "pins"
         elseif a:match("^%-") then
             printf("unknown option: %s (see --help)", a)
             os.exit(1)
@@ -3103,6 +3241,22 @@ local function main()
     if mode == "probe" then
         local facts = probeModel(probe_provider, probe_model, keyFor(apikeys, probe_provider), verbose)
         os.exit((facts and facts.reachable) and 0 or 1)
+    end
+
+    if mode == "pins" then
+        if #providers == 0 then
+            -- Every built-in list except ollama (local), the OpenAI
+            -- Subscription (OAuth, not a key) and openrouter (31 mirror ids:
+            -- name it to include it)
+            for _i, p in ipairs(ModelLists.getAllProviders()) do
+                if p ~= "ollama" and p ~= "openai_codex" and p ~= "openrouter" then
+                    table.insert(providers, p)
+                end
+            end
+            table.sort(providers)
+        end
+        local counts = runPins(providers, apikeys, verbose)
+        os.exit(counts.drift > 0 and 1 or 0)
     end
 
     if mode == "recheck" then

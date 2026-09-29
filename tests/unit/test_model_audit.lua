@@ -724,6 +724,28 @@ TestRunner:check("a rate-limited one only warns",
     ModelAudit.recheckCompare({ served = true, default_reasoning = true, temp_ok = true,
         minimal = { code = 429 } }, mcur) == "warn")
 
+TestRunner:suite("action pins (B355): the largest pin, and a refusal must parse")
+TestRunner:check("the largest pin is the X-Ray's",
+    ModelAudit.largestActionPin() == 65536)
+TestRunner:check("accepted", ModelAudit.pinVerdict(200) == "ok")
+local cohere = "too many tokens: max tokens must be less than or equal to 64000, the maximum output length for this model - received 65536."
+local v, parsed = ModelAudit.pinVerdict(400, cohere)
+TestRunner:check("Cohere's wording now heals, and states its cap",
+    v == "heals" and parsed.kind == "output_cap" and parsed.cap == 64000)
+TestRunner:check("an output-length refusal the resend cannot read is drift",
+    ModelAudit.pinVerdict(400, "too many tokens: the maximum output length for this model is lower") == "drift")
+TestRunner:check("a gone model is stale",
+    ModelAudit.pinVerdict(404, "The model `x` does not exist") == "stale"
+        and ModelAudit.pinVerdict(400, "model has been decommissioned") == "stale")
+TestRunner:check("the account's refusals are inconclusive",
+    ModelAudit.pinVerdict(401, "invalid key") == "inconclusive"
+        and ModelAudit.pinVerdict(402, "credits") == "inconclusive"
+        and ModelAudit.pinVerdict(403, "error code: 1010") == "inconclusive"
+        and ModelAudit.pinVerdict(429, "slow down") == "inconclusive"
+        and ModelAudit.pinVerdict(nil, "network: timeout") == "inconclusive")
+TestRunner:check("anything else is shown as is",
+    ModelAudit.pinVerdict(500, "internal error") == "error")
+
 -- Summary
 print(string.format("\n%d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0
