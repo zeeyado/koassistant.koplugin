@@ -3,8 +3,9 @@ koassistant_run_options.lua - run an action another way, once (B345,
 docs/run_options_plan.md), plus the dispatch-scoped model stash.
 
 A run option is a one-run pick from an action's hold menu: Quick on/off, a
-model (up to three spots: the reader's recent "More models…" picks, then the
-provider's Fast model), no reasoning, web on/off. It stands in for the chips
+model (up to three spots: the reader's favorites, then recent "More models…"
+picks, then the provider's Fast model), no reasoning, web on/off; a long-press
+on Send offers the models and no reasoning. It stands in for the chips
 for that run, so the action's own settings still win over its Quick, reasoning
 and web parts; a picked MODEL also beats the action's own model pin. Artifact
 actions (cached, parsed or incremental) take the model only.
@@ -44,10 +45,9 @@ RunOptions.MODEL_SPOTS = 3
 -- Recent picks kept: more than the spots, since some are hidden for an action
 RunOptions.RECENT_KEEP = 5
 
---- The reader's recent "More models…" picks, newest first.
-function RunOptions.recentModels(features)
+local function modelList(features, key)
     local out = {}
-    local l = features and features.run_recent_models
+    local l = features and features[key]
     if type(l) ~= "table" then return out end
     for _idx, r in ipairs(l) do
         if type(r) == "table" and type(r.provider) == "string" and type(r.model) == "string" then
@@ -57,18 +57,85 @@ function RunOptions.recentModels(features)
     return out
 end
 
---- The hold menu's options: the defaults, with the recent picks ahead of Fast.
-function RunOptions.list(features)
+--- The reader's recent "More models…" picks, newest first.
+function RunOptions.recentModels(features)
+    return modelList(features, "run_recent_models")
+end
+
+--- The reader's favorite models, in the order they were added.
+function RunOptions.favoriteModels(features)
+    return modelList(features, "favorite_models")
+end
+
+--- The hold menu's options: the defaults, with the favorites and then the
+--- recent picks ahead of Fast (they fill the model spots in that order).
+--- opts.send: a long-press on Send, where Quick and web stay on their chips
+function RunOptions.list(features, opts)
+    local send = opts and opts.send
     local out = {}
     for _idx, e in ipairs(RunOptions.DEFAULTS) do
         if e.tier then
-            for _idx2, r in ipairs(RunOptions.recentModels(features)) do
-                out[#out + 1] = r
-            end
+            for _idx2, f in ipairs(RunOptions.favoriteModels(features)) do out[#out + 1] = f end
+            for _idx2, r in ipairs(RunOptions.recentModels(features)) do out[#out + 1] = r end
         end
-        out[#out + 1] = e
+        if not (send and (e.quick ~= nil or e.web ~= nil)) then
+            out[#out + 1] = e
+        end
     end
     return out
+end
+
+-- ---------------------------------------------------------------------------
+-- Favorites: a long-press on a model row in any model picker adds or removes
+-- it; ♥ marks it there (★ already marks a custom model in the model menu).
+-- ---------------------------------------------------------------------------
+
+RunOptions.FAVORITE_MARK = "\u{2665} "
+
+function RunOptions.isFavorite(features, provider, model)
+    for _idx, f in ipairs(RunOptions.favoriteModels(features)) do
+        if f.provider == provider and f.model == model then return true end
+    end
+    return false
+end
+
+--- "♥ " for a favorite, "" otherwise: the prefix every picker puts on the row.
+function RunOptions.favoriteMark(features, provider, model)
+    return RunOptions.isFavorite(features, provider, model) and RunOptions.FAVORITE_MARK or ""
+end
+
+--- The list with the model removed, or added at the end. Pure.
+--- @return table list, boolean now_favorite
+function RunOptions.toggledFavorites(list, provider, model)
+    local out, found = {}, false
+    for _idx, f in ipairs(list or {}) do
+        if f.provider == provider and f.model == model then
+            found = true
+        else
+            out[#out + 1] = f
+        end
+    end
+    if not found then out[#out + 1] = { provider = provider, model = model } end
+    return out, not found
+end
+
+--- Add or remove a favorite, save it and say so. The pickers' long-press.
+--- @return boolean now_favorite
+function RunOptions.toggleFavorite(plugin, provider, model)
+    if not (plugin and plugin.settings and provider and model) then return false end
+    local f = plugin.settings:readSetting("features") or {}
+    local list, now_on = RunOptions.toggledFavorites(RunOptions.favoriteModels(f), provider, model)
+    f.favorite_models = list
+    plugin.settings:saveSetting("features", f)
+    plugin.settings:flush()
+    local T = require("ffi/util").template
+    local Notification = require("ui/widget/notification")
+    require("ui/uimanager"):show(Notification:new{
+        text = now_on and T(_("Added to favorites: %1"), model)
+            or T(_("Removed from favorites: %1"), model),
+        timeout = 2,
+    })
+    return now_on
 end
 
 --- A "More models…" pick joins the recent list: a new model goes first, one
@@ -208,7 +275,8 @@ end
 --- hint > global), and the Quick / reasoning / web state for that run.
 --- @param plugin table AskGPT instance
 --- @param action table
---- @param opts table { surface, book_file (file-browser row), session = { quick, web, web_touched } (input dialog chips) }
+--- @param opts table { surface, book_file (file-browser row), session = { quick, web, web_touched } (input dialog chips),
+---   base = {provider, model}|nil (a chat's own model: the reply's long-press on Send) }
 function RunOptions.stateFor(plugin, action, opts)
     opts = opts or {}
     local ModelConstraints = require("model_constraints")
@@ -240,7 +308,9 @@ function RunOptions.stateFor(plugin, action, opts)
             or ModelConstraints.dispatchModel({ provider = provider, features = features }) }
     end
     local base
-    if action.provider then
+    if opts.base and opts.base.provider then
+        base = withDefault(opts.base.provider, opts.base.model)
+    elseif action.provider then
         local m = action.model
         if not m and action.model_tier and features.use_action_tiers ~= false then
             m = ModelLists.resolveTierModel(action.provider, action.model_tier)
@@ -290,7 +360,7 @@ function RunOptions.stateFor(plugin, action, opts)
     local filter_on = plugin.hasAnyRealApiKey and plugin:hasAnyRealApiKey()
     return {
         base = base,
-        tier_base = action.provider or global_provider,
+        tier_base = (opts.base and opts.base.provider) or action.provider or global_provider,
         quick = { receptive = receptive, on = quick_on == true },
         reasoning = {
             pinned = action_reasoning ~= nil,

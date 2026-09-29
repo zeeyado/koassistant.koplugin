@@ -1075,16 +1075,25 @@ local function pickProviderModel(opts)
                 end,
             }})
         end
+        local RunOptions = require("koassistant_run_options")
+        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
         for _idx, m in ipairs(models) do
             local model_name = m
             local is_current = current and current.provider == provider_id
                 and current.model == model_name
             table.insert(buttons, {{
-                text = (is_current and "● " or "○ ") .. model_name,
+                text = (is_current and "● " or "○ ")
+                    .. RunOptions.favoriteMark(features, provider_id, model_name) .. model_name,
                 callback = function()
                     UIManager:close(sub)
                     opts.on_pick(provider_id, model_name)
                 end,
+                -- Long-press: add to or remove from the favorites (B345)
+                hold_callback = plugin and function()
+                    UIManager:close(sub)
+                    RunOptions.toggleFavorite(plugin, provider_id, model_name)
+                    pickModelFor(provider_id, provider_label, provider_row)
+                end or nil,
             }})
         end
         if #buttons == 0 then
@@ -9174,6 +9183,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     and not (library_toggle_on and (has_session_scan or has_permanent_folders))
                     and not (configuration.features.books_info and #configuration.features.books_info > 0)),
             callback = function()
+                -- A pick from Send's long-press (B345 step 3), set just before this
+                -- call: off the shared features at once, so no exit can leak it
+                local send_rv = configuration.features._send_run_variant
+                configuration.features._send_run_variant = nil
                 -- Block empty sends for contexts without highlighted text (nothing useful to send)
                 local typed_text = input_dialog:getInputText()
                 if (not typed_text or typed_text == "") and not highlighted_text then
@@ -9215,8 +9228,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             -- dispatch to — a pending ⚡ model override re-points it at bake
                             -- time (injection_gating_audit; C4 pattern). Runtime self-require:
                             -- a file-local reference here would add an upvalue (60-cap).
-                            local send_provider = require("koassistant_dialogs")
-                                .effectiveDispatchProvider(
+                            local send_provider = send_rv and send_rv.provider
+                                or require("koassistant_dialogs").effectiveDispatchProvider(
                                     configuration.features, nil, configuration.provider)
                             for _i, tp in ipairs(configuration.features.trusted_providers) do
                                 if tp == send_provider then consent = true; break end
@@ -9587,8 +9600,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- goes to (a pending ⚡ preset model re-points it at bake)
                         local attach_msg = A.buildMessage(A.forProvider(A.getList(),
                             configuration.features,
-                            require("koassistant_dialogs").effectiveDispatchProvider(
-                                configuration.features, nil, configuration.provider),
+                            send_rv and send_rv.provider
+                                or require("koassistant_dialogs").effectiveDispatchProvider(
+                                    configuration.features, nil, configuration.provider),
                             ui_instance))
                         if attach_msg then
                             history:addUserMessage(attach_msg, true)
@@ -9633,6 +9647,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         configuration = copy
                         -- Per-chat conversation id on the private copy (B285 / #107)
                         configuration.conversation_id = history.conversation_id
+                        -- Send's long-press pick rides the private copy to the bake
+                        if send_rv then configuration.features._run_variant = send_rv end
                         if shared_features._session_quick_answer
                             or shared_features._session_reasoning
                             or shared_features._session_model then
@@ -9866,19 +9882,34 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 end
                 dispatchSend()
             end,
-            hold_callback = function()
-                local hint
-                if highlighted_text then
-                    hint = _("Send your typed message (or the selected text) as a freeform chat to the AI, without using any action template.")
-                else
-                    hint = _("Send your typed message as a freeform chat to the AI, without using any action template.")
-                end
+        }
+        -- Long-press: send another way (B345 step 3), titled by the hint that
+        -- explains Send, as an action's description titles its long-press menu.
+        -- The hint alone when there is nothing to send yet.
+        send_button.hold_callback = function()
+            local hint
+            if highlighted_text then
+                hint = _("Send your typed message (or the selected text) as a freeform chat to the AI, without using any action template.")
+            else
+                hint = _("Send your typed message as a freeform chat to the AI, without using any action template.")
+            end
+            local typed = input_dialog:getInputText()
+            if not plugin or ((not typed or typed == "") and not highlighted_text) then
                 UIManager:show(InfoMessage:new{
                     text = hint,
                     timeout = 4,
                 })
-            end,
-        }
+                return
+            end
+            require("koassistant_action_hold").showSend(plugin, {
+                title = hint,
+                session = { quick = configuration.features._session_quick_answer == true },
+                run = function(variant)
+                    configuration.features._send_run_variant = variant
+                    send_button.callback()
+                end,
+            })
+        end
         -- Chips + Send fill the TOP ROW ONLY, shrinking with count (maintainer
         -- 2026-07-12): all chips + Send share one row; font size steps down as the row
         -- fills. Current max is 7 chips + Send (Quick joined 2026-07-19); if the row

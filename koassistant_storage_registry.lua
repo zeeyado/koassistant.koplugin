@@ -111,6 +111,7 @@ Registry.SETTINGS_SUBKEYS = {
         "xray_default_categories",  -- global default for new X-Rays' category groups (presets v0.21)
         "xray_default_depth",       -- global default for new X-Rays' depth rung (light/standard/deep; nil = standard)
         "run_recent_models",        -- the hold menu's recent "More models…" picks (B345; newest first)
+        "favorite_models",          -- favorite models (B345): the long-press menus' first model spots; ♥ in pickers
     },
     internal = {
         "languages_migrated", "behavior_migrated",

@@ -190,7 +190,8 @@ function ActionHold.runButtons(plugin, action, opts)
     local st = RunOptions.stateFor(plugin, action, opts)
     local features = (plugin.settings and plugin.settings:readSetting("features")) or {}
     local out = {}
-    for _idx, b in ipairs(RunOptions.buttons(RunOptions.list(features), action, st)) do
+    local list = RunOptions.list(features, { send = opts.send })
+    for _idx, b in ipairs(RunOptions.buttons(list, action, st)) do
         local variant, label = b.variant, b.label
         out[#out + 1] = { label = label, run = function() opts.run(variant, label) end }
     end
@@ -211,6 +212,49 @@ function ActionHold.runButtons(plugin, action, opts)
         end,
     }
     return out
+end
+
+-- What a long-press on Send stands for: a message that takes Quick from the
+-- chip (so the state reads the ⚡ chip) and sets nothing itself
+local SEND = { id = "send", accept_quick_answer = true }
+
+--- A long-press on Send (input dialog, reply, artifact chat): the model spots,
+--- No reasoning and More models…; the pick applies to this message and the rest
+--- of the chat (run_options_plan.md step 3). Quick and web stay on their chips.
+--- @param opts table { run = function(variant, label), base = {provider, model}|nil (the chat's
+---   model, for a reply), session = { quick }|nil (the ⚡ chip), title = string|nil }
+function ActionHold.showSend(plugin, opts)
+    local ok, res = pcall(ActionHold.runButtons, plugin, SEND,
+        { run = opts.run, base = opts.base, session = opts.session, send = true })
+    if not ok then
+        logger.warn("KOAssistant: Send run options failed:", res)
+        return
+    end
+    local ButtonDialog = require("ui/widget/buttondialog")
+    local dialog
+    local buttons, row = {}, {}
+    for _idx, b in ipairs(res) do
+        local rb = b
+        table.insert(row, {
+            text = rb.label,
+            callback = function()
+                UIManager:close(dialog)
+                rb.run()
+            end,
+        })
+        if #row == 2 then
+            table.insert(buttons, row)
+            row = {}
+        end
+    end
+    if #row > 0 then table.insert(buttons, row) end
+    dialog = ButtonDialog:new{
+        title = opts.title,
+        title_align = "left",
+        width_factor = 0.7,
+        buttons = buttons,
+    }
+    UIManager:show(dialog)
 end
 
 local function showMore(plugin, action, rows, opts)

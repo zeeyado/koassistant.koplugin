@@ -4043,6 +4043,19 @@ function AskGPT:buildModelMenu(simplified, provider_override)
       local current_user_default = self_ref:getUserDefaultModel(provider)
       local buttons = {}
 
+      -- Favorites (B345): the model spots of every long-press menu fill from them
+      local RunOptions = require("koassistant_run_options")
+      local is_fav = RunOptions.isFavorite(self_ref.settings:readSetting("features") or {}, provider, model)
+      table.insert(buttons, {{
+        text = is_fav and _("Remove from favorites")
+          or (RunOptions.FAVORITE_MARK .. _("Add to favorites")),
+        callback = function()
+          UIManager:close(self_ref._model_hold_dialog)
+          RunOptions.toggleFavorite(self_ref, provider, model)
+          refresh()
+        end,
+      }})
+
       -- Option to set as default (if not already user default)
       if model ~= current_user_default then
         table.insert(buttons, {{
@@ -4127,11 +4140,14 @@ function AskGPT:buildModelMenu(simplified, provider_override)
   end
 
   -- Helper to build display name with default indicators
+  local fav_features = self.settings:readSetting("features") or {}
   local function buildDisplayName(model, is_custom)
     local display_name = model
     if is_custom then
       display_name = "★ " .. display_name
     end
+    display_name = require("koassistant_run_options").favoriteMark(fav_features, provider, model)
+      .. display_name
     if model_tiers[model] then
       display_name = display_name .. " · " .. table.concat(model_tiers[model], "/")
     end
@@ -4167,7 +4183,7 @@ function AskGPT:buildModelMenu(simplified, provider_override)
   -- Add helper text at the top (only in full mode)
   if not simplified then
     table.insert(items, {
-      text = _("Hold to manage. ★ = custom"),
+      text = _("Hold to manage. ★ = custom, ♥ = favorite"),
       enabled = false,
     })
   end
@@ -4694,12 +4710,20 @@ function AskGPT:buildTierMenu(provider)
     }
     for _idx, m in ipairs(candidateModels(self_ref:getTierOverride(provider, tier))) do
       pick[#pick + 1] = {
-        text = m,
+        -- ♥ = favorite; a long-press adds or removes it (B345)
+        text_func = function()
+          return require("koassistant_run_options").favoriteMark(
+            self_ref.settings:readSetting("features") or {}, provider, m) .. m
+        end,
         checked_func = function()
           return self_ref:getTierOverride(provider, tier) == m
         end,
         callback = function()
           self_ref:setTierOverride(provider, tier, m)
+        end,
+        hold_callback = function(touchmenu_instance)
+          require("koassistant_run_options").toggleFavorite(self_ref, provider, m)
+          if touchmenu_instance then touchmenu_instance:updateItems() end
         end,
       }
     end
@@ -7156,7 +7180,8 @@ end
 function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, artifact_book_author, artifact_content, artifact_type_name)
   if not artifact_file then return nil end
   local self_ref = self
-  return function(user_question)
+  -- run_variant: a pick from the chat input's long-press on Send (B345 step 3)
+  return function(user_question, run_variant)
     self_ref:updateConfigFromSettings()
 
     -- Build a fresh config copy for the chat (book context)
@@ -7167,6 +7192,7 @@ function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, art
     config_copy.features.is_general_context = nil
     config_copy.features.is_book_context = true
     config_copy.features.is_library_context = nil
+    config_copy.features._run_variant = run_variant
 
     local book_metadata = {
       title = artifact_book_title or "Unknown",

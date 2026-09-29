@@ -191,6 +191,53 @@ TestRunner:test("rememberPick saves the pick to the settings; a known pick write
     TestRunner:assertEqual(flushed, 1, "no second write")
 end)
 
+TestRunner:test("favorites fill the spots first, then recents, then Fast; each model once", function()
+    local features = {
+        favorite_models = { { provider = "openai", model = "gpt-6-sol" }, { provider = "openai", model = "gpt-6-luna" } },
+        run_recent_models = { { provider = "openai", model = "gpt-6-luna" }, { provider = "xai", model = "grok-4.7" } },
+    }
+    local b = RunOptions.buttons(RunOptions.list(features), { id = "xray", cache_as_xray = true }, state())
+    TestRunner:assertEqual(labels(b), "gpt-6-sol | gpt-6-luna | grok-4.7", "favorites, then a recent not already there")
+    features.favorite_models = { { provider = "openai", model = "gpt-6-sol" } }
+    features.run_recent_models = nil
+    b = RunOptions.buttons(RunOptions.list(features), { id = "xray", cache_as_xray = true }, state())
+    TestRunner:assertEqual(labels(b), "gpt-6-sol | claude-haiku-4-5", "Fast fills the free spot")
+end)
+
+TestRunner:test("the Send list: models and No reasoning, no Quick or web", function()
+    local b = RunOptions.buttons(RunOptions.list({}, { send = true }), PROSE, state())
+    TestRunner:assertEqual(labels(b), "claude-haiku-4-5 | No reasoning", "send")
+end)
+
+TestRunner:test("toggledFavorites adds at the end and removes; favoriteMark marks with a heart", function()
+    local l, on = RunOptions.toggledFavorites({}, "openai", "a")
+    TestRunner:assertTrue(on, "added")
+    l = RunOptions.toggledFavorites(l, "openai", "b")
+    TestRunner:assertEqual(l[1].model .. l[2].model, "ab", "added at the end")
+    l, on = RunOptions.toggledFavorites(l, "openai", "a")
+    TestRunner:assertFalse(on, "removed")
+    TestRunner:assertEqual(#l, 1, "one left")
+    local f = { favorite_models = l }
+    TestRunner:assertEqual(RunOptions.favoriteMark(f, "openai", "b"), "\u{2665} ", "heart")
+    TestRunner:assertEqual(RunOptions.favoriteMark(f, "openai", "a"), "", "no mark")
+    TestRunner:assertEqual(RunOptions.favoriteMark(f, "anthropic", "b"), "", "same id, other provider")
+end)
+
+TestRunner:test("toggleFavorite saves the list both ways", function()
+    local saved = 0
+    local features = {}
+    local plugin = { settings = {
+        readSetting = function(_self, key) if key == "features" then return features end end,
+        saveSetting = function(_self, key, value) if key == "features" then features = value; saved = saved + 1 end end,
+        flush = function() end,
+    } }
+    TestRunner:assertTrue(RunOptions.toggleFavorite(plugin, "openai", "gpt-6-luna"), "on")
+    TestRunner:assertTrue(RunOptions.isFavorite(features, "openai", "gpt-6-luna"), "saved on")
+    TestRunner:assertFalse(RunOptions.toggleFavorite(plugin, "openai", "gpt-6-luna"), "off")
+    TestRunner:assertFalse(RunOptions.isFavorite(features, "openai", "gpt-6-luna"), "saved off")
+    TestRunner:assertEqual(saved, 2, "two writes")
+end)
+
 -- ---------------------------------------------------------------- live state
 
 -- stateFor runs inside the hold menu's pcall: a wrong call there would only
@@ -228,6 +275,14 @@ TestRunner:test("stateFor: a pinned action's base is its pin; the input dialog's
     TestRunner:assertEqual(st.base.model, "gpt-5.5", "pin model")
     TestRunner:assertEqual(st.tier_base, "openai", "tiers resolve on the pin's provider")
     TestRunner:assertTrue(st.web.on, "session web chip")
+end)
+
+TestRunner:test("stateFor: a chat's own model is the base for a reply's Send; tiers resolve on its provider", function()
+    local plugin = fakePlugin({ provider = "anthropic", model = "claude-sonnet-5" })
+    local st = RunOptions.stateFor(plugin, { id = "send", accept_quick_answer = true },
+        { base = { provider = "openai", model = "gpt-6-luna" }, session = { quick = false } })
+    TestRunner:assertEqual(st.base.provider .. "/" .. st.base.model, "openai/gpt-6-luna", "chat model")
+    TestRunner:assertEqual(st.tier_base, "openai", "tier base")
 end)
 
 -- ---------------------------------------------------------------- stash

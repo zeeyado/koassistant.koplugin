@@ -2963,6 +2963,19 @@ function ChatGPTViewer:init()
         local artifact_emoji = self.configuration and self.configuration.features
           and self.configuration.features.enable_emoji_icons == true
         local chat_input
+        -- The first message starts the chat; a pick from Send's long-press
+        -- (B345 step 3) rides it and the chat's replies
+        local function launch(run_variant)
+          local input_text = chat_input:getInputText()
+          UIManager:close(chat_input)
+          if input_text and input_text ~= "" then
+            local launch_fn = artifact_viewer.on_launch_chat
+            artifact_viewer:onClose()
+            UIManager:scheduleIn(0.1, function()
+              launch_fn(input_text, run_variant)
+            end)
+          end
+        end
         chat_input = InputDialog:new{
           title = self.launch_chat_title or _("Chat about this artifact"),
           input = "",
@@ -2988,16 +3001,16 @@ function ChatGPTViewer:init()
               text = artifact_emoji and (_("Send") .. " ➤") or _("Send"),
               is_enter_default = true,
               font_bold = false,
-              callback = function()
-                local input_text = chat_input:getInputText()
-                UIManager:close(chat_input)
-                if input_text and input_text ~= "" then
-                  local launch_fn = artifact_viewer.on_launch_chat
-                  artifact_viewer:onClose()
-                  UIManager:scheduleIn(0.1, function()
-                    launch_fn(input_text)
-                  end)
+              callback = function() launch(nil) end,
+              hold_callback = function()
+                local typed = chat_input:getInputText()
+                if not typed or typed == "" then
+                  UIManager:show(Notification:new{ text = _("Type a message first."), timeout = 2 })
+                  return
                 end
+                require("koassistant_action_hold").showSend(artifact_viewer._plugin, {
+                  run = function(variant) launch(variant) end,
+                })
               end,
             },
           }},
@@ -3653,6 +3666,25 @@ function ChatGPTViewer:askAnotherQuestion()
     btn.font_size = control_font
   end
 
+  local function sendReply()
+    local input_text = input_dialog:getInputText()
+    UIManager:close(input_dialog)
+
+    -- Clear draft on send
+    current_instance.reply_draft = nil
+
+    if input_text and input_text ~= "" then
+      -- Store reference to onAskQuestion before we potentially close this instance
+      local onAskQuestionFn = current_instance.onAskQuestion
+
+      -- Check if we have a valid callback
+      if onAskQuestionFn then
+        -- Properly pass self as first argument
+        onAskQuestionFn(current_instance, input_text)
+      end
+    end
+  end
+
   input_dialog = InputDialog:new {
     title = _("Reply"),
     input = self.reply_draft or "",  -- Restore saved draft
@@ -3697,23 +3729,40 @@ function ChatGPTViewer:askAnotherQuestion()
           text = enable_emoji and (_("Send") .. " ➤") or _("Send"),
           is_enter_default = true,
           font_bold = false,
-          callback = function()
-            local input_text = input_dialog:getInputText()
-            UIManager:close(input_dialog)
-
-            -- Clear draft on send
-            current_instance.reply_draft = nil
-
-            if input_text and input_text ~= "" then
-              -- Store reference to onAskQuestion before we potentially close this instance
-              local onAskQuestionFn = current_instance.onAskQuestion
-
-              -- Check if we have a valid callback
-              if onAskQuestionFn then
-                -- Properly pass self as first argument
-                onAskQuestionFn(current_instance, input_text)
-              end
+          callback = sendReply,
+          -- Send another way (B345 step 3): the pick becomes this chat's model
+          -- (or reasoning) pick, so this reply and the later ones use it and a
+          -- resumed chat keeps it (applyQuickReplyOverrides, captureControlState)
+          hold_callback = function()
+            local typed = input_dialog:getInputText()
+            if not typed or typed == "" then
+              UIManager:show(Notification:new{ text = _("Type a message first."), timeout = 2 })
+              return
             end
+            local sm = cfg_features._session_model
+            local base
+            if type(sm) == "table" and sm.provider and not sm.follow then
+              base = sm
+            elseif type(cfg_features._run_model) == "table" and cfg_features._run_model.provider then
+              base = cfg_features._run_model
+            else
+              base = { provider = cfg.provider or cfg.default_provider,
+                model = require("model_constraints").dispatchModel(cfg) }
+            end
+            require("koassistant_action_hold").showSend(current_instance._plugin, {
+              base = base,
+              session = { quick = cfg_features._session_quick_answer == true },
+              run = function(variant)
+                cfg.features = cfg.features or {}
+                if variant.provider then
+                  cfg.features._session_model = { provider = variant.provider, model = variant.model }
+                end
+                if variant.reasoning == "off" then
+                  cfg.features._session_reasoning = { force = "off" }
+                end
+                sendReply()
+              end,
+            })
           end,
         },
       },

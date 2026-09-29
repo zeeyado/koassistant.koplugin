@@ -3351,18 +3351,25 @@ function PromptsManager:showModelSelector(state)
         },
     })
 
-    -- Add model options
+    -- Add model options (♥ = favorite; a long-press adds or removes it, B345)
+    local RunOptions = require("koassistant_run_options")
+    local fav_features = self.plugin and self.plugin.settings:readSetting("features") or {}
     for _idx,model in ipairs(models) do
         local prefix = (state.model == model) and "● " or "○ "
         table.insert(buttons, {
             {
-                text = prefix .. model,
+                text = prefix .. RunOptions.favoriteMark(fav_features, state.provider, model) .. model,
                 callback = function()
                     state.model = model
                     UIManager:close(self.model_dialog)
                     UIManager:close(self.advanced_dialog)
                     self:showStep3_Settings(state)
                 end,
+                hold_callback = self.plugin and function()
+                    UIManager:close(self.model_dialog)
+                    RunOptions.toggleFavorite(self.plugin, state.provider, model)
+                    self:showModelSelector(state)
+                end or nil,
             },
         })
     end
@@ -4187,17 +4194,25 @@ function PromptsManager:showBuiltinModelSelector(state)
         },
     })
 
+    -- ♥ = favorite; a long-press adds or removes it (B345)
+    local RunOptions = require("koassistant_run_options")
+    local fav_features = self.plugin and self.plugin.settings:readSetting("features") or {}
     for _idx,model in ipairs(models) do
         local prefix = (state.model == model) and "● " or "○ "
         table.insert(buttons, {
             {
-                text = prefix .. model,
+                text = prefix .. RunOptions.favoriteMark(fav_features, state.provider, model) .. model,
                 callback = function()
                     state.model = model
                     UIManager:close(self.builtin_model_dialog)
                     UIManager:close(self.builtin_settings_dialog)
                     self:showBuiltinSettingsDialog(state)
                 end,
+                hold_callback = self.plugin and function()
+                    UIManager:close(self.builtin_model_dialog)
+                    RunOptions.toggleFavorite(self.plugin, state.provider, model)
+                    self:showBuiltinModelSelector(state)
+                end or nil,
             },
         })
     end
@@ -5185,17 +5200,26 @@ function PromptsManager:showCustomModelSelector(state)
         },
     })
 
+    -- ♥ = favorite; a long-press adds or removes it (B345)
+    local RunOptions = require("koassistant_run_options")
+    local fav_features = self.plugin and self.plugin.settings:readSetting("features") or {}
     for _idx, model in ipairs(models) do
         local is_selected = state.model == model
         table.insert(buttons, {
             {
-                text = (is_selected and "● " or "○ ") .. model,
+                text = (is_selected and "● " or "○ ")
+                    .. RunOptions.favoriteMark(fav_features, state.provider, model) .. model,
                 callback = function()
                     state.model = model
                     UIManager:close(self.custom_model_dialog)
                     UIManager:close(self.custom_quick_dialog)
                     self:showCustomQuickSettingsDialog(state)
                 end,
+                hold_callback = self.plugin and function()
+                    UIManager:close(self.custom_model_dialog)
+                    RunOptions.toggleFavorite(self.plugin, state.provider, model)
+                    self:showCustomModelSelector(state)
+                end or nil,
             },
         })
     end
