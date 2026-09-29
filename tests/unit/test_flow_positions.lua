@@ -232,6 +232,15 @@ TestRunner:test("no raw page fraction in the page-turn gates, snapping or the ma
     TestRunner:assertTrue(dialogs:find('"background: no book text"', 1, true), "the no-text abort")
 end)
 
+TestRunner:test("a section target is a flow position (the form's coverage, the build limit)", function()
+    for _idx, rel in ipairs({ "main.lua", "koassistant_book_settings.lua" }) do
+        local src = read(rel)
+        TestRunner:assertTrue(not src:find("(entry.end_page or 0) /", 1, true), rel .. ": no raw ratio")
+        TestRunner:assertTrue(src:find("flowFraction%(%s*[%w_.]+document, entry%.end_page or 0%)"),
+            rel .. ": the section end through flowFraction")
+    end
+end)
+
 print(string.format("\n  test_flow_positions: %d passed, %d failed",
     TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

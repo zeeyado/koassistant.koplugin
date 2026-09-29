@@ -3211,8 +3211,9 @@ function BookSettings.showXrayConfig(opts)
                             on_cancel = function() BookSettings.showXrayConfig(opts) end,
                             on_select = function(entry)
                                 -- Same ratio math as the create/extend form's target pick
-                                local total = ui.document:getPageCount() or 0
-                                local ratio = total > 0 and (entry.end_page or 0) / total or 0
+                                -- (a flow position: hidden pages do not count, B335)
+                                local ratio = require("koassistant_context_extractor").flowFraction(
+                                    ui.document, entry.end_page or 0)
                                 if ratio >= 1.0 - 0.005 then
                                     setGoal(nil)  -- end of the book = whole book
                                 elseif ratio > 0.01 then

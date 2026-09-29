@@ -11439,7 +11439,10 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
             title = _("Cover the book up to the end of…"),
             on_cancel = function() buildAndShow() end,
             on_select = function(entry)
-              local ratio = total_pages > 0 and (entry.end_page or 0) / total_pages or 0
+              -- A flow position, as the reader's percent and the plan's
+              -- targets are: hidden pages do not count (B335)
+              local ratio = require("koassistant_context_extractor").flowFraction(
+                self_ref.ui.document, entry.end_page or 0)
               -- Round 24: a section inside the covered range is a valid pick
               -- now — it reads ", from scratch" and rebuilds (no more bounce)
               if ratio >= 1.0 - 0.005 then
@@ -15134,6 +15137,10 @@ function AskGPT:_showXraySpacingPicker(opts)
   picker = ButtonDialog:new{
     title = opts.title or _("Checkpoint spacing:"),
     buttons = rows,
+    -- A tap outside is Back: the caller closed its screen to open this one
+    tap_close_callback = function()
+      if opts.on_back then opts.on_back() end
+    end,
   }
   UIManager:show(picker)
 end

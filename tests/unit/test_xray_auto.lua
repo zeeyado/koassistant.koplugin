@@ -1554,6 +1554,18 @@ TestRunner:test("B359: a paused automatic build keeps Extend and Rebuild in the 
   TestRunner:assertTrue(paused and rows and paused < rows, "the authoring rows follow the paused branch, outside it")
 end)
 
+TestRunner:test("a tap outside the spacing picker is Back: the form comes back (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  local body = main:match("function AskGPT:_showXraySpacingPicker%(opts%)(.-)\nend\n")
+  TestRunner:assertTrue(body, "spacing picker found")
+  TestRunner:assertTrue(body:find("tap_close_callback = function()\n      if opts.on_back then opts.on_back() end",
+    1, true), "tap outside runs on_back")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()
