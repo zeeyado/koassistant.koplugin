@@ -684,7 +684,7 @@ local capability_checks = {
     { "sambanova", "DeepSeek-V3.2", "thinking", true },
     { "sambanova", "Llama-4-Maverick", "thinking", false },
     { "xai", "grok-4.3", "reasoning", true },
-    { "xai", "grok-4.20-0309-reasoning", "reasoning", true },
+    { "xai", "grok-4.20-0309-reasoning", "reasoning", false },   -- refuses reasoningEffort (2026-09-29)
     { "xai", "grok-4.20-0309-non-reasoning", "reasoning", false },
     { "perplexity", "sonar-reasoning-pro", "reasoning", true },
     { "perplexity", "sonar-deep-research", "reasoning", true },
@@ -1483,6 +1483,37 @@ TestRunner:test("Sonnet 5.5: off is its named lowest setting, never disabled", f
     ap = offWire("openrouter", "anthropic/claude-sonnet-5")
     TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.enabled, false,
         "OR sonnet 5 still turns off")
+end)
+
+TestRunner:test("Requesty: Claude 5.x rows mirror OpenRouter's (enabled=false is refused there)", function()
+    local ap = offWire("requesty", "anthropic/claude-sonnet-5-5")
+    TestRunner:assertEqual(ap.requesty_reasoning and ap.requesty_reasoning.effort, "low", "sonnet 5.5: lowest")
+    ap = offWire("requesty", "anthropic/claude-opus-5-5")
+    TestRunner:assertEqual(ap.requesty_reasoning and ap.requesty_reasoning.effort, "low", "opus 5.5: lowest")
+    ap = offWire("requesty", "anthropic/claude-fable-5")
+    TestRunner:assertEqual(ap.requesty_reasoning and ap.requesty_reasoning.effort, "low", "fable 5: lowest")
+    ap = offWire("requesty", "anthropic/claude-fable-5.1", { action_override = { force = "off" } })
+    TestRunner:assertEqual(ap.requesty_reasoning, nil, "fable 5.1 thinks only when asked: off sends nothing")
+    ap = offWire("requesty", "anthropic/claude-sonnet-5")
+    TestRunner:assertEqual(ap.requesty_reasoning and ap.requesty_reasoning.enabled, false,
+        "the generic catch-all keeps the explicit off")
+    local d = ModelConstraints.resolveReasoning("requesty", "anthropic/claude-fable-5.1", { global_stance = "maximum" })
+    TestRunner:assertEqual(d.effort, "max", "fable 5.1 on: max effort")
+end)
+
+-- Found by the recheck's Minimal request (2026-09-29): each 400ed on Minimal
+TestRunner:test("recheck 2026-09-29: Minimal sends a shape these models accept", function()
+    local ap = offWire("xai", "grok-4.5")
+    TestRunner:assertEqual(ap.xai_reasoning and ap.xai_reasoning.effort, "minimal", "grok 4.5 refuses none now")
+    ap = offWire("xai", "grok-4.20-0309-reasoning")
+    TestRunner:assertEqual(ap.xai_reasoning, nil, "grok 4.20 reasoning refuses reasoningEffort: nothing sent")
+    ap = offWire("xai", "grok-4.3")
+    TestRunner:assertEqual(ap.xai_reasoning and ap.xai_reasoning.effort, "none", "grok 4.3 still turns off")
+    for _i, m in ipairs({ "openai/gpt-oss-120b", "openai/gpt-oss-20b" }) do
+        ap = offWire("openrouter", m)
+        TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.effort, "low",
+            m .. " on OpenRouter: mandatory, lowest")
+    end
 end)
 
 -- Summary

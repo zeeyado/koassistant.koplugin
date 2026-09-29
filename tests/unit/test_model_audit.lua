@@ -680,6 +680,50 @@ TestRunner:check("drafted off is the named lowest setting",
     and ltext:find("can_disable = true", 1, true) ~= nil
     and ltext:find('minimal = { state = "off" }', 1, true) ~= nil)
 
+--------------------------------------------------------------------------------
+TestRunner:suite("OpenRouter output caps and the recheck's Minimal request (2026-09-29)")
+
+TestRunner:check("OpenRouter's oversized-max_tokens answer is a context refusal",
+    ModelAudit.isContextRefusal("This endpoint's maximum context length is 1000000 tokens. However, "
+        .. "you requested about 10000005 tokens (5 of text input, 10000000 in the output)."))
+TestRunner:check("an output-cap refusal is not",
+    not ModelAudit.isContextRefusal("max_tokens: 10000000 > 128000, which is the maximum allowed "
+        .. "number of output tokens for claude-sonnet-5-5"))
+TestRunner:check("largest published endpoint cap wins (OpenRouter answers above a small one)",
+    ModelAudit.endpointsCeiling({ { max_completion_tokens = 4096 }, { max_completion_tokens = 131072 },
+        { max_completion_tokens = false }, {} }) == 131072)
+TestRunner:check("no published cap -> nil",
+    ModelAudit.endpointsCeiling({ {}, { max_completion_tokens = 0 } }) == nil
+    and ModelAudit.endpointsCeiling(nil) == nil)
+
+local function minimalBody(provider, model)
+    local built = ModelAudit.minimalBuilt(provider, model, "test-key")
+    return built and built.body
+end
+TestRunner:check("Sonnet 5.5's Minimal request carries between_tools (real handler)",
+    (minimalBody("anthropic", "claude-sonnet-5-5") or {}).thinking
+    and minimalBody("anthropic", "claude-sonnet-5-5").thinking.type == "between_tools")
+TestRunner:check("Sonnet 5 keeps disabled",
+    ((minimalBody("anthropic", "claude-sonnet-5") or {}).thinking or {}).type == "disabled")
+TestRunner:check("OpenRouter Sonnet 5.5: the lowest effort",
+    ((minimalBody("openrouter", "anthropic/claude-sonnet-5.5") or {}).reasoning or {}).effort == "low")
+TestRunner:check("GPT-6 Sol: effort none on the OpenAI wire",
+    (minimalBody("openai", "gpt-6-sol") or {}).reasoning_effort == "none")
+TestRunner:check("nothing to send -> no request (Fable 5.1 off, gpt-5.6 off by default)",
+    ModelAudit.minimalBuilt("anthropic", "claude-fable-5-1", "k") == nil
+    and ModelAudit.minimalBuilt("openai", "gpt-5.6-terra", "k") == nil)
+
+local mcur = { profile = { axis = "effort", default_state = "on" }, temp_after_apply = 0.7 }
+TestRunner:check("a refused Minimal request is drift",
+    ModelAudit.recheckCompare({ served = true, default_reasoning = true, temp_ok = true,
+        minimal = { code = 400, err = "Reasoning is mandatory" } }, mcur) == "drift")
+TestRunner:check("an accepted one changes nothing",
+    ModelAudit.recheckCompare({ served = true, default_reasoning = true, temp_ok = true,
+        minimal = { code = 200 } }, mcur) == "ok")
+TestRunner:check("a rate-limited one only warns",
+    ModelAudit.recheckCompare({ served = true, default_reasoning = true, temp_ok = true,
+        minimal = { code = 429 } }, mcur) == "warn")
+
 -- Summary
 print(string.format("\n%d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

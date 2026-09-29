@@ -3704,8 +3704,9 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 | DeepSeek V4 and Flash, Z.AI GLM-4.7 to 5.2, SambaNova DeepSeek-V3.x | Thinks by default | On / Off |
 | Z.AI GLM-5.3 family | Always thinks | — (can't be turned off) |
 | Qwen 3.8 / 3.7 / 3.5 (Qwen provider) | Reasons by default | — (no control yet) |
-| xAI Grok 4.7, 4.6 | Reasons by default | Effort (minimal…xhigh); can't be fully disabled |
-| xAI Grok 4.5 / 4.3 / 4.20-reasoning | Reasons by default | Off / effort (low/medium/high) |
+| xAI Grok 4.7, 4.6, 4.5 | Reasons by default | Effort (minimal…xhigh); can't be fully disabled |
+| xAI Grok 4.3 | Reasons by default | Off / effort (low/medium/high) |
+| xAI Grok 4.20 reasoning | Always reasons, no control | — |
 | Groq and Together reasoning models | Always reason | Effort only (low/medium/high) |
 | Fireworks models | Reason by default | Off / effort (GLM-5.3 and gpt-oss: effort only) |
 | Mistral Magistral | Always reasons, no control | — (thinking is extracted and viewable) |

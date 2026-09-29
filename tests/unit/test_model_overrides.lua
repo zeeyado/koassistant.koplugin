@@ -107,7 +107,8 @@ TestRunner:check("glm-4-plus (pre-4.5, non-thinking) stays passthrough", p.axis 
 p = ModelConstraints.getReasoningProfile("xai", "grok-4.20-0309")
 TestRunner:check("grok-4.20-0309 (non-reasoning slug) stays axis=none", p.axis == "none")
 p = ModelConstraints.getReasoningProfile("xai", "grok-4.20-0309-reasoning")
-TestRunner:check("grok-4.20-0309-reasoning keeps effort profile", p.axis == "effort")
+TestRunner:check("grok-4.20-0309-reasoning: always on, no knob (refuses reasoningEffort, recheck 2026-09-29)",
+    p.axis == "none" and p.default_state == "on")
 p = ModelConstraints.getReasoningProfile("xai", "grok-4.6")
 TestRunner:check("grok-4.6 inherits effort profile via family", p.axis == "effort")
 TestRunner:check("grok-4.6 gets tools via family",

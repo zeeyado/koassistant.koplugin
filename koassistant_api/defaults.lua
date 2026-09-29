@@ -20,7 +20,7 @@ local function getDefaultModel(provider)
         groq = "openai/gpt-oss-120b",
         mistral = "mistral-large-latest",
         xai = "grok-4.7",
-        openrouter = "anthropic/claude-sonnet-5",
+        openrouter = "anthropic/claude-sonnet-5.5",
         requesty = "openai/gpt-4o-mini",
         opencode = "deepseek-v4-flash",
         opencode_go = "kimi-k3",

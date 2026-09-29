@@ -189,10 +189,10 @@ local ModelLists = {
         -- Format: provider/model-name (no "-latest" suffixes, periods not dashes)
 
         -- Anthropic
-        "anthropic/claude-sonnet-5",    -- default (flagship); slug confirmed on openrouter.ai
-        "anthropic/claude-sonnet-5.5",  -- 2026-09-28 (battery 2026-09-29); reasoning cannot be turned off here, so not the default
+        "anthropic/claude-sonnet-5.5",  -- default (2026-09-28; battery 2026-09-29); reasoning cannot be turned off here, Minimal = low
         "anthropic/claude-opus-5.5",    -- deep reasoning flagship (2026-09-22; battery 2026-09-28)
         "anthropic/claude-fable-5.1",   -- most capable / frontier (2026-09-01; battery 2026-09-28)
+        "anthropic/claude-sonnet-5",    -- previous default
         "anthropic/claude-opus-5",      -- previous flagship (a -fast variant exists at 2x price; not listed)
         "anthropic/claude-fable-5",     -- previous frontier
         "anthropic/claude-sonnet-4.6",
@@ -270,10 +270,14 @@ local ModelLists = {
         "openai/gpt-5.5",
         "openai/gpt-5.4",
 
-        -- Anthropic
+        -- Anthropic (the 5.x successors verified in the catalog 2026-09-29; it spells
+        -- Fable 5.1 with a dot, unlike Sonnet/Opus 5.5)
+        "anthropic/claude-sonnet-5-5",
+        "anthropic/claude-opus-5-5",    -- deep-reasoning flagship
+        "anthropic/claude-fable-5.1",   -- frontier
         "anthropic/claude-sonnet-5",
-        "anthropic/claude-opus-5",      -- deep-reasoning flagship (no dotted version, so the hyphenation rule is moot)
-        "anthropic/claude-fable-5",     -- frontier (verified in catalog 2026-07-28)
+        "anthropic/claude-opus-5",      -- previous flagship (no dotted version, so the hyphenation rule is moot)
+        "anthropic/claude-fable-5",     -- previous frontier (verified in catalog 2026-07-28)
         "anthropic/claude-sonnet-4-6",
         "anthropic/claude-haiku-4-5",
 
@@ -345,15 +349,15 @@ local ModelLists = {
         "accounts/fireworks/models/deepseek-v4p1-flash",             -- fast deepseek (reasoning can turn off)
         "accounts/fireworks/models/minimax-m3",
         "accounts/fireworks/models/qwen3p8-max",
-        "accounts/fireworks/models/glm-5p2",
         -- (2026-09-28: deepseek-v4-pro, deepseek-v4-flash-0731, kimi-k2p6 and
         -- gpt-oss-20b stopped serving — still LISTED but "not found ... not
         -- deployed" on request; deepseek-v4-pro-0813 too. Listed != served here.
-        -- The five ids above qwen3p8-max probed green on the full battery.)
+        -- The five ids above qwen3p8-max probed green on the full battery.
+        -- 2026-09-29: glm-5p2 the same, found by the recheck; glm-5p3 answers.)
         -- (Dead ids dropped 2026-08-15, absent from the live catalog:
         -- deepseek-r1, qwen3-235b-a22b, kimi-k2-thinking. Earlier removals
         -- per Fireworks' changelog, T9 refresh 2026-08-14: llama-v3p3-70b
-        -- deprecated 2026-05-14 -> gpt-oss-120b; glm-5 -> glm-5p2 above.)
+        -- deprecated 2026-05-14 -> gpt-oss-120b; glm-5 -> glm-5p2, itself retired 2026-09-29.)
     },
 
     sambanova = {
@@ -661,7 +665,7 @@ local ModelLists = {
         groq       = { "openai/gpt-oss-120b", "llama-3.3-70b-versatile" },
         mistral    = { "mistral-large-latest" },
         xai        = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-beta-0309-non-reasoning", "grok-4-1-fast-non-reasoning" },
-        openrouter = { "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5" },
+        openrouter = { "anthropic/claude-sonnet-5.5", "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5" },
         requesty   = { "openai/gpt-4o-mini" },
         qwen       = { "qwen3-max" },
         kimi       = { "kimi-k2.6", "kimi-k2.5", "kimi-k2-0905-preview" },
@@ -721,6 +725,7 @@ local ModelLists = {
             ["accounts/fireworks/models/deepseek-v4-flash-0731"] = "accounts/fireworks/models/deepseek-v4p1-flash",
             ["accounts/fireworks/models/kimi-k2p6"] = "accounts/fireworks/models/kimi-k3",
             ["accounts/fireworks/models/gpt-oss-20b"] = "accounts/fireworks/models/gpt-oss-120b",
+            ["accounts/fireworks/models/glm-5p2"] = "accounts/fireworks/models/glm-5p3",   -- recheck 2026-09-29
         },
     },
 

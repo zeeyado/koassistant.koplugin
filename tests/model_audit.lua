@@ -471,6 +471,26 @@ end
 -- largest-number rule would return 20480, not the bound, so the stated
 -- context length is checked FIRST (same order as the runtime's
 -- parseMaxTokensError; T7 P1 fix 2026-08-14).
+-- Pure: is this refusal about the CONTEXT window rather than the output cap?
+function ModelAudit.isContextRefusal(err)
+    local text = tostring(err):lower()
+    return text:find("context length", 1, true) ~= nil or text:find("context window", 1, true) ~= nil
+end
+
+-- Pure: the largest max_completion_tokens across OpenRouter endpoints, or nil
+-- when none publishes one. Largest, not smallest: OpenRouter answers an ask
+-- above an endpoint's cap (32768 on gpt-oss-120b, whose smallest endpoint caps
+-- at 4096; 200000 on a model capped at 128000, 2026-09-29), so a small endpoint
+-- never refuses a request and must not shrink our default.
+function ModelAudit.endpointsCeiling(endpoints)
+    local cap
+    for _i, ep in ipairs(type(endpoints) == "table" and endpoints or {}) do
+        local n = type(ep) == "table" and ep.max_completion_tokens
+        if type(n) == "number" and n > 0 and (not cap or n > cap) then cap = n end
+    end
+    return cap
+end
+
 function ModelAudit.parseCeiling(err, sent)
     local text = tostring(err)
     -- A per-minute admission refusal ("Limit 8000, Requested 10000211") states
@@ -1580,9 +1600,17 @@ local function probeOpenAIFamily(provider, model, api_key, verbose)
             ModelAudit.errText(cdec, craw))
     elseif ccode ~= 200 then
         local err = ModelAudit.errText(cdec, craw)
-        facts.ceiling = ModelAudit.parseCeiling(err, ABSURD_MAX_TOKENS)
-        recordProbe(facts, "output ceiling (oversized " .. token_key .. ")",
-            facts.ceiling ~= nil, facts.ceiling and ("ceiling=" .. facts.ceiling) or err)
+        if provider == "openrouter" and ModelAudit.isContextRefusal(err) then
+            -- OpenRouter states the endpoint's CONTEXT length here and clamps the
+            -- output itself (200000 accepted on a 128K model, 2026-09-29): the cap
+            -- comes from its endpoints metadata (section 8), never from this text.
+            recordProbe(facts, "output ceiling (oversized " .. token_key .. ")", true,
+                "context-length refusal - the cap comes from the endpoints metadata below")
+        else
+            facts.ceiling = ModelAudit.parseCeiling(err, ABSURD_MAX_TOKENS)
+            recordProbe(facts, "output ceiling (oversized " .. token_key .. ")",
+                facts.ceiling ~= nil, facts.ceiling and ("ceiling=" .. facts.ceiling) or err)
+        end
     else
         recordProbe(facts, "output ceiling (oversized " .. token_key .. ")", false,
             "accepted (provider may clamp silently) - check docs")
@@ -1648,6 +1676,12 @@ local function probeOpenAIFamily(provider, model, api_key, verbose)
                 for p in pairs(union) do table.insert(names, p) end
                 table.sort(names)
                 printf("  %ssupported_parameters: %s%s", C.dim, table.concat(names, ", "), C.off)
+                local cap = ModelAudit.endpointsCeiling(endpoints)
+                if cap then
+                    facts.ceiling = cap
+                    recordProbe(facts, "output ceiling (endpoints metadata)", true,
+                        "ceiling=" .. cap .. " (largest endpoint cap)")
+                end
             end
         end
     end
@@ -2688,11 +2722,12 @@ end
 --------------------------------------------------------------------------------
 -- Recheck (curated-constraints drift sweep): 2 micro-requests per CURATED
 -- model - baseline (math prompt, reasoning-default evidence; the harder prompt
--- too when a default-on profile shows none) + temperature=0.7
+-- too when a default-on profile shows none) + temperature=0.7, + the Minimal
+-- stance's request through the real handler where it sends a reasoning setting
 -- - compared against the resolution layer. The cheap standing answer to the
 -- pre-freeze "recheck constraints" checklist item: catches delisted-and-dead
--- ids, reasoning-default flips, and temperature rules that would 400 in the
--- field, without the full 13-19-request battery per model.
+-- ids, reasoning-default flips, and temperature and off rules that would 400
+-- in the field, without the full 13-19-request battery per model.
 --------------------------------------------------------------------------------
 
 -- Pure: compare a recheck observation against the current resolution layer.
@@ -2742,6 +2777,17 @@ function ModelAudit.recheckCompare(obs, current)
         warn("weak reasoning evidence (" .. tostring(obs.weak_evidence)
             .. " tokens) on a default-off profile - verify")
     end
+    -- The Minimal stance's request through the real handler (runRecheck): a
+    -- refusal is a field 400 on Minimal, the Quick chip and reasoning-off actions.
+    local m = obs.minimal
+    if m and m.code ~= 200 then
+        if m.code == 400 or m.code == 404 or m.code == 422 then
+            drift("Minimal request refused (" .. tostring(m.code) .. "): "
+                .. tostring(m.err or "?"):sub(1, 120))
+        else
+            warn("Minimal request inconclusive (" .. tostring(m.code) .. ")")
+        end
+    end
     -- "What we'd send": apply() passing 0.7 through, UNLESS the handler strips
     -- sampling params entirely (no_sampling_params lives in the request
     -- builder, not in apply() - the Opus 4.7+/5-family class).
@@ -2776,6 +2822,32 @@ function ModelAudit.recheckCompare(obs, current)
         end
     end
     return level, reasons
+end
+
+-- The Minimal stance's request, built by the provider's REAL handler from the
+-- api_params dispatch computes for this curated model (resolveReasoning +
+-- applyReasoningParams). Sent once by the recheck: a refusal is the 400 that
+-- Minimal, the Quick chip and reasoning-off actions hit in the field, the class
+-- the 2026-09-28 round found by hand (a new id on a sibling's prefix profile).
+-- nil when Minimal sends no reasoning setting (the baseline covers that body).
+function ModelAudit.minimalBuilt(provider, model, api_key)
+    local api_params = {}
+    ModelConstraints.applyReasoningParams(provider, api_params,
+        ModelConstraints.resolveReasoning(provider, model, { global_stance = "minimal" }))
+    if next(api_params) == nil then return nil end
+    local ok, Handler = pcall(require, "koassistant_api." .. provider)
+    if not ok or type(Handler) ~= "table" or type(Handler.buildRequestBody) ~= "function" then
+        return nil
+    end
+    api_params.max_tokens = 1024
+    local bok, built = pcall(Handler.buildRequestBody, Handler,
+        { { role = "user", content = PROBE_PROMPT } },
+        { provider = provider, model = model, api_key = api_key, api_params = api_params,
+          system = { text = "Answer briefly." }, features = { enable_streaming = false } })
+    if not bok or type(built) ~= "table" or not built.url or type(built.body) ~= "table" then
+        return nil
+    end
+    return built
 end
 
 -- A curated "thinks by default" with no evidence on the math prompt gets the
@@ -2892,7 +2964,9 @@ local function recheckObserve(provider, model, api_key, opts)
         -- Same weak-signal rule as the full battery: a handful of reasoning
         -- tokens on a math prompt is bookkeeping noise, not a reasoning default.
         local evidence = ModelAudit.reasoningEvidence(decoded)
-        if evidence == nil and profileSaysOn(provider, model) then
+        local rt0 = evidence and tonumber(evidence:match("^reasoning_tokens=(%d+)$"))
+        if (evidence == nil or (rt0 and rt0 < 64)) and profileSaysOn(provider, model) then
+            -- none, or a weak count: the harder prompt settles a default-on profile
             obs.hard_prompt = true
             local hcode, hdec = req(nil, 4096, HARD_REASONING_PROBE_PROMPT)
             evidence = hcode == 200 and ModelAudit.reasoningEvidence(hdec) or nil
@@ -2907,7 +2981,9 @@ local function recheckObserve(provider, model, api_key, opts)
         local tcode, tdec, traw = req({ temperature = 0.7 }, 32)
         obs.temp_ok = verdict(tcode)
         if obs.temp_ok == false then obs.temp_err = ModelAudit.errText(tdec, traw) end
-        if opts and opts.ceilings then
+        -- Not on OpenRouter: it answers asks above any cap (see endpointsCeiling), so
+        -- no output size 400s there, and its refusal states the context length.
+        if opts and opts.ceilings and provider ~= "openrouter" then
             local ccode, cdec, craw = req(nil, ABSURD_MAX_TOKENS)
             if ccode ~= 200 and ccode ~= 429 then
                 obs.ceiling = ModelAudit.parseCeiling(ModelAudit.errText(cdec, craw), ABSURD_MAX_TOKENS)
@@ -2939,18 +3015,26 @@ local function runRecheck(provider, api_key, verbose, opts)
     if provider == "perplexity" then
         printf("  %snote: every served check bills one search%s", C.yellow, C.off)
     end
-    printf("  %s%d micro-requests per curated model (%d models)%s", C.dim,
-        (opts and opts.ceilings) and 3 or 2, #curated, C.off)
+    printf("  %s%d micro-requests per curated model, +1 where Minimal sends a reasoning setting (%d models)%s",
+        C.dim, (opts and opts.ceilings) and 3 or 2, #curated, C.off)
     local counts = { ok = 0, warn = 0, drift = 0 }
     for _i, model in ipairs(curated) do
         local obs = recheckObserve(provider, model, api_key, opts)
+        -- (Perplexity's models carry no reasoning profile: Minimal sends nothing there)
+        local built = obs.served and provider ~= "perplexity"
+            and ModelAudit.minimalBuilt(provider, model, api_key) or nil
+        if built then
+            local mcode, mdec, mraw = httpPostJson(built.url, built.headers, built.body)
+            obs.minimal = { code = mcode, err = mcode ~= 200 and ModelAudit.errText(mdec, mraw) or nil }
+        end
         local level, reasons =
             ModelAudit.recheckCompare(obs, ModelAudit.currentResolution(provider, model))
         counts[level] = counts[level] + 1
         if level == "ok" then
             printf("  %sOK%s     %-38s%s", C.green, C.off, model,
                 verbose and (C.dim .. (obs.default_reasoning and "reasons by default"
-                    or "no default reasoning") .. C.off) or "")
+                    or "no default reasoning") .. (obs.minimal and ", Minimal accepted" or "")
+                    .. C.off) or "")
         else
             printf("  %s%-6s%s %-38s %s", level == "drift" and C.red or C.yellow,
                 level:upper(), C.off, model, table.concat(reasons, "; "))

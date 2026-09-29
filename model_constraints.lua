@@ -287,10 +287,10 @@ ModelConstraints.capabilities = {
         -- replay green (wave 2 — ToolWire alias added the same day).
         -- 2026-09-28 refresh: the five ids below qwen3p8-max probed green on the
         -- same battery; deepseek-v4-pro, deepseek-v4-flash-0731, kimi-k2p6 and
-        -- gpt-oss-20b stopped serving ("not found ... not deployed") and left.
+        -- gpt-oss-20b stopped serving ("not found ... not deployed") and left;
+        -- glm-5p2 the same on 2026-09-29.
         reasoning = {
             "accounts/fireworks/models/qwen3p8-max",
-            "accounts/fireworks/models/glm-5p2",
             "accounts/fireworks/models/gpt-oss-120b",
             "accounts/fireworks/models/deepseek-v4p1-flash",
             "accounts/fireworks/models/glm-5p3",
@@ -299,7 +299,6 @@ ModelConstraints.capabilities = {
         },
         tools = {
             "accounts/fireworks/models/qwen3p8-max",
-            "accounts/fireworks/models/glm-5p2",
             "accounts/fireworks/models/gpt-oss-120b",
             "accounts/fireworks/models/deepseek-v4p1-flash",
             "accounts/fireworks/models/glm-5p3",     -- prefix: glm-5p3-flash too (probed)
@@ -463,10 +462,11 @@ ModelConstraints.capabilities = {
         tools = { "kimi-k3", "kimi-k2.6" },
     },
     xai = {
-        -- grok-4.6 supports reasoning_effort minimal..xhigh ("none" rejected — probe 2026-08-14);
-        -- grok-4.5/4.3 and the grok-4.20 reasoning variant support reasoning_effort (none/low/medium/high)
-        -- The grok-4.20 non-reasoning slug has no effort control
-        reasoning = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-0309-reasoning" },
+        -- grok-4.7/4.6/4.5 support reasoning_effort minimal..xhigh ("none" rejected — probes
+        -- 2026-08-14, 2026-09-28; grok-4.5 since the 2026-09-29 recheck); grok-4.3 takes
+        -- none/low/medium/high. Neither grok-4.20 slug takes reasoningEffort at all (the
+        -- reasoning one always reasons, recheck 2026-09-29), so neither is listed.
+        reasoning = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3" },
         -- Grok-4-family models take the native web_search agent tool on xAI's
         -- Responses endpoint (/v1/responses, OpenAI-compatible wire — the old
         -- chat-completions live search returns 410 Gone since 2026-01-12).
@@ -1322,6 +1322,11 @@ ModelConstraints.reasoning_profiles = {
         { match = "openai/gpt-6", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+        -- gpt-oss 120b/20b (recheck 2026-09-29): "Reasoning is mandatory" for
+        -- enabled=false and none, so the catch-all's Minimal 400ed; minimal/low accepted.
+        { match = "openai/gpt-oss", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
         -- Mirrors that reason by default (batteries 2026-09-28): GLM-5.3 is mandatory
         -- here too; the others accept off. Before these rows the catch-all below
         -- reported them off by default (the recheck's drift on deepseek-v4-pro).
@@ -1377,6 +1382,24 @@ ModelConstraints.reasoning_profiles = {
         { match = "openai/gpt-5.5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- Claude 5.x ids that refuse a thinking disable on their own API and refuse
+        -- enabled=false through OpenRouter (probed 2026-09-28/29); requesty.lua sends
+        -- that same shape, so they mirror the OpenRouter rows (no key: unprobed here).
+        -- Fable 5.1 thinks only when asked: its off sends nothing (the requesty wire's
+        -- default-off rule). Ids as Requesty's catalog spells them (2026-09-29).
+        { match = "anthropic/claude-sonnet-5-5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
+        { match = "anthropic/claude-opus-5-5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
+        { match = "anthropic/claude-fable-5.1", axis = "effort", default_state = "off", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- After fable-5.1: this prefix would otherwise catch it.
+        { match = "anthropic/claude-fable-5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
         -- Same sonar split as openrouter (requesty uses "perplexity/" ids too).
         { match = "perplexity/sonar-reasoning", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
@@ -1607,16 +1630,21 @@ ModelConstraints.reasoning_profiles = {
         { match = "grok-4.6", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "minimal", "low", "medium", "high", "xhigh" }, default_option = "high",
           stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "xhigh" } } },
-        -- grok-4.5 / 4.3 / 4.20 reasoning: reasons by default, disableable via effort "none".
-        { match = "grok-4.5", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
-          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
-          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        -- grok-4.5 (recheck 2026-09-29): effort "none" now REJECTED ("does not support
+        -- reasoning_effort value none", so the Minimal stance 400ed), minimal..xhigh
+        -- accepted, max rejected: the grok-4.6 shape.
+        { match = "grok-4.5", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "xhigh" } } },
+        -- grok-4.3: reasons by default, disableable via effort "none".
         { match = "grok-4.3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
-        { match = "grok-4.20-0309-reasoning", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
-          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
-          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        -- grok-4.20-0309-reasoning (recheck 2026-09-29): refuses reasoningEffort outright
+        -- ("does not support parameter reasoningEffort", so Minimal 400ed) and reasons
+        -- by default: always-on with no knob, like grok-build.
+        { match = "grok-4.20-0309-reasoning", axis = "none", default_state = "on",
+          can_disable = false, can_enable = false },
         -- Shim: the bare grok-4.20-0309 slug is NON-reasoning — must sit before the
         -- family fallback below or it would inherit an effort profile it rejects.
         { match = "grok-4.20-0309", axis = "none", default_state = "off",
@@ -2961,8 +2989,13 @@ function ModelConstraints.applyReasoningParams(provider, api_params, decision)
             api_params.openrouter_reasoning = { enabled = false }
         end
     elseif provider == "requesty" then
+        -- Same rule as openrouter: a curated row that is off by default is off by
+        -- sending nothing (Fable 5.1); the generic catch-all keeps the explicit off.
+        local p = decision.profile
         if on then api_params.requesty_reasoning = { effort = decision.effort }
-        else api_params.requesty_reasoning = { enabled = false } end
+        elseif not (p and p.default_state == "off" and not p.generic) then
+            api_params.requesty_reasoning = { enabled = false }
+        end
     elseif provider == "nvidia" then
         -- "none" fully disables (probed); nvidia.lua puts either onto reasoning_effort.
         if on then api_params.nvidia_reasoning = { effort = decision.effort }

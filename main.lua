@@ -1701,12 +1701,13 @@ function AskGPT:initSettings()
   local notice = (self.settings:readSetting("features") or {})._model_switch_notice
   if notice and notice.to then
     UIManager:scheduleIn(3, function()
+      -- Unprompted at startup, so the first line names the plugin it comes from.
       UIManager:show(InfoMessage:new{
-        text = notice.retired
+        text = _("KOAssistant") .. "\n\n" .. (notice.retired
           and T(_("Model updated to %1.\n\nYour provider no longer offers %2. Pick a different model any time in Settings."),
             notice.to, notice.from or "?")
           or T(_("Model updated to %1.\n\nYour provider's default changed (you were on %2). Pick a different model any time in Settings."),
-            notice.to, notice.from or "?"),
+            notice.to, notice.from or "?")),
         timeout = 8,
       })
     end)
