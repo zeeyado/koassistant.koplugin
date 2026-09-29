@@ -190,6 +190,47 @@ function TestConstants:runAll()
             "API_URL should contain repo name")
     end)
 
+    -- The "(KOA)" mark, one checkbox per surface (B348)
+    self:test("koaLabel: (KOA) by default, gone only where the reader unticked it", function()
+        self:assertEquals(Constants.koaLabel("Explain", "highlight", nil), "Explain (KOA)", "no features")
+        self:assertEquals(Constants.koaLabel("Explain", "highlight", {}), "Explain (KOA)", "unset = ticked")
+        local f = { show_koa_suffix_in_highlight = false }
+        self:assertEquals(Constants.koaLabel("Explain", "highlight", f), "Explain", "unticked")
+        self:assertEquals(Constants.koaLabel("Explain", "dictionary", f), "Explain (KOA)",
+            "another surface keeps it")
+        self:assertEquals(Constants.koaLabel("Notebook", "file_browser",
+            { show_koa_suffix_in_file_browser = false }), "Notebook", "file browser")
+    end)
+
+    self:test("every (KOA) label goes through koaLabel (so the checkboxes reach it)", function()
+        local offenders, scanned = {}, 0
+        for _idx, sub in ipairs({ ".", "koassistant_ui", "prompts" }) do
+            local handle = io.popen('ls "' .. sub .. '"/*.lua 2>/dev/null')
+            if handle then
+                for path in handle:lines() do
+                    if not path:find("koassistant_constants%.lua$") then
+                        local fh = io.open(path, "r")
+                        if fh then
+                            scanned = scanned + 1
+                            local n = 0
+                            for line in fh:lines() do
+                                n = n + 1
+                                if line:find('" (KOA)"', 1, true) and not line:find("^%s*%-%-") then
+                                    offenders[#offenders + 1] = path .. ":" .. n
+                                end
+                            end
+                            fh:close()
+                        end
+                    end
+                end
+                handle:close()
+            end
+        end
+        self:assert(scanned > 20, "source listing failed (" .. scanned .. " files)")
+        self:assert(#offenders == 0, "raw \" (KOA)\" labels (use Constants.koaLabel): "
+            .. table.concat(offenders, ", "))
+    end)
+
     -- Summary
     print(string.format("\nResults: %d passed, %d failed\n", self.passed, self.failed))
     return self.failed == 0

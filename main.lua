@@ -277,7 +277,7 @@ function AskGPT:init()
     -- Main KOAssistant button (controlled separately from quick actions)
     self.ui.highlight:addToHighlightDialog("koassistant_dialog", function(reader_highlight_instance)
         return {
-          text = _("Chat/Action") .. " (KOA)",
+          text = Constants.koaLabel(_("Chat/Action"), "highlight", self.settings:readSetting("features")),
           enabled = Device:hasClipboard(),
           show_in_highlight_dialog_func = function()
             local feats = self.settings:readSetting("features") or {}
@@ -327,7 +327,7 @@ function AskGPT:init()
     -- under orderedPairs, placing it second-to-last (maintainer decision 2026-07-15).
     self.ui.highlight:addToHighlightDialog("koassistant_add_notebook", function(reader_highlight_instance)
       return {
-        text = _("Add to notebook") .. " (KOA)",
+        text = Constants.koaLabel(_("Add to notebook"), "highlight", self.settings:readSetting("features")),
         show_in_highlight_dialog_func = function()
           local feats = self.settings:readSetting("features") or {}
           -- Opt-in since the A9 follow-up 2026-08-17 (maintainer: highlight-menu
@@ -621,7 +621,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   -- with the toggle
   if features.show_chat_action_in_file_browser ~= false then
     table.insert(buttons, {
-      text = _("Chat/Action") .. " (KOA)",
+      text = Constants.koaLabel(_("Chat/Action"), "file_browser", features),
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -638,7 +638,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   local require_existing = features.notebook_button_require_existing ~= false  -- default true
   if show_notebook and (has_notebook or not require_existing) then
     table.insert(buttons, {
-      text = _("Notebook") .. " (KOA)",
+      text = Constants.koaLabel(_("Notebook"), "file_browser", features),
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -661,7 +661,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   -- Chat History (KOA) button - only if chats exist
   if features.show_chat_history_in_file_browser ~= false and has_chats then
     table.insert(buttons, {
-      text = _("Chat History") .. " (KOA)",
+      text = Constants.koaLabel(_("Chat History"), "file_browser", features),
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -691,7 +691,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   if features.show_artifacts_in_file_browser ~= false and #caches > 0 then
     local self_ref = self
     table.insert(buttons, {
-      text = _("View Artifacts") .. " (KOA)",
+      text = Constants.koaLabel(_("View Artifacts"), "file_browser", features),
       callback = function()
         local UIManager = require("ui/uimanager")
         -- Capture file browser menu reference before showing popup
@@ -787,7 +787,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   -- follow-up (Menus & Buttons ▸ File browser, default true)
   if features.show_book_hub_in_file_browser ~= false then
     table.insert(buttons, {
-      text = require("koassistant_book_page").pageName() .. " (KOA)",
+      text = Constants.koaLabel(require("koassistant_book_page").pageName(), "file_browser", features),
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -810,7 +810,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
   -- Book Settings (KOA) button — per-book domain, research, AI title/author overrides
   if features.show_book_settings_in_file_browser ~= false then
     table.insert(buttons, {
-      text = _("Book Settings") .. " (KOA)",
+      text = Constants.koaLabel(_("Book Settings"), "file_browser", features),
       callback = function()
         local UIManager = require("ui/uimanager")
         local current_dialog = UIManager:getTopmostVisibleWidget()
@@ -831,7 +831,7 @@ function AskGPT:generateFileDialogRows(file, is_file, book_props)
       local full_action = self.action_service and self.action_service:getAction("book", fb_action.id)
       local action_for_hold = full_action or fb_action
       table.insert(buttons, {
-        text = ActionService.getActionDisplayText(action_for_hold, features) .. " (KOA)",
+        text = Constants.koaLabel(ActionService.getActionDisplayText(action_for_hold, features), "file_browser", features),
         allow_hold_when_disabled = true,
         callback = function()
           local UIManager = require("ui/uimanager")
@@ -6666,7 +6666,7 @@ function AskGPT:syncDictButtons()
   local self_ref = self
   for i, action in ipairs(popup_actions) do
     local act = action  -- capture per-iteration for closures
-    local spec = DictButtons.scaffold(act, i, ActionService.getActionDisplayText(act, features))
+    local spec = DictButtons.scaffold(act, i, ActionService.getActionDisplayText(act, features), features)
     spec.show_func = function(popup)
       local has_doc = (self_ref.ui and self_ref.ui.document) ~= nil
       local visible = DictButtons.shouldShow(popup, act, has_doc, function()
@@ -6806,7 +6806,7 @@ function AskGPT:onDictButtonsReady(dict_popup, dict_buttons)
       }
     end
     return {
-      text = ActionService.getActionDisplayText(action, features) .. " (KOA)",
+      text = Constants.koaLabel(ActionService.getActionDisplayText(action, features), "dictionary", features),
       font_bold = true,
       callback = function()
         self_ref:executeDictAction(action, word, dict_popup, non_reader_lookup, lookup_book)
@@ -17462,6 +17462,12 @@ function TitledButtonDialog:paintTo(...)
   self.dimen = self.movable.dimen
 end
 
+-- The KOAssistant menu's Quick Settings row (B350): the schema passes the
+-- menu itself, which must not reach on_close_callback
+function AskGPT:openQuickSettingsFromMenu()
+  self:onKOAssistantAISettings()
+end
+
 --- Combined AI Quick Settings popup (for gesture action)
 --- Two-column layout with commonly used settings
 --- @param on_close_callback function: Optional callback called when user closes the dialog
@@ -19309,7 +19315,7 @@ function AskGPT:registerHighlightMenuActions()
         end
       end
       return {
-        text = ActionService.getActionDisplayText(action, cur_features) .. " (KOA)",
+        text = Constants.koaLabel(ActionService.getActionDisplayText(action, cur_features), "highlight", cur_features),
         enabled = Device:hasClipboard(),
         allow_hold_when_disabled = true,
         hold_callback = function()

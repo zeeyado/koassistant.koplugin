@@ -84,6 +84,15 @@ function T:runAll()
         self:assertEquals(DictButtons.label("AI Dictionary"), "AI Dictionary (KOA)")
     end)
 
+    self:test("label drops the suffix only where the reader unticked it (B348)", function()
+        self:assertEquals(DictButtons.label("AI Wiki", { show_koa_suffix_in_dictionary = false }), "AI Wiki")
+        self:assertEquals(DictButtons.label("AI Wiki", { show_koa_suffix_in_highlight = false }),
+            "AI Wiki (KOA)")
+        local spec = DictButtons.scaffold({ id = "ai_wiki" }, 4, "AI Wiki",
+            { show_koa_suffix_in_dictionary = false })
+        self:assertEquals(spec.text, "AI Wiki")
+    end)
+
     -- ---- scaffold ----
     self:test("scaffold returns conditional, bold, correctly-keyed spec", function()
         local spec = DictButtons.scaffold({ id = "ai_wiki" }, 4, "AI Wiki")

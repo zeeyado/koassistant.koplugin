@@ -290,6 +290,8 @@ After the setup wizard, complete these steps for the best experience:
 
 Now the same tap gives you Quick Settings in the file browser and Quick Actions while reading. Both panels include most functions you need, plus buttons to open Settings and other features. In reader mode, each panel has a button to switch to the other.
 
+**No gesture?** Both panels are also the first rows of the KOAssistant menu: **Tools → KOAssistant → Quick Settings**, and **Quick Actions** while reading.
+
 **Recommended: Two Quick Access Panels**
 
 KOAssistant provides two distinct quick-access panels for different purposes:
@@ -1137,7 +1139,7 @@ Actions like News Update that require [web search](#web-search) are available in
 
 - **Action hold menu**: Long-press any action button for its description and, in one place, buttons that run it once another way, then (below a double line) **Add to / Remove from this menu**, **Edit…**, and **More…** (**Other placements…**, **Duplicate as custom action…**, **Reset to default**). The same menu appears on every trigger surface: the input dialog, the Quick Actions panel, the highlight menu, the dictionary popup, and the file browser buttons. Also works on grayed-out buttons (e.g., library selection actions before adding books), without the run buttons.
   - **The run buttons** run the action this one time another way, without changing any setting: **Quick answer** (or **Without Quick** where Quick is already on), up to three model buttons (your [favorite models](#favorite-models) first, then the models you picked lately through **More models…**, newest first, then your provider's fast model while a spot is free), **No reasoning**, **With web search** / **Without web search**, and **More models…** (opens on your current provider's models; **Other provider…** reaches the rest). Only the buttons that would change something appear; with emoji icons on, they carry the chips' icons (⚡ Quick, 🤖 models, 🧠 reasoning, 🌐 web). The action's own settings still apply: an action that turns reasoning off, or always or never searches, keeps that; only a model you pick overrides a model pinned on the action. Artifact actions (X-Ray, summaries, recaps, the quiz, AI Wiki) get the model buttons only, and the pick carries through their View / Update / Create popup to the run that tap starts, section X-Rays and section summaries included (checkpoint builds and automatic updates keep your default model); on AI Wiki it writes a new entry, which replaces the saved one once it succeeds. Replies in the chat that opens stay on the picked model, a chat you resume later keeps it, and the next action you run uses your defaults again.
-- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **Show More Actions…** (expands the grid to every enabled action for this context; becomes **Show Fewer Actions** once expanded), **Restore last input** (appears only when a send failed or was cancelled — puts your typed text back), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
+- **Settings Icon (Input)**: Tap the gear icon in the input dialog title bar for a menu with your model first ("🤖 claude-sonnet-5", or "Model: …" without emoji icons; tap it for your [favorite models](#favorite-models), recent picks and **More models…**: a pick changes your model, as the highlight menu's model button does, and the dialog reopens on it), **Quick Settings** (streamlined settings panel), **Choose and Sort Actions** (reorder, show/hide actions for this context), **Show More Actions…** (expands the grid to every enabled action for this context; becomes **Show Fewer Actions** once expanded), **Restore last input** (appears only when a send failed or was cancelled — puts your typed text back), **Toolbar Buttons…** (choose which session chips appear above the input field), and — in book/highlight chats — **[Book Settings](#book-settings)** (per-book overrides for the book you're chatting about). See [Recommended Setup](#recommended-setup) for details on the Quick Settings panel.
 - **Session Chips (Input)**: The row of chips above the input field controls this chat only — Domain, Web search, Book Tools, Quick Answer, Scope, Attach, and Spoiler. Tap to change the value for this chat; long-press to open the persistent (per-book / global) picker behind it. See [Managing the Input Dialog](#managing-the-input-dialog) for details on each chip. (These replaced the old fixed Web/Domain top row and the checkbox pile.)
 - **Settings Icon (Viewer)**: Tap the gear icon in the chat viewer title bar for a menu with **Font Size**, **Alignment** (auto / left / justify / right — auto is the default and follows the text direction, so RTL answers align right), **Window Size** (Standard / Expanded, the same setting as Display Settings; not offered on compact dictionary popups), **Show Excerpt** (dictionary windows only; the same setting as Dictionary Settings ▸ Show Excerpt), **Reset to Defaults**, **Show Reasoning** (when the response has reasoning content), **Show Sources** (when the response used web search or book tools — see below), **Export** (writes a file; use Copy for the clipboard — the copy-or-save chooser belongs to the Chat History browser), and **Show/Hide Debug**. Font size and alignment now **persist across opens** (including on artifact and X-Ray viewers).
 - **Show Sources**: When a response used [web search](#web-search) or [AI Book Tools](#ai-book-tools-experimental), a **Show Sources** viewer lists the web URLs and queries and/or the book lookups the AI performed. Per-message indicators also appear inline ("Searched the web", "Searched the book — N lookups"). Pre-search prose is preserved behind an inline `*[Searched the web]*` marker rather than being discarded. The Sources and Reasoning viewers support text selection, Copy, and Export like the main chat.
@@ -1673,7 +1675,7 @@ Propagation runs one way. A built-in that gains a default placement **is** injec
 3. Tap **"+ Highlight Menu"**
 4. A notification confirms it; the change takes effect the next time the highlight menu opens (no restart needed)
 
-Actions appear as "Explain (KOA)", "Translate (KOA)", etc. in the highlight popup. Long-press any action to run it once another way (see [Quick UI Features](#quick-ui-features)), or for its description plus **Remove from the highlight menu**, **Edit…**, and **More…** (other placements, duplicate, and for a modified built-in reset), the same menu you get on every surface an action can be triggered from.
+Actions appear as "Explain (KOA)", "Translate (KOA)", etc. in the highlight popup (untick **Show (KOA) on KOAssistant's buttons** under **Settings → Menus & Buttons → Highlight menu** to drop the mark; the dictionary popup and the file browser have their own checkbox). Long-press any action to run it once another way (see [Quick UI Features](#quick-ui-features)), or for its description plus **Remove from the highlight menu**, **Edit…**, and **More…** (other placements, duplicate, and for a modified built-in reset), the same menu you get on every surface an action can be triggered from.
 
 **Managing actions**:
 - Use **Settings → Menus & Buttons → Highlight Menu Actions** to see every highlight action; a ✓ marks the ones currently in the menu (up to 15 shown)
@@ -2582,6 +2584,8 @@ Two complementary features for making important content easily available:
 
 ### Quick Actions
 These launch entries sit at the top of the menu:
+- **Quick Settings**: Open the Quick Settings panel, as its gesture does (the menu closes)
+- **Quick Actions**: Open the Quick Actions panel, as its gesture does (shown with a book open)
 - **Book Chat/Action**: Start a conversation about the current book or access book actions
 - **Book Hub**: Open the current book's hub — artifacts, chats, notebook, group and settings in one view (shown with a book open). See [Book Hub](#book-hub)
 - **General Chat/Action**: Start a context-free conversation or run a general action
@@ -2893,14 +2897,16 @@ Control where KOAssistant appears in KOReader's menus, panels, and buttons. This
 - **Show Chat/Action button**: Add the main "Chat/Action" button to the highlight menu (takes effect next time the menu opens)
 - **Show quick actions**: Add action shortcuts (Explain, Translate, etc.) to the highlight menu
 - **Show Add to Notebook button**: Add an "Add to notebook" button that saves the selected text straight to this book's notebook
-- **Highlight Menu Actions**: Choose which actions appear in the highlight menu (up to 15 shown; defaults, in order: Translate, Explain, Quick Explain, Summarize, Quick Define, Dictionary, Look up in X-Ray, Generate Image — the last two appear only when the book has an X-Ray, and when an image provider is configured)
+- **Show (KOA) on KOAssistant's buttons**: Mark KOAssistant's buttons in the highlight menu with "(KOA)" (default ON; untick to drop the mark)
+- **Highlight Menu Actions**: Choose which actions appear in the highlight menu (up to 15 shown; defaults, in order: Switch model (the [model button](#highlight-menu-actions)), Translate, Explain, Quick Explain, Summarize, Quick Define, Dictionary, Look up in X-Ray, Generate Image — the last two appear only when the book has an X-Ray, and when an image provider is configured)
 
 #### Dictionary popup
 - **Show AI buttons**: Add AI buttons to KOReader's dictionary popup
+- **Show (KOA) on KOAssistant's buttons**: Mark KOAssistant's buttons in the dictionary popup with "(KOA)" (default ON)
 - **Dictionary Popup Actions**: Configure which actions appear in the AI dictionary menu (reorder, add custom)
 
 #### File browser
-Listed in the order the buttons appear in the long-press popup. All eight default to ON.
+Listed in the order the buttons appear in the long-press popup. All nine default to ON.
 - **Show KOAssistant actions**: Add KOAssistant buttons to file browser context menus (changes apply the next time the menu opens)
 - **Show Chat/Action button**: The main "Chat/Action (KOA)" button
 - **Show Notebook button**: Show a "Notebook" button when long-pressing books in the file browser
@@ -2909,6 +2915,7 @@ Listed in the order the buttons appear in the long-press popup. All eight defaul
 - **Show View Artifacts button**: Open that book's cached artifacts straight from the popup
 - **Show Book Hub button**: Show the "Book Hub (KOA)" button when long-pressing books
 - **Show Book Settings button**: Open that book's per-book settings straight from the popup
+- **Show (KOA) on KOAssistant's buttons**: Mark KOAssistant's buttons in the long-press menu with "(KOA)"
 - **File Browser Items**: Choose which actions appear in the file browser long-press menu (book_info is the only default)
 
 #### Quick panels

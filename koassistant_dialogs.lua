@@ -10757,6 +10757,19 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     refreshInputDialog()
                 end }},
             }
+            -- Your model first (B346): the highlight menu's model button. The
+            -- list stacks on this menu; a pick switches your model for good,
+            -- then the menu closes and the dialog reopens on it (the chips can
+            -- change with the model)
+            if plugin then
+                local ModelSwitch = require("koassistant_model_switch")
+                table.insert(gear_buttons, 1, {{ text = ModelSwitch.label(plugin), callback = function()
+                    ModelSwitch.show(plugin, function()
+                        UIManager:close(gear_menu)
+                        refreshInputDialog()
+                    end)
+                end }})
+            end
             -- Input safety net: recover the last typed input after a failed/cancelled send
             -- or a wrong-options mistap (stashed on plugin._last_input at Send). Only shown
             -- when something is stashed. Appends when the field already has text (never

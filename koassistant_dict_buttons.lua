@@ -31,18 +31,19 @@ function DictButtons.rowGroup(index)
     return "koassistant_dict_row" .. tostring(math.ceil(index / DictButtons.PER_ROW))
 end
 
---- Button label: action display text + our " (KOA)" suffix.
-function DictButtons.label(display_text)
-    return tostring(display_text) .. " (KOA)"
+--- Button label: action display text + our " (KOA)" suffix, unless the reader
+--- unticked it for the dictionary popup (`features`, B348).
+function DictButtons.label(display_text, features)
+    return require("koassistant_constants").koaLabel(tostring(display_text), "dictionary", features)
 end
 
 --- Static spec scaffold for `addToDictButtons` (caller attaches show_func/callback,
 --- which need plugin/runtime state). Buttons are `conditional` so they always
 --- render (gated only by show_func) regardless of the user's saved button layout.
-function DictButtons.scaffold(action, index, display_text)
+function DictButtons.scaffold(action, index, display_text, features)
     return {
         id = DictButtons.specId(index, action.id),
-        text = DictButtons.label(display_text),
+        text = DictButtons.label(display_text, features),
         font_bold = true,
         conditional = true,
         row_group = DictButtons.rowGroup(index),

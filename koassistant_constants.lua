@@ -307,6 +307,29 @@ function Constants.getEmojiText(emoji, text, enable_emoji)
     return text
 end
 
+-- The "(KOA)" mark on KOAssistant's buttons where they sit beside KOReader's
+-- own (B348): one checkbox per surface under its Menus & Buttons header,
+-- ticked by default (read `~= false`)
+Constants.KOA_SUFFIX_KEYS = {
+    highlight = "show_koa_suffix_in_highlight",
+    dictionary = "show_koa_suffix_in_dictionary",
+    file_browser = "show_koa_suffix_in_file_browser",
+}
+
+--- A KOAssistant button's label on a surface it shares with KOReader's own
+--- buttons: " (KOA)" appended unless the reader unticked it for that surface.
+--- @param text string the label
+--- @param surface string "highlight" | "dictionary" | "file_browser"
+--- @param features table|nil the saved features
+--- @return string
+function Constants.koaLabel(text, surface, features)
+    local key = Constants.KOA_SUFFIX_KEYS[surface]
+    if key and features and features[key] == false then
+        return text
+    end
+    return text .. " (KOA)"
+end
+
 --- Build the single-line usage indicator shown above AI responses, e.g.
 --- "*[Reasoning/Thinking and Web search were used. Tap the gear icon to review details]*".
 --- Combines every element that applies into ONE line so multi-feature responses

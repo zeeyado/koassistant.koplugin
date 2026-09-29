@@ -38,6 +38,25 @@ end
 local SettingsSchema = {
     -- Menu items in display order (flat structure matching main menu)
     items = {
+        -- The two panels the gestures open, for readers without a gesture
+        -- (B350); both rows close the menu, so the panel shows over the book
+        {
+            id = "quick_settings_panel",
+            type = "action",
+            text = _("Quick Settings"),
+            emoji = "\u{1F39B}\u{FE0F}",
+            callback = "openQuickSettingsFromMenu",
+        },
+        {
+            id = "quick_actions_panel",
+            type = "action",
+            text = _("Quick Actions"),
+            emoji = "\u{1F680}",
+            callback = "onKOAssistantQuickActions",
+            visible_func = function(plugin)
+                return plugin.ui and plugin.ui.document ~= nil
+            end,
+        },
         -- Quick actions
         {
             id = "chat_about_book",
@@ -2305,6 +2324,14 @@ local SettingsSchema = {
                 -- visibility/order via Highlight Menu Actions below; an
                 -- explicit old OFF was migrated to a menu dismissal.)
                 {
+                    id = "show_koa_suffix_in_highlight",
+                    type = "toggle",
+                    text = _("Show (KOA) on KOAssistant's buttons"),
+                    path = "features.show_koa_suffix_in_highlight",
+                    default = true,
+                    help_text = _("Mark KOAssistant's buttons in the highlight menu with '(KOA)', to tell them apart from KOReader's own. Takes effect the next time the menu opens."),
+                },
+                {
                     id = "highlight_menu_actions",
                     type = "action",
                     text = _("Highlight Menu Actions"),
@@ -2326,6 +2353,15 @@ local SettingsSchema = {
                     path = "features.enable_dictionary_hook",
                     default = true,
                     help_text = _("Add AI buttons to KOReader's dictionary popup."),
+                },
+                {
+                    id = "show_koa_suffix_in_dictionary",
+                    type = "toggle",
+                    text = _("Show (KOA) on KOAssistant's buttons"),
+                    path = "features.show_koa_suffix_in_dictionary",
+                    default = true,
+                    depends_on = { id = "enable_dictionary_hook", value = true },
+                    help_text = _("Mark KOAssistant's buttons in the dictionary popup with '(KOA)', to tell them apart from KOReader's own. Takes effect on the next lookup."),
                 },
                 {
                     id = "dictionary_popup_actions",
@@ -2461,6 +2497,14 @@ local SettingsSchema = {
                     path = "features.show_book_settings_in_file_browser",
                     default = true,
                     help_text = _("Show 'Book Settings' button when long-pressing books in the file browser."),
+                },
+                {
+                    id = "show_koa_suffix_in_file_browser",
+                    type = "toggle",
+                    text = _("Show (KOA) on KOAssistant's buttons"),
+                    path = "features.show_koa_suffix_in_file_browser",
+                    default = true,
+                    help_text = _("Mark KOAssistant's buttons in the file browser's long-press menu with '(KOA)', to tell them apart from KOReader's own."),
                 },
                 {
                     id = "file_browser_actions",
