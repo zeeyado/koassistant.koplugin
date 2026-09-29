@@ -737,6 +737,16 @@ ModelConstraints._max_output_tokens = {
         ["openai/gpt-oss-20b"] = 65536,
         -- llama-3.1-8b-instant allows 131072 output (no cap needed)
     },
+    cohere = {
+        -- Probed live 2026-09-29: each model's own refusal ("max tokens must be
+        -- less than or equal to N, the maximum output length for this model"),
+        -- then accepted at exactly N. Unlisted, the X-Ray's 65536 pin failed on
+        -- every Cohere model and the 16384 default on the two smaller ones.
+        ["command-a-plus"] = 64000,
+        ["command-a-reasoning"] = 32768,
+        ["command-a-03-2025"] = 8192,
+        ["command-r7b"] = 4096,
+    },
 }
 
 --- MAX INPUT tokens per model, for the model-aware extraction pre-check.
@@ -2074,7 +2084,8 @@ function ModelConstraints.parseMaxTokensError(err_text)
     local cap = err_text:match("supports at most (%d+) completion tokens")            -- OpenAI
         or err_text:match("supports at most (%d+) output tokens")
         or err_text:match("max_tokens: %d+ > (%d+)")                                   -- Anthropic
-        or err_text:match("max_tokens[^%d]-must be less than or equal to[^%d]*(%d+)")  -- Groq et al
+        -- Groq et al; Cohere writes "max tokens" (probed 2026-09-29)
+        or err_text:match("max[_ ]tokens[^%d]-must be less than or equal to[^%d]*(%d+)")
         or err_text:match("max_completion_tokens[^%d]-must be less than or equal to[^%d]*(%d+)")
         or err_text:match("max_tokens[^%d]-cannot exceed[^%d]*(%d+)")
         or err_text:match("maximum allowed number of output tokens[^%d]*(%d+)")

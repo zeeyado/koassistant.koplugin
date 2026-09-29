@@ -152,6 +152,19 @@ local CORPUS = {
         ladder = { kind = "too_large", transient = false },
     },
     {
+        id = "cohere_output_cap",
+        provider = "cohere",
+        status = 400,
+        source = "live probe 2026-09-29 (v2/chat, command-a-plus-05-2026); every X-Ray on Cohere failed "
+            .. "with it (the 65536 pin), unhealed: the parser only knew 'max_tokens'",
+        envelope = '{"error_type":"TOO_MANY_TOKENS","id":"...","message":"..."}',
+        text = "too many tokens: max tokens must be less than or equal to 64000, the maximum output "
+            .. "length for this model - received 65536.",
+        expect = { kind = "output_cap", limit = 64000, rate_limit = false },
+        hint = "none",
+        ladder = { kind = "too_large", transient = false },
+    },
+    {
         id = "gemini_max_output_range",
         provider = "gemini",
         status = 400,

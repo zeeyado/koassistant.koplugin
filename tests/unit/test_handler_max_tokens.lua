@@ -84,7 +84,10 @@ local CASES = {
     { "xai",        "koassistant_api.xai",               "grok-4.5",                  32768 },
     { "zai",        "koassistant_api.zai",               "glm-5.2",                  128000 },
     { "openrouter", "koassistant_api.openrouter",        "anthropic/claude-sonnet-5",128000 },
-    { "cohere",     "koassistant_api.cohere",            "command-a-plus-05-2026",      nil },
+    -- Cohere: each model's own refusal, probed 2026-09-29 (every X-Ray failed on
+    -- the 65536 pin, and every request on R7B / A 03-2025 on the 16384 default)
+    { "cohere",     "koassistant_api.cohere",            "command-a-plus-05-2026",    64000 },
+    { "cohere",     "koassistant_api.cohere",            "command-r7b-12-2024",        4096 },
     { "groq",       "koassistant_api.groq",              "llama-3.3-70b-versatile",   32768 },
     -- Perplexity Agent API (B078): no curated ceiling for its default model; the
     -- 16384 fallback was probed accepted (and 65536/131072 on Sonar)
