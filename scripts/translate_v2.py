@@ -958,13 +958,17 @@ CRITICAL RULES:
             "anthropic-version": "2023-06-01"
         }
 
+        # Sonnet 5 and 5.5 run adaptive thinking by default when this is omitted;
+        # thinking tokens count against max_tokens. Turn it off for mechanical
+        # translation (matches the old Sonnet 4.6 behavior). Sonnet 5.5 refuses
+        # "disabled" and names "between_tools" as its lowest setting (no thinking
+        # at all on a prompt without tools, probed 2026-09-29); Sonnet 5 and
+        # older take "disabled" and refuse "between_tools".
+        thinking_off = "between_tools" if self.model.startswith("claude-sonnet-5-5") else "disabled"
         data = {
             "model": self.model,
             "max_tokens": 8192,
-            # Sonnet 5 runs adaptive thinking by default when this is omitted;
-            # thinking tokens count against max_tokens. Disable for mechanical
-            # translation (matches the old Sonnet 4.6 behavior).
-            "thinking": {"type": "disabled"},
+            "thinking": {"type": thinking_off},
             "messages": [
                 {"role": "user", "content": prompt}
             ]
@@ -1243,7 +1247,7 @@ def cmd_run(args, entries: List[POEntry], po_path: Path, script_dir: Path):
     if args.model:
         model = args.model
     elif provider == 'anthropic':
-        model = 'claude-sonnet-5'
+        model = 'claude-sonnet-5-5'
     else:
         model = 'gpt-5.2'
 
@@ -1500,7 +1504,7 @@ def cmd_multi_run(args, langs: List[str], script_dir: Path, locale_dir: Path):
     if args.model:
         model = args.model
     elif provider == 'anthropic':
-        model = 'claude-sonnet-5'
+        model = 'claude-sonnet-5-5'
     else:
         model = 'gpt-5.2'
 
@@ -1720,7 +1724,7 @@ ALL AI translations are marked fuzzy. Verified translations are never touched.
 
     # API options
     parser.add_argument("--api", help="API provider (anthropic or openai)")
-    parser.add_argument("--model", help="Model name (e.g., claude-sonnet-4-5, gpt-4o)")
+    parser.add_argument("--model", help="Model name (default: claude-sonnet-5-5 for anthropic, gpt-5.2 for openai)")
     parser.add_argument("--concurrency", type=int, default=4,
                         help="Languages translated in parallel for multi-language runs (default: 4)")
 
