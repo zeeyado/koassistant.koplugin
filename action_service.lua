@@ -2065,7 +2065,11 @@ local INPUT_CONTEXTS = {
         -- Curated defaults: non-open-book actions suitable for file browser context
         -- Includes the sidecar-powered analyze_highlights (reads DocSettings);
         -- xray_simple left 2026-08-17 (A9 follow-up, same call as the book list)
-        default_ids = {"book_info", "similar_books", "analyze_highlights", "related_thinkers", "explain_author", "historical_context", "book_reviews", "suggest_from_library"},
+        -- and returned last 2026-09-30 (maintainer: it was the ONE action the
+        -- "Show More Actions" button revealed here; the open-book list keeps
+        -- eleven behind its button and stays as it is). Existing lists get it
+        -- appended by _processInputList unless the reader dismissed it.
+        default_ids = {"book_info", "similar_books", "analyze_highlights", "related_thinkers", "explain_author", "historical_context", "book_reviews", "suggest_from_library", "xray_simple"},
     },
     highlight = {
         settings_key = "input_highlight_actions",
