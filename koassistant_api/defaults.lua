@@ -27,7 +27,7 @@ local function getDefaultModel(provider)
         a2agent = "deepseek-v4-flash",
         qwen = "qwen3-max",
         kimi = "kimi-k2.6",
-        together = "deepseek-ai/DeepSeek-V4-Pro",
+        together = "deepseek-ai/DeepSeek-V4-Pro-0813",
         fireworks = "accounts/fireworks/models/gpt-oss-120b",
         sambanova = "gpt-oss-120b",
         cohere = "command-a-plus-05-2026",

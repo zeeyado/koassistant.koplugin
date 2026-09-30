@@ -38,8 +38,8 @@ local ModelLists = {
         -- Responses API (probed 2026-09-28).
         -- GPT-6.1 Sol (2026-09-29, $2/$10 like 6-sol): the same shape except that it
         -- cannot turn reasoning off (low..xhigh; battery 2026-09-30).
-        "gpt-6.1-sol",
-        "gpt-6-sol",                    -- flagship (most capable of the everyday models)
+        "gpt-6.1-sol",                  -- flagship (most capable of the everyday models)
+        "gpt-6-sol",                    -- previous sol; turns reasoning off
         "gpt-6-luna",                   -- cost-optimized
         "gpt-6-astra",                  -- frontier, premium price
         "gpt-5.6-sol",
@@ -328,7 +328,7 @@ local ModelLists = {
 
     together = {
         -- DeepSeek V4 (current)
-        "deepseek-ai/DeepSeek-V4-Pro",                       -- flagship + reasoning
+        "deepseek-ai/DeepSeek-V4-Pro-0813",                  -- default + flagship; the bare -Pro slug left the catalog (2026-09-28, -30), only this dated id is listed (the Flash-0731 precedent; unverified by request: our key has no credits)
         "deepseek-ai/DeepSeek-V4-Flash-0731", -- dated variant is the live id (catalog-verified 2026-08-15; the bare -Flash slug is gone)
         -- Llama 3.3
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",           -- standard/fast
@@ -674,7 +674,7 @@ local ModelLists = {
         requesty   = { "openai/gpt-4o-mini" },
         qwen       = { "qwen3-max" },
         kimi       = { "kimi-k2.6", "kimi-k2.5", "kimi-k2-0905-preview" },
-        together   = { "deepseek-ai/DeepSeek-V4-Pro", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8" },
+        together   = { "deepseek-ai/DeepSeek-V4-Pro-0813", "deepseek-ai/DeepSeek-V4-Pro", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8" },
         fireworks  = { "accounts/fireworks/models/gpt-oss-120b", "accounts/fireworks/models/deepseek-v4-pro", "accounts/fireworks/models/llama4-maverick-instruct-basic" },
         sambanova  = { "gpt-oss-120b", "Llama-4-Maverick-17B-128E-Instruct", "Meta-Llama-4-Maverick-17B-128E-Instruct" },
         cohere     = { "command-a-plus-05-2026", "command-a-03-2025" },
@@ -732,6 +732,11 @@ local ModelLists = {
             ["accounts/fireworks/models/gpt-oss-20b"] = "accounts/fireworks/models/gpt-oss-120b",
             ["accounts/fireworks/models/glm-5p2"] = "accounts/fireworks/models/glm-5p3",   -- recheck 2026-09-29
         },
+        -- Gone from Together's catalog 2026-09-28 (only the dated -0813 listed; catalog
+        -- evidence, the key has no credits to confirm by request).
+        together = {
+            ["deepseek-ai/DeepSeek-V4-Pro"] = "deepseek-ai/DeepSeek-V4-Pro-0813",
+        },
     },
 
     _tiers = {
@@ -757,7 +762,7 @@ local ModelLists = {
         -- Provider's most capable general-purpose model
         flagship = {
             anthropic = "claude-opus-5-5",           -- deep-reasoning flagship; sonnet-5-5 is the standard tier
-            openai = "gpt-6-sol",                    -- same price as 5.6-sol; reasons by default
+            openai = "gpt-6.1-sol",                  -- same price as 6-sol; reasons by default and cannot turn it off
             openai_codex = "gpt-5.6-terra", -- best slug served on ALL plans (sol 400s on free accounts; still pickable manually)
             deepseek = "deepseek-v4-pro",
             gemini = "gemini-3.8-flash",             -- Pro models are paid-only; keep tier free-tier usable (3.8-flash answers on a free key 2026-09-28)
@@ -766,7 +771,7 @@ local ModelLists = {
             xai = "grok-4.7",
             cohere = "command-a-plus-05-2026",
             ollama = "llama4",
-            together = "deepseek-ai/DeepSeek-V4-Pro",
+            together = "deepseek-ai/DeepSeek-V4-Pro-0813",
             fireworks = "accounts/fireworks/models/glm-5p3",       -- deepseek-v4-pro stopped serving 2026-09
             sambanova = "gpt-oss-120b",              -- Maverick deprecated 2026-06-09
             qwen = "qwen3-max",

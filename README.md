@@ -4005,7 +4005,7 @@ The first model in each provider's list is its default. Current defaults (subjec
 | Provider | Default | Notable alternatives |
 |----------|---------|----------------------|
 | **Anthropic** | `claude-sonnet-5-5` | `claude-opus-5-5` (deep reasoning), `claude-fable-5-1` (most capable, premium price), `claude-sonnet-5` (previous default), `claude-haiku-4-5` (fast), `claude-sonnet-4-6` (1M context) |
-| **OpenAI** | `gpt-5.6-terra` | `gpt-6.1-sol` (newest sol, can't turn reasoning off), `gpt-6-sol` (most capable, reasons by default), `gpt-6-luna` (cost-saver), `gpt-6-astra` (frontier, premium price), `gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.5` |
+| **OpenAI** | `gpt-5.6-terra` | `gpt-6.1-sol` (most capable, can't turn reasoning off), `gpt-6-sol` (previous sol, reasons by default), `gpt-6-luna` (cost-saver), `gpt-6-astra` (frontier, premium price), `gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.5` |
 | **DeepSeek** | `deepseek-flash` | `deepseek-v4-pro` (most capable; both 1M context, thinking on by default). `deepseek-flash` is DeepSeek's new name for the V4 flash model |
 | **Gemini** | `gemini-3.8-flash` | `gemini-3.7-flash`, `gemini-3.1-pro-preview` (paid only), `gemini-3.5-flash-lite` (ultrafast), `gemini-2.5-flash/pro` (older accounts only) |
 | **Groq** | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` (fast), `qwen/qwen3.8-27b` |
@@ -4019,7 +4019,7 @@ The first model in each provider's list is its default. Current defaults (subjec
 | **Doubao** | `doubao-seed-2.0-pro-32k` | `doubao-seed-2.0-pro-256k`, `doubao-seed-2.0-lite` |
 | **Ollama** | `llama4` | `qwen3.5`, `deepseek-v4`, `gemma4`, `mistral`, `phi4`, `tinyllama` |
 
-> **Note:** OpenRouter, Requesty, Together, Fireworks, and SambaNova use provider-prefixed or vendor-specific model IDs (e.g. `anthropic/claude-sonnet-5` on OpenRouter, `deepseek-ai/DeepSeek-V4-Pro` on Together) — see the provider's own catalog for exact strings.
+> **Note:** OpenRouter, Requesty, Together, Fireworks, and SambaNova use provider-prefixed or vendor-specific model IDs (e.g. `anthropic/claude-sonnet-5` on OpenRouter, `deepseek-ai/DeepSeek-V4-Pro-0813` on Together) — see the provider's own catalog for exact strings.
 
 ### Provider Quirks
 

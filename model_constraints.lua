@@ -1463,6 +1463,7 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
     },
     together = {
+        -- The prefix covers the dated -0813 id the list now carries (same model, unprobed: no credits)
         { match = "deepseek-ai/DeepSeek-V4-Pro", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },

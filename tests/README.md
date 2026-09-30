@@ -115,13 +115,24 @@ lua tests/model_audit.lua --probe anthropic claude-opus-5
 # Probe everything the diff found (capped at 10 per run)
 lua tests/model_audit.lua --probe-new
 
+# Key health: one request per keyed provider on its default model (cents)
+lua tests/model_audit.lua --keys
+
+# Drift sweep over the curated models (2-3 requests each); --ceilings adds the
+# output-limit leg and prints draft lines for models with no limit on record
+lua tests/model_audit.lua --recheck mistral --ceilings
+
 lua tests/model_audit.lua --verbose   # full error bodies + ignored-id lists
 ```
 
 OpenRouter runs in marketplace mode (verifies curated ids exist + cross-checks
 their `supported_parameters` against our resolution instead of listing hundreds
-of "new" backends). Pure helpers are unit-tested in
-`tests/unit/test_model_audit.lua`; the probe engine itself is live-only.
+of "new" backends). A full discovery run also lists where a vendor's new model is
+served on a gateway we do not curate it on, and OpenRouter's recent releases that
+no list carries. Every run that sends requests ends with SPEND: the tokens each
+reply reported, per provider, and an estimate at OpenRouter's list prices. Pure
+helpers are unit-tested in `tests/unit/test_model_audit.lua`; the probe engine
+itself is live-only.
 
 ### Request Inspector (`inspect.lua`)
 

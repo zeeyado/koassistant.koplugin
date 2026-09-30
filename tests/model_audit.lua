@@ -30,6 +30,16 @@
 --                                                      # curated and community, that no ceiling
 --                                                      # clamps (LIVE, 1 request each); a refusal
 --                                                      # must parse (B355, the Cohere class)
+--   lua tests/model_audit.lua --keys [providers]       # ONE request per keyed provider on its
+--                                                      # default model: which keys work, which
+--                                                      # accounts are empty or on a plan without it
+--   Every mode that sends requests ends with SPEND: the tokens each reply reported,
+--   per provider, and an estimate at OpenRouter's list prices (its public catalog,
+--   free). Discovery also lists where a NEW direct id is served but not curated
+--   (OpenRouter, Perplexity, Requesty, the OpenCode doors, A2Agent) and, on a full
+--   run, OpenRouter's releases of the last 30 days from vendors we curate that no
+--   list carries. A 429 stating a zero allowance (x-ratelimit-limit-*: 0) is the
+--   key's plan: never retried, graded as the key's limitation, never as drift.
 --   Options: --verbose   full error bodies + ignored-id lists
 --   Env: KOA_PROBE_MAX_TOKENS=900  cap chat-wire token asks (free per-minute output buckets)
 --        KOA_KEY_ALIAS_<PROVIDER>  pick a key entry by alias (default: the first)
@@ -193,6 +203,11 @@ ModelAudit.DELIBERATE_SKIPS = {
         ["accounts/fireworks/routers/glm-5p2-fast"] = "speed-routed duplicate of curated glm-5p2",
         ["accounts/fireworks/models/deepseek-v4-pro-0813"] = "listed but 'not deployed' on request 2026-09-28",
         ["accounts/fireworks/models/deepseek-v4-flash-vision-exp"] = "vision experiment of the flash line",
+        -- Retired 2026-09-28/29 (still listed, "not deployed" on request; _retired moves saved picks)
+        ["accounts/fireworks/models/deepseek-v4-pro"] = "listed but 'not deployed' on request 2026-09-28 (retired)",
+        ["accounts/fireworks/models/deepseek-v4-flash-0731"] = "listed but 'not deployed' on request 2026-09-28 (retired)",
+        ["accounts/fireworks/models/kimi-k2p6"] = "listed but 'not deployed' on request 2026-09-28 (retired)",
+        ["accounts/fireworks/models/glm-5p2"] = "listed but 'not found' on request 2026-09-29 (retired)",
     },
     kimi = {
         ["kimi-k2.7-code"] = "coding model; forced tool calls need thinking off (2026-09-28)",
@@ -276,6 +291,22 @@ ModelAudit.REVIEWED = {
     -- The whole /v1/models catalog probed through the handler 2026-09-28
     -- (docs/perplexity_agent_plan.md, round 2); exceptions live in
     -- capabilities.perplexity.
+    -- Model Studio: the other vendors' models it hosts (maintainer 2026-09-30: not
+    -- curated here, the gateways carry them) and older or dated Qwen variants the
+    -- curated 3.8 pair supersedes. A new id still prints as NEW.
+    qwen = { date = "2026-09-30", ids = {
+            "ZHIPU/GLM-5.3", "deepseek-v3.2", "deepseek-v4-flash", "deepseek-v4-flash-0731",
+            "deepseek-v4-pro", "deepseek-v4-pro-0813", "deepseek-v4.1-flash", "glm-5.1",
+            "glm-5.2", "glm-5.2-fast-preview", "glm-5.3", "glm-5.3-prime", "kimi-k2.7-code",
+            "kimi-k3", "kimi/kimi-k3", "qwen-flash", "qwen-max", "qwen-plus",
+            "qwen3-235b-a22b-thinking-2507", "qwen3-coder-480b-a35b-instruct",
+            "qwen3-coder-flash", "qwen3-coder-next", "qwen3.5-122b-a10b", "qwen3.5-35b-a3b",
+            "qwen3.5-397b-a17b", "qwen3.6-27b", "qwen3.6-35b-a3b", "qwen3.6-flash",
+            "qwen3.6-flash-2026-04-16", "qwen3.6-max-preview", "qwen3.6-plus",
+            "qwen3.6-plus-2026-04-02", "qwen3.7-flash", "qwen3.7-flash-2026-07-15", "qwen3.7-max",
+            "qwen3.7-max-2026-05-17", "qwen3.7-max-2026-05-20", "qwen3.7-max-2026-06-08",
+            "qwen3.7-max-preview", "qwen3.7-plus-2026-05-26"
+    } },
     perplexity = { date = "2026-09-28", ids = {
             "anthropic/claude-fable-5", "anthropic/claude-fable-5-1",
             "anthropic/claude-haiku-4-5", "anthropic/claude-opus-4-5",
@@ -567,6 +598,9 @@ function ModelAudit.isTransient(code, text)
     if code == nil then return true end
     local n = tonumber(code)
     if n == 429 or (n and n >= 500 and n < 600) then return true end
+    -- A refused key or an empty account never clears by retrying, whatever the
+    -- wording invites (Together's 402 ends "... and try again", 2026-09-30).
+    if n == 401 or n == 402 then return false end
     local lower = tostring(text or ""):lower()
     -- A validation refusal stays a verdict even when its wording invites a
     -- retry (Gemini's MINIMAL rejection: "is not supported ... Please retry
@@ -579,6 +613,239 @@ function ModelAudit.isTransient(code, text)
         if lower:find(frag, 1, true) then return true end
     end
     return false
+end
+
+-- Pure: the rate-limit header stating a ZERO allowance, or nil. A plan with no
+-- access to a model answers 429 with x-ratelimit-limit-req-minute: 0 (Mistral's
+-- medium, small and magistral on our key, 2026-09-28 and -30): the key's plan,
+-- not a busy server, so the seam never retries it (it cost ~45 s a model) and
+-- the recheck grades it the key's limitation, not drift.
+function ModelAudit.planLimitHeader(headers)
+    if type(headers) ~= "table" then return nil end
+    local names = {}
+    for name in pairs(headers) do names[#names + 1] = tostring(name) end
+    table.sort(names)
+    for _i, name in ipairs(names) do
+        local lname = name:lower()
+        if lname:find("^x%-ratelimit%-limit") and tostring(headers[name]):match("^%s*0%s*$") then
+            return lname
+        end
+    end
+    return nil
+end
+
+local function tokenCount(v)
+    return type(v) == "number" and v or 0
+end
+
+-- The usage one decoded reply (or one stream event) reports: input, output; nil
+-- when it reports none.
+local function usageFields(t)
+    if type(t) ~= "table" then return nil end
+    local u = t.usage
+    if type(u) ~= "table" and type(t.response) == "table" then u = t.response.usage end  -- Responses stream event
+    if type(u) ~= "table" and type(t.message) == "table" then u = t.message.usage end    -- Anthropic message_start
+    if type(u) == "table" then
+        -- Cohere bills billed_units (tokens = what ran); the rest report flat fields
+        local b = type(u.billed_units) == "table" and u.billed_units
+            or type(u.tokens) == "table" and u.tokens or u
+        local tin = tokenCount(b.prompt_tokens) + tokenCount(b.input_tokens)
+            + tokenCount(u.cache_creation_input_tokens) + tokenCount(u.cache_read_input_tokens)
+        local tout = tokenCount(b.completion_tokens) + tokenCount(b.output_tokens)
+        -- xAI counts reasoning outside completion_tokens (total = prompt + completion
+        -- + reasoning), OpenAI inside (total = prompt + completion)
+        local beyond = tokenCount(u.total_tokens) - tokenCount(b.prompt_tokens) - tokenCount(b.completion_tokens)
+        if tokenCount(b.completion_tokens) > 0 and beyond > 0 then tout = tout + beyond end
+        if tin > 0 or tout > 0 then return tin, tout end
+    end
+    local m = t.usageMetadata   -- Gemini: thoughts bill as output
+    if type(m) == "table" then
+        return tokenCount(m.promptTokenCount), tokenCount(m.candidatesTokenCount) + tokenCount(m.thoughtsTokenCount)
+    end
+    return nil
+end
+
+-- Pure: input and output tokens one reply reports (0, 0 when none): a JSON
+-- body, or a stream's events, keeping the largest value each field reaches
+-- (OpenAI's final chunk, Anthropic's message_start + message_delta, Gemini's
+-- running counts, the Responses completed event).
+function ModelAudit.usageOf(decoded, raw)
+    local tin, tout = usageFields(decoded)
+    if tin then return tin, tout end
+    tin, tout = 0, 0
+    if type(raw) ~= "string" or not JSON_OK then return tin, tout end
+    for line in raw:gmatch("[^\r\n]+") do
+        local payload = line:match("^data:%s*(%{.*%})%s*$")
+        if payload then
+            local ok, ev = pcall(json.decode, payload)
+            local i, o = usageFields(ok and ev or nil)
+            if i then
+                if i > tin then tin = i end
+                if o > tout then tout = o end
+            end
+        end
+    end
+    return tin, tout
+end
+
+-- Adds one request to the spend tally: provider -> { requests, input, output,
+-- searches, models = { [id] = { input, output } } }.
+function ModelAudit.tallyAdd(tally, provider, model, tin, tout, searched)
+    local row = tally[provider]
+    if not row then
+        row = { requests = 0, input = 0, output = 0, searches = 0, models = {} }
+        tally[provider] = row
+    end
+    row.requests = row.requests + 1
+    row.input, row.output = row.input + (tin or 0), row.output + (tout or 0)
+    if searched then row.searches = row.searches + 1 end
+    local key = tostring(model or "?")
+    local m = row.models[key] or { input = 0, output = 0 }
+    m.input, m.output = m.input + (tin or 0), m.output + (tout or 0)
+    row.models[key] = m
+end
+
+-- An id's last path segment, folded the way OpenRouter spells versions (5.5 and
+-- 5-5 alike; Fireworks' 5p3 = 5.3).
+local function tailKey(id)
+    local tail = tostring(id):match("([^/]+)$") or tostring(id)
+    return (orNormalize(tail):gsub("(%d)p(%d)", "%1-%2"))
+end
+
+-- Pure: OpenRouter's per-token list prices (input, output) for provider/model,
+-- or nil: the id itself (OpenRouter, and gateways that spell ids its way), the
+-- vendor/model spelling (OPENROUTER_PREFIX), then the id's last segment against
+-- the catalog's (hosts with their own spellings). Variable prices (-1) are nil.
+function ModelAudit.priceFor(or_models, provider, model)
+    if type(or_models) ~= "table" or type(model) ~= "string" then return nil end
+    local meta = or_models[model]
+    if not meta then
+        local _slug
+        _slug, meta = ModelAudit.openrouterLookup(or_models, provider, model)
+    end
+    if not meta then
+        local want, ids = tailKey(model), {}
+        for id in pairs(or_models) do
+            if not id:find(":", 1, true) and tailKey(id) == want then ids[#ids + 1] = id end
+        end
+        table.sort(ids)
+        meta = ids[1] and or_models[ids[1]]
+    end
+    local p = type(meta) == "table" and type(meta.pricing) == "table" and meta.pricing
+    local pin, pout = p and tonumber(p.prompt), p and tonumber(p.completion)
+    if pin and pout and pin >= 0 and pout >= 0 then return pin, pout end
+    return nil
+end
+
+-- Pure: the SPEND rows (per provider: requests, tokens, searches, an estimated
+-- cost or nil when no model it ran is priced), the run's total, and how many
+-- models with tokens the catalog does not price.
+function ModelAudit.spendRows(tally, or_models)
+    local rows, total, unpriced, names = {}, 0, 0, {}
+    for p in pairs(tally or {}) do names[#names + 1] = p end
+    table.sort(names)
+    for _i, p in ipairs(names) do
+        local row = tally[p]
+        local cost, priced = 0, false
+        for model, t in pairs(row.models) do
+            local pin, pout = ModelAudit.priceFor(or_models, p, model)
+            if pin then
+                cost = cost + t.input * pin + t.output * pout
+                priced = true
+            elseif t.input + t.output > 0 then
+                unpriced = unpriced + 1
+            end
+        end
+        local r = { provider = p, requests = row.requests, input = row.input, output = row.output,
+                    searches = row.searches }
+        if priced then
+            r.cost = cost
+            total = total + cost
+        end
+        rows[#rows + 1] = r
+    end
+    return rows, total, unpriced
+end
+
+-- Gateways that carry other vendors' models under their own spellings.
+ModelAudit.GATEWAYS = { "openrouter", "perplexity", "requesty", "opencode", "opencode_go", "a2agent" }
+ModelAudit.GATEWAY_SET = {}
+for _i, g in ipairs(ModelAudit.GATEWAYS) do ModelAudit.GATEWAY_SET[g] = true end
+
+-- Pure: where a vendor's NEW id is served but not curated: "gateway id" entries
+-- from each gateway's fetched list (id -> meta) whose last segment matches and
+-- whose prefix is the vendor's (or the gateway's own, or none): a host's copy
+-- under a gateway ("deepinfra/...") is not the vendor's release. Variants
+-- (":batch", ":free") skipped.
+function ModelAudit.mirrorsOf(provider, model, gateways, lists)
+    local want, hits, names = tailKey(model), {}, {}
+    for g in pairs(gateways or {}) do names[#names + 1] = g end
+    table.sort(names)
+    for _i, g in ipairs(names) do
+        local curated = {}
+        for _j, id in ipairs(type(lists[g]) == "table" and lists[g] or {}) do curated[id] = true end
+        local ids = {}
+        for id in pairs(type(gateways[g]) == "table" and gateways[g] or {}) do
+            local vendor = id:match("^([^/]+)/")
+            if not id:find(":", 1, true) and not curated[id] and tailKey(id) == want
+                    and (vendor == nil or vendor == g or ModelAudit.VENDOR_PROVIDER[vendor] == provider) then
+                ids[#ids + 1] = id
+            end
+        end
+        table.sort(ids)
+        for _j, id in ipairs(ids) do hits[#hits + 1] = g .. " " .. id end
+    end
+    return hits
+end
+
+-- Vendor prefix -> the direct provider that curates the vendor: OpenRouter's
+-- spellings, then Perplexity's and Requesty's own (xai, zai, moonshot, alibaba).
+ModelAudit.VENDOR_PROVIDER = {
+    anthropic = "anthropic", openai = "openai", google = "gemini", mistralai = "mistral",
+    ["x-ai"] = "xai", deepseek = "deepseek", ["z-ai"] = "zai", moonshotai = "kimi", qwen = "qwen",
+    xai = "xai", zai = "zai", mistral = "mistral", moonshot = "kimi", alibaba = "qwen",
+}
+-- The vendors' own providers (hosts such as Fireworks or Together serve copies).
+ModelAudit.VENDOR_SET = {}
+for _vendor, provider in pairs(ModelAudit.VENDOR_PROVIDER) do ModelAudit.VENDOR_SET[provider] = true end
+ModelAudit.RELEASE_DAYS = 30
+
+-- Pure: OpenRouter catalog ids from a vendor we curate, created within `days`
+-- of `now`, on no list (OpenRouter's, Perplexity's, Requesty's, or the vendor's
+-- own provider's, under any spelling), not noise there, variants and dated
+-- snapshots of a curated id skipped: the releases a keyless or skipped
+-- discovery would hide. Newest first.
+function ModelAudit.vendorReleases(or_models, lists, now, days)
+    local listed = {}
+    for _i, g in ipairs({ "openrouter", "perplexity", "requesty" }) do
+        for _j, id in ipairs(type(lists[g]) == "table" and lists[g] or {}) do listed[orNormalize(id)] = true end
+    end
+    local direct, out = {}, {}
+    for id, meta in pairs(type(or_models) == "table" and or_models or {}) do
+        local vendor, tail = id:match("^([^/]+)/(.+)$")
+        local provider = vendor and ModelAudit.VENDOR_PROVIDER[vendor]
+        local created = ModelAudit.modelTimestamp(meta)
+        if provider and created and now - created <= days * 86400 and not id:find(":", 1, true)
+                and not listed[orNormalize(id)] and not ModelAudit.isNoise(provider, tail) then
+            local d = direct[provider]
+            if not d then
+                d = { keys = {}, set = {} }
+                for _j, cid in ipairs(type(lists[provider]) == "table" and lists[provider] or {}) do
+                    d.keys[tailKey(cid)] = true
+                    d.set[cid] = true
+                end
+                direct[provider] = d
+            end
+            if not d.keys[tailKey(tail)] and not ModelAudit.isSnapshotOf(tail, d.set) then
+                out[#out + 1] = { id = id, created = created }
+            end
+        end
+    end
+    table.sort(out, function(a, b)
+        if a.created ~= b.created then return a.created > b.created end
+        return a.id < b.id
+    end)
+    return out
 end
 
 --------------------------------------------------------------------------------
@@ -627,7 +894,14 @@ local function httpGet(url, headers)
     return text, err
 end
 
--- POST JSON; returns http_code (number|string), decoded (table|nil), raw text.
+-- What the mode loops are checking (the seam sees only URLs and bodies), the
+-- last POST's zero-allowance header, and the run's spend tally.
+local RUN = { provider = nil, model = nil }
+local LAST = { plan_limit = nil }
+local TALLY = {}
+
+-- POST JSON; returns http_code (number|string), decoded (table|nil), raw text,
+-- response headers.
 local function httpPostJsonOnce(url, headers, body_tbl)
     local https = require("ssl.https")
     local ltn12 = require("ltn12")
@@ -636,7 +910,7 @@ local function httpPostJsonOnce(url, headers, body_tbl)
     local hdrs = { ["Content-Type"] = "application/json",
                    ["Content-Length"] = tostring(#payload) }
     for k, v in pairs(headers or {}) do hdrs[k] = v end
-    local ok, code = https.request({
+    local ok, code, rheaders = https.request({
         url = url, method = "POST", headers = hdrs,
         source = ltn12.source.string(payload),
         sink = ltn12.sink.table(chunks),
@@ -648,14 +922,21 @@ local function httpPostJsonOnce(url, headers, body_tbl)
         local dok, d = pcall(json.decode, text)
         if dok and type(d) == "table" then decoded = d end
     end
-    return tonumber(code) or code, decoded, text
+    if RUN.provider then
+        local tin, tout = ModelAudit.usageOf(decoded, text)
+        local searched = RUN.provider == "perplexity" and (ModelAudit.agentSearchFacts(decoded))
+        ModelAudit.tallyAdd(TALLY, RUN.provider, body_tbl.model or RUN.model, tin, tout, searched)
+    end
+    return tonumber(code) or code, decoded, text, rheaders
 end
 
 local function httpPostJson(url, headers, body_tbl)
-    local code, decoded, raw
+    local code, decoded, raw, rheaders
     for attempt = 1, #RETRY_DELAYS + 1 do
-        code, decoded, raw = httpPostJsonOnce(url, headers, body_tbl)
-        if code == 200 or not ModelAudit.isTransient(code, raw) then
+        code, decoded, raw, rheaders = httpPostJsonOnce(url, headers, body_tbl)
+        LAST.plan_limit = nil
+        if code == 429 then LAST.plan_limit = ModelAudit.planLimitHeader(rheaders) end
+        if code == 200 or LAST.plan_limit or not ModelAudit.isTransient(code, raw) then
             return code, decoded, raw
         end
         local delay = RETRY_DELAYS[attempt]
@@ -685,6 +966,29 @@ local function parseOpenAIShapedList(data)
         if type(m) == "table" and type(m.id) == "string" then out[m.id] = m end
     end
     return out
+end
+
+-- OpenRouter's public catalog (id -> meta), fetched once per run without a key
+-- (free) unless discovery already fetched it (seed): prices for the spend
+-- estimate, mirrors of NEW ids, vendor releases. nil when unreachable.
+local OR_CATALOG
+function ModelAudit.orCatalog(seed)
+    if seed then OR_CATALOG = seed end
+    if OR_CATALOG == nil then
+        local text = httpGet(ModelLists._docs.openrouter.api_list)
+        local ok, data = pcall(json.decode, text or "")
+        OR_CATALOG = ok and parseOpenAIShapedList(data) or false
+    end
+    return OR_CATALOG or nil
+end
+
+-- A list endpoint that needs no key (Requesty, the OpenCode doors, A2Agent),
+-- parsed OpenAI-shaped; nil when unreachable.
+local function publicList(provider)
+    local docs = ModelLists._docs[provider]
+    local text = docs and docs.api_list and httpGet(docs.api_list)
+    local ok, data = pcall(json.decode, text or "")
+    return ok and parseOpenAIShapedList(data) or nil
 end
 
 -- Together: a BARE array, every entry typed (chat, language, image, embedding,
@@ -892,7 +1196,7 @@ local function runDiscovery(provider, api_key, verbose)
                 end
             end
         end
-        return { new = {}, removed = {} }
+        return { new = {}, removed = {} }, fetched
     end
 
     local undated = ModelAudit.undatedList(fetched)
@@ -976,7 +1280,7 @@ local function runDiscovery(provider, api_key, verbose)
             printf("  %signored (noise filter): %s%s", C.dim, table.concat(diff.ignored, ", "), C.off)
         end
     end
-    return diff
+    return diff, fetched
 end
 
 --------------------------------------------------------------------------------
@@ -2683,6 +2987,7 @@ end
 
 local function probeModel(provider, model, api_key, verbose)
     banner("PROBE " .. provider .. " / " .. model)
+    RUN.provider, RUN.model = provider, model
     -- Ollama: local + keyless; capabilities are derived at runtime, no stanzas
     if provider == "ollama" then
         local facts = probeOllama(model, verbose)
@@ -2714,6 +3019,10 @@ local function probeModel(provider, model, api_key, verbose)
         return nil
     end
 
+    if LAST.plan_limit then
+        printf("  %sthe last refusal states a zero allowance (%s: 0): this key's plan has no access to %s%s",
+            C.yellow, LAST.plan_limit, model, C.off)
+    end
     if facts and facts.reachable then
         print("")
         local current = ModelAudit.currentResolution(provider, model)
@@ -2742,6 +3051,10 @@ end
 -- the model accepts) is only a WARN.
 function ModelAudit.recheckCompare(obs, current)
     if not obs.served then
+        if obs.plan_limit then
+            return "warn", { "not probeable with this key: its plan allows no requests here ("
+                .. obs.plan_limit .. ": 0)" }
+        end
         -- Key-tier limitations (free-tier quota on paid-only models, staged
         -- rollouts, a lapsed plan, a new account locked out of an old family,
         -- spent credits) are about OUR key, not the curation - warn, don't drift.
@@ -2829,6 +3142,25 @@ function ModelAudit.recheckCompare(obs, current)
     return level, reasons
 end
 
+-- Pure: the --ceilings leg's draft for a model with NO output ceiling on record
+-- (nil when it has one, or the leg saw nothing conclusive): the stated ceiling,
+-- OpenRouter's largest published endpoint cap, or a note that the oversized ask
+-- was accepted (the provider clamps silently: nothing to record, and no pin can
+-- 400 there).
+function ModelAudit.ceilingDraft(model, obs, has_ceiling)
+    if has_ceiling or type(obs) ~= "table" then return nil end
+    if obs.ceiling then
+        return string.format('["%s"] = %d,   -- stated in %s', model, obs.ceiling,
+            obs.ceiling_source or "the refusal")
+    elseif obs.catalog_ceiling then
+        return string.format('["%s"] = %d,   -- the largest published endpoint cap', model, obs.catalog_ceiling)
+    elseif obs.ceiling_accepted then
+        return string.format("-- %s: accepted a %d-token ask (clamps silently; nothing to record)",
+            model, ABSURD_MAX_TOKENS)
+    end
+    return nil
+end
+
 -- The Minimal stance's request, built by the provider's REAL handler from the
 -- api_params dispatch computes for this curated model (resolveReasoning +
 -- applyReasoningParams). Sent once by the recheck: a refusal is the 400 that
@@ -2888,6 +3220,7 @@ local function recheckObserve(provider, model, api_key, opts)
             if ccode ~= 200 and ccode ~= 429 then
                 obs.ceiling = ModelAudit.parseCeiling(ModelAudit.errText(cdec, craw), ABSURD_MAX_TOKENS)
             end
+            obs.ceiling_accepted = ccode == 200
         end
         return obs
     elseif provider == "gemini" then
@@ -2914,6 +3247,7 @@ local function recheckObserve(provider, model, api_key, opts)
                 if mok and type(mdata) == "table"
                         and type(mdata.outputTokenLimit) == "number" then
                     obs.ceiling = mdata.outputTokenLimit
+                    obs.ceiling_source = "the model's metadata"
                 end
             end
         end
@@ -2942,6 +3276,7 @@ local function recheckObserve(provider, model, api_key, opts)
             if ccode ~= 200 and ccode ~= 429 then
                 obs.ceiling = ModelAudit.parseCeiling(ModelAudit.errText(cdec, craw), ABSURD_MAX_TOKENS)
             end
+            obs.ceiling_accepted = ccode == 200
         end
         return obs
     elseif OPENAI_FAMILY[provider] then
@@ -2993,6 +3328,15 @@ local function recheckObserve(provider, model, api_key, opts)
             if ccode ~= 200 and ccode ~= 429 then
                 obs.ceiling = ModelAudit.parseCeiling(ModelAudit.errText(cdec, craw), ABSURD_MAX_TOKENS)
             end
+            obs.ceiling_accepted = ccode == 200
+        elseif opts and opts.ceilings then
+            -- OpenRouter: the largest published endpoint cap (a free GET), for the
+            -- draft only (never compared: asks above it are answered there)
+            local text = httpGet("https://openrouter.ai/api/v1/models/" .. model .. "/endpoints", headers)
+            local dok, data = pcall(json.decode, text or "")
+            local endpoints = dok and type(data) == "table" and type(data.data) == "table"
+                and data.data.endpoints
+            obs.catalog_ceiling = ModelAudit.endpointsCeiling(endpoints)
         end
         return obs
     end
@@ -3023,8 +3367,11 @@ local function runRecheck(provider, api_key, verbose, opts)
     printf("  %s%d micro-requests per curated model, +1 where Minimal sends a reasoning setting (%d models)%s",
         C.dim, (opts and opts.ceilings) and 3 or 2, #curated, C.off)
     local counts = { ok = 0, warn = 0, drift = 0 }
+    local drafts = {}
     for _i, model in ipairs(curated) do
+        RUN.provider, RUN.model = provider, model
         local obs = recheckObserve(provider, model, api_key, opts)
+        if not obs.served then obs.plan_limit = LAST.plan_limit end
         -- (Perplexity's models carry no reasoning profile: Minimal sends nothing there)
         local built = obs.served and provider ~= "perplexity"
             and ModelAudit.minimalBuilt(provider, model, api_key) or nil
@@ -3044,10 +3391,20 @@ local function runRecheck(provider, api_key, verbose, opts)
             printf("  %s%-6s%s %-38s %s", level == "drift" and C.red or C.yellow,
                 level:upper(), C.off, model, table.concat(reasons, "; "))
         end
+        if opts and opts.ceilings then
+            local line = ModelAudit.ceilingDraft(model, obs,
+                ModelConstraints.resolveMaxTokens(provider, model, -1) ~= -1)
+            if line then drafts[#drafts + 1] = line end
+        end
     end
     printf("  %ssummary: %d ok, %d warn, %d drift%s",
         counts.drift > 0 and C.red or (counts.warn > 0 and C.yellow or C.green),
         counts.ok, counts.warn, counts.drift, C.off)
+    if #drafts > 0 then
+        printf("  %sNo output ceiling on record (review, then add to _max_output_tokens.%s):%s",
+            C.bold, provider, C.off)
+        for _i, line in ipairs(drafts) do printf("      %s", line) end
+    end
     return counts
 end
 
@@ -3134,6 +3491,7 @@ local function runPins(providers, apikeys, verbose)
         else
             printf("%s%s%s: %d without a ceiling", C.bold, p, C.off, #todo)
             for _j, m in ipairs(todo) do
+                RUN.provider, RUN.model = p, m
                 local bok, built = pcall(Handler.buildRequestBody, Handler,
                     { { role = "user", content = PROBE_PROMPT } },
                     { provider = p, model = m, api_key = key, system = { text = "Answer briefly." },
@@ -3149,6 +3507,7 @@ local function runPins(providers, apikeys, verbose)
                     err = code ~= 200 and ModelAudit.errText(dec, raw) or nil
                     verdict, parsed = ModelAudit.pinVerdict(code, err)
                     if err then err = "HTTP " .. tostring(code) .. ": " .. err end
+                    if err and LAST.plan_limit then err = err .. " (plan: " .. LAST.plan_limit .. " 0)" end
                 end
                 counts[verdict] = counts[verdict] + 1
                 local color = (verdict == "ok" and C.green) or (verdict == "drift" and C.red)
@@ -3183,6 +3542,137 @@ local function runPins(providers, apikeys, verbose)
 end
 
 --------------------------------------------------------------------------------
+-- Key health (--keys, 2026-09-30)
+--------------------------------------------------------------------------------
+-- One request per keyed provider on its default model, built by the provider's
+-- REAL handler (max_tokens 256, web off, no stream): which keys work, which
+-- accounts are empty, which plans exclude the default. About 20 tiny requests
+-- (cents); the error text prints with anything key-shaped redacted.
+
+--- The model a provider sends when the reader never picked one (the first listed).
+function ModelAudit.defaultModel(provider)
+    local list = ModelLists[provider]
+    if type(list) == "table" and type(list[1]) == "string" then return list[1] end
+    local pd = Defaults.ProviderDefaults[provider]
+    return pd and pd.model or nil
+end
+
+--- Grade one key-health reply. Pure.
+--- @return string "ok" | "key" (the key is refused) | "credits" (the account is
+---   empty) | "plan" (the plan or subscription excludes the model) | "rate" (busy:
+---   retry later) | "model" (the DEFAULT model is refused: a curation defect, every
+---   reader who never picked a model hits it) | "error" (anything else)
+function ModelAudit.keyVerdict(code, err_text, plan_limit)
+    if code == 200 then return "ok" end
+    local n = tonumber(code)
+    local lower = tostring(err_text or ""):lower()
+    local function has(list)
+        for _i, frag in ipairs(list) do
+            if lower:find(frag, 1, true) then return true end
+        end
+        return false
+    end
+    if n == 401 or has({ "api key", "api_key", "apikey", "unauthorized", "authentication" }) then
+        return "key"
+    end
+    if n == 402 or has({ "credit", "balance", "billing", "payment", "insufficient funds" }) then
+        return "credits"
+    end
+    if plan_limit or n == 403 or has({ "subscription", "tier" }) then return "plan" end
+    if n == 429 then return "rate" end
+    if n == 404 or (lower:find("model", 1, true) and has({ "not found", "does not exist", "not exist",
+            "no longer", "decommission", "deprecated", "unknown", "invalid model" })) then
+        return "model"
+    end
+    return "error"
+end
+
+--- Key-shaped runs out of an error text (a provider may echo a masked key:
+--- SambaNova, 2026-09-30). Pure.
+function ModelAudit.redact(text, max)
+    local s = tostring(text or "")
+    s = s:gsub("sk%-[%w%-_%*%.]+", "<key>")
+    s = s:gsub("[%w]*%*+[%w]*", "<key>")
+    s = s:gsub("[%w%-_]+", function(w) if #w >= 28 then return "<id>" end end)
+    s = s:gsub("%s+", " ")
+    return (s:sub(1, max or 170))
+end
+
+local KEY_LABEL = { ok = "OK", key = "KEY", credits = "CREDITS", plan = "PLAN", rate = "BUSY",
+                    model = "MODEL", error = "ERROR" }
+
+local function runKeys(providers, apikeys, verbose)
+    banner("KEYS: one request per keyed provider, on its default model")
+    local Base = require("koassistant_api.base")
+    local counts = { ok = 0, key = 0, credits = 0, plan = 0, rate = 0, model = 0, error = 0 }
+    for _i, p in ipairs(providers) do
+        local key, model = keyFor(apikeys, p), ModelAudit.defaultModel(p)
+        local hok, Handler = pcall(require, "koassistant_api." .. p)
+        local verdict, note
+        if not TestConfig.isValidApiKey(key) then
+            note = "no API key"
+        elseif not model or not hok or type(Handler) ~= "table" or type(Handler.buildRequestBody) ~= "function" then
+            verdict, note = "error", "no request builder or default model"
+        else
+            RUN.provider, RUN.model = p, model
+            local bok, built = pcall(Handler.buildRequestBody, Handler,
+                { { role = "user", content = PROBE_PROMPT } },
+                { provider = p, model = model, api_key = key, system = { text = "Answer briefly." },
+                  api_params = { max_tokens = 256 }, conversation_id = "koa-model-audit",
+                  enable_web_search = false,
+                  features = { enable_streaming = false, enable_web_search = false } })
+            if not bok or type(built) ~= "table" or not built.url or type(built.body) ~= "table" then
+                verdict, note = "error", "request not built: " .. tostring(built)
+            else
+                if built.body.stream then built.body.stream = false end
+                -- Cloudflare answers 1010 to a library's own User-Agent
+                local code, dec, raw = httpPostJson(built.url, Base.withUserAgent(built.headers), built.body)
+                local err = code ~= 200 and ModelAudit.errText(dec, raw) or nil
+                verdict = ModelAudit.keyVerdict(code, err, LAST.plan_limit)
+                if err then note = "HTTP " .. tostring(code) .. ": " .. err end
+            end
+        end
+        if verdict then
+            counts[verdict] = counts[verdict] + 1
+            local color = (verdict == "ok" and C.green) or (verdict == "model" and C.red) or C.yellow
+            printf("  %s%-8s%s %-12s %-40s %s", color, KEY_LABEL[verdict], C.off, p, tostring(model),
+                note and ModelAudit.redact(note, verbose and 400 or 150) or "")
+        else
+            printf("  %s%-8s %-12s %s%s", C.dim, "-", p, note, C.off)
+        end
+    end
+    printf("\n  %ssummary: %d ok, %d key refused, %d empty account, %d plan, %d busy, %d default model refused, %d other%s",
+        counts.model > 0 and C.red
+            or ((counts.key + counts.credits + counts.plan + counts.error) > 0 and C.yellow or C.green),
+        counts.ok, counts.key, counts.credits, counts.plan, counts.rate, counts.model, counts.error, C.off)
+    if counts.model > 0 then
+        printf("  %sa refused DEFAULT model fails for every reader of that provider who never picked one%s",
+            C.red, C.off)
+    end
+    return counts
+end
+
+-- The SPEND block that ends every run that sent requests.
+local function printSpend()
+    if next(TALLY) == nil then return end
+    local rows, total, unpriced = ModelAudit.spendRows(TALLY, ModelAudit.orCatalog())
+    banner("SPEND (this run)")
+    printf("  %-12s %8s %10s %10s %11s", "provider", "requests", "input", "output", "est. cost")
+    for _i, r in ipairs(rows) do
+        local cost = "?"
+        if r.cost then
+            cost = string.format("$%.4f", r.cost)
+        elseif r.input + r.output == 0 then
+            cost = "-"
+        end
+        printf("  %-12s %8d %10d %10d %11s%s", r.provider, r.requests, r.input, r.output, cost,
+            r.searches > 0 and string.format("  + %d searches, billed per request", r.searches) or "")
+    end
+    printf("  %sabout $%.4f at OpenRouter's list prices%s (cache discounts and a provider's own prices differ)%s",
+        C.bold, total, unpriced > 0 and string.format(", %d model(s) it does not price", unpriced) or "", C.off)
+end
+
+--------------------------------------------------------------------------------
 -- Main
 --------------------------------------------------------------------------------
 
@@ -3198,7 +3688,7 @@ local function main()
         local a = arg[i]
         if a == "--help" or a == "-h" then
             print("Usage: lua tests/model_audit.lua [providers...] [--probe <provider> <model>] " ..
-                  "[--probe-new] [--recheck [--ceilings]] [--pins] [--verbose]")
+                  "[--probe-new] [--recheck [--ceilings]] [--pins] [--keys] [--verbose]")
             os.exit(0)
         elseif a == "--verbose" or a == "-v" then
             verbose = true
@@ -3218,6 +3708,8 @@ local function main()
             recheck_ceilings = true
         elseif a == "--pins" then
             mode = "pins"
+        elseif a == "--keys" then
+            mode = "keys"
         elseif a:match("^%-") then
             printf("unknown option: %s (see --help)", a)
             os.exit(1)
@@ -3238,9 +3730,29 @@ local function main()
 
     local apikeys = TestConfig.loadApiKeys()
 
+    local function finish(code)
+        printSpend()
+        os.exit(code)
+    end
+
     if mode == "probe" then
         local facts = probeModel(probe_provider, probe_model, keyFor(apikeys, probe_provider), verbose)
-        os.exit((facts and facts.reachable) and 0 or 1)
+        finish((facts and facts.reachable) and 0 or 1)
+    end
+
+    if mode == "keys" then
+        if #providers == 0 then
+            -- Every provider with a key, except ollama (local) and the OpenAI
+            -- Subscription (OAuth, not a key)
+            for _i, p in ipairs(ModelLists.getAllProviders()) do
+                if p ~= "ollama" and p ~= "openai_codex" and TestConfig.isValidApiKey(keyFor(apikeys, p)) then
+                    table.insert(providers, p)
+                end
+            end
+            table.sort(providers)
+        end
+        local counts = runKeys(providers, apikeys, verbose)
+        finish(counts.model > 0 and 1 or 0)
     end
 
     if mode == "pins" then
@@ -3256,7 +3768,7 @@ local function main()
             table.sort(providers)
         end
         local counts = runPins(providers, apikeys, verbose)
-        os.exit(counts.drift > 0 and 1 or 0)
+        finish(counts.drift > 0 and 1 or 0)
     end
 
     if mode == "recheck" then
@@ -3280,10 +3792,11 @@ local function main()
             local counts = runRecheck(p, keyFor(apikeys, p), verbose, { ceilings = recheck_ceilings })
             if counts and counts.drift > 0 then any_drift = true end
         end
-        os.exit(any_drift and 1 or 0)
+        finish(any_drift and 1 or 0)
     end
 
     -- discovery (both "discover" and "probe-new" start here)
+    local full_run = #providers == 0
     if #providers == 0 then
         local skipped = {}
         for _i, p in ipairs(ModelLists.getAllProviders()) do
@@ -3299,7 +3812,7 @@ local function main()
             C.dim, table.concat(skipped, ", "), C.off)
     end
 
-    local to_probe = {}
+    local to_probe, fetched_lists = {}, {}
     for _i, provider in ipairs(providers) do
         if not DISCOVERY[provider] then
             banner(provider)
@@ -3312,7 +3825,8 @@ local function main()
                 printf("  %swatching: %-24s %s%s", C.yellow, id, note, C.off)
             end
         else
-            local diff = runDiscovery(provider, keyFor(apikeys, provider), verbose)
+            local diff, fetched = runDiscovery(provider, keyFor(apikeys, provider), verbose)
+            if fetched then fetched_lists[provider] = fetched end
             if diff then
                 for _j, id in ipairs(diff.new) do
                     table.insert(to_probe, { provider = provider, model = id })
@@ -3321,11 +3835,15 @@ local function main()
         end
     end
 
-    -- Enrich NEW ids with marketplace pricing/context (tier proposals). One
-    -- extra GET; skipped without an openrouter key or when nothing is new.
-    if #to_probe > 0 and TestConfig.isValidApiKey(apikeys.openrouter) then
-        local or_models = fetchProviderList("openrouter", apikeys.openrouter)
-        if or_models then
+    -- Enrich NEW ids with marketplace pricing/context (tier proposals): the public
+    -- catalog (discovery's own fetch when openrouter ran), no key needed.
+    if #to_probe > 0 then
+        local or_models = ModelAudit.orCatalog(fetched_lists.openrouter)
+        local mappable = false
+        for _i, entry in ipairs(to_probe) do
+            if ModelAudit.OPENROUTER_PREFIX[entry.provider] then mappable = true end
+        end
+        if or_models and mappable then
             printf("\n%sNEW-id metadata via the OpenRouter marketplace (tier proposals - human places tiers):%s",
                 C.bold, C.off)
             for _i, entry in ipairs(to_probe) do
@@ -3341,6 +3859,53 @@ local function main()
                             C.dim, entry.provider, entry.model, C.off)
                     end
                 end
+            end
+        end
+    end
+
+    -- Where each NEW direct id is also served but not curated (gpt-6.1-sol on
+    -- OpenRouter and Perplexity was found by hand, 2026-09-30).
+    if #to_probe > 0 then
+        local function gatewayList(g)
+            if g == "openrouter" then return ModelAudit.orCatalog(fetched_lists.openrouter) end
+            if fetched_lists[g] then return fetched_lists[g] end
+            local key = keyFor(apikeys, g)
+            if DISCOVERY[g] and TestConfig.isValidApiKey(key) then return (fetchProviderList(g, key)) end
+            return publicList(g)
+        end
+        local gateways = {}
+        for _i, g in ipairs(ModelAudit.GATEWAYS) do gateways[g] = gatewayList(g) end
+        local shown = false
+        for _i, entry in ipairs(to_probe) do
+            if ModelAudit.VENDOR_SET[entry.provider] then
+                local hits = ModelAudit.mirrorsOf(entry.provider, entry.model, gateways, ModelLists)
+                if #hits > 0 then
+                    if not shown then
+                        printf("\n%sAlso served, not curated there (curate the mirror too, or note why not):%s",
+                            C.bold, C.off)
+                        shown = true
+                    end
+                    printf("  %s/%s: %s", entry.provider, entry.model, table.concat(hits, ", "))
+                end
+            end
+        end
+    end
+
+    -- Vendor releases no list carries (a keyless direct provider, or one this run
+    -- skipped, would hide them): full runs, or when openrouter was named.
+    if full_run or fetched_lists.openrouter then
+        local or_models = ModelAudit.orCatalog(fetched_lists.openrouter)
+        if or_models then
+            local releases = ModelAudit.vendorReleases(or_models, ModelLists, os.time(), ModelAudit.RELEASE_DAYS)
+            if #releases > 0 then
+                printf("\n%sOpenRouter: releases of the last %d days from vendors we curate, on no list:%s",
+                    C.bold, ModelAudit.RELEASE_DAYS, C.off)
+                for _i, r in ipairs(releases) do
+                    printf("  %s  %s", os.date("%Y-%m-%d", r.created), r.id)
+                end
+            else
+                printf("\n%sOpenRouter: every release of the last %d days from a vendor we curate is on a list%s",
+                    C.dim, ModelAudit.RELEASE_DAYS, C.off)
             end
         end
     end
@@ -3363,6 +3928,7 @@ local function main()
         printf("\n%sTip:%s probe new ids with --probe (or all at once with --probe-new).",
             C.bold, C.off)
     end
+    printSpend()
 end
 
 -- Run main() only when executed directly (unit tests require this file as a
