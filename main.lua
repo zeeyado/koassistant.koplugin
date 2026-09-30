@@ -15682,15 +15682,16 @@ function AskGPT:_fireXrayLadderRung()
       local rung_written = result
         and XrayAuto.stepWritten(ActionCache.getXrayLadder(file), target, is_intro, step_started)
       if not rung_written then
-        -- B353: the step's text was front matter only. A step that creates
-        -- from scratch (nothing built by this chain yet) is skipped, and the
-        -- next one reads a longer slice from the start. The mark sits on the
-        -- config the request ran on (meta.config, Dialogs headlessResult).
-        local front_matter = type(meta_or_err) == "table" and type(meta_or_err.config) == "table"
-          and meta_or_err.config._xray_front_matter
-        if front_matter and create_mode and XrayAuto.skipFrontMatterStep() then
+        -- B353/B378: the model built nothing from the step's text (at a
+        -- book's start, front matter). A step that creates from scratch
+        -- (nothing built by this chain yet) is skipped, and the next one reads
+        -- a longer slice from the start. The mark sits on the config the
+        -- request ran on (meta.config, Dialogs headlessResult).
+        local nothing_built = type(meta_or_err) == "table" and type(meta_or_err.config) == "table"
+          and meta_or_err.config._xray_nothing_built
+        if nothing_built and create_mode and XrayAuto.skipFrontMatterStep() then
           cur.retried = nil
-          logger.dbg("KOAssistant: ladder step", cur.step or cur.idx, "held only front matter, skipped")
+          logger.dbg("KOAssistant: ladder step", cur.step or cur.idx, "built nothing from its text, skipped")
           UIManager:scheduleIn(1, function() self_ref:_fireXrayLadderRung() end)
           return
         end
@@ -15702,7 +15703,7 @@ function AskGPT:_fireXrayLadderRung()
         -- B362: a cut-off answer is never saved; its notice rides the reply
         local cut = type(result) == "string" and result:find(
           require("koassistant_api.response_parser").TRUNCATION_NOTICE, 1, true)
-        local err_text = (front_matter and "front matter only")
+        local err_text = (nothing_built and "nothing to build from")
             or (cut and "answer cut off at the length limit")
             or (type(meta_or_err) == "string" and meta_or_err)
             or (result and "rung not written (response rejected or save failed)")
@@ -15917,8 +15918,9 @@ function AskGPT:_xrayStopReasonLabel(kind)
   if kind == "aborted" then return _("nothing was sent") end
   -- B335: the step's pages hold no text (nothing was sent either)
   if kind == "no_text" then return _("no book text in this part") end
-  -- B353: the goal's text is still front matter (or the skips ran out)
-  if kind == "front_matter" then return _("only front matter so far") end
+  -- B353/B378: the model built nothing from the goal's text (at a book's
+  -- start, front matter), or the skips ran out
+  if kind == "nothing_built" then return _("nothing to build from so far") end
   -- B362: the answer ran past its length limit (the model's, or a per-minute
   -- plan's cap on this request)
   if kind == "cut_off" then return _("answer cut off at its length limit") end

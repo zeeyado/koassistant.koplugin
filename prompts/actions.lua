@@ -1035,17 +1035,11 @@ local function assemble_xray_prompt(template, replacements, selection, depth)
 end
 
 -- The create prompt's type decision (B337a), its own string so a type the
--- reader set replaces exactly this (applyXrayType, B337c)
+-- reader set replaces exactly this (applyXrayType, B337c). No create prompt
+-- asks the model to name front matter (B378): light models answered it for
+-- the work itself. A checkpoint step the model builds nothing from is skipped
+-- instead (B353, main.lua's ladder step).
 local XRAY_TYPE_DECISION = "First, decide whether the WORK is FICTION or NON-FICTION. If you know this title and author, that decides it: a novel is fiction even when this edition opens with a biographical or critical introduction. Otherwise judge from the main text, never from front matter by someone other than the author (an editor's or translator's introduction or note, a foreword, a chronology, an author biography). Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below."
-
--- B353: the answer for a create whose text holds only front matter (a
--- checkpoint step skips on it). Both create templates end with it; a section
--- prompt leaves it out, since the reader picked that section (B361). B378: the
--- author's own introduction is the work (the old list's qualifier could read
--- as the foreword's alone), and a slice that opens with front matter builds
--- from the work only
-local XRAY_FRONT_MATTER_RULE = [[Front matter written by someone other than the author (an editor's or translator's introduction, a foreword, a biography, a chronology, a note on the text) and a table of contents are not the work; an introduction or preface by the author is. Build only from the work, never from such front matter. If the text holds none of the work itself yet, only such front matter, respond with ONLY this JSON:
-{"error": "front_matter_only"}]]
 
 local XRAY_PROMPT_TEMPLATE = [[Create a structured reader's companion for "{title}"{author_clause}.{doi_clause}
 
@@ -1087,8 +1081,7 @@ __CLOSING__
 
 Base the X-Ray on the provided text. You do not need to recognize this work — analyze the text on its own terms whether or not you know it (what you know of it may settle fiction or non-fiction, nothing else). Do NOT add characters, events, or details that are not in the provided text or clearly implied by it.
 If no text is provided, or the text is unreadable or too fragmentary to analyze, respond with ONLY this JSON:
-{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}
-]] .. XRAY_FRONT_MATTER_RULE
+{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}]]
 
 local XRAY_PARTIAL_REPLACEMENTS = {
     __SCOPE_LINE__ = [[I'm at {reading_progress}.]],
@@ -1233,7 +1226,7 @@ __CLOSING__
 
 If web search is available, consider searching for the DOI or key referenced works to enrich your analysis with citation context and connections to the broader field.
 
-]] .. XRAY_FRONT_MATTER_RULE .. "\n" .. [[If you cannot identify this as an academic paper or lack sufficient detail, respond with ONLY this JSON:
+If you cannot identify this as an academic paper or lack sufficient detail, respond with ONLY this JSON:
 {"error": "I cannot identify this as an academic paper. Please provide more context."}
 Do NOT attempt to construct an X-Ray with fabricated or uncertain details.]]
 
@@ -1287,15 +1280,7 @@ function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic)
         academic and "paper" or "document")
     -- Sections always use the full category set (v0.21); the schema markers
     -- are absent from the academic template, so the assembly no-ops there
-    local prompt = assemble_xray_prompt(template, replacements, nil)
-    -- No front-matter answer (B361): the reader picked this section, an
-    -- introduction included, and it is built like any other
-    local s, e = prompt:find(XRAY_FRONT_MATTER_RULE, 1, true)
-    if s then
-        if prompt:sub(e + 1, e + 1) == "\n" then e = e + 1 end
-        prompt = (prompt:sub(1, s - 1) .. prompt:sub(e + 1)):gsub("%s+$", "")
-    end
-    return prompt
+    return assemble_xray_prompt(template, replacements, nil)
 end
 
 --- Canonical group order for the category picker (presets v0.21).

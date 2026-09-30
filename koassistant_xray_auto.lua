@@ -278,7 +278,7 @@ end
 --- and a context/output-cap 400 are deterministic, so transient is false: the
 --- retry would be a guaranteed second failure.
 --- @param err string|nil The error text (handler-formatted, e.g. "gemini/…: HTTP 503: …")
---- @return string kind "aborted"|"no_text"|"front_matter"|"cut_off"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
+--- @return string kind "aborted"|"no_text"|"nothing_built"|"cut_off"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
 --- @return boolean transient True when a short wait plausibly heals it (retry-worthy)
 function XrayAuto.classifyStopReason(err)
   local text = type(err) == "string" and err:lower() or ""
@@ -293,9 +293,9 @@ function XrayAuto.classifyStopReason(err)
     if text:find("^background: no book text") then return "no_text", false end
     return "aborted", false
   end
-  -- B353: the model found only front matter and the step could not be
-  -- skipped (the build's goal, or the skip budget spent)
-  if text:find("^front matter only") then return "front_matter", false end
+  -- B353/B378: the model built nothing from a create step's text and the
+  -- step could not be skipped (the build's goal, or the skip budget spent)
+  if text:find("^nothing to build from") then return "nothing_built", false end
   -- B362: the answer ran past its length limit; the same step cuts off
   -- again, so no retry
   if text:find("^answer cut off") then return "cut_off", false end
@@ -949,13 +949,14 @@ end
 XrayAuto.FRONT_MATTER_MAX = 0.5   -- B353: no slice past half the book is front matter only
 XrayAuto.FRONT_MATTER_SKIPS = 3   -- B353: skips per chain (each one is a paid request)
 
---- B353: skip the step whose slice held only front matter (the model's
---- front-matter answer). Its target leaves the plan, so the next step reads a
---- longer slice from the start; an introduction step drops the rung it reads
---- and reads the next slice. A chain with nothing after the dropped target
---- takes the next point of its grid (a follow chain), else it cannot skip:
---- a build's goal that is still front matter has nothing to build. False
---- too past FRONT_MATTER_MAX or FRONT_MATTER_SKIPS.
+--- B353: skip a create step the model built nothing from (its error answer
+--- or no entries, B378; at a book's start, front matter). Its target leaves
+--- the plan, so the next step reads a longer slice from the start; an
+--- introduction step drops the rung it reads and reads the next slice. A
+--- chain with nothing after the dropped target takes the next point of its
+--- grid (a follow chain), else it cannot skip: a build's goal with nothing to
+--- build from stays that way. False too past FRONT_MATTER_MAX or
+--- FRONT_MATTER_SKIPS.
 --- @return boolean skipped
 function XrayAuto.skipFrontMatterStep()
   local b = ladder_build

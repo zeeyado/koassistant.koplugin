@@ -1,10 +1,13 @@
--- B353, the whole hand-off: a create whose text held only front matter saves
--- nothing and marks the config it ran on; the checkpoint step (headless, via
--- executeActionForResult) skips the step. B361: any X-Ray answer that saved
--- nothing (front matter, the model's error answer, no entries) marks it too, and
--- an attended run then shows the answer instead of opening an X-Ray from disk.
--- B362: a cut-off answer is one of them, and a background update that saved
--- nothing is a failure, never "X-Ray updated".
+-- B353, the whole hand-off: a create the model built nothing from (at a book's
+-- start, front matter) saves nothing and marks the config it ran on; the
+-- checkpoint step (headless, via executeActionForResult) skips the step. B378:
+-- the prompt no longer asks the model to name front matter (light models
+-- answered it for the work itself), so the mark follows any create the model
+-- declined or answered with no entries. B361: any X-Ray answer that saved
+-- nothing marks the config too, and an attended run then shows the answer
+-- instead of opening an X-Ray from disk. B362: a cut-off answer is one of
+-- them, and a background update that saved nothing is a failure, never
+-- "X-Ray updated".
 --
 -- The first build of this read the mark from a hand-picked meta copy that never
 -- carried it, and its guard only checked that each side's source text existed,
@@ -61,15 +64,43 @@ local function history(content)
 end
 
 -- The marks' names, from the lines that set them in the response handler
-local MARK = dialogs_src:match(
-    "temp_config%.([%w_]+) = true\n%s*logger%.dbg%(\"KOAssistant: X%-Ray found only front matter")
+local MARK_COND, MARK = dialogs_src:match(
+    "\n%s*if (not using_cache and not incomplete and parsed.-) then\n%s*temp_config%.([%w_]+) = true")
 local NOT_SAVED = dialogs_src:match("if cache_answer == nil then\n%s*temp_config%.([%w_]+) = ")
 
 print("\n  [the headless hand-off carries the request's config]")
 
 TestRunner:test("the response handler marks the config it ran on", function()
-    TestRunner:assertTrue(MARK, "the front-matter branch sets a mark on temp_config")
+    TestRunner:assertTrue(MARK, "a create that built nothing sets a mark on temp_config")
     TestRunner:assertTrue(NOT_SAVED, "an answer that saved nothing sets a mark on temp_config")
+end)
+
+TestRunner:test("the mark follows what the model answered, through the real parser (B378)", function()
+    -- The handler's own condition, cut from the source
+    local built_nothing = assert(load("local using_cache, incomplete, parsed, XrayParser = ...; return "
+        .. MARK_COND:gsub("\n", " "), "dialogs mark condition"))
+    local XrayParser = require("koassistant_xray_parser")
+    local RP = require("koassistant_api.response_parser")
+    local function marks(answer, using_cache)
+        return built_nothing(using_cache or false, RP.isIncomplete(answer), XrayParser.parse(answer), XrayParser)
+            and true or false
+    end
+    TestRunner:assertTrue(marks('{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}'),
+        "a create the model declined")
+    TestRunner:assertTrue(marks("```json\n{\"error\": \"front_matter_only\"}\n```"), "any decline, fenced too")
+    TestRunner:assertTrue(marks('{"type": "fiction", "characters": [], "current_state": {"summary": "Only front matter."}}'),
+        "a create with no entries")
+    TestRunner:assertFalse(marks('{"type": "fiction", "characters": [{"name": "Anna", "description": "A doctor."}]}'),
+        "an X-Ray")
+    TestRunner:assertFalse(marks('{"error": "The extracted text is empty or unusable."}', true),
+        "an update: never (the chain has an X-Ray)")
+    -- Cut before its first entry, the repair reads it as a whole answer with none
+    local cut = '{"type": "fiction", "current_state": {"summary": "The story opens."}, "characters": [{"name": "An'
+        .. RP.TRUNCATION_NOTICE
+    TestRunner:assertTrue(XrayParser.parse(cut) and not XrayParser.hasEntityContent(XrayParser.parse(cut)),
+        "fixture: parsed, no entries")
+    TestRunner:assertFalse(marks(cut), "a cut-off answer: never (a longer slice cuts off too)")
+    TestRunner:assertFalse(marks("I cannot build an X-Ray from this."), "prose: not parsed, not marked")
 end)
 
 TestRunner:test("the marks describe this request only", function()
@@ -77,7 +108,7 @@ TestRunner:test("the marks describe this request only", function()
     -- request's): its marks must not ride in
     local body = dialogs_src:match("local temp_config = createTempConfig%(prompt, config%)\n(.-)\n%s*if config and config%.features then")
     TestRunner:assertTrue(body, "the request's config is created")
-    TestRunner:assertTrue(body:find("temp_config." .. MARK .. " = nil", 1, true), "front-matter mark cleared")
+    TestRunner:assertTrue(body:find("temp_config." .. MARK .. " = nil", 1, true), "built-nothing mark cleared")
     TestRunner:assertTrue(body:find("temp_config." .. NOT_SAVED .. " = nil", 1, true), "nothing-saved mark cleared")
 end)
 
@@ -105,11 +136,11 @@ TestRunner:test("executeActionForResult hands back exactly this", function()
         "the headless completion routes through headlessResult")
 end)
 
-print("\n  [the checkpoint step skips a front-matter step]")
+print("\n  [the checkpoint step skips a step the model built nothing from]")
 
 TestRunner:test("the step's own read finds the mark in the real hand-off", function()
-    local read = readerFrom(main_src, "local front_matter = (.-)\n%s*if front_matter and create_mode",
-        "meta_or_err", "main.lua front_matter")
+    local read = readerFrom(main_src, "local nothing_built = (.-)\n%s*if nothing_built and create_mode",
+        "meta_or_err", "main.lua nothing_built")
     local _text, meta = Dialogs._headlessResult(history("No X-Ray was built"), { [MARK] = true })
     TestRunner:assertTrue(read(meta), "marked: skip")
     local _t2, plain = Dialogs._headlessResult(history("{}"), {})
@@ -120,8 +151,13 @@ end)
 
 TestRunner:test("and the skip is what it does with it", function()
     TestRunner:assertTrue(main_src:find(
-        "if front_matter and create_mode and XrayAuto.skipFrontMatterStep() then", 1, true),
+        "if nothing_built and create_mode and XrayAuto.skipFrontMatterStep() then", 1, true),
         "create-mode steps skip on the mark")
+    -- A step it cannot skip stops with a reason the popup names
+    local stop = main_src:match('local err_text = %(nothing_built and "([^"]+)"%)')
+    TestRunner:assertEqual(require("koassistant_xray_auto").classifyStopReason(stop), "nothing_built",
+        "the stop text is the classifier's")
+    TestRunner:assertTrue(main_src:find('if kind == "nothing_built" then return _(', 1, true), "and it has a label")
 end)
 
 print("\n  [an attended run shows the answer]")
@@ -155,7 +191,8 @@ TestRunner:test("the parser's repair reads a cut-off answer as whole, so the X-R
     TestRunner:assertTrue(RP.isIncomplete(answer), "the notice marks it")
     local parsed = XrayParser.parse(answer)
     TestRunner:assertTrue(parsed and XrayParser.hasEntityContent(parsed), "the repair keeps the finished entries")
-    local cut = dialogs_src:find("if RP.isIncomplete(answer) and not temp_config._xray_front_matter then", 1, true)
+    TestRunner:assertTrue(dialogs_src:find("local incomplete = RP.isIncomplete(answer)", 1, true), "the cut is read once")
+    local cut = dialogs_src:find("if incomplete then\n%s*xray_unusable = answer:find%(RP%.TRUNCATION_NOTICE")
     local mark = dialogs_src:find("if cache_answer == nil then\n%s*temp_config%." .. NOT_SAVED)
     TestRunner:assertTrue(cut and mark and cut < mark, "checked before the nothing-saved mark")
     local block = dialogs_src:sub(cut or 1, mark or 1)

@@ -215,12 +215,11 @@ TestRunner:test("the checkpoint introduction keeps its instruction (B336)", func
     assert(applied > assembled, "the clause is applied after the category assembly")
 end)
 
-TestRunner:test("front matter only has its own answer, and the parser knows it (B353)", function()
-    -- Since B337a a model that knows the work finds no story in a slice of
-    -- introduction and chronology; the create prompt names the answer, and a
-    -- checkpoint build skips such a step instead of stopping
-    local XrayParser = require("koassistant_xray_parser")
-    local sentinel = '{"error": "' .. XrayParser.FRONT_MATTER_ERROR .. '"}'
+TestRunner:test("no create prompt asks the model to name front matter (B378)", function()
+    -- B353 added a front-matter answer; light models gave it for the work
+    -- itself (an author's own introduction, a slice with a whole chapter).
+    -- Each create keeps only its decline, and a checkpoint step the model
+    -- builds nothing from is skipped (test_front_matter_flow.lua)
     local x = Actions.book.xray
     -- Every create prompt a checkpoint step can send: the default, a narrowed
     -- or deeper assembly, a type the reader set, and the research track
@@ -234,31 +233,31 @@ TestRunner:test("front matter only has its own answer, and the parser knows it (
         academic = x.doi_prompt,
     }
     for name, p in pairs(creates) do
-        assert(type(p) == "string" and p:find(sentinel, 1, true), name .. ": carries the front-matter answer")
+        assert(type(p) == "string" and not p:find("front_matter_only", 1, true), name .. ": no front-matter answer")
+        assert(not p:find("none of the work itself", 1, true), name .. ": no front-matter question")
+        local decline = name == "academic" and "cannot identify this as an academic paper"
+            or "so no X-Ray can be built from it."
+        assert(p:find(decline, 1, true), name .. ": its decline stays")
     end
     assert(creates.fiction ~= x.prompt and creates.nonfiction ~= x.prompt, "fixture: the type swaps applied")
-    assert(XrayParser.isFrontMatterOnly(XrayParser.parse(sentinel)), "parsed as front matter only")
-    assert(XrayParser.isFrontMatterOnly({ error = "Front matter only" }), "wording variants fold")
-    assert(not XrayParser.isFrontMatterOnly(XrayParser.parse(
-        '{"error": "The extracted text is empty or unusable, so no X-Ray can be built from it."}')),
-        "the unusable-text error stays an error")
-    assert(not XrayParser.isFrontMatterOnly(nil), "nil")
-    -- What happens to the answer (the checkpoint skip, the attended viewer):
-    -- test_front_matter_flow.lua, through the real result hand-off
+    -- The endings as they were before the front-matter answer (58c22dc^)
+    local tail = 'empty or unusable, so no X-Ray can be built from it."}'
+    assert(x.prompt:sub(-#tail) == tail, "the create ends on its decline")
+    assert(x.doi_prompt:find("broader field.\n\nIf you cannot identify", 1, true), "academic: the decline follows the web line")
+    -- What happens to a create the model builds nothing from (the checkpoint
+    -- skip, the attended viewer): test_front_matter_flow.lua
 end)
 
-TestRunner:test("a section X-Ray has no front-matter answer: the reader picked it (B361)", function()
-    local XrayParser = require("koassistant_xray_parser")
-    local sentinel = XrayParser.FRONT_MATTER_ERROR
+TestRunner:test("a section X-Ray is built whatever the section holds: the reader picked it (B361)", function()
     for _idx, academic in ipairs({ false, true }) do
         local p = Actions.buildSectionXrayPrompt("Introduction", "pp. 1-12", academic)
         local name = academic and "academic section" or "section"
-        assert(not p:find(sentinel, 1, true), name .. ": no front-matter answer")
-        assert(p:find("respond with ONLY this JSON", 1, true), name .. ": its other refusal stays")
-        assert(not p:find("%s$"), name .. ": no trailing whitespace where the rule was")
+        assert(not p:find("front_matter_only", 1, true), name .. ": no front-matter answer")
+        assert(p:find("respond with ONLY this JSON", 1, true), name .. ": its decline stays")
+        assert(not p:find("%s$"), name .. ": no trailing whitespace")
     end
     assert(Actions.buildSectionXrayPrompt("I", "pp. 1-5", true):find("broader field.\n\nIf you cannot identify", 1, true),
-        "academic section: the text around the rule joins as before")
+        "academic section: the decline follows the web line")
 end)
 
 TestRunner:test("an X-Ray create carries its text's contents, after the placeholder pass (B337b)", function()
@@ -288,9 +287,9 @@ TestRunner:test("a type set for the book sends that schema alone (B337c)", funct
         assert(n:find("FOR NON-FICTION", 1, true) and not n:find("FOR FICTION,", 1, true), name .. ": nonfiction schema alone")
         assert(f:find("This work is FICTION", 1, true) and not f:find("First, decide", 1, true), name .. ": no type decision")
         assert(n:find("This work is NON-FICTION", 1, true), name .. ": nonfiction stated")
-        -- The closing, the no-text answer and the front-matter answer survive
+        -- The closing and the no-text answer survive; no front-matter answer
         for _k, s in ipairs({ n, f }) do
-            assert(s:find('"front_matter_only"', 1, true) and s:find("empty or unusable", 1, true), name .. ": answers kept")
+            assert(s:find("empty or unusable", 1, true) and not s:find("front_matter_only", 1, true), name .. ": decline kept")
             assert(s:find("JSON keys must remain in English", 1, true), name .. ": closing kept")
         end
     end

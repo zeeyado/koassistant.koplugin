@@ -3651,7 +3651,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     local temp_config = createTempConfig(prompt, config)
     -- The X-Ray outcome marks describe THIS request's answer: a config copied
     -- from an earlier one (a re-run from its window) must not bring them along
-    temp_config._xray_front_matter = nil
+    temp_config._xray_nothing_built = nil
     temp_config._not_saved = nil
     -- The per-chat Web value (if any) rode into temp_config with the features copy;
     -- consume it from the SOURCE config so it can't go stale on the shared table.
@@ -5367,14 +5367,17 @@ if prune_book_text then
             if action.cache_as_xray then
                 local XrayParser = require("koassistant_xray_parser")
                 local parsed, parse_err = XrayParser.parse(answer)
-                if XrayParser.isFrontMatterOnly(parsed) then
-                    -- B353: the text sent was front matter only; a checkpoint
-                    -- step reads the mark on its config and skips the step
-                    display_answer = _("No X-Ray was built: the text sent holds only front matter (an introduction, notes, a chronology), none of the work itself.")
-                    cache_answer = nil
-                    temp_config._xray_front_matter = true
-                    logger.dbg("KOAssistant: X-Ray found only front matter, skipping cache")
-                elseif parsed and parsed.error then
+                local RP = require("koassistant_api.response_parser")
+                local incomplete = RP.isIncomplete(answer)
+                -- B353/B378: a create the model built nothing from (it declined,
+                -- or answered no entries; at a book's start, front matter) marks
+                -- the config, and a checkpoint step skips the step on it. Never
+                -- an update, nor a cut-off answer (a longer slice cuts off too)
+                if not using_cache and not incomplete and parsed
+                        and not XrayParser.hasEntityContent(parsed) then
+                    temp_config._xray_nothing_built = true
+                end
+                if parsed and parsed.error then
                     -- AI returned error (e.g., "I don't recognize this work") — show as plain text, skip caching
                     display_answer = parsed.error
                     cache_answer = nil  -- Signal to skip caching below
@@ -5544,17 +5547,16 @@ if prune_book_text then
                 -- B362: a cut-off answer is never saved (is_truncated below blocks
                 -- every write), but the parser's repair reads it as whole: name the
                 -- cut, keep its notice under the rendered part, save nothing
-                local RP = require("koassistant_api.response_parser")
-                if RP.isIncomplete(answer) and not temp_config._xray_front_matter then
+                if incomplete then
                     xray_unusable = answer:find(RP.TRUNCATION_NOTICE, 1, true)
                         and _("the answer was cut off at its length limit")
                         or _("the answer stopped before it finished")
                     display_answer = RP.withNoticeOf(display_answer, answer)
                     cache_answer = nil
                 end
-                -- B361: nothing from this answer becomes the X-Ray (front matter,
-                -- the model's error answer, no entries, unreadable over an existing
-                -- one, cut off); an attended run shows the answer, never the X-Ray
+                -- B361: nothing from this answer becomes the X-Ray (the model's
+                -- error answer, no entries, unreadable over an existing one,
+                -- cut off); an attended run shows the answer, never the X-Ray
                 -- on disk. The mark carries the reason when there is one.
                 if cache_answer == nil then
                     temp_config._not_saved = xray_unusable or true
@@ -5807,7 +5809,7 @@ if prune_book_text then
                     elseif cache_answer then
                         -- A built rung that did not land on disk: paid work lost.
                         -- (No answer to save = a rejected response, logged where
-                        -- it was rejected: front matter, an error, no entries.)
+                        -- it was rejected: an error answer, no entries.)
                         logger.warn("KOAssistant: ladder rung SAVE FAILED at", progress)
                     end
                 elseif action.cache_as_xray then
@@ -12699,7 +12701,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             local temp_config = temp_config_or_error
             attachRerunContext(temp_config, action, ui, plugin, opts and opts.run_variant)
             -- B353/B361/B362: an answer that saved nothing (cut off, for any
-            -- action; an X-Ray's front matter, error answer or missing entries).
+            -- action; an X-Ray's error answer or missing entries).
             -- The branches below open what is on disk (an older copy; after a
             -- section create, the book's main X-Ray) and would hide the answer,
             -- so it goes to the chat viewer

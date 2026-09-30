@@ -1523,8 +1523,8 @@ TestRunner:test("skipFrontMatterStep (B353): bounded (half the book, three skips
   TestRunner:assertEqual(XrayAuto.currentLadderStep().target, 0.2, "the chain keeps its place")
   XrayAuto.endLadderBuild()
   TestRunner:assertEqual(XrayAuto.skipFrontMatterStep(), false, "no build, no skip")
-  local kind, transient = XrayAuto.classifyStopReason("front matter only")
-  TestRunner:assertEqual(kind, "front_matter", "a stop that cannot skip is named")
+  local kind, transient = XrayAuto.classifyStopReason("nothing to build from")
+  TestRunner:assertEqual(kind, "nothing_built", "a stop that cannot skip is named")
   TestRunner:assertEqual(transient, false, "never retried")
 end)
 

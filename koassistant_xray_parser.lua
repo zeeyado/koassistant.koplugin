@@ -587,19 +587,6 @@ local function isValidXrayData(data)
     return true
 end
 
---- B353: the create prompt's answer for a text that holds only front matter
---- (none of the work itself yet). It rides the error channel, so every
---- consumer treats it as a refusal; a checkpoint build skips such a step.
-XrayParser.FRONT_MATTER_ERROR = "front_matter_only"
-
---- @param parsed table|nil XrayParser.parse output
---- @return boolean true when the model answered "front matter only"
-function XrayParser.isFrontMatterOnly(parsed)
-    local e = type(parsed) == "table" and parsed.error
-    if type(e) ~= "string" then return false end
-    return (e:lower():gsub("[%s_%-]+", "_")) == XrayParser.FRONT_MATTER_ERROR
-end
-
 --- Attempt to extract valid JSON from a potentially wrapped response
 --- Tries: raw decode, code fence stripping, first-brace-to-last-brace extraction
 --- Accepts any table with recognized X-Ray category keys (type field inferred if missing).
