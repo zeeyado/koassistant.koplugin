@@ -714,7 +714,7 @@ local function translateAndShowContent(markdown_content, target_language, title,
             })
 
             -- Row 2: Update Now (only if zip available and not a git dev install)
-            if update_info.zip_url and lfs.attributes(plugin_dir .. ".git", "mode") ~= "directory" then
+            if update_info.zip_url and lfs.attributes(plugin_dir .. ".git", "mode") == nil then
                 table.insert(buttons, {
                     {
                         text = _("Update Now"),
@@ -806,7 +806,7 @@ showUpdatePopup = function(update_info)
     })
 
     -- Row 2: Update Now (only if zip available and not a git dev install)
-    if update_info.zip_url and lfs.attributes(plugin_dir .. ".git", "mode") ~= "directory" then
+    if update_info.zip_url and lfs.attributes(plugin_dir .. ".git", "mode") == nil then
         table.insert(buttons, {
             {
                 text = _("Update Now"),
@@ -893,7 +893,11 @@ end
 local AUTO_CHECK_TIMEOUT = 8    -- Timeout for automatic background checks (silent, non-intrusive)
 local MANUAL_CHECK_TIMEOUT = 15 -- Longer timeout for user-initiated checks
 local WARMUP_TIMEOUT = 0.5      -- Quick TCP warmup before fork (macOS fix)
-local DOWNLOAD_TIMEOUT = 120    -- 2 minutes for ~1.4MB zip on slow WiFi
+-- B379: the whole zip (6-7 MB) gets 10 minutes, so slow e-reader Wi-Fi
+-- finishes; a connection that stops sending is dropped after a minute of
+-- silence instead (the 2-minute total failed below about 55 KB/s)
+local DOWNLOAD_TIMEOUT = 600
+local DOWNLOAD_STALL_TIMEOUT = 60
 
 -- Detect if running on macOS (for TCP warmup which is only needed on macOS)
 local IS_MACOS = ffi.os == "OSX"
@@ -920,6 +924,24 @@ local function getBinPaths()
     end
     mv_bin = is_android and "/system/bin/mv" or "/bin/mv"
     cp_bin = is_android and "/system/bin/cp" or "/bin/cp"
+end
+
+--- Delete a file or folder the updater made, never following a link (B379):
+--- KOReader's purgeDir descends into a linked folder and empties its target,
+--- so a reader's domains/ or behaviors/ linked in from elsewhere lost its
+--- files when the old version was cleaned up. A link is removed itself.
+--- @return boolean|nil ok, string|nil err (as os.remove)
+local function purgeTree(path)
+    local mode = lfs.symlinkattributes(path, "mode")
+    if not mode then return true end
+    if mode == "directory" then
+        for entry in lfs.dir(path) do
+            if entry ~= "." and entry ~= ".." then
+                purgeTree(path .. "/" .. entry)
+            end
+        end
+    end
+    return os.remove(path)
 end
 
 --- Wrap a file descriptor for ltn12 sink
@@ -1325,7 +1347,7 @@ local function downloadFile(url, dest_path, callback)
                 local parsed_port = tonumber(url:match("https://[^/:]+:(%d+)")) or 443
                 local parsed_path = url:match("https://[^/]+(.*)") or "/"
 
-                local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, parsed_host, parsed_port, DOWNLOAD_TIMEOUT - 5)
+                local ssl_sock = BaseHandler.connectSSLInSubprocess(resolved_ip, parsed_host, parsed_port, DOWNLOAD_STALL_TIMEOUT)
 
                 -- Send GET request
                 local req_lines = {
@@ -1391,7 +1413,10 @@ local function downloadFile(url, dest_path, callback)
                 -- Non-macOS: use standard https.request path
                 local subprocess_https = require("ssl.https")
                 local subprocess_ltn12 = require("ltn12")
-                subprocess_https.TIMEOUT = DOWNLOAD_TIMEOUT - 5
+                subprocess_https.TIMEOUT = DOWNLOAD_STALL_TIMEOUT
+                -- Per read, no total: a total inherited from the parent's last
+                -- request must not cut a slow download
+                pcall(function() require("socketutil"):set_timeout(DOWNLOAD_STALL_TIMEOUT, -1) end)
 
                 local output_file = io.open(dest_path, "wb")
                 if not output_file then
@@ -1645,7 +1670,7 @@ local function restoreUserFiles(preserve_dir, target_dir)
             local target_path = target_dir .. "/" .. dirname
             -- Remove target if it exists (shouldn't for user dirs, but be safe)
             if lfs.attributes(target_path, "mode") == "directory" then
-                ffiutil.purgeDir(target_path)
+                purgeTree(target_path)
             end
             local ret = ffiutil.execute(mv_bin, src_path, target_path)
             if ret ~= 0 then
@@ -1675,7 +1700,7 @@ local function findAvailableBackupPath(base_path)
 
     -- Last resort: purge the original and reuse it
     logger.warn("UpdateChecker: too many leftover backups, purging", base_path)
-    ffiutil.purgeDir(base_path)
+    purgeTree(base_path)
     return base_path
 end
 
@@ -1719,14 +1744,46 @@ local function extractUpdateArchive(archive_path, staging_path)
     return true
 end
 
+--- The downloaded zip checked against what the release lists (B379): its size,
+--- and its sha256 when GitHub gives one. A cut or damaged download never
+--- reaches extraction (a zip cut exactly between two files can extract
+--- without an error, leaving a partial plugin).
+--- @return string|nil the reason it is wrong, nil when it matches
+local function verifyDownload(path, update_info)
+    local size = lfs.attributes(path, "size")
+    if update_info.zip_size and size ~= update_info.zip_size then
+        return T(_("The download is incomplete (%1 of %2 bytes). Please try again."),
+            size or 0, update_info.zip_size)
+    end
+    if update_info.zip_sha256 then
+        local ok, sha = pcall(require, "ffi/sha2")
+        if ok and type(sha) == "table" and sha.sha256 then
+            local f = io.open(path, "rb")
+            if not f then return _("The download could not be read. Please try again.") end
+            local append = sha.sha256()
+            while true do
+                local chunk = f:read(65536)
+                if not chunk then break end
+                append(chunk)
+            end
+            f:close()
+            if append():lower() ~= update_info.zip_sha256:lower() then
+                return _("The download is damaged (it does not match the release). Please try again.")
+            end
+        end
+    end
+    return nil
+end
+
 --- Main auto-update orchestrator. Called when user taps "Update Now".
 --- Downloads, extracts, verifies, and installs the update with user file preservation.
 --- @param update_info table Contains zip_url, latest_version, and other update metadata
 performUpdate = function(update_info)
     loadUI()
     getBinPaths()
-    -- Guard: don't update git-based dev installs (would destroy repo)
-    if lfs.attributes(plugin_dir .. ".git", "mode") == "directory" then
+    -- Guard: don't update git-based dev installs (would destroy repo). B379:
+    -- a worktree or submodule checkout has a .git FILE
+    if lfs.attributes(plugin_dir .. ".git", "mode") ~= nil then
         UIManager:show(InfoMessage:new{
             text = _("Auto-update is disabled for git-based installs. Please use git pull instead."),
             timeout = 5,
@@ -1766,7 +1823,7 @@ performUpdate = function(update_info)
             if attr == "file" then
                 os.remove(path)
             elseif attr == "directory" then
-                ffiutil.purgeDir(path)
+                purgeTree(path)
             end
         end
         UIManager:show(InfoMessage:new{
@@ -1790,7 +1847,6 @@ performUpdate = function(update_info)
             updateFailed(dl_error or _("Download failed"), { archive_path })
             return
         end
-
         -- Show install progress
         local install_msg = InfoMessage:new{
             text = T(_("Installing update %1..."), update_info.latest_version),
@@ -1798,10 +1854,19 @@ performUpdate = function(update_info)
         UIManager:show(install_msg)
         UIManager:forceRePaint()
 
+        -- B379: the zip is the one the release lists (the checksum takes well
+        -- under a second on an e-reader)
+        local dl_bad = verifyDownload(archive_path, update_info)
+        if dl_bad then
+            UIManager:close(install_msg)
+            updateFailed(dl_bad, { archive_path })
+            return
+        end
+
         -- Step 2: Extract to staging directory
         -- Clean up any leftover staging dir
         if lfs.attributes(staging_path, "mode") == "directory" then
-            ffiutil.purgeDir(staging_path)
+            purgeTree(staging_path)
         end
         lfs.mkdir(staging_path)
 
@@ -1825,7 +1890,7 @@ performUpdate = function(update_info)
 
         -- Step 4: Preserve user files
         if lfs.attributes(preserve_path, "mode") == "directory" then
-            ffiutil.purgeDir(preserve_path)
+            purgeTree(preserve_path)
         end
         local preserve_ok, preserve_err = preserveUserFiles(plugin_path, preserve_path)
         if not preserve_ok then
@@ -1872,11 +1937,17 @@ performUpdate = function(update_info)
             logger.warn("UpdateChecker: user file did not reach the new version, keeping", backup_path, ":", missing)
         end
 
+        -- B379: flush the swap and the restored files before the reader is
+        -- told to restart (a power cut after the rename could leave the new
+        -- files unwritten); KOReader's own update syncs the same way
+        pcall(os.execute, "sync")
+        if ffiutil.fsyncDirectory then pcall(ffiutil.fsyncDirectory, plugins_parent) end
+
         -- Step 8: Cleanup (non-fatal)
         pcall(os.remove, archive_path)
         if not missing then
-            pcall(ffiutil.purgeDir, backup_path)
-            pcall(ffiutil.purgeDir, preserve_path)
+            pcall(purgeTree, backup_path)
+            pcall(purgeTree, preserve_path)
         end
 
         UIManager:close(install_msg)
@@ -2074,11 +2145,16 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
 
         if comparison < 0 then
             -- Extract zip asset URL for auto-update
-            local zip_url = nil
+            local zip_url, zip_size, zip_sha256 = nil, nil, nil
             if latest_release.assets then
                 for _idx, asset in ipairs(latest_release.assets) do
                     if asset.name and asset.name:match("%.zip$") then
                         zip_url = asset.browser_download_url
+                        -- B379: what the download must match (a json null
+                        -- decodes to a function, so check the types)
+                        zip_size = type(asset.size) == "number" and asset.size or nil
+                        zip_sha256 = type(asset.digest) == "string"
+                            and asset.digest:match("^sha256:(%x+)$") or nil
                         break
                     end
                 end
@@ -2092,6 +2168,8 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
                 download_url = latest_release.html_url,
                 is_prerelease = latest_release.prerelease or false,
                 zip_url = zip_url,
+                zip_size = zip_size,
+                zip_sha256 = zip_sha256,
             }
 
             -- Check if streaming is active - if so, defer the popup

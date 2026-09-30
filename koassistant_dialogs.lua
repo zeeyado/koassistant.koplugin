@@ -6279,24 +6279,6 @@ if prune_book_text then
                     checkSidecarDataAndSend()
                 end,
             }}
-            warning_buttons[#warning_buttons + 1] = {{
-                text = _("Don't warn again"),
-                callback = function()
-                    UIManager:close(warning_dialog)
-                    -- Persist the preference
-                    if plugin and plugin.settings then
-                        local features_tbl = plugin.settings:readSetting("features") or {}
-                        features_tbl.suppress_large_extraction_warning = true
-                        plugin.settings:saveSetting("features", features_tbl)
-                        plugin.settings:flush()
-                    end
-                    -- Also update current config so it takes effect immediately
-                    if config.features then
-                        config.features.suppress_large_extraction_warning = true
-                    end
-                    checkSidecarDataAndSend()
-                end,
-            }}
             warning_dialog = ButtonDialog:new{
                 title = warning_title,
                 buttons = warning_buttons,
@@ -6411,24 +6393,6 @@ if prune_book_text then
                     end,
                 }}
             end
-            size_buttons[#size_buttons + 1] = {{
-                text = _("Don't warn again"),
-                callback = function()
-                    UIManager:close(size_dialog)
-                    if plugin and plugin.settings then
-                        local features_tbl = plugin.settings:readSetting("features") or {}
-                        features_tbl.suppress_large_extraction_warning = true
-                        plugin.settings:saveSetting("features", features_tbl)
-                        plugin.settings:flush()
-                    end
-                    if config.features then
-                        config.features.suppress_large_extraction_warning = true
-                    end
-                    if xb_build then xb_build.size_ack = true end
-                    ladderSendToast()
-                    sendQuery()
-                end,
-            }}
             size_buttons[#size_buttons + 1] = {{
                 text = _("Continue"),
                 callback = function()
@@ -6545,23 +6509,6 @@ if prune_book_text then
                     text = _("Continue Anyway"),
                     callback = function()
                         UIManager:close(truncation_dialog)
-                        checkLargeExtractionAndSend()
-                    end,
-                }},
-                {{
-                    text = _("Don't warn again"),
-                    callback = function()
-                        UIManager:close(truncation_dialog)
-                        -- Persist the preference
-                        if plugin and plugin.settings then
-                            local features_tbl = plugin.settings:readSetting("features") or {}
-                            features_tbl.suppress_truncation_warning = true
-                            plugin.settings:saveSetting("features", features_tbl)
-                            plugin.settings:flush()
-                        end
-                        if config.features then
-                            config.features.suppress_truncation_warning = true
-                        end
                         checkLargeExtractionAndSend()
                     end,
                 }},
@@ -10033,22 +9980,6 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                 text = _("Continue"),
                                 callback = function()
                                     UIManager:close(warning_dialog)
-                                    dispatchSend()
-                                end,
-                            }},
-                            {{
-                                text = _("Don't warn again"),
-                                callback = function()
-                                    UIManager:close(warning_dialog)
-                                    if plugin and plugin.settings then
-                                        local features_tbl = plugin.settings:readSetting("features") or {}
-                                        features_tbl.suppress_large_extraction_warning = true
-                                        plugin.settings:saveSetting("features", features_tbl)
-                                        plugin.settings:flush()
-                                    end
-                                    if configuration.features then
-                                        configuration.features.suppress_large_extraction_warning = true
-                                    end
                                     dispatchSend()
                                 end,
                             }},

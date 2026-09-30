@@ -1036,12 +1036,15 @@ end
 
 -- The create prompt's type decision (B337a), its own string so a type the
 -- reader set replaces exactly this (applyXrayType, B337c)
-local XRAY_TYPE_DECISION = "First, decide whether the WORK is FICTION or NON-FICTION. If you know this title and author, that decides it: a novel is fiction even when this edition opens with a biographical or critical introduction. Otherwise judge from the main text, never from front matter (an introduction, preface, foreword, translator's or editor's note, chronology or author biography). Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below."
+local XRAY_TYPE_DECISION = "First, decide whether the WORK is FICTION or NON-FICTION. If you know this title and author, that decides it: a novel is fiction even when this edition opens with a biographical or critical introduction. Otherwise judge from the main text, never from front matter by someone other than the author (an editor's or translator's introduction or note, a foreword, a chronology, an author biography). Then output ONLY a valid JSON object (no markdown, no code fences, no explanation) using the appropriate schema below."
 
 -- B353: the answer for a create whose text holds only front matter (a
 -- checkpoint step skips on it). Both create templates end with it; a section
--- prompt leaves it out, since the reader picked that section (B361).
-local XRAY_FRONT_MATTER_RULE = [[If the text holds none of the work itself yet, only front matter (an introduction, preface or foreword by someone other than the author, a biography, a chronology, a note on the text, a table of contents), respond with ONLY this JSON:
+-- prompt leaves it out, since the reader picked that section (B361). B378: the
+-- author's own introduction is the work (the old list's qualifier could read
+-- as the foreword's alone), and a slice that opens with front matter builds
+-- from the work only
+local XRAY_FRONT_MATTER_RULE = [[Front matter written by someone other than the author (an editor's or translator's introduction, a foreword, a biography, a chronology, a note on the text) and a table of contents are not the work; an introduction or preface by the author is. Build only from the work, never from such front matter. If the text holds none of the work itself yet, only such front matter, respond with ONLY this JSON:
 {"error": "front_matter_only"}]]
 
 local XRAY_PROMPT_TEMPLATE = [[Create a structured reader's companion for "{title}"{author_clause}.{doi_clause}
