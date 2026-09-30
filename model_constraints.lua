@@ -543,6 +543,7 @@ ModelConstraints.capabilities = {
             -- 2026-09-28, model refresh; --recheck perplexity flagged both).
             "openai/gpt-6-sol",
             "openai/gpt-6-luna",
+            "openai/gpt-6.1-sol",   -- web on and off (battery 2026-09-30)
         },
         -- Direct models that cannot run with reasoning off: the search preset
         -- sets effort "none" and they refuse it ("invalid request"); with effort
@@ -645,6 +646,7 @@ ModelConstraints._max_output_tokens = {
         ["anthropic/claude-sonnet-4.6"] = 128000,
         ["anthropic/claude-opus-4.8"] = 128000,
         ["anthropic/claude-haiku-4.5"] = 64000,
+        ["openai/gpt-6"] = 128000,       -- prefix: sol/luna/astra, 6.1-sol (catalog 2026-09-30)
         ["openai/gpt-5"] = 128000,       -- prefix: 5.6-sol/terra/luna, 5.5, 5.4, 5.4-mini
         ["openai/gpt-oss"] = 131072,
         ["google/gemini-3"] = 65536,
@@ -1116,6 +1118,14 @@ ModelConstraints.reasoning_profiles = {
           can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "xhigh" } } },
+        -- GPT-6.1 Sol (battery 2026-09-30): the astra shape, "none", "minimal" and "max"
+        -- refused, so it cannot turn off; the family entry below would send "none" on
+        -- Minimal and 400. The prefix covers later 6.1 ids on the safe side (marked
+        -- unable to turn off, a model that could only stays on).
+        { match = "gpt-6.1-", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "xhigh" } } },
         { match = "gpt-6", axis = "effort", default_state = "on",
           can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
@@ -1327,6 +1337,11 @@ ModelConstraints.reasoning_profiles = {
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "max" } } },
         { match = "openai/gpt-6-astra", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
+        -- GPT-6.1 Sol here too (battery 2026-09-30): "Reasoning is mandatory" for
+        -- effort none and enabled=false; the direct shape, as on astra.
+        { match = "openai/gpt-6.1-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
         { match = "openai/gpt-6", axis = "effort", default_state = "on", can_disable = true, can_enable = true,

@@ -301,7 +301,10 @@ local ProviderDefaults = {
         provider = "nvidia",
         model = getDefaultModel("nvidia"),
         base_url = "https://integrate.api.nvidia.com/v1/chat/completions",
-        additional_parameters = { temperature = 0.7, max_tokens = 4096 }
+        -- 16384 like the other curated providers (was the community 4096): the curated
+        -- Nemotron models reason by default, and reasoning shares this budget with the
+        -- answer; all three accepted a 10M ask (clamped silently, 2026-09-30)
+        additional_parameters = { temperature = 0.7, max_tokens = 16384 }
     },
     nebius = {
         provider = "nebius",

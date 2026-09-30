@@ -3713,7 +3713,7 @@ The Reasoning chip in the Quick Settings panel shows the **effective** state for
 | Gemini 3 flash-lite (3.5, 3.1) | Off by default | Off / effort (minimal…high) |
 | Gemini 2.5-flash | Thinks by default | Off / budget (dynamic…max) |
 | OpenAI GPT-6 sol / luna | Reasons by default | Off / effort (low…xhigh) |
-| OpenAI GPT-6 astra | Reasons by default | Effort (low…xhigh); can't be fully disabled |
+| OpenAI GPT-6 astra, GPT-6.1 sol | Reasons by default | Effort (low…xhigh); can't be fully disabled |
 | OpenAI GPT-5.6 family, GPT-5.4 family | Off by default (gated) | Off / effort (low…xhigh) |
 | OpenAI GPT-5.5 | Reasons by default | Effort (low/medium/high); can't be fully disabled |
 | DeepSeek V4 and Flash, Z.AI GLM-4.7 to 5.2, SambaNova DeepSeek-V3.x | Thinks by default | On / Off |
@@ -4005,13 +4005,13 @@ The first model in each provider's list is its default. Current defaults (subjec
 | Provider | Default | Notable alternatives |
 |----------|---------|----------------------|
 | **Anthropic** | `claude-sonnet-5-5` | `claude-opus-5-5` (deep reasoning), `claude-fable-5-1` (most capable, premium price), `claude-sonnet-5` (previous default), `claude-haiku-4-5` (fast), `claude-sonnet-4-6` (1M context) |
-| **OpenAI** | `gpt-5.6-terra` | `gpt-6-sol` (most capable, reasons by default), `gpt-6-luna` (cost-saver), `gpt-6-astra` (frontier, premium price), `gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.5` |
+| **OpenAI** | `gpt-5.6-terra` | `gpt-6.1-sol` (newest sol, can't turn reasoning off), `gpt-6-sol` (most capable, reasons by default), `gpt-6-luna` (cost-saver), `gpt-6-astra` (frontier, premium price), `gpt-5.6-sol`, `gpt-5.6-luna`, `gpt-5.5` |
 | **DeepSeek** | `deepseek-flash` | `deepseek-v4-pro` (most capable; both 1M context, thinking on by default). `deepseek-flash` is DeepSeek's new name for the V4 flash model |
 | **Gemini** | `gemini-3.8-flash` | `gemini-3.7-flash`, `gemini-3.1-pro-preview` (paid only), `gemini-3.5-flash-lite` (ultrafast), `gemini-2.5-flash/pro` (older accounts only) |
 | **Groq** | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` (fast), `qwen/qwen3.8-27b` |
 | **Mistral** | `mistral-large-latest` | `mistral-medium-latest`, `mistral-small-latest`, `magistral-medium-latest` (reasoning) |
 | **xAI** | `grok-4.7` | `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-4.20-0309-reasoning`/`-non-reasoning` |
-| **Perplexity** | `perplexity/sonar` | `openai/gpt-6-luna`, `openai/gpt-6-sol`, `anthropic/claude-sonnet-5-5`, `google/gemini-3.8-flash`, `xai/grok-4.7` |
+| **Perplexity** | `perplexity/sonar` | `openai/gpt-6-luna`, `openai/gpt-6-sol`, `openai/gpt-6.1-sol`, `anthropic/claude-sonnet-5-5`, `google/gemini-3.8-flash`, `xai/grok-4.7` |
 | **Z.AI** | `glm-5.2` | `glm-5.3` (most capable, always thinks), `glm-5.3-flash`, `glm-5.1`, `glm-4.7` (reasoning), `glm-4.7-flash` (free) |
 | **Cohere** | `command-a-plus-05-2026` | `command-a-reasoning-08-2025`, `command-r7b-12-2024` (fast) |
 | **Kimi** | `kimi-k2.6` | `kimi-k3` (most capable), `kimi-k2.6-thinking` (reasoning), `kimi-k2-turbo-preview` (fast) -- these two are China-platform only; the international platform serves `kimi-k2.6` and `kimi-k3` |

@@ -36,6 +36,9 @@ local ModelLists = {
         -- Unlike 5.6 they REASON BY DEFAULT (medium; sol and luna turn off with "none",
         -- astra cannot), temperature=1.0 only, 128K output, tools + web search on the
         -- Responses API (probed 2026-09-28).
+        -- GPT-6.1 Sol (2026-09-29, $2/$10 like 6-sol): the same shape except that it
+        -- cannot turn reasoning off (low..xhigh; battery 2026-09-30).
+        "gpt-6.1-sol",
         "gpt-6-sol",                    -- flagship (most capable of the everyday models)
         "gpt-6-luna",                   -- cost-optimized
         "gpt-6-astra",                  -- frontier, premium price
@@ -200,6 +203,7 @@ local ModelLists = {
         "anthropic/claude-haiku-4.5",
 
         -- OpenAI (gpt-6: astra > sol > luna, reason by default; battery 2026-09-28)
+        "openai/gpt-6.1-sol",           -- cannot turn reasoning off (battery 2026-09-30)
         "openai/gpt-6-sol",
         "openai/gpt-6-luna",
         "openai/gpt-6-astra",
@@ -408,6 +412,7 @@ local ModelLists = {
         "perplexity/sonar",             -- default: Perplexity's own model (every retired Sonar id lands here)
         "openai/gpt-6-luna",            -- the model Perplexity's own fast/low/medium presets run
         "openai/gpt-6-sol",
+        "openai/gpt-6.1-sol",           -- searched and cited 2026-09-30; takes no temperature
         "anthropic/claude-sonnet-5-5",  -- replaces claude-sonnet-5 (same price; searched and cited 2026-09-29)
         "google/gemini-3.8-flash",
         "xai/grok-4.7",
