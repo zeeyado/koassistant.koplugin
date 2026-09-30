@@ -370,6 +370,28 @@ TestRunner.assert(ModelLists.getModelForTier("anthropic", "ultrafast", false) ==
     "getModelForTier stays ladder-only")
 ModelOverrides.setGlobalTierPins(nil)
 
+print("== The model menu's tier tags follow the tiers requests use (B362) ==")
+
+-- The tags ("· fast/ultrafast") read the curated table only, so a reader's own
+-- tier pick showed in the action editor and the Fast button but the tag stayed
+-- on the curated model, and the two screens disagreed
+do
+    local plugin_dir = select(1, setupPaths())
+    local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+    local main_src = f:read("*a")
+    f:close()
+    local loop = main_src:match('local model_tiers = {}\n(.-)\n  end\n')
+    TestRunner.assert(loop ~= nil, "the tag loop is found")
+    TestRunner.assert(loop and loop:find("ModelLists.getModelForTier(provider, tier_name, false)", 1, true) ~= nil,
+        "the tags resolve through getModelForTier (GUI and custom_models.lua picks included)")
+    TestRunner.assert(loop and not loop:find("ModelLists._tiers", 1, true),
+        "the tags never read the curated table directly")
+end
+ModelOverrides.setGuiTiers({ gemini = { fast = "gemini-gui-fast" } })
+TestRunner.assert(ModelLists.getModelForTier("gemini", "fast", false) == "gemini-gui-fast",
+    "a GUI tier pick is what the tag names")
+ModelOverrides.setGuiTiers(nil)
+
 -- Summary
 print(string.format("\n%d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

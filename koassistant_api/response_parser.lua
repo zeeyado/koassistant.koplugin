@@ -2,9 +2,12 @@ local json = require("json")
 
 local ResponseParser = {}
 
+-- The start every incomplete-answer notice below shares (withNoticeOf finds it)
+ResponseParser.NOTICE_PREFIX = "\n\n---\n⚠ *Response"
+
 -- Truncation notice appended to responses that hit max tokens
 -- This marker is checked by caching logic to avoid caching incomplete responses
-ResponseParser.TRUNCATION_NOTICE = "\n\n---\n⚠ *Response truncated: output token limit reached*"
+ResponseParser.TRUNCATION_NOTICE = ResponseParser.NOTICE_PREFIX .. " truncated: output token limit reached*"
 
 -- Companion marker for a stream the PROVIDER ended early — a mid-stream 5xx, a
 -- dropped connection. Distinct from TRUNCATION_NOTICE because the causes are
@@ -14,7 +17,7 @@ ResponseParser.TRUNCATION_NOTICE = "\n\n---\n⚠ *Response truncated: output tok
 -- used 2310 of its 32768 tokens. The PREFIX is the stable part — interruptedNotice
 -- appends the provider's own message when we have it, so isIncomplete matches on the
 -- prefix rather than the whole string.
-ResponseParser.INTERRUPTED_PREFIX = "\n\n---\n⚠ *Response interrupted"
+ResponseParser.INTERRUPTED_PREFIX = ResponseParser.NOTICE_PREFIX .. " interrupted"
 ResponseParser.INTERRUPTED_NOTICE = ResponseParser.INTERRUPTED_PREFIX .. ": the provider ended the stream early*"
 
 --- Build the interrupted notice, naming the provider's own error when available.
@@ -44,6 +47,19 @@ function ResponseParser.isIncomplete(text)
         or text:find(ResponseParser.STOP_PREFIX, 1, true) ~= nil
 end
 
+--- `shown` (a rendered form of the answer `raw`) with raw's incomplete-answer
+--- notice carried under it, so a cut stays visible, and readable to
+--- isIncomplete, after rendering (B362). Unchanged when raw has no notice or
+--- `shown` is raw itself.
+--- @param shown string|nil
+--- @param raw string|nil
+--- @return string|nil
+function ResponseParser.withNoticeOf(shown, raw)
+    if type(shown) ~= "string" or type(raw) ~= "string" or shown == raw then return shown end
+    local at = raw:find(ResponseParser.NOTICE_PREFIX, 1, true)
+    return at and (shown .. raw:sub(at)) or shown
+end
+
 -- Every way a response ends normally, per provider wire. Anything else (Gemini
 -- SAFETY/RECITATION/PROHIBITED_CONTENT, OpenAI content_filter, Anthropic refusal)
 -- is a stop the reader should see NAMED: with no text it used to surface as
@@ -55,7 +71,7 @@ local NORMAL_STOPS = {
     pause_turn = true,
     STOP = true, MAX_TOKENS = true,                                            -- Gemini
 }
-ResponseParser.STOP_PREFIX = "\n\n---\n⚠ *Response stopped early by the provider: "
+ResponseParser.STOP_PREFIX = ResponseParser.NOTICE_PREFIX .. " stopped early by the provider: "
 
 --- The finish reason when it is abnormal, else nil (nil/non-string = the json
 --- null sentinel or a missing field, never a reason).

@@ -4188,11 +4188,12 @@ function AskGPT:buildModelMenu(simplified, provider_override)
   end
 
   -- Reverse tier map for this provider: show at a glance which models the tier
-  -- ladder points at ("· fast/ultrafast"). Curated placements only (user
-  -- overrides ride custom_models.lua and get their own management UI later).
+  -- ladder points at ("· fast/ultrafast"). B362: this provider's tiers with the
+  -- reader's own picks (Model tiers…, custom_models.lua) included, as the action
+  -- editor shows them (a global tier pin is not marked here)
   local model_tiers = {}
   for _tidx, tier_name in ipairs({ "frontier", "flagship", "standard", "fast", "ultrafast" }) do
-    local tier_model = (ModelLists._tiers[tier_name] or {})[provider]
+    local tier_model = ModelLists.getModelForTier(provider, tier_name, false)
     if tier_model then
       model_tiers[tier_model] = model_tiers[tier_model] or {}
       table.insert(model_tiers[tier_model], tier_name)
@@ -10473,6 +10474,18 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
             current_progress.formatted, math.floor(next_ahead * 100 + 0.5))
           or T(_("You're at %1. The next checkpoint (%2%) is already built and installs when you reach it."),
             current_progress.formatted, math.floor(next_ahead * 100 + 0.5))
+      elseif ladder_building and not ladder_building.awaiting_network
+          and not ladder_building.one_shot
+          and not (xr_posture == "full" and not xr_hold) then
+        -- B362: the next checkpoint is still being built (readers look right
+        -- after an introduction lands): name it and when it installs
+        local bs = XrayAuto.currentLadderStep()
+        local bt = bs and not bs.intro and tonumber(bs.target)
+        pos_line = (bt and bt > (current_progress.decimal or 0) + 0.005
+            and bt > (tonumber(cached_entry.progress_decimal) or 0) + 0.005)
+          and T(_("You're at %1. The next checkpoint (%2%) is being built and installs when you reach it."),
+            current_progress.formatted, math.floor(bt * 100 + 0.5))
+          or T(_("You're at %1."), current_progress.formatted)
       else
         pos_line = T(_("You're at %1."), current_progress.formatted)
       end
@@ -14583,7 +14596,8 @@ function AskGPT:_fireXrayAutoUpdate(opts)
         -- cancel: a skip — neither a success (nothing written) nor a failure
         logger.dbg("KOAssistant: background X-Ray update skipped -",
           was_discarded and "discarded (cache changed mid-flight)" or "cancelled")
-      elseif result then
+      elseif result and not (type(meta_or_err) == "table" and type(meta_or_err.config) == "table"
+          and meta_or_err.config._not_saved) then
         XrayAuto.recordSuccess(file)
         logger.dbg("KOAssistant: background X-Ray update completed (session total:",
           XrayAuto.sessionUpdateCount(), ")")
@@ -14591,7 +14605,17 @@ function AskGPT:_fireXrayAutoUpdate(opts)
           text = T(_("X-Ray updated to %1%"), math.floor(decimal * 100 + 0.5)),
         })
       else
-        local msg = tostring(meta_or_err or "unknown error")
+        -- B362: an answer that saved nothing (cut off, the model's error
+        -- answer, unreadable) is a failure, never "X-Ray updated". A cut is
+        -- recorded in the classifier's words, so the popup names it too
+        local not_saved = result and meta_or_err.config._not_saved
+        local cut = not_saved and type(result) == "string" and result:find(
+          require("koassistant_api.response_parser").TRUNCATION_NOTICE, 1, true)
+        local msg = (cut and "answer cut off at the length limit")
+          or (not_saved and (type(not_saved) == "string" and not_saved
+            or _("the answer could not be used as an X-Ray")))
+          or tostring(meta_or_err or "unknown error")
+        local shown = cut and self_ref:_xrayStopReasonLabel("cut_off") or msg
         if msg:find("^background:") then
           -- Deliberate abort (path not applicable / truncated delta) — a skip, not a failure
           logger.dbg("KOAssistant: background X-Ray update skipped -", msg)
@@ -14600,7 +14624,7 @@ function AskGPT:_fireXrayAutoUpdate(opts)
           logger.warn("KOAssistant: background X-Ray update failed:", msg)
           if manual then
             UIManager:show(InfoMessage:new{
-              text = T(_("Background X-Ray update failed: %1"), msg), timeout = 4 })
+              text = T(_("Background X-Ray update failed: %1"), shown), timeout = 4 })
           end
         end
       end
@@ -15675,7 +15699,11 @@ function AskGPT:_fireXrayLadderRung()
         -- rung failed to write arrives here with a TABLE in the error slot —
         -- tostring gave "table: 0x…" as the stop reason, which is what the
         -- device log showed when a rung was rejected as invalid JSON.
+        -- B362: a cut-off answer is never saved; its notice rides the reply
+        local cut = type(result) == "string" and result:find(
+          require("koassistant_api.response_parser").TRUNCATION_NOTICE, 1, true)
         local err_text = (front_matter and "front matter only")
+            or (cut and "answer cut off at the length limit")
             or (type(meta_or_err) == "string" and meta_or_err)
             or (result and "rung not written (response rejected or save failed)")
             or "rung not saved"
@@ -15891,6 +15919,9 @@ function AskGPT:_xrayStopReasonLabel(kind)
   if kind == "no_text" then return _("no book text in this part") end
   -- B353: the goal's text is still front matter (or the skips ran out)
   if kind == "front_matter" then return _("only front matter so far") end
+  -- B362: the answer ran past its length limit (the model's, or a per-minute
+  -- plan's cap on this request)
+  if kind == "cut_off" then return _("answer cut off at its length limit") end
   -- An account wall (credits, balance, a spending cap): never retried, the
   -- reader must act on the account.
   if kind == "billing" then return _("account credits or billing") end

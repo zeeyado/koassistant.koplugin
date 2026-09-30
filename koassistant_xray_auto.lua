@@ -278,7 +278,7 @@ end
 --- and a context/output-cap 400 are deterministic, so transient is false: the
 --- retry would be a guaranteed second failure.
 --- @param err string|nil The error text (handler-formatted, e.g. "gemini/…: HTTP 503: …")
---- @return string kind "aborted"|"no_text"|"front_matter"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
+--- @return string kind "aborted"|"no_text"|"front_matter"|"cut_off"|"billing"|"too_large"|"overloaded"|"rate_limited"|"server_error"|"timeout"|"network"|"bad_json"|"other"
 --- @return boolean transient True when a short wait plausibly heals it (retry-worthy)
 function XrayAuto.classifyStopReason(err)
   local text = type(err) == "string" and err:lower() or ""
@@ -296,6 +296,9 @@ function XrayAuto.classifyStopReason(err)
   -- B353: the model found only front matter and the step could not be
   -- skipped (the build's goal, or the skip budget spent)
   if text:find("^front matter only") then return "front_matter", false end
+  -- B362: the answer ran past its length limit; the same step cuts off
+  -- again, so no retry
+  if text:find("^answer cut off") then return "cut_off", false end
   -- Inline requires: both modules are pure and loadable from here, and this file
   -- deliberately keeps no file-level dependency on the api/constraints layer.
   local RateLimits = require("koassistant_rate_limits")

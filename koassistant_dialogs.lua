@@ -3652,7 +3652,7 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- The X-Ray outcome marks describe THIS request's answer: a config copied
     -- from an earlier one (a re-run from its window) must not bring them along
     temp_config._xray_front_matter = nil
-    temp_config._xray_not_saved = nil
+    temp_config._not_saved = nil
     -- The per-chat Web value (if any) rode into temp_config with the features copy;
     -- consume it from the SOURCE config so it can't go stale on the shared table.
     if config and config.features then
@@ -5541,11 +5541,23 @@ if prune_book_text then
                         logger.dbg("KOAssistant: X-Ray response is not valid JSON, using as-is")
                     end
                 end
+                -- B362: a cut-off answer is never saved (is_truncated below blocks
+                -- every write), but the parser's repair reads it as whole: name the
+                -- cut, keep its notice under the rendered part, save nothing
+                local RP = require("koassistant_api.response_parser")
+                if RP.isIncomplete(answer) and not temp_config._xray_front_matter then
+                    xray_unusable = answer:find(RP.TRUNCATION_NOTICE, 1, true)
+                        and _("the answer was cut off at its length limit")
+                        or _("the answer stopped before it finished")
+                    display_answer = RP.withNoticeOf(display_answer, answer)
+                    cache_answer = nil
+                end
                 -- B361: nothing from this answer becomes the X-Ray (front matter,
                 -- the model's error answer, no entries, unreadable over an existing
-                -- one); an attended run shows the answer, never the X-Ray on disk
+                -- one, cut off); an attended run shows the answer, never the X-Ray
+                -- on disk. The mark carries the reason when there is one.
                 if cache_answer == nil then
-                    temp_config._xray_not_saved = true
+                    temp_config._not_saved = xray_unusable or true
                 end
             end
 
@@ -5561,6 +5573,12 @@ if prune_book_text then
             -- Both markers count: a provider-interrupted answer is as incomplete
             -- as a token-truncated one and must not be cached as whole.
             local is_truncated = ResponseParser.isIncomplete(answer)
+            -- B362: a cut-off answer is never saved, for any action (every write
+            -- below checks is_truncated): completions that open the saved copy
+            -- show this answer instead of the older one on disk
+            if is_truncated and not temp_config._not_saved then
+                temp_config._not_saved = true
+            end
             local book_text_was_provided = (message_data.book_text and message_data.book_text ~= "")
                 or (message_data.full_document and message_data.full_document ~= "")
                 or (message_data.incremental_book_text and message_data.incremental_book_text ~= "")
@@ -6037,9 +6055,20 @@ if prune_book_text then
             if xray_unusable and not (message_data._background_request
                 or message_data._background_create or message_data._ladder_build) then
                 local ConfirmBox = require("ui/widget/confirmbox")
+                -- B362: the same request cuts off again at the same limit. An
+                -- update keeps its X-Ray's depth and categories, so only a smaller
+                -- step helps it
+                local unusable_text
+                if not answer:find(ResponseParser.TRUNCATION_NOTICE, 1, true) then
+                    unusable_text = T(_("X-Ray not saved: %1.\n\nNothing was overwritten. Models sometimes return a broken response; trying again usually works."), xray_unusable)
+                elseif using_cache then
+                    unusable_text = T(_("X-Ray not saved: %1.\n\nNothing was overwritten. Updating in checkpoints keeps each answer shorter; a model or plan that allows longer answers helps too."), xray_unusable)
+                else
+                    unusable_text = T(_("X-Ray not saved: %1.\n\nNothing was overwritten. A lighter depth or fewer categories makes a shorter X-Ray; a model or plan that allows longer answers helps too."), xray_unusable)
+                end
                 UIManager:nextTick(function()
                     UIManager:show(ConfirmBox:new{
-                        text = T(_("X-Ray not saved: %1.\n\nNothing was overwritten. Models sometimes return a broken response; trying again usually works."), xray_unusable),
+                        text = unusable_text,
                         ok_text = _("Try again"),
                         ok_callback = function()
                             local src = retry_args[4]
@@ -7433,9 +7462,12 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             return nil
                         end
                         closeLoadingDialog()
+                        -- B362: an answer that saved nothing (cut off; an X-Ray's
+                        -- refusal) shows here, never the older copy on disk
+                        local nothing_saved = temp_config and temp_config._not_saved
 
                         -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
-                        if action.use_response_caching and action.id and plugin then
+                        if action.use_response_caching and not nothing_saved and action.id and plugin then
                             local ActionCache = require("koassistant_action_cache")
                             -- Same closed-book fallback as the WRITE path (book_metadata.file):
                             -- ui.document is nil for fb-dialog launches and mid-flight book
@@ -7455,7 +7487,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         end
 
                         -- For document analysis/summary: open in cache viewer
-                        if (action.cache_as_analyze or action.cache_as_summary) and plugin then
+                        if (action.cache_as_analyze or action.cache_as_summary) and not nothing_saved and plugin then
                             local ActionCache = require("koassistant_action_cache")
                             local file = (ui_instance and ui_instance.document and ui_instance.document.file)
                                 or (temp_config.features and temp_config.features.book_metadata
@@ -12735,11 +12767,12 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         if history then
             local temp_config = temp_config_or_error
             attachRerunContext(temp_config, action, ui, plugin, opts and opts.run_variant)
-            -- B353/B361: an X-Ray answer that saved nothing (front matter, the
-            -- model's error answer, no entries). The branches below open what is
-            -- on disk (an older X-Ray; after a section create, the book's main
-            -- one) and would hide the answer, so it goes to the chat viewer
-            local nothing_saved = type(temp_config) == "table" and temp_config._xray_not_saved
+            -- B353/B361/B362: an answer that saved nothing (cut off, for any
+            -- action; an X-Ray's front matter, error answer or missing entries).
+            -- The branches below open what is on disk (an older copy; after a
+            -- section create, the book's main X-Ray) and would hide the answer,
+            -- so it goes to the chat viewer
+            local nothing_saved = type(temp_config) == "table" and temp_config._not_saved
             -- For Section X-Ray: open browser directly from section cache
             if not nothing_saved and configuration and configuration.features and configuration.features._section_xray and ui and ui.document and ui.document.file then
                 local ActionCache = require("koassistant_action_cache")
@@ -12801,7 +12834,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             end
             -- For generic section actions: open in simple viewer from section cache
             -- (skip interactive_quiz — has its own routing below that handles section cache keys)
-            if not action.interactive_quiz and configuration and configuration.features and configuration.features._section_scope and plugin then
+            if not action.interactive_quiz and not nothing_saved and configuration and configuration.features and configuration.features._section_scope and plugin then
                 local ActionCache = require("koassistant_action_cache")
                 local scope = configuration.features._section_scope
                 local file = ui and ui.document and ui.document.file or document_path
@@ -12964,7 +12997,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
 
             -- For document analysis/summary: open in cache viewer
             -- (cache_as_xray already handled above with XrayBrowser)
-            if (action.cache_as_analyze or action.cache_as_summary) and plugin then
+            if (action.cache_as_analyze or action.cache_as_summary) and not nothing_saved and plugin then
                 local ActionCache = require("koassistant_action_cache")
                 local file = ui and ui.document and ui.document.file
                 if file then

@@ -1640,6 +1640,40 @@ TestRunner:test("a tap outside the spacing picker is Back: the form comes back (
     1, true), "tap outside runs on_back")
 end)
 
+TestRunner:test("B362: a checkpoint cut off at its length limit stops with the reason named", function()
+  local kind, transient = XrayAuto.classifyStopReason("answer cut off at the length limit")
+  TestRunner:assertEqual(kind, "cut_off", "named")
+  TestRunner:assertEqual(transient, false, "never retried: the same step cuts off again")
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  -- The step names it from the reply, which keeps the notice under the rendered part
+  TestRunner:assertTrue(main:find('or (cut and "answer cut off at the length limit")', 1, true),
+    "the step's stop text")
+  TestRunner:assertTrue(main:find('if kind == "cut_off" then return _(', 1, true), "the label")
+end)
+
+TestRunner:test("B362: the popup names a checkpoint still being built and when it installs (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  local ahead = main:find("is already built and installs when you reach it.", 1, true)
+  local building = main:find("elseif ladder_building and not ladder_building.awaiting_network\n"
+    .. "          and not ladder_building.one_shot\n"
+    .. "          and not (xr_posture == \"full\" and not xr_hold) then", 1, true)
+  local line = main:find("is being built and installs when you reach it.", 1, true)
+  TestRunner:assertTrue(ahead and building and line and ahead < building and building < line,
+    "after a built checkpoint, before the plain position line; a one-request build installs when done, so it is left out")
+  local branch = main:sub(building or 1, (line or 1) + 200)
+  TestRunner:assertTrue(branch:find("not bs.intro", 1, true), "an introduction step installs at once: not named")
+  TestRunner:assertTrue(branch:find("bt > (current_progress.decimal or 0) + 0.005", 1, true),
+    "only a checkpoint past the reader")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

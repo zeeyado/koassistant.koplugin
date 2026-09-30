@@ -3,6 +3,8 @@
 -- executeActionForResult) skips the step. B361: any X-Ray answer that saved
 -- nothing (front matter, the model's error answer, no entries) marks it too, and
 -- an attended run then shows the answer instead of opening an X-Ray from disk.
+-- B362: a cut-off answer is one of them, and a background update that saved
+-- nothing is a failure, never "X-Ray updated".
 --
 -- The first build of this read the mark from a hand-picked meta copy that never
 -- carried it, and its guard only checked that each side's source text existed,
@@ -61,7 +63,7 @@ end
 -- The marks' names, from the lines that set them in the response handler
 local MARK = dialogs_src:match(
     "temp_config%.([%w_]+) = true\n%s*logger%.dbg%(\"KOAssistant: X%-Ray found only front matter")
-local NOT_SAVED = dialogs_src:match("if cache_answer == nil then\n%s*temp_config%.([%w_]+) = true")
+local NOT_SAVED = dialogs_src:match("if cache_answer == nil then\n%s*temp_config%.([%w_]+) = ")
 
 print("\n  [the headless hand-off carries the request's config]")
 
@@ -140,6 +142,77 @@ TestRunner:test("no branch opens an X-Ray from disk for it", function()
     }) do
         TestRunner:assertTrue(dialogs_src:find(cond, 1, true), cond)
     end
+end)
+
+print("\n  [a cut-off answer saves nothing, and nothing opens an older copy (B362)]")
+
+local RP = require("koassistant_api.response_parser")
+
+TestRunner:test("the parser's repair reads a cut-off answer as whole, so the X-Ray block checks the cut itself", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local answer = '{"type": "fiction", "characters": [{"name": "Anna", "description": "A doctor."}, '
+        .. '{"name": "Bert", "description": "Her bro' .. RP.TRUNCATION_NOTICE
+    TestRunner:assertTrue(RP.isIncomplete(answer), "the notice marks it")
+    local parsed = XrayParser.parse(answer)
+    TestRunner:assertTrue(parsed and XrayParser.hasEntityContent(parsed), "the repair keeps the finished entries")
+    local cut = dialogs_src:find("if RP.isIncomplete(answer) and not temp_config._xray_front_matter then", 1, true)
+    local mark = dialogs_src:find("if cache_answer == nil then\n%s*temp_config%." .. NOT_SAVED)
+    TestRunner:assertTrue(cut and mark and cut < mark, "checked before the nothing-saved mark")
+    local block = dialogs_src:sub(cut or 1, mark or 1)
+    TestRunner:assertTrue(block:find("cache_answer = nil", 1, true), "nothing from it is saved")
+    TestRunner:assertTrue(block:find("display_answer = RP.withNoticeOf(display_answer, answer)", 1, true),
+        "its notice stays under the rendered part")
+end)
+
+TestRunner:test("any cut-off answer is marked: every write checks is_truncated, so nothing was saved", function()
+    local body = dialogs_src:match("local is_truncated = ResponseParser%.isIncomplete%(answer%)\n(.-)\n%s*local book_text_was_provided")
+    TestRunner:assertTrue(body and body:find("if is_truncated and not temp_config." .. NOT_SAVED .. " then", 1, true),
+        "the mark follows the cut for every action")
+end)
+
+TestRunner:test("the notice survives rendering and the checkpoint step reads it (the real hand-off)", function()
+    local raw = '{"characters": [{"name": "A"' .. RP.TRUNCATION_NOTICE
+    local shown = RP.withNoticeOf("# X-Ray\n\nA", raw)
+    TestRunner:assertTrue(RP.isIncomplete(shown), "the rendered answer still carries the cut")
+    TestRunner:assertEqual(RP.withNoticeOf("# X-Ray", "{}"), "# X-Ray", "no notice: unchanged")
+    TestRunner:assertEqual(RP.withNoticeOf(raw, raw), raw, "unrendered: never doubled")
+    local expr = main_src:match("its notice rides the reply\n%s*local cut = (.-)\n%s*local err_text")
+    TestRunner:assertTrue(expr, "the step's read is found")
+    local read = assert(load("local result = ...; return " .. expr:gsub("\n", " ")))
+    TestRunner:assertTrue(read((Dialogs._headlessResult(history(shown), {}))), "cut: the step names it")
+    TestRunner:assertFalse(read((Dialogs._headlessResult(history("# X-Ray"), {}))), "whole: not")
+    TestRunner:assertFalse(read(nil), "no reply: not")
+    local kind = require("koassistant_xray_auto").classifyStopReason(
+        main_src:match('or %(cut and "([^"]+)"%)'))
+    TestRunner:assertEqual(kind, "cut_off", "the stop text is the classifier's")
+end)
+
+TestRunner:test("a background update that saved nothing is not reported as done, and a cut is named", function()
+    local expr = main_src:match('elseif (result and not %(type%(meta_or_err%) == "table".-' .. NOT_SAVED .. '%)) then')
+    TestRunner:assertTrue(expr, "the success test is found")
+    local succeeded = assert(load("local result, meta_or_err = ...; return " .. expr:gsub("\n", " ")))
+    TestRunner:assertFalse(succeeded(Dialogs._headlessResult(history("the X-Ray"),
+        { [NOT_SAVED] = "the answer was cut off" })), "marked: a failure")
+    TestRunner:assertTrue(succeeded(Dialogs._headlessResult(history("the X-Ray"), {})), "unmarked: done")
+    TestRunner:assertFalse(succeeded(Dialogs._headlessResult(nil, "503 overloaded")), "an error: a failure")
+    local msg = main_src:match('local msg = %(cut and "([^"]+)"%)')
+    TestRunner:assertEqual(require("koassistant_xray_auto").classifyStopReason(msg), "cut_off",
+        "the recorded reason is one the popup names")
+end)
+
+TestRunner:test("no completion opens an older copy for an answer that saved nothing", function()
+    for _idx, cond in ipairs({
+        -- executeDirectAction
+        "if not action.interactive_quiz and not nothing_saved and configuration and configuration.features and configuration.features._section_scope and plugin then",
+        "if (action.cache_as_analyze or action.cache_as_summary) and not nothing_saved and plugin then",
+        -- the input dialog
+        "local nothing_saved = temp_config and temp_config." .. NOT_SAVED,
+        "if action.use_response_caching and not nothing_saved and action.id and plugin then",
+    }) do
+        TestRunner:assertTrue(dialogs_src:find(cond, 1, true), cond)
+    end
+    local _s, n = dialogs_src:gsub("if %(action%.cache_as_analyze or action%.cache_as_summary%) and not nothing_saved and plugin then", "")
+    TestRunner:assertEqual(n, 2, "both analysis/summary openers (the input dialog and a direct run)")
 end)
 
 return TestRunner:summary()

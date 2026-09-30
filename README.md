@@ -3050,7 +3050,7 @@ When KOAssistant detects a new version (automatically on startup, or via a manua
 
 1. Downloads the release zip from GitHub
 2. Extracts it to a staging folder and verifies the new version (checks `_meta.lua`/`main.lua` exist and the version matches)
-3. Preserves your configuration files (`apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders)
+3. Preserves your configuration files (`apikeys.lua`, `configuration.lua`, `custom_actions.lua`, `custom_models.lua`, and custom `behaviors/`/`domains/` folders)
 4. Swaps the old plugin folder aside and moves the new version into place (if the swap fails, the previous version is automatically restored)
 5. Restores your configuration files into the new version
 6. Prompts you to restart KOReader
@@ -3069,7 +3069,7 @@ Your settings and data are **not affected** by updates (automatic or manual):
 - **Chat history, notebooks, caches** are all stored in KOReader's settings/sidecar files
 - **Backups, exports, and generated images** are stored outside the plugin folder (in `koassistant_backups/`, `koassistant_exports/`, and `koassistant_images/` under KOReader's data directory)
 
-The auto-updater also preserves the optional configuration files that live inside the plugin folder: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, and custom `behaviors/`/`domains/` folders.
+The auto-updater also preserves the optional configuration files that live inside the plugin folder: `apikeys.lua`, `configuration.lua`, `custom_actions.lua`, `custom_models.lua`, and custom `behaviors/`/`domains/` folders.
 
 ### Manual Update
 
@@ -3102,6 +3102,7 @@ If you're having problems after an update, a clean install can help. This delete
    - `apikeys.lua` (if you use file-based API keys instead of the Settings menu)
    - `configuration.lua` (if you created one)
    - `custom_actions.lua` (if you created one)
+   - `custom_models.lua` (if you created one)
    - `behaviors/` and `domains/` folders (if you added custom files)
 2. Delete the existing `koassistant.koplugin` folder
 3. Extract the new zip to the plugins directory
@@ -3259,7 +3260,7 @@ Backups are selective: choose what to include:
 |----------|----------------|---------|
 | **Core Settings** | Provider/model, behaviors, domains, temperature, languages, all toggles, custom providers, custom models, action menu customizations, general/library pinned artifacts, book groups, and every book's per-book settings | Always included |
 | **API Keys** | Your API keys (encrypted storage planned for future) | ⚠️ Excluded by default |
-| **Configuration Files** | configuration.lua, custom_actions.lua (and apikeys.lua only if "Include API Keys" is on), if they exist | Included if files exist |
+| **Configuration Files** | configuration.lua, custom_actions.lua, custom_models.lua (and apikeys.lua only if "Include API Keys" is on), if they exist | Included if files exist |
 | **Domains & Behaviors** | Custom domains and behaviors from your folders (`.md`/`.txt` files) | Included |
 | **Chat History** | All saved conversations (book, general, and library chats) | Excluded (can be large) |
 
