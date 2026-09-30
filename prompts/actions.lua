@@ -1269,8 +1269,10 @@ local ACADEMIC_SECTION_REPLACEMENTS = {
 --- @param scope_label string The section label (e.g., "Part 1")
 --- @param page_summary string Human-readable page range (e.g., "Ch 1–5, pp 1–120")
 --- @param academic boolean|nil If true, use academic template
+--- @param selection string|nil canonical category csv (nil = full)
+--- @param depth string|nil "light" | "deep" (nil = standard)
 --- @return string prompt The fully resolved prompt
-function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic)
+function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic, selection, depth)
     local template = academic and ACADEMIC_XRAY_PROMPT_TEMPLATE or XRAY_PROMPT_TEMPLATE
     local base_replacements = academic and ACADEMIC_SECTION_REPLACEMENTS or XRAY_SECTION_REPLACEMENTS
     local replacements = {}
@@ -1278,9 +1280,10 @@ function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic)
     replacements.__SCOPE_LINE__ = string.format(
         'Analyzing section "%s" (%s) of the %s.', scope_label, page_summary,
         academic and "paper" or "document")
-    -- Sections always use the full category set (v0.21); the schema markers
-    -- are absent from the academic template, so the assembly no-ops there
-    return assemble_xray_prompt(template, replacements, nil)
+    -- The book's X-Ray categories and depth, as for a new X-Ray (B388; the
+    -- request assembly resolves them). The schema markers are absent from the
+    -- academic template, so the assembly no-ops there
+    return assemble_xray_prompt(template, replacements, selection, depth)
 end
 
 --- Canonical group order for the category picker (presets v0.21).

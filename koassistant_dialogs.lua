@@ -4365,10 +4365,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Academic is the research template; Fiction and Nonfiction the general
     -- one with that schema alone (applied after the category assembly). An
     -- update re-swaps to its lineage's own track in the cache branch.
-    local xray_type
-    if prompt and prompt.id == "xray" and prompt.cache_as_xray
+    -- B388: a section X-Ray follows the same X-Ray settings (type, categories,
+    -- depth) as a new X-Ray of the book; it used every category at standard
+    -- depth whatever they said
+    local xray_dials = prompt and ((prompt.id == "xray" and prompt.cache_as_xray
             and not (config.features and (config.features._section_scope
-                or config.features._section_xray)) then
+                or config.features._section_xray)))
+        or (prompt.id == "section_xray" and config.features and config.features._section_xray ~= nil))
+    local xray_type
+    if xray_dials then
         xray_type = require("koassistant_book_settings").resolveXrayType(per_book_ds, config.features)
         if xray_type == "academic" then
             research_mode_active = true
@@ -4411,15 +4416,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
 
     -- X-Ray category selection (presets v0.21): the per-book sidecar pick
     -- narrows which categories a NEW X-Ray tracks — the create prompt is
-    -- assembled with only the selected schema blocks. Research/DOI and section
-    -- builds stay full; UPDATE requests follow the cache STAMP instead (the
-    -- update branch below overwrites prompt.prompt anyway and appends its own
-    -- clause). Covers attended creates, background/auto establishment and
-    -- rebuild-chain fresh rungs alike — they all pass through here.
-    if prompt and prompt.id == "xray" and prompt.cache_as_xray
-        and not (research_mode_active and prompt.doi_prompt)
-        and not (config.features and (config.features._section_scope
-            or config.features._section_xray)) then
+    -- assembled with only the selected schema blocks (a section X-Ray too,
+    -- B388). Research/DOI builds stay full; UPDATE requests follow the cache
+    -- STAMP instead (the update branch below overwrites prompt.prompt anyway
+    -- and appends its own clause). Covers attended creates, background/auto
+    -- establishment and rebuild-chain fresh rungs alike — they all pass
+    -- through here.
+    if xray_dials and not (research_mode_active and prompt.doi_prompt) then
         local xr_file = (ui and ui.document and ui.document.file)
             or (config.features and config.features.book_metadata
                 and config.features.book_metadata.file)
@@ -4447,9 +4450,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
                 for k, v in pairs(original_prompt) do prompt[k] = v end
                 prompt._is_copy = true
             end
-            prompt.prompt = PromptsActions.buildXrayCategoryPrompt(xr_sel,
-                (config.features and config.features._full_document_xray)
-                    and "complete" or "partial", xr_depth)
+            local section = prompt.id == "section_xray" and config.features._section_xray
+            prompt.prompt = section
+                and PromptsActions.buildSectionXrayPrompt(section.label, section.page_summary,
+                    false, xr_sel, xr_depth)
+                or PromptsActions.buildXrayCategoryPrompt(xr_sel,
+                    (config.features and config.features._full_document_xray)
+                        and "complete" or "partial", xr_depth)
             message_data._xray_categories_applied = xr_sel
             message_data._xray_depth_applied = xr_depth
             logger.dbg("KOAssistant: X-Ray create narrowed to categories:", xr_sel,

@@ -9880,7 +9880,8 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           end,
         }})
       elseif not nc_auto_on and not nc_xa.isAutoSuppressed(self.ui.document.file)
-          and nc_rungs > 0 and (nc_highest or 0) < 1.0 - 0.005 then
+          and nc_rungs > 0 and (nc_highest or 0) < 1.0 - 0.005
+          and nc_xa.resumeOpts(nc_xa.lastLadderStop(self.ui.document.file)) then
         -- Round 24b: a cancel this session means "stop" — with auto toggled
         -- off afterwards the manual Resume row must not reappear either.
         -- The suppression clears on book close, so next open offers it again.
@@ -9896,9 +9897,9 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
             or T(_("Resume building checkpoints (%1 so far)…"), nc_rungs),
           callback = function()
             UIManager:close(dialog)
-            -- A stopped PRE-SWAP rebuild resumes as a rebuild (2026-08-15)
-            self_ref:_startXrayLadderBuild(nc_stop and nc_stop.rebuild
-              and { rebuild = true } or nil)
+            -- The stopped build again: its goal, a PRE-SWAP rebuild as a
+            -- rebuild (2026-08-15, B389)
+            self_ref:_startXrayLadderBuild(nc_xa.resumeOpts(nc_stop))
           end,
         }})
       end
@@ -10232,7 +10233,8 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         if c_flowing and not c_auto_on and XrayAuto.chainRungCount(ladder_rungs) > 0
             and not XrayAuto.isAutoSuppressed(sx_file)
             and (ladder_highest or 0) < 1.0 - 0.005
-            and not (ext_goal and (ladder_highest or 0) >= ext_goal - 0.01) then
+            and not (ext_goal and (ladder_highest or 0) >= ext_goal - 0.01)
+            and XrayAuto.resumeOpts(XrayAuto.lastLadderStop(sx_file)) then
           local sx_stop = XrayAuto.lastLadderStop(sx_file)
           local sx_reason = sx_stop and self:_xrayStopReasonLabel(sx_stop.kind)
           table.insert(buttons, {{
@@ -10243,9 +10245,9 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
                 math.floor((ladder_highest or 0) * 100 + 0.5)),
             callback = function()
               UIManager:close(dialog)
-              -- A stopped PRE-SWAP rebuild resumes as a rebuild (2026-08-15)
-              self_ref:_startXrayLadderBuild(sx_stop and sx_stop.rebuild
-                and { rebuild = true } or nil)
+              -- The stopped build again: its goal, a PRE-SWAP rebuild as a
+              -- rebuild (2026-08-15, B389)
+              self_ref:_startXrayLadderBuild(XrayAuto.resumeOpts(sx_stop))
             end,
           }})
         end
@@ -15329,7 +15331,9 @@ function AskGPT:_startXrayLadderBuild(build_opts)
     local rungs, rung_labels, seed = planFor(spacing)
     if #rungs == 0 then
       -- Also the no-ladder-but-live-at-100% case — say why, not "complete"
-      UIManager:show(InfoMessage:new{ text = _("Nothing to build: the X-Ray already covers the whole book."), timeout = 3 })
+      UIManager:show(InfoMessage:new{ text = (goal and goal < 1.0 - 0.005)
+        and T(_("Nothing to build: the X-Ray already reaches %1%."), math.floor(goal * 100 + 0.5))
+        or _("Nothing to build: the X-Ray already covers the whole book."), timeout = 3 })
       return
     end
     local snapped = next(rung_labels) ~= nil
@@ -15407,6 +15411,7 @@ function AskGPT:_startXrayLadderBuild(build_opts)
             XrayAuto.clearAutoSuppression(file)
             XrayAuto.beginLadderBuild(file, rungs, rung_labels,
               { intro = plan_intro, rebuild = chain_rebuild, one_shot = one_shot,
+                to_position = build_opts and build_opts.to_position or nil,
                 -- a run option (B345) rides a one-shot build only; chains keep the default
                 run_variant = one_shot and build_opts and build_opts.run_variant or nil })
             self_ref:_fireXrayLadderRung()
@@ -15735,11 +15740,10 @@ function AskGPT:_fireXrayLadderRung()
           XrayAuto.endLadderBuild()
           XrayAuto.recordLadderStop(file, { step = cur.step or cur.idx, total = cur.total,
             kind = "step_too_large",
-            rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil })
+            rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil }, cur)
           self_ref:_showXrayLadderStop(file,
             T(_("Checkpoint build paused at %1 of %2: the next step is a large request."),
-              cur.step or cur.idx, cur.total),
-            (cur.rebuild and not cur.rebuild_swapped) or nil)
+              cur.step or cur.idx, cur.total))
           return
         end
         local kind, transient = XrayAuto.classifyStopReason(err_text)
@@ -15783,15 +15787,14 @@ function AskGPT:_fireXrayLadderRung()
         XrayAuto.endLadderBuild()
         XrayAuto.recordLadderStop(file, { step = cur.step or cur.idx, total = cur.total,
           kind = kind,
-          rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil })
+          rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil }, cur)
         logger.dbg("KOAssistant: ladder build stopped at step", cur.step or cur.idx, "-",
           err_text)
         local reason = self_ref:_xrayStopReasonLabel(kind)
         self_ref:_showXrayLadderStop(file, reason
             and T(_("Checkpoint build stopped at %1 of %2 (%3)."),
               cur.step or cur.idx, cur.total, reason)
-            or T(_("Checkpoint build stopped at %1 of %2."), cur.step or cur.idx, cur.total),
-          (cur.rebuild and not cur.rebuild_swapped) or nil)
+            or T(_("Checkpoint build stopped at %1 of %2."), cur.step or cur.idx, cur.total))
         return
       end
       -- A landed rung refreshes the step's retry budget (item 45)
@@ -15879,21 +15882,27 @@ end
 --- @param file string the book the build belongs to
 --- @param text string what happened
 --- @param rebuild boolean|nil a stopped pre-swap rebuild resumes as a rebuild
-function AskGPT:_showXrayLadderStop(file, text, rebuild)
+function AskGPT:_showXrayLadderStop(file, text)
   local self_ref = self
   local dialog
+  -- B389: Resume re-plans the build that stopped (its goal, a pre-swap
+  -- rebuild still a rebuild), and is not offered when that plan cannot get
+  -- past the stop (nothing to build from, no book text)
+  local XrayAuto = require("koassistant_xray_auto")
+  local resume = XrayAuto.resumeOpts(XrayAuto.lastLadderStop(file))
+  local row = {{ text = _("Close"), callback = function() UIManager:close(dialog) end }}
+  if resume then
+    row[2] = { text = _("Resume"), callback = function()
+      UIManager:close(dialog)
+      -- The book may have closed while the notice waited
+      if not (self_ref.ui and self_ref.ui.document
+          and self_ref.ui.document.file == file) then return end
+      self_ref:_startXrayLadderBuild(resume)
+    end }
+  end
   dialog = ButtonDialog:new{
     title = text,
-    buttons = {{
-      { text = _("Close"), callback = function() UIManager:close(dialog) end },
-      { text = _("Resume"), callback = function()
-        UIManager:close(dialog)
-        -- The book may have closed while the notice waited
-        if not (self_ref.ui and self_ref.ui.document
-            and self_ref.ui.document.file == file) then return end
-        self_ref:_startXrayLadderBuild(rebuild and { rebuild = true } or nil)
-      end },
-    }},
+    buttons = { row },
   }
   UIManager:show(dialog)
 end
@@ -15958,7 +15967,7 @@ function AskGPT:_cancelXrayLadderBuild()
   if build and build.file then
     XrayAuto.recordLadderStop(build.file, { step = build.step or build.idx,
       total = build.total, kind = "cancelled",
-      rebuild = (build.rebuild and not build.rebuild_swapped) or nil })
+      rebuild = (build.rebuild and not build.rebuild_swapped) or nil }, build)
   end
   XrayAuto.endLadderBuild()
   -- Short toast (Notification renders ONE line — long text truncates); the
@@ -16076,7 +16085,7 @@ function AskGPT:onCloseDocument()
       XrayAuto.recordLadderStop(closing_build.file, {
         step = closing_build.step or closing_build.idx,
         total = closing_build.total, kind = "interrupted",
-        rebuild = (closing_build.rebuild and not closing_build.rebuild_swapped) or nil })
+        rebuild = (closing_build.rebuild and not closing_build.rebuild_swapped) or nil }, closing_build)
     end
     XrayAuto.endLadderBuild()
   end

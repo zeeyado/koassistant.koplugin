@@ -367,22 +367,51 @@ end
 --- Session-scoped "why the checkpoint chain last paused" (item 45): recorded
 --- on failure stops AND (2026-08-15, A5) explicit cancels and book-close
 --- interruptions; cleared when a chain (re)starts for the file.
-function XrayAuto.recordLadderStop(file, info)
+--- @param build table|nil the stopping build session: its goal rides along, so
+---   a Resume re-plans that build, not the whole book (B389)
+function XrayAuto.recordLadderStop(file, info, build)
   -- rebuild (2026-08-15): a PRE-SWAP rebuild chain that stops must resume as a
   -- rebuild — without the flag the resume row restarted it as a plain extend
   -- of the very lineage the rebuild was replacing
+  local rungs = type(build) == "table" and build.rungs or nil
   last_ladder_stop = { file = file, step = info and info.step,
     total = info and info.total, kind = info and info.kind,
-    rebuild = info and info.rebuild }
+    rebuild = info and info.rebuild,
+    goal = rungs and rungs[#rungs] or nil,
+    goal_label = rungs and build.labels and build.labels[#rungs] or nil,
+    one_shot = build and build.one_shot or nil,
+    to_position = build and build.to_position or nil }
   changed()
 end
 
---- @return table|nil { step, total, kind } for this file
+--- @return table|nil { step, total, kind, rebuild, goal, ... } for this file
 function XrayAuto.lastLadderStop(file)
   if last_ladder_stop and last_ladder_stop.file == file then
     return last_ladder_stop
   end
   return nil
+end
+
+--- B389: what a Resume starts, from the stop it resumes: the stopped build
+--- again (its goal, one request or a chain, to the reader's position or not;
+--- a pre-swap rebuild stays a rebuild). Before, every Resume planned to the
+--- end of the book. nil = no Resume: the same plan cannot get past this stop
+--- (the text up to its goal gave the model nothing to build from, or has no
+--- text), only reading on changes that. No stop = continue to the end.
+--- @param stop table|nil lastLadderStop(file)
+--- @return table|nil opts for AskGPT:_startXrayLadderBuild
+function XrayAuto.resumeOpts(stop)
+  if not stop then return {} end
+  if stop.kind == "nothing_built" or stop.kind == "no_text" then return nil end
+  local goal = tonumber(stop.goal)
+  local bounded = goal and goal < 1.0 - 0.005
+  return {
+    rebuild = stop.rebuild or nil,
+    target = bounded and goal or nil,
+    target_label = bounded and stop.goal_label or nil,
+    one_shot = stop.one_shot or nil,
+    to_position = stop.to_position or nil,
+  }
 end
 
 function XrayAuto.sessionUpdateCount()
@@ -914,6 +943,9 @@ function XrayAuto.beginLadderBuild(file, rungs, labels, opts)
     one_shot = (opts and opts.one_shot) or nil,
     -- A run option (B345) on a one-shot build: its rung runs on that model
     run_variant = (opts and opts.one_shot and opts.run_variant) or nil,
+    -- Planned to the reader's position (no introduction step): a Resume
+    -- re-plans it the same way (B389)
+    to_position = (opts and opts.to_position) or nil,
     -- B353: a follow chain's whole grid (the rungs are its prefix to one
     -- ahead of the reader); a front-matter skip takes its next point
     grid = (opts and opts.grid) or nil,

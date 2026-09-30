@@ -1674,6 +1674,74 @@ TestRunner:test("B362: the popup names a checkpoint still being built and when i
     "only a checkpoint past the reader")
 end)
 
+TestRunner:test("B389: a stop keeps its build's goal, and Resume re-plans that build", function()
+  -- A to-position build that stops at its only step
+  XrayAuto.beginLadderBuild("/books/r.epub", { 0.048 }, nil, { to_position = true })
+  local b = XrayAuto.ladderBuild()
+  TestRunner:assertEqual(b.to_position, true, "the build knows it runs to the reader's position")
+  XrayAuto.endLadderBuild()
+  XrayAuto.recordLadderStop("/books/r.epub", { step = 1, total = 1, kind = "network" }, b)
+  local stop = XrayAuto.lastLadderStop("/books/r.epub")
+  TestRunner:assertEqual(stop.goal, 0.048, "the goal")
+  local opts = XrayAuto.resumeOpts(stop)
+  TestRunner:assertEqual(opts.target, 0.048, "Resume plans to the same goal, not the whole book")
+  TestRunner:assertEqual(opts.to_position, true, "and the same way (no introduction step)")
+  -- A bounded chain to a section's end, a pre-swap rebuild
+  XrayAuto.beginLadderBuild("/books/r.epub", { 0.1, 0.2, 0.31 }, { [3] = "Part One" }, { rebuild = true })
+  b = XrayAuto.ladderBuild()
+  XrayAuto.endLadderBuild()
+  XrayAuto.recordLadderStop("/books/r.epub", { step = 2, total = 3, kind = "cancelled", rebuild = true }, b)
+  opts = XrayAuto.resumeOpts(XrayAuto.lastLadderStop("/books/r.epub"))
+  TestRunner:assertEqual(opts.target, 0.31, "the section's end")
+  TestRunner:assertEqual(opts.target_label, "Part One", "with its label")
+  TestRunner:assertEqual(opts.rebuild, true, "a pre-swap rebuild stays a rebuild")
+  -- A one-request build of the whole book
+  XrayAuto.beginLadderBuild("/books/r.epub", { 1.0 }, nil, { one_shot = true })
+  b = XrayAuto.ladderBuild()
+  XrayAuto.endLadderBuild()
+  XrayAuto.recordLadderStop("/books/r.epub", { step = 1, total = 1, kind = "timeout" }, b)
+  opts = XrayAuto.resumeOpts(XrayAuto.lastLadderStop("/books/r.epub"))
+  TestRunner:assertEqual(opts.one_shot, true, "one request again")
+  TestRunner:assertEqual(opts.target, nil, "the whole book needs no target")
+  -- No stop on record: continue to the end, as before
+  TestRunner:assertEqual(next(XrayAuto.resumeOpts(nil)), nil, "no stop: plain continue")
+end)
+
+TestRunner:test("B389: no Resume after a stop the same plan cannot get past", function()
+  for _i, kind in ipairs({ "nothing_built", "no_text" }) do
+    TestRunner:assertEqual(XrayAuto.resumeOpts({ kind = kind, goal = 0.048 }), nil, kind .. ": no Resume")
+  end
+  for _i, kind in ipairs({ "cut_off", "billing", "network", "cancelled", "step_too_large" }) do
+    TestRunner:assertTrue(XrayAuto.resumeOpts({ kind = kind }) ~= nil, kind .. ": Resume stays")
+  end
+  -- The classifier's kind for the step the model built nothing from is one of them
+  TestRunner:assertEqual(XrayAuto.resumeOpts({ kind = (XrayAuto.classifyStopReason("nothing to build from")) }), nil,
+    "the real stop kind")
+end)
+
+TestRunner:test("B389: every Resume goes through resumeOpts, and every stop records its build (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  -- The notice and both popup rows
+  TestRunner:assertTrue(main:find("local resume = XrayAuto.resumeOpts(XrayAuto.lastLadderStop(file))", 1, true),
+    "the stop notice")
+  TestRunner:assertTrue(main:find("self_ref:_startXrayLadderBuild(nc_xa.resumeOpts(nc_stop))", 1, true), "the no-X-Ray popup row")
+  TestRunner:assertTrue(main:find("self_ref:_startXrayLadderBuild(XrayAuto.resumeOpts(sx_stop))", 1, true), "the X-Ray popup row")
+  TestRunner:assertFalse(main:find("_startXrayLadderBuild%([%w_%s%.]-and { rebuild = true } or nil%)"),
+    "no Resume builds its own options")
+  -- Every stop record passes the stopping build
+  local records, with_build = 0, 0
+  for call in main:gmatch("XrayAuto%.recordLadderStop%((.-)%)\n") do
+    records = records + 1
+    if call:find("}, [%w_]+$") then with_build = with_build + 1 end
+  end
+  TestRunner:assertTrue(records >= 4, "the stop records are found (" .. records .. ")")
+  TestRunner:assertEqual(with_build, records, "each one passes its build")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

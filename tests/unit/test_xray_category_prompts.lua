@@ -306,7 +306,7 @@ TestRunner:test("a type set for the book sends that schema alone (B337c)", funct
     fh:close()
     local resolved = dialogs:find(".resolveXrayType(per_book_ds, config.features)", 1, true)
     local swap = dialogs:find("if research_mode_active and prompt and prompt.doi_prompt then", 1, true)
-    local assembled = dialogs:find("prompt.prompt = PromptsActions.buildXrayCategoryPrompt(", 1, true)
+    local assembled = dialogs:find("PromptsActions.buildXrayCategoryPrompt(xr_sel,", 1, true)
     local cut = dialogs:find("PromptsActions.applyXrayType(prompt.prompt, xray_type)", 1, true)
     local intro = dialogs:find("PromptsActions.XRAY_INTRO_CLAUSE", 1, true)
     assert(resolved and swap and assembled and cut and intro, "all sites present")
@@ -315,11 +315,71 @@ TestRunner:test("a type set for the book sends that schema alone (B337c)", funct
         "an update keeps its lineage's track")
 end)
 
-TestRunner:test("section prompt stays full", function()
+TestRunner:test("a section prompt with no settings passed is the full set", function()
     local sec = Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false)
     for _g, key in pairs(FICTION_KEYS) do
         assert(sec:find(key, 1, true), "section prompt missing " .. key)
     end
+    assert(Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false, nil, nil) == sec, "nil settings: unchanged")
+end)
+
+TestRunner:test("a section X-Ray takes the book's categories, depth and type (B388)", function()
+    local scope_line = 'Analyzing section "Part 1" (pp 1-10) of the document.'
+    local sel = "people,places"
+    local sec = Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false, sel)
+    assert(sec:find(scope_line, 1, true), "the section's own scope line stays")
+    assert(sec:find("Cover the section comprehensively", 1, true), "the section's own closing stays")
+    for group, key in pairs(FICTION_KEYS) do
+        local picked = (group == "people" or group == "places")
+        assert((sec:find(key, 1, true) ~= nil) == picked, group .. (picked and ": kept" or ": left out"))
+    end
+    -- Depth: the section gains exactly what the depth adds to a new X-Ray
+    local function lines(s) local t = {} for l in s:gmatch("[^\n]+") do t[l] = true end return t end
+    local std = lines(Actions.buildXrayCategoryPrompt(sel, "partial"))
+    local added = 0
+    local sec_light = Actions.buildSectionXrayPrompt("Part 1", "pp 1-10", false, sel, "light")
+    for l in pairs(lines(Actions.buildXrayCategoryPrompt(sel, "partial", "light"))) do
+        if not std[l] and not l:find("I'm at", 1, true) then
+            added = added + 1
+            assert(sec_light:find(l, 1, true), "a light section carries the light wording: " .. l:sub(1, 60))
+        end
+    end
+    assert(added > 0, "fixture: light depth changes the wording")
+    -- Type: the reader's fiction or nonfiction pick cuts a section prompt too
+    local f = Actions.applyXrayType(sec, "fiction")
+    assert(f:find("This work is FICTION", 1, true) and not f:find("FOR NON-FICTION", 1, true), "fiction schema alone")
+    assert(f:find(scope_line, 1, true), "the scope line survives the cut")
+end)
+
+TestRunner:test("the section X-Ray reaches the settings in the request assembly (B388, the real hand-off)", function()
+    local here = debug.getinfo(1, "S").source:match("@?(.*)")
+    local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+    local function source(path)
+        local fh = assert(io.open(plugin_dir .. "/" .. path, "r"))
+        local s = fh:read("*a")
+        fh:close()
+        return s
+    end
+    local dialogs, main_src = source("koassistant_dialogs.lua"), source("main.lua")
+    -- What main.lua hands over: the section action's id, and the scope on features
+    assert(main_src:find('section_action.id = "section_xray"', 1, true), "the section action's id")
+    assert(main_src:find("config_copy.features._section_xray = opts.section_xray", 1, true), "the scope on features")
+    -- The assembly's own condition, cut from the source and run on it
+    local expr = dialogs:match("local xray_dials = (.-)\n%s*local xray_type")
+    assert(expr, "the settings condition is found")
+    local dials = assert(load("local prompt, config = ...; return " .. expr:gsub("\n", " ")))
+    local scope = { label = "Part 1", page_summary = "pp 1-10" }
+    assert(dials({ id = "section_xray", cache_as_xray = false }, { features = { _section_xray = scope } }),
+        "a section X-Ray follows the settings")
+    assert(dials({ id = "xray", cache_as_xray = true }, { features = {} }), "a new X-Ray does")
+    assert(not dials({ id = "xray", cache_as_xray = true }, { features = { _section_scope = scope } }),
+        "the X-Ray action on another section scope does not")
+    assert(not dials({ id = "key_arguments" }, { features = { _section_scope = scope } }), "other section actions do not")
+    assert(not dials({ id = "section_xray" }, { features = {} }), "no scope, no section")
+    assert(not dials(nil, { features = {} }), "no prompt")
+    -- The category step builds the section's own prompt from that scope
+    assert(dialogs:find("PromptsActions.buildSectionXrayPrompt(section.label, section.page_summary,", 1, true),
+        "the section keeps its scope line with the book's settings")
 end)
 
 local ok = TestRunner:summary()
