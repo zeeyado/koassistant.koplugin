@@ -192,6 +192,19 @@ class PlaceholderValidator:
                     result = result.replace(old_ph, source_ph[i], 1)
                     fixes.append(f"Fixed {old_ph} -> {source_ph[i]}")
 
+        # Keep the source's leading/trailing spaces. Prefixes ("Provider: ") and
+        # suffixes (" (book)") are concatenated with a value in the code; models
+        # trim them, and the UI showed "Provider:Anthropic" in every language
+        # (1281 strings across 26 languages before the 2026-09-30 repair).
+        # Spaces and tabs only: the newline marker is not an edge.
+        if result:
+            lead = re.match(r'^[ \t]*', source).group(0)
+            trail = re.search(r'[ \t]*$', source).group(0)
+            kept = lead + result.strip(' \t') + trail
+            if kept != result:
+                result = kept
+                fixes.append("Restored the source's leading/trailing whitespace")
+
         return result, fixes
 
 # ============================================================================
