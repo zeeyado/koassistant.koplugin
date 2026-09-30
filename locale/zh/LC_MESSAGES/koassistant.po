@@ -32,7 +32,6 @@ msgstr "摘要"
 
 #: koassistant_action_cache.lua:614 koassistant_action_cache.lua:947
 #: koassistant_dialogs.lua:7224 koassistant_dialogs.lua:12622 main.lua:13241
-#, fuzzy
 msgid "Analysis"
 msgstr "分析"
 
@@ -90,17 +89,14 @@ msgid "Previous X-Ray Versions (%1)"
 msgstr "上一版 X-Ray（%1）"
 
 #: koassistant_action_cache.lua:679
-#, fuzzy
 msgid "Archived X-Ray Versions (%1)"
 msgstr "已归档 X-Ray 版本（%1）"
 
 #: koassistant_action_cache.lua:701
-#, fuzzy
 msgid "View Section X-Rays (%d)"
 msgstr "查看章节 X-Ray（%d）"
 
 #: koassistant_action_cache.lua:745
-#, fuzzy
 msgid "AI Wiki Entries (%d)"
 msgstr "AI 百科条目（%d）"
 
@@ -183,7 +179,6 @@ msgid "pp %1–%2"
 msgstr "第 %1–%2 页"
 
 #: koassistant_action_hold.lua:34
-#, fuzzy
 msgid "the highlight menu"
 msgstr "高亮菜单"
 

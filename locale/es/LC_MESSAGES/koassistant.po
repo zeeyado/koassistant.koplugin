@@ -41,7 +41,7 @@ msgstr "Recapitular"
 
 #: koassistant_action_cache.lua:616 prompts/actions.lua:1545
 msgid "X-Ray (Simple)"
-msgstr "Rayos-X (Simple)"
+msgstr "X-Ray (Simple)"
 
 #: koassistant_action_cache.lua:617 prompts/actions.lua:1341
 msgid "About"
@@ -5131,9 +5131,8 @@ msgstr "Adjuntar a este chat"
 #: koassistant_dialogs.lua:7059 koassistant_dialogs.lua:7075 main.lua:17026
 #: main.lua:17034 main.lua:17172 main.lua:17218 main.lua:17260 main.lua:17355
 #: main.lua:17415 main.lua:17428 main.lua:17441 main.lua:17501
-#, fuzzy
 msgid " (book)"
-msgstr "(libro)"
+msgstr " (libro)"
 
 #: koassistant_dialogs.lua:7125
 #, fuzzy
@@ -19717,9 +19716,8 @@ msgstr "ACTIVADO ("
 
 #: koassistant_ui/prompts_manager.lua:2670
 #: koassistant_ui/prompts_manager.lua:2697
-#, fuzzy
 msgid " effort"
-msgstr "esfuerzo"
+msgstr " esfuerzo"
 
 #: koassistant_ui/prompts_manager.lua:2718
 #, fuzzy
@@ -19918,9 +19916,8 @@ msgstr ""
 "Rango: %1 - %2"
 
 #: koassistant_ui/prompts_manager.lua:2986
-#, fuzzy
 msgid " (default)"
-msgstr "(predeterminado)"
+msgstr " (predeterminado)"
 
 #: koassistant_ui/prompts_manager.lua:2988
 #, fuzzy
