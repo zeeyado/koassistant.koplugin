@@ -1205,6 +1205,11 @@ function XrayBrowser:show(xray_data, metadata, ui, on_delete)
             self:_applyPendingLocation(navigate_to)
             navigate_to = nil
         end
+        if navigate_to and navigate_to.carried_list then
+            -- The X-Ray popup's carried row (B401): land on the list
+            self:showDormantList()
+            navigate_to = nil
+        end
         local target_items = navigate_to and self.xray_data[navigate_to.category_key]
         if target_items then
             for _idx, target_item in ipairs(target_items) do
@@ -1311,6 +1316,32 @@ local function dormantListTitle(book_file, n)
     return series and _("Carried from earlier books") or _("Carried from group")
 end
 
+--- The carried list's title with its count, for a row outside the browser
+--- (the X-Ray popup's "Link and merge…" group, B401), or nil when the book's
+--- live X-Ray carries nothing. Counts what _dormantRows lists.
+--- @param book_file string
+--- @param raw string|nil The X-Ray's text when the caller holds it: a text
+---   with no carried list is not parsed (this runs when the popup opens, and
+---   a long series' X-Ray is large)
+--- @return string|nil
+function XrayBrowser.carriedListLabel(book_file, raw)
+    if type(raw) == "string"
+            and not raw:find('"' .. XrayParser.DORMANT_KEY .. '"', 1, true) then
+        return nil
+    end
+    local res = require("koassistant_action_cache").parsedXrayFor(book_file)
+    local ledger = res and res.data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return nil end
+    local n = 0
+    for _idx, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            n = n + 1
+        end
+    end
+    if n == 0 then return nil end
+    return dormantListTitle(book_file, n)
+end
+
 --- The header over the carried entries inside a category page and in
 --- Mentions (#116, B393): same kind rule as the carried list's own title.
 local function carriedSectionTitle(book_file, n)
@@ -1381,28 +1412,10 @@ function XrayBrowser:buildCategoryItems()
         end
     end
 
-    -- B312: since the default tracks no story arc, a reader who never saw
-    -- that category does not know it exists. An X-Ray built without it says
-    -- so on its own row (main views; the stamp says what the build tracked,
-    -- nil = everything), and a tap says how to get it.
-    if not self.scope and not self.metadata.checkpoint then
-        local stamp = require("prompts.actions").normalizeXrayCategories(self.metadata.xray_categories)
-        if stamp and not ("," .. stamp .. ","):find(",events,", 1, true)
-                and not XrayParser.isAcademic(self.xray_data) then
-            local arc = XrayParser.isFiction(self.xray_data) and _("Story Arc") or _("Argument Development")
-            table.insert(items, {
-                text = Constants.getEmojiText("📅", arc, enable_emoji),
-                mandatory = _("not tracked"),
-                mandatory_dim = true,
-                dim = true,
-                callback = function()
-                    UIManager:show(InfoMessage:new{
-                        text = T(_("This X-Ray was built without \"%1\" (the timeline of what happens), which is the largest part of an X-Ray. To add it, rebuild the X-Ray with the preset \"Characters and story\" or \"Everything\". Recap covers the story so far without it."), arc),
-                    })
-                end,
-            })
-        end
-    end
+    -- The root lists what this X-Ray has. A category it was built without
+    -- gets no row: the dim "Story Arc: not tracked" row (B312, unreleased)
+    -- was the only one of its kind and read as standing in for Current
+    -- State; the creation form's Preset button names what each preset tracks.
 
     -- Carried from earlier books (series-identity round, 2026-08-06): the
     -- dormant ledger made visible — entities carried from the group's earlier
@@ -1820,7 +1833,7 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
         end
     end
     parts[#parts + 1] = ""
-    parts[#parts + 1] = _("Not seen in this book yet. It wakes on its own when an update or merge meets it.")
+    parts[#parts + 1] = _("Not seen in this book yet. It is linked on its own when an update names it.")
 
     local viewer
     local function afterClose(fn)
@@ -1881,7 +1894,7 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
     local buttons_rows = {
         {
             {
-                text = _("Merge into an existing entry…"),
+                text = _("Link to an entry of this book…"),
                 callback = afterClose(function()
                     self_ref:showDormantLinkPicker(stub_idx, stub)
                 end),
@@ -2040,7 +2053,7 @@ function XrayBrowser:showDormantLinkPicker(stub_idx, stub, filter)
                         function(data)
                             return XrayParser.wakeStubInto(data, stub_idx, stub.name, cat_key, captured)
                         end,
-                        T(_("Folded \"%1\" into \"%2\". Its carried history now shows there."),
+                        T(_("Linked \"%1\" to \"%2\". Its carried history now shows there."),
                             stub.name, captured)) then
                         -- Pop the picker; the list underneath re-reads the ledger
                         self_ref:navigateBack()
@@ -3679,7 +3692,7 @@ function XrayBrowser:_confirmLink(member_file, member_title, entry, parsed,
     local ConfirmBox = require("ui/widget/confirmbox")
     local self_ref = self
     UIManager:show(ConfirmBox:new{
-        text = T(_("Link \"%1\" (this book) with \"%2\" (%3)?\nEach book's entry gains the other's names as aliases, so group navigation and future folds treat them as the same. No content is copied."),
+        text = T(_("Link \"%1\" (this book) with \"%2\" (%3)?\nEach book's entry gains the other's names as aliases, so group navigation and future AI merges treat them as the same. No content is copied."),
             link_name, r_name, member_title),
         ok_text = _("Link"),
         ok_callback = function()
@@ -7407,7 +7420,7 @@ function XrayBrowser:showOptions()
             ActionCache.SECTION_PREFIXES.xray)
         if sec_count > 0 then
             table.insert(buttons, {{
-                text = T(_("Merge section X-Rays (%1)…"), sec_count), align = "left",
+                text = T(_("AI merge section X-Rays (%1)…"), sec_count), align = "left",
                 callback = function()
                     closeOptions()
                     -- Close the browser: a successful into-main merge replaces the
@@ -7457,7 +7470,7 @@ function XrayBrowser:showOptions()
             }
         end
         table.insert(buttons, {{
-            text = _("Merge another book's X-Ray (1 request)…"), align = "left",
+            text = _("AI merge with another book (1 request)…"), align = "left",
             callback = function()
                 closeOptions()
                 require("koassistant_xray_merge").startCrossBookFlow(crossBookOpts())
@@ -7468,8 +7481,8 @@ function XrayBrowser:showOptions()
             and self.metadata.plugin:_groupXrayMergeKind(self.metadata.book_file)
         if mf_kind then
             table.insert(buttons, {{
-                text = mf_kind == "project" and _("Fold the group into this book (1 request per book)…")
-                    or _("Bring the series up to date (1 request per book)…"),
+                text = mf_kind == "project" and _("AI merge the group into this book (1 request per book)…")
+                    or _("AI merge the series (1 request per book)…"),
                 align = "left",
                 callback = function()
                     closeOptions()
@@ -7672,7 +7685,7 @@ function XrayBrowser:showOptions()
                 local src_ts = src and tonumber(src.timestamp)
                 if src_ts then
                     line = line .. " — " .. (src_ts > tonumber(rec.source_ts)
-                        and _("changed since the fold") or _("up to date"))
+                        and _("changed since the AI merge") or _("up to date"))
                 end
             end
             table.insert(info_parts, line)

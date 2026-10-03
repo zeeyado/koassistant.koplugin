@@ -107,7 +107,7 @@ function GroupsUI.kindDescription(kind)
         return _("Books on one subject, in no order. What each book's X-Ray knows is carried into every other book on its own. Nothing is held back.")
     end
     if kind == BookGroups.KIND_PLAIN then
-        return _("Just a list. The books share a hub, a group chat and group settings. Nothing is carried between their X-Rays; any two can still be merged by hand.")
+        return _("Just a list. The books share a hub, a group chat and group settings. Nothing is carried between their X-Rays; an AI merge between any two is still available.")
     end
     return _("Books in reading order, one continued story. What the earlier books' X-Rays know is carried into the later books on its own. A later book stays out of reach until the books before it are read.")
 end
@@ -408,7 +408,7 @@ local function showFoldTargetPicker(group_id, opts)
         GroupsUI.showGroup(group_id, opts)
     end }}
     dialog = ButtonDialog:new{
-        title = _("Fold the group's X-Rays into which book?") .. "\n"
+        title = _("AI merge the group's X-Rays into which book?") .. "\n"
             .. _("Knowledge flows INTO the book you pick. The others are not changed. One request per other book."),
         buttons = rows,
     }
@@ -688,9 +688,14 @@ local function addSelected(group_id, opts, selected_files)
     addedDone(group_id, opts, added)
 end
 
+-- B407: every picker a hub's add row opens stays on that row's source
+-- (fixed_source). "Add from history…" used to open a picker whose menu also
+-- browsed folders and collections, so the row's name was untrue and the two
+-- rows under it were the same thing twice.
 function GroupsUI.addBooksFlow(group_id, opts)
     local BookPicker = require("koassistant_book_picker")
     BookPicker:show({
+        fixed_source = true,
         on_confirm = function(selected_files) addSelected(group_id, opts, selected_files) end,
         on_close = function() GroupsUI.showGroup(group_id, opts) end,
     })
@@ -777,6 +782,7 @@ function GroupsUI.addFolderFlow(group_id, opts)
                         BookPicker:show({
                             initial_source = folder,
                             select_all = true,
+                            fixed_source = true,
                             on_confirm = function(selected_files) addSelected(group_id, opts, selected_files) end,
                             on_close = function() GroupsUI.showGroup(group_id, opts) end,
                         })
@@ -829,6 +835,7 @@ function GroupsUI.addCollectionFlow(group_id, opts)
                     BookPicker:show({
                         initial_source = BookPicker.COLLECTION_PREFIX .. name,
                         select_all = true,
+                        fixed_source = true,
                         on_confirm = function(selected_files) addSelected(group_id, opts, selected_files) end,
                         on_close = function() GroupsUI.showGroup(group_id, opts) end,
                     })

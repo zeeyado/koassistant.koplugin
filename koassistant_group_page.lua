@@ -239,8 +239,8 @@ local function hubBuild(ctx)
         and BookGroups.sharesKnowledge(group) then
         -- B394 slice 1: the row says what it costs before it is tapped
         row(E("\u{1F500}", kind == BookGroups.KIND_PROJECT
-                and _("Fold X-Rays into one book (1 request per book)…")
-                or _("Merge series X-Rays (1 request per book)…"), em),
+                and _("AI merge the group into one book (1 request per book)…")
+                or _("AI merge the series (1 request per book)…"), em),
             function() GroupsUI.foldFlow(ctx.group_id, flow_opts) end)
     end
     -- Item 48(a): the group as launch surface — library chat/actions with the

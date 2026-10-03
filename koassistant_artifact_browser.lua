@@ -1158,7 +1158,7 @@ function ArtifactBrowser:_showSectionXrayGroupPopup(sections, doc_path, doc_titl
     -- like every hamburger/hold-menu in select mode.
     if not (opts and opts.select_mode) then
         table.insert(buttons, {{
-            text = _("Merge section X-Rays…"),
+            text = _("AI merge section X-Rays…"),
             callback = function()
                 if self_ref._section_group_dialog then
                     UIManager:close(self_ref._section_group_dialog)

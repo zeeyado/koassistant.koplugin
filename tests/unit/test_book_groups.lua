@@ -543,5 +543,54 @@ TestRunner:test("the hub's files row adds one tapped book, and still takes a fol
     if not ok then error(err, 0) end
 end)
 
+TestRunner:test("a hub add row's picker stays on that row's source (B407)", function()
+    local GroupsUI = require("koassistant_book_groups_ui")
+    local BookPicker = require("koassistant_book_picker")
+    local names = { "ui/widget/pathchooser", "libs/libkoreader-lfs", "document/documentregistry",
+        "ui/widget/buttondialog" }
+    local saved = {}
+    for _i, name in ipairs(names) do saved[name] = package.loaded[name] end
+    local orig = { show = BookPicker.show, list = BookPicker.listFolderBooks,
+        pick = BookPicker.pickCollection, group = GroupsUI.showGroup,
+        settings = rawget(_G, "G_reader_settings") }
+    local shown, chooser, ask = {}, nil, nil
+    BookPicker.show = function(_self, o) shown[#shown + 1] = o end
+    BookPicker.listFolderBooks = function() return { "/books/sub/a.epub", "/books/sub/b.epub" } end
+    BookPicker.pickCollection = function(on_pick) on_pick("Shelf", "Shelf", { "/c/a.epub" }) end
+    GroupsUI.showGroup = function() end
+    package.loaded["ui/widget/pathchooser"] = { new = function(_self, o) chooser = o; return o end }
+    package.loaded["libs/libkoreader-lfs"] = { attributes = function() return "directory" end }
+    package.loaded["document/documentregistry"] = { hasProvider = function() return true end }
+    package.loaded["ui/widget/buttondialog"] = { new = function(_self, o) ask = o; return o end }
+    _G.G_reader_settings = { readSetting = function() return "/books" end }
+    local function tap(label)
+        for _i, row in ipairs(ask.buttons) do
+            if row[1].text == label then return row[1].callback() end
+        end
+        error("no row: " .. label)
+    end
+
+    local g = BookGroups.create("Shelf")
+    local ok, err = pcall(function()
+        GroupsUI.addBooksFlow(g.id, {})
+        TestRunner:assertEqual(shown[1].fixed_source, true, "the history row")
+        TestRunner:assertEqual(shown[1].initial_source, nil, "which opens on the history")
+        GroupsUI.addFolderFlow(g.id, {})
+        chooser.onConfirm("/books/sub")
+        tap("Choose which…")
+        TestRunner:assertEqual(shown[2].fixed_source, true, "a folder's books")
+        TestRunner:assertEqual(shown[2].initial_source, "/books/sub")
+        GroupsUI.addCollectionFlow(g.id, {})
+        tap("Choose which…")
+        TestRunner:assertEqual(shown[3].fixed_source, true, "a collection's books")
+    end)
+    BookPicker.show, BookPicker.listFolderBooks, BookPicker.pickCollection = orig.show, orig.list, orig.pick
+    GroupsUI.showGroup = orig.group
+    _G.G_reader_settings = orig.settings
+    for _i, name in ipairs(names) do package.loaded[name] = saved[name] end
+    BookGroups.remove(g.id)
+    if not ok then error(err, 0) end
+end)
+
 local ok = TestRunner:summary()
 return ok

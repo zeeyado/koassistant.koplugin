@@ -37,6 +37,12 @@ at 70%): see the plan doc §6.2. Short form:
   Saltmere         place, vol-3 ledger stub (family = places)
   Warden           vol-3 live LEXICON term + ledger CHARACTER stub (chooser)
   Vex              vol-3 ledger stub WITH alias "the grey cat" (alias hit)
+  Jory / Jory Pell THE NAME-DRIFT PAIR (2026-10-03, picture doc section 10): vol 2
+                   names her Jory Pell; vol 3's live X-Ray and its 70% rung hold
+                   an entry "Jory" (the bare first name, in vol-3 text at ~15%)
+                   while "Jory Pell" waits in the ledger. Nothing links the two
+                   on its own: this is the pair the carried page's "Link to an
+                   entry of this book…" is for, with no request and no model.
 CJK rows (2026-09-09, docs/xray_cjk_identity_plan.md):
   リオ / リオ_マーク  ONE person as TWO vol-3 ledger stubs: vol 1 names her リオ
                    (alias リオ・マーク), vol 2 names her リオ_マーク (the model's
@@ -55,10 +61,12 @@ six chapters, chapter 4 starts at 50%):
   Orrin Blackwood  first half: carried into vol 4 through vol 3's list, so the
                    create's own entry wakes with its "Mock Series 2" line
   Brann Oakes      first half, new in vol 4 (control)
-  Dorrit           first half, the BARE first name: Dorrit Hale reaches vol 4's
-                   carried list once the group has re-seeded; an entry the
-                   model names "Dorrit" does not match her row (the drift the
-                   carried page's link button, or an AI merge, is for)
+  Dorrit           first half, named ONCE, in a sentence that says nobody
+                   mentioned her: she is not in the book, so a fresh X-Ray
+                   should list no such character (the 2026-10-03 round: the
+                   model read the sentence and listed nobody) and Dorrit Hale
+                   stays on vol 4's carried list. The drift pair that needs
+                   no model is Jory / Jory Pell in vol 3, above.
   Fenna Quill      second half only: carried, wakes at the update to 100%
   Ilse Marrow      second half only, new (control for the update)
 ]]
@@ -102,6 +110,7 @@ local VOL2_XRAY = [[{
     {"name": "Elias Penrose", "role": "Deckhand", "description": "Elias Penrose poles the ferry through the shallows. The passengers call him the ferryman, though the title is Orrin's."},
     {"name": "Fenna Quill", "role": "Letter carrier", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early."},
     {"name": "Dorrit Hale", "role": "Innkeeper", "description": "Dorrit Hale keeps the ferry inn and hears everything twice. She trades in small kindnesses."},
+    {"name": "Jory Pell", "role": "Toll keeper", "description": "Jory Pell keeps the toll chain at the ferry landing and counts every coin aloud."},
     {"name": "the Warden", "aliases": ["Warden"], "role": "Harbor official", "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown."},
     {"name": "Vex", "role": "Ship's cat", "aliases": ["the grey cat"], "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one."},
     {"name": "リオ_マーク", "aliases": ["リオ"], "role": "Net mender", "description": "リオ・マーク now sells rope to the ferry and keeps a ledger of knots."}
@@ -130,6 +139,7 @@ local VOL3_XRAY = [[{
   "characters": [
     {"name": "Tamsin Vael", "role": "Orchard warden", "description": "Tamsin Vael has come inland to mind the sea-orchard. She distrusts the quiet.", "background": [{"source": "Mock Series 1 - The Lantern", "text": "Kept the harbor lantern and read the tide ledgers.", "file": "]] .. V1 .. [["}]},
     {"name": "Gil Rook", "role": "Grafter", "description": "Gil Rook grafts the salt-apple rows and talks to the trees more than to people."},
+    {"name": "Jory", "role": "Carter", "description": "Jory drives the supply cart up from the shore road and counts the sacks aloud."},
     {"name": "高橋美咲", "role": "Orchard clerk", "description": "高橋美咲 keeps the orchard tally sheets and corrects Gil's arithmetic without comment."},
     {"name": "ミラ・エル・ソーン", "aliases": ["ミラ"], "role": "Survey apprentice", "description": "ミラ・エル・ソーン carries the survey chain and asks more questions than the valley can answer."}
   ],
@@ -152,6 +162,7 @@ local VOL3_XRAY = [[{
     {"name": "Fenna Quill", "category": "characters", "role": "Letter carrier", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "the Warden", "category": "characters", "role": "Harbor official", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "role": "Ship's cat", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Jory Pell", "category": "characters", "role": "Toll keeper", "description": "Jory Pell keeps the toll chain at the ferry landing and counts every coin aloud.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Saltmere", "category": "locations", "description": "Saltmere is the drowned market town across the bay, visited at low tide.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "リオ", "aliases": ["リオ・マーク"], "category": "characters", "role": "Net mender", "description": "リオ mends the harbor nets and sells the scraps as rope. Everyone uses the short name.", "source": "Mock Series 1 - The Lantern", "file": "]] .. V1 .. [["},
     {"name": "リオ_マーク", "aliases": ["リオ"], "category": "characters", "role": "Net mender", "description": "リオ・マーク now sells rope to the ferry and keeps a ledger of knots.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["}
@@ -166,6 +177,7 @@ local VOL3_RUNG_70 = [[{
   "characters": [
     {"name": "Tamsin Vael", "role": "Orchard warden", "description": "Tamsin Vael has come inland to mind the sea-orchard. She distrusts the quiet.", "background": [{"source": "Mock Series 1 - The Lantern", "text": "Kept the harbor lantern and read the tide ledgers.", "file": "]] .. V1 .. [["}]},
     {"name": "Gil Rook", "role": "Grafter", "description": "Gil Rook grafts the salt-apple rows and talks to the trees more than to people."},
+    {"name": "Jory", "role": "Carter", "description": "Jory drives the supply cart up from the shore road and counts the sacks aloud."},
     {"name": "Orrin Blackwood", "role": "Ferry master, retired", "description": "Orrin Blackwood arrives at Hollowmere without his ferry and will not say why.", "background": [{"source": "Mock Series 2 - The Ferry", "text": "Ran the night ferry and never asked for fares twice.", "file": "]] .. V2 .. [["}]},
     {"name": "Hester Lune", "role": "Surveyor", "description": "Hester Lune walks the salt line with brass instruments and writes to someone nightly."},
     {"name": "高橋美咲", "role": "Orchard clerk", "description": "高橋美咲 keeps the orchard tally sheets and corrects Gil's arithmetic without comment."},
@@ -191,6 +203,7 @@ local VOL3_RUNG_70 = [[{
     {"name": "Fenna Quill", "category": "characters", "role": "Letter carrier", "description": "Fenna Quill rows the mail between the shore towns. Never late, never early.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "the Warden", "category": "characters", "role": "Harbor official", "aliases": ["Warden"], "description": "The Warden inspects the ferry manifests and is never seen eating. First name unknown.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Vex", "aliases": ["the grey cat"], "category": "characters", "role": "Ship's cat", "description": "Vex, the grey cat, boards whichever boat is warmest and answers to no one.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
+    {"name": "Jory Pell", "category": "characters", "role": "Toll keeper", "description": "Jory Pell keeps the toll chain at the ferry landing and counts every coin aloud.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["},
     {"name": "Saltmere", "category": "locations", "description": "Saltmere is the drowned market town across the bay, visited at low tide.", "source": "Mock Series 2 - The Ferry", "file": "]] .. V2 .. [["}
   ]
 }]]
@@ -308,7 +321,7 @@ local VOL2_CHAPTERS = {
     ch("The Night Ferry", "Orrin Blackwood ran the night ferry by sound alone. Tamsin Vael boarded at the far shore with one bag."),
     ch("The Deckhand", "Elias Penrose poled the shallows while the passengers slept. They called him the ferryman, and Orrin let them."),
     ch("Mail by Water", "Fenna Quill rowed the mail across before breakfast. Dorrit Hale had the inn fires lit when she landed. リオ・マーク brought new rope for the ferry lines, and Fenna called her リオ as everyone did."),
-    ch("Manifests", "The Warden came aboard at Saltmere and read the manifest twice. Vex, the grey cat, sat on the ink."),
+    ch("Manifests", "The Warden came aboard at Saltmere and read the manifest twice. Vex, the grey cat, sat on the ink. Jory Pell lowered the toll chain for them and counted the coins aloud."),
     ch("Aground", "The ferry ran aground on the singing bar. Elias got them off; Orrin logged it as weather."),
     ch("The Storm Season", "Dorrit Hale closed the inn for the storm and fed whoever knocked. The route held; the season ended."),
 }
@@ -320,7 +333,7 @@ local VOL2_CHAPTERS = {
 -- Zeph ~65%, Hester ~68%.
 local VOL3_CHAPTERS = {
     ch("The Orchard Post", "Tamsin Vael came inland to Hollowmere to mind the sea-orchard. The quiet felt rented."),
-    ch("The Grafter", "Gil Rook was up a ladder in the salt-apple rows, talking to the graft. He handed Tamsin the knife by way of hello."),
+    ch("The Grafter", "Gil Rook was up a ladder in the salt-apple rows, talking to the graft. He handed Tamsin the knife by way of hello. The supply cart came up the lane behind her, and the carter, Jory, counted the sacks aloud."),
     ch("The Salt Line", "Gil showed Tamsin the white line climbing the trunks. A warden's first job, he said, is to notice. 高橋美咲 kept the tally at the gate and corrected his count; Gil only ever said 美咲. Behind them ミラ・エル・ソーン dragged the survey chain through the wet grass, and Gil called her ミラ when she asked what the white line meant."),
     ch("Rented Quiet", "Tamsin walked the flooded rows at dusk. Whatever was wrong with Hollowmere had not introduced itself yet."),
     ch("A Face From the Water", "A poleman stood at the orchard gate, hat in hand. Elias Penrose had come a long way from the crossing, and Tamsin could not place him at first. He asked after work, then after the road to Saltmere, and left before the answer. A woman with rope over one shoulder waited by the wall, and Elias called her リオ.", 4),

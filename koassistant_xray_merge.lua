@@ -2073,7 +2073,7 @@ local function showWarningsThenRun(opts, warnings)
         title = table.concat(warnings, "\n\n"),
         buttons = {
             {{
-                text = _("Merge anyway"),
+                text = _("AI merge anyway"),
                 callback = function()
                     UIManager:close(dialog)
                     XrayMerge.execute(opts)
@@ -2251,7 +2251,7 @@ local function pickTargetThenRun(opts)
         callback = function() UIManager:close(dialog) end,
     }})
     dialog = ButtonDialog:new{
-        title = T(_("Merge %1 section X-Rays into…"), #sections),
+        title = T(_("AI merge %1 section X-Rays into…"), #sections),
         buttons = rows,
     }
     UIManager:show(dialog)
@@ -2386,7 +2386,7 @@ function XrayMerge.startFlow(opts)
             }})
         end
         table.insert(rows, {{
-            text = T(_("Merge %1 selected…"), count),
+            text = T(_("AI merge %1 selected…"), count),
             enabled = count >= 1,
             callback = function()
                 UIManager:close(dialog)
@@ -2464,7 +2464,7 @@ function XrayMerge.startFlow(opts)
             end,
         }})
         dialog = ButtonDialog:new{
-            title = _("Merge section X-Rays: pick inputs"),
+            title = _("AI merge section X-Rays: pick inputs"),
             buttons = rows,
         }
         current_picker = dialog
@@ -2704,9 +2704,9 @@ function XrayMerge.runSeriesChain(opts)
     local function step(idx)
         if idx > n_merges then
             local done_text = skipped > 0
-                and T(_("Series chain complete: %1 merges, %2 already done."),
+                and T(_("AI merge of the series done: %1 merges, %2 already done."),
                     n_merges - skipped, skipped)
-                or T(_("Series chain complete: %1 merges."), n_merges)
+                or T(_("AI merge of the series done: %1 merges."), n_merges)
             if no_overlap_n > 0 then
                 done_text = done_text .. " "
                     .. T(_("%1 found nothing to carry over."), no_overlap_n)
@@ -2767,7 +2767,7 @@ function XrayMerge.runSeriesChain(opts)
             return step(idx + 1)
         end
         UIManager:show(Notification:new{
-            text = T(_("Merging %1 of %2: %3 into %4"), idx, n_merges,
+            text = T(_("AI merge %1 of %2: %3 into %4"), idx, n_merges,
                 src_c.title, tgt_c.title),
         })
         XrayMerge.executeCrossBook({
@@ -2840,7 +2840,7 @@ function XrayMerge.runFanIn(opts)
     end
     if opts.close_browser then opts.close_browser() end
     local function finish()
-        local parts = { T(_("Folded in %1 book(s)."), merged) }
+        local parts = { T(_("AI merged %1 book(s)."), merged) }
         if no_overlap_n > 0 then
             parts[#parts + 1] = T(_("%1 shared nothing."), no_overlap_n)
         end
@@ -2894,7 +2894,7 @@ function XrayMerge.runFanIn(opts)
             return step(idx + 1)
         end
         UIManager:show(Notification:new{
-            text = T(_("Folding in %1 of %2: %3"), idx, n_total, src.title),
+            text = T(_("AI merge %1 of %2: %3"), idx, n_total, src.title),
         })
         XrayMerge.executeCrossBook({
             file = opts.file, ui = opts.ui, plugin = opts.plugin,
@@ -2980,14 +2980,14 @@ function XrayMerge.preCreateFoldAsk(opts, proceed)
             UIManager:close(ask)
             proceed(nil)
         end }},
-        {{ text = _("Also merge when done (1 request)"), callback = function()
+        {{ text = _("Also AI merge when done (1 request)"), callback = function()
             UIManager:close(ask)
             proceed("single")
         end }},
     }
     if #missing > 0 and #earlier_titles >= 1 then
         buttons[#buttons + 1] = {{
-            text = T(_("Bring the series up to date (%1 requests)"), #earlier_titles + 1),
+            text = T(_("AI merge the series (%1 requests)"), #earlier_titles + 1),
             callback = function()
                 UIManager:close(ask)
                 proceed("chain")
@@ -3064,7 +3064,7 @@ function XrayMerge.runPostCreateFold(opts)
         })
         return
     end
-    UIManager:show(Notification:new{ text = T(_("Folding \"%1\" in…"), nearest_title) })
+    UIManager:show(Notification:new{ text = T(_("AI merge with \"%1\"…"), nearest_title) })
     XrayMerge.executeCrossBook({
         file = opts.file, ui = opts.ui, plugin = opts.plugin,
         configuration = opts.configuration,
@@ -3074,17 +3074,17 @@ function XrayMerge.runPostCreateFold(opts)
         on_done = function(ok, err, outcome)
             if ok and outcome and outcome.no_overlap then
                 UIManager:show(InfoMessage:new{
-                    text = T(_("Nothing to fold in: \"%1\" and this book share no people, places or concepts."), nearest_title),
+                    text = T(_("Nothing to merge: \"%1\" and this book share no people, places or concepts."), nearest_title),
                     timeout = 4,
                 })
             elseif ok then
                 UIManager:show(Notification:new{
-                    text = T(_("Folded \"%1\" into this book's X-Ray."), nearest_title),
+                    text = T(_("AI merged \"%1\" into this book's X-Ray."), nearest_title),
                 })
                 XrayMerge.maybeOfferDedupScan(opts)
             else
                 UIManager:show(InfoMessage:new{
-                    text = T(_("Merge failed: %1"), tostring(err or "unknown error")),
+                    text = T(_("AI merge failed: %1"), tostring(err or "unknown error")),
                     timeout = 5,
                 })
             end
@@ -3152,7 +3152,7 @@ local function confirmFanIn(opts, mates, main_entry, tgt_group, back)
     end
     -- Members with no X-Ray of their own
     local missing_n = math.max(0, (#tgt_group.books - 1) - #mates)
-    local confirm_title = T(_("Fold %1 other book(s) of \"%2\" into this book's X-Ray?"),
+    local confirm_title = T(_("AI merge %1 other book(s) of \"%2\" into this book's X-Ray?"),
             #mates, groupName(tgt_group))
         .. "\n" .. _("One request per book; the X-Rays are sent, not the books. Knowledge flows INTO this book only: the other books are not changed.")
     -- Undo is per-STEP here, and every step archives the SAME book: a long
@@ -3173,11 +3173,11 @@ local function confirmFanIn(opts, mates, main_entry, tgt_group, back)
     end
     if done_n > 0 then
         confirm_title = confirm_title .. "\n"
-            .. T(_("%1 of them are already folded in and up to date: those are skipped."), done_n)
+            .. T(_("%1 of them are already merged in and up to date: those are skipped."), done_n)
     end
     if stale_n > 0 then
         confirm_title = confirm_title .. "\n"
-            .. T(_("%1 of them were folded in before, but their X-Rays have changed since: those run again."), stale_n)
+            .. T(_("%1 of them were merged in before, but their X-Rays have changed since: those run again."), stale_n)
     end
     local function launch(skip_done)
         XrayMerge.runFanIn({
@@ -3195,10 +3195,10 @@ local function confirmFanIn(opts, mates, main_entry, tgt_group, back)
     local confirm
     local btns = {}
     if done_n > 0 and done_n < #mates then
-        btns[#btns + 1] = {{ text = T(_("Fold in new only: %1 request(s)"), #mates - done_n),
+        btns[#btns + 1] = {{ text = T(_("AI merge new only: %1 request(s)"), #mates - done_n),
             callback = function() UIManager:close(confirm) launch(true) end }}
     end
-    btns[#btns + 1] = {{ text = T(_("Fold in all: %1 request(s)"), #mates),
+    btns[#btns + 1] = {{ text = T(_("AI merge all: %1 request(s)"), #mates),
         callback = function() UIManager:close(confirm) launch(false) end }}
     btns[#btns + 1] = {{ text = back and _("Back") or _("Cancel"), callback = function()
         UIManager:close(confirm)
@@ -3350,12 +3350,12 @@ local function confirmSeriesChain(opts, predecessors, main_entry, group, back)
         }})
     end
     if done_n > 0 and done_n < n_merges then
-        button(T(_("Merge new only: %1 request(s)"), n_merges - done_n), true)
+        button(T(_("AI merge new only: %1 request(s)"), n_merges - done_n), true)
         button(T(_("Re-run all: %1 request(s)"), n_merges), false)
     elseif done_n >= n_merges and n_merges > 0 then
         button(T(_("Re-run all: %1 request(s)"), n_merges), false)
     else
-        button(T(_("Merge the series: %1 request(s)"), n_merges), false)
+        button(T(_("AI merge the series: %1 request(s)"), n_merges), false)
     end
     table.insert(chain_buttons, {{ text = back and _("Back") or _("Cancel"), callback = function()
         UIManager:close(confirm)
@@ -3585,7 +3585,7 @@ function XrayMerge.startCrossBookFlow(opts)
                 end
                 -- Item 46: earlier feeds later — merging a LATER group-mate is
                 -- legal (re-readers) but the spoiler warning names the direction
-                local confirm_text = T(_("Merge the X-Ray of \"%1\" into \"%2\"?"), captured.title, opts.title or "?")
+                local confirm_text = T(_("AI merge the X-Ray of \"%1\" into \"%2\"?"), captured.title, opts.title or "?")
                     .. "\n" .. _("One request: the two X-Rays are sent, not the books. Recurring characters, places, and concepts gain that book's background. This brings in everything its X-Ray covers, including its later events. The receiving X-Ray is archived first, so this can be undone from All versions.")
                 -- B394 slice 1: this door never said that merging the same
                 -- book again sends everything again
@@ -3605,7 +3605,7 @@ function XrayMerge.startCrossBookFlow(opts)
                     title = confirm_text,
                     buttons = {
                         {{
-                            text = _("Merge (1 request)"),
+                            text = _("AI merge (1 request)"),
                             callback = function()
                                 UIManager:close(confirm)
                                 if opts.close_browser then opts.close_browser() end
@@ -3625,13 +3625,13 @@ function XrayMerge.startCrossBookFlow(opts)
                                             -- InfoMessage (dismissable, readable)
                                             -- rather than a passing toast
                                             UIManager:show(InfoMessage:new{
-                                                text = T(_("Nothing to fold in: \"%1\" and this book share no people, places or concepts. Nothing was changed."), captured.title),
+                                                text = T(_("Nothing to merge: \"%1\" and this book share no people, places or concepts. Nothing was changed."), captured.title),
                                                 timeout = 5,
                                             })
                                             XrayMerge.reopenLive(opts)
                                         elseif ok then
                                             UIManager:show(Notification:new{
-                                                text = T(_("Merged the X-Ray of \"%1\" into this book."), captured.title),
+                                                text = T(_("AI merged the X-Ray of \"%1\" into this book."), captured.title),
                                             })
                                             -- Round 27: the fold retired the
                                             -- X-Ray it was launched from — land
@@ -3698,7 +3698,7 @@ function XrayMerge.startCrossBookFlow(opts)
             end
             if #mates >= 2 then
                 table.insert(fold_rows, {{
-                    text = T(_("Fold in the other books (up to %1 requests)…"), #mates),
+                    text = T(_("AI merge the other books (up to %1 requests)…"), #mates),
                     callback = function()
                         UIManager:close(picker)
                         confirmFanIn(opts, mates, main_entry, tgt_group,
@@ -3710,7 +3710,7 @@ function XrayMerge.startCrossBookFlow(opts)
     end
     if #predecessors >= 2 then
         table.insert(fold_rows, {{
-            text = T(_("Bring the series up to date (%1 earlier books)…"), #predecessors),
+            text = T(_("AI merge the series (%1 earlier books)…"), #predecessors),
             callback = function()
                 UIManager:close(picker)
                 local BG = require("koassistant_book_groups")
@@ -3756,7 +3756,7 @@ function XrayMerge.startCrossBookFlow(opts)
                     end,
                 }}
                 other_picker = ButtonDialog:new{
-                    title = T(_("Merge into \"%1\": other books with an X-Ray"), opts.title or "?"),
+                    title = T(_("AI merge into \"%1\": other books with an X-Ray"), opts.title or "?"),
                     buttons = orows,
                     tap_close_callback = function() XrayMerge.startCrossBookFlow(opts) end,
                 }
@@ -3783,7 +3783,7 @@ function XrayMerge.startCrossBookFlow(opts)
     picker = ButtonDialog:new{
         -- Naming the TARGET matters: this flow can be launched from another
         -- book's X-Ray via group navigation — "this book" would be ambiguous
-        title = T(_("Merge into \"%1\": pick the book to fold in"), opts.title or "?"),
+        title = T(_("AI merge into \"%1\": pick the other book"), opts.title or "?"),
         buttons = rows,
     }
     UIManager:show(picker)

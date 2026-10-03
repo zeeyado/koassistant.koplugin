@@ -7686,7 +7686,7 @@ function AskGPT:_showGroupMembersPopup(file, mode, opts)
   end
   if mp_shares then
     rows[#rows + 1] = {{
-      text = _("Merge / fold X-Rays…"),
+      text = _("AI merge X-Rays…"),
       callback = function()
         UIManager:close(dialog)
         -- before_open retires the browser this popup may sit over — the flow
@@ -9793,7 +9793,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       -- with no main X-Ray — the flow's picker handles scope and consent
       if nc_sx_count >= 2 then
         table.insert(nc_sec_rows, {{
-          text = T(_("Merge section X-Rays (%1)…"), nc_sx_count),
+          text = T(_("AI merge section X-Rays (%1)…"), nc_sx_count),
           callback = function()
             UIManager:close(dialog)
             self_ref:_startSectionXrayMergeFlow(sx_file, opts)
@@ -10347,17 +10347,33 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     addGroupRow(c_ver_rows,
       #versions_all > 0 and T(_("Versions (%1)…"), #versions_all) or _("Versions…"),
       _("Versions"))
-    -- A2 merge discoverability: the merge/fold story (sections → main,
-    -- cross-book fold incl. the series chain / project fan-in, dedup) was
+    -- A2 merge discoverability: the merge story (sections → main, the
+    -- cross-book AI merge incl. the series chain / project fan-in, dedup) was
     -- reachable only via the browser hamburger — the popup gets the same
-    -- three entries behind one group row
+    -- entries behind one group row
     local mf_rows = {}
     if sx_file then
+      -- B401: the group is "Link and merge". The carried list leads: it is
+      -- where a reader links names by hand, free; the paid rows follow, each
+      -- starting with "AI merge" and ending with its request count
+      local carried_label = require("koassistant_xray_browser").carriedListLabel(
+        sx_file, cached_entry.result)
+      if carried_label then
+        table.insert(mf_rows, {{
+          text = carried_label .. "…",
+          callback = function()
+            UIManager:close(dialog)
+            require("koassistant_xray_browser")._pending_navigate_to =
+              { book_file = sx_file, carried_list = true }
+            self_ref:viewCachedAction(action, action_id, cached_entry)
+          end,
+        }})
+      end
       -- B394 slice 1: every row that sends something says so, and the
       -- group merges are one tap away (the series chain used to be a row
       -- inside the picker the next row opens)
       table.insert(mf_rows, {{
-        text = _("Merge another book's X-Ray (1 request)…"),
+        text = _("AI merge with another book (1 request)…"),
         callback = function()
           UIManager:close(dialog)
           self_ref:_startCrossBookXrayFlow(sx_file, opts)
@@ -10366,8 +10382,8 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       local mf_kind = self:_groupXrayMergeKind(sx_file)
       if mf_kind then
         table.insert(mf_rows, {{
-          text = mf_kind == "project" and _("Fold the group into this book (1 request per book)…")
-            or _("Bring the series up to date (1 request per book)…"),
+          text = mf_kind == "project" and _("AI merge the group into this book (1 request per book)…")
+            or _("AI merge the series (1 request per book)…"),
           callback = function()
             UIManager:close(dialog)
             self_ref:_startGroupXrayMergeFlow(mf_kind, sx_file, opts)
@@ -10376,7 +10392,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       end
       if c_sx_count > 0 then
         table.insert(mf_rows, {{
-          text = T(_("Merge section X-Rays (%1)…"), c_sx_count),
+          text = T(_("AI merge section X-Rays (%1)…"), c_sx_count),
           callback = function()
             UIManager:close(dialog)
             self_ref:_startSectionXrayMergeFlow(sx_file, opts)
@@ -10391,8 +10407,8 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         end,
       }})
     end
-    -- 2026-08-15 (maintainer): the popup surfaces Merge / fold only when it
-    -- is actionable here — the book is in a group (cross-book fold) or holds
+    -- 2026-08-15 (maintainer): the popup surfaces the group only when it is
+    -- actionable here — the book is in a group (cross-book merge) or holds
     -- section X-Rays (within-book merge). Ungrouped books keep full access
     -- via the browser hamburger; this just stops the clutter.
     local mf_relevant = c_sx_count > 0
@@ -10401,7 +10417,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       mf_relevant = ok_bg and #(BookGroups.groupsFor(sx_file) or {}) > 0
     end
     if mf_relevant then
-      addGroupRow(mf_rows, _("Merge / fold…"), _("Merge / fold"))
+      addGroupRow(mf_rows, _("Link and merge…"), _("Link and merge"))
     end
     -- Per-book Automatic X-Ray (§7 P1): tri-state, universal — mirrored in
     -- Book Settings. Flowing docs only.
@@ -11361,7 +11377,10 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
 
     local screen_width = Screen:getWidth()
     local screen_height = Screen:getHeight()
-    local dialog_width = math.floor(math.min(screen_width, screen_height) * 0.8)
+    -- B406: 0.9 of the short side, KOReader's own width for a dialog of
+    -- buttons (it was 0.8): the two-to-a-row setting buttons keep their
+    -- labels whole and the wrapped lines above them are fewer
+    local dialog_width = math.floor(math.min(screen_width, screen_height) * 0.9)
     local content_width = dialog_width - 2 * Size.padding.large
     local label_face = Font:getFace("cfont", 18)
     local radio_face = Font:getFace("cfont", 20)
@@ -11822,7 +11841,6 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     table.insert(vgroup, VerticalSpan:new{ width = Size.padding.small })
     table.insert(vgroup, options_row)
 
-    table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
     local action_buttons = ButtonTable:new{
       width = content_width,
       buttons = {{
@@ -11846,11 +11864,50 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       zero_sep = true,
       show_parent = current_dialog,
     }
-    table.insert(vgroup, CenterContainer:new{
-      dimen = Geom:new{ w = content_width, h = action_buttons:getSize().h },
-      action_buttons,
-    })
-    table.insert(vgroup, VerticalSpan:new{ width = Size.padding.default })
+    local footer = VerticalGroup:new{
+      align = "left",
+      VerticalSpan:new{ width = Size.padding.default },
+      CenterContainer:new{
+        dimen = Geom:new{ w = dialog_width, h = action_buttons:getSize().h },
+        action_buttons,
+      },
+      VerticalSpan:new{ width = Size.padding.default },
+    }
+    -- B406: a form taller than the screen (a landscape or small screen, a
+    -- long state line and hint) scrolls between the title and the Cancel /
+    -- Create row, which stay in view; it used to run off the screen edge,
+    -- reachable only by dragging the window. KOReader's ButtonDialog shape:
+    -- the scroll container is the window's cropping_widget. Its bar sits in
+    -- the column's right margin, so the column keeps its width.
+    local body_h = vgroup:getSize().h
+    local max_body_h = screen_height - title_bar:getSize().h - footer:getSize().h
+      - 2 * Size.border.window - 2 * Size.padding.large
+    local body, scroll
+    if body_h > max_body_h then
+      scroll = require("ui/widget/container/scrollablecontainer"):new{
+        dimen = Geom:new{ w = dialog_width, h = max_body_h },
+        scroll_bar_width = math.max(1, math.floor(Size.padding.large / 3)),
+        require("ui/widget/horizontalgroup"):new{
+          align = "top",
+          require("ui/widget/horizontalspan"):new{ width = Size.padding.large },
+          vgroup,
+        },
+      }
+      -- Every pick rebuilds the form: keep the place it was scrolled to
+      local prev = current_dialog and current_dialog.cropping_widget
+      if prev then
+        local at = prev:getScrolledOffset()
+        at.x = 0
+        at.y = math.max(0, math.min(at.y or 0, body_h - max_body_h))
+        scroll:setScrolledOffset(at)
+      end
+      body = scroll
+    else
+      body = CenterContainer:new{
+        dimen = Geom:new{ w = dialog_width, h = body_h },
+        vgroup,
+      }
+    end
 
     -- Stock radio-picker composition (same fix as _showUnifiedActionPopup,
     -- polish round 2026-08-14): frame padding 0, content column centered
@@ -11862,10 +11919,8 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       VerticalGroup:new{
         align = "left",
         title_bar,
-        CenterContainer:new{
-          dimen = Geom:new{ w = dialog_width, h = vgroup:getSize().h },
-          vgroup,
-        },
+        body,
+        footer,
       },
     }
     local movable = MovableContainer:new{ widget_frame }
@@ -11894,6 +11949,11 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         movable,
       },
     }
+    if scroll then
+      -- The window a scroll repaints, and what crops a tapped row's flash
+      scroll.show_parent = current_dialog
+      current_dialog.cropping_widget = scroll
+    end
     current_dialog.ges_events = {
       TapClose = { GestureRange:new{
         ges = "tap",
@@ -12664,7 +12724,7 @@ function AskGPT:_showSectionXrayList(opts)
 
   -- Merge engine entry (§6 slice 3, #90): sections → main / combined span
   table.insert(buttons, {{
-    text = _("Merge section X-Rays…"),
+    text = _("AI merge section X-Rays…"),
     callback = function()
       UIManager:close(section_dialog)
       self_ref:_startSectionXrayMergeFlow(file, opts)

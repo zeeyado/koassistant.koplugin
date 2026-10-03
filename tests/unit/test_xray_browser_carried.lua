@@ -366,22 +366,80 @@ TestRunner:test("the dial flipped from the menu repaints the page on screen", fu
 end)
 
 print("")
-print("  [" .. "the story arc row (B312)" .. "]")
+print("  [" .. "the root lists what the X-Ray has" .. "]")
 
-TestRunner:test("an X-Ray built without the story arc says so; one built with everything does not", function()
+TestRunner:test("a category the X-Ray was built without gets no row (the B312 row is gone)", function()
     dial, group_kind = "list", "series"
     local b = browser()
-    TestRunner:assertEqual(rowByText(b:buildCategoryItems(), "Story Arc"), nil, "no stamp = built with everything")
-    b.metadata.xray_categories = "people,places,ideas,terms"
-    local row = rowByText(b:buildCategoryItems(), "Story Arc")
-    TestRunner:assertTrue(row ~= nil, "the Reference build names what it leaves out")
-    TestRunner:assertEqual(row.mandatory, "not tracked")
-    TestRunner:assertEqual(row.dim, true)
-    b.metadata.xray_categories = "people,events"
-    TestRunner:assertEqual(rowByText(b:buildCategoryItems(), "Story Arc"), nil, "tracked (and still empty): no row")
-    b.metadata.xray_categories = "people"
-    b.metadata.checkpoint = true
-    TestRunner:assertEqual(rowByText(b:buildCategoryItems(), "Story Arc"), nil, "main views only")
+    for _idx, stamp in ipairs({ "people,places,ideas,terms", "people" }) do
+        b.metadata.xray_categories = stamp
+        local items = b:buildCategoryItems()
+        TestRunner:assertEqual(rowByText(items, "Story Arc"), nil, stamp)
+        for _i, it in ipairs(items) do
+            TestRunner:assertTrue(it.mandatory ~= "not tracked", "no 'not tracked' row: " .. stamp)
+        end
+    end
+end)
+
+print("")
+print("  [" .. "the X-Ray popup's carried row (B401)" .. "]")
+
+TestRunner:test("its label is the list's title with the count, and nothing carried means no row", function()
+    local saved_parsed = ActionCache.parsedXrayFor
+    local data = xray()
+    ActionCache.parsedXrayFor = function() return { data = data } end
+    local ok, err = pcall(function()
+        group_kind = "series"
+        TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), "Carried from earlier books (6)")
+        group_kind = "project"
+        TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), "Carried from group (6)")
+        data[XrayParser.DORMANT_KEY] = {}
+        TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), nil, "nothing carried")
+        ActionCache.parsedXrayFor = function() return nil end
+        TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), nil, "no X-Ray")
+        -- A text the caller holds that has no carried list is never parsed
+        group_kind = "series"
+        local parses = 0
+        ActionCache.parsedXrayFor = function() parses = parses + 1; return { data = xray() } end
+        TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub", '{"characters": []}'), nil)
+        TestRunner:assertEqual(parses, 0, "no carried list in the text: no parse")
+        TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub", '{"__dormant": [{"name": "x"}]}'),
+            "Carried from earlier books (6)", "a text with one is counted from the parsed X-Ray")
+    end)
+    ActionCache.parsedXrayFor = saved_parsed
+    group_kind = "series"
+    if not ok then error(err, 0) end
+end)
+
+TestRunner:test("a browser opened from that row lands on the carried list; another book's row is dropped", function()
+    dial, group_kind = "list", "series"
+    local Menu = package.loaded["ui/widget/menu"]
+    local saved_new = rawget(Menu, "new")
+    local opened
+    Menu.new = function(_self, o)
+        o.paths = {}
+        function o:switchItemTable(title, items) self.title = title; self.item_table = items end
+        function o:updatePageInfo() end
+        opened = o
+        return o
+    end
+    local meta = { book_file = "/b/vol3.epub", plugin = {}, enable_emoji = false,
+        configuration = { features = {} }, title = "Volume Three" }
+    local ok, err = pcall(function()
+        local b = setmetatable({}, { __index = XrayBrowser })
+        XrayBrowser._pending_navigate_to = { book_file = "/b/vol3.epub", carried_list = true }
+        b:show(xray(), meta, nil)
+        TestRunner:assertEqual(opened.title, "Carried from earlier books (6)", "the list is on screen")
+        TestRunner:assertEqual(XrayBrowser._pending_navigate_to, nil, "the landing is used once")
+        XrayBrowser._pending_navigate_to = { book_file = "/b/other.epub", carried_list = true }
+        b = setmetatable({}, { __index = XrayBrowser })
+        b:show(xray(), meta, nil)
+        TestRunner:assertTrue(opened.title ~= "Carried from earlier books (6)", "the root, not the list")
+        TestRunner:assertEqual(#b.nav_stack, 0, "nothing was pushed")
+    end)
+    rawset(Menu, "new", saved_new)
+    XrayBrowser._pending_navigate_to = nil
+    if not ok then error(err, 0) end
 end)
 
 print("")

@@ -547,7 +547,10 @@ end
 --- @param opts table Options: on_confirm = function(selected_files_hash),
 ---   initial_source = "history"|folder_path, on_close = function(),
 ---   select_all = true (open with everything preselected — the "choose which"
----   arm of a whole-folder add, where the default is all of them)
+---   arm of a whole-folder add, where the default is all of them),
+---   fixed_source = true (the caller's own rows name the source, a group
+---   hub's "Add from history…" / files / collection: the menu offers no
+---   other source, B407)
 function BookPicker:show(opts)
     local on_confirm = opts and opts.on_confirm
     local on_close = opts and opts.on_close
@@ -579,6 +582,7 @@ function BookPicker:show(opts)
     self._confirmed = false
     self._filter = "all"
     self._search_string = nil
+    self._fixed_source = opts and opts.fixed_source or nil
 
     local self_ref = self
 
@@ -697,76 +701,81 @@ function BookPicker:_showPickerOptions()
        end,
     }})
 
-    -- Sources section
-    table.insert(buttons, {{ text = _("Sources:"),
-       enabled = false,
-       align = "left",
-    }})
+    -- Sources section. Skipped when the caller fixed the source (B407): a
+    -- group hub has one add row per source, and "Add from history…"
+    -- opening a picker that also browses folders and collections made
+    -- its name untrue
+    if not self._fixed_source then
+        table.insert(buttons, {{ text = _("Sources:"),
+           enabled = false,
+           align = "left",
+        }})
 
-    -- History source
-    local history_label = _("History")
-    if self._current_source == "history" then
-        history_label = history_label .. "  \u{2713}"
-    end
-    table.insert(buttons, {{ text = history_label,
-       align = "left",
-       callback = function()
-            UIManager:close(dialog)
-            self_ref:_switchSource("history")
-       end,
-    }})
-
-    -- Last browsed folder (if any, and not currently active)
-    if self._folder_path then
-        local folder_label = T(_("Folder: %1"), getFolderDisplayName(self._folder_path))
-        if self._current_source == self._folder_path then
-            folder_label = folder_label .. "  \u{2713}"
+        -- History source
+        local history_label = _("History")
+        if self._current_source == "history" then
+            history_label = history_label .. "  \u{2713}"
         end
-        table.insert(buttons, {{ text = folder_label,
+        table.insert(buttons, {{ text = history_label,
            align = "left",
            callback = function()
                 UIManager:close(dialog)
-                self_ref:_switchSource(self_ref._folder_path)
+                self_ref:_switchSource("history")
            end,
         }})
-    end
 
-    -- Last browsed collection (if any)
-    if self._collection then
-        local coll_source = BookPicker.COLLECTION_PREFIX .. self._collection
-        local coll_label = T(_("Collection: %1"), BookPicker.collectionLabel(self._collection))
-        if self._current_source == coll_source then
-            coll_label = coll_label .. "  \u{2713}"
+        -- Last browsed folder (if any, and not currently active)
+        if self._folder_path then
+            local folder_label = T(_("Folder: %1"), getFolderDisplayName(self._folder_path))
+            if self._current_source == self._folder_path then
+                folder_label = folder_label .. "  \u{2713}"
+            end
+            table.insert(buttons, {{ text = folder_label,
+               align = "left",
+               callback = function()
+                    UIManager:close(dialog)
+                    self_ref:_switchSource(self_ref._folder_path)
+               end,
+            }})
         end
-        table.insert(buttons, {{ text = coll_label,
+
+        -- Last browsed collection (if any)
+        if self._collection then
+            local coll_source = BookPicker.COLLECTION_PREFIX .. self._collection
+            local coll_label = T(_("Collection: %1"), BookPicker.collectionLabel(self._collection))
+            if self._current_source == coll_source then
+                coll_label = coll_label .. "  \u{2713}"
+            end
+            table.insert(buttons, {{ text = coll_label,
+               align = "left",
+               callback = function()
+                    UIManager:close(dialog)
+                    self_ref:_switchSource(coll_source)
+               end,
+            }})
+        end
+
+        -- Browse Folder...
+        table.insert(buttons, {{ text = _("Browse Folder…"),
            align = "left",
            callback = function()
                 UIManager:close(dialog)
-                self_ref:_switchSource(coll_source)
+                self_ref:_browseFolder()
            end,
         }})
-    end
 
-    -- Browse Folder...
-    table.insert(buttons, {{ text = _("Browse Folder…"),
-       align = "left",
-       callback = function()
-            UIManager:close(dialog)
-            self_ref:_browseFolder()
-       end,
-    }})
-
-    -- Browse Collection... (only when the reader has any)
-    if BookPicker.hasCollections() then
-        table.insert(buttons, {{ text = _("Browse Collection…"),
-           align = "left",
-           callback = function()
-                UIManager:close(dialog)
-                BookPicker.pickCollection(function(name)
-                    self_ref:_switchSource(BookPicker.COLLECTION_PREFIX .. name)
-                end)
-           end,
-        }})
+        -- Browse Collection... (only when the reader has any)
+        if BookPicker.hasCollections() then
+            table.insert(buttons, {{ text = _("Browse Collection…"),
+               align = "left",
+               callback = function()
+                    UIManager:close(dialog)
+                    BookPicker.pickCollection(function(name)
+                        self_ref:_switchSource(BookPicker.COLLECTION_PREFIX .. name)
+                    end)
+               end,
+            }})
+        end
     end
 
     -- Filter

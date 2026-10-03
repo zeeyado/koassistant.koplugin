@@ -1235,7 +1235,7 @@ TestRunner:test("promoteXrayLadderRung: a hand-added entry stays an entry, a han
     }]])
     TestRunner:assertTrue(XrayParser.promoteStub(live, 1, "Fenna"), "Add as a new entry")
     TestRunner:assertTrue(XrayParser.wakeStubInto(live, 1, "the boy", "characters", "Tobias Renn"),
-        "Merge into an existing entry")
+        "Link to an entry of this book")
     local live_json = XrayParser.serialize(live)
     local function plant()
         ActionCache.clearXrayLadder(DOC_PATH)

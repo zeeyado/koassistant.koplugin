@@ -961,8 +961,8 @@ TestRunner:test("preCreateFoldAsk: the free choice leads and the paid ones name 
         row[1].callback()
     end
     TestRunner:assertEqual(labels[1], "Just this book", "the free choice is first")
-    TestRunner:assertEqual(labels[2], "Also merge when done (1 request)")
-    TestRunner:assertEqual(labels[3], "Bring the series up to date (2 requests)",
+    TestRunner:assertEqual(labels[2], "Also AI merge when done (1 request)")
+    TestRunner:assertEqual(labels[3], "AI merge the series (2 requests)",
         "vol2 never merged vol1, so the chain is offered with its request count")
     TestRunner:assertEqual(labels[4], "Cancel")
     TestRunner:assertEqual(table.concat(modes, ","), "none,single,chain,cancel", "each button's answer")
