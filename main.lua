@@ -20834,6 +20834,22 @@ function AskGPT:onFileManagerReady(filemanager)
   end)
 end
 
+--- KOReader's select-mode menu in the file browser, known by its title in KOReader's
+--- own language (B399): KOReader builds that title with its gettext from these msgids
+--- (apps/filemanager/filemanager.lua), so the same call gives the same text in any
+--- language. The English patterns stay for a KOReader whose msgids differ.
+function AskGPT._isSelectModeTitle(title, count)
+  local ok, expected = pcall(function()
+    local kgettext = require("gettext")
+    if count > 0 then
+      return T(kgettext.ngettext("1 file selected", "%1 files selected", count), count)
+    end
+    return kgettext("No files selected")
+  end)
+  if ok and title == expected then return true end
+  return (title:find("file.*selected") or title:find("No files selected")) ~= nil
+end
+
 -- Patch FileManager to add our multi-select button
 function AskGPT:patchFileManagerForMultiSelect()
   if not FileManager or not ButtonDialog then
@@ -20850,9 +20866,9 @@ function AskGPT:patchFileManagerForMultiSelect()
     
     ButtonDialog.new = function(self, o)
       -- Check if this is a FileManager multi-select dialog
-      if o and o.buttons and o.title and type(o.title) == "string" and 
-         (o.title:find("file.*selected") or o.title:find("No files selected")) and
-         FileManager.instance and FileManager.instance.selected_files then
+      if o and o.buttons and o.title and type(o.title) == "string" and
+         FileManager.instance and FileManager.instance.selected_files and
+         AskGPT._isSelectModeTitle(o.title, util.tableSize(FileManager.instance.selected_files)) then
         
         local fm = FileManager.instance
         local select_count = util.tableSize(fm.selected_files)
