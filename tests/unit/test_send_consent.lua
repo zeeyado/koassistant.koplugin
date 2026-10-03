@@ -64,9 +64,9 @@ local saved = {
     override = A.notebookOverrideFor, getList = A.getList,
     showChatGPTDialog = Dialogs.showChatGPTDialog,
 }
-local shown, sent = {}, 0
+local shown, sent, sent_messages = {}, 0, nil
 UIManager.show = function(_self, w) shown[#shown + 1] = w end
-BTR.queryWith = function() sent = sent + 1 end
+BTR.queryWith = function(_query_fn, messages) sent = sent + 1; sent_messages = messages end
 SDS.resolve = function() return nil end
 local override
 A.notebookOverrideFor = function() return override end
@@ -130,6 +130,20 @@ TestRunner:test("the notebook viewer marks its chat, and the launcher passes the
         "/books/b.epub", "B", "", "my notes", "Notebook", { notebook = true })
     cb("What do I note most?", nil)
     TestRunner:assertTrue(got and got[8] and got[8].notebook == true, "launchArtifactChat receives the mark")
+end)
+
+TestRunner:test("the notebook reads as the reader's own notes, an artifact as generated (B403)", function()
+    override = nil
+    notebookChat(trusted(), "ollama", { notebook = true })
+    local first = sent_messages and sent_messages[1] and sent_messages[1].content or ""
+    TestRunner:assertTrue(first:find("the reader's own notebook for this book", 1, true), "the notebook's framing")
+    TestRunner:assertTrue(first:find("Notebook content:", 1, true), "its label")
+    TestRunner:assertTrue(not first:find("previously generated", 1, true), "never an earlier answer")
+    TestRunner:assertTrue(first:find("my notes", 1, true), "the notes themselves")
+    notebookChat(trusted(), "ollama", nil)
+    first = sent_messages and sent_messages[1] and sent_messages[1].content or ""
+    TestRunner:assertTrue(first:find("previously generated Notebook artifact", 1, true), "an artifact keeps its framing")
+    TestRunner:assertTrue(first:find("Artifact content:", 1, true), "and its label")
 end)
 
 TestRunner:test("sharing on sends anywhere; other artifacts are untouched", function()

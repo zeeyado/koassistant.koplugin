@@ -13546,12 +13546,21 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
         table.insert(parts, "")
     end
 
-    -- Framing prefix (like _xray_context_prefix): explains this is a generated artifact, not book text
-    local framing = "(Note: The following is a previously generated " .. (artifact_type_name or "artifact") .. " artifact for this book, not the book text itself.)"
+    -- Framing prefix (like _xray_context_prefix): explains this is a generated artifact, not
+    -- book text. The notebook is the reader's own writing, never an earlier answer of the
+    -- model's (B403; the Attach chip's wording).
+    local framing, content_label
+    if opts and opts.notebook then
+        framing = "(Note: The following is the reader's own notebook for this book: their notes and the excerpts they saved. It is not the book text.)"
+        content_label = "Notebook content:"
+    else
+        framing = "(Note: The following is a previously generated " .. (artifact_type_name or "artifact") .. " artifact for this book, not the book text itself.)"
+        content_label = "Artifact content:"
+    end
     table.insert(parts, framing)
     table.insert(parts, "")
 
-    table.insert(parts, "Artifact content:")
+    table.insert(parts, content_label)
     table.insert(parts, '"' .. artifact_content .. '"')
     table.insert(parts, "")
 
