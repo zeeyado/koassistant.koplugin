@@ -826,6 +826,27 @@ TestRunner:test("KEY_TOOL_EFFORT and KEY_WEB_EFFORT are in SIDECAR_KEYS (reset/c
     for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do have[key] = true end
     TestRunner:assertEqual(have[BookSettings.KEY_TOOL_EFFORT], true, "tool effort key registered")
     TestRunner:assertEqual(have[BookSettings.KEY_WEB_EFFORT], true, "web effort key registered")
+    TestRunner:assertEqual(have[BookSettings.KEY_TOOL_WHOLE_TEXT], true, "read-whole size key registered")
+end)
+
+TestRunner:test("resolveToolWholeText: per-book override > global > Medium; Off is a pick (B402)", function()
+    TestRunner:assertEqual(BookSettings.resolveToolWholeText(nil, nil), true,
+        "nothing set → Medium (true, the schema default)")
+    TestRunner:assertEqual(BookSettings.resolveToolWholeText(nil, { tool_whole_text = "small" }), "small",
+        "the global when the book sets nothing")
+    TestRunner:assertEqual(BookSettings.resolveToolWholeText(nil, { tool_whole_text = false }), false,
+        "a global Off stays Off")
+    TestRunner:assertEqual(BookSettings.resolveToolWholeText(
+        fakeDocSettings({ koassistant_book_tool_whole_text = false }), { tool_whole_text = "large" }), false,
+        "the book's Off beats a global Large")
+    TestRunner:assertEqual(BookSettings.resolveToolWholeText(
+        fakeDocSettings({ koassistant_book_tool_whole_text = "large" }), { tool_whole_text = false }), "large",
+        "the book's Large beats a global Off")
+    TestRunner:assertEqual(BookSettings.wholeTextLabel(false), "Off", "label Off")
+    TestRunner:assertEqual(BookSettings.wholeTextLabel("small"), "Small", "label Small")
+    TestRunner:assertEqual(BookSettings.wholeTextLabel(true), "Medium", "label Medium")
+    TestRunner:assertEqual(BookSettings.wholeTextLabel(nil), "Medium", "label for nothing set")
+    TestRunner:assertEqual(BookSettings.wholeTextLabel("large"), "Large", "label Large")
 end)
 
 TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS", function()
@@ -855,7 +876,7 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_background missing from SIDECAR_KEYS (book_background_plan.md)")
     TestRunner:assertEqual(found[BookSettings.KEY_XRAY_SPACING] == true, true,
         "koassistant_book_xray_spacing missing from SIDECAR_KEYS (spacing slice)")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 41, "41 per-book keys expected (carried entries, #116 / B393, and the status block, B271, 2026-10-03; incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25) + book text language (2026-09-10) + xray type (B337c, 2026-09-29); xray highlights removed with reader engagement 2026-08-18)")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 42, "42 per-book keys expected (the read-whole size, B402, 2026-10-03; carried entries, #116 / B393, and the status block, B271, 2026-10-03; incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25) + book text language (2026-09-10) + xray type (B337c, 2026-09-29); xray highlights removed with reader engagement 2026-08-18)")
 end)
 
 TestRunner:suite("resolveXrayMarking (2026-08-15: popup edits the book layer)")
@@ -1758,6 +1779,45 @@ TestRunner:test("junk book value falls through; full-set global folds to full", 
         { xray_default_categories = "people,places,ideas,terms,events" })
     TestRunner:assertNil(sel, "full-set csv normalizes to nil = full")
     TestRunner:assertEqual(layer, "global")
+end)
+
+TestRunner:suite("Read short texts whole from the Tools picker (B402)")
+
+-- The AI Book Tools picker (Tools chip hold, Quick Settings tile) carries the size row
+-- under Lookup effort; its sub-picker edits the tab it was opened from.
+TestRunner:test("the Tools picker's size row opens the size picker on the same tab", function()
+    local ds = presetDs({})
+    local plugin = presetPlugin({ tool_whole_text = "small" })
+    local BD = package.loaded["ui/widget/buttondialog"]
+    local orig_new, captured = BD.new, nil
+    local orig_ds_mod = package.loaded["koassistant_doc_settings"]
+    BD.new = function(_self, o) captured = o; return o end
+    package.loaded["koassistant_doc_settings"] = { resolve = function() return ds end }
+    local ok, err = pcall(function()
+        BookSettings.showToolsPosture({ plugin = plugin, target_override = "book" })
+        TestRunner:assertEqual(tapRow(captured, "Read short texts whole:"),
+            "Read short texts whole: Follow global (Small)", "the book follows the global's Small")
+        presetTrue(captured.title:find("Read Short Texts Whole", 1, true) ~= nil, "the size picker opened")
+        tapRow(captured, "Large (128,000 characters)")
+        TestRunner:assertEqual(ds._data[BookSettings.KEY_TOOL_WHOLE_TEXT], "large", "a pick on the book tab is the book's")
+
+        BookSettings.showToolsPosture({ plugin = plugin, target_override = "book" })
+        tapRow(captured, "Read short texts whole: Large")
+        tapRow(captured, "○ Off")
+        TestRunner:assertEqual(ds._data[BookSettings.KEY_TOOL_WHOLE_TEXT], false, "Off is the book's own pick")
+        TestRunner:assertEqual(BookSettings.resolveToolWholeText(ds, plugin.features()), false,
+            "and beats the global Small")
+
+        BookSettings.showToolsPosture({ plugin = plugin, target_override = "global" })
+        TestRunner:assertEqual(tapRow(captured, "Read short texts whole:"), "Read short texts whole: Small",
+            "the global tab names the global")
+        tapRow(captured, "Medium (64,000 characters)")
+        TestRunner:assertEqual(plugin.features().tool_whole_text, true,
+            "Medium is stored as true, the settings row's own value")
+    end)
+    BD.new = orig_new
+    package.loaded["koassistant_doc_settings"] = orig_ds_mod
+    if not ok then error(err, 0) end
 end)
 
 print("")

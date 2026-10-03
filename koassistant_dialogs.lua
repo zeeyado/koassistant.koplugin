@@ -739,6 +739,8 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
         local eff_ds = lang_file and SafeDocSettings.resolve(lang_file) or nil
         features.tool_lookup_effort = BookSettings.resolveToolEffort(eff_ds, features)
         features.web_search_effort = BookSettings.resolveWebEffort(eff_ds, features)
+        -- The read-whole size the same way (BookToolRunner.wholeTextLimit reads it)
+        features.tool_whole_text = BookSettings.resolveToolWholeText(eff_ds, features)
 
         -- Per-book Background (book_background_plan.md §2/§3): the reader's standing
         -- note about this book, injected into the system prompt next to

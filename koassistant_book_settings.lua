@@ -513,6 +513,9 @@ end
 -- ModelConstraints.webSearchEffort pick it up unchanged.
 BookSettings.KEY_TOOL_EFFORT = "koassistant_book_tool_effort"   -- "quick"|"standard"|"thorough"
 BookSettings.KEY_WEB_EFFORT = "koassistant_book_web_effort"     -- "light"|"standard"|"thorough"
+-- "Read short texts whole" size, the global row's own values: false = Off, "small",
+-- true = Medium, "large" (BookToolRunner.wholeTextLimit reads them; B402)
+BookSettings.KEY_TOOL_WHOLE_TEXT = "koassistant_book_tool_whole_text"
 
 --- Resolve effective book-tools lookup effort: per-book override > global
 -- features.tool_lookup_effort > "standard" (schema default).
@@ -540,6 +543,19 @@ function BookSettings.resolveWebEffort(doc_settings, features)
     return "standard"
 end
 
+--- Resolve the effective "Read short texts whole" size: per-book override > global
+-- features.tool_whole_text > true (Medium, the schema default). false is a real pick
+-- (Off), so the layers test for nil.
+-- @return false | "small" | true | "large"
+function BookSettings.resolveToolWholeText(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
+    local per_book = doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOL_WHOLE_TEXT)
+    if per_book ~= nil then return per_book end
+    local global = features and features.tool_whole_text
+    if global ~= nil then return global end
+    return true
+end
+
 --- Translated labels for the effort values (shared by the chip-hold rows + the picker).
 function BookSettings.toolEffortLabel(v)
     if v == "quick" then return _("Quick")
@@ -550,6 +566,12 @@ function BookSettings.webEffortLabel(v)
     if v == "light" then return _("Light")
     elseif v == "thorough" then return _("Thorough") end
     return _("Standard")
+end
+function BookSettings.wholeTextLabel(v)
+    if v == false or v == "off" then return _("Off")
+    elseif v == "small" then return _("Small")
+    elseif v == "large" then return _("Large") end
+    return _("Medium")
 end
 
 -- Per-book ⚡ Quick Answer default (true | false | nil = follow global). Governs
@@ -863,6 +885,7 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_QUICK_ANSWER,
     BookSettings.KEY_TOOL_EFFORT,
     BookSettings.KEY_WEB_EFFORT,
+    BookSettings.KEY_TOOL_WHOLE_TEXT,
     BookSettings.KEY_HIGHLIGHTS_SHARING,
     BookSettings.KEY_ANNOTATIONS_SHARING,
     BookSettings.KEY_NOTEBOOK_SHARING,
@@ -1709,8 +1732,8 @@ function BookSettings.showToolsPosture(opts)
         },
         value_label = function(v) return v and _("On") or _("Off") end,
         bottom_rows = function(ctx)
-            -- Lookup effort row → effort sub-picker (inherits the current
-            -- book/global target).
+            -- Lookup effort and read-whole rows → their sub-pickers (inherit the
+            -- current book/global target).
             local book_effort = ctx.doc_settings
                 and ctx.doc_settings:readSetting(BookSettings.KEY_TOOL_EFFORT) or nil
             local global_effort = ctx.features.tool_lookup_effort or "standard"
@@ -1718,17 +1741,38 @@ function BookSettings.showToolsPosture(opts)
                 and (book_effort and BookSettings.toolEffortLabel(book_effort)
                      or T(_("Follow global (%1)"), BookSettings.toolEffortLabel(global_effort)))
                 or BookSettings.toolEffortLabel(global_effort)
-            return {{{
-                text = T(_("Lookup effort: %1"), eff_label),
-                callback = function()
-                    ctx.closeDialog()
-                    BookSettings.showEffortPicker({
-                        plugin = ctx.plugin, ui = ctx.ui, document_path = ctx.document_path,
-                        on_close = ctx.on_close, kind = "tool",
-                        target_override = ctx.is_book_target and "book" or "global",
-                    })
-                end,
-            }}}
+            -- Explicit if: a book's Off is false
+            local book_whole = ctx.doc_settings
+                and ctx.doc_settings:readSetting(BookSettings.KEY_TOOL_WHOLE_TEXT)
+            local global_whole = BookSettings.resolveToolWholeText(nil, ctx.features)
+            local whole_label = BookSettings.wholeTextLabel(global_whole)
+            if ctx.is_book_target then
+                if book_whole ~= nil then
+                    whole_label = BookSettings.wholeTextLabel(book_whole)
+                else
+                    whole_label = T(_("Follow global (%1)"), whole_label)
+                end
+            end
+            local function subPicker(show_fn, extra)
+                ctx.closeDialog()
+                local picker_opts = {
+                    plugin = ctx.plugin, ui = ctx.ui, document_path = ctx.document_path,
+                    on_close = ctx.on_close,
+                    target_override = ctx.is_book_target and "book" or "global",
+                }
+                for k, v in pairs(extra or {}) do picker_opts[k] = v end
+                show_fn(picker_opts)
+            end
+            return {
+                {{
+                    text = T(_("Lookup effort: %1"), eff_label),
+                    callback = function() subPicker(BookSettings.showEffortPicker, { kind = "tool" }) end,
+                }},
+                {{
+                    text = T(_("Read short texts whole: %1"), whole_label),
+                    callback = function() subPicker(BookSettings.showWholeTextPicker) end,
+                }},
+            }
         end,
     }, opts)
 end
@@ -1807,6 +1851,27 @@ function BookSettings.showEffortPicker(opts)
         }
     end
     BookSettings.showLayeredPicker(spec, opts)
+end
+
+--- "Read short texts whole" size picker (For this book ↔ Global), reached from the
+-- AI Book Tools picker and Book Settings ▸ Chat behavior (B402). The options are the
+-- settings row's own (koassistant_settings_schema.lua tool_whole_text).
+-- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showWholeTextPicker(opts)
+    BookSettings.showLayeredPicker({
+        title = _("Read Short Texts Whole") .. "\n"
+            .. _("A readable text up to this size goes to the AI in one piece instead of being searched."),
+        key = BookSettings.KEY_TOOL_WHOLE_TEXT,
+        field = "tool_whole_text",
+        global = function(f) return BookSettings.resolveToolWholeText(nil, f) end,
+        value_label = BookSettings.wholeTextLabel,
+        options = {
+            { value = false, label = _("Off") },
+            { value = "small", label = _("Small (16,000 characters)") },
+            { value = true, label = _("Medium (64,000 characters)") },
+            { value = "large", label = _("Large (128,000 characters)") },
+        },
+    }, opts)
 end
 
 --- Quick Answer DEFAULT picker (For this book ↔ Global) — governs the ⚡ chip's
@@ -3099,6 +3164,7 @@ function BookSettings.show(opts)
         BookSettings.KEY_QUICK_ANSWER, BookSettings.KEY_BOOK_INFO,
         BookSettings.KEY_HIGHLIGHT_CONTEXT, BookSettings.KEY_DICTIONARY_CONTEXT,
         BookSettings.KEY_TOOL_EFFORT, BookSettings.KEY_WEB_EFFORT,
+        BookSettings.KEY_TOOL_WHOLE_TEXT,
     }), BookSettings.showChatBehaviorConfig))
     addButton(subScreenRow(_("Privacy"), groupCount({
         BookSettings.KEY_HIGHLIGHTS_SHARING, BookSettings.KEY_ANNOTATIONS_SHARING,
@@ -3246,6 +3312,12 @@ function BookSettings.showChatBehaviorConfig(opts)
     -- keys already counted toward this group's badge)
     local tool_effort = doc_settings:readSetting(BookSettings.KEY_TOOL_EFFORT)
     local web_effort = doc_settings:readSetting(BookSettings.KEY_WEB_EFFORT)
+    local whole_text = doc_settings:readSetting(BookSettings.KEY_TOOL_WHOLE_TEXT)
+    local whole_text_label = BookSettings.wholeTextLabel(whole_text)
+    if whole_text == nil then
+        whole_text_label = T(_("Follow global (%1)"),
+            BookSettings.wholeTextLabel(BookSettings.resolveToolWholeText(nil, features)))
+    end
 
     local book_info_v = doc_settings:readSetting(BookSettings.KEY_BOOK_INFO)
     local buttons = {
@@ -3256,6 +3328,8 @@ function BookSettings.showChatBehaviorConfig(opts)
                     or T(_("Follow global (%1)"),
                         BookSettings.toolEffortLabel(features.tool_lookup_effort or "standard"))),
             callback = function() sharedPicker(BookSettings.showEffortPicker, { kind = "tool" }) end }},
+        {{ text = T(_("Read short texts whole: %1"), whole_text_label),
+            callback = function() sharedPicker(BookSettings.showWholeTextPicker) end }},
         {{ text = T(_("Web search: %1"), boolLabel(doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH),
                 features.enable_web_search == true)),
             callback = function() sharedPicker(BookSettings.showWebSearch) end }},
