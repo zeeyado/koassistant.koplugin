@@ -1089,8 +1089,13 @@ local function wholeTextRangeLine(whole)
     return string.format("Pages 1-%d, the whole book.", whole.end_page)
 end
 
+-- The page range comes AFTER the text: a page turn then changes only the block's end, so
+-- providers that cache by prefix in small steps (OpenAI and DeepSeek, for two) still reuse
+-- the text read before. With the range first, the change began at the top and the whole
+-- text was billed again (B402).
 local function wholeTextBlock(whole)
-    return "[The book's readable text, in full]\n" .. wholeTextRangeLine(whole) .. "\n\n" .. whole.text
+    return "[The book's readable text, in full]\n\n" .. whole.text
+        .. "\n\n[End of the readable text] " .. wholeTextRangeLine(whole)
 end
 
 local function wholeTextTraceLine(whole)

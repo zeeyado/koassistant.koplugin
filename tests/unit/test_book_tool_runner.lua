@@ -1241,6 +1241,29 @@ TestRunner:test("the readable text sits right after the opening context, the sam
     TestRunner:assertEqual(plain[2].content, "hi", "the question after it")
 end)
 
+TestRunner:test("a page turn changes only the end of the text, so its start stays cached (B402)", function()
+    local seen
+    local function query_fn(messages, _c, cb) seen = messages; cb(true, "answer") end
+    local function blockAt(page)
+        local ui = makeUi()
+        ui.view.state.page = page  -- protection on: the text ends at the reader's page
+        BookToolRunner.run({ query_fn = query_fn, messages = { { role = "user", content = "hi" } },
+            config = gatherConfig({ tool_whole_text = true }), ui = ui, on_complete = function() end })
+        for _i, m in ipairs(seen) do
+            if type(m.content) == "string" and m.content:find("[The book's readable text, in full]", 1, true) then
+                return m.content
+            end
+        end
+    end
+    local at1, at2 = blockAt(1), blockAt(2)
+    TestRunner:assertTrue(at1 ~= nil and at2 ~= nil, "both turns read the text whole")
+    TestRunner:assertTrue(at2:find("garden path", 1, true) ~= nil, "the later turn reaches the new page")
+    -- Byte for byte the same up to the end of the text read before: a cached prefix
+    local _s, page1_end = at1:find("Daisy was mentioned in a letter.", 1, true)
+    TestRunner:assertEqual(at2:sub(1, page1_end), at1:sub(1, page1_end), "the shared start covers page 1's text")
+    TestRunner:assertTrue(at1:find("Pages 1-1 of 2", page1_end, true) ~= nil, "the page range comes after the text")
+end)
+
 TestRunner:test("gather: zero lookups leave a note saying the book was not consulted", function()
     local calls = 0
     local gen_messages
