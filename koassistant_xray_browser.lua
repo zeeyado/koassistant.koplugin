@@ -1902,6 +1902,10 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
                             if self_ref:_commitDormantOp(
                                 function(data) return XrayParser.promoteStub(data, stub_idx, stub.name) end,
                                 T(_("\"%1\" added to the X-Ray."), stub.name)) then
+                                -- B400: remembered, so the next checkpoint
+                                -- install or rebuild keeps it an entry
+                                require("koassistant_action_cache").addPromotedStub(
+                                    self_ref.metadata.book_file, stub.name)
                                 self_ref:_refreshDormantPage()
                             end
                         end,
@@ -1925,28 +1929,35 @@ function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
         },
     }
     if open_row then table.insert(buttons_rows, 1, open_row) end
-    -- Prev/next within the carried list, mirroring showItemDetail's nav row
+    -- The last row mirrors showItemDetail's: ← first (back to the list this
+    -- page was opened from: the carried list, one of its category pages, a
+    -- category page listing carried entries, the search results; the page is
+    -- an overlay on that list, so closing it is the way back), then prev/next
+    -- within the list
+    local nav_row = { {
+        text = "←",
+        callback = afterClose(function() end),
+    } }
     local rows = nav_context and nav_context.rows
     if rows and #rows > 1 then
         local idx = nav_context.index
         local function jump(i)
             self_ref:showDormantDetail(rows[i].idx, rows[i].stub, { rows = rows, index = i })
         end
-        table.insert(buttons_rows, {
-            {
-                text = "◀",
-                callback = afterClose(function()
-                    jump(idx > 1 and idx - 1 or #rows)
-                end),
-            },
-            {
-                text = "▶",
-                callback = afterClose(function()
-                    jump(idx < #rows and idx + 1 or 1)
-                end),
-            },
+        table.insert(nav_row, {
+            text = "◀",
+            callback = afterClose(function()
+                jump(idx > 1 and idx - 1 or #rows)
+            end),
+        })
+        table.insert(nav_row, {
+            text = "▶",
+            callback = afterClose(function()
+                jump(idx < #rows and idx + 1 or 1)
+            end),
         })
     end
+    table.insert(buttons_rows, nav_row)
 
     local display_title = stub.name
     if rows and #rows > 1 then
@@ -3524,6 +3535,10 @@ function XrayBrowser:_showEntityManagePopup(item, category_key, title, source, n
                                     return XrayParser.demoteToStub(data, category_key, demote_name)
                                 end,
                                 T(_("\"%1\" moved back to the carried list."), demote_name)) then
+                                -- B400: the way back out of "Add as a new
+                                -- entry" forgets that it was added by hand
+                                require("koassistant_action_cache").clearPromotedStub(
+                                    self_ref.metadata.book_file, demote_name)
                                 -- Back to root: the entry this page rendered no
                                 -- longer exists, and the pages under it hold
                                 -- item tables that still list it

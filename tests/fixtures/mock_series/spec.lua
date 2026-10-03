@@ -1,11 +1,13 @@
 --[[
 Mock X-Ray fixture SPEC (#90 cross-book lookup, docs/xray_cross_book_lookup_plan.md §6.2).
 
-Pure data consumed by gen.lua. Seven tiny invented books in three folders (one
+Pure data consumed by gen.lua. Eight tiny invented books in three folders (one
 folder per group kind — the groups themselves are created BY HAND on the target
 with "New group from folder…", which is itself an entry point under test):
 
-  Mock Series/   3 fiction volumes, the main test bed (series group)
+  Mock Series/   3 fiction volumes, the main test bed (series group), and a
+                 4th with NO X-Ray: the one book a round creates an X-Ray on
+                 (two small requests instead of a real book's; see below)
   Mock Project/  2 non-fiction siblings with a fold residue (project group)
   Mock Shelf/    2 unrelated books, the negative control (plain group)
 
@@ -45,6 +47,20 @@ CJK rows (2026-09-09, docs/xray_cjk_identity_plan.md):
                    美咲 (mark + intercept only on the full name; search finds
                    the bare given name by substring).
   ミラ・エル・ソーン   vol-3 live with alias ミラ; text has both forms (marks on both).
+Vol 4 (2026-10-03, docs/xray_knowledge_picture.md section 9; no X-Ray planted,
+six chapters, chapter 4 starts at 50%):
+  Tamsin Vael, Gil Rook   in both halves: a fresh X-Ray's entries gain a
+                   "From Mock Series 3" line at the seed (the free carry for
+                   entries already in the book)
+  Orrin Blackwood  first half: carried into vol 4 through vol 3's list, so the
+                   create's own entry wakes with its "Mock Series 2" line
+  Brann Oakes      first half, new in vol 4 (control)
+  Dorrit           first half, the BARE first name: Dorrit Hale reaches vol 4's
+                   carried list once the group has re-seeded; an entry the
+                   model names "Dorrit" does not match her row (the drift the
+                   carried page's link button, or an AI merge, is for)
+  Fenna Quill      second half only: carried, wakes at the update to 100%
+  Ilse Marrow      second half only, new (control for the update)
 ]]
 
 local V1 = "__PATH:1__"
@@ -315,6 +331,17 @@ local VOL3_CHAPTERS = {
     ch("The Grove Warden", "Tamsin took the warden's oath under the oldest tree. The salt kept rising, and the story went on without asking."),
 }
 
+-- Vol 4: six chapters, so chapter 4 starts at 50%. No X-Ray is planted: a
+-- round builds one here (to 50% in one request, then an update to the end).
+local VOL4_CHAPTERS = {
+    ch("The Sluice Gate", "Tamsin Vael walked the dyke at first light with Gil Rook, who counted the dead rows aloud. At the Greywater sluice a stranger was already at work: Brann Oakes, a dyke-builder from the low counties, who shook nobody's hand until the gate was shut."),
+    ch("A Borrowed Boat", "Orrin Blackwood had found a boat, or the boat had found him. He poled it up the flooded lane to the orchard gate and offered it to Tamsin for the season. Brann said a ferry master inland was a bad omen; Orrin said omens were for people with time."),
+    ch("The Count", "Gil and Brann paced out the new dyke line between the salt-apple rows. Tamsin kept the tally herself and found the valley a row shorter than the ledger said. Nobody mentioned Dorrit, though the inn sign still leaned against the gate."),
+    ch("Mail From the Shore", "The mail came by water for the first time: Fenna Quill rowed it up the lane in Orrin's wake and would not stay for tea. With her came a surveyor's apprentice, Ilse Marrow, who had walked out on her master and wanted work."),
+    ch("The Line Holds", "Ilse set the stakes and Brann drove them. Orrin ferried clay from the upper pits, and Fenna carried the count back to the shore towns. For nine days the Greywater sluice held."),
+    ch("What Was Kept", "On the tenth day the salt stood still. Tamsin Vael wrote it in the ledger, Gil Rook cut the first graft of the new row, and Brann Oakes left before anyone could thank him."),
+}
+
 local PROJ_A_CHAPTERS = {
     ch("Defining the Commons", "Maren Kessler spent thirty years on the flats before naming what she stood on: the tidal commons."),
     ch("Three Harbors", "The drowned markets of three harbors are compared. Ivo Larsen supplies the records."),
@@ -422,6 +449,15 @@ local BOOKS = {
         xray = { json = SHELF_B_XRAY, progress = 0.5,
             meta = { model = "mock", used_book_text = true, source_mode = "book_text",
                 timestamp = 1755000800 } },
+        sidecar = { koassistant_book_xray_auto = false },
+    },
+    -- LAST on purpose (the __PATH:n__ numbers above stay what they were): the
+    -- series' 4th volume, with no X-Ray. Added to an existing "Mock Series"
+    -- group by hand ("Add books…"), it lands in fourth place.
+    {
+        folder = "Mock Series", filename = "Mock Series 4 - The Salt Line.epub",
+        title = "Mock Series 4 - The Salt Line", author = "A. Mock",
+        chapters = VOL4_CHAPTERS,
         sidecar = { koassistant_book_xray_auto = false },
     },
 }

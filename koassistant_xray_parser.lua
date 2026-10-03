@@ -4360,6 +4360,56 @@ function XrayParser.promoteStub(data, stub_idx, stub_name)
     return true
 end
 
+--- The reader's "Add as a new entry" holds across a checkpoint install and a
+--- rebuild (B400). Either one replaces the entries with what the model built
+--- from the text, so a hand-added entry is parked on the carried list again
+--- by the carry; this puts it back. Runs AFTER the wake-pass: a row still on
+--- the list is one the incoming X-Ray does not name by itself (an entity it
+--- does name woke already and is left alone). The entry is rebuilt from the
+--- carried row, the earlier book's own text, never copied from the outgoing
+--- X-Ray, so an install that moves BACK to an earlier checkpoint cannot
+--- bring a later description with it. A kept name that matches a row's alias
+--- (the reader renamed the entry after adding it) keeps the reader's name.
+--- Pure.
+--- @param data table Parsed X-Ray, after its wake-pass (mutated)
+--- @param keep table Lowercased name -> stored spelling (ActionCache.getPromotedStubs)
+--- @return number kept
+function XrayParser.keepPromoted(data, keep)
+    if type(data) ~= "table" or type(keep) ~= "table" or next(keep) == nil then return 0 end
+    local ledger = data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return 0 end
+    local wanted = {}
+    for _idx, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            local spelling = keep[stub.name:lower()]
+            if not spelling and type(stub.aliases) == "table" then
+                for _idx2, a in ipairs(stub.aliases) do
+                    if type(a) == "string" and keep[a:lower()] then
+                        spelling = keep[a:lower()]
+                        break
+                    end
+                end
+            end
+            if spelling then
+                wanted[#wanted + 1] = { name = stub.name, category = stub.category, spelling = spelling }
+            end
+        end
+    end
+    local kept = 0
+    for _idx, w in ipairs(wanted) do
+        -- Index 0 matches no row, so promoteStub finds this one by its name
+        -- (and refuses a name two rows share, as every ledger edit does)
+        if XrayParser.promoteStub(data, 0, w.name) then
+            kept = kept + 1
+            if type(w.spelling) == "string" and w.spelling ~= ""
+                    and w.spelling:lower() ~= w.name:lower() then
+                XrayParser.renameItem(data, w.category, w.name, w.spelling)
+            end
+        end
+    end
+    return kept
+end
+
 --- The inverse of promoteStub: a visible entry goes back to the carried list.
 --- Round 27 (maintainer: "Add as its own entry could easily be done by accident
 --- and there is no way back"). Restricted by its CALLERS to entries that carry

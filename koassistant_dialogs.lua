@@ -5530,6 +5530,13 @@ if prune_book_text then
                         if #woken > 0 then
                             logger.dbg("KOAssistant: X-Ray create woke", #woken, "dormant entit(y/ies)")
                         end
+                        -- B400: an entry the reader added by hand from the
+                        -- carried list stays an entry across a rebuild
+                        local kept = XrayParser.keepPromoted(parsed,
+                            require("koassistant_action_cache").getPromotedStubs(cache_file))
+                        if kept > 0 then
+                            logger.dbg("KOAssistant: X-Ray create kept", kept, "hand-added entit(y/ies)")
+                        end
                     end
                     -- Round 28 (#90): reconcile mechanical background against the
                     -- book's group — backfill file identities onto legacy labeled

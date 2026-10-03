@@ -263,6 +263,37 @@ TestRunner:test("it opens on category rows; All is the flat page", function()
         "the flat page keeps the category tag and the source title beside each name")
 end)
 
+TestRunner:test("a carried entry's page ends on the back button, then the arrows, like an entry page", function()
+    dial, group_kind = "list", "series"
+    local b = browser()
+    b.metadata.plugin = nil -- no "Open in <book>'s X-Ray" row: nothing to read here
+    local TextViewer = require("ui/widget/textviewer")
+    local saved_new, shown, closed = TextViewer.new, nil, 0
+    TextViewer.new = function(_self, o)
+        shown = o
+        o.onClose = function() closed = closed + 1 end
+        return o
+    end
+    b:showDormantList({ flat = true })
+    rowByText(b.menu.item_table, "Tove").callback()
+    local last = shown.buttons_table[#shown.buttons_table]
+    TestRunner:assertEqual(last[1].text .. last[2].text .. last[3].text, "←◀▶")
+    last[1].callback()
+    TestRunner:assertEqual(closed, 1, "back closes the page: the list it was opened from is underneath")
+    TestRunner:assertEqual(#b.nav_stack, 1, "and that list is still the page on screen")
+    -- A list of one row has nothing to walk: the back button alone
+    local one = xray()
+    one[XrayParser.DORMANT_KEY] = { one[XrayParser.DORMANT_KEY][1] }
+    local b1 = browser(one)
+    b1.metadata.plugin = nil
+    b1:showDormantList()
+    b1.menu.item_table[1].callback()
+    last = shown.buttons_table[#shown.buttons_table]
+    TestRunner:assertEqual(#last, 1)
+    TestRunner:assertEqual(last[1].text, "←")
+    TextViewer.new = saved_new
+end)
+
 TestRunner:test("a single kind opens flat, as before", function()
     local data = xray()
     local ledger = data[XrayParser.DORMANT_KEY]

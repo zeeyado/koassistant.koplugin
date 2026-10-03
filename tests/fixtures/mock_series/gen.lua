@@ -1,7 +1,7 @@
 --[[
 Mock X-Ray fixture GENERATOR (#90, docs/xray_cross_book_lookup_plan.md §6.2).
 
-Builds seven tiny invented EPUBs plus their KOAssistant sidecar data (X-Ray
+Builds eight tiny invented EPUBs plus their KOAssistant sidecar data (X-Ray
 caches with carried-entity ledgers, a built-ahead ladder rung, a ring archive,
 a section X-Ray, a user-alias file, per-book DocSettings keys) so every
 cross-book lookup surface can be exercised on a device or the desktop KOReader
@@ -25,8 +25,11 @@ Usage (from the repo root; needs `zip` on PATH; run while KOReader is closed):
 Sidecars are written side-by-side (`Book.sdr/` next to `Book.epub`, KOReader's
 default "doc" location) and travel with the folder copy. Re-running into the
 same --out regenerates the plugin sidecar files from scratch (they are fixture
-output, not user data). The three GROUPS are created by hand on the target with
-"New group from folder…" — group creation is itself an entry point under test.
+output, not user data), so an X-Ray a round built on "Mock Series 4" (the one
+book planted without one) is gone again. The three GROUPS are created by hand
+on the target with "New group from folder…" — group creation is itself an
+entry point under test; a group that already exists keeps its members, and a
+book added to the fixture later is added to it by hand ("Add books…").
 
 After writing, everything is read back through the real loaders and parsed with
 the real XrayParser; the script exits non-zero if any piece fails.
@@ -407,7 +410,10 @@ Done. Next, on the target:
        Mock Series  -> kind Series
        Mock Project -> kind Project
        Mock Shelf   -> kind Plain
+     A "Mock Series" group made before the 4th volume existed: Group Hub >
+     "Add books..." > Mock Series 4 (it lands in fourth place).
   3. Open "Mock Series 3 - The Orchard" and follow the device steps in
-     docs/xray_cross_book_lookup_plan.md section 6.2.
+     docs/xray_cross_book_lookup_plan.md section 6.2, or the current round's
+     steps in docs/backlog_v0.24.md.
 ]])
 os.exit(0)

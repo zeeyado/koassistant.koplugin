@@ -1196,6 +1196,98 @@ TestRunner:test("promoteXrayLadderRung: outgoing-only ledger stubs survive the i
     ActionCache.clear(DOC_PATH, "xray")
 end)
 
+TestRunner:test("promoteXrayLadderRung: a hand-added entry stays an entry, a hand-linked one keeps its history (B400)", function()
+    local XrayParser = require("koassistant_xray_parser")
+    ActionCache.clearXrayLadder(DOC_PATH)
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    ActionCache.clearXrayCache(DOC_PATH)
+    ActionCache.clear(DOC_PATH, "xray")
+    ActionCache.setUserAliases(DOC_PATH, {})
+
+    -- The checkpoint built ahead: its own copy of the carried list (Fenna,
+    -- "the boy"), an entry for Tobias, nothing about Fenna in the text
+    local rung_json = [[{
+      "type": "fiction",
+      "characters": [
+        {"name": "Tamsin", "description": "rung"},
+        {"name": "Tobias Renn", "description": "Named in this stretch."}
+      ],
+      "__dormant": [
+        {"name": "Fenna", "category": "characters", "role": "Letter carrier", "source": "Vol 2",
+         "description": "Rows the mail."},
+        {"name": "the boy", "category": "characters", "source": "Vol 1",
+         "description": "A stowaway nobody named."}
+      ]
+    }]]
+    -- Live: the reader added Fenna as an entry and linked "the boy" onto Tobias
+    local live = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [
+        {"name": "Tamsin", "description": "live"},
+        {"name": "Tobias Renn", "description": "Named early."}
+      ],
+      "__dormant": [
+        {"name": "Fenna", "category": "characters", "role": "Letter carrier", "source": "Vol 2",
+         "description": "Rows the mail."},
+        {"name": "the boy", "category": "characters", "source": "Vol 1",
+         "description": "A stowaway nobody named."}
+      ]
+    }]])
+    TestRunner:assertTrue(XrayParser.promoteStub(live, 1, "Fenna"), "Add as a new entry")
+    TestRunner:assertTrue(XrayParser.wakeStubInto(live, 1, "the boy", "characters", "Tobias Renn"),
+        "Merge into an existing entry")
+    local live_json = XrayParser.serialize(live)
+    local function plant()
+        ActionCache.clearXrayLadder(DOC_PATH)
+        ActionCache.setXrayCache(DOC_PATH, live_json, 0.4,
+            { model = "m-live", used_book_text = true, progress_page = 40 })
+        ActionCache.set(DOC_PATH, "xray", live_json, 0.4, { model = "m-live" })
+        ActionCache.pushXrayLadderRung(DOC_PATH, {
+            result = rung_json, progress_decimal = 0.7, progress_page = 70,
+            timestamp = 1700000070, used_book_text = true, model = "m-70",
+        })
+    end
+    local function installed()
+        TestRunner:assertEqual(ActionCache.promoteXrayLadderRung(
+            DOC_PATH, ActionCache.getXrayLadder(DOC_PATH)[1], 5), true, "install succeeds")
+        local data = XrayParser.parse(ActionCache.getXrayCache(DOC_PATH).result)
+        local by_name = {}
+        for _i, c in ipairs(data.characters or {}) do by_name[c.name] = c end
+        return data, by_name
+    end
+
+    -- Without the record (X-Rays edited before this build): parked again, text kept
+    plant()
+    local data, by_name = installed()
+    TestRunner:assertEqual(by_name["Fenna"], nil, "no record: the hand-added entry is carried again")
+    local stub = XrayParser.findDormantByIdentity(data, { "Fenna" })
+    TestRunner:assertEqual(stub and stub.description, "Rows the mail.", "with its text")
+    -- The link holds either way: the history is back on the checkpoint's entry
+    local tobias = by_name["Tobias Renn"]
+    TestRunner:assertEqual(tobias and tobias.description, "Named in this stretch.", "the checkpoint's text")
+    TestRunner:assertEqual(tobias and tobias.background and tobias.background[1].source, "Vol 1",
+        "the linked history rides onto the checkpoint's entry")
+    TestRunner:assertEqual(XrayParser.findDormantByIdentity(data, { "the boy" }), nil,
+        "and the checkpoint's own copy of the row does not come back")
+
+    -- With the record: the entry is an entry after the install
+    plant()
+    ActionCache.addPromotedStub(DOC_PATH, "Fenna")
+    data, by_name = installed()
+    TestRunner:assertTrue(by_name["Fenna"] ~= nil, "the hand-added entry is still an entry")
+    TestRunner:assertEqual(by_name["Fenna"].description, "Rows the mail.", "as it was")
+    TestRunner:assertEqual(by_name["Fenna"].role, "Letter carrier", "role kept")
+    TestRunner:assertEqual(XrayParser.findDormantByIdentity(data, { "Fenna" }), nil, "not carried as well")
+    TestRunner:assertEqual(ActionCache.getXrayLadder(DOC_PATH)[1].result, rung_json,
+        "the ladder still holds the pure checkpoint")
+
+    ActionCache.setUserAliases(DOC_PATH, {})
+    ActionCache.clearXrayLadder(DOC_PATH)
+    ActionCache.clearXrayCheckpoints(DOC_PATH)
+    ActionCache.clearXrayCache(DOC_PATH)
+    ActionCache.clear(DOC_PATH, "xray")
+end)
+
 TestRunner:test("promoteXrayLadderRung: copy semantics, conditional ring push, flag fallback", function()
     ActionCache.clearXrayLadder(DOC_PATH)
     ActionCache.clearXrayCheckpoints(DOC_PATH)

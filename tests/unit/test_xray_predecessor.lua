@@ -363,6 +363,72 @@ TestRunner:test("promoteStub keeps the earlier book's text as a background line 
     TestRunner:ok(XrayParser.findDormantByIdentity(incoming, { "Wick" }), "back on the carried list")
 end)
 
+TestRunner:test("hand-added entries: the record lives in the aliases sidecar beside the removals (B400)", function()
+    TestRunner:ok(ActionCache.addRemovedStub(VOL3, "Brask"), "a removal")
+    TestRunner:ok(ActionCache.addPromotedStub(VOL3, "Wick"), "record a hand-added entry")
+    TestRunner:ok(ActionCache.addPromotedStub(VOL3, "wick"), "the same name again is a no-op")
+    TestRunner:eq(ActionCache.getPromotedStubs(VOL3)["wick"], "Wick", "lowercased key, stored spelling")
+    TestRunner:eq(#ActionCache.getUserAliases(VOL3)[ActionCache.PROMOTED_STUBS_KEY], 1, "one row in the sidecar")
+    TestRunner:ok(ActionCache.getRemovedStubs(VOL3)["brask"], "the removal list is untouched")
+    TestRunner:eq(ActionCache.getRemovedStubs(VOL3)["wick"], nil, "and holds no hand-added name")
+    -- A search term on an entry of the same book round-trips beside both lists
+    TestRunner:ok(ActionCache.addUserAlias(VOL3, "Mira Voss", "the warden"), "an alias record")
+    TestRunner:eq(ActionCache.getPromotedStubs(VOL3)["wick"], "Wick", "the list survived the rewrite")
+    TestRunner:eq(ActionCache.getUserAliases(VOL3)["Mira Voss"].add[1], "the warden", "so did the alias record")
+    -- The mark follows a rename of the entry
+    ActionCache.renameEntityKeys(VOL3, "characters", "Wick", "Wick the Lamplighter")
+    TestRunner:eq(ActionCache.getPromotedStubs(VOL3)["wick"], nil, "old name gone")
+    TestRunner:eq(ActionCache.getPromotedStubs(VOL3)["wick the lamplighter"], "Wick the Lamplighter",
+        "the new name is the kept one")
+    TestRunner:ok(ActionCache.clearPromotedStub(VOL3, "wick the lamplighter"), "clear (case-insensitive)")
+    TestRunner:eq(next(ActionCache.getPromotedStubs(VOL3)), nil, "gone")
+    ActionCache.clearRemovedStub(VOL3, "Brask")
+    ActionCache.setUserAliases(VOL3, {})
+end)
+
+TestRunner:test("keepPromoted: a hand-added entry comes back after the carry parked it (B400)", function()
+    local XrayMerge = require("koassistant_xray_merge")
+    -- The outgoing X-Ray: the reader added Wick as an entry
+    local prev = XrayParser.parse(VOL2_JSON)
+    local _stub, idx = XrayParser.findDormantByIdentity(prev, { "Wick" })
+    TestRunner:ok(XrayParser.promoteStub(prev, idx, "Wick"), "promote")
+    -- The incoming version was built from the text: no Wick, its own copy of the row
+    local incoming = XrayParser.parse(VOL2_JSON)
+    XrayMerge.unionLedger(prev, incoming)
+    XrayMerge.carryActiveBackground(prev, incoming)
+    XrayParser.wakeDormant(incoming)
+    TestRunner:ok(XrayParser.findDormantByIdentity(incoming, { "Wick" }), "the carry parked it again")
+    TestRunner:eq(XrayParser.keepPromoted(incoming, {}), 0, "no record: it stays carried (the old behaviour)")
+    TestRunner:eq(XrayParser.keepPromoted(incoming, { wick = "Wick" }), 1, "with the record it is kept")
+    local item = XrayParser.findByIdentity(incoming, { "Wick" }, "characters")
+    TestRunner:eq(item and item.description, "Lights the pier lamps.", "the earlier book's text, as before")
+    TestRunner:eq(item and item.background and item.background[1].source, "Volume One", "its line kept")
+    TestRunner:eq(XrayParser.findDormantByIdentity(incoming, { "Wick" }), nil, "and it left the carried list")
+    TestRunner:eq(XrayParser.keepPromoted(incoming, { wick = "Wick" }), 0, "a second run changes nothing")
+end)
+
+TestRunner:test("keepPromoted: an entity the incoming X-Ray names itself is left alone; a renamed one keeps the reader's name", function()
+    -- Petra is carried here and the checkpoint names her: the wake owns that
+    local incoming = XrayParser.parse('{"characters":[{"name":"Petra Lund","description":"Arrives inland."}],'
+        .. '"__dormant":[{"name":"Petra Lund","category":"characters","description":"Keeps the inn.","source":"Volume Two"},'
+        .. '{"name":"Wick","aliases":["Old Wick"],"category":"characters","description":"Lights the pier lamps.","source":"Volume One"}]}')
+    XrayParser.wakeDormant(incoming)
+    TestRunner:eq(XrayParser.keepPromoted(incoming, { ["petra lund"] = "Petra Lund" }), 0,
+        "woken onto the checkpoint's own entry: nothing to keep")
+    TestRunner:eq(#incoming.characters, 1, "no second Petra")
+    TestRunner:eq(incoming.characters[1].description, "Arrives inland.", "the checkpoint's text stands")
+    -- The reader renamed the hand-added entry to "Old Wick": the row matches by alias
+    TestRunner:eq(XrayParser.keepPromoted(incoming, { ["old wick"] = "Old Wick" }), 1, "matched through the alias")
+    local item = XrayParser.findByIdentity(incoming, { "Old Wick" }, "characters")
+    TestRunner:eq(item and item.name, "Old Wick", "the reader's name is the entry's name")
+    TestRunner:eq(item and item.aliases and item.aliases[1], "Wick", "the row's name is kept as an alias")
+    -- A row whose category this X-Ray's type does not have is refused, not looped on
+    local odd = XrayParser.parse('{"characters":[{"name":"Mira Voss","description":"Minds the orchard."}],'
+        .. '"__dormant":[{"name":"Tidal Commons","category":"core_concepts","description":"Shared ground.","source":"A"}]}')
+    TestRunner:eq(XrayParser.keepPromoted(odd, { ["tidal commons"] = "Tidal Commons" }), 0, "refused")
+    TestRunner:ok(XrayParser.findDormantByIdentity(odd, { "Tidal Commons" }), "still carried")
+end)
+
 TestRunner:test("reseedGroup: seeds every member in order, writes only on change, idempotent", function()
     local XrayMerge = require("koassistant_xray_merge")
     local features = { enable_book_text_extraction = true }

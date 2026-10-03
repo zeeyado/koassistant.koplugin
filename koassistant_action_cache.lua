@@ -1057,6 +1057,13 @@ ActionCache.DEDUP_OFFERED_KEY = "__dedup_offered"
 -- again clears the record. Same sidecar as the alias edits, so it survives
 -- installs and rebuilds.
 ActionCache.REMOVED_STUBS_KEY = "__dormant_removed"
+-- Reserved key holding carried entries the reader ADDED to this book's X-Ray
+-- by hand ("Add as a new entry", B400): a plain array of names. A checkpoint
+-- install or a rebuild replaces the entries with what the model built from
+-- the text, which parks a hand-added entry on the carried list again; this
+-- record puts it back (XrayParser.keepPromoted). "Move back to carried list"
+-- clears it.
+ActionCache.PROMOTED_STUBS_KEY = "__dormant_promoted"
 
 --- Get path to user aliases file for a document
 --- @param document_path string The document file path
@@ -1101,6 +1108,7 @@ function ActionCache.getUserAliases(document_path)
         if name ~= ActionCache.NEVER_MERGE_KEY
             and name ~= ActionCache.DEDUP_OFFERED_KEY
             and name ~= ActionCache.REMOVED_STUBS_KEY
+            and name ~= ActionCache.PROMOTED_STUBS_KEY
             and type(entry) == "table" and not entry.add and not entry.ignore then
             -- Old format: plain array of strings
             data[name] = { add = entry }
@@ -1124,7 +1132,8 @@ function ActionCache.setUserAliases(document_path, aliases_table)
             aliases_table[name] = nil
         elseif name == ActionCache.NEVER_MERGE_KEY
             or name == ActionCache.DEDUP_OFFERED_KEY
-            or name == ActionCache.REMOVED_STUBS_KEY then
+            or name == ActionCache.REMOVED_STUBS_KEY
+            or name == ActionCache.PROMOTED_STUBS_KEY then
             if #entry == 0 then
                 aliases_table[name] = nil
             end
@@ -1182,16 +1191,19 @@ function ActionCache.setUserAliases(document_path, aliases_table)
             file:write(" },\n")
         end
     end
-    local removed = aliases_table[ActionCache.REMOVED_STUBS_KEY]
-    if type(removed) == "table" and #removed > 0 then
-        file:write(string.format("    [%q] = ", ActionCache.REMOVED_STUBS_KEY))
-        write_array(file, removed)
-        file:write(",\n")
+    for _ri, rkey in ipairs({ ActionCache.REMOVED_STUBS_KEY, ActionCache.PROMOTED_STUBS_KEY }) do
+        local names = aliases_table[rkey]
+        if type(names) == "table" and #names > 0 then
+            file:write(string.format("    [%q] = ", rkey))
+            write_array(file, names)
+            file:write(",\n")
+        end
     end
     for item_name, entry in pairs(aliases_table) do
         if item_name ~= ActionCache.NEVER_MERGE_KEY
             and item_name ~= ActionCache.DEDUP_OFFERED_KEY
-            and item_name ~= ActionCache.REMOVED_STUBS_KEY then
+            and item_name ~= ActionCache.REMOVED_STUBS_KEY
+            and item_name ~= ActionCache.PROMOTED_STUBS_KEY then
             file:write(string.format("    [%q] = { add = ", item_name))
             write_array(file, entry.add)
             if entry.ignore and #entry.ignore > 0 then
@@ -1208,41 +1220,41 @@ function ActionCache.setUserAliases(document_path, aliases_table)
     return true
 end
 
---- Carried entries the reader removed (S4 tombstones): lowercased-name set.
---- @param document_path string
---- @return table set
-function ActionCache.getRemovedStubs(document_path)
+--- A reserved name list of the aliases sidecar as a lowercased-name set; the
+--- value is the stored spelling.
+local function nameListSet(document_path, key)
     local set = {}
-    local raw = ActionCache.getUserAliases(document_path)[ActionCache.REMOVED_STUBS_KEY]
+    local raw = ActionCache.getUserAliases(document_path)[key]
     if type(raw) == "table" then
         -- Names stored before the separator repair keep matching (#90)
         local repair = require("koassistant_xray_parser").repairName
         for _idx, n in ipairs(raw) do
-            if type(n) == "string" and n ~= "" then set[repair(n):lower()] = true end
+            if type(n) == "string" and n ~= "" then
+                local fixed = repair(n)
+                set[fixed:lower()] = fixed
+            end
         end
     end
     return set
 end
 
---- Remember a removed carried entry (the browser's Remove).
-function ActionCache.addRemovedStub(document_path, name)
+local function nameListAdd(document_path, key, name)
     if type(name) ~= "string" or name == "" then return false end
     local all = ActionCache.getUserAliases(document_path)
-    local list = all[ActionCache.REMOVED_STUBS_KEY]
+    local list = all[key]
     if type(list) ~= "table" then list = {} end
     for _idx, n in ipairs(list) do
         if type(n) == "string" and n:lower() == name:lower() then return true end
     end
     list[#list + 1] = name
-    all[ActionCache.REMOVED_STUBS_KEY] = list
+    all[key] = list
     return ActionCache.setUserAliases(document_path, all)
 end
 
---- Forget a removal (the reader added the entry by hand again).
-function ActionCache.clearRemovedStub(document_path, name)
+local function nameListClear(document_path, key, name)
     if type(name) ~= "string" or name == "" then return false end
     local all = ActionCache.getUserAliases(document_path)
-    local list = all[ActionCache.REMOVED_STUBS_KEY]
+    local list = all[key]
     if type(list) ~= "table" then return true end
     local kept, changed = {}, false
     for _idx, n in ipairs(list) do
@@ -1253,8 +1265,43 @@ function ActionCache.clearRemovedStub(document_path, name)
         end
     end
     if not changed then return true end
-    all[ActionCache.REMOVED_STUBS_KEY] = kept
+    all[key] = kept
     return ActionCache.setUserAliases(document_path, all)
+end
+
+--- Carried entries the reader removed (S4 tombstones): lowercased-name set.
+--- @param document_path string
+--- @return table set
+function ActionCache.getRemovedStubs(document_path)
+    return nameListSet(document_path, ActionCache.REMOVED_STUBS_KEY)
+end
+
+--- Remember a removed carried entry (the browser's Remove).
+function ActionCache.addRemovedStub(document_path, name)
+    return nameListAdd(document_path, ActionCache.REMOVED_STUBS_KEY, name)
+end
+
+--- Forget a removal (the reader added the entry by hand again).
+function ActionCache.clearRemovedStub(document_path, name)
+    return nameListClear(document_path, ActionCache.REMOVED_STUBS_KEY, name)
+end
+
+--- Carried entries the reader added to this book's X-Ray by hand (B400):
+--- lowercased name -> the stored spelling.
+--- @param document_path string
+--- @return table set
+function ActionCache.getPromotedStubs(document_path)
+    return nameListSet(document_path, ActionCache.PROMOTED_STUBS_KEY)
+end
+
+--- Remember a hand-added entry (the carried page's "Add as a new entry").
+function ActionCache.addPromotedStub(document_path, name)
+    return nameListAdd(document_path, ActionCache.PROMOTED_STUBS_KEY, name)
+end
+
+--- Forget it (the entry page's "Move back to carried list").
+function ActionCache.clearPromotedStub(document_path, name)
+    return nameListClear(document_path, ActionCache.PROMOTED_STUBS_KEY, name)
 end
 
 --- Validated pair list from a reserved pair-list key. Pure.
@@ -1343,6 +1390,7 @@ function ActionCache.addUserAlias(document_path, item_name, alias)
         if type(k) == "string"
             and k ~= ActionCache.NEVER_MERGE_KEY and k ~= ActionCache.DEDUP_OFFERED_KEY
             and k ~= ActionCache.REMOVED_STUBS_KEY
+            and k ~= ActionCache.PROMOTED_STUBS_KEY
             and k:lower() == item_name:lower() then
             key = k
             break
@@ -1436,6 +1484,17 @@ function ActionCache.renameEntityKeys(document_path, category_key, old_name, new
                         dirty = true
                     end
                 end
+            end
+        end
+    end
+    -- A hand-added entry keeps its mark under the new name (B400)
+    local kept_names = all[ActionCache.PROMOTED_STUBS_KEY]
+    if type(kept_names) == "table" then
+        local lk = old_name:lower()
+        for i, n in ipairs(kept_names) do
+            if type(n) == "string" and n:lower() == lk then
+                kept_names[i] = new_name
+                dirty = true
             end
         end
     end
@@ -2132,8 +2191,13 @@ function ActionCache.promoteXrayLadderRung(document_path, rung, limit, opts)
             local u_added, u_refreshed = XrayMerge.unionLedger(prev_parsed, parsed, skip)
             local n = XrayMerge.carryActiveBackground(prev_parsed, parsed)
             local woken = XrayParser.wakeDormant(parsed)
+            -- B400: an entry the reader added by hand from the carried list
+            -- stays an entry (the carry above parked it again, because the
+            -- checkpoint was built from the text and does not hold it)
+            local kept = XrayParser.keepPromoted(parsed,
+                ActionCache.getPromotedStubs(document_path))
             if u_added == 0 and u_refreshed == 0 and n == 0 and #woken == 0
-                    and dropped == 0 then
+                    and dropped == 0 and kept == 0 then
                 return nil
             end
             return XrayParser.serialize(parsed), n, #woken, u_added + u_refreshed
