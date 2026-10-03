@@ -29,7 +29,7 @@ output, not user data), so an X-Ray a round built on "Mock Series 4" (the one
 book planted without one) is gone again. The three GROUPS are created by hand
 on the target with "New group from folder…" — group creation is itself an
 entry point under test; a group that already exists keeps its members, and a
-book added to the fixture later is added to it by hand ("Add books…").
+book added to the fixture later is added to it by hand ("Add from files…").
 
 After writing, everything is read back through the real loaders and parsed with
 the real XrayParser; the script exits non-zero if any piece fails.
@@ -411,7 +411,8 @@ Done. Next, on the target:
        Mock Project -> kind Project
        Mock Shelf   -> kind Plain
      A "Mock Series" group made before the 4th volume existed: Group Hub >
-     "Add books..." > Mock Series 4 (it lands in fourth place).
+     "Add from files (a book or a folder)..." > tap Mock Series 4 (it lands in
+     fourth place).
   3. Open "Mock Series 3 - The Orchard" and follow the device steps in
      docs/xray_cross_book_lookup_plan.md section 6.2, or the current round's
      steps in docs/backlog_v0.24.md.

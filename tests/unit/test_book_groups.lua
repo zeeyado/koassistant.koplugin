@@ -489,5 +489,59 @@ TestRunner:test("shortName: UTF-8 safe cap with an ellipsis", function()
     TestRunner:assertEqual(BookGroups.shortName(nil), "", "nil is empty")
 end)
 
+TestRunner:test("the hub's files row adds one tapped book, and still takes a folder (B405)", function()
+    local GroupsUI = require("koassistant_book_groups_ui")
+    local saved = {}
+    for _i, name in ipairs({ "ui/widget/pathchooser", "libs/libkoreader-lfs", "document/documentregistry" }) do
+        saved[name] = package.loaded[name]
+    end
+    local orig_show_group, orig_settings = GroupsUI.showGroup, rawget(_G, "G_reader_settings")
+    local chooser, parent_taps, reopened = nil, 0, 0
+    package.loaded["ui/widget/pathchooser"] = {
+        new = function(_self, o) chooser = o; return o end,
+        onMenuSelect = function() parent_taps = parent_taps + 1; return true end,
+    }
+    package.loaded["libs/libkoreader-lfs"] = {
+        attributes = function(path) return path:match("%.epub$") and "file" or "directory" end,
+    }
+    package.loaded["document/documentregistry"] = {
+        hasProvider = function(_self, name) return name:match("%.epub$") ~= nil end,
+    }
+    _G.G_reader_settings = { readSetting = function() return "/books" end }
+    GroupsUI.showGroup = function() reopened = reopened + 1 end
+
+    local g = BookGroups.create("Shelf")
+    local ok, err = pcall(function()
+        GroupsUI.addFolderFlow(g.id, {})
+        TestRunner:assertEqual(chooser.select_file, true, "a file can be chosen")
+        TestRunner:assertEqual(chooser.select_directory, true, "and so can a folder")
+        TestRunner:assertEqual(chooser.file_filter("notes.txt"), false, "only books are listed")
+        TestRunner:assertEqual(chooser.file_filter("a.epub"), true)
+        -- A tap on a book asks the chooser's own "Choose this file?"; a tap on a folder opens it
+        local asked
+        chooser.onMenuHold = function(_self, item) asked = item.path; return true end
+        chooser.onMenuSelect(chooser, { path = "/books/a.epub", is_file = true })
+        TestRunner:assertEqual(asked, "/books/a.epub", "tap on a book = choose it")
+        chooser.onMenuSelect(chooser, { path = "/books/sub" })
+        TestRunner:assertEqual(parent_taps, 1, "tap on a folder navigates")
+        -- Choosing the book adds that one book and lands back on the hub
+        chooser.onConfirm("/books/a.epub")
+        TestRunner:assertEqual(#BookGroups.byId(g.id).books, 1, "one book joined")
+        TestRunner:assertEqual(BookGroups.byId(g.id).books[1], "/books/a.epub")
+        TestRunner:assertTrue(reopened > 0, "the hub is refreshed")
+        -- The same book again changes nothing
+        chooser.onConfirm("/books/a.epub")
+        TestRunner:assertEqual(#BookGroups.byId(g.id).books, 1, "no duplicate member")
+    end)
+    GroupsUI.showGroup = orig_show_group
+    _G.G_reader_settings = orig_settings
+    for name, mod in pairs(saved) do package.loaded[name] = mod end
+    for _i, name in ipairs({ "ui/widget/pathchooser", "libs/libkoreader-lfs", "document/documentregistry" }) do
+        if saved[name] == nil then package.loaded[name] = nil end
+    end
+    BookGroups.remove(g.id)
+    if not ok then error(err, 0) end
+end)
+
 local ok = TestRunner:summary()
 return ok

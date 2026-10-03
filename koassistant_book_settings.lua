@@ -2547,8 +2547,8 @@ end
 --- default every book without its own pick follows. Callers get on_close to
 --- refresh their surface. At least one group must stay checked (an X-Ray with
 --- zero entity categories is rejected by the create gate). Self-rebuilding
---- dialog (marking-popup precedent); preset dots reflect the STORED pick of
---- the edited layer, checkboxes show the EFFECTIVE working set.
+--- dialog (marking-popup precedent); the checkboxes show the EFFECTIVE
+--- working set.
 --- @param opts table { ui, document_path, on_close, target, plugin }
 function BookSettings.showXrayCategoriesPicker(opts)
     opts = opts or {}
@@ -2573,16 +2573,12 @@ function BookSettings.showXrayCategoriesPicker(opts)
     else
         raw = doc_settings:readSetting(BookSettings.KEY_XRAY_CATEGORIES)
     end
-    local stored = raw ~= "full" and Actions.normalizeXrayCategories(raw) or nil
     -- Working checkbox set seeds from the EFFECTIVE selection (book mode
     -- follows the global while unset) so a toggle starts from what a build
     -- would actually use.
     local sel
     if is_global then
         sel = BookSettings.resolveXrayCategories(nil, features)
-        -- Nothing stored globally = the shipped default: dot that preset
-        -- (the global tab has no "Follow" row to light up instead)
-        if raw == nil then stored = sel end
     else
         sel = BookSettings.resolveXrayCategories(doc_settings, features)
     end
@@ -2629,21 +2625,10 @@ function BookSettings.showXrayCategoriesPicker(opts)
         return n
     end
     local function dot(active) return active and "● " or "○ " end
-    -- Category toggles are ✓ / ✗ (maintainer 2026-08-25): the presets above
-    -- them are a radio group (● / ○), and a shared hollow circle made the two
-    -- unrelated row kinds read as one list.
+    -- Category toggles are ✓ / ✗ (maintainer 2026-08-25): the layer rows
+    -- above them are a radio group (● / ○), and a shared hollow circle made
+    -- the two unrelated row kinds read as one list.
     local function mark(active) return active and "✓ " or "✗ " end
-    -- Group labels (disabled rows) separate the radio presets from the
-    -- one-by-one picks; the Book Settings screens retired disabled header
-    -- rows, this popup is the deliberate exception (two row kinds, one list).
-    local function header(text) return {{ text = text, enabled = false }} end
-
-    local full_stored
-    full_stored = Actions.isFullXrayCategories(raw)
-    -- G1: a followed group's value must not dot a preset row too
-    local following = (not is_global and not is_group)
-        and BookSettings.followingGroup(doc_settings, BookSettings.KEY_XRAY_CATEGORIES) or nil
-    if following then stored = nil; full_stored = false end
     local buttons = {}
     -- Target toggle row [For this book] [Global], the layered-picker engine's
     -- header (maintainer 2026-08-25: every two-layer picker carries it) — only
@@ -2708,47 +2693,10 @@ function BookSettings.showXrayCategoriesPicker(opts)
             end
         end
     end
-    buttons[#buttons + 1] = header(_("Category sets"))
-    buttons[#buttons + 1] = {{ text = dot(full_stored) .. _("All categories"),
-        callback = function()
-            for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = true end
-            save()
-            reshow()
-        end }}
-    -- Characters and story (maintainer 2026-08-18, renamed 2026-08-25): who +
-    -- what happened. people + events = cast/key figures and story arc/argument
-    -- development (the current-state singleton always rides regardless of
-    -- selection). A purpose preset: the timeline is the heaviest block, so it
-    -- is not the cheap pick; Reference below is.
-    buttons[#buttons + 1] = {{ text = dot(stored == "people,events")
-            .. _("Characters and story (people, timeline)"),
-        callback = function()
-            for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = nil end
-            set.people = true
-            set.events = true
-            save()
-            reshow()
-        end }}
-    -- Reference (2026-08-25, from the bench): every static entry, no timeline.
-    -- places + ideas + terms together cost a fraction of the event log, so this
-    -- is the cheap preset that still answers who / where / what.
-    buttons[#buttons + 1] = {{ text = dot(stored == "people,places,ideas,terms")
-            .. _("Reference (everything except the timeline)"),
-        callback = function()
-            for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = true end
-            set.events = nil
-            save()
-            reshow()
-        end }}
-    buttons[#buttons + 1] = {{ text = dot(stored == "people")
-            .. _("Characters only"),
-        callback = function()
-            for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = nil end
-            set.people = true
-            save()
-            reshow()
-        end }}
-    buttons[#buttons + 1] = header(_("Pick one by one"))
+    -- B404: the four category sets that sat here (All categories, Characters
+    -- and story, Reference, Characters only) are gone. The presets set the
+    -- same picks from their own row, and two lists of near-identical names
+    -- made this picker twice as long (desktop round 2026-10-03).
     for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do
         buttons[#buttons + 1] = {{ text = mark(set[id]) .. XRAY_CATEGORY_LABELS[id],
             callback = function()

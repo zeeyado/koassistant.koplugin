@@ -453,7 +453,8 @@ local BOOKS = {
     },
     -- LAST on purpose (the __PATH:n__ numbers above stay what they were): the
     -- series' 4th volume, with no X-Ray. Added to an existing "Mock Series"
-    -- group by hand ("Add books…"), it lands in fourth place.
+    -- group by hand ("Add from files…", a tap on the book), it lands in fourth
+    -- place.
     {
         folder = "Mock Series", filename = "Mock Series 4 - The Salt Line.epub",
         title = "Mock Series 4 - The Salt Line", author = "A. Mock",

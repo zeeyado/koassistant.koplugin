@@ -703,9 +703,12 @@ end
 -- enumerate. So enumerate silently: chooser → one confirm naming the count
 -- → done. No list. The confirm stays because this appends to a possibly
 -- hand-ordered group and a mis-tapped folder could add hundreds of books;
--- curated picking is what "Add books…" above is for.
+-- curated picking is what "Add from history…" above is for.
 -- Snapshot only: the group does not follow the folder afterwards (live
 -- binding is a separate, opt-in idea).
+-- B405: the same chooser adds ONE book. A book that is not in the history
+-- took nine taps through "Add books…" (the picker, its menu, the folder, a
+-- tick, the menu again, confirm); here it is the browse and two taps.
 function GroupsUI.addFolderFlow(group_id, opts)
     local BookGroups = groups()
     local PathChooser = require("ui/widget/pathchooser")
@@ -713,13 +716,34 @@ function GroupsUI.addFolderFlow(group_id, opts)
     local DataStorage = require("datastorage")
     local picked = false
     UIManager:show(PathChooser:new{
-        title = _("Select Folder"),
+        title = _("Tap a book, or long-press a folder for all its books"),
         path = G_reader_settings:readSetting("home_dir")
             or Device.home_dir or DataStorage:getDataDir(),
         select_directory = true,
-        select_file = false,
+        select_file = true,
+        file_filter = function(filename)
+            return require("document/documentregistry"):hasProvider(filename)
+        end,
+        -- KOReader's chooser answers only a long-press on a file; a tap asks
+        -- its "Choose this file?" here too
+        onMenuSelect = function(chooser, item)
+            if item and item.is_file then return chooser:onMenuHold(item) end
+            return PathChooser.onMenuSelect(chooser, item)
+        end,
         onConfirm = function(folder)
             picked = true
+            if require("libs/libkoreader-lfs").attributes(folder, "mode") == "file" then
+                local added = {}
+                if BookGroups.addBook(group_id, folder) then
+                    added[1] = folder
+                else
+                    UIManager:show(require("ui/widget/notification"):new{
+                        text = _("That book is already in this group."),
+                    })
+                end
+                addedDone(group_id, opts, added)
+                return
+            end
             local BookPicker = require("koassistant_book_picker")
             local paths, err = BookPicker.listFolderBooks(folder)
             if not paths or #paths == 0 then

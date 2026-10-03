@@ -8,8 +8,8 @@ singletons in the Book Hub's shape.
   row, the kind-named Chat/Action row) so a long book list never pushes them onto the next
   page, then a dim hint and the members in order (tap = that book's Book
   Hub, hold = the move / open / remove dialog; the open book's row says
-  "open"), and LAST the add rows (Add books…, Add all books in a folder…,
-  Add all books in a collection…). The title-bar hamburger is an anchored dropdown
+  "open"), and LAST the add rows (Add from history…, Add from files (a book or a
+  folder)…, Add from a collection…). The title-bar hamburger is an anchored dropdown
   (round 7, the list's shape): the add flows again, Kind: X… (the stacked
   radio popup), Rename…, Delete group…. Subtitle = the members' authors, the
   kind and the count. Up-arrow = the Groups list.
@@ -301,12 +301,14 @@ local function hubBuild(ctx)
     end
     -- The add rows LAST (round 8, maintainer): the hamburger has them too,
     -- and they must never push the action rows around
-    row(E("\u{2795}", _("Add books…"), em),
+    -- B405: each row names its source (a reader after one book outside the
+    -- history went through "Add books…", the long way)
+    row(E("\u{2795}", _("Add from history…"), em),
         function() GroupsUI.addBooksFlow(ctx.group_id, flow_opts) end)
-    row(E("\u{2795}", _("Add all books in a folder…"), em),
+    row(E("\u{2795}", _("Add from files (a book or a folder)…"), em),
         function() GroupsUI.addFolderFlow(ctx.group_id, flow_opts) end)
     if GroupsUI.hasCollections() then
-        row(E("\u{2795}", _("Add all books in a collection…"), em),
+        row(E("\u{2795}", _("Add from a collection…"), em),
             function() GroupsUI.addCollectionFlow(ctx.group_id, flow_opts) end)
     end
     local subtitle = kindCount(kind, #group.books)
@@ -327,12 +329,12 @@ local function hubHamburger(ctx, menu)
     GroupPage._stale = true
     local flow_opts = { plugin = ctx.plugin, ui = ctx.ui, on_close = ctx.on_close }
     local rows = {
-        { text = _("Add books…"), callback = function() GroupsUI.addBooksFlow(ctx.group_id, flow_opts) end },
-        { text = _("Add all books in a folder…"),
+        { text = _("Add from history…"), callback = function() GroupsUI.addBooksFlow(ctx.group_id, flow_opts) end },
+        { text = _("Add from files (a book or a folder)…"),
             callback = function() GroupsUI.addFolderFlow(ctx.group_id, flow_opts) end },
     }
     if GroupsUI.hasCollections() then
-        rows[#rows + 1] = { text = _("Add all books in a collection…"),
+        rows[#rows + 1] = { text = _("Add from a collection…"),
             callback = function() GroupsUI.addCollectionFlow(ctx.group_id, flow_opts) end }
     end
     rows[#rows + 1] = { text = T(_("Kind: %1…"), GroupsUI.kindLabel(BookGroups.kindOf(group))),

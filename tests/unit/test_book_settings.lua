@@ -1651,6 +1651,37 @@ TestRunner:test("dials that match no preset say so", function()
     end
 end)
 
+TestRunner:test("the categories picker is one checkbox per category plus the status block (B404)", function()
+    local BD = package.loaded["ui/widget/buttondialog"]
+    local orig_new, captured = BD.new, nil
+    BD.new = function(_self, o) captured = o; return o end
+    local ds = presetDs({})
+    local opts = { doc_settings = ds, plugin = presetPlugin({}) }
+    local ok, err = pcall(BookSettings.showXrayCategoriesPicker, opts)
+    BD.new = orig_new
+    if not ok then error(err, 0) end
+    local texts, checks = {}, 0
+    for _i, row in ipairs(captured.buttons) do
+        texts[#texts + 1] = row[1].text
+        if row[1].text:find("^\u{2713} ") or row[1].text:find("^\u{2717} ") then checks = checks + 1 end
+    end
+    local all = table.concat(texts, "\n")
+    -- The ready-made sets are the presets' job since B383; two lists of the
+    -- same names made this picker sixteen rows long
+    presetTrue(not all:find("Category sets", 1, true), "no sets header")
+    presetTrue(not all:find("Characters and story", 1, true), "no set rows")
+    presetTrue(not all:find("Pick one by one", 1, true), "no second header")
+    TestRunner:assertEqual(checks, 6, "five categories and Where things stand")
+    TestRunner:assertEqual(#captured.buttons, 9, "layer tabs, Follow global, six checkboxes, Done")
+    presetTrue(texts[2]:find("\u{25CF} Follow global (Reference)", 1, true) ~= nil,
+        "a book with no pick of its own follows global: " .. texts[2])
+    -- A checkbox still writes the book's own pick: Reference plus the timeline is all five
+    tapRow(captured, "Timeline")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_CATEGORIES], "full", "all five checked = the explicit sentinel")
+    tapRow(captured, "Where things stand")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_STATUS], "off", "the status block is its own key")
+end)
+
 TestRunner:suite("resolveXrayType (B337c: book > global default > auto)")
 TestRunner:test("nothing set = auto, no layer; global and book picks; explicit book auto pins auto", function()
     local t, layer = BookSettings.resolveXrayType(makeDocSettings({}), {})

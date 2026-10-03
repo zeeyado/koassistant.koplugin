@@ -11695,13 +11695,14 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       type_value = type(lineage) == "table" and PA.normalizeXrayType(lineage.type) or nil
     end
     local ButtonTableO = require("ui/widget/buttontable")
-    -- The row's header is its FIRST ROW inside the same table (maintainer
-    -- 2026-08-25: a floating label above the frame read as part of the hint
-    -- text); the buttons below show VALUES only, and every dial stays in place
-    -- grayed when the current pick cannot use it (the form's standing rule).
+    -- Every dial button names its setting and shows the pick ("Depth:
+    -- Standard ▾"), two to a row, and stays in place grayed when the current
+    -- pick cannot use it (the form's standing rule). B404: the names used to
+    -- sit in a row of their own above the values (B375); a row of disabled
+    -- buttons read as four more buttons (desktop round 2026-10-03).
     local option_buttons = {}
     option_buttons[#option_buttons + 1] = {
-          text = T(_("Every %1%…"), self_ref:_xraySpacingPctLabel(sp_now)),
+          text = T(_("Spacing: every %1% ▾"), self_ref:_xraySpacingPctLabel(sp_now)),
           font_size = 16, font_bold = false,
           enabled = spacing_on,
           callback = function()
@@ -11752,7 +11753,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
           end,
       }
     option_buttons[#option_buttons + 1] = {
-      text = BookSettings.xrayCategoriesLabel(cat_value) .. "…",
+      text = T(_("Categories: %1 ▾"), BookSettings.xrayCategoriesLabel(cat_value)),
       font_size = 16, font_bold = false,
       enabled = categories_on,
       callback = function()
@@ -11764,7 +11765,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       end,
     }
     option_buttons[#option_buttons + 1] = {
-      text = BookSettings.xrayDepthLabel(depth_value) .. "…",
+      text = T(_("Depth: %1 ▾"), BookSettings.xrayDepthLabel(depth_value)),
       font_size = 16, font_bold = false,
       enabled = categories_on,
       callback = function()
@@ -11776,7 +11777,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       end,
     }
     option_buttons[#option_buttons + 1] = {
-      text = BookSettings.xrayTypeLabel(type_value) .. "…",
+      text = T(_("Type: %1 ▾"), BookSettings.xrayTypeLabel(type_value)),
       font_size = 16, font_bold = false,
       enabled = categories_on,
       callback = function()
@@ -11791,11 +11792,11 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
     }
     -- B383: the preset the three dials amount to, one tap to set them all.
     -- "Custom" names what the dials hold, the status block included (the
-    -- value buttons below have no room for it).
+    -- Categories button below has no room for it).
     local preset_now = BookSettings.xrayPresetFor(cat_value, status_value, depth_value)
     local preset_row = {{
-      text = preset_now and T(_("Preset: %1…"), preset_now.label)
-        or T(_("Preset: Custom (%1, %2)…"),
+      text = preset_now and T(_("Preset: %1 ▾"), preset_now.label)
+        or T(_("Preset: Custom (%1, %2) ▾"),
           BookSettings.xrayTrackLabel(cat_value, status_value),
           BookSettings.xrayDepthLabel(depth_value)),
       font_size = 16, font_bold = false,
@@ -11808,17 +11809,12 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         })
       end,
     }}
-    -- B375: each dial's name sits above its own value button (one header
-    -- over four unlabeled buttons left a reader guessing which was which)
-    local function dialName(text)
-      return { text = text, font_size = 14, font_bold = false, enabled = false }
-    end
     local options_row = ButtonTableO:new{
       width = content_width,
       buttons = {
         preset_row,
-        { dialName(_("Spacing")), dialName(_("What to track")), dialName(_("Depth")), dialName(_("Type")) },
-        option_buttons,
+        { option_buttons[1], option_buttons[2] },
+        { option_buttons[3], option_buttons[4] },
       },
       zero_sep = true,
       show_parent = self_ref,
