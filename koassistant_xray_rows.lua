@@ -303,4 +303,69 @@ function XrayRows.deleteChoice(file)
     return nil
 end
 
+--- The group's row label and its dialog title (B401).
+function XrayRows.linkMergeLabel() return _("Link and merge…") end
+function XrayRows.linkMergeTitle() return _("Link and merge") end
+
+--- The "Link and merge…" group of a live main X-Ray (B401), for the X-Ray
+--- action popup AND the X-Ray browser's menu: ONE copy of the rows, their
+--- order, labels and gates, so the two surfaces cannot drift (the browser's
+--- menu listed these rows flat and in another order until 2026-10-03). The
+--- carried list leads: it is where a reader links names by hand, free. The
+--- paid rows follow, each starting with "AI merge" and, between books, ending
+--- with its request count. The duplicate review closes.
+--- ctx:
+---   plugin (required)  AskGPT instance (the group merge's kind)
+---   file (required)    the book
+---   carried_count      the carried entries the surface counts itself (the
+---                      browser holds the parsed X-Ray); when absent the
+---                      count is read from disk, and `raw` (the X-Ray's text,
+---                      when the surface holds it) skips that read for a
+---                      text without a carried list
+---   section_count      this book's section X-Rays
+---   pre                fn: close the surface chrome
+---   align              "left" on list-style surfaces
+---   on_carried, on_cross_book, on_group_merge(kind), on_sections, on_dedup
+---                      what each row starts on this surface; a missing
+---                      handler drops its row
+--- @return table rows ButtonDialog rows, in display order
+function XrayRows.linkMergeRows(ctx)
+    local rows = {}
+    local plugin, file = ctx.plugin, ctx.file
+    if not (plugin and file) then return rows end
+    local pre = ctx.pre or function() end
+    local function add(text, handler, arg)
+        if not handler then return end
+        rows[#rows + 1] = {{
+            text = text, align = ctx.align,
+            callback = function()
+                pre()
+                handler(arg)
+            end,
+        }}
+    end
+
+    local Browser = require("koassistant_xray_browser")
+    local carried_label
+    if ctx.carried_count then
+        carried_label = ctx.carried_count > 0
+            and Browser.carriedListTitle(file, ctx.carried_count) or nil
+    else
+        carried_label = Browser.carriedListLabel(file, ctx.raw)
+    end
+    if carried_label then add(carried_label .. "…", ctx.on_carried) end
+
+    add(_("AI merge with another book (1 request)…"), ctx.on_cross_book)
+    local kind = plugin._groupXrayMergeKind and plugin:_groupXrayMergeKind(file)
+    if kind then
+        add(kind == "project" and _("AI merge the group into this book (1 request per book)…")
+            or _("AI merge the series (1 request per book)…"), ctx.on_group_merge, kind)
+    end
+    if (tonumber(ctx.section_count) or 0) > 0 then
+        add(T(_("AI merge section X-Rays (%1)…"), ctx.section_count), ctx.on_sections)
+    end
+    add(_("Find duplicate entities…"), ctx.on_dedup)
+    return rows
+end
+
 return XrayRows

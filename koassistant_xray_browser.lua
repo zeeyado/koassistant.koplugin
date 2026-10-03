@@ -1316,6 +1316,12 @@ local function dormantListTitle(book_file, n)
     return series and _("Carried from earlier books") or _("Carried from group")
 end
 
+--- The carried list's title for a count the caller holds (the shared
+--- "Link and merge…" rows, koassistant_xray_rows.lua).
+function XrayBrowser.carriedListTitle(book_file, n)
+    return dormantListTitle(book_file, n)
+end
+
 --- The carried list's title with its count, for a row outside the browser
 --- (the X-Ray popup's "Link and merge…" group, B401), or nil when the book's
 --- live X-Ray carries nothing. Counts what _dormantRows lists.
@@ -7410,47 +7416,24 @@ function XrayBrowser:showOptions()
         table.insert(buttons, vr.all_versions)
     end
 
-    -- Merge section X-Rays (§6 slice 3, #90): main X-Ray views only (a section
-    -- view merging its own peers would confuse the landing surface); archived
-    -- views stay read-only
+    -- "Link and merge…" (B401): the carried list, the AI merges (another
+    -- book, the series or the project, section X-Rays) and the duplicate
+    -- review behind ONE row, the same group the X-Ray popup has, from the
+    -- shared builder (koassistant_xray_rows.lua linkMergeRows). Main X-Ray
+    -- views only (a section view merging its own peers would confuse the
+    -- landing surface); archived views stay read-only. These rows sat flat
+    -- in this menu, in another order, with the duplicate review four rows
+    -- further down.
     if not self.scope and not self.metadata.checkpoint
         and self.metadata.plugin and self.metadata.book_file then
         local ActionCache = require("koassistant_action_cache")
-        local sec_count = ActionCache.getSectionCount(self.metadata.book_file,
-            ActionCache.SECTION_PREFIXES.xray)
-        if sec_count > 0 then
-            table.insert(buttons, {{
-                text = T(_("AI merge section X-Rays (%1)…"), sec_count), align = "left",
-                callback = function()
-                    closeOptions()
-                    -- Close the browser: a successful into-main merge replaces the
-                    -- data this view renders. Deferred to list-open (device
-                    -- round 2 T11): an empty flow must leave the browser up.
-                    local browser_closed = false
-                    require("koassistant_xray_merge").startFlow({
-                        file = self_ref.metadata.book_file,
-                        ui = self_ref.ui,
-                        plugin = self_ref.metadata.plugin,
-                        configuration = self_ref.metadata.configuration,
-                        title = self_ref.metadata.title,
-                        author = self_ref.metadata.book_author,
-                        reopen_live = true,
-                        close_browser = function()
-                            if not browser_closed and self_ref.menu then
-                                browser_closed = true
-                                UIManager:close(self_ref.menu)
-                            end
-                        end,
-                    })
-                end,
-            }})
-        end
-        -- Cross-book merge (item 43, #90 v1): fold another book's X-Ray into
-        -- this one as background. Main views only, same rationale as above;
-        -- the flow's early returns (no candidates / consent) leave the
-        -- browser up (close deferred to the actual merge start).
-        local function crossBookOpts()
-            local xb_browser_closed = false
+        local XrayRows = require("koassistant_xray_rows")
+        -- Every flow closes this browser only when it actually starts work
+        -- that replaces the data this view renders (device round 2 T11: an
+        -- empty flow or an early return must leave the browser up), and
+        -- reopens the X-Ray on the result (round 27)
+        local function flowOpts()
+            local browser_closed = false
             return {
                 file = self_ref.metadata.book_file,
                 ui = self_ref.ui,
@@ -7458,38 +7441,67 @@ function XrayBrowser:showOptions()
                 configuration = self_ref.metadata.configuration,
                 title = self_ref.metadata.title,
                 author = self_ref.metadata.book_author,
-                -- The fold closes this browser; reopen the X-Ray on the
-                -- merged data when it lands (round 27)
                 reopen_live = true,
                 close_browser = function()
-                    if not xb_browser_closed and self_ref.menu then
-                        xb_browser_closed = true
+                    if not browser_closed and self_ref.menu then
+                        browser_closed = true
                         UIManager:close(self_ref.menu)
                     end
                 end,
             }
         end
-        table.insert(buttons, {{
-            text = _("AI merge with another book (1 request)…"), align = "left",
-            callback = function()
-                closeOptions()
-                require("koassistant_xray_merge").startCrossBookFlow(crossBookOpts())
+        local lm_rows = XrayRows.linkMergeRows({
+            plugin = self.metadata.plugin,
+            file = self.metadata.book_file,
+            carried_count = #self:_dormantRows(),
+            section_count = ActionCache.getSectionCount(self.metadata.book_file,
+                ActionCache.SECTION_PREFIXES.xray),
+            pre = closeOptions,
+            align = "left",
+            on_carried = function() self_ref:showDormantList() end,
+            on_cross_book = function()
+                require("koassistant_xray_merge").startCrossBookFlow(flowOpts())
             end,
-        }})
-        -- B394 slice 1: the group merges one tap away, as in the X-Ray popup
-        local mf_kind = self.metadata.plugin._groupXrayMergeKind
-            and self.metadata.plugin:_groupXrayMergeKind(self.metadata.book_file)
-        if mf_kind then
+            on_group_merge = function(kind)
+                local XrayMerge = require("koassistant_xray_merge")
+                local start = kind == "project" and XrayMerge.startFanInFlow
+                    or XrayMerge.startSeriesChainFlow
+                start(flowOpts())
+            end,
+            on_sections = function()
+                require("koassistant_xray_merge").startFlow(flowOpts())
+            end,
+            on_dedup = function()
+                local dedup_opts = flowOpts()
+                dedup_opts.reopen_live = nil
+                require("koassistant_xray_dedup").startFlow(dedup_opts)
+            end,
+        })
+        if #lm_rows > 0 then
             table.insert(buttons, {{
-                text = mf_kind == "project" and _("AI merge the group into this book (1 request per book)…")
-                    or _("AI merge the series (1 request per book)…"),
-                align = "left",
+                text = XrayRows.linkMergeLabel(), align = "left",
                 callback = function()
                     closeOptions()
-                    local XrayMerge = require("koassistant_xray_merge")
-                    local start = mf_kind == "project" and XrayMerge.startFanInFlow
-                        or XrayMerge.startSeriesChainFlow
-                    start(crossBookOpts())
+                    local rows = {}
+                    for _idx, r in ipairs(lm_rows) do rows[#rows + 1] = r end
+                    rows[#rows + 1] = {{
+                        text = _("Back"), align = "left",
+                        callback = function()
+                            closeOptions()
+                            self_ref:showOptions()
+                        end,
+                    }}
+                    -- The same anchored dropdown, in the menu's place: the
+                    -- rows' own closeOptions() closes it. A tap outside
+                    -- closes it and leaves the browser, like the menu itself.
+                    self_ref.options_dialog = ButtonDialog:new{
+                        buttons = rows,
+                        shrink_unneeded_width = true,
+                        anchor = function()
+                            return self_ref.menu.title_bar.left_button.image.dimen, true
+                        end,
+                    }
+                    UIManager:show(self_ref.options_dialog)
                 end,
             }})
         end
@@ -7579,34 +7591,8 @@ function XrayBrowser:showOptions()
         }})
     end
 
-    -- Find duplicate entities (§6 slice 4, #90): main X-Ray views only, same
-    -- rationale as the merge row; the flow operates on disk truth
     if not self.scope and not self.metadata.checkpoint
         and self.metadata.plugin and self.metadata.book_file then
-        table.insert(buttons, {{
-            text = _("Find duplicate entities…"), align = "left",
-            callback = function()
-                closeOptions()
-                -- Close the browser only when the pair list actually opens (a
-                -- merge rewrites the data this view renders) — an empty scan
-                -- must leave the browser up (device round 2 T11)
-                local browser_closed = false
-                require("koassistant_xray_dedup").startFlow({
-                    file = self_ref.metadata.book_file,
-                    ui = self_ref.ui,
-                    plugin = self_ref.metadata.plugin,
-                    configuration = self_ref.metadata.configuration,
-                    title = self_ref.metadata.title,
-                    author = self_ref.metadata.book_author,
-                    close_browser = function()
-                        if not browser_closed and self_ref.menu then
-                            browser_closed = true
-                            UIManager:close(self_ref.menu)
-                        end
-                    end,
-                })
-            end,
-        }})
         -- #116 (B393): where this book's carried entries are listed. Shown
         -- only when there are any; the picker's book tab also offers the
         -- group's value when the group sets one.

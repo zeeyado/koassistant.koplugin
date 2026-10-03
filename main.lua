@@ -10347,65 +10347,32 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     addGroupRow(c_ver_rows,
       #versions_all > 0 and T(_("Versions (%1)…"), #versions_all) or _("Versions…"),
       _("Versions"))
-    -- A2 merge discoverability: the merge story (sections → main, the
-    -- cross-book AI merge incl. the series chain / project fan-in, dedup) was
-    -- reachable only via the browser hamburger — the popup gets the same
-    -- entries behind one group row
+    -- "Link and merge…" (B401): the carried list, the AI merges (another
+    -- book, the series or the project, section X-Rays) and the duplicate
+    -- review behind one group row. The rows, their order, labels and gates
+    -- come from the shared builder, so this popup and the X-Ray browser's
+    -- menu show the same group (parity: a row added to one surface used to
+    -- be missing or elsewhere on the other).
     local mf_rows = {}
     if sx_file then
-      -- B401: the group is "Link and merge". The carried list leads: it is
-      -- where a reader links names by hand, free; the paid rows follow, each
-      -- starting with "AI merge" and ending with its request count
-      local carried_label = require("koassistant_xray_browser").carriedListLabel(
-        sx_file, cached_entry.result)
-      if carried_label then
-        table.insert(mf_rows, {{
-          text = carried_label .. "…",
-          callback = function()
-            UIManager:close(dialog)
-            require("koassistant_xray_browser")._pending_navigate_to =
-              { book_file = sx_file, carried_list = true }
-            self_ref:viewCachedAction(action, action_id, cached_entry)
-          end,
-        }})
-      end
-      -- B394 slice 1: every row that sends something says so, and the
-      -- group merges are one tap away (the series chain used to be a row
-      -- inside the picker the next row opens)
-      table.insert(mf_rows, {{
-        text = _("AI merge with another book (1 request)…"),
-        callback = function()
-          UIManager:close(dialog)
-          self_ref:_startCrossBookXrayFlow(sx_file, opts)
+      mf_rows = require("koassistant_xray_rows").linkMergeRows({
+        plugin = self, file = sx_file,
+        raw = cached_entry.result,
+        section_count = c_sx_count,
+        pre = function() UIManager:close(dialog) end,
+        on_carried = function()
+          -- The browser opens on the list (its pending-location hook)
+          require("koassistant_xray_browser")._pending_navigate_to =
+            { book_file = sx_file, carried_list = true }
+          self_ref:viewCachedAction(action, action_id, cached_entry)
         end,
-      }})
-      local mf_kind = self:_groupXrayMergeKind(sx_file)
-      if mf_kind then
-        table.insert(mf_rows, {{
-          text = mf_kind == "project" and _("AI merge the group into this book (1 request per book)…")
-            or _("AI merge the series (1 request per book)…"),
-          callback = function()
-            UIManager:close(dialog)
-            self_ref:_startGroupXrayMergeFlow(mf_kind, sx_file, opts)
-          end,
-        }})
-      end
-      if c_sx_count > 0 then
-        table.insert(mf_rows, {{
-          text = T(_("AI merge section X-Rays (%1)…"), c_sx_count),
-          callback = function()
-            UIManager:close(dialog)
-            self_ref:_startSectionXrayMergeFlow(sx_file, opts)
-          end,
-        }})
-      end
-      table.insert(mf_rows, {{
-        text = _("Find duplicate entities…"),
-        callback = function()
-          UIManager:close(dialog)
-          self_ref:_startXrayDedupFlow(sx_file, opts)
+        on_cross_book = function() self_ref:_startCrossBookXrayFlow(sx_file, opts) end,
+        on_group_merge = function(kind)
+          self_ref:_startGroupXrayMergeFlow(kind, sx_file, opts)
         end,
-      }})
+        on_sections = function() self_ref:_startSectionXrayMergeFlow(sx_file, opts) end,
+        on_dedup = function() self_ref:_startXrayDedupFlow(sx_file, opts) end,
+      })
     end
     -- 2026-08-15 (maintainer): the popup surfaces the group only when it is
     -- actionable here — the book is in a group (cross-book merge) or holds
@@ -10417,7 +10384,8 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       mf_relevant = ok_bg and #(BookGroups.groupsFor(sx_file) or {}) > 0
     end
     if mf_relevant then
-      addGroupRow(mf_rows, _("Link and merge…"), _("Link and merge"))
+      local XrayRows = require("koassistant_xray_rows")
+      addGroupRow(mf_rows, XrayRows.linkMergeLabel(), XrayRows.linkMergeTitle())
     end
     -- Per-book Automatic X-Ray (§7 P1): tri-state, universal — mirrored in
     -- Book Settings. Flowing docs only.

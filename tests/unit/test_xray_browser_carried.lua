@@ -391,8 +391,11 @@ TestRunner:test("its label is the list's title with the count, and nothing carri
     local ok, err = pcall(function()
         group_kind = "series"
         TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), "Carried from earlier books (6)")
+        TestRunner:assertEqual(XrayBrowser.carriedListTitle("/b/vol3.epub", 4), "Carried from earlier books (4)",
+            "a count the caller holds")
         group_kind = "project"
         TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), "Carried from group (6)")
+        TestRunner:assertEqual(XrayBrowser.carriedListTitle("/b/vol3.epub", 4), "Carried from group (4)")
         data[XrayParser.DORMANT_KEY] = {}
         TestRunner:assertEqual(XrayBrowser.carriedListLabel("/b/vol3.epub"), nil, "nothing carried")
         ActionCache.parsedXrayFor = function() return nil end
