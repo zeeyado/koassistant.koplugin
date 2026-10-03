@@ -4251,6 +4251,52 @@ function XrayParser.addStubAlias(data, stub_name, alias)
     return true
 end
 
+--- Link two carried rows the reader says are one thing (B314, the review of
+--- likely matches): the second row's name becomes an alias of the first, and
+--- the ledger fold makes them one row, exactly as it does for two source
+--- books that name each other. The nearest book's row keeps the name; the
+--- other's name and aliases join it and its description stays as that book's
+--- line. An alias on a row survives every re-seed, so the link holds.
+--- Positional identity verified by name; a row that moved is found by name
+--- only when the name is unambiguous. Mutates data.
+--- @param data table Parsed X-Ray
+--- @param idx_a number Ledger index of the first row at scan time
+--- @param name_a string Its expected name
+--- @param idx_b number Ledger index of the second row at scan time
+--- @param name_b string Its expected name
+--- @return boolean ok False = a row is gone, or the two cannot be one row
+---   (different kinds of thing)
+function XrayParser.linkStubs(data, idx_a, name_a, idx_b, name_b)
+    if type(data) ~= "table" then return false end
+    local ledger = data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return false end
+    local function locate(idx, name)
+        local stub = ledger[idx]
+        if type(stub) == "table" and stub.name == name then return stub end
+        local found
+        for _idx, s in ipairs(ledger) do
+            if type(s) == "table" and s.name == name then
+                if found then return nil end -- ambiguous name: refuse
+                found = s
+            end
+        end
+        return found
+    end
+    local a, b = locate(idx_a, name_a), locate(idx_b, name_b)
+    if not a or not b or a == b then return false end
+    -- The fold never joins two kinds of thing: say so before touching a row
+    local function family(stub)
+        local cat = type(stub.category) == "string" and stub.category ~= ""
+            and stub.category or "characters"
+        return XrayParser.CATEGORY_FAMILY[cat] or cat
+    end
+    if family(a) ~= family(b) then return false end
+    local aliases = ensure_array(a.aliases) or {}
+    aliases[#aliases + 1] = b.name
+    a.aliases = aliases
+    return XrayParser.foldLedger(data) > 0
+end
+
 --- Manual wake INTO an existing entity (series-identity round, 2026-08-06):
 --- reader-asserted identity — the chosen ACTIVE item gains the stub's carried
 --- background (fill-gaps-only per source) and its names as aliases; the stub

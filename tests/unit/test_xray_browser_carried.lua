@@ -111,6 +111,12 @@ package.loaded["docsettings"] = package.loaded["docsettings"] or {
 local ActionCache = require("koassistant_action_cache")
 local saved_artifacts = ActionCache.getAvailableArtifactsWithPinned
 ActionCache.getAvailableArtifactsWithPinned = function() return {} end
+-- The book's never-merge list, in memory: the carried list reads it each time
+-- it opens (the review of likely matches), and no test may read a real file
+local never_pairs = {}
+local saved_get_never, saved_add_never = ActionCache.getNeverMergePairs, ActionCache.addNeverMergePair
+ActionCache.getNeverMergePairs = function() return never_pairs end
+ActionCache.addNeverMergePair = function(_file, a, b) never_pairs[#never_pairs + 1] = { a, b } return true end
 
 local had_browser = package.loaded["koassistant_xray_browser"]
 package.loaded["koassistant_xray_browser"] = nil
@@ -298,7 +304,8 @@ TestRunner:test("it opens on category rows; All is the flat page", function()
     local b = browser()
     b:showDormantList()
     TestRunner:assertEqual(b.menu.title, "Carried from earlier books (6)")
-    TestRunner:assertEqual(texts(b.menu.item_table), "All|Cast|World|Lexicon|Other")
+    TestRunner:assertEqual(texts(b.menu.item_table), "AI merge…|All|Cast|World|Lexicon|Other",
+        "the list's own tool row, then the kinds")
     TestRunner:assertEqual(rowByText(b.menu.item_table, "Cast").mandatory, "3")
     TestRunner:assertEqual(rowByText(b.menu.item_table, "Other").mandatory, "1")
     rowByText(b.menu.item_table, "All").callback()
@@ -334,7 +341,7 @@ TestRunner:test("a carried entry's page ends on the back button, then the arrows
     local b1 = browser(one)
     b1.metadata.plugin = nil
     b1:showDormantList()
-    b1.menu.item_table[1].callback()
+    rowByText(b1.menu.item_table, "Tove").callback()
     last = shown.buttons_table[#shown.buttons_table]
     TestRunner:assertEqual(#last, 1)
     TestRunner:assertEqual(last[1].text, "←")
@@ -347,7 +354,7 @@ TestRunner:test("a single kind opens flat, as before", function()
     data[XrayParser.DORMANT_KEY] = { ledger[1], ledger[2] }
     local b = browser(data)
     b:showDormantList()
-    TestRunner:assertEqual(texts(b.menu.item_table), "brandt|Tove")
+    TestRunner:assertEqual(texts(b.menu.item_table), "AI merge…|brandt|Tove", "under the list's tool row")
     TestRunner:assertEqual(b.menu.title, "Carried from earlier books (2)")
 end)
 
@@ -493,6 +500,195 @@ TestRunner:test("a browser opened from that row lands on the carried list; anoth
 end)
 
 print("")
+print("  [" .. "the carried list's tools: possible matches and AI merge (B314, B401)" .. "]")
+
+-- A book whose names drifted: an entry the earlier book called by a longer
+-- name, and two carried rows for one person
+local function driftXray()
+    local data = XrayParser.parse([[{ "type": "fiction",
+        "characters": [
+            {"name": "Jory", "role": "Carter", "description": "Drives the cart."},
+            {"name": "Abel", "role": "Rival", "description": "This book's rival."}
+        ],
+        "locations": [{"name": "The Ford", "description": "A crossing."}],
+        "current_state": {"summary": "now"}
+    }]])
+    data[XrayParser.DORMANT_KEY] = {
+        { name = "Jory Pell", role = "Toll keeper", category = "characters", source = "Volume Two",
+          file = "/b/vol2.epub", description = "Keeps the toll chain." },
+        { name = "Dorrit", category = "characters", source = "Volume One", file = "/b/vol1.epub",
+          description = "Kept the inn." },
+        { name = "Dorrit Hale", role = "Innkeeper", category = "characters", source = "Volume Two",
+          file = "/b/vol2.epub", description = "Keeps the ferry inn." },
+        { name = "Saltrest", category = "locations", source = "Volume One", file = "/b/vol1.epub" },
+    }
+    return data
+end
+-- What a committed carried-list edit does: the change lands, the generation moves
+local function committing(b)
+    b._commitDormantOp = function(self, apply_fn, text)
+        if not apply_fn(self.xray_data) then return false end
+        self._ledger_gen = self._ledger_gen + 1
+        self.committed = text
+        return true
+    end
+    return b
+end
+local ButtonDialog = require("ui/widget/buttondialog")
+local function withDialogs(fn)
+    local saved_new, shown = ButtonDialog.new, {}
+    ButtonDialog.new = function(_self, o) shown[#shown + 1] = o return o end
+    local ok, err = pcall(fn, shown)
+    ButtonDialog.new = saved_new
+    if not ok then error(err, 0) end
+end
+local function button(dialog, text)
+    for _idx, row in ipairs(dialog.buttons) do
+        if row[1].text == text then return row[1] end
+    end
+    return nil
+end
+local function buttonTexts(dialog)
+    local out = {}
+    for i, row in ipairs(dialog.buttons) do out[i] = row[1].text end
+    return table.concat(out, "|")
+end
+
+TestRunner:test("the list's top page: the review with its count when names look alike, then the AI merges", function()
+    dial, group_kind, never_pairs = "list", "series", {}
+    local b = browser(driftXray())
+    b:showDormantList()
+    TestRunner:assertEqual(texts(b.menu.item_table), "Possible matches|AI merge…|All|Cast|World")
+    TestRunner:assertEqual(rowByText(b.menu.item_table, "Possible matches").mandatory, "2")
+    TestRunner:assertTrue(rowByText(b.menu.item_table, "AI merge…").separator, "a line under the tools")
+    b = browser(driftXray())
+    b:showDormantList({ flat = true })
+    TestRunner:assertEqual(rowByText(b.menu.item_table, "AI merge…"), nil, "the one-page list is entries only")
+end)
+
+TestRunner:test("the review lists each pair once: with this book's entries first, then between carried rows", function()
+    never_pairs = {}
+    local b = browser(driftXray())
+    b:showDormantList()
+    rowByText(b.menu.item_table, "Possible matches").callback()
+    TestRunner:assertEqual(b.menu.title, "Possible matches (2)")
+    TestRunner:assertEqual(texts(b.menu.item_table),
+        "With this book's entries (1)|Jory Pell ↔ Jory|Between carried entries (1)|Dorrit ↔ Dorrit Hale")
+    TestRunner:assertEqual(b.menu.item_table[2].mandatory, "contained name")
+    TestRunner:assertEqual(#b.nav_stack, 2, "a page under the carried list")
+end)
+
+TestRunner:test("a pair shows both sides and where each is from; Link joins a carried row to this book's entry", function()
+    never_pairs = {}
+    withDialogs(function(shown)
+        local b = committing(browser(driftXray()))
+        b:showDormantList()
+        rowByText(b.menu.item_table, "Possible matches").callback()
+        rowByText(b.menu.item_table, "Jory Pell ↔ Jory").callback()
+        local d = shown[#shown]
+        TestRunner:assertEqual(d.title, "Cast: contained name\n\n"
+            .. "Jory Pell (carried from Volume Two): Keeps the toll chain.\n\n"
+            .. "Jory (this book): Drives the cart.")
+        TestRunner:assertEqual(buttonTexts(d),
+            "Full descriptions…|Link \"Jory Pell\" to \"Jory\"|Never suggest this pair")
+        button(d, "Link \"Jory Pell\" to \"Jory\"").callback()
+        TestRunner:assertEqual(b.committed, "Linked \"Jory Pell\" to \"Jory\". Its carried history now shows there.")
+        local jory = b.xray_data.characters[1]
+        TestRunner:assertEqual(jory.aliases[1], "Jory Pell", "the earlier name is an alias now")
+        TestRunner:assertEqual(jory.background[1].source .. ": " .. jory.background[1].text,
+            "Volume Two: Keeps the toll chain.", "and that book's text is its line")
+        TestRunner:assertEqual(#b.xray_data[XrayParser.DORMANT_KEY], 3, "the row left the carried list")
+        TestRunner:assertEqual(b.menu.title, "Possible matches (1)", "the review is redrawn")
+        TestRunner:assertEqual(texts(b.menu.item_table), "Between carried entries (1)|Dorrit ↔ Dorrit Hale")
+    end)
+end)
+
+TestRunner:test("Link joins two carried rows into one; with nothing left the review closes onto the list", function()
+    never_pairs = { { "Jory", "Jory Pell" } }
+    withDialogs(function(shown)
+        local b = committing(browser(driftXray()))
+        b:showDormantList()
+        TestRunner:assertEqual(rowByText(b.menu.item_table, "Possible matches").mandatory, "1")
+        rowByText(b.menu.item_table, "Possible matches").callback()
+        rowByText(b.menu.item_table, "Dorrit ↔ Dorrit Hale").callback()
+        local d = shown[#shown]
+        TestRunner:assertEqual(d.title, "Cast: contained name\n\n"
+            .. "Dorrit (carried from Volume One): Kept the inn.\n\n"
+            .. "Dorrit Hale (carried from Volume Two): Keeps the ferry inn.")
+        button(d, "Link \"Dorrit\" and \"Dorrit Hale\"").callback()
+        TestRunner:assertEqual(b.committed, "Linked \"Dorrit\" and \"Dorrit Hale\". They are one carried entry now.")
+        local ledger = b.xray_data[XrayParser.DORMANT_KEY]
+        TestRunner:assertEqual(#ledger, 3, "one row for the two")
+        TestRunner:assertEqual(b.menu.title, "Carried from earlier books (3)", "back on the list, recounted")
+        TestRunner:assertEqual(texts(b.menu.item_table), "AI merge…|All|Cast|World", "the review's row is gone")
+        TestRunner:assertEqual(#b.nav_stack, 1)
+    end)
+end)
+
+TestRunner:test("Never is asked once, remembered on the book's never-merge list, and the pair leaves the review", function()
+    never_pairs = {}
+    local confirm
+    stub("ui/widget/confirmbox", { new = function(_self, o) confirm = o return o end })
+    withDialogs(function(shown)
+        local b = committing(browser(driftXray()))
+        b:showDormantList()
+        rowByText(b.menu.item_table, "Possible matches").callback()
+        rowByText(b.menu.item_table, "Jory Pell ↔ Jory").callback()
+        button(shown[#shown], "Never suggest this pair").callback()
+        TestRunner:assertEqual(confirm.text, "Never suggest \"Jory Pell\" and \"Jory\" as a match?\n\n"
+            .. "This is remembered for this book. To undo it, open \"Find duplicate entities…\" and tap \"Never-merge pairs\".")
+        TestRunner:assertEqual(#never_pairs, 0, "nothing is stored before the answer")
+        TestRunner:assertEqual(b.menu.title, "Possible matches (2)")
+        confirm.ok_callback()
+        TestRunner:assertEqual(never_pairs[1][1] .. "|" .. never_pairs[1][2], "Jory Pell|Jory")
+        TestRunner:assertEqual(b.menu.title, "Possible matches (1)")
+        TestRunner:assertEqual(#b.xray_data[XrayParser.DORMANT_KEY], 4, "the carried list itself is untouched")
+        b:navigateBack()
+        TestRunner:assertEqual(rowByText(b.menu.item_table, "Possible matches").mandatory, "1", "the list's count follows")
+    end)
+end)
+
+TestRunner:test("Full descriptions shows both entries whole", function()
+    never_pairs = {}
+    local TextViewer = require("ui/widget/textviewer")
+    local saved_new, viewer = TextViewer.new, nil
+    TextViewer.new = function(_self, o) viewer = o return o end
+    local ok, err = pcall(withDialogs, function(shown)
+        local b = browser(driftXray())
+        b:showDormantList()
+        rowByText(b.menu.item_table, "Possible matches").callback()
+        rowByText(b.menu.item_table, "Dorrit ↔ Dorrit Hale").callback()
+        button(shown[#shown], "Full descriptions…").callback()
+        TestRunner:assertEqual(viewer.title, "Dorrit ↔ Dorrit Hale")
+        TestRunner:assertEqual(viewer.text, "Dorrit\n\nCarried from: Volume One\n\nKept the inn."
+            .. "\n\n――――――――\n\n"
+            .. "Dorrit Hale (Innkeeper)\n\nCarried from: Volume Two\n\nKeeps the ferry inn.")
+    end)
+    TextViewer.new = saved_new
+    if not ok then error(err, 0) end
+end)
+
+TestRunner:test("AI merge… offers the merges between books, from the one builder, and nothing else", function()
+    never_pairs = {}
+    withDialogs(function(shown)
+        local b = browser(driftXray())
+        b.metadata.plugin = { _groupXrayMergeKind = function() return "series" end }
+        b:showDormantList()
+        rowByText(b.menu.item_table, "AI merge…").callback()
+        local d = shown[#shown]
+        TestRunner:assertEqual(d.title, "AI merge")
+        TestRunner:assertEqual(buttonTexts(d),
+            "AI merge with another book (1 request)…|AI merge the series (1 request per book)…")
+    end)
+end)
+
+TestRunner:test("a section or an archived version has no review", function()
+    local b = browser(driftXray())
+    b.scope = { label = "Part 1" }
+    TestRunner:assertEqual(#b:_carriedMatches(), 0)
+end)
+
+print("")
 print("  [" .. "project groups" .. "]")
 
 TestRunner:test("a project has no earlier books: its own wording, titles as sources", function()
@@ -507,6 +703,7 @@ end)
 -- ------------------------------------------------------------------ cleanup
 SDS.resolve = saved_resolve
 ActionCache.getAvailableArtifactsWithPinned = saved_artifacts
+ActionCache.getNeverMergePairs, ActionCache.addNeverMergePair = saved_get_never, saved_add_never
 rawset(util, "splitToChars", saved_split)
 package.loaded["koassistant_xray_browser"] = had_browser
 for i = #saved, 1, -1 do package.loaded[saved[i].name] = saved[i].value end

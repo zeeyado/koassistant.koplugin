@@ -498,6 +498,132 @@ TestRunner:test("applyMergeToRungs: folds rungs holding both, leaves single-name
     TestRunner:assertEqual(rungs[1].timestamp, 111, "timestamp identity preserved")
 end)
 
+print("")
+print("  [likely matches for the carried list (B314)]")
+
+-- This book's entries and what it carries from the earlier ones: every way a
+-- name drifts between two books, and the look-alikes that are not a match
+local function carriedData()
+    return {
+        type = "fiction",
+        characters = {
+            { name = "Jory", description = "drives the cart" },
+            { name = "the boy", aliases = { "Tobias" }, description = "a stowaway" },
+            { name = "Abel", aliases = { "the smith" }, description = "this book's rival" },
+            { name = "Mary Ann", description = "a cook" },
+        },
+        locations = { { name = "The Ford", description = "a crossing" } },
+        lexicon = { { term = "inflation", definition = "prices rising" } },
+        __dormant = {
+            { name = "Jory Pell", category = "characters", source = "Vol 2" },
+            { name = "Tobias Renn", category = "characters", source = "Vol 1" },
+            { name = "Brann", aliases = { "The Smith" }, category = "characters", source = "Vol 1" },
+            { name = "Mary-Ann", category = "characters", source = "Vol 1" },
+            { name = "Dorrit", category = "characters", source = "Vol 1" },
+            { name = "Dorrit Hale", category = "characters", source = "Vol 2" },
+            { name = "Ford", category = "lexicon", source = "Vol 1" },
+            { name = "grade inflation", category = "lexicon", source = "Vol 1" },
+        },
+    }
+end
+local function pairLines(found)
+    local out = {}
+    for i, p in ipairs(found) do
+        out[i] = p.kind .. ":" .. p.stub.name .. "~" .. (p.item_name or p.other.name) .. ":" .. p.reason
+    end
+    return table.concat(out, " | ")
+end
+
+TestRunner:test("a name inside another, a shared alias, the same name spelled apart; entry pairs first", function()
+    local found = XrayDedup.findCarriedMatches(carriedData(), nil)
+    TestRunner:assertEqual(pairLines(found), table.concat({
+        "entry:Brann~Abel:alias",
+        "entry:Jory Pell~Jory:name",
+        "entry:Mary-Ann~Mary Ann:exact",
+        "entry:Tobias Renn~the boy:name",
+        "carried:Dorrit~Dorrit Hale:name",
+    }, " | "), "a term and a place of one name, and a term inside a term, are no match")
+    local jory = found[2]
+    TestRunner:assertEqual(jory.stub_idx, 1, "the carried row keeps its place in the list")
+    TestRunner:assertEqual(jory.cat_key, "characters", "and the entry its category, for the link")
+    TestRunner:assertEqual(jory.item.description, "drives the cart")
+    TestRunner:assertEqual(found[5].stub_idx .. ">" .. found[5].other_idx, "5>6")
+end)
+
+TestRunner:test("never-merge pairs are skipped, in any case and order", function()
+    local found = XrayDedup.findCarriedMatches(carriedData(), { { "jory", "JORY PELL" }, { "Dorrit Hale", "Dorrit" } })
+    TestRunner:assertEqual(pairLines(found), table.concat({
+        "entry:Brann~Abel:alias",
+        "entry:Mary-Ann~Mary Ann:exact",
+        "entry:Tobias Renn~the boy:name",
+    }, " | "))
+end)
+
+TestRunner:test("two entries of this book are never a pair here, and no carried list means nothing", function()
+    local data = fictionData()
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(data, nil), 0, "no carried list")
+    data.type = "fiction"
+    data.__dormant = { { name = "Halloran", category = "characters", source = "Vol 1" } }
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(data, nil), 0,
+        "Jack and Jack Torrance are the duplicate review's")
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(nil, nil), 0)
+end)
+
+TestRunner:test("a one-character alias pairs nobody; a category family bridges its two names", function()
+    local data = {
+        type = "nonfiction",
+        key_figures = { { name = "Kell", description = "the harbormaster" } },
+        __dormant = {
+            { name = "Kell Marsh", category = "characters", source = "Vol 1" },
+            { name = "山田", aliases = { "彼" }, category = "characters", source = "Vol 1" },
+            { name = "鈴木", aliases = { "彼" }, category = "characters", source = "Vol 2" },
+            { name = "佐藤", aliases = { "太郎" }, category = "characters", source = "Vol 1" },
+            { name = "田中", aliases = { "太郎" }, category = "characters", source = "Vol 2" },
+        },
+    }
+    TestRunner:assertEqual(pairLines(XrayDedup.findCarriedMatches(data, nil)),
+        "entry:Kell Marsh~Kell:name | carried:佐藤~田中:alias")
+    TestRunner:assertEqual(XrayDedup.findCarriedMatches(data, nil)[1].cat_key, "key_figures")
+end)
+
+TestRunner:test("a word many rows share is a title or a family name, not an identity", function()
+    local function lords(n)
+        local data = { type = "fiction",
+            characters = { { name = "Brannoch", aliases = { "Lord" }, description = "a lord" } },
+            __dormant = {} }
+        for i, name in ipairs({ "Lord Vetch", "Lord Ames", "Lord Pike", "Lord Hask" }) do
+            if i <= n then
+                data.__dormant[i] = { name = name, category = "characters", source = "Vol 1" }
+            end
+        end
+        return data
+    end
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(lords(3), nil), 3, "three names start with it: each is offered")
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(lords(4), nil), 0, "four: it is a title")
+    local shared = { type = "fiction", characters = { { name = "Abel", aliases = { "the captain" } } },
+        __dormant = {} }
+    for i, name in ipairs({ "Pell", "Roy", "Hask" }) do
+        shared.__dormant[i] = { name = name, aliases = { "the captain" }, category = "characters", source = "Vol 1" }
+    end
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(shared, nil), 0, "an alias on four rows")
+    table.remove(shared.__dormant)
+    TestRunner:assertEqual(#XrayDedup.findCarriedMatches(shared, nil), 3, "on three: every pair of them")
+end)
+
+TestRunner:test("a pair found two ways is listed once, under the stronger reason", function()
+    local data = { type = "fiction",
+        characters = { { name = "Jory", description = "x" } },
+        __dormant = { { name = "Jory Pell", aliases = { "jory" }, category = "characters", source = "Vol 2" } } }
+    TestRunner:assertEqual(pairLines(XrayDedup.findCarriedMatches(data, nil)), "entry:Jory Pell~Jory:alias")
+end)
+
+TestRunner:test("the reasons read the same in both reviews", function()
+    TestRunner:assertEqual(XrayDedup.reasonLabel("name"), "contained name")
+    TestRunner:assertEqual(XrayDedup.reasonLabel("alias"), "shared alias")
+    TestRunner:assertEqual(XrayDedup.reasonLabel("exact"), "same name")
+    TestRunner:assertEqual(XrayDedup.snippet({ description = "a  b\nc" }), "a b c")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

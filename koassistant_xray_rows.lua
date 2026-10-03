@@ -306,6 +306,8 @@ end
 --- The group's row label and its dialog title (B401).
 function XrayRows.linkMergeLabel() return _("Link and merge…") end
 function XrayRows.linkMergeTitle() return _("Link and merge") end
+--- The duplicate review's row, for a text that sends the reader to it.
+function XrayRows.dedupLabel() return _("Find duplicate entities…") end
 
 --- The "Link and merge…" group of a live main X-Ray (B401), for the X-Ray
 --- action popup AND the X-Ray browser's menu: ONE copy of the rows, their
@@ -364,7 +366,7 @@ function XrayRows.linkMergeRows(ctx)
     if (tonumber(ctx.section_count) or 0) > 0 then
         add(T(_("AI merge section X-Rays (%1)…"), ctx.section_count), ctx.on_sections)
     end
-    add(_("Find duplicate entities…"), ctx.on_dedup)
+    add(XrayRows.dedupLabel(), ctx.on_dedup)
     return rows
 end
 

@@ -246,6 +246,202 @@ function XrayDedup.findDuplicates(data, never_pairs)
     return results, truncated
 end
 
+-- A name or alias this many rows share, or a short name this many longer
+-- names start or end with, is a word (a title, a family name), not an
+-- identity: it proposes nothing
+local COMMON_TERM_ROWS = 3
+
+-- Where one name inside another is evidence: proper nouns only, the families
+-- of NAME_CONTAIN_CATEGORIES
+local CONTAIN_FAMILIES = { people = true, places = true }
+
+local REASON_STRENGTH = { exact = 3, alias = 2, name = 1 }
+
+--- Likely matches for the carried list (B314; docs/xray_knowledge_picture.md
+--- 10.5): the pairs the free carry leaves unlinked because the names differ,
+--- for the reader to judge. A pair is one carried row and either an entry of
+--- this book or another carried row, in the same category family. Reasons:
+--- "exact" (the same name once case, spacing and separators are ignored),
+--- "alias" (a shared name or alias), "name" (one name or alias is the start
+--- or the end of the other, people and places only: "Jory" / "Jory Pell").
+--- An alias counts from two characters and three bytes (a one-character CJK
+--- alias is shared between people). Pairs on the never-merge list are
+--- skipped. Two entries of this book are never a pair here: that is
+--- findDuplicates. Linear in the names (one index of every name and alias,
+--- then lookups), since a long series carries thousands of rows. Pure.
+--- @param data table Parsed X-Ray (user aliases merged in)
+--- @param never_pairs table|nil ActionCache.getNeverMergePairs output
+--- @return table pairs Array of { kind, reason, stub, stub_idx } plus, for
+---   kind "entry", { cat_key, cat_label, item, item_name } (this book's
+---   entry) and, for kind "carried", { other, other_idx } (the second
+---   carried row). Entry pairs first, then by name.
+function XrayDedup.findCarriedMatches(data, never_pairs)
+    local XrayParser = require("koassistant_xray_parser")
+    local results = {}
+    local ledger = type(data) == "table" and data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" or #ledger == 0 then return results end
+    local never = {}
+    for _idx, pair in ipairs(never_pairs or {}) do
+        never[XrayDedup.pairKey(pair[1], pair[2])] = true
+    end
+    local function familyOf(cat_key)
+        return XrayParser.CATEGORY_FAMILY[cat_key] or cat_key
+    end
+
+    -- Every row that can be one side of a pair, with its terms: the name
+    -- and the aliases, each as its tokens joined by one space
+    local rows = {}
+    local function addRow(row, name, aliases)
+        local terms, seen = {}, {}
+        local function term(text, is_name)
+            local norm = normalizeName(text)
+            local toks = norm and tokenize(norm) or {}
+            if #toks == 0 then return end
+            local key = table.concat(toks, " ")
+            if seen[key] then return end
+            if not is_name then
+                local _stripped, chars = key:gsub("[^\128-\191]", "")
+                if #key < 3 or chars < 2 then return end
+            end
+            seen[key] = true
+            terms[#terms + 1] = { key = key, toks = toks, is_name = is_name }
+        end
+        term(name, true)
+        if #terms == 0 then return end
+        for _idx, alias in ipairs(aliases) do term(alias, false) end
+        row.name, row.terms, row.id = name, terms, #rows + 1
+        rows[#rows + 1] = row
+    end
+    for _idx, cat in ipairs(XrayParser.getCategories(data)) do
+        if not SCAN_EXCLUDED[cat.key] and type(cat.items) == "table" then
+            for _i, item in ipairs(cat.items) do
+                local name = type(item) == "table" and rawName(item) or nil
+                -- The link addresses the entry by the name its page shows
+                if name and XrayParser.getItemName(item, cat.key) == name then
+                    addRow({ kind = "entry", family = familyOf(cat.key), cat_key = cat.key,
+                        cat_label = cat.label, item = item }, name, aliasArray(item))
+                end
+            end
+        end
+    end
+    local n_entries = #rows
+    for i, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            -- A row with no category recorded reads as a person (the fold's rule)
+            local cat = type(stub.category) == "string" and stub.category ~= ""
+                and stub.category or "characters"
+            addRow({ kind = "carried", family = familyOf(cat), stub = stub, idx = i },
+                stub.name, aliasArray(stub))
+        end
+    end
+    if #rows == n_entries then return results end
+
+    local by_term = {}
+    for _idx, row in ipairs(rows) do
+        for _t, t in ipairs(row.terms) do
+            local key = row.family .. "\0" .. t.key
+            local list = by_term[key]
+            if not list then
+                list = {}
+                by_term[key] = list
+            end
+            list[#list + 1] = { row = row, is_name = t.is_name }
+        end
+    end
+
+    local found, order = {}, {}
+    local function note(a, b, reason)
+        if a == b or (a.kind == "entry" and b.kind == "entry") then return end
+        if never[XrayDedup.pairKey(a.name, b.name)] then return end
+        local lo, hi = a.id, b.id
+        if lo > hi then lo, hi = hi, lo end
+        local key = lo .. ":" .. hi
+        local rec = found[key]
+        if rec then
+            if REASON_STRENGTH[reason] > REASON_STRENGTH[rec.reason] then rec.reason = reason end
+            return
+        end
+        found[key] = { a = rows[lo], b = rows[hi], reason = reason }
+        order[#order + 1] = key
+    end
+
+    -- The same term on two rows
+    for _key, list in pairs(by_term) do
+        if #list > 1 and #list <= COMMON_TERM_ROWS then
+            for i = 1, #list - 1 do
+                for j = i + 1, #list do
+                    note(list[i].row, list[j].row,
+                        (list[i].is_name and list[j].is_name) and "exact" or "alias")
+                end
+            end
+        end
+    end
+
+    -- One term at the start or the end of another: every shorter head and
+    -- tail of a term, looked up as a whole term of another row
+    local inside = {}
+    for _idx, row in ipairs(rows) do
+        if CONTAIN_FAMILIES[row.family] then
+            for _t, t in ipairs(row.terms) do
+                local n = #t.toks
+                for k = 1, n - 1 do
+                    local head = table.concat(t.toks, " ", 1, k)
+                    local tail = table.concat(t.toks, " ", n - k + 1, n)
+                    for _s, short in ipairs(head ~= tail and { head, tail } or { head }) do
+                        local key = row.family .. "\0" .. short
+                        -- At least three bytes of letters, as findDuplicates asks
+                        if by_term[key] and #short - (k - 1) >= 3 then
+                            local holders = inside[key]
+                            if not holders then
+                                holders = { seen = {}, rows = {} }
+                                inside[key] = holders
+                            end
+                            if not holders.seen[row.id] then
+                                holders.seen[row.id] = true
+                                holders.rows[#holders.rows + 1] = row
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+    for key, holders in pairs(inside) do
+        local list = by_term[key]
+        if #holders.rows <= COMMON_TERM_ROWS and #list <= COMMON_TERM_ROWS then
+            for _l, hit in ipairs(list) do
+                for _h, row in ipairs(holders.rows) do note(hit.row, row, "name") end
+            end
+        end
+    end
+
+    for _idx, key in ipairs(order) do
+        local rec = found[key]
+        -- Entries were indexed first, so an entry is always the lower id
+        if rec.a.kind == "entry" then
+            results[#results + 1] = { kind = "entry", reason = rec.reason,
+                stub = rec.b.stub, stub_idx = rec.b.idx,
+                cat_key = rec.a.cat_key, cat_label = rec.a.cat_label,
+                item = rec.a.item, item_name = rec.a.name }
+        else
+            results[#results + 1] = { kind = "carried", reason = rec.reason,
+                stub = rec.a.stub, stub_idx = rec.a.idx,
+                other = rec.b.stub, other_idx = rec.b.idx }
+        end
+    end
+    local function otherName(p) return p.item_name or p.other.name end
+    table.sort(results, function(p, q)
+        if p.kind ~= q.kind then return p.kind == "entry" end
+        local pn, qn = p.stub.name:lower(), q.stub.name:lower()
+        if pn ~= qn then return pn < qn end
+        if p.stub_idx ~= q.stub_idx then return p.stub_idx < q.stub_idx end
+        local po, qo = otherName(p), otherName(q)
+        if po ~= qo then return po < qo end
+        return (p.other_idx or 0) < (q.other_idx or 0)
+    end)
+    return results
+end
+
 --- Resolve one entity by position (verified against the expected name) with
 --- a name-scan fallback ONLY when the name is unambiguous in the category —
 --- with repeated names, first-match-wins would act on entries the reader
@@ -709,6 +905,8 @@ local function reasonLabel(reason)
     if reason == "manual" then return _("picked manually") end
     return _("contained name")
 end
+-- The carried list's review (the X-Ray browser) names its reasons the same way
+XrayDedup.reasonLabel = reasonLabel
 
 --- Byte-safe snippet for pair previews (whitespace-collapsed, UTF-8 boundary
 --- respected on the cut).
@@ -726,6 +924,7 @@ local function snippet(item)
     end
     return d
 end
+XrayDedup.snippet = snippet
 
 --- Entry point: scan → pair list → per-pair Merge / AI merge / Never.
 --- Operates on DISK truth (the caller closes any browser view first — a merge

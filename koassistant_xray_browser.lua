@@ -1763,10 +1763,18 @@ function XrayBrowser:showDormantList(opts)
         if #items == 0 then return nil end
         return dormantListTitle(file, #items), items
     end
+    -- The list's own tools lead its top page (B401), whichever shape it has
     local function buildRoot()
         local items, total = self_ref:_buildCarriedRootItems()
-        if not items then return buildFlat() end
-        return dormantListTitle(file, total), items
+        local title
+        if items then
+            title = dormantListTitle(file, total)
+        else
+            title, items = buildFlat()
+            if not items then return nil end
+        end
+        for i, row in ipairs(self_ref:_carriedToolRows()) do table.insert(items, i, row) end
+        return title, items
     end
     local build = (opts and opts.flat) and buildFlat or buildRoot
     local title, items = build()
@@ -1776,6 +1784,231 @@ function XrayBrowser:showDormantList(opts)
     self.location = nil
     self:navigateForward(title, items)
     self.page = { gen = self._ledger_gen, rebuild = build }
+end
+
+--- What a carried entry's page says about it, as lines: the name and role,
+--- its other names, the book it comes from, its description there, and the
+--- lines earlier books left on it. The page adds its status line; the review
+--- of likely matches shows two of these one above the other.
+--- @return table parts
+local function carriedDetailParts(stub)
+    -- S3 parity (ref #90): the role on line 1, as formatItemDetail renders
+    -- a live entry (stubs store it since S3; older stubs simply have none)
+    local head = stub.name
+    if type(stub.role) == "string" and stub.role ~= "" then
+        head = head .. " (" .. stub.role .. ")"
+    end
+    local parts = { head, "" }
+    if type(stub.aliases) == "table" and #stub.aliases > 0 then
+        parts[#parts + 1] = _("Also known as:") .. " " .. table.concat(stub.aliases, ", ")
+    end
+    if type(stub.source) == "string" and stub.source ~= "" then
+        parts[#parts + 1] = T(_("Carried from: %1"), stub.source)
+    end
+    -- Content first (device 2026-09-09: the status sentence sat between the
+    -- header and the description and buried it); the status line closes
+    if type(stub.description) == "string" and stub.description ~= "" then
+        parts[#parts + 1] = ""
+        parts[#parts + 1] = stub.description
+    end
+    if type(stub.background) == "table" and #stub.background > 0 then
+        parts[#parts + 1] = ""
+        parts[#parts + 1] = _("From earlier books:")
+        for _idx, b in ipairs(stub.background) do
+            if type(b) == "table" and type(b.text) == "string" and b.source then
+                parts[#parts + 1] = T(_("%1: %2"), b.source, b.text)
+            end
+        end
+    end
+    return parts
+end
+
+--- The carried list's likely matches (B314), scanned once per state of the
+--- list: the scan indexes every carried name and every entry name, and the
+--- list's top page asks for the count each time it is drawn.
+--- @return table pairs XrayDedup.findCarriedMatches output
+function XrayBrowser:_carriedMatches()
+    if not self:_carriedView() then return {} end
+    local memo = self._match_memo
+    if memo and memo.gen == self._ledger_gen and memo.data == self.xray_data then
+        return memo.found
+    end
+    local never = require("koassistant_action_cache").getNeverMergePairs(self.metadata.book_file)
+    local found = require("koassistant_xray_dedup").findCarriedMatches(self.xray_data, never)
+    self._match_memo = { gen = self._ledger_gen, data = self.xray_data, found = found }
+    return found
+end
+
+--- The carried list's own tools, above its rows (B401, picture doc 10.5):
+--- the free review of likely matches, when the scan finds any, and the AI
+--- merges between books. List-level only: linking one entry by hand is one
+--- tap on its page, and a request for one entry is not worth sending.
+--- @return table items
+function XrayBrowser:_carriedToolRows()
+    local self_ref = self
+    local rows = {}
+    local found = self:_carriedMatches()
+    if #found > 0 then
+        rows[#rows + 1] = {
+            text = _("Possible matches"),
+            mandatory = tostring(#found),
+            callback = function() self_ref:showCarriedMatches() end,
+        }
+    end
+    rows[#rows + 1] = {
+        text = _("AI merge…"),
+        separator = true,
+        callback = function() self_ref:_showCarriedAiMerge() end,
+    }
+    return rows
+end
+
+--- The AI merges between books, from the carried list (B401): the same rows
+--- the "Link and merge…" group has, so no second copy of a label or a flow.
+function XrayBrowser:_showCarriedAiMerge()
+    local dialog
+    local rows = self:_mergeGroupRows(function() UIManager:close(dialog) end, true)
+    if #rows == 0 then return end
+    dialog = ButtonDialog:new{
+        title = _("AI merge"),
+        buttons = rows,
+    }
+    UIManager:show(dialog)
+end
+
+--- The review of likely matches (B314): the pairs the free carry left
+--- unlinked because the names differ, one row each, those with an entry of
+--- this book first. A tap opens the pair. Free: nothing is sent.
+function XrayBrowser:showCarriedMatches()
+    local self_ref = self
+    local XrayDedup = require("koassistant_xray_dedup")
+    local function build()
+        local found = self_ref:_carriedMatches()
+        if #found == 0 then return nil end
+        local n_entry = 0
+        for _idx, pair in ipairs(found) do
+            if pair.kind == "entry" then n_entry = n_entry + 1 end
+        end
+        local items = {}
+        local last_kind
+        for _idx, pair in ipairs(found) do
+            if pair.kind ~= last_kind then
+                last_kind = pair.kind
+                if #items > 0 then items[#items].separator = true end
+                items[#items + 1] = {
+                    text = pair.kind == "entry" and T(_("With this book's entries (%1)"), n_entry)
+                        or T(_("Between carried entries (%1)"), #found - n_entry),
+                    bold = true,
+                    callback = function() end,
+                }
+            end
+            local captured = pair
+            items[#items + 1] = {
+                text = T(_("%1 ↔ %2"), pair.stub.name, pair.item_name or pair.other.name),
+                mandatory = XrayDedup.reasonLabel(pair.reason),
+                mandatory_dim = true,
+                callback = function() self_ref:showCarriedMatch(captured) end,
+            }
+        end
+        return T(_("Possible matches (%1)"), #found), items
+    end
+    local title, items = build()
+    if not items then return end
+    self.location = nil
+    self:navigateForward(title, items)
+    self.page = { gen = self._ledger_gen, rebuild = build }
+end
+
+--- One likely match (B314): both sides at a glance, then the reader's answer.
+--- "Link" is the free link the carried entry's page offers (a carried row
+--- into an entry of this book), or two carried rows becoming one. "Never"
+--- goes on the book's never-merge list, the one the duplicate review keeps,
+--- so it is undone there and every other matcher honors it.
+--- @param pair table One XrayDedup.findCarriedMatches pair
+function XrayBrowser:showCarriedMatch(pair)
+    local self_ref = self
+    local XrayDedup = require("koassistant_xray_dedup")
+    local stub = pair.stub
+    local other_name = pair.item_name or pair.other.name
+    local function who(s)
+        return type(s.source) == "string" and s.source ~= ""
+            and T(_("carried from %1"), s.source) or _("carried")
+    end
+    local dialog
+    local rows = {}
+    -- Deciding needs the whole text: the title's snippets are cut short
+    rows[#rows + 1] = {{
+        text = _("Full descriptions…"),
+        callback = function()
+            local second = pair.kind == "entry"
+                and XrayParser.formatItemDetail(pair.item, pair.cat_key)
+                or table.concat(carriedDetailParts(pair.other), "\n")
+            UIManager:show(TextViewer:new{
+                title = T(_("%1 ↔ %2"), stub.name, other_name),
+                text = table.concat(carriedDetailParts(stub), "\n")
+                    .. "\n\n――――――――\n\n" .. second,
+                justified = false,
+            })
+        end,
+    }}
+    local function link(label, apply_fn, done_text)
+        rows[#rows + 1] = {{
+            text = label,
+            callback = function()
+                UIManager:close(dialog)
+                if self_ref:_commitDormantOp(apply_fn, done_text) then
+                    self_ref:_refreshDormantPage()
+                end
+            end,
+        }}
+    end
+    if pair.kind == "entry" then
+        link(T(_("Link \"%1\" to \"%2\""), stub.name, other_name),
+            function(data)
+                return XrayParser.wakeStubInto(data, pair.stub_idx, stub.name, pair.cat_key, other_name)
+            end,
+            T(_("Linked \"%1\" to \"%2\". Its carried history now shows there."), stub.name, other_name))
+    else
+        link(T(_("Link \"%1\" and \"%2\""), stub.name, other_name),
+            function(data)
+                return XrayParser.linkStubs(data, pair.stub_idx, stub.name, pair.other_idx, other_name)
+            end,
+            T(_("Linked \"%1\" and \"%2\". They are one carried entry now."), stub.name, other_name))
+    end
+    rows[#rows + 1] = {{
+        text = _("Never suggest this pair"),
+        callback = function()
+            -- Over the pair, which stays up: Cancel lands back on it
+            UIManager:show(require("ui/widget/confirmbox"):new{
+                text = T(_("Never suggest \"%1\" and \"%2\" as a match?\n\nThis is remembered for this book. To undo it, open \"%3\" and tap \"Never-merge pairs\"."),
+                    stub.name, other_name, require("koassistant_xray_rows").dedupLabel()),
+                ok_text = _("Never suggest"),
+                ok_callback = function()
+                    UIManager:close(dialog)
+                    require("koassistant_action_cache").addNeverMergePair(
+                        self_ref.metadata.book_file, stub.name, other_name)
+                    -- The list did not change, what the review shows did
+                    self_ref._ledger_gen = (self_ref._ledger_gen or 0) + 1
+                    UIManager:show(Notification:new{
+                        text = T(_("\"%1\" and \"%2\" will stay separate"), stub.name, other_name),
+                    })
+                    self_ref:_refreshDormantPage()
+                end,
+            })
+        end,
+    }}
+    local kind_label = pair.cat_label or CHAPTER_CATEGORY_SHORT[stub.category or "characters"]
+    local reason = XrayDedup.reasonLabel(pair.reason)
+    local second_line = pair.kind == "entry"
+        and T(_("%1 (%2): %3"), other_name, _("this book"), XrayDedup.snippet(pair.item))
+        or T(_("%1 (%2): %3"), other_name, who(pair.other), XrayDedup.snippet(pair.other))
+    dialog = ButtonDialog:new{
+        title = (kind_label and T(_("%1: %2"), kind_label, reason) or reason) .. "\n\n"
+            .. T(_("%1 (%2): %3"), stub.name, who(stub), XrayDedup.snippet(stub)) .. "\n\n"
+            .. second_line,
+        buttons = rows,
+    }
+    UIManager:show(dialog)
 end
 
 --- Repaint the page on screen after a carried-list edit (the root-only
@@ -1818,34 +2051,7 @@ end
 --- @param nav_context table|nil { stubs, index } for ◀/▶ within the list
 function XrayBrowser:showDormantDetail(stub_idx, stub, nav_context)
     local self_ref = self
-    -- S3 parity (ref #90): the role on line 1, as formatItemDetail renders
-    -- a live entry (stubs store it since S3; older stubs simply have none)
-    local head = stub.name
-    if type(stub.role) == "string" and stub.role ~= "" then
-        head = head .. " (" .. stub.role .. ")"
-    end
-    local parts = { head, "" }
-    if type(stub.aliases) == "table" and #stub.aliases > 0 then
-        parts[#parts + 1] = _("Also known as:") .. " " .. table.concat(stub.aliases, ", ")
-    end
-    if type(stub.source) == "string" and stub.source ~= "" then
-        parts[#parts + 1] = T(_("Carried from: %1"), stub.source)
-    end
-    -- Content first (device 2026-09-09: the status sentence sat between the
-    -- header and the description and buried it); the status line closes
-    if type(stub.description) == "string" and stub.description ~= "" then
-        parts[#parts + 1] = ""
-        parts[#parts + 1] = stub.description
-    end
-    if type(stub.background) == "table" and #stub.background > 0 then
-        parts[#parts + 1] = ""
-        parts[#parts + 1] = _("From earlier books:")
-        for _idx, b in ipairs(stub.background) do
-            if type(b) == "table" and type(b.text) == "string" and b.source then
-                parts[#parts + 1] = T(_("%1: %2"), b.source, b.text)
-            end
-        end
-    end
+    local parts = carriedDetailParts(stub)
     parts[#parts + 1] = ""
     parts[#parts + 1] = _("Not seen in this book yet. It is linked on its own when an update names it.")
 
@@ -2218,6 +2424,13 @@ function XrayBrowser:_commitDormantOp(apply_fn, success_text)
         return false
     end
     self._dormant_archived = true
+    -- The view keeps the reader's own aliases (the fresh parse holds none):
+    -- entry pages show them, search finds by them, and the review of likely
+    -- matches reads them
+    local user_aliases = require("koassistant_action_cache").getUserAliases(self.metadata.book_file)
+    if next(user_aliases) then
+        XrayParser.mergeUserAliases(data, user_aliases)
+    end
     self.xray_data = data
     -- Pages that list carried entries rebuild when they are next shown
     self._ledger_gen = (self._ledger_gen or 0) + 1
@@ -7228,6 +7441,74 @@ function XrayBrowser:showFullView()
     })
 end
 
+--- The shared "Link and merge…" rows as this browser starts them (B401), from
+--- the one builder (koassistant_xray_rows.lua): the ☰ menu's group, or with
+--- `between_books` only the AI merges between books, for the carried list's
+--- own row. One place hands the builder its handlers, so both use the same
+--- flows.
+--- @param pre function Closes the dialog the rows sit in
+--- @param between_books boolean|nil
+--- @return table rows ButtonDialog rows
+function XrayBrowser:_mergeGroupRows(pre, between_books)
+    local self_ref = self
+    local ActionCache = require("koassistant_action_cache")
+    -- Every flow closes this browser only when it actually starts work
+    -- that replaces the data this view renders (device round 2 T11: an
+    -- empty flow or an early return must leave the browser up), and
+    -- reopens the X-Ray on the result (round 27)
+    local function flowOpts()
+        local browser_closed = false
+        return {
+            file = self_ref.metadata.book_file,
+            ui = self_ref.ui,
+            plugin = self_ref.metadata.plugin,
+            configuration = self_ref.metadata.configuration,
+            title = self_ref.metadata.title,
+            author = self_ref.metadata.book_author,
+            reopen_live = true,
+            close_browser = function()
+                if not browser_closed and self_ref.menu then
+                    browser_closed = true
+                    UIManager:close(self_ref.menu)
+                end
+            end,
+        }
+    end
+    local ctx = {
+        plugin = self.metadata.plugin,
+        file = self.metadata.book_file,
+        carried_count = #self:_dormantRows(),
+        section_count = ActionCache.getSectionCount(self.metadata.book_file,
+            ActionCache.SECTION_PREFIXES.xray),
+        pre = pre,
+        align = "left",
+        on_carried = function() self_ref:showDormantList() end,
+        on_cross_book = function()
+            require("koassistant_xray_merge").startCrossBookFlow(flowOpts())
+        end,
+        on_group_merge = function(kind)
+            local XrayMerge = require("koassistant_xray_merge")
+            local start = kind == "project" and XrayMerge.startFanInFlow
+                or XrayMerge.startSeriesChainFlow
+            start(flowOpts())
+        end,
+        on_sections = function()
+            require("koassistant_xray_merge").startFlow(flowOpts())
+        end,
+        on_dedup = function()
+            local dedup_opts = flowOpts()
+            dedup_opts.reopen_live = nil
+            require("koassistant_xray_dedup").startFlow(dedup_opts)
+        end,
+    }
+    if between_books then
+        -- A missing handler drops its row: the two merges between books stay
+        ctx.on_carried, ctx.on_sections, ctx.on_dedup = nil, nil, nil
+        ctx.align = nil
+    end
+    return require("koassistant_xray_rows").linkMergeRows(ctx)
+end
+
 --- Show options menu (hamburger button)
 function XrayBrowser:showOptions()
     local self_ref = self
@@ -7434,57 +7715,8 @@ function XrayBrowser:showOptions()
     -- further down.
     if not self.scope and not self.metadata.checkpoint
         and self.metadata.plugin and self.metadata.book_file then
-        local ActionCache = require("koassistant_action_cache")
         local XrayRows = require("koassistant_xray_rows")
-        -- Every flow closes this browser only when it actually starts work
-        -- that replaces the data this view renders (device round 2 T11: an
-        -- empty flow or an early return must leave the browser up), and
-        -- reopens the X-Ray on the result (round 27)
-        local function flowOpts()
-            local browser_closed = false
-            return {
-                file = self_ref.metadata.book_file,
-                ui = self_ref.ui,
-                plugin = self_ref.metadata.plugin,
-                configuration = self_ref.metadata.configuration,
-                title = self_ref.metadata.title,
-                author = self_ref.metadata.book_author,
-                reopen_live = true,
-                close_browser = function()
-                    if not browser_closed and self_ref.menu then
-                        browser_closed = true
-                        UIManager:close(self_ref.menu)
-                    end
-                end,
-            }
-        end
-        local lm_rows = XrayRows.linkMergeRows({
-            plugin = self.metadata.plugin,
-            file = self.metadata.book_file,
-            carried_count = #self:_dormantRows(),
-            section_count = ActionCache.getSectionCount(self.metadata.book_file,
-                ActionCache.SECTION_PREFIXES.xray),
-            pre = closeOptions,
-            align = "left",
-            on_carried = function() self_ref:showDormantList() end,
-            on_cross_book = function()
-                require("koassistant_xray_merge").startCrossBookFlow(flowOpts())
-            end,
-            on_group_merge = function(kind)
-                local XrayMerge = require("koassistant_xray_merge")
-                local start = kind == "project" and XrayMerge.startFanInFlow
-                    or XrayMerge.startSeriesChainFlow
-                start(flowOpts())
-            end,
-            on_sections = function()
-                require("koassistant_xray_merge").startFlow(flowOpts())
-            end,
-            on_dedup = function()
-                local dedup_opts = flowOpts()
-                dedup_opts.reopen_live = nil
-                require("koassistant_xray_dedup").startFlow(dedup_opts)
-            end,
-        })
+        local lm_rows = self:_mergeGroupRows(closeOptions)
         if #lm_rows > 0 then
             table.insert(buttons, {{
                 text = XrayRows.linkMergeLabel(), align = "left",

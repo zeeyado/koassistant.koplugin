@@ -740,6 +740,36 @@ TestRunner:test("addStubAlias: adds, no-ops on known, refuses missing; resolves 
     TestRunner:eq(#XrayParser.searchLedger(d, "the ferry master", { exact = true }), 1,
         "the new alias resolves")
 end)
+TestRunner:test("linkStubs: two carried rows become one, both books' names and texts kept (B314)", function()
+    local json = '{"characters":[{"name":"Tamsin Vael"}],"__dormant":['
+        .. '{"name":"Dorrit","category":"characters","description":"Kept the inn.","source":"Vol 1","file":"/b/v1.epub"},'
+        .. '{"name":"Dorrit Hale","aliases":["the innkeeper"],"category":"characters","description":"Keeps the ferry inn.","source":"Vol 2","file":"/b/v2.epub"},'
+        .. '{"name":"Saltmere","category":"locations","description":"Drowned town.","source":"Vol 1","file":"/b/v1.epub"}]}'
+    local d = XrayParser.parse(json)
+    TestRunner:ok(XrayParser.linkStubs(d, 1, "Dorrit", 2, "Dorrit Hale"))
+    TestRunner:eq(#d.__dormant, 2, "one row for the two")
+    -- Which row keeps the name is the fold's rule (the nearest book's)
+    local row = d.__dormant[1]
+    local names = { [row.name] = true }
+    for _i, a in ipairs(row.aliases or {}) do names[a] = true end
+    TestRunner:ok(names["Dorrit"] and names["Dorrit Hale"] and names["the innkeeper"],
+        "both names and the alias on the one row")
+    local texts = { row.description }
+    for _i, b in ipairs(row.background or {}) do texts[#texts + 1] = b.text end
+    table.sort(texts)
+    TestRunner:eq(table.concat(texts, "|"), "Keeps the ferry inn.|Kept the inn.", "both books' texts")
+    TestRunner:eq(XrayParser.foldLedger(d), 0, "nothing left to fold: a re-seed finds it settled")
+    -- A row that moved is found by its name; a missing one and another kind
+    -- of thing are refused and nothing changes
+    d = XrayParser.parse(json)
+    TestRunner:ok(XrayParser.linkStubs(d, 3, "Dorrit", 1, "Dorrit Hale"), "indices off, names right")
+    d = XrayParser.parse(json)
+    TestRunner:ok(not XrayParser.linkStubs(d, 1, "Dorrit", 2, "Nobody"), "a row that is gone")
+    TestRunner:ok(not XrayParser.linkStubs(d, 1, "Dorrit", 1, "Dorrit"), "a row with itself")
+    TestRunner:ok(not XrayParser.linkStubs(d, 1, "Dorrit", 3, "Saltmere"), "a person and a place")
+    TestRunner:eq(#d.__dormant, 3)
+    TestRunner:eq(d.__dormant[1].aliases, nil, "a refused link leaves the row as it was")
+end)
 TestRunner:test("foldLedgerHandles: stub handles join the exact route set", function()
     local d = XrayParser.parse(LEDGER_JSON)
     local set = {}
