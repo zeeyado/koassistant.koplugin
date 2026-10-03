@@ -171,11 +171,10 @@ end
 local function buildBookMetadata(title, authors, file, doc_props, document, doc_settings)
     local metadata = DOIResolver.buildBookMetadata(title, authors, file, doc_props, document, doc_settings)
     -- Apply per-book AI title/author override (what the AI sees; never touches library metadata).
-    -- Load the sidecar from disk when no doc_settings was passed but we have a file path.
+    -- Load this book's settings when none were passed but we have a file path.
     local ds = doc_settings
     if not ds and file then
-        local DocSettings = require("docsettings")
-        ds = DocSettings:open(file)
+        ds = require("koassistant_doc_settings").resolve(file)
     end
     return require("koassistant_book_settings").applyMetadataOverride(metadata, ds)
 end
@@ -1139,28 +1138,34 @@ function AskGPT:showKOAssistantDialogForFile(file, title, authors, book_props)
   -- Store the book metadata for template substitution
   -- Use raw doc_props (from DocSettings) for DOI extraction — includes identifiers field
   local raw_doc_props = getRawDocProps(file) or book_props
+  -- The open book's document and settings only when it IS this book: a chat
+  -- about another book started beside it must never take the open book's AI
+  -- title override, nor scan the open book's first page for a DOI and cache it
+  -- as this book's (B387)
+  local open_here = self.ui and self.ui.document and self.ui.document.file == file
   configuration.features.book_metadata = buildBookMetadata(title, authors, file, raw_doc_props,
-      self.ui and self.ui.document, self.ui and self.ui.doc_settings)
+      open_here and self.ui.document or nil, open_here and self.ui.doc_settings or nil)
   -- Display/fallback book-context string, derived from the overridden metadata (title+author only).
   local book_context = bookContextString(configuration.features.book_metadata)
   configuration.features.book_context = book_context
 
-  -- Add reading progress to book_metadata for spoiler-free mode
-  -- Use live data from open book if it matches, otherwise load from DocSettings
+  -- Add reading progress to book_metadata for spoiler-free mode: the live
+  -- position for the open book (the saved one lags behind the page), the
+  -- saved one for any other book (B387)
   local bm = configuration.features.book_metadata
-  if self.ui and self.ui.document and self.ui.document.file == file then
-    -- Open book: live progress from context extractor
-    if self.ui.koassistant and self.ui.koassistant.context_extractor then
-      local progress = self.ui.koassistant.context_extractor:getReadingProgress()
+  if open_here then
+    local ok, progress = pcall(function()
+      return require("koassistant_context_extractor"):new(self.ui, configuration.features)
+        :getReadingProgress()
+    end)
+    if ok and progress then
       bm.reading_progress = progress.formatted
       bm.progress_decimal = progress.decimal
     end
   end
   if not bm.reading_progress and file then
-    -- File browser or different book: load from DocSettings
-    local DocSettings = require("docsettings")
-    local ds = DocSettings:open(file)
-    local pf = ds:readSetting("percent_finished")
+    local ds = require("koassistant_doc_settings").resolve(file, self.ui)
+    local pf = ds and ds:readSetting("percent_finished")
     if pf and pf > 0 then
       bm.reading_progress = tostring(math.floor(pf * 100 + 0.5)) .. "%"
       bm.progress_decimal = pf
@@ -7226,8 +7231,10 @@ end
 --- @param artifact_file string The book file path
 --- @param artifact_book_title string The book title
 --- @param artifact_book_author string The book author
+--- @param opts table|nil { notebook = true }: the content is the book's notebook
+--- (launchArtifactChat checks notebook sharing for the provider it goes to)
 --- @return function|nil The callback, or nil if no file
-function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, artifact_book_author, artifact_content, artifact_type_name)
+function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, artifact_book_author, artifact_content, artifact_type_name, opts)
   if not artifact_file then return nil end
   local self_ref = self
   -- run_variant: a pick from the chat input's long-press on Send (B345 step 3)
@@ -7251,7 +7258,7 @@ function AskGPT:_buildLaunchChatCallback(artifact_file, artifact_book_title, art
     }
     config_copy.features.book_metadata = book_metadata
 
-    Dialogs.launchArtifactChat(user_question, artifact_content or "", artifact_type_name or _("Artifact"), self_ref.ui, config_copy, self_ref, book_metadata)
+    Dialogs.launchArtifactChat(user_question, artifact_content or "", artifact_type_name or _("Artifact"), self_ref.ui, config_copy, self_ref, book_metadata, opts)
   end
 end
 
@@ -8164,8 +8171,12 @@ function AskGPT:_confirmClosedBookSpoilerRun(action, file, run_fn)
 end
 
 function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
-  local file = self.ui and self.ui.document and self.ui.document.file
-      or (opts and opts.file)
+  -- The requested book first: a closed book's dialog beside an open one
+  -- passes its own (opts.file), and the open document counts only when it IS
+  -- that book (B387). Every read below takes open_doc, never self.ui.document.
+  local open_doc = self.ui and self.ui.document
+  local file = (opts and opts.file) or (open_doc and open_doc.file)
+  if open_doc and open_doc.file ~= file then open_doc = nil end
   if not file then
     on_update()
     return
@@ -8199,7 +8210,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
   if not cached or not cached.result then
     -- Check if action supports sections and book is open with TOC
     local section_prefix = ActionCache.getSectionPrefix(action_id)
-    local has_toc = section_prefix and self.ui and self.ui.document and self.ui.toc
+    local has_toc = section_prefix and open_doc and self.ui.toc
         and self.ui.toc.toc and #self.ui.toc.toc > 0
     if has_toc then
       -- Show scope popup: Generate full document / sections / cancel
@@ -8213,12 +8224,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
         text = T(_("Generate %1"), action_name),
         callback = function()
           UIManager:close(no_cache_dialog)
-          if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+          if self_ref:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           on_update()
         end,
       }})
       -- Surface in-range section artifacts
-      local doc = self.ui and self.ui.document
+      local doc = open_doc
       if doc then
         local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
         for _idx, sec in ipairs(in_range) do
@@ -8262,7 +8273,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
         text = _("Focus on a section…"),
         callback = function()
           UIManager:close(no_cache_dialog)
-          if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+          if self_ref:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           self_ref:_showSectionPicker(action, {
             title = T(_("Select Section for %1"), action_name),
             on_select = function(entry)
@@ -8284,7 +8295,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
       }
       UIManager:show(no_cache_dialog)
     else
-      if self:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+      if self:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
       self:_confirmClosedBookSpoilerRun(action, file, on_update)
     end
     return
@@ -8312,7 +8323,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
   -- Determine update vs redo based on progress change (matches 1% threshold in dialogs)
   local update_text
   local cached_progress = cached.progress_decimal or 0
-  if self.ui and self.ui.document then
+  if open_doc then
     local ContextExtractor = require("koassistant_context_extractor")
     local extractor = ContextExtractor:new(self.ui)
     local progress = extractor:getReadingProgress()
@@ -8357,7 +8368,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
 
   -- Surface in-range section artifacts
   local section_prefix = ActionCache.getSectionPrefix(action_id)
-  local doc = self.ui and self.ui.document
+  local doc = open_doc
   if section_prefix and file and doc then
     local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
     for _idx, sec in ipairs(in_range) do
@@ -8390,11 +8401,11 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
     text = update_text,
     callback = function()
       UIManager:close(dialog)
-      if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+      if self_ref:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
       self_ref:_confirmClosedBookSpoilerRun(action, file, on_update)
     end,
   }})
-  if section_prefix and self.ui and self.ui.document and self.ui.toc
+  if section_prefix and open_doc and self.ui.toc
       and self.ui.toc.toc and #self.ui.toc.toc > 0 then
     local sec_count = ActionCache.getSectionCount(file, section_prefix)
     if sec_count > 0 then
@@ -8410,7 +8421,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
       text = _("Focus on a section…"),
       callback = function()
         UIManager:close(dialog)
-        if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+        if self_ref:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
         self_ref:_showSectionPicker(action, {
           title = T(_("Select Section for %1"), action_name),
           on_select = function(entry)
@@ -17584,7 +17595,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- Get domain display name (with source indicator)
   -- Effective domain via the shared resolver (book > global, "_none" = explicit
   -- no-domain override for this book — nil id with layer "book")
-  local qs_ds = self.ui and self.ui.document and self.ui.doc_settings or nil
+  local qs_ds = self.ui and self.ui.document and self:_openBookDS() or nil
   local eff_domain_id, domain_layer =
       require("koassistant_book_settings").resolveDomain(qs_ds, features)
   local domain_display = _("None")
@@ -17731,7 +17742,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- model): tap toggles the GLOBAL default, hold opens the scope-aware
       -- picker. "(book)" marks a per-book override masking the global.
       local BookSettings = require("koassistant_book_settings")
-      local doc_settings = has_document and self.ui.doc_settings or nil
+      local doc_settings = has_document and self:_openBookDS() or nil
       local label = BookSettings.resolveBookTools(doc_settings, features)
         and _("On") or _("Off")
       if doc_settings and doc_settings:readSetting(BookSettings.KEY_TOOLS) ~= nil then
@@ -17777,7 +17788,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- hold opens the scope-aware picker. Label shows the EFFECTIVE state,
       -- "(book)" when an override masks it.
       local BookSettings = require("koassistant_book_settings")
-      local doc_settings = has_document and self.ui.doc_settings or nil
+      local doc_settings = has_document and self:_openBookDS() or nil
       local label = BookSettings.resolveQuickAnswerDefault(doc_settings, features)
         and _("On") or _("Off")
       if doc_settings and doc_settings:readSetting(BookSettings.KEY_QUICK_ANSWER) ~= nil then
@@ -17819,7 +17830,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- per-book override, research mode, Finished status — so name whichever
       -- applies (§5 label-never-gray), else the tap looks dead.
       local BookSettings = require("koassistant_book_settings")
-      local doc_settings = has_document and self.ui.doc_settings or nil
+      local doc_settings = has_document and self:_openBookDS() or nil
       local posture = BookSettings.resolveSpoilerPosture(doc_settings, features)
       local label = posture.protected and _("On") or _("Off")
       if posture.reason == "book" then
@@ -17842,7 +17853,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- The global is saved either way; if a book-scoped layer masks it for
       -- the open book, say where the change went (the temperature tile's
       -- "Saved as default" pattern) — a silent no-op reads as a dead button.
-      local doc_settings = has_document and self_ref.ui and self_ref.ui.doc_settings or nil
+      local doc_settings = has_document and self_ref:_openBookDS() or nil
       local posture = BookSettings.resolveSpoilerPosture(doc_settings, f)
       if posture.reason == "book" then
         UIManager:show(Notification:new{
@@ -17914,7 +17925,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- opens the scope-aware picker (with the search-depth dial). Label shows the
       -- EFFECTIVE state for the open book, "(book)" when a per-book override masks it.
       local BookSettings = require("koassistant_book_settings")
-      local doc_settings = has_document and self.ui.doc_settings or nil
+      local doc_settings = has_document and self:_openBookDS() or nil
       local label = BookSettings.resolveWebSearch(doc_settings, features,
         self:getCurrentProvider()) and _("On") or _("Off")
       if doc_settings and doc_settings:readSetting(BookSettings.KEY_WEB_SEARCH) ~= nil then
@@ -17960,7 +17971,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   -- override masks the global; tap keeps editing the global picker; hold (book
   -- open only) lands on the per-book Languages screen.
   local function bookLangOverride(key)
-    local doc_settings = has_document and self.ui.doc_settings or nil
+    local doc_settings = has_document and self:_openBookDS() or nil
     local ov = doc_settings and doc_settings:readSetting(key)
     if ov and ov ~= "" then return ov end
     return nil
@@ -18059,7 +18070,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- state for the open book, "(book)" when a per-book privacy override
       -- masks the global; tap keeps toggling the global, hold opens the
       -- per-book Privacy screen.
-      local doc_settings = has_document and self.ui.doc_settings or nil
+      local doc_settings = has_document and self:_openBookDS() or nil
       local ov = doc_settings and doc_settings:readSetting(BookSettingsQS.KEY_TEXT_EXTRACTION)
       local on = text_extraction
       if ov ~= nil then on = ov end
@@ -18084,7 +18095,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
       -- Masked-global rule (the spoiler tile's pattern): the global saved
       -- either way; if this book's own override masks it, say so — a silent
       -- no-op reads as a dead button.
-      local doc_settings = has_document and self_ref.ui and self_ref.ui.doc_settings or nil
+      local doc_settings = has_document and self_ref:_openBookDS() or nil
       if doc_settings and doc_settings:readSetting(BookSettingsQS.KEY_TEXT_EXTRACTION) ~= nil then
         UIManager:show(Notification:new{
           text = _("Saved as default. This book has its own override — hold the button to change it."),
@@ -20067,7 +20078,7 @@ function AskGPT:openXrayCard(query, opts)
       XrayCard.showFullDetail(h)
     end
     local f2 = self_ref.settings:readSetting("features") or {}
-    local ds = self_ref.ui and self_ref.ui.doc_settings
+    local ds = self_ref:_openBookDS()
     local protected = ds and require("koassistant_book_settings")
       .resolveSpoilerPosture(ds, f2).protected
     if protected then
@@ -20184,7 +20195,7 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
   if opts and opts.file then
     ds = require("koassistant_doc_settings").resolve(opts.file, self.ui)
   elseif self.ui and self.ui.doc_settings then
-    ds = self.ui.doc_settings
+    ds = self:_openBookDS()
   end
   local marking = BookSettings.resolveXrayMarking(ds, features)
   local function scopeTag(book_key)
@@ -24174,7 +24185,8 @@ function AskGPT:openNotebookInChatViewer(notebook_path, document_path)
     on_export = on_export,
     -- Chat directly about the notebook content (controls parity slice (e) note C),
     -- reusing the artifact viewer's → Chat launcher with notebook-specific wording.
-    on_launch_chat = self_ref:_buildLaunchChatCallback(document_path, book_title, book_author, content, _("Notebook")),
+    on_launch_chat = self_ref:_buildLaunchChatCallback(document_path, book_title, book_author, content, _("Notebook"),
+      { notebook = true }),
     launch_chat_title = _("Chat about this notebook"),
     launch_chat_hold_hint = _("Start a new chat about this notebook"),
     _plugin = self_ref,

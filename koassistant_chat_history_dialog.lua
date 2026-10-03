@@ -2159,7 +2159,10 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                     -- chip kept showing the stale attachment. Inline require (module boundary).
                     do
                         local A = require("koassistant_attachments")
-                        local attach_msg = A.buildMessage(A.getList())
+                        -- The notebook's consent, again, for the provider this reply
+                        -- goes to: the reply overrides above can re-point it (B396 b)
+                        local attach_msg = A.buildMessage(A.forProvider(A.getList(),
+                            config.features, config.provider or config.default_provider, ui))
                         if attach_msg then
                             history:addUserMessage(attach_msg, true)
                             A.clear()

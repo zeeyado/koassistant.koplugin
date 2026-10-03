@@ -116,6 +116,37 @@ function Attachments.notebookAllowed(features, provider, book_override)
         or Attachments.isTrustedProvider(features, provider)
 end
 
+--- The highlights' consent for the provider a request goes to (the
+--- use_highlights gate): the book's override wins in both directions (deny
+--- beats trusted), else highlights or annotations sharing, or a trusted
+--- provider. Same rule as the extractor's.
+function Attachments.highlightsAllowed(features, provider, book_override)
+    if book_override ~= nil then return book_override == true end
+    return (features and (features.enable_highlights_sharing == true
+            or features.enable_annotations_sharing == true))
+        or Attachments.isTrustedProvider(features, provider)
+end
+
+--- The X-Ray chat's text for the provider it goes to (B396 d). Its "Your
+--- highlights" block is judged when the entry page is built, against the
+--- global provider; the chat's Send, an action or a run option can send it
+--- to another provider. features._xray_chat_highlights = { block, override }
+--- (koassistant_xray_browser.lua, chatAboutItem) names the block appended at
+--- the end of the entry text; it is cut here when this provider may not
+--- receive highlights. Any other text passes through unchanged.
+function Attachments.xrayChatTextFor(text, features, provider)
+    local hl = features and features._xray_chat_highlights
+    if type(text) ~= "string" or type(hl) ~= "table" or type(hl.block) ~= "string"
+            or hl.block == "" then
+        return text
+    end
+    if Attachments.highlightsAllowed(features, provider, hl.override) then return text end
+    if #text >= #hl.block and text:sub(-#hl.block) == hl.block then
+        return text:sub(1, #text - #hl.block)
+    end
+    return text
+end
+
 --- A book's notebook privacy override (nil = follow the global setting).
 function Attachments.notebookOverrideFor(path, ui)
     if not path then return nil end

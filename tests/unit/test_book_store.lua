@@ -591,6 +591,57 @@ TestRunner:test("main.lua never calls ui.doc_settings directly (plugin keys go t
     eq(#offenders, 0, "direct DocSettings calls: " .. table.concat(offenders, ", "))
 end)
 
+-- A variable holding ui.doc_settings escapes the gate above: its readSetting
+-- calls then miss every plugin key, which lives in the plugin's own file (B396 e:
+-- the Quick Settings tiles' "(book)" tags and the X-Ray marking popup's reset).
+-- Hold the facade instead (self:_openBookDS()). A condition that continues on
+-- the next line with and/or is not an alias; the accessor's own body is the one
+-- place the raw object is held.
+local function rawDocSettingsAliases(lines)
+    local offenders, in_accessor = {}, false
+    for n, line in ipairs(lines) do
+        if line:find("^function AskGPT:_openBookDS%(") then
+            in_accessor = true
+        elseif in_accessor then
+            if line:find("^end") then in_accessor = false end
+        else
+            local code = line:gsub("%-%-.*$", "")
+            local rhs = code:match("[^=~<>]=([^=].-)%s*$")
+            if rhs then
+                rhs = rhs:gsub("%s+or%s+nil$", "")
+                if rhs:find("ui%.doc_settings$") then
+                    local nxt = (lines[n + 1] or ""):match("^%s*(%S+)")
+                    if nxt ~= "and" and nxt ~= "or" then
+                        offenders[#offenders + 1] = "main.lua:" .. n
+                    end
+                end
+            end
+        end
+    end
+    return offenders
+end
+
+TestRunner:test("main.lua never keeps the raw ui.doc_settings in a variable", function()
+    local offenders = rawDocSettingsAliases(readLines(plugin_dir .. "/main.lua"))
+    eq(#offenders, 0, "raw DocSettings aliases: " .. table.concat(offenders, ", "))
+end)
+
+TestRunner:test("the alias gate catches the shapes it guards against", function()
+    local caught = rawDocSettingsAliases({
+        "      local doc_settings = has_document and self.ui.doc_settings or nil",
+        "    ds = self.ui.doc_settings",
+        "    local ds = self_ref.ui and self_ref.ui.doc_settings",
+        "    local protected = ds and resolve(ds)",
+        "      local c_auto_on = c_flowing and self.ui.doc_settings",
+        "        and require(\"koassistant_book_settings\").resolveXrayAuto(self.ui.doc_settings, f)",
+        "  if x == self.ui.doc_settings then",
+        "function AskGPT:_openBookDS()",
+        "  local ds = self.ui and self.ui.doc_settings",
+        "end",
+    })
+    eq(table.concat(caught, ","), "main.lua:1,main.lua:2,main.lua:3", "the three aliases, nothing else")
+end)
+
 TestRunner:test("no useDocSettingsStorage / v1 chat-dir routing survives", function()
     local offenders = {}
     for _idx, path in ipairs(listLuaFiles()) do

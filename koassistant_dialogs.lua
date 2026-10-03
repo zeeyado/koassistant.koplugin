@@ -4598,6 +4598,14 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         (temp_config and temp_config.provider)
             or (config.features and config.features.provider))
 
+    -- An action run from an X-Ray chat: the entry's "Your highlights" block was
+    -- judged when its page was built; judge it again for this action's provider
+    -- (B396 d; a pin, a run option or ⚡ can send it elsewhere)
+    if xray_prefix then
+        message_data.highlighted_text = require("koassistant_attachments").xrayChatTextFor(
+            message_data.highlighted_text, config.features, effective_provider)
+    end
+
     -- Open book: full extraction (text, highlights, annotations, stats, etc.)
     -- File browser (sidecar): highlights, annotations, notebook, progress, caches from disk
     local cfg_metadata = config.features and config.features.book_metadata
@@ -4929,8 +4937,14 @@ if prune_book_text then
     local using_cache = false
     local cached_progress_display = nil
     local cache_entry_existed = false
-    local cache_file = (ui and ui.document and ui.document.file)
-        or (config.features and config.features.book_metadata and config.features.book_metadata.file)
+    -- The book this request is about: per_book_file above (a highlight's is the
+    -- open book; any other request's is its book_metadata target first), so a
+    -- closed book's request started beside another open book (a Book Hub, a
+    -- group hub) reads and writes ITS cache, never the open book's (B387).
+    -- Recorded on the request's config: every reader of the answer's artifact
+    -- (the dialog, executeDirectAction) opens where it was written.
+    local cache_file = per_book_file
+    if temp_config then temp_config._cache_file = cache_file end
     local cache_enabled = prompt and prompt.use_response_caching and cache_file
 
     -- A deferred rebuild leaves the outgoing X-Ray on disk while the new one is
@@ -7047,8 +7061,16 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         else
             logger.dbg("KOAssistant: " .. ctx_label .. " chat with no launch context")
         end
-    elseif doc_file then
-        -- Document is open, use its metadata and path
+    elseif doc_file and not (configuration and configuration.features
+            and configuration.features.is_book_context
+            and configuration.features.book_metadata
+            and configuration.features.book_metadata.file
+            and configuration.features.book_metadata.file ~= doc_file) then
+        -- Document is open, use its metadata and path. A chat about ANOTHER
+        -- book started while this one is open (a Book Hub, a group hub, the
+        -- artifact browser) takes the branch below: that book's title, author,
+        -- path and settings, so the chat is never saved or framed as the open
+        -- book's (B387; has_open_book below makes the same comparison)
         document_path = doc_file
 
         -- Extract filename as fallback for missing title metadata
@@ -7336,7 +7358,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
 
         -- Pre-flight: block when declared requirements are unmet
         if plugin and plugin._checkRequirements then
-            if plugin:_checkRequirements(action, nil, run_variant and run_variant.provider) then
+            -- This dialog's book: its own privacy overrides, not the open
+            -- book's, decide for a closed book's chat (B387)
+            if plugin:_checkRequirements(action, document_path, run_variant and run_variant.provider) then
                 return
             end
         end
@@ -7425,18 +7449,26 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- For cache-first actions (Recap, X-Ray Simple): open in simple viewer
                         if action.use_response_caching and not nothing_saved and action.id and plugin then
                             local ActionCache = require("koassistant_action_cache")
-                            -- Same closed-book fallback as the WRITE path (book_metadata.file):
+                            -- Where the request wrote it (temp_config._cache_file, B387):
                             -- ui.document is nil for fb-dialog launches and mid-flight book
                             -- closes, and the bare read skipped the just-written artifact,
-                            -- dropping it into the chat viewer (device 2026-08-17)
-                            local file = (ui_instance and ui_instance.document and ui_instance.document.file)
-                                or (temp_config.features and temp_config.features.book_metadata
-                                    and temp_config.features.book_metadata.file)
-                                or document_path
+                            -- dropping it into the chat viewer (device 2026-08-17); a
+                            -- closed book's dialog beside an open book reads its own
+                            local file = temp_config._cache_file or document_path
+                                or (ui_instance and ui_instance.document and ui_instance.document.file)
                             if file then
                                 local cached = ActionCache.get(file, action.id)
                                 if cached and cached.result then
-                                    plugin:viewCachedAction(action, action.id, cached)
+                                    -- Another book than the open one: the viewer's title,
+                                    -- Delete, Regenerate and chat must name it (B387)
+                                    local view_opts
+                                    if not (ui_instance and ui_instance.document
+                                            and ui_instance.document.file == file) then
+                                        view_opts = { file = file,
+                                            book_title = book_metadata and book_metadata.title,
+                                            book_author = book_metadata and book_metadata.author }
+                                    end
+                                    plugin:viewCachedAction(action, action.id, cached, view_opts)
                                     return
                                 end
                             end
@@ -7445,10 +7477,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- For document analysis/summary: open in cache viewer
                         if (action.cache_as_analyze or action.cache_as_summary) and not nothing_saved and plugin then
                             local ActionCache = require("koassistant_action_cache")
-                            local file = (ui_instance and ui_instance.document and ui_instance.document.file)
-                                or (temp_config.features and temp_config.features.book_metadata
-                                    and temp_config.features.book_metadata.file)
-                                or document_path
+                            -- Where the request wrote it (B387), as above
+                            local file = temp_config._cache_file or document_path
+                                or (ui_instance and ui_instance.document and ui_instance.document.file)
                             if file then
                                 local cached, cache_name, cache_key
                                 if action.cache_as_analyze then
@@ -7461,7 +7492,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                                     cache_key = "_summary_cache"
                                 end
                                 if cached and cached.result then
-                                    plugin:showCacheViewer({ name = cache_name, key = cache_key, data = cached })
+                                    local info = { name = cache_name, key = cache_key, data = cached }
+                                    if not (ui_instance and ui_instance.document
+                                            and ui_instance.document.file == file) then
+                                        info.file = file
+                                        info.book_title = book_metadata and book_metadata.title
+                                        info.book_author = book_metadata and book_metadata.author
+                                    end
+                                    plugin:showCacheViewer(info)
                                     return
                                 end
                             end
@@ -7601,9 +7639,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Pre-flight: cache actions with source_selection use View/Sections/New popup
         if action.use_response_caching and action.source_selection and plugin then
             local ActionCache = require("koassistant_action_cache")
-            local file = (ui_instance and ui_instance.document and ui_instance.document.file)
-                or (configuration and configuration.features and configuration.features.book_metadata
-                    and configuration.features.book_metadata.file)
+            -- The dialog's own book (document_path: the open one, or the closed
+            -- book its chat is about), where the run will write (B387)
+            local file = document_path
+                or (ui_instance and ui_instance.document and ui_instance.document.file)
             local cached = file and ActionCache.get(file, action_id)
             -- Fallback: document-level cache (migration)
             if not cached or not cached.result then
@@ -7647,7 +7686,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                 }})
                 -- Surface in-range section artifacts
                 local section_prefix = ActionCache.getSectionPrefix(action_id)
+                -- Sections convert pages through the book's own document: none
+                -- for a closed book's dialog beside another open book (B387)
                 local doc = ui_instance and ui_instance.document
+                if doc and doc.file ~= file then doc = nil end
                 if section_prefix and file and doc then
                     local in_range = ActionCache.findMatchingSections(file, doc, section_prefix)
                     for _idx2, sec in ipairs(in_range) do
@@ -7682,8 +7724,10 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         }})
                     end
                 end
-                -- Update/Redo for position-relevant actions (e.g. Recap)
-                if action.use_reading_progress and ui_instance and ui_instance.document then
+                -- Update/Redo for position-relevant actions (e.g. Recap): the open
+                -- book's position, so only when the open book is this one (B387)
+                if action.use_reading_progress and ui_instance and ui_instance.document
+                        and ui_instance.document.file == file then
                     local cached_progress = cached.progress_decimal or 0
                     local update_text
                     local ContextExtractor = require("koassistant_context_extractor")
@@ -7795,13 +7839,13 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         if action.use_response_caching and not action.source_selection
                 and plugin and plugin.showCacheActionPopup then
             local cache_opts
-            local cfg_bm = configuration and configuration.features
-                and configuration.features.book_metadata
-            if cfg_bm and cfg_bm.file then
+            -- The dialog's own book: a highlight dialog's shared book_metadata
+            -- can name an earlier book, and the popup now prefers opts.file (B387)
+            if document_path then
                 cache_opts = {
-                    file = cfg_bm.file,
-                    book_title = cfg_bm.title,
-                    book_author = cfg_bm.author,
+                    file = document_path,
+                    book_title = book_metadata and book_metadata.title,
+                    book_author = book_metadata and book_metadata.author,
                 }
             end
             -- The X-Ray popup's direct rows read the run option from here (B345)
@@ -9518,8 +9562,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         if (configuration.features or {}).enable_basic_stats == false then return end
                         local prog = book_metadata and book_metadata.reading_progress
                         local chapter, page
+                        -- The live position belongs to the OPEN book: a chat about a
+                        -- book that is not the open one sends that book's saved
+                        -- progress, never the open book's chapter and page (B387)
+                        local live = ui_instance and ui_instance.document
+                            and ui_instance.document.file == document_path
+                        if not live and not prog then
+                            local bm = configuration.features.book_metadata
+                            if bm and bm.file == document_path then prog = bm.reading_progress end
+                        end
                         local ok, CE = pcall(require, "koassistant_context_extractor")
-                        if ok and CE and ui_instance and ui_instance.document then
+                        if ok and CE and live then
                             local ex = CE:new(ui_instance, configuration.features or {})
                             local oks, stats = pcall(function() return ex:getReadingStats() end)
                             if oks and stats then chapter = stats.chapter_title; page = stats.page_number end
@@ -9543,16 +9596,29 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(parts, "")
                         end
                         -- Auto-attach library scan data when scanning is enabled
-                        -- Global toggle is absolute gate; session folders bypass folder config only
+                        -- Global toggle is absolute gate; session folders bypass folder config only.
+                        -- Judged here for the provider this Send goes to: a run option or a
+                        -- ⚡ pick can re-point it after the dialog opened (B396 c).
+                        local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
                         local scan_folders_to_use
-                        if library_toggle_on then
+                        if lib_features.enable_library_scanning == true
+                                or require("koassistant_attachments").isTrustedProvider(lib_features,
+                                    send_rv and send_rv.provider
+                                        or require("koassistant_dialogs").effectiveDispatchProvider(
+                                            configuration.features, nil, configuration.provider)) then
                             scan_folders_to_use = plugin and plugin._session_scan_folders
                             if not scan_folders_to_use then
-                                local lib_features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
                                 if lib_features.library_scan_folders and #lib_features.library_scan_folders > 0 then
                                     scan_folders_to_use = lib_features.library_scan_folders
                                 end
                             end
+                        elseif library_toggle_on then
+                            -- The dialog offered the list for its own provider; say why
+                            -- this Send goes without it rather than drop it silently
+                            UIManager:show(require("ui/widget/notification"):new{
+                                text = _("Your book list was left out: library scanning is off for this provider."),
+                                timeout = 3,
+                            })
                         end
                         if scan_folders_to_use and #scan_folders_to_use > 0 then
                             local scan_ok, LibraryScanner = pcall(require, "koassistant_library_scanner")
@@ -9623,7 +9689,18 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                             table.insert(parts, "")
                         end
                         table.insert(parts, "Selected text:")
-                        table.insert(parts, '"' .. highlighted_text .. '"')
+                        -- An X-Ray chat's "Your highlights" block was judged when its
+                        -- entry page was built: judge it again for the provider this
+                        -- Send goes to (B396 d). Inline requires (60-upvalue cap).
+                        local sel_text = highlighted_text
+                        if xray_context_prefix then
+                            sel_text = require("koassistant_attachments").xrayChatTextFor(
+                                highlighted_text, configuration.features,
+                                send_rv and send_rv.provider
+                                    or require("koassistant_dialogs").effectiveDispatchProvider(
+                                        configuration.features, nil, configuration.provider))
+                        end
+                        table.insert(parts, '"' .. sel_text .. '"')
                         table.insert(parts, "")
                         -- Ambient surrounding context (surrounding_context_plan.md): freeform
                         -- Send follows the per-book > global mode. The window was pre-extracted
@@ -10238,7 +10315,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         local artifact_file = document_path
         if artifact_file then
             local ActionCache = require("koassistant_action_cache")
-            local open_doc = ui_instance and ui_instance.document or nil
+            -- The open document only when it is this dialog's book (B387)
+            local open_doc = has_open_book and ui_instance.document or nil
             local caches = ActionCache.getAvailableArtifactsWithPinned(artifact_file, nil, open_doc)
 
             local function openArtifact(cache, on_select)
@@ -10559,7 +10637,8 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         -- Keep these conditions in sync with the chip_defs visibility guards.
         local mf = (configuration and configuration.features) or {}
         local m_book_or_hl = not mf.is_general_context and not mf.is_library_context
-        local m_has_book = ui_instance and ui_instance.document ~= nil
+        -- The chips' own rule: THIS dialog's book is the open one (B387)
+        local m_has_book = has_open_book
         local applicable = {
             domain = true,
             web_search = true,
@@ -11037,7 +11116,17 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
     -- Pass cleanup widgets so browser can close them when launching book text search
     browser_metadata._cleanup_widgets = cleanup_widgets
 
-    XrayBrowser:show(data, browser_metadata, ui, function(keep_versions)
+    -- The reader's UI only when the open book IS the lookup's book (main.lua's
+    -- artifact path does the same): with another book open, an entry page
+    -- would list that book's highlights and "Chat about this" would frame and
+    -- save the entry's chat as the open book's (B387)
+    local browser_ui = ui
+    if browser_ui and browser_ui.document and target_file
+            and browser_ui.document.file ~= target_file then
+        browser_ui = nil
+    end
+
+    XrayBrowser:show(data, browser_metadata, browser_ui, function(keep_versions)
         -- Round 28: ONE lineage-delete helper (ActionCache.deleteXray) — doc-level
         -- key, the per-action "xray" entry (a doc-key-only clear leaves an entry
         -- background auto-update resurrects from), wiki entries and the ladder;
@@ -12615,6 +12704,14 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
     -- different book than the open one, so its identity beats the live
     -- document (device 2026-08-13: wrong-book lookups)
     local forced_path = opts and opts.document_path
+    -- A book-level request about another book than the open one (a Regenerate
+    -- or an action from a Book Hub or group hub beside an open book) is that
+    -- book's: book-level entries set book_metadata for their target (B387)
+    if not forced_path and ui and ui.document and configuration and configuration.features
+            and configuration.features.is_book_context then
+        local target = configuration.features.book_metadata and configuration.features.book_metadata.file
+        if target and target ~= ui.document.file then forced_path = target end
+    end
 
     if ui and ui.document and (not forced_path or ui.document.file == forced_path) then
         local props = ui.doc_props or {}
@@ -12777,7 +12874,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             if not action.interactive_quiz and not nothing_saved and configuration and configuration.features and configuration.features._section_scope and plugin then
                 local ActionCache = require("koassistant_action_cache")
                 local scope = configuration.features._section_scope
-                local file = ui and ui.document and ui.document.file or document_path
+                local file = temp_config._cache_file or document_path or (ui and ui.document and ui.document.file)  -- where the request wrote it (B387)
                 if scope.cache_key and file then
                     local section_cache = ActionCache.get(file, scope.cache_key)
                     if section_cache and section_cache.result then
@@ -12921,7 +13018,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             -- The result is already saved to ActionCache; the full chat viewer is unnecessary
             if action.use_response_caching and not nothing_saved and action.id and plugin then
                 local ActionCache = require("koassistant_action_cache")
-                local file = ui and ui.document and ui.document.file or document_path
+                local file = temp_config._cache_file or document_path or (ui and ui.document and ui.document.file)  -- where the request wrote it (B387)
                 if file then
                     local cached = ActionCache.get(file, action.id)
                     if cached and cached.result then
@@ -12939,7 +13036,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             -- (cache_as_xray already handled above with XrayBrowser)
             if (action.cache_as_analyze or action.cache_as_summary) and not nothing_saved and plugin then
                 local ActionCache = require("koassistant_action_cache")
-                local file = ui and ui.document and ui.document.file
+                local file = temp_config._cache_file or document_path or (ui and ui.document and ui.document.file)  -- where the request wrote it (B387)
                 if file then
                     local cached, cache_name, cache_key
                     if action.cache_as_analyze then
@@ -12952,7 +13049,13 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                         cache_key = "_summary_cache"
                     end
                     if cached and cached.result then
-                        plugin:showCacheViewer({ name = cache_name, key = cache_key, data = cached })
+                        local info = { name = cache_name, key = cache_key, data = cached }
+                        if not (ui and ui.document and ui.document.file == file) then
+                            info.file = file
+                            info.book_title = book_metadata and book_metadata.title
+                            info.book_author = book_metadata and book_metadata.author
+                        end
+                        plugin:showCacheViewer(info)
                         return
                     end
                 end
@@ -13295,7 +13398,7 @@ end
 --- @param configuration table Plugin configuration
 --- @param plugin table Plugin instance
 --- @param book_metadata table {title, author, file}
-local function launchArtifactChat(user_question, artifact_content, artifact_type_name, ui, configuration, plugin, book_metadata)
+local function launchArtifactChat(user_question, artifact_content, artifact_type_name, ui, configuration, plugin, book_metadata, opts)
     local document_path = book_metadata and book_metadata.file
     local title = (artifact_type_name or _("Artifact")) .. ": " .. _("Chat")
 
@@ -13363,6 +13466,21 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
 
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
+
+    -- A notebook is the reader's own writing: the notebook gate for the provider
+    -- this chat goes to, known only after the bake (a run option can re-point
+    -- it); the book's deny beats a trusted provider (B396 a)
+    if opts and opts.notebook then
+        local A = require("koassistant_attachments")
+        if not A.notebookAllowed(configuration.features,
+                configuration.provider or configuration.default_provider,
+                A.notebookOverrideFor(document_path, ui)) then
+            UIManager:show(InfoMessage:new{
+                text = _("Chatting about your notebook needs \"Notebook sharing\" (Settings → Privacy & Data, or this book's Privacy overrides)."),
+            })
+            return
+        end
+    end
 
     -- Create history with artifact type as prompt_action for title generation
     local history = MessageHistory:new(nil, nil)

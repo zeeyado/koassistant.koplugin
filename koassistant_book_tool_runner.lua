@@ -872,6 +872,14 @@ end
 -- callers are unaffected.
 function BookToolRunner.sessionEligible(config, ui)
     local features = config and config.features or {}
+    -- The tools search the OPEN book: a request about another book (a chat
+    -- started from a Book Hub or a group hub while this one is open) has
+    -- nothing here to search, whatever the open book's settings say (B387)
+    local target = features.book_metadata and features.book_metadata.file
+    if target and ui and ui.document and ui.document.file
+            and target ~= ui.document.file then
+        return false, "no_book"
+    end
     local provider = config and (config.provider or config.default_provider)
     -- Provider/model must support function calling AND have a tool_wire adapter; otherwise
     -- fall through to the normal (whole-context) path. Generalizes the old gemini-only gate.

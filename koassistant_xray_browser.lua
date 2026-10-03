@@ -2375,6 +2375,10 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         end
     end
     local item_highlights = {}
+    -- The "Your highlights" block appended to chat_text and the book's override
+    -- it was judged under: "Chat about this" records both so every send from
+    -- that chat re-judges the block for its own provider (B396 d)
+    local hl_record
     -- Populated by the connections block below; the More… popup is built
     -- BEFORE it, and its callbacks run after, so the closure sees the filled list
     local conn_entries = {}
@@ -2399,10 +2403,11 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
         -- Per-book privacy override (Book Settings ▸ Privacy): the highlights come
         -- from the OPEN book's live annotations, and this detail text is sent to
         -- the provider by "Chat about this" — deny beats trusted.
+        local hl_override
         if self.ui.doc_settings then
-            local ov = require("koassistant_book_settings")
+            hl_override = require("koassistant_book_settings")
                 .effectivePrivacyOverrides(self.ui.doc_settings).highlights
-            if ov ~= nil then highlights_allowed = ov end
+            if hl_override ~= nil then highlights_allowed = hl_override end
         end
         item_highlights = highlights_allowed and findItemHighlights(item, self.ui) or {}
         if #item_highlights > 0 then
@@ -2410,14 +2415,16 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             -- gating them on the sharing settings); the PAGE moves them behind
             -- a button. A well-highlighted character buried its own X-Ray
             -- description under a wall of quotes (device 2026-08-18).
-            chat_text = chat_text .. "\n\n" .. _("Your highlights:") .. "\n"
+            local block = { "\n\n", _("Your highlights:"), "\n" }
             for _idx, hl in ipairs(item_highlights) do
                 local display_hl = hl
                 if #display_hl > 200 then
                     display_hl = display_hl:sub(1, 200) .. "..."
                 end
-                chat_text = chat_text .. "\n> " .. display_hl
+                block[#block + 1] = "\n> " .. display_hl
             end
+            hl_record = { block = table.concat(block), override = hl_override }
+            chat_text = chat_text .. hl_record.block
         end
     end
 
@@ -2533,6 +2540,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
                 self_ref:chatAboutItem(chat_text, {
                     name = XrayParser.getItemName(item, category_key),
                     category = (nav_context and nav_context.category_label) or category_key,
+                    highlights = hl_record,
                 })
             end,
         })
@@ -3874,6 +3882,11 @@ function XrayBrowser:chatAboutItem(detail_text, entity)
     -- Action filtering is now handled by the xray_chat input context sorting
     config.features._xray_chat_context = true
     config.features._hide_artifacts = true
+    -- The highlights block inside detail_text, re-judged at every send from
+    -- this chat for the provider it goes to (Attachments.xrayChatTextFor,
+    -- B396 d). Set or cleared on every open: this config is the chat's own copy,
+    -- so a copy taken from an earlier X-Ray chat never names a stale block.
+    config.features._xray_chat_highlights = entity and entity.highlights or nil
     -- When no book is open, exclude actions that need document data (text extraction, annotations)
     if not self.ui or not self.ui.document then
         config.features._exclude_action_flags = {"use_book_text", "use_annotations"}
