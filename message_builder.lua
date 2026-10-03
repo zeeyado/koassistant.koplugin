@@ -311,10 +311,11 @@ function MessageBuilder.build(params)
     user_prompt = replace_placeholder(user_prompt, "{previous_results_section}", previous_results_section)
     user_prompt = replace_placeholder(user_prompt, "{previous_results}", data.previous_results or "")
 
-    -- {full_document_section} - includes "Full document:\n" label
+    -- {full_document_section} - includes "Full document:\n" label, or the section's own
+    -- when the text is one section (data.full_document_label, set by the extractor; B391)
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then
-        full_document_section = "Full document:\n" .. data.full_document
+        full_document_section = (data.full_document_label or "Full document:") .. "\n" .. data.full_document
     end
     user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section)
 
@@ -323,7 +324,7 @@ function MessageBuilder.build(params)
     local document_context_section = ""
     local source_mode = data._source_mode
     if source_mode == "full_text" and data.full_document and data.full_document ~= "" then
-        document_context_section = "Full document:\n" .. data.full_document
+        document_context_section = (data.full_document_label or "Full document:") .. "\n" .. data.full_document
     elseif source_mode == "summary" and data.summary_cache and data.summary_cache ~= "" then
         document_context_section = "Document summary:\n" .. data.summary_cache
             .. "\n\nNote: The summary may be in a different language than your response language. Translate or adapt as needed."
@@ -810,10 +811,10 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     end
     result = replace_placeholder(result, "{library_section}", library_section)
 
-    -- {full_document_section}
+    -- {full_document_section} (a section's own label when there is one, B391)
     local full_document_section = ""
     if data.full_document and data.full_document ~= "" then
-        full_document_section = "Full document:\n" .. data.full_document
+        full_document_section = (data.full_document_label or "Full document:") .. "\n" .. data.full_document
     end
     result = replace_placeholder(result, "{full_document_section}", full_document_section)
 
@@ -821,7 +822,7 @@ function MessageBuilder.substituteVariables(prompt_text, data)
     local document_context_section = ""
     local source_mode = data._source_mode
     if source_mode == "full_text" and data.full_document and data.full_document ~= "" then
-        document_context_section = "Full document:\n" .. data.full_document
+        document_context_section = (data.full_document_label or "Full document:") .. "\n" .. data.full_document
     elseif source_mode == "summary" and data.summary_cache and data.summary_cache ~= "" then
         document_context_section = "Document summary:\n" .. data.summary_cache
             .. "\n\nNote: The summary may be in a different language than your response language. Translate or adapt as needed."

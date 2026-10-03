@@ -1443,6 +1443,22 @@ end
 -- Book text extraction also requires the use_book_text flag (because it's slow/expensive).
 -- @param action table with optional use_book_text flag
 -- @return table with all available data
+--- The label a section-scoped request's text carries in the prompt, where a whole
+-- document reads "Full document:" (B391): the section's name and pages when the scope
+-- has them (section X-Rays, section runs of an action, chapter quizzes), plain words for
+-- a page range without a name (a highlight action's section or read-so-far scope).
+-- MessageBuilder reads it as data.full_document_label.
+function ContextExtractor.sectionTextLabel(scope)
+    local label = type(scope) == "table" and scope.label
+    if type(label) ~= "string" or label == "" then
+        return "Text of the selected pages:"
+    end
+    if type(scope.page_summary) == "string" and scope.page_summary ~= "" then
+        return string.format('Text of section "%s" (%s):', label, scope.page_summary)
+    end
+    return string.format('Text of section "%s":', label)
+end
+
 function ContextExtractor:extractForAction(action)
     action = action or {}
     local data = {}
@@ -1592,6 +1608,8 @@ function ContextExtractor:extractForAction(action)
                 -- Section scope: extract only the scoped page range
                 local scope = action._section_scope
                 full_doc_result = self:getPageRangeText(scope.start_page, scope.end_page, options)
+                -- Labelled as the part it is, not "Full document:" (B391)
+                data.full_document_label = ContextExtractor.sectionTextLabel(scope)
             else
                 full_doc_result = self:getFullDocumentText(options)
             end

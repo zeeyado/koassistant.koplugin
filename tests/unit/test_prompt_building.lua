@@ -286,6 +286,47 @@ local function runMessageBuilderTests()
         TestRunner:assertContains(result, "Full doc content.")
     end)
 
+    TestRunner:test("a section's text carries the section's label, not Full document (B391)", function()
+        local label = 'Text of section "III" (pp 32–38):'
+        local data = { full_document = "Section content.", full_document_label = label }
+        local result = MessageBuilder.build({
+            prompt = { prompt = "{full_document_section}" }, context = "general", data = data,
+        })
+        TestRunner:assertContains(result, label .. "\nSection content.", "the full-document placeholder")
+        TestRunner:assertNotContains(result, "Full document:")
+        data._source_mode = "full_text"
+        local unified = MessageBuilder.build({
+            prompt = { prompt = "{document_context_section}" }, context = "general", data = data,
+        })
+        TestRunner:assertContains(unified, label .. "\nSection content.", "the unified placeholder")
+        TestRunner:assertNotContains(unified, "Full document:")
+        TestRunner:assertContains(MessageBuilder.substituteVariables("{full_document_section}", data),
+            label .. "\nSection content.", "substituteVariables")
+    end)
+
+    -- The hand-off: the extractor's section branch sets the label the builder reads
+    TestRunner:test("a section-scoped extraction reaches the prompt under its section's label (B391)", function()
+        local extractor = createMockExtractor({ enable_book_text_extraction = true })
+        extractor.getPageRangeText = function(_self, s, e)
+            local text = "Pages " .. s .. "-" .. e .. " text."
+            return { text = text, char_count = #text }
+        end
+        local function sent(scope)
+            local data = extractor:extractForAction({ use_book_text = true,
+                prompt = "{full_document_section}", _section_scope = scope })
+            return MessageBuilder.build({ prompt = { prompt = "{full_document_section}" },
+                context = "general", data = data })
+        end
+        local named = sent({ label = "III", page_summary = "pp 32–38", start_page = 32, end_page = 38 })
+        TestRunner:assertContains(named, 'Text of section "III" (pp 32–38):\nPages 32-38 text.', "a named section")
+        TestRunner:assertNotContains(named, "Full document:")
+        TestRunner:assertContains(sent({ start_page = 1, end_page = 5 }),
+            "Text of the selected pages:\nPages 1-5 text.", "a page range without a name")
+        local whole = MessageBuilder.build({ prompt = { prompt = "{full_document_section}" }, context = "general",
+            data = extractor:extractForAction({ use_book_text = true, prompt = "{full_document_section}" }) })
+        TestRunner:assertContains(whole, "Full document:\nThis is the full document text.", "no scope: unchanged")
+    end)
+
     TestRunner:test("surrounding_context_section includes label when present", function()
         local result = MessageBuilder.build({
             prompt = { prompt = "{surrounding_context_section}" },
