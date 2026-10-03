@@ -4443,7 +4443,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         -- untouched
         local xr_depth = require("koassistant_book_settings")
             .resolveXrayDepth(xr_ds, config.features)
-        if xr_sel or xr_depth then
+        -- The status block (B271): "off", or nil = on (the shipped wording)
+        local xr_status = require("koassistant_book_settings")
+            .resolveXrayStatus(xr_ds, config.features)
+        if xr_sel or xr_depth or xr_status then
             if not prompt._is_copy then
                 local original_prompt = prompt
                 prompt = {}
@@ -4453,14 +4456,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
             local section = prompt.id == "section_xray" and config.features._section_xray
             prompt.prompt = section
                 and PromptsActions.buildSectionXrayPrompt(section.label, section.page_summary,
-                    false, xr_sel, xr_depth)
+                    false, xr_sel, xr_depth, xr_status)
                 or PromptsActions.buildXrayCategoryPrompt(xr_sel,
                     (config.features and config.features._full_document_xray)
-                        and "complete" or "partial", xr_depth)
+                        and "complete" or "partial", xr_depth, xr_status)
             message_data._xray_categories_applied = xr_sel
             message_data._xray_depth_applied = xr_depth
+            message_data._xray_status_applied = xr_status
             logger.dbg("KOAssistant: X-Ray create narrowed to categories:", xr_sel,
-                "depth:", xr_depth)
+                "depth:", xr_depth, "status block:", xr_status or "on")
         end
     end
     -- B337(c): Fiction or Nonfiction set for the book: that schema alone
@@ -5106,11 +5110,11 @@ if prune_book_text then
                 message_data.cached_timestamp = cached_entry.timestamp
                 message_data.cached_coverage_spans = cached_entry.coverage_spans
 
-                -- For X-Ray: parse cached result and build entity index for merge-based updates
+                -- For X-Ray: parse the cached result for the merge-based update
+                -- (its entity index is built below, once the new slice is read)
                 if prompt.id == "xray" and XrayParser.isJSON(cached_entry.result) then
                     local parsed_cache = XrayParser.parse(cached_entry.result)
                     if parsed_cache and not parsed_cache.error then
-                        message_data.entity_index = XrayParser.buildEntityIndex(parsed_cache)
                         message_data._parsed_old_xray = parsed_cache
                     end
                 end
@@ -5124,6 +5128,14 @@ if prune_book_text then
                 -- a sidecar selection the create-side block staged (a filtered
                 -- preference over a full lineage must not mis-stamp the save).
                 if prompt.id == "xray" then
+                    -- The status block is lineage truth too (B271): an X-Ray
+                    -- built without one is updated without one, and an update
+                    -- with nothing new may answer an empty object
+                    local cached_status = PromptsActions.normalizeXrayStatus(cached_entry.xray_status)
+                    message_data._xray_status_applied = cached_status
+                    if cached_status then
+                        prompt.prompt = PromptsActions.xrayUpdateWithoutStatus(prompt.prompt)
+                    end
                     if cached_entry.xray_categories then
                         local cat_keys = PromptsActions.xrayCategoryKeysFor(
                             cached_entry.xray_categories,
@@ -5132,7 +5144,8 @@ if prune_book_text then
                             prompt.prompt = prompt.prompt
                                 .. "\n\nThis X-Ray deliberately tracks ONLY these entry categories: "
                                 .. table.concat(cat_keys, ", ")
-                                .. ". Do not add entries in any other category or introduce new category keys. The always-required status object is unaffected."
+                                .. ". Do not add entries in any other category or introduce new category keys."
+                                .. (cached_status and "" or " The always-required status object is unaffected.")
                         end
                     end
                     message_data._xray_categories_applied =
@@ -5183,6 +5196,15 @@ if prune_book_text then
                         message_data.incremental_coverage_start = range_result.coverage_start
                         message_data.incremental_coverage_end = range_result.coverage_end
                     end
+                end
+
+                -- The entity index for the merge-based update. Built after the
+                -- slice is read (B394 slice 4): of the names carried from other
+                -- books it lists only the ones this slice mentions. With no
+                -- slice text it lists them all, as before.
+                if message_data._parsed_old_xray then
+                    message_data.entity_index = XrayParser.buildEntityIndex(
+                        message_data._parsed_old_xray, { text = message_data.incremental_book_text })
                 end
 
                 -- The update prompt sends only {cached_result} + the incremental
@@ -5388,6 +5410,15 @@ if prune_book_text then
             if action.cache_as_xray then
                 local XrayParser = require("koassistant_xray_parser")
                 local parsed, parse_err = XrayParser.parse(answer)
+                -- B271: an X-Ray that keeps no status block can have nothing to
+                -- report from a slice. Its update then answers an empty object,
+                -- which is an empty delta ("nothing new up to here"), never junk:
+                -- the X-Ray is saved unchanged at the new position.
+                if not parsed and using_cache and message_data._xray_status_applied == "off"
+                        and XrayParser.isEmptyObject(answer) then
+                    parsed = {}
+                    logger.dbg("KOAssistant: X-Ray update answered an empty object: nothing new in this slice")
+                end
                 local RP = require("koassistant_api.response_parser")
                 local incomplete = RP.isIncomplete(answer)
                 -- B353/B378: a create the model built nothing from (it declined,
@@ -5427,6 +5458,12 @@ if prune_book_text then
                     -- weak local models emitted entries with no description
                     -- that polluted the installed X-Ray verbatim
                     XrayParser.sanitizeEntries(parsed)
+                    -- B271: an X-Ray that keeps no status block never gains one
+                    -- from an answer that sent it anyway (nothing would update
+                    -- it afterwards, and it would read as current)
+                    if message_data._xray_status_applied == "off" then
+                        parsed.current_state, parsed.current_position, parsed.conclusion = nil, nil, nil
+                    end
                     -- Merge partial update into existing data when available
                     if using_cache and message_data._parsed_old_xray then
                         -- To debug X-Ray merge: uncomment koassistant_debug_utils.dumpXrayMerge() below
@@ -5755,6 +5792,7 @@ if prune_book_text then
                       -- twin, promotions and ring restores already carry it.
                       xray_categories = message_data._xray_categories_applied,
                       xray_depth = message_data._xray_depth_applied,
+                      xray_status = message_data._xray_status_applied,
                       unavailable_data_text = unavailable_text }
                 )
                 if save_success then
@@ -5824,6 +5862,7 @@ if prune_book_text then
                         base_timestamp = xray_base_ts,
                         xray_categories = message_data._xray_categories_applied,
                       xray_depth = message_data._xray_depth_applied,
+                      xray_status = message_data._xray_status_applied,
                     })
                     if rung_ok then
                         logger.dbg("KOAssistant: ladder rung saved at", progress)
@@ -5865,6 +5904,7 @@ if prune_book_text then
                         unavailable_data_text = unavailable_text,
                         xray_categories = message_data._xray_categories_applied,
                       xray_depth = message_data._xray_depth_applied,
+                      xray_status = message_data._xray_status_applied,
                     }
                     -- Archive the pre-overwrite snapshot (ring of 5; incremental updates
                     -- AND redos/regenerations, manual AND background — xray_ecosystem_plan.md
@@ -6313,6 +6353,36 @@ if prune_book_text then
         return checkSidecarDataAndSend()
     end
 
+    -- The naming canon (carry layer 3(iii)): a fresh main X-Ray of a grouped
+    -- book lists the previous book's names in its request, so a recurring
+    -- person, place or term can be linked by alias. Part of the free carry:
+    -- every name-birthing request gets it (first checkpoint, introduction,
+    -- one-request create, rebuild), attended or not, whatever the reader
+    -- answers at the fold ask (B394 slice 3: declining the paid merge used to
+    -- drop it from an attended create). Updates carry the entity index
+    -- instead. Appended after the build, so the block never meets the
+    -- placeholder pass (merge-module wire-safety rule).
+    local function injectNamingCanon()
+        if not (prompt and prompt.cache_as_xray and not using_cache and cache_file) then return end
+        if config.features and (config.features._section_scope
+                or config.features._section_xray) then
+            return
+        end
+        local XrayMerge = require("koassistant_xray_merge")
+        local src = XrayMerge.seedSource(cache_file, config.features,
+            temp_config and temp_config.provider, ui)
+        local canon = src and XrayMerge.namingCanonBlock(src.parsed, src.title)
+        if not canon then return end
+        local msgs = history:getMessages()
+        for i = 1, #msgs do
+            if msgs[i].role == "user" and msgs[i].is_context then
+                msgs[i].content = msgs[i].content .. "\n\n" .. canon
+                break
+            end
+        end
+        logger.dbg("KOAssistant: naming canon injected into X-Ray create, source:", src.title)
+    end
+
     -- Background auto-update: no dialogs may fire. The only chain step reachable on an
     -- update run is the incremental-truncation warning (extracted_chars counts only
     -- book_text/full_document; the sidecar warning is multi-book only) — under
@@ -6342,32 +6412,9 @@ if prune_book_text then
         end
         -- A2 naming canon on the DEFAULT create path (maintainer 2026-08-11:
         -- silent injection). Background and ladder creates never reach the
-        -- attended fold ask (Step 0 below), so grouped background creates
-        -- named recurring entities without the alias bridge — diverging from
-        -- attended ones. Same gate and same post-build injection as Step 0;
-        -- no dialog, and the fold itself stays manual at the group screen /
-        -- attended surfaces. `not using_cache` scopes this to name-birthing
-        -- requests (first rung, intro, one-shot create, rebuild) — updates
-        -- carry the entity index instead.
-        if prompt and prompt.cache_as_xray and not using_cache and cache_file
-            and not (config.features and (config.features._section_scope
-                or config.features._section_xray)) then
-            local XrayMerge = require("koassistant_xray_merge")
-            local src = XrayMerge.seedSource(cache_file, config.features,
-                temp_config and temp_config.provider, ui)
-            local canon = src and XrayMerge.namingCanonBlock(src.parsed, src.title)
-            if canon then
-                local msgs = history:getMessages()
-                for i = 1, #msgs do
-                    if msgs[i].role == "user" and msgs[i].is_context then
-                        msgs[i].content = msgs[i].content .. "\n\n" .. canon
-                        break
-                    end
-                end
-                logger.dbg("KOAssistant: naming canon injected into background X-Ray create, source:",
-                    src.title)
-            end
-        end
+        -- attended fold ask (Step 0 below); the fold itself stays manual at
+        -- the group screen / attended surfaces.
+        injectNamingCanon()
         -- Item 50 follow-up (rounds 2): background size safeguard. The FIRST
         -- request of a user-initiated build may dialog — it fires right after
         -- the confirm tap, so that moment is attended; acceptance sticks on
@@ -6547,42 +6594,28 @@ if prune_book_text then
 
     -- Step 0 (carry layer 3(iii), 2026-08-06): pre-create fold ask — an
     -- attended FRESH main X-Ray of a grouped book whose previous book has an
-    -- X-Ray asks about folding BEFORE the create runs. Accepting stashes the
-    -- choice for handleResponse (auto-fold when the create lands) and injects
-    -- the naming canon into the already-built context message — post-build,
-    -- so the canon never meets the placeholder pass (merge-module
-    -- wire-safety rule). Declining sends the create untouched. Background
-    -- and ladder paths returned above and never reach this — their creates
-    -- get the canon SILENTLY in the background branch (A2, same gate).
+    -- X-Ray asks about the optional AI merge BEFORE the create runs.
+    -- Accepting stashes the choice for handleResponse (the merge runs when
+    -- the create lands). The naming canon rides the create either way (B394
+    -- slice 3): it belongs to the free carry, and "Just this book" declines
+    -- the paid merge, not the carry. Background and ladder paths returned
+    -- above and never reach this; they inject the canon in their own branch.
     if prompt and prompt.cache_as_xray and not using_cache and cache_file
         and not (config.features and (config.features._section_scope
             or config.features._section_xray)) then
-        local XrayMerge = require("koassistant_xray_merge")
-        local asked = XrayMerge.preCreateFoldAsk(
+        local asked = require("koassistant_xray_merge").preCreateFoldAsk(
             { file = cache_file, ui = ui, configuration = config },
             function(mode)
                 -- Round 28: explicit abort — nothing was sent, so there is
                 -- nothing to clean up; just don't continue the pre-send chain
                 if mode == "cancel" then return end
                 message_data._precreate_fold_asked = true
-                if mode then
-                    message_data._fold_after_create = mode
-                    local src = XrayMerge.seedSource(cache_file, config.features,
-                        temp_config and temp_config.provider, ui)
-                    local canon = src and XrayMerge.namingCanonBlock(src.parsed, src.title)
-                    if canon then
-                        local msgs = history:getMessages()
-                        for i = 1, #msgs do
-                            if msgs[i].role == "user" and msgs[i].is_context then
-                                msgs[i].content = msgs[i].content .. "\n\n" .. canon
-                                break
-                            end
-                        end
-                    end
-                end
+                if mode then message_data._fold_after_create = mode end
+                injectNamingCanon()
                 runPreSendWarnings()
             end)
         if asked then return nil end -- continuation via the ask's callback
+        injectNamingCanon()
     end
 
     return runPreSendWarnings()
@@ -11062,6 +11095,7 @@ local function openXrayBrowserFromCache(ui, data, cached, config, plugin, book_m
             (math.floor(cached.previous_progress_decimal * 100 + 0.5) .. "%"),
         merged_from_books = cached.merged_from_books,
         merged_from = cached.merged_from,
+        xray_categories = cached.xray_categories,
         cache_metadata = {
             cache_type = "xray",
             book_title = book_title,
@@ -11170,7 +11204,7 @@ local function openCarriedStubDetail(ui, main_data, config, plugin, book_metadat
     if not (main and main.result) then return end
     local XrayBrowser = openXrayBrowserFromCache(ui, main_data, main, config, plugin,
         book_metadata, { entry = main }, cleanup_widgets, document_path)
-    XrayBrowser:showDormantList()
+    XrayBrowser:showDormantList({ flat = true })
     local rows = XrayBrowser:_dormantRows()
     local display_i
     for ri, r in ipairs(rows) do
@@ -12564,7 +12598,7 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
                                 book_metadata, carried_cw, document_path,
                                 captured.stub_idx, captured.stub)
                         else
-                            XrayBrowser:showDormantList()
+                            XrayBrowser:showDormantList({ flat = true })
                             local d_rows = XrayBrowser:_dormantRows()
                             local display_i
                             for ri, r in ipairs(d_rows) do
@@ -12925,6 +12959,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                                 (math.floor(xray_cache.previous_progress_decimal * 100 + 0.5) .. "%"),
                             merged_from_books = xray_cache.merged_from_books,
                             merged_from = xray_cache.merged_from,
+                            xray_categories = xray_cache.xray_categories,
                             cache_metadata = {
                                 cache_type = "xray",
                                 book_title = book_title,

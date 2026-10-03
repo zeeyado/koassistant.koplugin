@@ -970,9 +970,30 @@ local function normalizeXrayCategories(value)
     return table.concat(out, ",")
 end
 
+--- Normalize a stored status-block switch (B271): "off" | nil (= on, the
+--- shipped prompt). The status block ("Where things stand": current_state /
+--- current_position, or conclusion for a whole-document build) is NOT a
+--- category group: it is one object, replaced whole by every update, and it
+--- has its own key and stamp so every stored category value keeps its meaning.
+local function normalizeXrayStatus(value)
+    if value == "off" or value == false then return "off" end
+    return nil
+end
+
+-- The template lines the status block occupies, each with the newline before
+-- it, so a status-less prompt carries no blank schema line and no orphan
+-- bullet. Fiction and non-fiction (the academic template is never narrowed).
+local XRAY_STATUS_LINES = {
+    "\n  __FICTION_STATUS__", "\n- __FICTION_STATUS_GUIDANCE__",
+    "\n  __NONFICTION_STATUS__", "\n- __NONFICTION_STATUS_GUIDANCE__",
+}
+
 --- Assemble the four schema/guidance replacement strings for a selection.
 --- @param selection string|nil canonical csv (nil = full)
-local function assembleXraySchemaParts(selection, depth)
+--- @param depth string|nil "light" | "deep" (nil = standard)
+--- @param status string|nil "off" = no status block follows the categories,
+---   so the last one takes no trailing comma (nil = on, the shipped wording)
+local function assembleXraySchemaParts(selection, depth, status)
     depth = normalizeXrayDepth(depth)
     local fguide = depth and FICTION_GUIDANCE_BY_DEPTH[depth] or FICTION_GUIDANCE_FRAGMENTS
     local nguide = depth and NONFICTION_GUIDANCE_BY_DEPTH[depth] or NONFICTION_GUIDANCE_FRAGMENTS
@@ -1013,10 +1034,11 @@ local function assembleXraySchemaParts(selection, depth)
     fg[#fg + 1] = conn_rule
     ng[#ng + 1] = conn_rule
     local size_key = depth or "standard"
+    local after_schema = normalizeXrayStatus(status) and "" or ","
     return {
-        __FICTION_SCHEMA__ = table.concat(fs, ",\n  ") .. ",",
+        __FICTION_SCHEMA__ = table.concat(fs, ",\n  ") .. after_schema,
         __FICTION_GUIDANCE__ = table.concat(fg, "\n"),
-        __NONFICTION_SCHEMA__ = table.concat(ns, ",\n  ") .. ",",
+        __NONFICTION_SCHEMA__ = table.concat(ns, ",\n  ") .. after_schema,
         __NONFICTION_GUIDANCE__ = table.concat(ng, "\n"),
         __FICTION_OUTPUT_SIZE__ = OUTPUT_SIZE_BY_DEPTH.fiction[size_key],
         __NONFICTION_OUTPUT_SIZE__ = OUTPUT_SIZE_BY_DEPTH.nonfiction[size_key],
@@ -1028,9 +1050,16 @@ end
 --- @param replacements table Scope replacement set (partial/complete/section)
 --- @param selection string|nil canonical csv (nil = full)
 --- @param depth string|nil "light" | "deep" (nil = standard)
-local function assemble_xray_prompt(template, replacements, selection, depth)
-    local merged = assembleXraySchemaParts(selection, depth)
+--- @param status string|nil "off" = no status block (B271; nil = on)
+local function assemble_xray_prompt(template, replacements, selection, depth, status)
+    local merged = assembleXraySchemaParts(selection, depth, status)
     for k, v in pairs(replacements) do merged[k] = v end
+    if normalizeXrayStatus(status) then
+        for _idx, line in ipairs(XRAY_STATUS_LINES) do
+            local s, e = template:find(line, 1, true)
+            if s then template = template:sub(1, s - 1) .. template:sub(e + 1) end
+        end
+    end
     return build_xray_prompt(template, merged)
 end
 
@@ -1271,8 +1300,10 @@ local ACADEMIC_SECTION_REPLACEMENTS = {
 --- @param academic boolean|nil If true, use academic template
 --- @param selection string|nil canonical category csv (nil = full)
 --- @param depth string|nil "light" | "deep" (nil = standard)
+--- @param status string|nil "off" = no conclusion block (B271; nil = on).
+---   Ignored by the academic template, like the categories and the depth.
 --- @return string prompt The fully resolved prompt
-function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic, selection, depth)
+function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic, selection, depth, status)
     local template = academic and ACADEMIC_XRAY_PROMPT_TEMPLATE or XRAY_PROMPT_TEMPLATE
     local base_replacements = academic and ACADEMIC_SECTION_REPLACEMENTS or XRAY_SECTION_REPLACEMENTS
     local replacements = {}
@@ -1283,7 +1314,8 @@ function Actions.buildSectionXrayPrompt(scope_label, page_summary, academic, sel
     -- The book's X-Ray categories and depth, as for a new X-Ray (B388; the
     -- request assembly resolves them). The schema markers are absent from the
     -- academic template, so the assembly no-ops there
-    return assemble_xray_prompt(template, replacements, selection, depth)
+    return assemble_xray_prompt(template, replacements, selection, depth,
+        not academic and status or nil)
 end
 
 --- Canonical group order for the category picker (presets v0.21).
@@ -1326,11 +1358,41 @@ end
 --- @param selection string canonical csv from normalizeXrayCategories
 --- @param which string "partial" (to reading position) | "complete" (whole document)
 --- @param depth string|nil "light" | "deep" (nil = standard, the shipped wording)
+--- @param status string|nil "off" = no status block (B271; nil = on, the shipped wording)
 --- @return string prompt
-function Actions.buildXrayCategoryPrompt(selection, which, depth)
+function Actions.buildXrayCategoryPrompt(selection, which, depth, status)
     local replacements = which == "complete"
         and XRAY_COMPLETE_REPLACEMENTS or XRAY_PARTIAL_REPLACEMENTS
-    return assemble_xray_prompt(XRAY_PROMPT_TEMPLATE, replacements, selection, depth)
+    return assemble_xray_prompt(XRAY_PROMPT_TEMPLATE, replacements, selection, depth, status)
+end
+
+--- Normalize a stored status-block switch ("off" | nil = on).
+Actions.normalizeXrayStatus = normalizeXrayStatus
+
+-- The update prompt's status line, as the built-in update prompts carry it
+-- (the standard one and the research one), and what replaces it for an X-Ray
+-- that keeps no status block (B271).
+local XRAY_UPDATE_STATUS_LINES = {
+    '- You MUST always include "current_state" (fiction) or "current_position" (nonfiction) — these are always considered changed',
+    '- You MUST always include "current_position" — this is always considered changed',
+}
+local XRAY_UPDATE_NO_STATUS_LINE = '- This X-Ray keeps no status object: never output "current_state", "current_position" or "conclusion". When the new content adds nothing to the entries and changes none of them, output an empty JSON object: {}'
+
+--- An update prompt for an X-Ray that keeps no status block (B271): the
+--- "always include the status object" line becomes "never output one; nothing
+--- new is an empty object". A prompt without that line (a custom update
+--- prompt) gets the instruction appended instead.
+--- @param text string an update prompt
+--- @return string
+function Actions.xrayUpdateWithoutStatus(text)
+    if type(text) ~= "string" then return text end
+    for _idx, line in ipairs(XRAY_UPDATE_STATUS_LINES) do
+        local s, e = text:find(line, 1, true)
+        if s then
+            return text:sub(1, s - 1) .. XRAY_UPDATE_NO_STATUS_LINE .. text:sub(e + 1)
+        end
+    end
+    return text .. "\n\n" .. XRAY_UPDATE_NO_STATUS_LINE:sub(3)
 end
 
 --- Depth rungs in picker order.

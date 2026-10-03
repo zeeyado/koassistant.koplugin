@@ -172,6 +172,65 @@ function TestXrayMerge:runAll()
         self:assert(not index:find("C"), "Should not show third alias")
     end)
 
+    -- B394 slice 4: the carried names in the index are the ones the request's
+    -- text mentions
+    local function carriedData()
+        return {
+            type = "fiction",
+            characters = { { name = "Own Hero", description = "x" } },
+            [XrayParser.DORMANT_KEY] = {
+                { name = "Tobias Renn", aliases = { "Toby", "the Magister", "Renn" }, category = "characters" },
+                { name = "Old Tove", category = "characters" },
+                { name = "Ines Vardo", aliases = { "the Doctor" }, category = "characters" },
+                { name = "ミラ", aliases = { "ミラ・エル・ソーン" }, category = "characters" },
+                { name = "Al", category = "characters" },
+            },
+        }
+    end
+
+    self:test("carried names: without a text every one is listed (the old shape)", function()
+        local index = XrayParser.buildEntityIndex(carriedData())
+        self:assert(index:find("dormant (from related books, not yet in this one): ", 1, true), "the line")
+        self:assert(index:find("Tobias Renn (Toby, the Magister)", 1, true), "first two aliases")
+        self:assert(index:find("Old Tove", 1, true) and index:find("Ines Vardo (the Doctor)", 1, true), "all listed")
+        self:assert(index:find("characters: Own Hero", 1, true), "this book's own entries are untouched")
+    end)
+
+    self:test("carried names: with a text only the mentioned ones, matched alias shown first", function()
+        local text = "That night the MAGISTER rode out alone.\nNobody saw Old  Tove again, "
+            .. "and Alfred slept. ミラ・エル・ソーンは笑った。"
+        local index = XrayParser.buildEntityIndex(carriedData(), { text = text })
+        self:assert(index:find("Tobias Renn (the Magister, Toby)", 1, true),
+            "found by its third alias, case folded; that alias leads so the model can connect it")
+        self:assert(index:find("Old Tove", 1, true), "found by name across a doubled space")
+        self:assert(index:find("ミラ (ミラ・エル・ソーン)", 1, true), "a CJK name found through its alias")
+        self:assert(not index:find("Ines Vardo", 1, true), "a name the text never mentions is left out")
+        self:assert(not index:find("; Al", 1, true) and not index:find(": Al;", 1, true),
+            "a two-letter name never matches (the matcher's floor), even inside Alfred")
+        self:assert(index:find("characters: Own Hero", 1, true), "this book's own entries are always listed")
+    end)
+
+    self:test("carried names: nothing mentioned drops the line; an empty text lists all", function()
+        local index = XrayParser.buildEntityIndex(carriedData(), { text = "Nothing relevant happens here." })
+        self:assert(not index:find("dormant", 1, true), "no line at all")
+        local all = XrayParser.buildEntityIndex(carriedData(), { text = "" })
+        self:assert(all:find("Ines Vardo", 1, true), "no text to judge by: every name, as before")
+    end)
+
+    self:test("carried names: the cap is the backstop when the text mentions most of them", function()
+        local data = { type = "fiction", characters = { { name = "Own", description = "x" } } }
+        local ledger, words = {}, {}
+        for i = 1, 400 do
+            ledger[i] = { name = "Carried" .. i .. "x", category = "characters" }
+            words[i] = "Carried" .. i .. "x"
+        end
+        data[XrayParser.DORMANT_KEY] = ledger
+        local index = XrayParser.buildEntityIndex(data, { text = table.concat(words, " ") })
+        local line = index:match("dormant[^\n]*")
+        local _s, count = line:gsub(";", "")
+        self:assertEquals(count + 1, 300, "300 names at most")
+    end)
+
     -- ===== merge tests =====
     print("\n--- merge ---")
 

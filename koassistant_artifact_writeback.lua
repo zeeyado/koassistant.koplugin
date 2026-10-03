@@ -53,6 +53,7 @@ local BASE_CONTINUITY_FIELDS = {
     -- the same lineage — the stamp must survive it
     "xray_categories",
     "xray_depth",
+    "xray_status",
 }
 
 --- Reconcile permission/provenance metadata for a write that merges new
@@ -451,6 +452,101 @@ end
 ---   refresh_fn
 --- @return boolean ok
 --- @return string result_or_err cache_json on success, error text on failure
+--- Replay a reader's edit over a loaded checkpoint array (B267, B394 slice
+--- 6): the pure half. apply_fn(data) edits one checkpoint's parsed X-Ray and
+--- returns true only when it changed something; a checkpoint that does not
+--- hold the entry is left alone. A rewritten checkpoint is stamped
+--- `edited_at` (it is no longer the build, and All versions says so), its
+--- timestamp and progress untouched: its identity survives. The introduction
+--- is never an installable version and is skipped, as the duplicate review's
+--- sweep skips it.
+--- @param rungs table ActionCache.getXrayLadder output (mutated in place)
+--- @param apply_fn function(data) -> boolean changed
+--- @return number rewritten
+function WriteBack.applyToRungs(rungs, apply_fn)
+    local XrayParser = require("koassistant_xray_parser")
+    local rewritten = 0
+    for _idx, rung in ipairs(rungs or {}) do
+        if type(rung) == "table" and type(rung.result) == "string"
+                and not rung.intro and XrayParser.isJSON(rung.result) then
+            local data = XrayParser.parse(rung.result)
+            if data and not data.error then
+                local ok, changed = pcall(apply_fn, data)
+                if ok and changed then
+                    local encoded = XrayParser.serialize(data)
+                    if encoded then
+                        rung.result = encoded
+                        rung.edited_at = os.time()
+                        rewritten = rewritten + 1
+                    end
+                end
+            end
+        end
+    end
+    return rewritten
+end
+
+--- Replay a reader's edit into a book's built checkpoints (B267, B394 slice
+--- 6): a rename or a link written to the live X-Ray used to be undone by the
+--- next checkpoint install, because the checkpoint was built before it. Best
+--- effort: it never fails the edit that already landed.
+--- @param document_path string
+--- @param apply_fn function(data) -> boolean changed
+--- @return number rewritten
+function WriteBack.replayIntoRungs(document_path, apply_fn)
+    local rewritten = 0
+    local ok, err = pcall(function()
+        local ActionCache = require("koassistant_action_cache")
+        local rungs = ActionCache.getXrayLadder(document_path)
+        if #rungs == 0 then return end
+        local n = WriteBack.applyToRungs(rungs, apply_fn)
+        if n > 0 and ActionCache.saveXrayLadder(document_path, rungs) then
+            rewritten = n
+            logger.info("KOAssistant WriteBack: replayed an edit into", n, "built checkpoint(s) of", document_path)
+        end
+    end)
+    if not ok then
+        logger.warn("KOAssistant WriteBack: could not replay an edit into checkpoints:", tostring(err))
+    end
+    return rewritten
+end
+
+--- Edit functions for applyToRungs / replayIntoRungs: the two identity edits
+--- a reader makes on an entry page. Pure.
+--- Rename: the checkpoint's entry takes the new name and keeps the old one as
+--- an alias, as the live one did. A checkpoint that already holds an entry
+--- under the new name is left alone (never two entries of one name).
+function WriteBack.renameEdit(cat_key, old_name, new_name)
+    return function(data)
+        local XrayParser = require("koassistant_xray_parser")
+        for _idx, item in ipairs(type(data[cat_key]) == "table" and data[cat_key] or {}) do
+            if type(item) == "table" and XrayParser.getItemName(item, cat_key) == new_name then
+                return false
+            end
+        end
+        return XrayParser.renameItem(data, cat_key, old_name, new_name)
+    end
+end
+
+--- Link (or any alias addition): the checkpoint's entry gains the names, and
+--- counts as changed only when at least one was new to it.
+function WriteBack.aliasEdit(cat_key, item_name, names)
+    return function(data)
+        local XrayParser = require("koassistant_xray_parser")
+        local function aliasCount()
+            for _idx, item in ipairs(type(data[cat_key]) == "table" and data[cat_key] or {}) do
+                if type(item) == "table" and XrayParser.getItemName(item, cat_key) == item_name then
+                    return #(type(item.aliases) == "table" and item.aliases or {})
+                end
+            end
+            return nil
+        end
+        local before = aliasCount()
+        if not before then return false end
+        return XrayParser.addItemAliases(data, cat_key, item_name, names) and aliasCount() ~= before
+    end
+end
+
 function WriteBack.applyXray(opts)
     if not (opts and opts.document_path and opts.answer) then
         return false, "missing document_path or answer"

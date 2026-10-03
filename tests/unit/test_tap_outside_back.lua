@@ -114,8 +114,12 @@ local SITES = {
     { "main.lua", 'title = opts.title or _("Checkpoint spacing:")', 1, "opts.on_back()" },
     -- Cross-book merge
     { "koassistant_xray_merge.lua", "title = confirm_text,", 1, "XrayMerge.startCrossBookFlow(opts)" },
-    { "koassistant_xray_merge.lua", "title = confirm_title, buttons = btns,", 1, "XrayMerge.startCrossBookFlow(opts)" },
-    { "koassistant_xray_merge.lua", "buttons = chain_buttons,", 1, "XrayMerge.startCrossBookFlow(opts)" },
+    -- The fold and chain confirms are shared by the merge picker's rows and
+    -- the direct entries (B394 slice 1): the tap outside runs the `back` they
+    -- were handed (the picker's reopen; nothing for a direct entry, which
+    -- closed no screen that Back returns to). The hand-off is checked below.
+    { "koassistant_xray_merge.lua", "title = confirm_title, buttons = btns,", 1, "back" },
+    { "koassistant_xray_merge.lua", "buttons = chain_buttons,", 1, "back" },
     { "koassistant_xray_merge.lua", 'other books with an X-Ray"), opts.title or "?")', 1, "XrayMerge.startCrossBookFlow(opts)" },
     -- Duplicates
     { "koassistant_xray_dedup.lua", "title = T(_(\"%1: %2\"), pair.cat_label, reasonLabel(pair.reason))", 1, "showList(false)" },
@@ -123,7 +127,7 @@ local SITES = {
     -- Groups
     { "koassistant_book_groups_ui.lua", "tagged with the series \\\"%2\\\".\"),", 1, "done" },
     { "koassistant_book_groups_ui.lua", 'title_text = T(_("Move \\"%1\\" to position"), title)', 1, "GroupsUI.showMoveDialog(group_id, path, opts)" },
-    { "koassistant_book_groups_ui.lua", 'title = T(_("Groups — %1"), BookGroups.displayTitle(path, opts.ui))', 1, "opts.on_close()" },
+    { "koassistant_book_groups_ui.lua", 'title = T(_("Groups: %1"), BookGroups.displayTitle(path, opts.ui))', 1, "opts.on_close()" },
     -- Book Settings: the Quiz spinners
     { "koassistant_book_settings.lua", "extra_callback = function() setField(field, nil) end,", 1, "reopen()" },
     -- Requests: the checkpoint size warning, the library books editor, the alias pages
@@ -157,6 +161,21 @@ for _idx, site in ipairs(SITES) do
         expectHook(rel, anchor, nth, reopen)
     end)
 end
+
+TestRunner:suite("the merge picker hands its reopen to the shared confirms (B394 slice 1)")
+
+TestRunner:test("the picker's fold and chain rows come back to the picker", function()
+    local src = read("koassistant_xray_merge.lua")
+    TestRunner:assertTrue(src:find("confirmFanIn(opts, mates, main_entry, tgt_group,\n"
+        .. "                            function() XrayMerge.startCrossBookFlow(opts) end)", 1, true),
+        "the project fold's confirm reopens the picker on Back and on a tap outside")
+    TestRunner:assertTrue(src:find("-- Back one step to the book list, not abandon\n"
+        .. "                    function() XrayMerge.startCrossBookFlow(opts) end)", 1, true),
+        "the series chain's confirm reopens the picker on Back and on a tap outside")
+    -- Both confirms run `back` from their Back button as well
+    local _s, n = src:gsub("if back then back%(%) end", "")
+    TestRunner:assertTrue(n == 2, "Back and the tap outside do the same thing in both confirms, got " .. n)
+end)
 
 TestRunner:suite("the action wizard refreshes the step 3 it shows")
 

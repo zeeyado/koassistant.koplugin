@@ -15,7 +15,8 @@ group's markers on the book into follow-global. Joining a group that has
 settings asks once per add (offerJoin).
 
 Wave 1 = domain, research mode, Background, spoiler protection, automatic
-X-Ray, the categories and depth of new X-Rays, the three per-book languages
+X-Ray, the categories and depth of new X-Rays, where carried entries are
+listed (#116), the three per-book languages
 (the chat dials stay per book for now, Q-E in the plan). Nothing new
 is defined: every row opens the shared BookSettings picker on a GROUP FACADE
 (`GroupSettings.facade`) — an object with the doc_settings surface the
@@ -43,7 +44,8 @@ function GroupSettings.keys()
     local BS = bookSettings()
     return {
         BS.KEY_DOMAIN, BS.KEY_RESEARCH, BS.KEY_BACKGROUND, BS.KEY_SPOILER_FREE, BS.KEY_XRAY_AUTO,
-        BS.KEY_XRAY_CATEGORIES, BS.KEY_XRAY_DEPTH, BS.KEY_XRAY_TYPE,
+        BS.KEY_XRAY_CATEGORIES, BS.KEY_XRAY_STATUS, BS.KEY_XRAY_DEPTH, BS.KEY_XRAY_TYPE,
+        BS.KEY_XRAY_SPACING, BS.KEY_XRAY_CARRIED,
         BS.KEY_RESPONSE_LANG, BS.KEY_TRANSLATION_LANG, BS.KEY_DICTIONARY_LANG, BS.KEY_TEXT_LANG,
     }
 end
@@ -58,8 +60,11 @@ function GroupSettings.keyLabel(key)
         [BS.KEY_RESEARCH] = _("Research mode"),
         [BS.KEY_XRAY_AUTO] = _("Automatic X-Ray"),
         [BS.KEY_XRAY_CATEGORIES] = _("New X-Ray categories"),
+        [BS.KEY_XRAY_STATUS] = _("New X-Ray status block"),
         [BS.KEY_XRAY_DEPTH] = _("New X-Ray depth"),
         [BS.KEY_XRAY_TYPE] = _("New X-Ray type"),
+        [BS.KEY_XRAY_CARRIED] = _("Carried entries"),
+        [BS.KEY_XRAY_SPACING] = _("Checkpoint spacing"),
         [BS.KEY_RESPONSE_LANG] = _("AI response language"),
         [BS.KEY_TRANSLATION_LANG] = _("Translation language"),
         [BS.KEY_DICTIONARY_LANG] = _("Dictionary language"),
@@ -92,8 +97,11 @@ function GroupSettings.valueLabel(key, v, features, facade)
     if key == BS.KEY_XRAY_CATEGORIES then
         return BS.xrayCategoriesLabel(v ~= "full" and v or nil)
     end
+    if key == BS.KEY_XRAY_STATUS then return v == "off" and _("Off") or _("On") end
     if key == BS.KEY_XRAY_DEPTH then return BS.xrayDepthLabel(v) end
     if key == BS.KEY_XRAY_TYPE then return BS.xrayTypeLabel(v) end
+    if key == BS.KEY_XRAY_CARRIED then return BS.xrayCarriedLabel(v) end
+    if key == BS.KEY_XRAY_SPACING then return BS.xraySpacingLabel(v) end
     if key == BS.KEY_RESPONSE_LANG or key == BS.KEY_TRANSLATION_LANG
         or key == BS.KEY_DICTIONARY_LANG then
         return require("koassistant_languages").getDisplay(v)
@@ -232,18 +240,26 @@ end
 -- ---------------------------------------------------------------- apply confirm
 -- A value was set at the group: offer to write the marker into every member.
 -- Deferred a tick so it lands ABOVE the surface the picker reopens.
-local function offerApply(group_id, key, host)
+-- `key` is one key, or several set together (an X-Ray preset: one confirm
+-- under `label`, never one per key).
+local function offerApply(group_id, key, host, label)
     local paths = members(group_id)
     if #paths == 0 then return end
+    local keys = type(key) == "table" and key or { key }
     local own = 0
     for _idx, path in ipairs(paths) do
         local st = storeFor(path)
-        local raw = st and st:readRaw(key)
-        if raw ~= nil and not isOwnMarker(raw, group_id) then own = own + 1 end
+        for _k, k in ipairs(keys) do
+            local raw = st and st:readRaw(k)
+            if raw ~= nil and not isOwnMarker(raw, group_id) then
+                own = own + 1
+                break
+            end
+        end
     end
     local group = groups().byId(group_id)
     local name = group and displayName(group) or ""
-    local text = T(_("Apply %1 to all %2 books in %3?"), GroupSettings.keyLabel(key), #paths, name)
+    local text = T(_("Apply %1 to all %2 books in %3?"), label or GroupSettings.keyLabel(keys[1]), #paths, name)
     if own > 0 then
         text = text .. "\n" .. T(_("%1 of them have their own value, which this replaces."), own)
     end
@@ -253,7 +269,7 @@ local function offerApply(group_id, key, host)
             ok_text = _("Apply"),
             cancel_text = _("Not now"),
             ok_callback = function()
-                local n = GroupSettings.apply(group_id, { key }, nil, host)
+                local n = GroupSettings.apply(group_id, keys, nil, host)
                 UIManager:show(require("ui/widget/notification"):new{
                     text = T(_("Applied to %1 book(s)."), n),
                 })
@@ -279,6 +295,20 @@ function GroupSettings.facade(group_id, host)
         groups().setSetting(group_id, key, value)
         logger.dbg("KOAssistant GroupSettings: set", group_id, key)
         offerApply(group_id, key, host)
+        return self
+    end
+    --- Several values set together (an X-Ray preset): one apply confirm.
+    --- @param values table { key = value }
+    --- @param label string what the confirm calls them
+    function f:saveSettings(values, label)
+        local keys = {}
+        for key, value in pairs(values) do
+            groups().setSetting(group_id, key, value)
+            keys[#keys + 1] = key
+        end
+        table.sort(keys)
+        logger.dbg("KOAssistant GroupSettings: set", group_id, #keys, "keys together")
+        offerApply(group_id, keys, host, label)
         return self
     end
     function f:delSetting(key)
@@ -370,24 +400,87 @@ function GroupSettings.show(opts)
 
     local rows = {}
     local function row(text, fn) rows[#rows + 1] = {{ text = text, align = "left", callback = fn }} end
+    -- The X-Ray values sit on their own sub-screen (B394 slice 5: with the
+    -- preset, the spacing and the carried-entries rows the one flat list ran
+    -- past a screen), opened by the "X-Ray ▸" row like Languages below. A step
+    -- towards the Book Settings shape (Q-H in the group hub plan).
+    local XRAY_KEYS = { BS.KEY_XRAY_AUTO, BS.KEY_XRAY_CATEGORIES, BS.KEY_XRAY_STATUS, BS.KEY_XRAY_DEPTH,
+        BS.KEY_XRAY_TYPE, BS.KEY_XRAY_SPACING, BS.KEY_XRAY_CARRIED }
+    local on_xray = opts.section == "xray"
+    local function showSection(section)
+        closeDialog()
+        local o = {}
+        for k, v in pairs(opts) do o[k] = v end
+        o.section = section
+        GroupSettings.show(o)
+    end
+    if not on_xray then
     row(T(_("Domain: %1"), value(BS.KEY_DOMAIN)), picker(BS.showDomainResearch))
     -- Research shares the domain picker (its lower section), as in Book Settings
     row(T(_("Research mode: %1"), value(BS.KEY_RESEARCH)), picker(BS.showDomainResearch))
     row(T(_("Background: %1"), value(BS.KEY_BACKGROUND)), picker(BS.showBackgroundEditor))
     row(T(_("Spoiler protection: %1"), value(BS.KEY_SPOILER_FREE)), picker(BS.showSpoilerFree))
+    local xray_set = 0
+    for _idx, key in ipairs(XRAY_KEYS) do
+        if facade:has(key) then xray_set = xray_set + 1 end
+    end
+    row(xray_set > 0 and T(_("X-Ray (%1 set) ▸"), xray_set) or _("X-Ray ▸"),
+        function() showSection("xray") end)
+    else
     row(T(_("Automatic X-Ray: %1"), value(BS.KEY_XRAY_AUTO)),
         picker(BS.showXrayAutoPicker, { on_change = reopen, on_cancel = reopen }))
-    row(T(_("New X-Ray categories: %1"), value(BS.KEY_XRAY_CATEGORIES)), picker(BS.showXrayCategoriesPicker))
+    -- B383: one tap for the three dials below
+    row(T(_("New X-Ray preset: %1"), (facade:has(BS.KEY_XRAY_CATEGORIES) or facade:has(BS.KEY_XRAY_STATUS)
+            or facade:has(BS.KEY_XRAY_DEPTH))
+            and BS.xrayPresetLabel((BS.resolveXrayPreset(facade, features))) or _("not set")),
+        picker(BS.showXrayPresetPicker))
+    -- One row for both keys of "What to track": the categories and the
+    -- status block (B271), edited in the same picker
+    local group_track = value(BS.KEY_XRAY_CATEGORIES)
+    if facade:readSetting(BS.KEY_XRAY_STATUS) == "off" then
+        group_track = T(_("%1, no status block"), group_track)
+    end
+    row(T(_("New X-Ray categories: %1"), group_track), picker(BS.showXrayCategoriesPicker))
     row(T(_("New X-Ray depth: %1"), value(BS.KEY_XRAY_DEPTH)), picker(BS.showXrayDepthPicker))
     row(T(_("New X-Ray type: %1"), value(BS.KEY_XRAY_TYPE)), picker(BS.showXrayTypePicker))
+    -- B394 slice 5: a series is read with one rhythm. The checkpoint spacing
+    -- of the group's books (each book still falls back to its own
+    -- recommended spacing while this is not set)
+    if plugin and plugin._showXraySpacingPicker then
+        row(T(_("Checkpoint spacing: %1"), value(BS.KEY_XRAY_SPACING)), function()
+            closeDialog()
+            local set = BS.xraySpacingOverride(facade)
+            plugin:_showXraySpacingPicker{
+                current = set or require("koassistant_xray_auto").ladderSpacingFor(nil),
+                override = set,
+                title = _("Checkpoint spacing for this group's books:"),
+                reset_label = _("Not set (each book uses its recommended spacing)"),
+                on_pick = function(s)
+                    facade:saveSetting(BS.KEY_XRAY_SPACING, s)
+                    reopen()
+                end,
+                on_reset = function()
+                    facade:delSetting(BS.KEY_XRAY_SPACING)
+                    reopen()
+                end,
+                on_back = reopen,
+            }
+        end)
+    end
+    -- #116 (B393): a series that is one continuous story lists the carried
+    -- entries inside the categories for every member
+    row(T(_("Carried entries: %1"), value(BS.KEY_XRAY_CARRIED)), picker(BS.showXrayCarriedPicker))
+    end
+    if not on_xray then
     local langs = 0
     for _idx, key in ipairs({ BS.KEY_RESPONSE_LANG, BS.KEY_TRANSLATION_LANG, BS.KEY_DICTIONARY_LANG, BS.KEY_TEXT_LANG }) do
         if facade:has(key) then langs = langs + 1 end
     end
     row(langs > 0 and T(_("Languages (%1 set) ▸"), langs) or _("Languages ▸"), picker(BS.showLanguageConfig))
+    end
 
     local n_set = GroupSettings.setCount(group_id)
-    local out = GroupSettings.outOfSync(group_id)
+    local out = on_xray and {} or GroupSettings.outOfSync(group_id)
     if #out > 0 then
         local names = {}
         for i, e in ipairs(out) do
@@ -412,7 +505,7 @@ function GroupSettings.show(opts)
             })
         end)
     end
-    if n_set > 0 then
+    if n_set > 0 and not on_xray then
         row(_("Clear all group settings…"), function()
             UIManager:show(require("ui/widget/confirmbox"):new{
                 text = _("Clear every setting this group sets? Books that follow the group go back to following the global settings."),
@@ -427,12 +520,17 @@ function GroupSettings.show(opts)
             })
         end)
     end
-    rows[#rows + 1] = {{ text = _("Close"), id = "close", callback = function()
-        closeDialog()
-        if opts.on_close then opts.on_close() end
-    end }}
+    if on_xray then
+        rows[#rows + 1] = {{ text = _("Back"), id = "close", callback = function() showSection(nil) end }}
+    else
+        rows[#rows + 1] = {{ text = _("Close"), id = "close", callback = function()
+            closeDialog()
+            if opts.on_close then opts.on_close() end
+        end }}
+    end
 
-    local title = T(_("%1: group settings"), displayName(group))
+    local title = on_xray and T(_("%1: X-Ray settings of the group"), displayName(group))
+        or T(_("%1: group settings"), displayName(group))
     if #group.books == 0 then
         title = title .. "\n" .. _("No books in the group yet. Values set here apply to books as they join.")
     else
@@ -441,7 +539,11 @@ function GroupSettings.show(opts)
     dialog = ButtonDialog:new{
         title = title,
         buttons = rows,
-        tap_close_callback = function() dialog = nil; if opts.on_close then opts.on_close() end end,
+        -- A tap outside is Back on the sub-screen, Close on the main one (B360)
+        tap_close_callback = function()
+            dialog = nil
+            if on_xray then showSection(nil) elseif opts.on_close then opts.on_close() end
+        end,
     }
     UIManager:show(dialog)
 end

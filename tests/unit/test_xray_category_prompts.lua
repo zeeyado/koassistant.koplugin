@@ -382,5 +382,119 @@ TestRunner:test("the section X-Ray reaches the settings in the request assembly 
         "the section keeps its scope line with the book's settings")
 end)
 
+print("")
+print("  [the status block as a switch (B271)]")
+
+-- The schema example the model is shown for one type, as text
+local function schemaOf(prompt, which)
+    local head = which == "fiction" and "FOR FICTION, use this JSON schema:\n"
+        or "FOR NON-FICTION, use this JSON schema:\n"
+    local tail = which == "fiction" and "\n\nGuidance for fiction:" or "\n\nGuidance for non-fiction:"
+    local s = assert(prompt:find(head, 1, true), "schema head")
+    local e = assert(prompt:find(tail, s, true), "schema tail")
+    return prompt:sub(s + #head, e - 1)
+end
+
+TestRunner:test("status on is the shipped prompt, byte for byte, however it is spelled", function()
+    for _idx, which in ipairs({ "partial", "complete" }) do
+        for _d, depth in ipairs({ "standard", "light", "deep" }) do
+            local base = Actions.buildXrayCategoryPrompt("people,places", which, depth)
+            assert(Actions.buildXrayCategoryPrompt("people,places", which, depth, nil) == base)
+            assert(Actions.buildXrayCategoryPrompt("people,places", which, depth, "on") == base, "any value but off is on")
+        end
+    end
+    assert(Actions.buildXrayCategoryPrompt(nil, "partial", nil, nil) == Actions.book.xray.prompt, "the default create prompt")
+    assert(Actions.buildSectionXrayPrompt("Part 1", "pp 1-9", false, nil, nil, nil)
+        == Actions.buildSectionXrayPrompt("Part 1", "pp 1-9", false, nil, nil), "the section prompt")
+    assert(Actions.normalizeXrayStatus("off") == "off" and Actions.normalizeXrayStatus(false) == "off")
+    assert(Actions.normalizeXrayStatus("on") == nil and Actions.normalizeXrayStatus(nil) == nil
+        and Actions.normalizeXrayStatus(true) == nil, "everything else is on")
+end)
+
+TestRunner:test("status off: no status object in either schema, no guidance bullet, still valid JSON", function()
+    local json = require("json")
+    for _idx, which in ipairs({ "partial", "complete" }) do
+        local p = Actions.buildXrayCategoryPrompt("people", which, nil, "off")
+        for _k, key in ipairs({ '"current_state"', '"current_position"', '"conclusion"',
+                "**Current State**", "**Current Position**", "**Conclusion**", "__" }) do
+            assert(not p:find(key, 1, true), which .. " still carries " .. key)
+        end
+        assert(p:find('"characters"', 1, true) and p:find('"key_figures"', 1, true), "the categories stay")
+        assert(p:find("**Connections and references**", 1, true), "and so does the rest of the guidance")
+        for _t, kind in ipairs({ "fiction", "nonfiction" }) do
+            local schema = schemaOf(p, kind)
+            assert(not schema:find(",%s*}%s*$"), kind .. " schema ends on a dangling comma")
+            assert(not schema:find("\n%s*\n"), kind .. " schema has a blank line where the status was")
+            local ok_decode, decoded = pcall(json.decode, schema)
+            assert(ok_decode and type(decoded) == "table" and decoded.type, kind .. " schema is not valid JSON")
+        end
+    end
+    -- Same for a full category set and a depth
+    local deep = Actions.buildXrayCategoryPrompt(nil, "partial", "deep", "off")
+    assert(not deep:find('"current_state"', 1, true) and deep:find('"timeline"', 1, true))
+    assert(pcall(json.decode, schemaOf(deep, "fiction")), "full set, deep, no status: valid JSON")
+    -- And the shipped prompt's schema is valid too (the comma belongs to it)
+    assert(pcall(json.decode, schemaOf(Actions.book.xray.prompt, "fiction")))
+end)
+
+TestRunner:test("status off: a section X-Ray drops its conclusion; the academic template never changes", function()
+    local sec = Actions.buildSectionXrayPrompt("Part 1", "pp 1-9", false, "people", nil, "off")
+    assert(not sec:find('"conclusion"', 1, true) and not sec:find("**Conclusion**", 1, true))
+    assert(sec:find('Analyzing section "Part 1" (pp 1-9)', 1, true), "its scope line stays")
+    assert(Actions.buildSectionXrayPrompt("Part 1", "pp 1-9", true, "people", nil, "off")
+        == Actions.buildSectionXrayPrompt("Part 1", "pp 1-9", true), "academic ignores the switch, like the categories")
+end)
+
+TestRunner:test("status off: a set type still narrows the prompt to one schema", function()
+    local p = Actions.applyXrayType(Actions.buildXrayCategoryPrompt("people", "partial", nil, "off"), "fiction")
+    assert(p:find("This work is FICTION", 1, true) and not p:find("FOR NON-FICTION", 1, true))
+    assert(not p:find('"current_state"', 1, true))
+end)
+
+TestRunner:test("status off: the update prompt asks for no status object and allows an empty answer", function()
+    local x = Actions.book.xray
+    for _idx, text in ipairs({ x.update_prompt, x.doi_update_prompt }) do
+        assert(text:find("You MUST always include", 1, true), "the shipped line is there to replace")
+        local off = Actions.xrayUpdateWithoutStatus(text)
+        assert(not off:find("You MUST always include", 1, true), "the always-include line is gone")
+        assert(off:find("This X-Ray keeps no status object", 1, true), "replaced in place")
+        assert(off:find("output an empty JSON object: {}", 1, true), "nothing new has an answer")
+        assert(#off > #text - 200 and off:find("{entity_index}", 1, true), "nothing else changed")
+    end
+    local custom = Actions.xrayUpdateWithoutStatus("Update it.")
+    assert(custom:find("^Update it%.\n\nThis X%-Ray keeps no status object"), "a custom update prompt gets it appended")
+end)
+
+TestRunner:test("status off: the request assembly applies it, stamps it, and accepts an empty update", function()
+    local info = debug.getinfo(1, "S")
+    local root = info.source:match("@?(.*)/tests/unit/[^/]+$") or "."
+    local f = assert(io.open(root .. "/koassistant_dialogs.lua", "r"))
+    local dialogs = f:read("*a")
+    f:close()
+    -- A create builds its prompt with the resolved switch and stamps it
+    assert(dialogs:find('"complete" or "partial", xr_depth, xr_status)', 1, true), "the create prompt takes the switch")
+    assert(dialogs:find("false, xr_sel, xr_depth, xr_status)", 1, true), "and so does a section X-Ray")
+    assert(dialogs:find("message_data._xray_status_applied = xr_status", 1, true), "stamped for the save")
+    -- An update follows the X-Ray's own stamp, never the setting
+    assert(dialogs:find("local cached_status = PromptsActions.normalizeXrayStatus(cached_entry.xray_status)", 1, true))
+    assert(dialogs:find("prompt.prompt = PromptsActions.xrayUpdateWithoutStatus(prompt.prompt)", 1, true))
+    -- All three saves carry the stamp (the live entry, a checkpoint, the X-Ray twin)
+    local _s, n = dialogs:gsub("xray_status = message_data%._xray_status_applied", "")
+    assert(n == 3, "three save sites, got " .. n)
+    -- The empty answer: the parser's own test, run on what a model would send
+    local XrayParser = require("koassistant_xray_parser")
+    assert(XrayParser.isEmptyObject("{}") and XrayParser.isEmptyObject(" { }\n")
+        and XrayParser.isEmptyObject("```json\n{}\n```"), "an empty object, bare or fenced")
+    assert(not XrayParser.isEmptyObject('{"characters":[]}') and not XrayParser.isEmptyObject("")
+        and not XrayParser.isEmptyObject(nil) and not XrayParser.isEmptyObject("nothing new"), "anything else is not")
+    assert(dialogs:find('if not parsed and using_cache and message_data._xray_status_applied == "off"\n'
+        .. '                        and XrayParser.isEmptyObject(answer) then\n'
+        .. '                    parsed = {}', 1, true), "accepted only for an update of an X-Ray without a status block")
+    -- Merged onto the old X-Ray it changes nothing
+    local old = XrayParser.parse('{"type":"fiction","characters":[{"name":"A","description":"a"}]}')
+    local merged = XrayParser.merge(old, {})
+    assert(#merged.characters == 1 and merged.type == "fiction", "an empty delta leaves the X-Ray as it was")
+end)
+
 local ok = TestRunner:summary()
 return ok

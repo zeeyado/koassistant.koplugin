@@ -1051,6 +1051,18 @@ function XrayParser.getCategories(data)
     end
 end
 
+--- Is a model answer an EMPTY JSON object, bare or inside a code fence (B271)?
+--- What an update of an X-Ray without a status block answers when its slice
+--- adds nothing: an empty delta, which parse() rightly rejects as "no X-Ray
+--- key" for every other caller.
+--- @param text any
+--- @return boolean
+function XrayParser.isEmptyObject(text)
+    if type(text) ~= "string" then return false end
+    local body = text:gsub("^%s*```%w*%s*", ""):gsub("%s*```%s*$", "")
+    return body:match("^%s*{%s*}%s*$") ~= nil
+end
+
 -- Categories that never count as browsable X-Ray content
 local NON_ENTITY_KEYS = {
     current_state = true, current_position = true,
@@ -3134,7 +3146,53 @@ local INDEX_EXCLUDED_CATEGORIES = {
     argument_development = true,
 }
 
-function XrayParser.buildEntityIndex(data)
+-- How many carried names the index lists at most: the backstop behind the
+-- occurrence filter below (B394 slice 4).
+local DORMANT_INDEX_CAP = 300
+
+--- "Can this name occur in the text?" for many names against one text (B394
+--- slice 4): the text is normalized once and every 4-byte sequence in it
+--- recorded, so a name is searched for only when its first four bytes are
+--- there at all. Thousands of carried names against a book-sized slice cost
+--- one pass over the text plus a handful of searches. A plain substring test
+--- (no word boundaries): a few names too many in the index are harmless, a
+--- missing one loses its bridge.
+--- @param text string
+--- @return function probe(name) -> boolean
+local function textNameProbe(text)
+    local hay = XrayParser.matchNormalize(text)
+    local grams = {}
+    local b1, b2, b3 = 0, 0, 0
+    local byte = string.byte
+    for i = 1, #hay do
+        local b = byte(hay, i)
+        if i >= 4 then grams[((b1 * 256 + b2) * 256 + b3) * 256 + b] = true end
+        b1, b2, b3 = b2, b3, b
+    end
+    return function(name)
+        if type(name) ~= "string" or name == "" then return false end
+        local norm
+        if not name:find("[\128-\255]") then
+            norm = trimSpaces((name:lower():gsub("%s+", " ")))
+        else
+            norm = trimSpaces(XrayParser.matchNormalize(name))
+        end
+        -- The matcher's own floor: a name of two bytes or fewer never matches
+        if #norm <= 2 then return false end
+        if #norm >= 4 then
+            local c1, c2, c3, c4 = byte(norm, 1, 4)
+            if not grams[((c1 * 256 + c2) * 256 + c3) * 256 + c4] then return false end
+        end
+        return hay:find(norm, 1, true) ~= nil
+    end
+end
+
+--- @param opts table|nil { text = string }: the text the request sends beside
+---   this index (an update's new slice, a merge's input X-Rays). With it, the
+---   carried names listed are only the ones that text mentions, by name or
+---   by any alias: a carried name the text never mentions cannot be bridged
+---   in that request. Without it every carried name is listed (up to the cap).
+function XrayParser.buildEntityIndex(data, opts)
     local categories = XrayParser.getCategories(data)
     if not categories or #categories == 0 then return "" end
 
@@ -3167,26 +3225,61 @@ function XrayParser.buildEntityIndex(data)
     -- join the index so the model can bridge naming drift wherever it already
     -- runs (updates, merges): it lists a dormant name among an entity's
     -- aliases, and the mechanical wake-pass connects them in the same write.
+    -- B394 slice 4: the bridge used to list EVERY carried name in every
+    -- update and merge request (about 50 KB per checkpoint step at 2,000
+    -- carried entries, growing with each volume). A name the request's text
+    -- never mentions cannot be bridged there, so only the mentioned ones are
+    -- listed, each with the aliases that occur shown first; the cap is the
+    -- backstop (a merge's input can mention most of them).
     local ledger = data[XrayParser.DORMANT_KEY]
     if type(ledger) == "table" and #ledger > 0 then
-        local names = {}
+        local text = opts and opts.text
+        local probe = type(text) == "string" and text ~= "" and textNameProbe(text) or nil
+        local names, total, mentioned = {}, 0, 0
         for _idx, stub in ipairs(ledger) do
             if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
-                local name = stub.name
-                local stub_aliases = ensure_array(stub.aliases)
-                if stub_aliases and #stub_aliases > 0 then
-                    local shown = {}
+                total = total + 1
+                local stub_aliases = ensure_array(stub.aliases) or {}
+                local shown = {}
+                local listed = true
+                if probe then
+                    local rest = {}
+                    for _a, alias in ipairs(stub_aliases) do
+                        if probe(alias) then
+                            if #shown < 2 then shown[#shown + 1] = alias end
+                        else
+                            rest[#rest + 1] = alias
+                        end
+                    end
+                    listed = #shown > 0 or probe(stub.name)
+                    for _a, alias in ipairs(rest) do
+                        if #shown >= 2 then break end
+                        shown[#shown + 1] = alias
+                    end
+                else
                     for i = 1, math.min(2, #stub_aliases) do
                         shown[i] = stub_aliases[i]
                     end
-                    name = name .. " (" .. table.concat(shown, ", ") .. ")"
                 end
-                names[#names + 1] = name
+                if listed then
+                    mentioned = mentioned + 1
+                    if #names < DORMANT_INDEX_CAP then
+                        local name = stub.name
+                        if #shown > 0 then
+                            name = name .. " (" .. table.concat(shown, ", ") .. ")"
+                        end
+                        names[#names + 1] = name
+                    end
+                end
             end
         end
         if #names > 0 then
             lines[#lines + 1] = "dormant (from related books, not yet in this one): "
                 .. table.concat(names, "; ")
+        end
+        if #names < total then
+            logger.dbg("KOAssistant XrayParser: entity index lists", #names, "of", total,
+                "carried names (", mentioned, probe and "mentioned in the text )" or "in all )")
         end
     end
     return table.concat(lines, "\n")
@@ -3778,28 +3871,22 @@ function XrayParser.foldLedger(data, never_pairs)
     return folded
 end
 
---- Wake-pass (carry layer 2): any ledger stub whose name/alias matches an
---- ACTIVE entity folds its carried knowledge into that entity's background —
---- fill-gaps-only, an existing entry from the same source book wins (same
---- rule as the transitive carry) — brings its names along as aliases, and
---- leaves the ledger. Runs on EVERY write-back (merge, incremental update,
---- deepen), so an entity entering by any route wakes its history. Mutates
---- data in place. Pure.
+--- Fold carried stubs onto the ACTIVE entities they name: the shared middle
+--- of the wake-pass and of the seed's enrichment of entries already in this
+--- book. Fill-gaps-only background (an existing line from the same source
+--- book wins), the stub's names join the entity's aliases. Mutates the
+--- entities only, never the ledger. Pure.
 --- @param data table Parsed X-Ray
---- @param opts table|nil { never_pairs } for the ledger fold that runs first
---- @return table woken Array of { name, source } for logging/toasts
-function XrayParser.wakeDormant(data, opts)
-    local woken = {}
-    if type(data) ~= "table" then return woken end
-    local ledger = data[XrayParser.DORMANT_KEY]
-    if type(ledger) ~= "table" or #ledger == 0 then
-        if ledger ~= nil and (type(ledger) ~= "table" or #ledger == 0) then
-            data[XrayParser.DORMANT_KEY] = nil
-        end
-        return woken
-    end
-    -- One entity under two carried names folds before it can wake twice
-    XrayParser.foldLedger(data, opts and opts.never_pairs)
+--- @param stubs table Array of stubs
+--- @param strict boolean|nil A NAME must be on one side of the match (the
+---   stub's name equals the entity's name or alias, or a stub alias equals
+---   the entity's name), never alias to alias: two people sharing a nickname
+---   or a one-character alias are not one person (the ledger fold's rule).
+--- @return table woken Array of { name, source }
+--- @return table remaining The stubs that matched no entity
+--- @return number changed Entities that actually gained a line or a name
+local function wakeStubsOnto(data, stubs, strict)
+    local woken, changed = {}, 0
     -- name/alias (lowercased) → active item
     -- Round 26: matching is FAMILY-SCOPED. It used to be a single flat
     -- name→item map over every category, so a dormant CHARACTER woke into a
@@ -3808,13 +3895,20 @@ function XrayParser.wakeDormant(data, opts)
     -- Within a family the drift is real and must still bridge (a figure is
     -- `characters` in a novel and `key_figures` in a companion volume).
     local lookup, family_lookup = {}, {}
-    local function learn(key, item, family)
+    -- Entity NAMES only (no aliases), for the strict rule
+    local name_lookup, family_names = {}, {}
+    local function learn(key, item, family, is_name)
         if type(key) ~= "string" or key == "" then return end
         local norm = key:lower()
         if lookup[norm] == nil then lookup[norm] = item end
+        if is_name and name_lookup[norm] == nil then name_lookup[norm] = item end
         if family then
             family_lookup[family] = family_lookup[family] or {}
             if family_lookup[family][norm] == nil then family_lookup[family][norm] = item end
+            if is_name then
+                family_names[family] = family_names[family] or {}
+                if family_names[family][norm] == nil then family_names[family][norm] = item end
+            end
         end
     end
     for _idx, cat in ipairs(XrayParser.getCategories(data)) do
@@ -3828,7 +3922,7 @@ function XrayParser.wakeDormant(data, opts)
             local family = XrayParser.CATEGORY_FAMILY[cat.key] or cat.key
             for _idx2, item in ipairs(cat.items) do
                 if type(item) == "table" then
-                    learn(XrayParser.getItemName(item, cat.key), item, family)
+                    learn(XrayParser.getItemName(item, cat.key), item, family, true)
                     if type(item.aliases) == "table" then
                         for _idx3, alias in ipairs(item.aliases) do learn(alias, item, family) end
                     end
@@ -3837,7 +3931,7 @@ function XrayParser.wakeDormant(data, opts)
         end
     end
     local remaining = {}
-    for _idx, stub in ipairs(ledger) do
+    for _idx, stub in ipairs(stubs) do
         local hit
         if type(stub) == "table" then
             -- A stub that knows its category may only wake inside its family
@@ -3851,18 +3945,26 @@ function XrayParser.wakeDormant(data, opts)
             hit = type(stub.name) == "string" and stub.name ~= ""
                 and scope[stub.name:lower()] or nil
             if not hit and type(stub.aliases) == "table" then
+                -- A stub alias meets entity names and aliases (the wake), or
+                -- entity names only (strict)
+                local alias_scope = scope
+                if strict then
+                    alias_scope = stub_family and (family_names[stub_family] or {}) or name_lookup
+                end
                 for _idx2, alias in ipairs(stub.aliases) do
-                    if type(alias) == "string" and alias ~= "" and scope[alias:lower()] then
-                        hit = scope[alias:lower()]
+                    if type(alias) == "string" and alias ~= "" and alias_scope[alias:lower()] then
+                        hit = alias_scope[alias:lower()]
                         break
                     end
                 end
             end
         end
         if hit then
+            local gained = false
             local additions = stubBackgroundAdditions(stub, hit.background)
             if #additions > 0 then
                 hit.background = XrayParser.mergeBackground(hit.background, additions)
+                gained = true
             end
             -- A stub matched by alias brings the other book's names along
             local function foldAlias(name)
@@ -3873,18 +3975,115 @@ function XrayParser.wakeDormant(data, opts)
                 arr[#arr + 1] = name
                 hit.aliases = arr
                 lookup[norm] = hit
+                gained = true
             end
             foldAlias(stub.name)
             if type(stub.aliases) == "table" then
                 for _idx2, a in ipairs(stub.aliases) do foldAlias(a) end
             end
+            if gained then changed = changed + 1 end
             woken[#woken + 1] = { name = stub.name, source = stub.source }
         else
             remaining[#remaining + 1] = stub
         end
     end
+    return woken, remaining, changed
+end
+
+--- Wake-pass (carry layer 2): any ledger stub whose name/alias matches an
+--- ACTIVE entity folds its carried knowledge into that entity's background —
+--- fill-gaps-only, an existing entry from the same source book wins (same
+--- rule as the transitive carry) — brings its names along as aliases, and
+--- leaves the ledger. Runs on EVERY write-back (merge, incremental update,
+--- deepen), so an entity entering by any route wakes its history. Mutates
+--- data in place. Pure.
+--- @param data table Parsed X-Ray
+--- @param opts table|nil { never_pairs } for the ledger fold that runs first
+--- @return table woken Array of { name, source } for logging/toasts
+function XrayParser.wakeDormant(data, opts)
+    if type(data) ~= "table" then return {} end
+    local ledger = data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" or #ledger == 0 then
+        if ledger ~= nil and (type(ledger) ~= "table" or #ledger == 0) then
+            data[XrayParser.DORMANT_KEY] = nil
+        end
+        return {}
+    end
+    -- One entity under two carried names folds before it can wake twice
+    XrayParser.foldLedger(data, opts and opts.never_pairs)
+    local woken, remaining = wakeStubsOnto(data, data[XrayParser.DORMANT_KEY])
     data[XrayParser.DORMANT_KEY] = #remaining > 0 and remaining or nil
     return woken
+end
+
+--- The free carry for entries ALREADY in this book (B394 slice 3): what an
+--- earlier book says about an entity this book holds too is attached as a
+--- labeled background line, exactly as the wake-pass does for an entity that
+--- arrives later. `stubs` are transient rows in the ledger's shape (never
+--- stored); the ones matching no entity are ignored (the seed parks them).
+--- Fill-gaps-only per source book, so a re-seed adds nothing and a line an
+--- AI merge wrote for that book is never replaced. Stricter than the wake:
+--- a name must be on one side of the match, because this runs over every
+--- entry two books share, where an alias-to-alias match would attach one
+--- person's history to another. Pure.
+--- @param data table Parsed X-Ray (its entities are mutated)
+--- @param stubs table Array of { name, aliases, category, description, source, file, background }
+--- @return number changed Entities that gained a line or a name
+function XrayParser.enrichFromStubs(data, stubs)
+    if type(data) ~= "table" or type(stubs) ~= "table" or #stubs == 0 then return 0 end
+    local _woken, _remaining, changed = wakeStubsOnto(data, stubs, true)
+    return changed
+end
+
+--- The carried ledger grouped under THIS X-Ray's own categories (#116, B393):
+--- what the category pages and the carried list's category rows show. A stub
+--- is filed by category FAMILY (characters / key_figures = people, lexicon /
+--- terminology / technical_terms = terms, ...), so volumes of different types
+--- still land their people in this X-Ray's people category. A stub whose
+--- family has no category in this X-Ray's type (a nonfiction concept in a
+--- fiction X-Ray, a person in an academic one) is `other`. Rows are in name
+--- order and keep their raw ledger index for the edit ops. Event lists and
+--- status blocks never host a stub (none is ever carried there). Pure.
+--- @param data table Parsed X-Ray
+--- @return table by_key { [category_key] = { { idx, stub }, ... } }
+--- @return table other Rows with no category in this X-Ray's type
+--- @return number total Rows in all
+function XrayParser.ledgerByCategory(data)
+    local by_key, other, total = {}, {}, 0
+    local ledger = type(data) == "table" and data[XrayParser.DORMANT_KEY]
+    if type(ledger) ~= "table" then return by_key, other, total end
+    local home = {}
+    for _idx, cat in ipairs(XrayParser.getCategories(data)) do
+        if not SINGLETON_CATEGORIES[cat.key] and not APPEND_CATEGORIES[cat.key] then
+            local family = XrayParser.CATEGORY_FAMILY[cat.key] or cat.key
+            if home[family] == nil then home[family] = cat.key end
+        end
+    end
+    for i, stub in ipairs(ledger) do
+        if type(stub) == "table" and type(stub.name) == "string" and stub.name ~= "" then
+            -- A stub with no category recorded reads as a person, the rule
+            -- the fold and the marks already use
+            local cat = type(stub.category) == "string" and stub.category ~= ""
+                and stub.category or "characters"
+            local key = home[XrayParser.CATEGORY_FAMILY[cat] or cat]
+            local list = other
+            if key then
+                by_key[key] = by_key[key] or {}
+                list = by_key[key]
+            end
+            list[#list + 1] = { idx = i, stub = stub }
+            total = total + 1
+        end
+    end
+    local function byName(a, b)
+        local an, bn = a.stub.name:lower(), b.stub.name:lower()
+        if an ~= bn then return an < bn end
+        if a.stub.name ~= b.stub.name then return a.stub.name < b.stub.name end
+        return a.idx < b.idx
+    end
+    for _key, list in pairs(by_key) do table.sort(list, byName) end
+    table.sort(other, byName)
+    return by_key, other, total
 end
 
 --- Find an ACTIVE entity by any of several identity handles (round 25, cross-

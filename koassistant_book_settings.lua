@@ -230,6 +230,18 @@ BookSettings.KEY_XRAY_DEPTH = "koassistant_book_xray_depth"
 -- Type of NEW X-Rays (B337c): "fiction" | "nonfiction" | "academic" | "auto" |
 -- nil (follow global). An explicit "auto" pins Auto under a set global.
 BookSettings.KEY_XRAY_TYPE = "koassistant_book_xray_type"
+-- The status block of NEW X-Rays (B271): "Where things stand" (current state
+-- / current position, or the conclusion of a whole-book build). "on" | "off"
+-- | nil (follow global). Shown as a sixth checkbox in the "What to track"
+-- picker but stored as its own key, never as a category group, so every
+-- stored categories value keeps meaning what it meant. An existing X-Ray
+-- follows its own stamp (xray_status on the cache entry).
+BookSettings.KEY_XRAY_STATUS = "koassistant_book_xray_status"
+-- Where carried entries are listed (#116, B393): "categories" (inside the
+-- X-Ray's own categories as well, after this book's entries) | "list" (their
+-- own list only) | nil (follow global). Display only: nothing reaches a
+-- request and no X-Ray is rebuilt.
+BookSettings.KEY_XRAY_CARRIED = "koassistant_book_xray_carried"
 --- Effective X-Ray marking & lookup config for a book: book override > global
 --- > default. Pure. Read pattern must match the schema defaults (marking ON,
 --- tap ON, density "10", families "all", ahead ON, intercept ON, card
@@ -846,6 +858,8 @@ BookSettings.SIDECAR_KEYS = {
     BookSettings.KEY_XRAY_CATEGORIES,
     BookSettings.KEY_XRAY_DEPTH,
     BookSettings.KEY_XRAY_TYPE,
+    BookSettings.KEY_XRAY_CARRIED,
+    BookSettings.KEY_XRAY_STATUS,
     BookSettings.KEY_QUICK_ANSWER,
     BookSettings.KEY_TOOL_EFFORT,
     BookSettings.KEY_WEB_EFFORT,
@@ -1473,6 +1487,10 @@ end
 --   set_global   fn(features_tbl, val) custom global write (mutate only;
 --                the engine saves + flushes)
 --   read_book    optional fn(doc_settings) -> value (legacy normalization)
+--   set_book     optional fn(doc_settings, val) custom book write for a pick
+--                that sets several keys (the X-Ray presets); val nil = follow
+--                global, a follow-group marker = follow that group. The
+--                engine flushes. Default: saveSetting(spec.key, val)
 --   value_label  optional fn(value) -> short label for the Follow-global row
 --                (default: the matching option's label)
 --   top_rows     optional fn(ctx) -> button rows ABOVE the target toggle
@@ -1527,7 +1545,11 @@ function BookSettings.showLayeredPicker(spec, opts)
     local function pickBook(val)
         require("koassistant_logger").dbg("KOAssistant BookSettings: book override",
             spec.key, "=", tostring(val))
-        doc_settings:saveSetting(spec.key, val)
+        if spec.set_book then
+            spec.set_book(doc_settings, val)
+        else
+            doc_settings:saveSetting(spec.key, val)
+        end
         doc_settings:flush()
         commit()
     end
@@ -2114,6 +2136,41 @@ function BookSettings.resolveXrayCategories(doc_settings, features)
     return Actions.XRAY_DEFAULT_CATEGORIES, nil
 end
 
+--- Label for a checkpoint spacing value ("every 5%"; 2.5 keeps its half).
+function BookSettings.xraySpacingLabel(v)
+    local pct = (tonumber(v) or 0) * 100
+    return T(_("every %1%"), pct % 1 == 0 and tostring(math.floor(pct)) or string.format("%.1f", pct))
+end
+
+--- The status block of NEW X-Rays (B271): book pick > global default > on.
+--- Returned in the prompt assembly's form: "off", or nil for on (nil = the
+--- shipped wording), like the depth resolver's nil for Standard.
+--- @param doc_settings table|nil
+--- @param features table|nil
+--- @return string|nil status ("off"; nil = on), string|nil layer ("book"/"global")
+function BookSettings.resolveXrayStatus(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
+    local raw = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_STATUS)
+    if raw == "off" then return "off", "book" end
+    if raw == "on" then return nil, "book" end
+    local g = features and features.xray_default_status
+    if g == "off" then return "off", "global" end
+    if g == "on" then return nil, "global" end
+    return nil, nil
+end
+
+--- Label for what a new X-Ray tracks: the category set, and the status block
+--- when it is off ("Characters only, no status block").
+--- @param categories string|nil stored or resolved category value
+--- @param status string|nil "off" | anything else = on
+function BookSettings.xrayTrackLabel(categories, status)
+    local label = BookSettings.xrayCategoriesLabel(categories)
+    if status == "off" then
+        return T(_("%1, no status block"), label)
+    end
+    return label
+end
+
 --- Depth rung for NEW X-Rays: book pick > global default > standard.
 --- Values are the prompt assembly's ids; "standard" is returned as nil for the
 --- prompt (nil = the shipped wording) but the LAYER still says who decided.
@@ -2164,6 +2221,211 @@ function BookSettings.showXrayDepthPicker(opts)
             { value = "deep", label = _("Deep (longer entries, every figure and development, richer connections)") },
         },
         value_label = BookSettings.xrayDepthLabel,
+    }, opts)
+end
+
+-- ============== X-Ray presets (B383) ==============
+-- A preset is a MACRO over the dials: picking one writes what is tracked, the
+-- status block and the depth, and nothing else is stored. There is no preset
+-- id on disk and no resolver of its own: a row names the preset whose values
+-- the dials hold, and reads "Custom" once any of them differs. Checkpoint
+-- spacing is left alone (it has no global or group layer to set).
+-- categories: canonical csv, or "full" for all five groups.
+BookSettings.XRAY_PRESETS = {
+    { id = "characters", categories = "people", status = "off", depth = "standard",
+      label = _("Characters only"),
+      desc = _("the cast alone, no status block: the cheapest") },
+    { id = "story", categories = "people,events", status = "on", depth = "standard",
+      label = _("Characters and story"),
+      desc = _("the cast and the story arc") },
+    { id = "reference", categories = "people,places,ideas,terms", status = "on", depth = "standard",
+      label = _("Reference"),
+      desc = _("people, places, ideas and terms, no story arc: the default") },
+    { id = "everything", categories = "full", status = "on", depth = "standard",
+      label = _("Everything"),
+      desc = _("all five categories, the story arc included: the largest") },
+    { id = "light", categories = "people,places", status = "off", depth = "light",
+      label = _("Light companion"),
+      desc = _("who and where, one line each, no status block") },
+    { id = "deep", categories = "full", status = "on", depth = "deep",
+      label = _("Deep study"),
+      desc = _("everything, longer entries, richer connections") },
+}
+
+--- The preset whose values these dials hold, or nil (= Custom). Pure.
+--- @param categories string|nil resolved selection (nil = all five)
+--- @param status string|nil "off" | nil (= on)
+--- @param depth string|nil "light" | "deep" | nil (= standard)
+--- @return table|nil preset
+function BookSettings.xrayPresetFor(categories, status, depth)
+    local Actions = require("prompts.actions")
+    local sel = Actions.normalizeXrayCategories(categories)
+    local st = Actions.normalizeXrayStatus(status) and "off" or "on"
+    local dp = Actions.normalizeXrayDepth(depth) or "standard"
+    for _idx, p in ipairs(BookSettings.XRAY_PRESETS) do
+        local p_sel = p.categories ~= "full" and p.categories or nil
+        if p_sel == sel and p.status == st and p.depth == dp then return p end
+    end
+    return nil
+end
+
+local function xrayPresetById(id)
+    for _idx, p in ipairs(BookSettings.XRAY_PRESETS) do
+        if p.id == id then return p end
+    end
+    return nil
+end
+
+--- The preset a book's (or a group's, or the global) dials amount to.
+--- @return table|nil preset (nil = Custom), boolean own True when the book
+---   sets at least one of the three dials itself (or follows a group for it)
+function BookSettings.resolveXrayPreset(doc_settings, features)
+    local preset = BookSettings.xrayPresetFor(
+        (BookSettings.resolveXrayCategories(doc_settings, features)),
+        (BookSettings.resolveXrayStatus(doc_settings, features)),
+        (BookSettings.resolveXrayDepth(doc_settings, features)))
+    local own = false
+    if doc_settings then
+        local read = type(doc_settings.readRaw) == "function" and doc_settings.readRaw
+            or doc_settings.readSetting
+        for _idx, key in ipairs({ BookSettings.KEY_XRAY_CATEGORIES, BookSettings.KEY_XRAY_STATUS,
+                BookSettings.KEY_XRAY_DEPTH }) do
+            if read(doc_settings, key) ~= nil then own = true end
+        end
+    end
+    return preset, own
+end
+
+--- Row label for a preset state: its name, or "Custom".
+function BookSettings.xrayPresetLabel(preset)
+    return preset and preset.label or _("Custom")
+end
+
+--- Preset picker for new X-Rays (B383): the canonical two-layer spec (For
+--- this book / Global; a group edits its own values through the facade). A
+--- pick writes the three dials of the edited layer.
+--- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showXrayPresetPicker(opts)
+    local KEYS = { BookSettings.KEY_XRAY_CATEGORIES, BookSettings.KEY_XRAY_STATUS,
+        BookSettings.KEY_XRAY_DEPTH }
+    local options = {}
+    for _idx, p in ipairs(BookSettings.XRAY_PRESETS) do
+        options[#options + 1] = { value = p.id, label = T(_("%1 (%2)"), p.label, p.desc) }
+    end
+    BookSettings.showLayeredPicker({
+        title = function(ctx)
+            local now = BookSettings.resolveXrayPreset(ctx.is_book_target and ctx.doc_settings or nil,
+                ctx.features)
+            return _("Preset for new X-Rays") .. "\n"
+                .. _("One tap sets what is tracked, the status block and the depth. Each can still be changed on its own afterwards; the preset then reads Custom. Applies to new builds and rebuilds.")
+                .. (now and "" or ("\n" .. _("Now: Custom (the dials match no preset).")))
+        end,
+        key = BookSettings.KEY_XRAY_CATEGORIES,
+        options = options,
+        global = function(f)
+            local p = BookSettings.resolveXrayPreset(nil, f)
+            return p and p.id or "custom"
+        end,
+        read_book = function(ds)
+            local p, own = BookSettings.resolveXrayPreset(ds,
+                opts.plugin and opts.plugin.settings and opts.plugin.settings:readSetting("features") or {})
+            if not own then return nil end
+            return p and p.id or "custom"
+        end,
+        set_global = function(f, id)
+            local p = xrayPresetById(id)
+            if not p then return end
+            f.xray_default_categories = p.categories
+            f.xray_default_status = p.status
+            f.xray_default_depth = p.depth
+        end,
+        set_book = function(ds, val)
+            if val == nil then
+                for _idx, key in ipairs(KEYS) do ds:delSetting(key) end
+                return
+            end
+            if BookStore.isMarker(val) then
+                -- Follow a group: its marker on every dial the group sets, the
+                -- global default for the others
+                local gid = val[BookStore.MARKER_FIELD]
+                local BookGroups = require("koassistant_book_groups")
+                for _idx, key in ipairs(KEYS) do
+                    if BookGroups.getSetting(gid, key) ~= nil then
+                        ds:saveSetting(key, BookStore.marker(gid))
+                    else
+                        ds:delSetting(key)
+                    end
+                end
+                return
+            end
+            local p = xrayPresetById(val)
+            if not p then return end
+            local values = {
+                [BookSettings.KEY_XRAY_CATEGORIES] = p.categories,
+                [BookSettings.KEY_XRAY_STATUS] = p.status,
+                [BookSettings.KEY_XRAY_DEPTH] = p.depth,
+            }
+            if type(ds.saveSettings) == "function" then
+                -- The group facade: one confirm for the three keys
+                ds:saveSettings(values, T(_("the X-Ray preset \"%1\""), p.label))
+            else
+                for _idx, key in ipairs(KEYS) do ds:saveSetting(key, values[key]) end
+            end
+        end,
+        value_label = function(v)
+            local p = xrayPresetById(v)
+            if p then return p.label end
+            if v == "custom" or v == nil then return _("Custom") end
+            -- A group's follow row hands in its categories value
+            return BookSettings.xrayCategoriesLabel(v ~= "full" and v or nil)
+        end,
+    }, opts)
+end
+
+--- Where carried entries are listed (#116, B393): book pick > global > the
+--- separate list. "categories" = inside the X-Ray's own categories as well
+--- (after this book's entries); "list" = the carried list only. A follow-group
+--- marker is dereferenced by the store, so a group value arrives as "book".
+--- @param doc_settings table|nil
+--- @param features table|nil
+--- @return string value ("categories"|"list"), string|nil layer ("book"/"global")
+function BookSettings.resolveXrayCarried(doc_settings, features)
+    doc_settings = BookStore.wrap(doc_settings)
+    local raw = doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_CARRIED)
+    if raw == "categories" or raw == "list" then return raw, "book" end
+    local g = features and features.xray_carried_entries
+    if g == "categories" or g == "list" then return g, "global" end
+    return "list", nil
+end
+
+--- Label for a carried-entries value (nil/"list" = Separate list).
+function BookSettings.xrayCarriedLabel(v)
+    if v == "categories" then return _("In their categories") end
+    return _("Separate list")
+end
+
+--- Carried-entries picker: the canonical two-layer spec (For this book /
+--- Global; a group edits its own value through the facade).
+--- @param opts table: { plugin, ui, document_path, on_close, target_override }
+function BookSettings.showXrayCarriedPicker(opts)
+    BookSettings.showLayeredPicker({
+        title = _("Carried entries") .. "\n"
+            .. _("Entries carried from a group's other books (in a series: the earlier books) that have not appeared in this book yet. List them inside the X-Ray's own categories, after this book's entries, or only on their own list. This changes the lists only: nothing is sent and no X-Ray is rebuilt."),
+        key = BookSettings.KEY_XRAY_CARRIED,
+        field = "xray_carried_entries",
+        global = function(f)
+            return f.xray_carried_entries == "categories" and "categories" or "list"
+        end,
+        read_book = function(ds)
+            local raw = ds:readSetting(BookSettings.KEY_XRAY_CARRIED)
+            if raw == "categories" or raw == "list" then return raw end
+            return nil
+        end,
+        options = {
+            { value = "categories", label = _("In their categories (after this book's entries)") },
+            { value = "list", label = _("Separate list only") },
+        },
+        value_label = BookSettings.xrayCarriedLabel,
     }, opts)
 end
 
@@ -2417,7 +2679,9 @@ function BookSettings.showXrayCategoriesPicker(opts)
                 .. (is_group and T(_("Not set (books follow global: %1)"), global_label)
                     or T(_("Follow global (%1)"), global_label)),
             callback = function()
+                -- "What to track" is one pick: the status block follows too
                 doc_settings:delSetting(BookSettings.KEY_XRAY_CATEGORIES)
+                doc_settings:delSetting(BookSettings.KEY_XRAY_STATUS)
                 doc_settings:flush()
                 reshow()
             end }}
@@ -2428,6 +2692,15 @@ function BookSettings.showXrayCategoriesPicker(opts)
                     function(v) return BookSettings.xrayCategoriesLabel(v ~= "full" and v or nil) end,
                     function(m)
                         doc_settings:saveSetting(BookSettings.KEY_XRAY_CATEGORIES, m)
+                        -- The status block follows the same group when the
+                        -- group sets it, and the global default otherwise
+                        local gid = type(m) == "table" and m[BookStore.MARKER_FIELD]
+                        if gid and require("koassistant_book_groups").getSetting(
+                                gid, BookSettings.KEY_XRAY_STATUS) ~= nil then
+                            doc_settings:saveSetting(BookSettings.KEY_XRAY_STATUS, BookStore.marker(gid))
+                        else
+                            doc_settings:delSetting(BookSettings.KEY_XRAY_STATUS)
+                        end
                         doc_settings:flush()
                         reshow()
                     end, dot)) do
@@ -2435,7 +2708,7 @@ function BookSettings.showXrayCategoriesPicker(opts)
             end
         end
     end
-    buttons[#buttons + 1] = header(_("Presets"))
+    buttons[#buttons + 1] = header(_("Category sets"))
     buttons[#buttons + 1] = {{ text = dot(full_stored) .. _("All categories"),
         callback = function()
             for _idx, id in ipairs(Actions.XRAY_CATEGORY_ORDER) do set[id] = true end
@@ -2490,14 +2763,35 @@ function BookSettings.showXrayCategoriesPicker(opts)
                 reshow()
             end }}
     end
+    -- B271: the status block as a sixth checkbox. Its own key (never a
+    -- category group): an explicit On or Off for the edited layer, so a book
+    -- can keep it under a global Off and the other way round.
+    local status_on
+    if is_global then
+        status_on = features.xray_default_status ~= "off"
+    else
+        status_on = BookSettings.resolveXrayStatus(doc_settings, features) ~= "off"
+    end
+    buttons[#buttons + 1] = {{ text = mark(status_on) .. _("Where things stand (current state, conclusion)"),
+        callback = function()
+            local value = status_on and "off" or "on"
+            if is_global then
+                writeGlobalFeature(opts.plugin, "xray_default_status", value)
+            else
+                doc_settings:saveSetting(BookSettings.KEY_XRAY_STATUS, value)
+                doc_settings:flush()
+            end
+            reshow()
+        end }}
     buttons[#buttons + 1] = {{ text = _("Done"), id = "close", callback = closeAll }}
 
     -- Kept SHORT (maintainer 2026-08-18): the explanatory paragraph pushed the
     -- category rows off the screen, so the picker had to be scrolled to reach
     -- the thing it exists for.
-    local title = (is_global and _("Categories for new X-Rays (global)")
-            or _("Categories for new X-Rays (this book)")) .. "\n"
-        .. _("Applies to new builds and rebuilds. Fewer categories are faster and cheaper.")
+    local title = (is_global and _("What new X-Rays track (global)")
+            or is_group and _("What new X-Rays track (this group)")
+            or _("What new X-Rays track (this book)")) .. "\n"
+        .. _("Applies to new builds and rebuilds. Fewer categories are faster and cheaper; without \"Where things stand\" every update is shorter.")
     dialog = ButtonDialog:new{
         title = title,
         buttons = buttons,
@@ -2849,6 +3143,8 @@ function BookSettings.show(opts)
         BookSettings.KEY_XRAY_AHEAD, BookSettings.KEY_XRAY_INTERCEPT,
         BookSettings.KEY_XRAY_CARD, BookSettings.KEY_XRAY_CARD_LENGTH,
         BookSettings.KEY_XRAY_AHEAD_CARD, BookSettings.KEY_XRAY_CATEGORIES,
+        BookSettings.KEY_XRAY_DEPTH, BookSettings.KEY_XRAY_TYPE,
+        BookSettings.KEY_XRAY_CARRIED, BookSettings.KEY_XRAY_STATUS,
     }), BookSettings.showXrayConfig))
     addButton(subScreenRow(_("Chat behavior"), groupCount({
         BookSettings.KEY_TOOLS, BookSettings.KEY_WEB_SEARCH,
@@ -3237,6 +3533,23 @@ function BookSettings.showXrayConfig(opts)
             UIManager:show(picker)
         end }})
 
+    -- Preset for NEW X-Rays (B383): one tap for the three dials below it
+    local preset_now, preset_own = BookSettings.resolveXrayPreset(doc_settings, features)
+    table.insert(buttons, {{ text = T(_("New X-Ray preset: %1"),
+            preset_own and BookSettings.xrayPresetLabel(preset_now)
+                or T(_("Follow global (%1)"), BookSettings.xrayPresetLabel(preset_now))),
+        callback = function()
+            closeDialog()
+            BookSettings.showXrayPresetPicker({
+                ui = ui, document_path = opts.document_path, plugin = plugin,
+                target_override = "book",
+                on_close = function()
+                    syncConfig()
+                    BookSettings.showXrayConfig(opts)
+                end,
+            })
+        end }})
+
     -- Type of NEW X-Rays (B337c): same shape as depth.
     local type_val, type_layer = BookSettings.resolveXrayType(doc_settings, features)
     table.insert(buttons, {{ text = T(_("New X-Ray type: %1"),
@@ -3280,15 +3593,37 @@ function BookSettings.showXrayConfig(opts)
     -- here so closed books can set it before their first build (the creation
     -- chooser's button needs the form).
     local cat_sel, cat_layer = BookSettings.resolveXrayCategories(doc_settings, features)
+    local track_label = BookSettings.xrayTrackLabel(cat_sel,
+        (BookSettings.resolveXrayStatus(doc_settings, features)))
     table.insert(buttons, {{ text = T(_("New X-Ray categories: %1"),
             cat_layer == "book"
                 and (BookSettings.followGroupLabel(doc_settings, BookSettings.KEY_XRAY_CATEGORIES,
-                        BookSettings.xrayCategoriesLabel(cat_sel)) or BookSettings.xrayCategoriesLabel(cat_sel))
-                or T(_("Follow global (%1)"), BookSettings.xrayCategoriesLabel(cat_sel))),
+                        track_label) or track_label)
+                or T(_("Follow global (%1)"), track_label)),
         callback = function()
             closeDialog()
             BookSettings.showXrayCategoriesPicker({
                 ui = ui, document_path = opts.document_path, plugin = plugin,
+                on_close = function()
+                    syncConfig()
+                    BookSettings.showXrayConfig(opts)
+                end,
+            })
+        end }})
+
+    -- Carried entries (#116, B393): where the entries carried from the
+    -- group's other books are listed. Same shape as depth.
+    local carried_val, carried_layer = BookSettings.resolveXrayCarried(doc_settings, features)
+    table.insert(buttons, {{ text = T(_("Carried entries: %1"),
+            carried_layer == "book"
+                and (BookSettings.followGroupLabel(doc_settings, BookSettings.KEY_XRAY_CARRIED,
+                        BookSettings.xrayCarriedLabel(carried_val)) or BookSettings.xrayCarriedLabel(carried_val))
+                or T(_("Follow global (%1)"), BookSettings.xrayCarriedLabel(carried_val))),
+        callback = function()
+            closeDialog()
+            BookSettings.showXrayCarriedPicker({
+                ui = ui, document_path = opts.document_path, plugin = plugin,
+                target_override = "book",
                 on_close = function()
                     syncConfig()
                     BookSettings.showXrayConfig(opts)
@@ -3302,7 +3637,9 @@ function BookSettings.showXrayConfig(opts)
     -- picker has no page count to size from).
     local sp_override = BookSettings.xraySpacingOverride(doc_settings)
     table.insert(buttons, {{ text = T(_("Checkpoint spacing: %1"),
-            sp_override and T(_("every %1%"), pctLabel(sp_override)) or _("Recommended")),
+            sp_override and (BookSettings.followGroupLabel(doc_settings, BookSettings.KEY_XRAY_SPACING,
+                    T(_("every %1%"), pctLabel(sp_override))) or T(_("every %1%"), pctLabel(sp_override)))
+                or _("Recommended")),
         callback = function()
             if not (plugin and plugin._showXraySpacingPicker) then return end
             closeDialog()

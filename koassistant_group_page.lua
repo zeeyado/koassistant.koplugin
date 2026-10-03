@@ -237,8 +237,10 @@ local function hubBuild(ctx)
     -- project fan-in. Plain groups share nothing by design: no row.
     if #group.books > 1 and ctx.plugin and ctx.plugin._startCrossBookXrayFlow
         and BookGroups.sharesKnowledge(group) then
+        -- B394 slice 1: the row says what it costs before it is tapped
         row(E("\u{1F500}", kind == BookGroups.KIND_PROJECT
-                and _("Fold X-Rays into one book…") or _("Merge series X-Rays…"), em),
+                and _("Fold X-Rays into one book (1 request per book)…")
+                or _("Merge series X-Rays (1 request per book)…"), em),
             function() GroupsUI.foldFlow(ctx.group_id, flow_opts) end)
     end
     -- Item 48(a): the group as launch surface — library chat/actions with the

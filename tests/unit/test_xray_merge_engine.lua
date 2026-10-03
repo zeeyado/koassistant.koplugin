@@ -780,9 +780,91 @@ TestRunner:test("seedDormant: nearest X-Rayed predecessor seeds, its ledger ride
             for _i, s in ipairs(parsed[XrayParser.DORMANT_KEY]) do names[s.name] = s end
             TestRunner:assertTrue(names["Kell Damsgard"] ~= nil, "unmatched active stubbed")
             TestRunner:assertTrue(names["Old Tove"] ~= nil, "predecessor's own ledger rides (transitive)")
-            TestRunner:assertTrue(names["Mira Alvsund"] == nil,
-                "matched active NOT stubbed - description transfer is merge (model) territory")
+            TestRunner:assertTrue(names["Mira Alvsund"] == nil, "an entry this book already holds is not parked")
+            -- B394 slice 3: it gets the earlier book's description as a line instead
+            local mira = parsed.characters[1]
+            TestRunner:assertEqual(#(mira.background or {}), 1, "one line from the earlier book")
+            TestRunner:assertEqual(mira.background[1].source, "vol2")
+            TestRunner:assertEqual(mira.background[1].file, "/b/vol2.epub", "keyed by the source's file")
+            TestRunner:assertEqual(mira.background[1].text, "Vol 2 Mira.")
+            TestRunner:assertEqual(mira.description, "The keeper in this volume.", "this book's own description untouched")
         end)
+end)
+
+TestRunner:test("seed enrichment: a second seed is quiet and an AI merge's line is never replaced", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local base = XrayParser.parse([[{ "type": "fiction", "characters": [
+        {"name": "Mira", "description": "This book's Mira."},
+        {"name": "Kell", "description": "This book's Kell.",
+         "background": [{"source": "Vol 2", "file": "/b/v2.epub", "text": "What the model wrote at a merge."}]}
+    ] }]])
+    local source = XrayParser.parse([[{ "type": "fiction", "characters": [
+        {"name": "Mira", "aliases": ["the Keeper"], "description": "Vol 2 Mira."},
+        {"name": "Kell", "description": "Vol 2 Kell, verbatim."},
+        {"name": "Tove", "description": "Only in vol 2."}
+    ] }]])
+    local a1, r1 = XrayMerge.populateDormant(base, nil, source, "Vol 2", "/b/v2.epub", nil, "/b/v3.epub", nil, true)
+    TestRunner:assertEqual(a1, 1, "the absent entry is parked")
+    TestRunner:assertEqual(r1, 1, "one entry here gained something (Mira); Kell already had that book's line")
+    TestRunner:assertEqual(base.characters[1].background[1].text, "Vol 2 Mira.")
+    TestRunner:assertEqual(base.characters[1].aliases[1], "the Keeper", "the earlier book's name for her joins as an alias")
+    TestRunner:assertEqual(#base.characters[2].background, 1, "still one line for Kell")
+    TestRunner:assertEqual(base.characters[2].background[1].text, "What the model wrote at a merge.",
+        "fill-gaps per source: the merge's line stays")
+    local a2, r2 = XrayMerge.populateDormant(base, nil, source, "Vol 2", "/b/v2.epub", nil, "/b/v3.epub", nil, true)
+    TestRunner:assertEqual(a2 + r2, 0, "a re-seed changes nothing, so the automatic re-seed writes nothing")
+    TestRunner:assertEqual(#base.characters[1].background, 1, "no duplicate line")
+end)
+
+TestRunner:test("seed enrichment: off by default (the AI merge path), family-scoped, never alias to alias", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local function base()
+        return XrayParser.parse([[{ "type": "fiction",
+            "characters": [{"name": "Bob Jones", "aliases": ["Bob"], "description": "This book's Bob."}],
+            "lexicon": [{"term": "Keeper", "definition": "An office."}] }]])
+    end
+    local source = XrayParser.parse([[{ "type": "fiction", "characters": [
+        {"name": "Bob Smith", "aliases": ["Bob"], "description": "Another man called Bob."},
+        {"name": "Keeper", "description": "A person nicknamed Keeper."},
+        {"name": "Bob Jones", "description": "The same man, earlier."}
+    ] }]])
+    local plain = base()
+    XrayMerge.populateDormant(plain, nil, source, "Vol 1", "/b/v1.epub", nil, "/b/v2.epub")
+    TestRunner:assertEqual(plain.characters[1].background, nil, "without the flag nothing is attached (the model writes merge lines)")
+    local b = base()
+    XrayMerge.populateDormant(b, nil, source, "Vol 1", "/b/v1.epub", nil, "/b/v2.epub", nil, true)
+    TestRunner:assertEqual(#b.characters[1].background, 1, "only the same-named entry's line")
+    TestRunner:assertEqual(b.characters[1].background[1].text, "The same man, earlier.",
+        "two men sharing the alias Bob are not one man")
+    TestRunner:assertEqual(b.lexicon[1].background, nil, "a person never enriches a term of the same name")
+end)
+
+TestRunner:test("populateDormant: another book's row of the same name keeps its description as a line", function()
+    -- A project seeds from every member: two members both hold an entry this book lacks
+    local base = { type = "nonfiction", key_figures = { { name = "Own", description = "o" } } }
+    local src_a = { type = "nonfiction", key_figures = { { name = "Varden", description = "A's account of Varden." } } }
+    local src_b = { type = "nonfiction", key_figures = { { name = "Varden", description = "B's account of Varden." } } }
+    local function run()
+        local a1, r1 = XrayMerge.populateDormant(base, nil, src_a, "Book A", "/a", nil, "/t", nil, true)
+        local a2, r2 = XrayMerge.populateDormant(base, nil, src_b, "Book B", "/b", nil, "/t", nil, true)
+        return a1 + r1 + a2 + r2
+    end
+    TestRunner:assertTrue(run() > 0, "the first run fills the list")
+    local L = base.__dormant
+    TestRunner:assertEqual(#L, 1, "one row")
+    TestRunner:assertEqual(L[1].source, "Book B", "the last source owns the row")
+    TestRunner:assertEqual(L[1].description, "B's account of Varden.")
+    TestRunner:assertEqual(#L[1].background, 1, "and the other book's description is kept as its line")
+    TestRunner:assertEqual(L[1].background[1].source, "Book A")
+    TestRunner:assertEqual(L[1].background[1].text, "A's account of Varden.")
+    run()
+    local snapshot = L[1].source .. "|" .. L[1].description .. "|" .. #L[1].background
+        .. "|" .. L[1].background[1].source .. "|" .. L[1].background[1].text
+    run()
+    TestRunner:assertEqual(base.__dormant[1].source .. "|" .. base.__dormant[1].description .. "|"
+        .. #base.__dormant[1].background .. "|" .. base.__dormant[1].background[1].source .. "|"
+        .. base.__dormant[1].background[1].text, snapshot, "the two books taking turns settle on one content")
+    TestRunner:assertEqual(#base.__dormant, 1, "still one row")
 end)
 
 TestRunner:test("seedDormant: walks past X-Ray-less and consent-denied predecessors", function()
@@ -848,6 +930,64 @@ TestRunner:test("seedDormant + wake: a skip-volume stub wakes on the fresh book'
             TestRunner:assertEqual(mira.description, "The keeper in this volume.",
                 "the fresh book's own description untouched")
         end)
+end)
+
+TestRunner:test("preCreateFoldAsk: the free choice leads and the paid ones name their cost (B394 slice 3)", function()
+    local BD = package.loaded["ui/widget/buttondialog"]
+    local orig_new = BD.new
+    local captured
+    BD.new = function(_self, o) captured = o; return o end
+    local modes = {}
+    local ok_run, err = pcall(withSeedStubs,
+        { ["/b/vol3.epub"] = { "/b/vol1.epub", "/b/vol2.epub" } },
+        {
+            ["/b/vol1.epub"] = { result = [[{"type":"fiction","characters":[{"name":"A","description":"a"}]}]] },
+            ["/b/vol2.epub"] = { result = [[{"type":"fiction","characters":[{"name":"B","description":"b"}]}]] },
+        },
+        function()
+            local asked = XrayMerge.preCreateFoldAsk({ file = "/b/vol3.epub" }, function(mode)
+                modes[#modes + 1] = mode == nil and "none" or mode
+            end)
+            TestRunner:assertEqual(asked, true, "the previous book has an X-Ray: the ask shows")
+        end)
+    BD.new = orig_new
+    if not ok_run then error(err, 0) end
+    TestRunner:assertTrue(captured.title:find("carried into this book's X-Ray on its own", 1, true) ~= nil,
+        "the dialog says the carry is automatic")
+    TestRunner:assertTrue(captured.title:find("\226\128\148", 1, true) == nil, "no em dash in the text")
+    local labels = {}
+    for i, row in ipairs(captured.buttons) do
+        labels[i] = row[1].text
+        row[1].callback()
+    end
+    TestRunner:assertEqual(labels[1], "Just this book", "the free choice is first")
+    TestRunner:assertEqual(labels[2], "Also merge when done (1 request)")
+    TestRunner:assertEqual(labels[3], "Bring the series up to date (2 requests)",
+        "vol2 never merged vol1, so the chain is offered with its request count")
+    TestRunner:assertEqual(labels[4], "Cancel")
+    TestRunner:assertEqual(table.concat(modes, ","), "none,single,chain,cancel", "each button's answer")
+    TestRunner:assertEqual(captured.dismissable, false, "a tap outside never abandons the create silently")
+end)
+
+TestRunner:test("the naming canon rides every fresh create, whatever the ask's answer (B394 slice 3)", function()
+    local info = debug.getinfo(1, "S")
+    local root = info.source:match("@?(.*)/tests/unit/[^/]+$") or "."
+    local f = assert(io.open(root .. "/koassistant_dialogs.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    -- The ask's callback: every answer but Cancel injects, then sends
+    TestRunner:assertTrue(src:find('if mode == "cancel" then return end\n'
+        .. '                message_data._precreate_fold_asked = true\n'
+        .. '                if mode then message_data._fold_after_create = mode end\n'
+        .. '                injectNamingCanon()\n'
+        .. '                runPreSendWarnings()', 1, true) ~= nil,
+        "accepting or declining the merge, the canon is injected before the send")
+    -- No ask (the nearest book has no X-Ray but an earlier one does): still injected
+    TestRunner:assertTrue(src:find("if asked then return nil end -- continuation via the ask's callback\n"
+        .. "        injectNamingCanon()", 1, true) ~= nil, "and when no dialog applies")
+    -- One copy: the background branch calls the same function
+    local _first, count = src:gsub("XrayMerge%.namingCanonBlock%(", "")
+    TestRunner:assertEqual(count, 1, "one injection site, shared by the attended and the background create")
 end)
 
 print("")
@@ -1374,6 +1514,28 @@ TestRunner:test("carryActiveBackground: a renamed entity stays carried, not lost
         "with its source label intact")
 end)
 
+TestRunner:test("carryActiveBackground: a re-parked row names its source and keeps a role (B394 slice 3)", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local prev = XrayParser.parse([[{
+      "type": "fiction",
+      "characters": [{"name": "Ines", "role": "Physician", "description": "old",
+        "background": [{"source": "Vol 1", "file": "/b/v1.epub", "text": "Arrived at Saltrest."},
+                       {"source": "Vol 2", "file": "/b/v2.epub", "text": "Ran the infirmary."}]}]
+    }]])
+    local fresh = XrayParser.parse([[{ "type": "fiction",
+      "characters": [{"name": "Someone Else", "description": "FRESH read."}] }]])
+    XrayMerge.carryActiveBackground(prev, fresh)
+    local stub = fresh[XrayParser.DORMANT_KEY][1]
+    TestRunner:assertEqual(stub.source, "Vol 2", "the book of the last line (the nearest one)")
+    TestRunner:assertEqual(stub.file, "/b/v2.epub")
+    TestRunner:assertEqual(stub.role, "Physician", "the row can be recognized")
+    TestRunner:assertEqual(stub.description, nil, "no description: the lines hold the knowledge")
+    -- Waking it later restores exactly the two lines, no duplicate
+    fresh.characters[#fresh.characters + 1] = { name = "Ines", description = "back" }
+    XrayParser.wakeDormant(fresh)
+    TestRunner:assertEqual(#fresh.characters[2].background, 2, "both lines came back, none doubled")
+end)
+
 print("  [round 28: hop skip + self-filter + file identity]")
 
 TestRunner:test("hasFolded: provenance-listed source counts as done, others don't", function()
@@ -1432,6 +1594,62 @@ TestRunner:test("applyBackgroundUpdates: file identity rides the sanctioned chan
         "Vol 3", "/b/v3.epub")
     TestRunner:assertEqual(base.characters[1].background[1].file, "/b/v3.epub")
     TestRunner:assertEqual(base.characters[1].background[1].source, "Vol 3")
+end)
+
+TestRunner:test("ledgerByCategory: stubs file under this X-Ray's categories by family, name order (#116)", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local data = XrayParser.parse([[{ "type": "fiction",
+        "characters": [{"name": "Own Hero", "description": "x"}],
+        "timeline": [{"event": "Something happens", "chapter": "1"}],
+        "current_state": {"summary": "now"} }]])
+    data[XrayParser.DORMANT_KEY] = {
+        { name = "zed", category = "characters", source = "Vol 1" },
+        { name = "Brandt", category = "key_figures", source = "A companion" },
+        { name = "Alma", category = "characters", source = "Vol 2" },
+        { name = "The Ford", category = "locations", source = "Vol 1" },
+        { name = "Runecraft", category = "terminology", source = "A companion" },
+        { name = "Duty", category = "themes", source = "Vol 1" },
+        { name = "Emergence", category = "core_concepts", source = "A companion" },
+        { name = "No Category", source = "Vol 1" },
+        { name = "", category = "characters" },
+        "junk",
+    }
+    local by_key, other, total = XrayParser.ledgerByCategory(data)
+    local function names(rows)
+        local out = {}
+        for _i, r in ipairs(rows or {}) do out[#out + 1] = r.stub.name end
+        return table.concat(out, ",")
+    end
+    TestRunner:assertEqual(names(by_key.characters), "Alma,Brandt,No Category,zed",
+        "people of both types and the category-less stub, case-insensitive name order")
+    TestRunner:assertEqual(names(by_key.locations), "The Ford")
+    TestRunner:assertEqual(names(by_key.lexicon), "Runecraft", "a nonfiction term lands in Lexicon")
+    TestRunner:assertEqual(names(by_key.themes), "Duty", "an unmapped category is its own family")
+    TestRunner:assertEqual(names(other), "Emergence", "a concept has no category in a fiction X-Ray")
+    TestRunner:assertEqual(total, 8, "empty names and junk rows are not counted")
+    TestRunner:assertEqual(by_key.timeline, nil, "event lists never host a carried entry")
+    TestRunner:assertEqual(by_key.current_state, nil, "status blocks never host one")
+    -- The raw ledger index rides along for the edit ops
+    TestRunner:assertEqual(by_key.characters[1].idx, 3, "Alma is ledger row 3")
+    TestRunner:assertEqual(by_key.characters[4].idx, 1, "zed is ledger row 1")
+end)
+
+TestRunner:test("ledgerByCategory: a nonfiction X-Ray files people under Key Figures; no ledger is empty", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local data = XrayParser.parse([[{ "type": "nonfiction",
+        "key_figures": [{"name": "Own Author", "description": "x"}] }]])
+    data[XrayParser.DORMANT_KEY] = {
+        { name = "A Character", category = "characters", source = "A novel" },
+        { name = "A Theme", category = "themes", source = "A novel" },
+        { name = "A Concept", category = "key_concepts", source = "A paper" },
+    }
+    local by_key, other, total = XrayParser.ledgerByCategory(data)
+    TestRunner:assertEqual(by_key.key_figures[1].stub.name, "A Character")
+    TestRunner:assertEqual(by_key.core_concepts[1].stub.name, "A Concept", "concepts bridge key_concepts and core_concepts")
+    TestRunner:assertEqual(other[1].stub.name, "A Theme", "themes have no nonfiction category")
+    TestRunner:assertEqual(total, 3)
+    local e_by, e_other, e_total = XrayParser.ledgerByCategory({ type = "fiction" })
+    TestRunner:assertEqual(next(e_by), nil); TestRunner:assertEqual(#e_other, 0); TestRunner:assertEqual(e_total, 0)
 end)
 
 local ok = TestRunner:summary()

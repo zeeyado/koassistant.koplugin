@@ -7891,6 +7891,7 @@ function AskGPT:showCacheViewer(cache_info)
           merged_from_sections = cache_info.data.merged_from_sections,
           merged_from_books = cache_info.data.merged_from_books,
           merged_from = cache_info.data.merged_from,
+          xray_categories = cache_info.data.xray_categories,
           info_popup_text = info_popup_text,
           -- Archived-version view: browser goes read-only (no update/delete rows,
           -- no nested version history), title says "X-Ray Version". Round 24:
@@ -10352,6 +10353,27 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
     -- three entries behind one group row
     local mf_rows = {}
     if sx_file then
+      -- B394 slice 1: every row that sends something says so, and the
+      -- group merges are one tap away (the series chain used to be a row
+      -- inside the picker the next row opens)
+      table.insert(mf_rows, {{
+        text = _("Merge another book's X-Ray (1 request)…"),
+        callback = function()
+          UIManager:close(dialog)
+          self_ref:_startCrossBookXrayFlow(sx_file, opts)
+        end,
+      }})
+      local mf_kind = self:_groupXrayMergeKind(sx_file)
+      if mf_kind then
+        table.insert(mf_rows, {{
+          text = mf_kind == "project" and _("Fold the group into this book (1 request per book)…")
+            or _("Bring the series up to date (1 request per book)…"),
+          callback = function()
+            UIManager:close(dialog)
+            self_ref:_startGroupXrayMergeFlow(mf_kind, sx_file, opts)
+          end,
+        }})
+      end
       if c_sx_count > 0 then
         table.insert(mf_rows, {{
           text = T(_("Merge section X-Rays (%1)…"), c_sx_count),
@@ -10361,13 +10383,6 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           end,
         }})
       end
-      table.insert(mf_rows, {{
-        text = _("Merge from another book…"),
-        callback = function()
-          UIManager:close(dialog)
-          self_ref:_startCrossBookXrayFlow(sx_file, opts)
-        end,
-      }})
       table.insert(mf_rows, {{
         text = _("Find duplicate entities…"),
         callback = function()
@@ -11663,6 +11678,9 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       self.settings and self.settings:readSetting("features"))
     local type_value = BookSettings.resolveXrayType(self.ui.doc_settings,
       self.settings and self.settings:readSetting("features"))
+    -- The status block (B271): "off", or nil = on
+    local status_value = BookSettings.resolveXrayStatus(self.ui.doc_settings,
+      self.settings and self.settings:readSetting("features"))
     -- A locked extend continues the lineage's OWN stamps (the update branch
     -- overwrites the pick from the cache entry), so the grayed buttons show
     -- the stamps, not the preference (2026-09-07: a Light / Characters-only
@@ -11671,6 +11689,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       local PA = require("prompts/actions")
       cat_value = PA.normalizeXrayCategories(base_entry.xray_categories)
       depth_value = PA.normalizeXrayDepth(base_entry.xray_depth)
+      status_value = PA.normalizeXrayStatus(base_entry.xray_status)
       -- The type is the X-Ray's own (its JSON names it, B337c)
       local lineage = require("koassistant_action_cache").parsedXrayFor(self.ui.document.file)
       type_value = type(lineage) == "table" and PA.normalizeXrayType(lineage.type) or nil
@@ -11770,11 +11789,35 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         })
       end,
     }
+    -- B383: the preset the three dials amount to, one tap to set them all.
+    -- "Custom" names what the dials hold, the status block included (the
+    -- value buttons below have no room for it).
+    local preset_now = BookSettings.xrayPresetFor(cat_value, status_value, depth_value)
+    local preset_row = {{
+      text = preset_now and T(_("Preset: %1…"), preset_now.label)
+        or T(_("Preset: Custom (%1, %2)…"),
+          BookSettings.xrayTrackLabel(cat_value, status_value),
+          BookSettings.xrayDepthLabel(depth_value)),
+      font_size = 16, font_bold = false,
+      enabled = categories_on,
+      callback = function()
+        UIManager:close(current_dialog)
+        BookSettings.showXrayPresetPicker({
+          ui = self_ref.ui, plugin = self_ref, target_override = "book",
+          on_close = function() buildAndShow() end,
+        })
+      end,
+    }}
+    -- B375: each dial's name sits above its own value button (one header
+    -- over four unlabeled buttons left a reader guessing which was which)
+    local function dialName(text)
+      return { text = text, font_size = 14, font_bold = false, enabled = false }
+    end
     local options_row = ButtonTableO:new{
       width = content_width,
       buttons = {
-        {{ text = _("Checkpoint spacing, categories, depth, type:"),
-           font_size = 16, font_bold = false, enabled = false }},
+        preset_row,
+        { dialName(_("Spacing")), dialName(_("What to track")), dialName(_("Depth")), dialName(_("Type")) },
         option_buttons,
       },
       zero_sep = true,
@@ -12668,6 +12711,38 @@ function AskGPT:_startCrossBookXrayFlow(file, opts)
     close_browser = opts and opts.close_browser,
     reopen_live = true,
   })
+end
+
+--- The group merges opened directly (B394 slice 1), one tap from the X-Ray
+--- popup, the browser's menu and the hub: a series' chain ending at `file`
+--- ("series"), or a project's other members folded into `file` ("project").
+--- @param kind string "series" | "project"
+function AskGPT:_startGroupXrayMergeFlow(kind, file, opts)
+  local XrayMerge = require("koassistant_xray_merge")
+  local start = kind == "project" and XrayMerge.startFanInFlow or XrayMerge.startSeriesChainFlow
+  return start({
+    file = file, ui = self.ui, plugin = self, configuration = configuration,
+    title = opts and opts.book_title, author = opts and opts.book_author,
+    close_browser = opts and opts.close_browser,
+    reopen_live = true,
+  })
+end
+
+--- Which direct group merge a book's menus offer (B394 slice 1), from the
+--- groups file alone (no X-Ray is read to decide): "series" when the book has
+--- two or more earlier books in its series (one earlier book is a plain
+--- merge), "project" when it is in a project with other books, else nil.
+--- @return string|nil kind
+function AskGPT:_groupXrayMergeKind(file)
+  if not file then return nil end
+  local ok, BookGroups = pcall(require, "koassistant_book_groups")
+  if not ok then return nil end
+  local preds = BookGroups.predecessorsOf(file)
+  if #preds >= 2 then return "series" end
+  for _idx, g in ipairs(BookGroups.groupsFor(file) or {}) do
+    if BookGroups.kindOf(g) == BookGroups.KIND_PROJECT and #g.books > 1 then return "project" end
+  end
+  return nil
 end
 
 function AskGPT:_startXrayDedupFlow(file, opts)
@@ -15161,7 +15236,8 @@ function AskGPT:_showXraySpacingPicker(opts)
   if opts.on_reset then
     rows[#rows + 1] = {{
       text = dot(opts.override == nil)
-        .. T(_("Use recommended (every %1%)"), self:_xraySpacingPctLabel(recommended)),
+        .. (opts.reset_label
+          or T(_("Use recommended (every %1%)"), self:_xraySpacingPctLabel(recommended))),
       callback = function()
         UIManager:close(picker)
         opts.on_reset()
@@ -21105,6 +21181,20 @@ function AskGPT:showXrayDefaultTypePicker()
   local BookSettings = require("koassistant_book_settings")
   BookSettings.showXrayTypePicker({ plugin = self, ui = self.ui, target_override = "global",
     no_rebuild_offer = true })
+end
+
+--- Global preset for new X-Rays (B383): sets the three global dials below
+--- it in one tap; settings menu row
+function AskGPT:showXrayDefaultPresetPicker()
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.showXrayPresetPicker({ plugin = self, ui = self.ui, target_override = "global" })
+end
+
+--- Global default for where carried entries are listed (#116, B393);
+--- settings menu row
+function AskGPT:showXrayDefaultCarriedPicker()
+  local BookSettings = require("koassistant_book_settings")
+  BookSettings.showXrayCarriedPicker({ plugin = self, ui = self.ui, target_override = "global" })
 end
 
 function AskGPT:showSetupWizardDev()

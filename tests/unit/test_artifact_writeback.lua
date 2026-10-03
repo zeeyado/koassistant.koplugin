@@ -520,6 +520,68 @@ TestRunner:test("restore does not ring-archive a live that IS a rung (item 40 du
         "the 17% stays preserved as its ladder point")
 end)
 
+print("")
+print("  [reader edits replay into built checkpoints (B267, B394 slice 6)]")
+
+local function rungJson(chars)
+    return require("json").encode({ type = "fiction", characters = chars })
+end
+
+TestRunner:test("applyToRungs: a rename reaches the checkpoints that hold the old name, and only those", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local rungs = {
+        { result = rungJson({ { name = "The Stranger", description = "a" } }), progress_decimal = 0.2, timestamp = 11 },
+        { result = rungJson({ { name = "Someone Else", description = "b" } }), progress_decimal = 0.3, timestamp = 12 },
+        { result = rungJson({ { name = "The Stranger", description = "c" },
+                              { name = "Mara Cole", description = "already here" } }), progress_decimal = 0.4, timestamp = 13 },
+        { result = rungJson({ { name = "The Stranger", description = "intro" } }), intro = true, timestamp = 14 },
+        { result = "not json", progress_decimal = 0.5 },
+    }
+    local n = WriteBack.applyToRungs(rungs, WriteBack.renameEdit("characters", "The Stranger", "Mara Cole"))
+    TestRunner:assertEqual(n, 1, "one checkpoint rewritten")
+    local first = XrayParser.parse(rungs[1].result)
+    TestRunner:assertEqual(first.characters[1].name, "Mara Cole", "renamed")
+    TestRunner:assertEqual(first.characters[1].aliases[1], "The Stranger", "the old name stays as an alias")
+    TestRunner:assertTrue(rungs[1].edited_at ~= nil, "stamped as reader-modified")
+    TestRunner:assertEqual(rungs[1].timestamp, 11, "its identity (timestamp, progress) is untouched")
+    TestRunner:assertEqual(rungs[2].edited_at, nil, "a checkpoint without the entry is left alone")
+    TestRunner:assertEqual(rungs[3].edited_at, nil, "one that already has the new name is left alone (no two entries of one name)")
+    TestRunner:assertEqual(XrayParser.parse(rungs[3].result).characters[1].name, "The Stranger")
+    TestRunner:assertEqual(rungs[4].edited_at, nil, "the introduction is never rewritten")
+    TestRunner:assertEqual(rungs[5].result, "not json", "an unreadable checkpoint is skipped")
+    TestRunner:assertEqual(WriteBack.applyToRungs(rungs, WriteBack.renameEdit("characters", "The Stranger", "Mara Cole")), 0,
+        "a second replay finds nothing to do")
+end)
+
+TestRunner:test("applyToRungs: a link adds the other book's names once", function()
+    local XrayParser = require("koassistant_xray_parser")
+    local rungs = {
+        { result = rungJson({ { name = "Mara", aliases = { "the Keeper" }, description = "a" } }), progress_decimal = 0.2 },
+        { result = rungJson({ { name = "Other", description = "b" } }), progress_decimal = 0.3 },
+    }
+    local edit = WriteBack.aliasEdit("characters", "Mara", { "Mara Alvsund", "the Keeper" })
+    TestRunner:assertEqual(WriteBack.applyToRungs(rungs, edit), 1)
+    local data = XrayParser.parse(rungs[1].result)
+    TestRunner:assertEqual(table.concat(data.characters[1].aliases, ","), "the Keeper,Mara Alvsund", "only the new name is added")
+    TestRunner:assertEqual(WriteBack.applyToRungs(rungs, edit), 0, "nothing new the second time: not rewritten, not re-stamped")
+end)
+
+TestRunner:test("replayIntoRungs: the stored checkpoints are rewritten on disk", function()
+    wipe()
+    ActionCache.pushXrayLadderRung(DOC_PATH, {
+        result = rungJson({ { name = "The Stranger", description = "built ahead" } }),
+        progress_decimal = 0.4, timestamp = 1700000900, producer = "auto",
+    })
+    TestRunner:assertEqual(WriteBack.replayIntoRungs(DOC_PATH,
+        WriteBack.renameEdit("characters", "The Stranger", "Mara Cole")), 1)
+    local stored = ActionCache.getXrayLadder(DOC_PATH)
+    TestRunner:assertEqual(#stored, 1, "still one checkpoint")
+    TestRunner:assertTrue(stored[1].result:find("Mara Cole", 1, true) ~= nil, "the install will carry the new name")
+    TestRunner:assertEqual(stored[1].timestamp, 1700000900, "same checkpoint")
+    TestRunner:assertEqual(WriteBack.replayIntoRungs("/nowhere/none.epub",
+        WriteBack.renameEdit("characters", "A", "B")), 0, "a book with no checkpoints is a quiet no-op")
+end)
+
 wipe()
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 

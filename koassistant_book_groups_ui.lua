@@ -99,13 +99,17 @@ end
 --- @return string
 function GroupsUI.kindDescription(kind)
     local BookGroups = groups()
+    -- B394 slice 1: each sentence true of what the code does. The project
+    -- text used to say "nothing is carried forward automatically", while a
+    -- project has seeded every member's carried list from every other member
+    -- since 2026-09-02.
     if kind == BookGroups.KIND_PROJECT then
-        return _("Books on a shared subject, in no particular order. You can fold the other members' X-Rays into whichever book you are reading; nothing is carried forward automatically and no book counts as earlier or later.")
+        return _("Books on one subject, in no order. What each book's X-Ray knows is carried into every other book on its own. Nothing is held back.")
     end
     if kind == BookGroups.KIND_PLAIN then
-        return _("Just a list. The books share navigation, and you can still merge any two by hand, but nothing is suggested or carried across.")
+        return _("Just a list. The books share a hub, a group chat and group settings. Nothing is carried between their X-Rays; any two can still be merged by hand.")
     end
-    return _("Order is the reading order — it drives merge suggestions, carried-over knowledge and previous/next navigation.")
+    return _("Books in reading order, one continued story. What the earlier books' X-Rays know is carried into the later books on its own. A later book stays out of reach until the books before it are read.")
 end
 
 -- Kind step at creation (A3): every new group used to be silently a SERIES,
@@ -132,9 +136,9 @@ local function promptKind(on_done)
     end
     dialog = ButtonDialog:new{
         title = _("What kind of group?") .. "\n"
-            .. _("Series: reading order matters — knowledge carries forward.") .. "\n"
-            .. _("Project: same subject, no order — fold X-Rays on demand.") .. "\n"
-            .. _("Plain: just a list."),
+            .. _("Series: reading order, one story. Earlier books' knowledge is carried forward.") .. "\n"
+            .. _("Project: one subject, no order. Knowledge is carried between all the books.") .. "\n"
+            .. _("Plain: just a list. Nothing is carried."),
         buttons = rows,
         tap_close_callback = function() on_done(BookGroups.KIND_SERIES) end,
     }
@@ -381,7 +385,13 @@ local function showFoldTargetPicker(group_id, opts)
             enabled = has,
             callback = function()
                 UIManager:close(dialog)
-                opts.plugin:_startCrossBookXrayFlow(captured)
+                -- B394 slice 1: straight to the fold's confirm (it used to
+                -- open the merge picker, whose first row was this fold)
+                if opts.plugin._startGroupXrayMergeFlow then
+                    opts.plugin:_startGroupXrayMergeFlow("project", captured)
+                else
+                    opts.plugin:_startCrossBookXrayFlow(captured)
+                end
             end,
         }}
     end
@@ -399,7 +409,7 @@ local function showFoldTargetPicker(group_id, opts)
     end }}
     dialog = ButtonDialog:new{
         title = _("Fold the group's X-Rays into which book?") .. "\n"
-            .. _("Knowledge flows INTO the book you pick — the others are not changed."),
+            .. _("Knowledge flows INTO the book you pick. The others are not changed. One request per other book."),
         buttons = rows,
     }
     UIManager:show(dialog)
@@ -820,9 +830,10 @@ function GroupsUI.foldFlow(group_id, opts)
         showFoldTargetPicker(group_id, opts)
         return
     end
-    -- Series: the chain runs oldest → newest, so launch the picker
-    -- from the LAST member with an X-Ray — its "Fold in earlier
-    -- books" row then covers the whole series
+    -- Series: the chain runs oldest → newest, so it ends at the LAST member
+    -- with an X-Ray and covers the whole series. B394 slice 1: straight to
+    -- the chain's confirm (it used to open that book's merge picker, where
+    -- the chain was one more row)
     local ActionCache = require("koassistant_action_cache")
     local XrayParser = require("koassistant_xray_parser")
     local target
@@ -840,7 +851,11 @@ function GroupsUI.foldFlow(group_id, opts)
         GroupsUI.showGroup(group_id, opts)
         return
     end
-    opts.plugin:_startCrossBookXrayFlow(target)
+    if opts.plugin._startGroupXrayMergeFlow then
+        opts.plugin:_startGroupXrayMergeFlow("series", target)
+    else
+        opts.plugin:_startCrossBookXrayFlow(target)
+    end
 end
 
 -- Where a flow lands: the hub's in-place refresh, or the caller's own
@@ -1111,7 +1126,7 @@ function GroupsUI.showBookRow(path, opts)
         end,
     }}
     dialog = ButtonDialog:new{
-        title = T(_("Groups — %1"), BookGroups.displayTitle(path, opts.ui)),
+        title = T(_("Groups: %1"), BookGroups.displayTitle(path, opts.ui)),
         buttons = rows,
         -- A tap outside is Back (B360)
         tap_close_callback = function()

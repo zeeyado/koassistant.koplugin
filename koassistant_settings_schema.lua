@@ -982,12 +982,20 @@ local SettingsSchema = {
                             help_text = _("When building X-Ray checkpoints, place each checkpoint at the nearest chapter end (within a few percent) instead of an exact percentage; checkpoints then read as \"up to the end of a chapter\", and the versions list shows the chapter names. Needs a table of contents. Checkpoint spacing itself adapts to book length: about every 10% of a normal-length book, larger steps for short ones."),
                         },
                         {
+                            id = "xray_default_preset_picker",
+                            type = "action",
+                            text = _("Preset for New X-Rays"),
+                            callback = "showXrayDefaultPresetPicker",
+                            keep_menu_open = true,
+                            help_text = _("One tap for the three settings below it: what a new X-Ray tracks, whether it keeps the status block (\"Where things stand\"), and how much each entry carries. Characters only is the cheapest (the cast, no status block); Reference is the default (people, places, ideas and terms); Everything adds the story arc; Light companion and Deep study change the depth as well. Each setting can still be changed on its own; the preset then reads Custom. A book can pick its own preset in Book Settings and a group in its Group Settings. Applies when an X-Ray is created or rebuilt."),
+                        },
+                        {
                             id = "xray_default_categories_picker",
                             type = "action",
                             text = _("Categories for New X-Rays"),
                             callback = "showXrayDefaultCategoriesPicker",
                             keep_menu_open = true,
-                            help_text = _("Which category groups a new X-Ray tracks by default. Reference (everything except the timeline) unless changed here; All categories adds the timeline or argument development, Characters only is the lightest. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
+                            help_text = _("Which category groups a new X-Ray tracks by default. Reference (everything except the timeline) unless changed here; All categories adds the timeline or argument development, Characters only is the lightest. The last checkbox, \"Where things stand\", is the status block (current state, or the conclusion of a whole-book X-Ray): every update rewrites it, so an X-Ray without it has shorter updates. Applies when an X-Ray is created or rebuilt; individual books can pick their own categories in Book Settings."),
                         },
                         {
                             id = "xray_default_depth_picker",
@@ -1004,6 +1012,14 @@ local SettingsSchema = {
                             callback = "showXrayDefaultTypePicker",
                             keep_menu_open = true,
                             help_text = _("Whether a new X-Ray uses the fiction schema (characters, places, story), the nonfiction one (people, concepts, argument) or the academic one (concepts, methods, findings, cited works). Auto, the default, lets the AI decide from the work. Applies when an X-Ray is created or rebuilt; updates keep the X-Ray's own type. Individual books can pick their own type in Book Settings, which is where a book whose X-Ray came out as the wrong type is fixed."),
+                        },
+                        {
+                            id = "xray_carried_entries_picker",
+                            type = "action",
+                            text = _("Carried Entries"),
+                            callback = "showXrayDefaultCarriedPicker",
+                            keep_menu_open = true,
+                            help_text = _("In a series or project group, entries from the group's other books that have not appeared in the open book yet are carried along (in a series: from the earlier books only). This sets where they are listed: only on their own list, \"Carried from earlier books\" (the default), or also inside the X-Ray's own categories, after the book's own entries, with the book each one comes from beside it. A group can set this for all its books in its Group Settings, and a book in Book Settings. It changes the lists only: nothing is sent and no X-Ray is rebuilt."),
                         },
                         {
                             id = "xray_selection_intercept",

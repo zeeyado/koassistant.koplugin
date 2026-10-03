@@ -855,7 +855,7 @@ TestRunner:test("KEY_WEB_SEARCH and KEY_DOMAIN/KEY_RESEARCH are in SIDECAR_KEYS"
         "koassistant_book_background missing from SIDECAR_KEYS (book_background_plan.md)")
     TestRunner:assertEqual(found[BookSettings.KEY_XRAY_SPACING] == true, true,
         "koassistant_book_xray_spacing missing from SIDECAR_KEYS (spacing slice)")
-    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 39, "39 per-book keys expected (incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25) + book text language (2026-09-10) + xray type (B337c, 2026-09-29); xray highlights removed with reader engagement 2026-08-18)")
+    TestRunner:assertEqual(#BookSettings.SIDECAR_KEYS, 41, "41 per-book keys expected (carried entries, #116 / B393, and the status block, B271, 2026-10-03; incl. 4 privacy overrides + xray promotion hold + checkpoint spacing + 9 marking & lookup overrides incl. upcoming-entities, intercept, card, card length, ahead card (B269) + xray categories + xray depth (2026-08-25) + book text language (2026-09-10) + xray type (B337c, 2026-09-29); xray highlights removed with reader engagement 2026-08-18)")
 end)
 
 TestRunner:suite("resolveXrayMarking (2026-08-15: popup edits the book layer)")
@@ -1454,6 +1454,201 @@ TestRunner:test("junk values fall through; nil doc settings still honours the gl
     local d2, layer2 = BookSettings.resolveXrayDepth(nil, { xray_default_depth = "deep" })
     TestRunner:assertEqual(d2, "deep", "nil ds"); TestRunner:assertEqual(layer2, "global", "layer")
     TestRunner:assertEqual(BookSettings.xrayDepthLabel(nil), "Standard", "label")
+end)
+
+TestRunner:suite("resolveXrayCarried (#116, B393: book > global > separate list)")
+TestRunner:test("nothing set = the separate list; global and book picks; junk falls through", function()
+    local v, layer = BookSettings.resolveXrayCarried(makeDocSettings({}), {})
+    TestRunner:assertEqual(v, "list", "default"); TestRunner:assertEqual(layer, nil, "no layer")
+    v, layer = BookSettings.resolveXrayCarried(makeDocSettings({}), { xray_carried_entries = "categories" })
+    TestRunner:assertEqual(v, "categories", "global"); TestRunner:assertEqual(layer, "global", "layer")
+    v, layer = BookSettings.resolveXrayCarried(
+        makeDocSettings({ [BookSettings.KEY_XRAY_CARRIED] = "list" }), { xray_carried_entries = "categories" })
+    TestRunner:assertEqual(v, "list", "a book pick beats the global one"); TestRunner:assertEqual(layer, "book", "layer")
+    v, layer = BookSettings.resolveXrayCarried(
+        makeDocSettings({ [BookSettings.KEY_XRAY_CARRIED] = "categories" }), {})
+    TestRunner:assertEqual(v, "categories", "book"); TestRunner:assertEqual(layer, "book", "layer")
+    v = BookSettings.resolveXrayCarried(
+        makeDocSettings({ [BookSettings.KEY_XRAY_CARRIED] = true }), { xray_carried_entries = "bogus" })
+    TestRunner:assertEqual(v, "list", "junk on both layers")
+    v, layer = BookSettings.resolveXrayCarried(nil, { xray_carried_entries = "categories" })
+    TestRunner:assertEqual(v, "categories", "nil doc settings still honours the global")
+    TestRunner:assertEqual(BookSettings.xrayCarriedLabel("categories"), "In their categories", "label")
+    TestRunner:assertEqual(BookSettings.xrayCarriedLabel(nil), "Separate list", "label default")
+end)
+TestRunner:test("the key is a per-book key and a group key", function()
+    local have = {}
+    for _i, key in ipairs(BookSettings.SIDECAR_KEYS) do have[key] = true end
+    TestRunner:assertEqual(have["koassistant_book_xray_carried"], true, "in SIDECAR_KEYS (reset, count, registry)")
+    local group_keys = {}
+    for _i, key in ipairs(require("koassistant_group_settings").keys()) do group_keys[key] = true end
+    TestRunner:assertEqual(group_keys[BookSettings.KEY_XRAY_CARRIED], true, "a group can set it (the #116 ask)")
+    TestRunner:assertEqual(require("koassistant_group_settings").keyLabel(BookSettings.KEY_XRAY_CARRIED),
+        "Carried entries", "named in confirms and toasts")
+end)
+
+TestRunner:suite("resolveXrayStatus (B271: book > global > on)")
+TestRunner:test("on by default; off and on at either layer; a book's on beats a global off", function()
+    local s, layer = BookSettings.resolveXrayStatus(makeDocSettings({}), {})
+    TestRunner:assertEqual(s, nil, "on is nil, the shipped prompt"); TestRunner:assertEqual(layer, nil, "no layer")
+    s, layer = BookSettings.resolveXrayStatus(makeDocSettings({}), { xray_default_status = "off" })
+    TestRunner:assertEqual(s, "off", "global off"); TestRunner:assertEqual(layer, "global", "layer")
+    s, layer = BookSettings.resolveXrayStatus(
+        makeDocSettings({ [BookSettings.KEY_XRAY_STATUS] = "on" }), { xray_default_status = "off" })
+    TestRunner:assertEqual(s, nil, "the book keeps it"); TestRunner:assertEqual(layer, "book", "layer")
+    s, layer = BookSettings.resolveXrayStatus(makeDocSettings({ [BookSettings.KEY_XRAY_STATUS] = "off" }), {})
+    TestRunner:assertEqual(s, "off", "book off"); TestRunner:assertEqual(layer, "book", "layer")
+    s = BookSettings.resolveXrayStatus(makeDocSettings({ [BookSettings.KEY_XRAY_STATUS] = "junk" }), { xray_default_status = 7 })
+    TestRunner:assertEqual(s, nil, "junk on both layers is on")
+    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people", "off"), "Characters only, no status block", "label")
+    TestRunner:assertEqual(BookSettings.xrayTrackLabel("people", nil), "Characters only", "label, status on")
+    local group_keys = {}
+    for _i, key in ipairs(require("koassistant_group_settings").keys()) do group_keys[key] = true end
+    TestRunner:assertEqual(group_keys[BookSettings.KEY_XRAY_STATUS], true, "a group can set it")
+    TestRunner:assertEqual(group_keys[BookSettings.KEY_XRAY_SPACING], true, "and the checkpoint spacing (B394 slice 5)")
+    TestRunner:assertEqual(BookSettings.xraySpacingLabel(0.05), "every 5%", "spacing label")
+    TestRunner:assertEqual(BookSettings.xraySpacingLabel(0.025), "every 2.5%", "half percent kept")
+end)
+
+TestRunner:suite("X-Ray presets are macros over the dials (B383)")
+
+local function presetTrue(value, msg)
+    if not value then error(msg or "expected truthy", 2) end
+end
+
+local function presetDs(map)
+    local ds = { _data = map or {}, deleted = {} }
+    function ds:readSetting(k) return self._data[k] end
+    ds.readRaw = ds.readSetting
+    function ds:saveSetting(k, v) self._data[k] = v end
+    function ds:delSetting(k) self._data[k] = nil; self.deleted[#self.deleted + 1] = k end
+    function ds:flush() end
+    return ds
+end
+local function presetPlugin(features)
+    return {
+        settings = {
+            readSetting = function() return features end,
+            saveSetting = function(_self, _k, v) features = v end,
+            flush = function() end,
+        },
+        updateConfigFromSettings = function() end,
+        features = function() return features end,
+    }
+end
+-- Open the picker and hand back its dialog (the mock ButtonDialog returns its spec)
+local function openPresetPicker(opts)
+    local BD = package.loaded["ui/widget/buttondialog"]
+    local orig_new, captured = BD.new, nil
+    BD.new = function(_self, o) captured = o; return o end
+    local ok, err = pcall(BookSettings.showXrayPresetPicker, opts)
+    BD.new = orig_new
+    if not ok then error(err, 0) end
+    return captured
+end
+local function tapRow(dialog, needle)
+    for _i, row in ipairs(dialog.buttons) do
+        for _j, btn in ipairs(row) do
+            if btn.text and btn.text:find(needle, 1, true) then
+                btn.callback()
+                return btn.text
+            end
+        end
+    end
+    error("no row holding " .. needle, 0)
+end
+
+TestRunner:test("every preset is recognized from its own values; anything else is Custom", function()
+    for _i, p in ipairs(BookSettings.XRAY_PRESETS) do
+        local found = BookSettings.xrayPresetFor(p.categories ~= "full" and p.categories or nil,
+            p.status == "off" and "off" or nil, p.depth ~= "standard" and p.depth or nil)
+        TestRunner:assertEqual(found and found.id, p.id, p.id .. " maps to itself")
+    end
+    TestRunner:assertEqual(#BookSettings.XRAY_PRESETS, 6, "six built-in presets")
+    TestRunner:assertEqual(BookSettings.xrayPresetFor("people", nil, nil), nil,
+        "characters with the status block on is no preset")
+    TestRunner:assertEqual(BookSettings.xrayPresetFor("people,places", "off", "deep"), nil, "a mix is Custom")
+    TestRunner:assertEqual(BookSettings.xrayPresetLabel(nil), "Custom", "label")
+end)
+
+TestRunner:test("nothing set anywhere is Reference, and the book owns nothing", function()
+    local p, own = BookSettings.resolveXrayPreset(presetDs({}), {})
+    TestRunner:assertEqual(p.id, "reference", "the shipped defaults are the Reference preset")
+    TestRunner:assertEqual(own, false, "the book follows global")
+    p, own = BookSettings.resolveXrayPreset(presetDs({ [BookSettings.KEY_XRAY_DEPTH] = "deep" }), {})
+    TestRunner:assertEqual(p, nil, "Reference at Deep is Custom")
+    TestRunner:assertEqual(own, true, "the book sets a dial itself")
+    p = BookSettings.resolveXrayPreset(nil, { xray_default_categories = "people",
+        xray_default_status = "off" })
+    TestRunner:assertEqual(p.id, "characters", "the global dials name their preset too")
+end)
+
+TestRunner:test("a pick on the book tab writes the three dials; Follow global clears them", function()
+    local ds = presetDs({})
+    local plugin = presetPlugin({})
+    local dialog = openPresetPicker({ doc_settings = ds, plugin = plugin, target_override = "book" })
+    presetTrue(dialog.title:find("Preset for new X-Rays", 1, true) ~= nil, "title")
+    tapRow(dialog, "Characters only")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_CATEGORIES], "people")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_STATUS], "off")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_DEPTH], "standard", "an explicit Standard pins it under any global")
+    TestRunner:assertEqual(BookSettings.resolveXrayPreset(ds, {}).id, "characters", "and reads back as the preset")
+    dialog = openPresetPicker({ doc_settings = ds, plugin = plugin, target_override = "book" })
+    local marked
+    for _i, row in ipairs(dialog.buttons) do
+        if row[1].text:find("● ", 1, true) and row[1].text:find("Characters only", 1, true) then marked = true end
+    end
+    TestRunner:assertEqual(marked, true, "the picked preset is the dotted row")
+    tapRow(dialog, "Everything")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_CATEGORIES], "full", "all five = the explicit sentinel")
+    TestRunner:assertEqual(ds._data[BookSettings.KEY_XRAY_STATUS], "on")
+    dialog = openPresetPicker({ doc_settings = ds, plugin = plugin, target_override = "book" })
+    tapRow(dialog, "Follow global")
+    TestRunner:assertEqual(next(ds._data), nil, "back to following global on all three")
+    TestRunner:assertEqual(#ds.deleted, 3, "three keys cleared")
+end)
+
+TestRunner:test("a pick on the Global tab writes the three global defaults", function()
+    local features = {}
+    local plugin = presetPlugin(features)
+    local dialog = openPresetPicker({ doc_settings = presetDs({}), plugin = plugin, target_override = "global" })
+    tapRow(dialog, "Deep study")
+    local f = plugin.features()
+    TestRunner:assertEqual(f.xray_default_categories, "full")
+    TestRunner:assertEqual(f.xray_default_status, "on")
+    TestRunner:assertEqual(f.xray_default_depth, "deep")
+    TestRunner:assertEqual(BookSettings.resolveXrayPreset(nil, f).id, "deep")
+    dialog = openPresetPicker({ doc_settings = presetDs({}), plugin = plugin, target_override = "global" })
+    tapRow(dialog, "Light companion")
+    f = plugin.features()
+    TestRunner:assertEqual(f.xray_default_categories, "people,places")
+    TestRunner:assertEqual(f.xray_default_status, "off")
+    TestRunner:assertEqual(f.xray_default_depth, "light")
+end)
+
+TestRunner:test("a group takes a preset as one write: one confirm for the three keys", function()
+    local calls = {}
+    local facade = presetDs({})
+    facade._koa_group_facade = true
+    function facade:saveSettings(values, label) calls[#calls + 1] = { values = values, label = label } end
+    local dialog = openPresetPicker({ doc_settings = facade, plugin = presetPlugin({}), scope = "group",
+        target_override = "book" })
+    tapRow(dialog, "Characters and story")
+    TestRunner:assertEqual(#calls, 1, "one call")
+    TestRunner:assertEqual(calls[1].values[BookSettings.KEY_XRAY_CATEGORIES], "people,events")
+    TestRunner:assertEqual(calls[1].values[BookSettings.KEY_XRAY_STATUS], "on")
+    TestRunner:assertEqual(calls[1].values[BookSettings.KEY_XRAY_DEPTH], "standard")
+    presetTrue(calls[1].label:find("Characters and story", 1, true) ~= nil, "the confirm names the preset")
+end)
+
+TestRunner:test("dials that match no preset say so", function()
+    local ds = presetDs({ [BookSettings.KEY_XRAY_CATEGORIES] = "people", [BookSettings.KEY_XRAY_STATUS] = "on" })
+    local dialog = openPresetPicker({ doc_settings = ds, plugin = presetPlugin({}), target_override = "book" })
+    presetTrue(dialog.title:find("Now: Custom", 1, true) ~= nil, "the title names the state")
+    for _i, row in ipairs(dialog.buttons) do
+        presetTrue(not row[1].text:find("● ", 1, true) or row[1].text:find("For this book", 1, true) ~= nil,
+            "no preset row is dotted: " .. row[1].text)
+    end
 end)
 
 TestRunner:suite("resolveXrayType (B337c: book > global default > auto)")
