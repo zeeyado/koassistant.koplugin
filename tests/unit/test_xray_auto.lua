@@ -1834,6 +1834,92 @@ TestRunner:test("B389: every Resume goes through resumeOpts, and every stop reco
   TestRunner:assertEqual(with_build, records, "each one passes its build")
 end)
 
+TestRunner:test("B362: a stop the same step would hit again pauses automatic building", function()
+  for _i, err in ipairs({ "answer cut off at the length limit",
+      "gemini/x: HTTP 400: insufficient_quota: your credit balance is too low" }) do
+    local kind = XrayAuto.classifyStopReason(err)
+    TestRunner:assertEqual(XrayAuto.stopPausesAuto(kind), true, kind .. " pauses")
+  end
+  for _i, kind in ipairs({ "cut_off", "too_large", "billing", "step_too_large" }) do
+    TestRunner:assertEqual(XrayAuto.stopPausesAuto(kind), true, kind .. " pauses")
+  end
+  -- A wait can heal these, reading on can, or the reader stopped it themselves
+  for _i, kind in ipairs({ "network", "rate_limited", "overloaded", "timeout", "nothing_built",
+      "no_text", "bad_json", "other", "cancelled", "interrupted" }) do
+    TestRunner:assertEqual(XrayAuto.stopPausesAuto(kind), false, kind .. " does not")
+  end
+  TestRunner:assertEqual(XrayAuto.stopPausesAuto(nil), false, "no kind")
+end)
+
+TestRunner:test("B362: a stop's pause outlives a book close; a cancel's does not", function()
+  XrayAuto.suppressAuto("/s", "stopped")
+  XrayAuto.suppressAuto("/c")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/s"), true, "stopped: paused")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/c"), true, "cancelled: paused")
+  XrayAuto.liftPauseOnClose("/s")
+  XrayAuto.liftPauseOnClose("/c")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/s"), true, "the stop's pause stays past the close")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/c"), false, "reopening after a cancel starts fresh")
+  XrayAuto.clearAutoSuppression("/s")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/s"), false, "an explicit start lifts either")
+  XrayAuto.liftPauseOnClose(nil)
+end)
+
+-- The decision itself, cut from main.lua and run against a fake plugin
+TestRunner:test("B362: the pause after a stop comes only with automatic building on, for the open book", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  local body = main:match("\nfunction AskGPT:_pauseXrayAutoAfterStop%(file, kind%)\n(.-)\nend\n")
+  TestRunner:assertTrue(body ~= nil, "the decision found")
+  local auto_on = true
+  local env = setmetatable({
+    logger = { dbg = function() end },
+    require = function(name)
+      if name == "koassistant_book_settings" then
+        return { resolveXrayAuto = function() return auto_on end }
+      end
+      return require(name)
+    end,
+  }, { __index = _G })
+  local pause = assert(load("return function(self, file, kind)\n" .. body .. "\nend", "pause", "t", env))()
+  local function plugin(open_file)
+    return { ui = { document = { file = open_file }, doc_settings = {} },
+      settings = { readSetting = function() return {} end } }
+  end
+  pause(plugin("/p1"), "/p1", "cut_off")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/p1"), true, "automatic building on: paused")
+  XrayAuto.liftPauseOnClose("/p1")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/p1"), true, "as a stop, past the close")
+  XrayAuto.clearAutoSuppression("/p1")
+  pause(plugin("/p1"), "/p1", "network")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/p1"), false, "a stop a wait can heal: no pause")
+  pause(plugin("/other"), "/p1", "cut_off")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/p1"), false, "another book open: nothing to pause")
+  auto_on = false
+  pause(plugin("/p1"), "/p1", "cut_off")
+  TestRunner:assertEqual(XrayAuto.isAutoSuppressed("/p1"), false,
+    "automatic building off: no pause, the manual Resume row stays")
+end)
+
+TestRunner:test("B362: both failure stops pause, a close keeps a stop's pause, the row says why (source guard)", function()
+  local here = debug.getinfo(1, "S").source:match("@?(.*)")
+  local plugin_dir = here:match("(.+)/tests/unit/[^/]+$") or "."
+  local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
+  local main = f:read("*a")
+  f:close()
+  TestRunner:assertTrue(main:find('kind = "step_too_large",\n            rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil }, cur)\n'
+    .. '          self_ref:_pauseXrayAutoAfterStop(file, "step_too_large")', 1, true), "the large step held for review")
+  TestRunner:assertTrue(main:find("          kind = kind,\n          rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil }, cur)\n"
+    .. "        self_ref:_pauseXrayAutoAfterStop(file, kind)", 1, true), "every classified stop")
+  TestRunner:assertTrue(main:find("XrayAuto.liftPauseOnClose(self.ui.document.file)", 1, true), "the book close")
+  local _n, rows = main:gsub("self:_xrayAutoPausedLabel%(", "")
+  TestRunner:assertEqual(rows, 2, "both popups' paused rows")
+  TestRunner:assertTrue(main:find('T(_("Resume automatic building (paused: %1)…"), why)', 1, true), "the reason")
+end)
+
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
 local ok = TestRunner:summary()

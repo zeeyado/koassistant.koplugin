@@ -1064,8 +1064,10 @@ end
 -- rationale as the flight state above.
 local auto_suppressed = {}
 
-function XrayAuto.suppressAuto(file)
-  if file then auto_suppressed[file] = true end
+--- @param why string|nil "cancelled" (the default: the reader's cancel) or
+---   "stopped" (a stop the same step would hit again, B362)
+function XrayAuto.suppressAuto(file, why)
+  if file then auto_suppressed[file] = why or "cancelled" end
 end
 
 function XrayAuto.clearAutoSuppression(file)
@@ -1073,7 +1075,28 @@ function XrayAuto.clearAutoSuppression(file)
 end
 
 function XrayAuto.isAutoSuppressed(file)
-  return file ~= nil and auto_suppressed[file] == true
+  return file ~= nil and auto_suppressed[file] ~= nil
+end
+
+--- A book close lifts a cancel's pause (reopening the book starts fresh) and
+--- keeps a stop's: the step that stopped would fail the same way. Either ends
+--- with the session (B362).
+function XrayAuto.liftPauseOnClose(file)
+  if file and auto_suppressed[file] == "cancelled" then auto_suppressed[file] = nil end
+end
+
+-- B362: the stops the same step would hit again (the answer cut off at its
+-- length limit, a request too large for the model or the plan, the account's
+-- credit, a step held for review as too large). With automatic building on, the
+-- next page turn after the cooldown planned that step again and paid for the
+-- same failure each time; such a stop pauses it for the book until the reader
+-- acts (the popup's Resume row, any explicit start).
+local PAUSING_STOPS = { cut_off = true, too_large = true, billing = true, step_too_large = true }
+
+--- @param kind string|nil a stop kind (classifyStopReason, or "step_too_large")
+--- @return boolean
+function XrayAuto.stopPausesAuto(kind)
+  return PAUSING_STOPS[kind] == true
 end
 
 return XrayAuto

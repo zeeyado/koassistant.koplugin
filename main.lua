@@ -9879,7 +9879,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       if nc_auto_on and nc_xa.isAutoSuppressed(self.ui.document.file) then
         local nc_file = self.ui.document.file
         table.insert(buttons, {{
-          text = _("Resume automatic building (paused)…"),
+          text = self:_xrayAutoPausedLabel(nc_file),
           callback = function()
             UIManager:close(dialog)
             nc_xa.clearAutoSuppression(nc_file)
@@ -10226,7 +10226,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
         require("koassistant_book_settings").KEY_XRAY_GOAL)) or nil
       if c_auto_on and XrayAuto.isAutoSuppressed(sx_file) then
         table.insert(buttons, {{
-          text = _("Resume automatic building (paused)…"),
+          text = self:_xrayAutoPausedLabel(sx_file),
           callback = function()
             UIManager:close(dialog)
             XrayAuto.clearAutoSuppression(sx_file)
@@ -15852,6 +15852,7 @@ function AskGPT:_fireXrayLadderRung()
           XrayAuto.recordLadderStop(file, { step = cur.step or cur.idx, total = cur.total,
             kind = "step_too_large",
             rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil }, cur)
+          self_ref:_pauseXrayAutoAfterStop(file, "step_too_large")
           self_ref:_showXrayLadderStop(file,
             T(_("Checkpoint build paused at %1 of %2: the next step is a large request."),
               cur.step or cur.idx, cur.total))
@@ -15899,6 +15900,7 @@ function AskGPT:_fireXrayLadderRung()
         XrayAuto.recordLadderStop(file, { step = cur.step or cur.idx, total = cur.total,
           kind = kind,
           rebuild = (cur.rebuild and not cur.rebuild_swapped) or nil }, cur)
+        self_ref:_pauseXrayAutoAfterStop(file, kind)
         logger.dbg("KOAssistant: ladder build stopped at step", cur.step or cur.idx, "-",
           err_text)
         local reason = self_ref:_xrayStopReasonLabel(kind)
@@ -16016,6 +16018,36 @@ function AskGPT:_showXrayLadderStop(file, text)
     buttons = { row },
   }
   UIManager:show(dialog)
+end
+
+--- B362: after a stop the same step would hit again (XrayAuto.stopPausesAuto),
+--- pause automatic building for the book until the reader acts; without it the
+--- next page turn after the cooldown planned that step again and paid for the
+--- same failure each time. Only while automatic building is on for the book:
+--- otherwise nothing re-plans the step, and the popup's manual Resume row stays.
+function AskGPT:_pauseXrayAutoAfterStop(file, kind)
+  local XrayAuto = require("koassistant_xray_auto")
+  if not XrayAuto.stopPausesAuto(kind) then return end
+  if not (self.ui and self.ui.document and self.ui.document.file == file
+      and self.ui.doc_settings) then return end
+  local features = self.settings:readSetting("features") or {}
+  if not require("koassistant_book_settings").resolveXrayAuto(self.ui.doc_settings, features) then
+    return
+  end
+  XrayAuto.suppressAuto(file, "stopped")
+  logger.dbg("KOAssistant: automatic X-Ray paused for this book after a stop:", kind)
+end
+
+--- The popup's row out of a pause: after such a stop it names the stop, since
+--- the pause outlives a book close and the notice is long gone (B362).
+function AskGPT:_xrayAutoPausedLabel(file)
+  local XrayAuto = require("koassistant_xray_auto")
+  local stop = XrayAuto.lastLadderStop(file)
+  local why = stop and XrayAuto.stopPausesAuto(stop.kind) and self:_xrayStopReasonLabel(stop.kind)
+  if why then
+    return T(_("Resume automatic building (paused: %1)…"), why)
+  end
+  return _("Resume automatic building (paused)…")
 end
 
 --- Short translated label for a chain-stop reason kind (item 45); nil for
@@ -16202,9 +16234,9 @@ function AskGPT:onCloseDocument()
   end
   XrayAuto.cancelInFlight()
   -- Round 22 (D3): the cancel suppression is session-scoped — reopening the
-  -- book starts fresh
+  -- book starts fresh. A stop's pause stays (B362): the same step would fail again
   if self.ui and self.ui.document and self.ui.document.file then
-    XrayAuto.clearAutoSuppression(self.ui.document.file)
+    XrayAuto.liftPauseOnClose(self.ui.document.file)
   end
 end
 
