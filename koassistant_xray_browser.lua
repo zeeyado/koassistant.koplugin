@@ -1635,31 +1635,39 @@ function XrayBrowser:_carriedItems(rows, tagged)
     local src_label = not tagged and self:_carriedSourceLabeler() or nil
     for i, r in ipairs(rows) do
         local captured_i, captured, display_i = r.idx, r.stub, i
-        local mandatory
-        if tagged then
-            local short_cat = CHAPTER_CATEGORY_SHORT[captured.category]
-            -- The source title is what overflows, so fit THAT and keep the tag whole
-            local tag = short_cat and (short_cat .. " · ") or ""
-            mandatory = tag .. XrayBrowser.fitSourceTitle(captured.name, captured.source, tag)
-        else
+        local function rightColumn()
+            if tagged then
+                local short_cat = CHAPTER_CATEGORY_SHORT[captured.category]
+                -- The source title is what overflows, so fit THAT and keep the tag whole
+                local tag = short_cat and (short_cat .. " · ") or ""
+                return tag .. XrayBrowser.fitSourceTitle(captured.name, captured.source, tag)
+            end
             local src, short = src_label(captured)
             local role = type(captured.role) == "string" and captured.role or ""
             if role == "" then
-                mandatory = short and src or XrayBrowser.fitSourceTitle(captured.name, src)
+                return short and src or XrayBrowser.fitSourceTitle(captured.name, src)
             elseif src == "" then
-                mandatory = XrayBrowser.fitSourceTitle(captured.name, role)
+                return XrayBrowser.fitSourceTitle(captured.name, role)
             elseif short then
                 -- The book number stays whole; the role takes what is left
                 local tail = " · " .. src
                 local fitted = XrayBrowser.fitSourceTitle(captured.name, role, tail)
-                mandatory = fitted ~= "" and (fitted .. tail) or src
-            else
-                mandatory = XrayBrowser.fitSourceTitle(captured.name, role .. " · " .. src)
+                return fitted ~= "" and (fitted .. tail) or src
             end
+            return XrayBrowser.fitSourceTitle(captured.name, role .. " · " .. src)
         end
+        -- The right column is fitted when the row is first SHOWN, not when
+        -- the page is built: fitting lays text out three times or more per
+        -- row, and a long series carries hundreds of rows into one category
+        -- (a category page lists them by default). The Menu asks only for
+        -- the rows of the page on screen.
+        local fitted
         table.insert(items, {
             text = captured.name,
-            mandatory = mandatory,
+            mandatory_func = function()
+                if fitted == nil then fitted = rightColumn() end
+                return fitted
+            end,
             mandatory_dim = true,
             callback = function()
                 -- ◀/▶ walk the DISPLAYED rows (filtered + sorted); the ledger

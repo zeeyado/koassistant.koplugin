@@ -1477,10 +1477,14 @@ TestRunner:test("junk values fall through; nil doc settings still honours the gl
     TestRunner:assertEqual(BookSettings.xrayDepthLabel(nil), "Standard", "label")
 end)
 
-TestRunner:suite("resolveXrayCarried (#116, B393: book > global > separate list)")
-TestRunner:test("nothing set = the separate list; global and book picks; junk falls through", function()
+TestRunner:suite("resolveXrayCarried (#116, B393: book > global > in their categories)")
+TestRunner:test("nothing set = in their categories; global and book picks; junk falls through", function()
     local v, layer = BookSettings.resolveXrayCarried(makeDocSettings({}), {})
-    TestRunner:assertEqual(v, "list", "default"); TestRunner:assertEqual(layer, nil, "no layer")
+    TestRunner:assertEqual(v, "categories", "default"); TestRunner:assertEqual(layer, nil, "no layer")
+    v, layer = BookSettings.resolveXrayCarried(nil, nil)
+    TestRunner:assertEqual(v, "categories", "no book and no settings: still the default")
+    v, layer = BookSettings.resolveXrayCarried(makeDocSettings({}), { xray_carried_entries = "list" })
+    TestRunner:assertEqual(v, "list", "a global pick turns it off"); TestRunner:assertEqual(layer, "global", "layer")
     v, layer = BookSettings.resolveXrayCarried(makeDocSettings({}), { xray_carried_entries = "categories" })
     TestRunner:assertEqual(v, "categories", "global"); TestRunner:assertEqual(layer, "global", "layer")
     v, layer = BookSettings.resolveXrayCarried(
@@ -1491,11 +1495,13 @@ TestRunner:test("nothing set = the separate list; global and book picks; junk fa
     TestRunner:assertEqual(v, "categories", "book"); TestRunner:assertEqual(layer, "book", "layer")
     v = BookSettings.resolveXrayCarried(
         makeDocSettings({ [BookSettings.KEY_XRAY_CARRIED] = true }), { xray_carried_entries = "bogus" })
-    TestRunner:assertEqual(v, "list", "junk on both layers")
+    TestRunner:assertEqual(v, "categories", "junk on both layers")
     v, layer = BookSettings.resolveXrayCarried(nil, { xray_carried_entries = "categories" })
     TestRunner:assertEqual(v, "categories", "nil doc settings still honours the global")
-    TestRunner:assertEqual(BookSettings.xrayCarriedLabel("categories"), "In their categories", "label")
-    TestRunner:assertEqual(BookSettings.xrayCarriedLabel(nil), "Separate list", "label default")
+    -- Both names say the carried list itself stays
+    TestRunner:assertEqual(BookSettings.xrayCarriedLabel("categories"), "In their categories too", "label")
+    TestRunner:assertEqual(BookSettings.xrayCarriedLabel("list"), "Separate list only", "label")
+    TestRunner:assertEqual(BookSettings.xrayCarriedLabel(nil), "In their categories too", "nothing set reads as the default")
 end)
 TestRunner:test("the key is a per-book key and a group key", function()
     local have = {}

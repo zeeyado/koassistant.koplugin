@@ -1019,7 +1019,7 @@ local SettingsSchema = {
                             text = _("Carried Entries"),
                             callback = "showXrayDefaultCarriedPicker",
                             keep_menu_open = true,
-                            help_text = _("In a series or project group, entries from the group's other books that have not appeared in the open book yet are carried along (in a series: from the earlier books only). This sets where they are listed: only on their own list, \"Carried from earlier books\" (the default), or also inside the X-Ray's own categories, after the book's own entries, with the book each one comes from beside it. A group can set this for all its books in its Group Settings, and a book in Book Settings. It changes the lists only: nothing is sent and no X-Ray is rebuilt."),
+                            help_text = _("In a series or project group, entries from the group's other books that have not appeared in the open book yet are carried along (in a series: from the earlier books only). They always have their own list, \"Carried from earlier books\". This sets whether they are also listed inside the X-Ray's own categories, after the book's own entries, with the book each one comes from beside it (the default), or on that list only. A group can set this for all its books in its Group Settings, and a book in Book Settings. It changes the lists only: nothing is sent and no X-Ray is rebuilt."),
                         },
                         {
                             id = "xray_selection_intercept",

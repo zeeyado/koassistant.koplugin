@@ -166,6 +166,11 @@ local function texts(items)
     for i, it in ipairs(items) do out[i] = it.text end
     return table.concat(out, "|")
 end
+-- A carried row's right column is fitted when the Menu shows the row
+local function right(item)
+    if item.mandatory_func then return item.mandatory_func() end
+    return item.mandatory
+end
 local function categoryOf(b, key)
     for _idx, cat in ipairs(XrayParser.getCategories(b.xray_data)) do
         if cat.key == key then return cat end
@@ -177,7 +182,7 @@ print("")
 print("  [" .. "dial off: the pages are what they were" .. "]")
 
 TestRunner:test("root counts, no category for carried-only kinds, the carried row", function()
-    dial, group_kind = nil, "series"
+    dial, group_kind = "list", "series"
     local b = browser()
     local items = b:buildCategoryItems()
     TestRunner:assertEqual(rowByText(items, "Cast").mandatory, "2")
@@ -218,9 +223,9 @@ TestRunner:test("a category page: own entries, the header, then carried entries 
     local items = b.menu.item_table
     TestRunner:assertEqual(items[2].separator, true, "a line closes this book's own rows")
     TestRunner:assertEqual(items[3].bold, true, "the header")
-    TestRunner:assertEqual(items[6].mandatory, "Netmender · Book 1", "role, then the book's number in the series")
-    TestRunner:assertEqual(items[4].mandatory, "Book 2", "no role: the source alone")
-    TestRunner:assertEqual(items[5].mandatory, "Harbormaster · A Companion",
+    TestRunner:assertEqual(right(items[6]), "Netmender · Book 1", "role, then the book's number in the series")
+    TestRunner:assertEqual(right(items[4]), "Book 2", "no role: the source alone")
+    TestRunner:assertEqual(right(items[5]), "Harbormaster · A Companion",
         "a source outside the series is named by its title")
     -- A carried row opens the carried entry's page, walking this page's carried rows
     local opened
@@ -230,6 +235,48 @@ TestRunner:test("a category page: own entries, the header, then carried entries 
     TestRunner:assertEqual(opened.idx, 1, "its raw ledger index, for the edit actions")
     TestRunner:assertEqual(#opened.nav.rows, 3, "the arrows walk this category's carried rows")
     TestRunner:assertEqual(opened.nav.index, 3)
+end)
+
+TestRunner:test("nothing set is the dial on: in their categories, and the carried list stays", function()
+    dial, group_kind = nil, "series"
+    local b = browser()
+    local items = b:buildCategoryItems()
+    TestRunner:assertEqual(rowByText(items, "Cast").mandatory, "2 + 3", "the default counts both")
+    TestRunner:assertEqual(rowByText(items, "Carried from earlier books").mandatory, "6", "and keeps the list")
+    b:showCategoryItems(categoryOf(b, "characters"))
+    TestRunner:assertEqual(b.menu.title, "Cast (2 + 3)")
+end)
+
+-- A long series carries hundreds of rows into one category, and fitting a
+-- right column lays text out three times or more: only the rows the Menu
+-- shows are fitted, each once.
+TestRunner:test("a carried row's right column is fitted when the row is shown, once", function()
+    group_kind = "series"
+    local TW = package.loaded["ui/widget/textwidget"]
+    local saved_new, measured = TW.new, 0
+    TW.new = function(self, o) measured = measured + 1; return saved_new(self, o) end
+    local ok, err = pcall(function()
+        dial = "list"
+        local own = browser()
+        own:showCategoryItems(categoryOf(own, "characters"))
+        local own_only = measured
+        TestRunner:assertTrue(own_only > 0, "this book's own rows are fitted as the page is built")
+        measured = 0
+        dial = "categories"
+        local b = browser()
+        b:showCategoryItems(categoryOf(b, "characters"))
+        TestRunner:assertEqual(#b.menu.item_table, 6, "own rows, the header, three carried rows")
+        TestRunner:assertEqual(measured, own_only, "the carried rows cost nothing until they are shown")
+        local row = b.menu.item_table[6]
+        TestRunner:assertEqual(row.mandatory, nil, "no text is stored on the row")
+        TestRunner:assertEqual(right(row), "Netmender · Book 1")
+        TestRunner:assertTrue(measured > own_only, "fitted on first show")
+        local after_first = measured
+        TestRunner:assertEqual(right(row), "Netmender · Book 1")
+        TestRunner:assertEqual(measured, after_first, "and kept for the next repaint")
+    end)
+    TW.new = saved_new
+    if not ok then error(err, 0) end
 end)
 
 TestRunner:test("a section or an archived version never lists carried entries", function()
@@ -259,7 +306,7 @@ TestRunner:test("it opens on category rows; All is the flat page", function()
     TestRunner:assertEqual(#b.nav_stack, 2, "under the category rows")
     TestRunner:assertEqual(texts(b.menu.item_table), "brandt|Kell|Tove|Saltrest|Runecraft|Emergence",
         "people, places, terms, concepts; name order inside each")
-    TestRunner:assertEqual(rowByText(b.menu.item_table, "Tove").mandatory, "Cast · Volume One",
+    TestRunner:assertEqual(right(rowByText(b.menu.item_table, "Tove")), "Cast · Volume One",
         "the flat page keeps the category tag and the source title beside each name")
 end)
 
@@ -454,7 +501,7 @@ TestRunner:test("a project has no earlier books: its own wording, titles as sour
     TestRunner:assertTrue(rowByText(b:buildCategoryItems(), "Carried from group") ~= nil)
     b:showCategoryItems(categoryOf(b, "characters"))
     TestRunner:assertEqual(b.menu.item_table[3].text, "From the group (3)")
-    TestRunner:assertEqual(b.menu.item_table[6].mandatory, "Netmender · Volume One", "no book numbers without an order")
+    TestRunner:assertEqual(right(b.menu.item_table[6]), "Netmender · Volume One", "no book numbers without an order")
 end)
 
 -- ------------------------------------------------------------------ cleanup

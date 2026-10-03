@@ -2447,10 +2447,13 @@ function BookSettings.showXrayPresetPicker(opts)
     }, opts)
 end
 
---- Where carried entries are listed (#116, B393): book pick > global > the
---- separate list. "categories" = inside the X-Ray's own categories as well
---- (after this book's entries); "list" = the carried list only. A follow-group
---- marker is dereferenced by the store, so a group value arrives as "book".
+--- Where carried entries are listed (#116, B393): book pick > global > in
+--- their categories. The carried list is there either way. "categories" =
+--- inside the X-Ray's own categories as well (after this book's entries),
+--- the default since 2026-10-03: they sit under their own header, so nothing
+--- is mixed, and a series reader gets what #116 asked for without finding a
+--- setting first. "list" = the carried list only. A follow-group marker is
+--- dereferenced by the store, so a group value arrives as "book".
 --- @param doc_settings table|nil
 --- @param features table|nil
 --- @return string value ("categories"|"list"), string|nil layer ("book"/"global")
@@ -2460,13 +2463,14 @@ function BookSettings.resolveXrayCarried(doc_settings, features)
     if raw == "categories" or raw == "list" then return raw, "book" end
     local g = features and features.xray_carried_entries
     if g == "categories" or g == "list" then return g, "global" end
-    return "list", nil
+    return "categories", nil
 end
 
---- Label for a carried-entries value (nil/"list" = Separate list).
+--- Label for a carried-entries value (nil = the default, in their categories
+--- too). Both names say that the carried list itself always stays.
 function BookSettings.xrayCarriedLabel(v)
-    if v == "categories" then return _("In their categories") end
-    return _("Separate list")
+    if v == "list" then return _("Separate list only") end
+    return _("In their categories too")
 end
 
 --- Carried-entries picker: the canonical two-layer spec (For this book /
@@ -2475,11 +2479,11 @@ end
 function BookSettings.showXrayCarriedPicker(opts)
     BookSettings.showLayeredPicker({
         title = _("Carried entries") .. "\n"
-            .. _("Entries carried from a group's other books (in a series: the earlier books) that have not appeared in this book yet. List them inside the X-Ray's own categories, after this book's entries, or only on their own list. This changes the lists only: nothing is sent and no X-Ray is rebuilt."),
+            .. _("Entries carried from a group's other books (in a series: the earlier books) that have not appeared in this book yet. They always have their own list. They can also be listed inside the X-Ray's own categories, after this book's entries (the default). This changes the lists only: nothing is sent and no X-Ray is rebuilt."),
         key = BookSettings.KEY_XRAY_CARRIED,
         field = "xray_carried_entries",
         global = function(f)
-            return f.xray_carried_entries == "categories" and "categories" or "list"
+            return f.xray_carried_entries == "list" and "list" or "categories"
         end,
         read_book = function(ds)
             local raw = ds:readSetting(BookSettings.KEY_XRAY_CARRIED)
@@ -2487,7 +2491,7 @@ function BookSettings.showXrayCarriedPicker(opts)
             return nil
         end,
         options = {
-            { value = "categories", label = _("In their categories (after this book's entries)") },
+            { value = "categories", label = _("In their categories too (after this book's entries)") },
             { value = "list", label = _("Separate list only") },
         },
         value_label = BookSettings.xrayCarriedLabel,
