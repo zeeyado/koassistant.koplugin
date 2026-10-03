@@ -3284,11 +3284,19 @@ local SettingsSchema = {
                 },
                 {
                     id = "tool_whole_text",
-                    type = "toggle",
+                    type = "dropdown",
                     text = _("AI Book Tools: Read Short Texts Whole"),
-                    help_text = _("On by default. When the readable text (up to your position while spoiler protection is on) is short enough, the AI gets it in one piece instead of searching it: about 64,000 characters at Quick and Standard effort, 128,000 at Thorough (non-Latin scripts count two to three bytes per character). Off: always search, whatever the length."),
+                    help_text = _("When the readable text (up to your position while spoiler protection is on) is no longer than this, the AI gets it in one piece instead of searching it. Small: about 16,000 characters (some 4,000 tokens). Medium: 64,000, the default. Large: 128,000. Non-Latin scripts count two to three bytes per character. The text goes with every message of a chat, placed so that providers which cache prompts charge the repeats at a fraction; when the model's known limits cannot take it, the book is searched instead. Off: always search, whatever the length."),
                     path = "features.tool_whole_text",
+                    -- false and true are the old on/off switch's values, kept as Off and
+                    -- Medium so a stored choice reads right (B402; koassistant_book_tool_runner.lua wholeTextLimit)
                     default = true,
+                    options = {
+                        { value = false, label = _("Off") },
+                        { value = "small", label = _("Small (16,000 characters)") },
+                        { value = true, label = _("Medium (64,000 characters)") },
+                        { value = "large", label = _("Large (128,000 characters)") },
+                    },
                 },
                 {
                     id = "show_book_tools_indicator",

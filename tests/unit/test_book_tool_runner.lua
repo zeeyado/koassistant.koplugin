@@ -1056,7 +1056,7 @@ TestRunner:test("gather: a readable text that fits is sent whole, no rounds", fu
         end
     end
 
-    -- Over budget: the search rounds run as before (quick effort, 64K budget, oversized page).
+    -- Over the size: the search rounds run as before (Medium, 64,000 characters, an oversized page).
     calls = 0
     local big = makeUi()
     local filler = string.rep("word ", 14000)  -- 70,000 chars on page 1
@@ -1134,10 +1134,111 @@ TestRunner:test("gatherForAction: a readable text that fits is returned whole", 
     TestRunner:assertEqual(info_out.tool_calls, 0, "no lookups")
 end)
 
-TestRunner:test("budgets carry the whole-text limit per effort", function()
-    TestRunner:assertEqual(BookToolRunner.budgetFor({ tool_lookup_effort = "quick" }).whole_chars, 64000, "quick (sending a fitting text is the quickest path, same limit as standard)")
-    TestRunner:assertEqual(BookToolRunner.budgetFor({}).whole_chars, 64000, "standard")
-    TestRunner:assertEqual(BookToolRunner.budgetFor({ tool_lookup_effort = "thorough" }).whole_chars, 128000, "thorough")
+TestRunner:test("the whole-text size is the reader's setting, not the effort's (B402)", function()
+    local L = BookToolRunner.wholeTextLimit
+    TestRunner:assertEqual(L({}), 64000, "default: Medium")
+    TestRunner:assertEqual(L({ tool_whole_text = true }), 64000, "the old switch's On reads as Medium")
+    TestRunner:assertEqual(L({ tool_whole_text = false }), nil, "the old switch's Off stays Off")
+    TestRunner:assertEqual(L({ tool_whole_text = "small" }), 16000, "Small")
+    TestRunner:assertEqual(L({ tool_whole_text = "large" }), 128000, "Large")
+    TestRunner:assertEqual(L({ tool_whole_text = true, tool_lookup_effort = "thorough" }), 64000, "effort no longer raises it")
+    TestRunner:assertEqual(BookToolRunner.budgetFor({ tool_lookup_effort = "thorough" }).whole_chars, nil, "budgets carry no size")
+    -- The settings row offers exactly the values the runner reads, Medium by default.
+    local f = assert(io.open(package.searchpath("koassistant_settings_schema", package.path), "r"))
+    local schema = f:read("*a")
+    f:close()
+    local row = schema:match('id = "tool_whole_text",(.-)\n                },')
+    TestRunner:assertTrue(row ~= nil, "the settings row")
+    local values = {}
+    for v in row:gmatch("{ value = ([^,]+),") do values[#values + 1] = v end
+    TestRunner:assertEqual(table.concat(values, " "), 'false "small" true "large"', "Off, Small, Medium, Large")
+    TestRunner:assertTrue(row:find("default = true,", 1, true) ~= nil, "Medium by default")
+end)
+
+-- Two pages of 6,000 characters: inside every size from Medium up, over a small plan.
+local function bigUi()
+    local ui = makeUi()
+    local page = string.rep("word ", 1200)
+    ui.document.getPageText = function(_self, p) return p <= 2 and page or "" end
+    return ui
+end
+
+local function wholeTextSent(config, ui)
+    local calls, sent = 0, false
+    BookToolRunner.run({
+        query_fn = function(messages, _c, cb)
+            calls = calls + 1
+            for _i, m in ipairs(messages) do
+                if type(m.content) == "string" and m.content:find("[The book's readable text, in full]", 1, true) then
+                    sent = true
+                end
+            end
+            if calls == 1 and not sent then cb(true, doneAnswer()) else cb(true, "answer") end
+        end,
+        messages = { { role = "user", content = "hi" } },
+        config = config,
+        ui = ui,
+        on_complete = function() end,
+    })
+    return sent, calls
+end
+
+TestRunner:test("a text the model's known limits cannot take is searched instead (B402)", function()
+    local ModelConstraints = require("model_constraints")
+    local RateLimits = require("koassistant_rate_limits")
+    local cfg = gatherConfig({ tool_whole_text = true, spoiler_free_chat = false })
+    local model = ModelConstraints.dispatchModel(cfg)
+    TestRunner:assertTrue(model ~= nil, "the dispatch model")
+    TestRunner:assertEqual((wholeTextSent(cfg, bigUi())), true, "no known limit: sent whole")
+
+    -- A per-minute plan this session learned: 2,000 tokens leave no room for 12,000 characters.
+    RateLimits.record("gemini", model, { limit_tokens = 2000 }, "header")
+    local sent, calls = wholeTextSent(gatherConfig({ tool_whole_text = true, spoiler_free_chat = false }), bigUi())
+    TestRunner:assertEqual(sent, false, "over the plan: not sent")
+    TestRunner:assertEqual(calls, 2, "the search rounds ran instead")
+    TestRunner:assertEqual((wholeTextSent(gatherConfig({ tool_whole_text = true, spoiler_free_chat = false }), makeUi())), true,
+        "a text that fits the plan still goes whole")
+    RateLimits.forget("gemini", model)
+
+    -- The model's context window.
+    local windows = ModelConstraints._context_windows.gemini
+    local saved = windows[model]
+    windows[model] = 2000
+    TestRunner:assertEqual((wholeTextSent(gatherConfig({ tool_whole_text = true, spoiler_free_chat = false }), bigUi())), false,
+        "over the context window: not sent")
+    windows[model] = saved
+    TestRunner:assertEqual((wholeTextSent(gatherConfig({ tool_whole_text = true, spoiler_free_chat = false }), bigUi())), true,
+        "restored")
+end)
+
+TestRunner:test("the readable text sits right after the opening context, the same place every turn (B402)", function()
+    local seen
+    local function query_fn(messages, _c, cb) seen = messages; cb(true, "answer") end
+    local opening = { role = "user", content = "[Context]\nBook: A\n\n[User Question]\nwho writes letters?", is_context = true }
+    local spoiler = { role = "user", content = "The reader is currently at 50%.", is_context = true }
+    local function run(messages)
+        BookToolRunner.run({ query_fn = query_fn, messages = messages,
+            config = gatherConfig({ tool_whole_text = true }), ui = makeUi(), on_complete = function() end })
+        return seen
+    end
+    local function isText(m) return m and type(m.content) == "string" and m.content:find("[The book's readable text, in full]", 1, true) end
+    -- Turn 1: the opening, the text, then the live spoiler line, last as it should be.
+    local t1 = run({ opening, spoiler })
+    TestRunner:assertEqual(t1[1].content, opening.content, "turn 1: the opening first")
+    TestRunner:assertTrue(isText(t1[2]), "turn 1: the text second")
+    TestRunner:assertEqual(t1[3].content, spoiler.content, "turn 1: the spoiler line last")
+    -- Turn 2: the same prefix (opening, text), then the exchange, the new question, the line.
+    local t2 = run({ opening, { role = "assistant", content = "a letter writer" },
+        { role = "user", content = "and who reads them?" }, spoiler })
+    TestRunner:assertEqual(t2[1].content, opening.content, "turn 2: the opening first")
+    TestRunner:assertTrue(isText(t2[2]), "turn 2: the text in the same place")
+    TestRunner:assertEqual(t2[2].content, t1[2].content, "turn 2: the same text, so the prefix repeats")
+    TestRunner:assertEqual(t2[4].content, "and who reads them?", "turn 2: the new question after the exchange")
+    TestRunner:assertEqual(t2[5].content, spoiler.content, "turn 2: the spoiler line last")
+    -- No opening context message: the text goes before the newest question, as before.
+    local plain = run({ { role = "user", content = "hi" } })
+    TestRunner:assertTrue(isText(plain[1]), "no opening context: before the question")
+    TestRunner:assertEqual(plain[2].content, "hi", "the question after it")
 end)
 
 TestRunner:test("gather: zero lookups leave a note saying the book was not consulted", function()

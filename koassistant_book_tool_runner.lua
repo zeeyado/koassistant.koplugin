@@ -15,14 +15,12 @@ local BookToolRunner = {}
 -- the phase-2 context bundle (gather only — individual tool caps of 8K/read target and
 -- 180-char snippets bound each call, but nothing else bounds the session total).
 -- "standard" = the former hard constants; unknown/missing values fall back to it.
--- whole_chars: the whole-text path (wholeReadableText) hands phase 2 the readable text
--- itself when it is no longer than this, instead of searching it.
--- Sending a text that fits is the QUICKEST path (one request, no rounds), so quick and
--- standard share the same limit; only thorough reaches further.
+-- The whole-text path's size is the reader's own setting (wholeTextLimit), not the
+-- effort's (B402).
 local EFFORT_BUDGETS = {
-    quick    = { turns = 2, calls = 4,  bundle_chars = 32000, whole_chars = 64000 },
-    standard = { turns = 4, calls = 8,  bundle_chars = 32000, whole_chars = 64000 },
-    thorough = { turns = 6, calls = 16, bundle_chars = 48000, whole_chars = 128000 },
+    quick    = { turns = 2, calls = 4,  bundle_chars = 32000 },
+    standard = { turns = 4, calls = 8,  bundle_chars = 32000 },
+    thorough = { turns = 6, calls = 16, bundle_chars = 48000 },
 }
 local function budgetFor(features)
     return EFFORT_BUDGETS[(features or {}).tool_lookup_effort] or EFFORT_BUDGETS.standard
@@ -983,10 +981,12 @@ function BookToolRunner.queryWith(query_fn, messages, cfg, callback, plugin, ui)
 end
 
 -- Whole-text path (docs/tool_based_context_plan.md 9.6 step 0, the "if it fits, put it
--- in the prompt" rule): when the readable text is no longer than the effort's
--- whole_chars, the gather skips its rounds and phase 2 gets the text itself. A search
--- over a 20-page range hands the model 12 snippets of a text it could simply read.
--- Returns nil (search as usual) when the text overflows, is empty, or the setting is off.
+-- in the prompt" rule): when the readable text is no longer than the reader's size
+-- (wholeTextLimit) and the model is known to take it (wholeTextFitsModel), the gather
+-- skips its rounds and phase 2 gets the text itself. A search over a 20-page range hands
+-- the model 12 snippets of a text it could simply read.
+-- Returns nil (search as usual) when the text overflows, is empty, would not fit the
+-- model, or the setting is off.
 -- Size first, text second. Pages are screens, so bytes per page are roughly constant
 -- within a book: three sampled pages spread through the range give an estimate, and a
 -- range that is clearly over budget is skipped without extracting it. (The first
@@ -1013,13 +1013,47 @@ local function estimateReadableBytes(tools, end_page, limit)
     return sampled / count * end_page
 end
 
-local function wholeReadableText(tools, features, budget)
-    if (features or {}).tool_whole_text == false then return nil end
+-- The reader's size ("AI Book Tools: Read Short Texts Whole", B402). false = Off and
+-- true = Medium are the old on/off switch's own values, kept as two of the choices so a
+-- stored pick reads right without a migration.
+local WHOLE_TEXT_SIZES = { small = 16000, medium = 64000, large = 128000 }
+local function wholeTextLimit(features)
+    local v = (features or {}).tool_whole_text
+    if v == false or v == "off" then return nil end
+    return WHOLE_TEXT_SIZES[v] or WHOLE_TEXT_SIZES.medium
+end
+BookToolRunner.wholeTextLimit = wholeTextLimit  -- exposed for unit tests
+
+-- What the model is known to take (B402), for the text plus the rest of the prompt: the
+-- per-minute plan or context window this session has learned (the dispatch path's own
+-- RateLimits condition) and the curated context window. A text that would not fit is
+-- searched instead of sent to be refused.
+local function wholeTextFitsModel(config, messages)
+    local RateLimits = require("koassistant_rate_limits")
+    local provider = config.provider or config.default_provider
+    local model = ModelConstraints.dispatchModel(config)
+    local base = RateLimits.promptChars(config.system and config.system.text, messages)
+    return function(text_chars)
+        local chars = base + text_chars
+        if RateLimits.promptExceedsPlan(provider, model, chars) then return false end
+        if ModelConstraints.checkContextWindow(provider, model, chars) then return false end
+        return true
+    end
+end
+BookToolRunner.wholeTextFitsModel = wholeTextFitsModel  -- exposed for unit tests
+
+local function wholeReadableText(tools, features, fits)
+    local limit = wholeTextLimit(features)
+    if not limit then return nil end
     local scope = tools:getScope()
     local end_page = tonumber(scope.end_page)
     if not end_page or end_page < 1 then return nil end
-    local limit = budget.whole_chars
-    if estimateReadableBytes(tools, end_page, limit) > limit * WHOLE_TEXT_ESTIMATE_SLACK then
+    local estimate = estimateReadableBytes(tools, end_page, limit)
+    if estimate > limit * WHOLE_TEXT_ESTIMATE_SLACK then
+        return nil
+    end
+    -- The model's limits on the same lenient estimate, before anything is extracted
+    if fits and estimate > 0 and not fits(estimate / WHOLE_TEXT_ESTIMATE_SLACK) then
         return nil
     end
     local parts = {}
@@ -1037,6 +1071,7 @@ local function wholeReadableText(tools, features, budget)
     end
     local text = table.concat(parts, "\n\n"):gsub("^%s+", ""):gsub("%s+$", "")
     if #text == 0 then return nil end
+    if fits and not fits(#text) then return nil end
     return {
         text = text,
         chars = #text,
@@ -1171,7 +1206,8 @@ function BookToolRunner.run(params)
     local completed = false
     local gather_mode = (features.tool_mode or "gather") == "gather"
     -- Gather only: the interactive loop has no phase 2 to hand the text to.
-    local whole_text = gather_mode and wholeReadableText(tools, features, budget) or nil
+    local whole_text = gather_mode
+        and wholeReadableText(tools, features, wholeTextFitsModel(config, params.messages)) or nil
     if whole_text then trace = { wholeTextTraceLine(whole_text) } end
 
     -- Gather-phase status window (streamed sessions only): one dialog that ticks per
@@ -1309,6 +1345,15 @@ function BookToolRunner.run(params)
                     insert_at = i
                     break
                 end
+            end
+            -- The readable text goes right after the chat's opening context message, the
+            -- same place every turn, so every turn after the first finds it inside the
+            -- prompt cache's prefix; passages found by a search answer one question and
+            -- stay just before it (B402). Only an opening context message anchors it: the
+            -- live spoiler line is context too, and it comes last.
+            local opening = gen_messages[1]
+            if whole_text and opening and opening.role == "user" and opening.is_context then
+                insert_at = 2
             end
             table.insert(gen_messages, insert_at, {
                 role = "user",
@@ -1660,8 +1705,10 @@ function BookToolRunner.gatherForAction(params)
             { tool_calls = tool_calls, trace = trace })
     end
 
-    -- The readable text fits the whole-text budget: the action gets it in full, no rounds.
-    local whole = wholeReadableText(tools, features, budget)
+    -- The readable text fits the reader's size and the model: the action gets it in full,
+    -- no rounds. Its prompt is built afterwards, so the model check counts the system
+    -- prompt and the text.
+    local whole = wholeReadableText(tools, features, wholeTextFitsModel(config, nil))
     if whole then
         finish(wholeTextBlock(whole), { tool_calls = 0, trace = { wholeTextTraceLine(whole) }, whole_text = true })
         return nil
