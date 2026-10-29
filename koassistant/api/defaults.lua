@@ -265,6 +265,9 @@ local ProviderDefaults = {
     --               12288 context, so a bigger ask is an instant 400
     --   chutes      per-chute default is 1024, templates 2048-8192
     --   hyperbolic  no data of any kind; an honest unknown beats a confident guess
+    --   cheaperinference floor 1000 across the gateway (48 of the 325 text
+    --               models with a published cap are < 16384; public catalog
+    --               /public/models, 2026-10-28)
     -- The real fix for these is per-model ceilings (see _max_output_tokens) or a
     -- self-healing retry on a max_tokens 400 -- not a flat number.
     cerebras = {
@@ -328,6 +331,12 @@ local ProviderDefaults = {
         provider = "vercel",
         model = getDefaultModel("vercel"),
         base_url = "https://ai-gateway.vercel.sh/v1/chat/completions",
+        additional_parameters = { temperature = 0.7, max_tokens = 4096 }
+    },
+    cheaperinference = {
+        provider = "cheaperinference",
+        model = getDefaultModel("cheaperinference"),
+        base_url = "https://api.cheaperinference.com/v1/chat/completions",
         additional_parameters = { temperature = 0.7, max_tokens = 4096 }
     },
     -- OpenCode (#107, 2026-09-05): TWO providers on one account — Zen

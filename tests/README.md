@@ -593,6 +593,7 @@ its own provider id in code). `ModelLists.getAllProviders()` is the live list, a
 | chutes | Decentralized GPU marketplace |
 | featherless | Huge open-model catalog |
 | vercel | Vercel AI Gateway |
+| cheaperinference | OpenAI-compatible gateway |
 
 ## Files
 

@@ -232,6 +232,7 @@ ToolWire.adapters.nebius = ToolWire.adapters.openai
 ToolWire.adapters.chutes = ToolWire.adapters.openai
 ToolWire.adapters.featherless = ToolWire.adapters.openai
 ToolWire.adapters.vercel = ToolWire.adapters.openai
+ToolWire.adapters.cheaperinference = ToolWire.adapters.openai
 ToolWire.adapters.opencode = ToolWire.adapters.openai
 ToolWire.adapters.opencode_go = ToolWire.adapters.openai
 ToolWire.adapters.a2agent = ToolWire.adapters.openai

@@ -41,7 +41,7 @@
 - **Private by default** → your highlights, notes, notebook, the book's text, library scan and reading habits stay on the device until you say so: the first time an action wants one, it shows what it sends and to whom, and your answer can be kept for the book. [Privacy and Data](https://github.com/zeeyado/koassistant.koplugin/wiki/Privacy-and-Data)
 - **Keeps itself current** → one-tap updates, backups and restore. [Backups and Updates](https://github.com/zeeyado/koassistant.koplugin/wiki/Backups-and-Updates)
 
-[32 built-in providers](#supported-providers) (Anthropic, OpenAI, Gemini, Ollama and more) plus custom OpenAI-compatible providers. OpenAI can also be used without an API key by signing in with your ChatGPT plan (OpenAI Subscription). Reasoning is configured per model. Personal reading data (highlights, annotation notes, notebooks, the book's text) is not sent to the AI until you allow it.
+[33 built-in providers](#supported-providers) (Anthropic, OpenAI, Gemini, Ollama and more) plus custom OpenAI-compatible providers. OpenAI can also be used without an API key by signing in with your ChatGPT plan (OpenAI Subscription). Reasoning is configured per model. Personal reading data (highlights, annotation notes, notebooks, the book's text) is not sent to the AI until you allow it.
 
 **Status:** Active development. [Issues](https://github.com/zeeyado/koassistant.koplugin/issues), [discussions](https://github.com/zeeyado/koassistant.koplugin/discussions) and [translations](https://hosted.weblate.org/engage/koassistant/) welcome. If you are somewhat technical and do not want to wait for tested releases, you can run off the main branch to get the latest features; breakage may happen, as untested features may be on main. 
 
@@ -133,7 +133,7 @@ The full model, the double-gating of book text, what each action accesses, and t
 
 ## Supported providers
 
-KOAssistant has **32 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin, *Docs-based* below) implemented from provider documentation; plus any number of custom OpenAI-compatible providers you add yourself. OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login.
+KOAssistant has **33 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin, *Docs-based* below) implemented from provider documentation; plus any number of custom OpenAI-compatible providers you add yourself. OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login.
 
 | Provider | Description | Status | Get API key |
 |----------|-------------|--------|-------------|
@@ -167,6 +167,7 @@ KOAssistant has **32 built-in providers**: a **curated set** the maintainer test
 | **Chutes** | Decentralized GPU marketplace | Docs-based* | [chutes.ai](https://chutes.ai/) |
 | **Featherless** | Huge open-model catalog | Docs-based* | [featherless.ai](https://featherless.ai/) |
 | **Vercel AI Gateway** | 200+ models behind one key | Docs-based* | [vercel.com](https://vercel.com/) |
+| **Cheaper Inference** | OpenAI-compatible gateway; models from several labs behind one key | Docs-based* | [cheaperinference.com](https://cheaperinference.com/) |
 | **OpenCode Zen** | Pay-as-you-go credit; open-weight models (GLM, DeepSeek, Kimi, MiniMax, Qwen) | Tested | [opencode.ai/auth](https://opencode.ai/auth) |
 | **OpenCode Go** | The monthly subscription with its own model list; the same account key, entered under `opencode_go` | Tested | [opencode.ai/docs/go](https://opencode.ai/docs/go/) |
 | **A2Agent** | Gateway to Chinese models (DeepSeek, GLM, Kimi, Qwen, MiniMax) behind one key | Tested | [a2agent.me](https://a2agent.me/) |

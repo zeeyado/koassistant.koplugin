@@ -56,7 +56,7 @@ You need an API key from at least one AI provider, or a ChatGPT account ([Option
 | OpenAI | Pay per use | [platform.openai.com](https://platform.openai.com/) |
 | OpenAI Subscription | Your ChatGPT plan (free accounts included), no key | [Option C](#option-c-openai-subscription-device-login) below |
 
-KOAssistant has 32 built-in providers; [Providers and Models](Providers-and-Models) lists them all with links to get keys.
+KOAssistant has 33 built-in providers; [Providers and Models](Providers-and-Models) lists them all with links to get keys.
 
 **Free options in brief:** Groq and Gemini need no card, Ollama needs no key at all, and a free ChatGPT account works through OpenAI Subscription (device login, experimental). Mistral, OpenRouter, Z.AI and NVIDIA have free allowances too; free tiers change often, and [Providers and Models](Providers-and-Models) has the current limits.
 

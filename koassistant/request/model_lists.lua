@@ -536,6 +536,12 @@ local ModelLists = {
         "openai/gpt-5.5",                           -- seed (unverified)
         "anthropic/claude-sonnet-5",                -- seed (unverified)
     },
+    cheaperinference = {
+        -- Bare model ids, as its public catalog spells them
+        -- (https://api.cheaperinference.com/public/models, no key needed).
+        "gpt-5.4-mini",                             -- catalog 2026-10-28
+        "claude-sonnet-5",                          -- catalog 2026-10-28
+    },
     -- OpenCode (#107, added 2026-09-05; CURATED: keyed, /models on both plans
     -- read the same day, every id below GREEN on the full model_audit battery
     -- — reasoning ladder, tools + forced + none, two-round replay, SSE).
@@ -650,6 +656,8 @@ local ModelLists = {
         cerebras = true, minimax = true, deepinfra = true, novita = true,
         hyperbolic = true, nebius = true, chutes = true, featherless = true,
         vercel = true,
+        -- later community additions
+        cheaperinference = true,
         -- opencode: CURATED from day one (2026-09-05, #107): keyed + battery
         -- green on every seed id; a meta router, so no tier placements.
         -- a2agent: CURATED from day one (2026-09-27, #108), same terms.
@@ -1044,6 +1052,10 @@ local ModelLists = {
         vercel = {
             api_list = "https://ai-gateway.vercel.sh/v1/models",
             docs = "https://vercel.com/docs/ai-gateway",
+        },
+        cheaperinference = {
+            api_list = "https://api.cheaperinference.com/v1/models",   -- needs the key
+            docs = "https://cheaperinference.com/docs",
         },
         opencode = {
             api_list = "https://opencode.ai/zen/v1/models",   -- public

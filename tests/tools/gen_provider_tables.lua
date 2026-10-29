@@ -21,13 +21,14 @@ Gen.NAMES = {
     nvidia = "NVIDIA", cerebras = "Cerebras", minimax = "MiniMax", deepinfra = "DeepInfra", novita = "Novita AI",
     hyperbolic = "Hyperbolic", nebius = "Nebius AI Studio", chutes = "Chutes", featherless = "Featherless",
     vercel = "Vercel AI Gateway", opencode = "OpenCode Zen", opencode_go = "OpenCode Go", a2agent = "A2Agent",
+    cheaperinference = "Cheaper Inference",
 }
 -- The order the tables list providers in: the curated set, then the community set.
 Gen.ORDER = {
     "anthropic", "openai", "openai_codex", "deepseek", "gemini", "groq", "mistral", "xai", "openrouter",
     "perplexity", "zai", "cohere", "kimi", "qwen", "ollama", "fireworks", "nvidia", "opencode", "opencode_go",
     "a2agent", "together", "sambanova", "requesty", "doubao", "cerebras", "minimax", "deepinfra", "novita",
-    "hyperbolic", "nebius", "chutes", "featherless", "vercel",
+    "hyperbolic", "nebius", "chutes", "featherless", "vercel", "cheaperinference",
 }
 Gen.BLOCKS = { "defaults", "community", "tiers" }
 Gen.LIST_CAP = 8 -- ids shown per list cell; the rest is counted

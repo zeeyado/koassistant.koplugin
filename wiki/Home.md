@@ -34,7 +34,7 @@ This wiki documents KOAssistant <!-- koa-version -->on the main branch<!-- /koa-
 
 ## Providers and models
 
-- [Providers and Models](Providers-and-Models): the 32 built-in providers, free tiers, subscriptions, custom providers and models.
+- [Providers and Models](Providers-and-Models): the 33 built-in providers, free tiers, subscriptions, custom providers and models.
 - [Reasoning, Web Search and Book Tools](Reasoning-Web-Search-and-Book-Tools): thinking, searching the web, searching the book.
 
 ## Reference and support

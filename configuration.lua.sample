@@ -21,7 +21,7 @@ local CONFIGURATION = {
     --   anthropic, openai, openai_codex, deepseek, gemini, ollama, groq, mistral, xai,
     --   openrouter, requesty, qwen, kimi, together, fireworks, sambanova, cohere, doubao,
     --   zai, perplexity, nvidia, cerebras, minimax, deepinfra, novita, hyperbolic, nebius,
-    --   chutes, featherless, vercel, opencode, opencode_go, a2agent
+    --   chutes, featherless, vercel, cheaperinference, opencode, opencode_go, a2agent
     --
     -- provider = "anthropic",
     -- model = "claude-sonnet-5-5",

@@ -164,4 +164,8 @@ return {
     -- Vercel AI Gateway (200+ models behind one key)
     -- Get from: https://vercel.com/
     vercel = "YOUR_VERCEL_API_KEY",
+
+    -- Cheaper Inference (OpenAI-compatible gateway, models from several labs)
+    -- Get from: https://cheaperinference.com/
+    cheaperinference = "YOUR_CHEAPERINFERENCE_API_KEY",
 }
