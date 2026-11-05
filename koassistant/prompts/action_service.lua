@@ -2052,19 +2052,17 @@ function ActionService:getGestureActions()
     return saved
 end
 
---- The name a Settings row gives a bypass action (B610): a built-in or one
---- of the reader's own through the service, a special action, else the id
---- with "(no longer exists)".
-function ActionService.bypassActionLabel(plugin, context, action_id)
-    local _ = require("koassistant.core.gettext")
-    local T = require("ffi/util").template
+--- The name of a bypass action for a Settings row (B610): a built-in or one
+--- of the reader's own through the service, else a special action; nil when
+--- the id resolves to nothing (the row then says it no longer exists).
+function ActionService.bypassActionName(plugin, context, action_id)
     local service = plugin and plugin.action_service
     local action = service and service.getAction and service:getAction(context, action_id)
     if action and action.text then return action.text end
     local ok, Actions = pcall(require, "koassistant.prompts.actions")
     local special = ok and Actions.special and Actions.special[action_id]
     if special and special.text then return special.text end
-    return T(_("%1 (no longer exists)"), tostring(action_id))
+    return nil
 end
 
 -- ============================================================

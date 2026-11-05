@@ -1664,8 +1664,8 @@ local SettingsSchema = {
                         local f = plugin.settings:readSetting("features") or {}
                         local action_id = f.dictionary_bypass_action or "quick_define"
                         -- the reader's own actions by name too (B610)
-                        return T(_("Bypass Action: %1"),
-                            require("koassistant.prompts.action_service").bypassActionLabel(plugin, "highlight", action_id))
+                        local name = require("koassistant.prompts.action_service").bypassActionName(plugin, "highlight", action_id)
+                        return T(_("Bypass Action: %1"), name or T(_("%1 (no longer exists)"), action_id))
                     end,
                     callback = "buildDictionaryBypassActionMenu",
                     help_text = _("Action to trigger when dictionary bypass is enabled. With Look up in X-Ray, a tapped word that has an X-Ray entry opens it directly; any other word falls through to the normal dictionary."),
@@ -1961,8 +1961,8 @@ local SettingsSchema = {
                         local f = plugin.settings:readSetting("features") or {}
                         local action_id = f.highlight_bypass_action or "translate"
                         -- the reader's own actions by name too (B610)
-                        return T(_("Bypass Action: %1"),
-                            require("koassistant.prompts.action_service").bypassActionLabel(plugin, "highlight", action_id))
+                        local name = require("koassistant.prompts.action_service").bypassActionName(plugin, "highlight", action_id)
+                        return T(_("Bypass Action: %1"), name or T(_("%1 (no longer exists)"), action_id))
                     end,
                     callback = "buildHighlightBypassActionMenu",
                     help_text = _("Action to trigger when highlight bypass is enabled"),

@@ -22,8 +22,9 @@ local function setupPaths()
         tests_dir .. "/lib/?.lua",
         package.path,
     }, ";")
+    return plugin_dir
 end
-setupPaths()
+local PLUGIN_DIR_FOR_SCHEMA = setupPaths()
 
 require("mock_koreader")
 
@@ -1054,15 +1055,18 @@ end
 local function runBypassLabelTests()
     print("\n--- The bypass rows name the reader's own actions (B610) ---")
 
-    TestRunner:test("bypassActionLabel: a built-in, one of the reader's own, a special action, a deleted one", function()
+    TestRunner:test("bypassActionName: a built-in, one of the reader's own, a deleted one", function()
         local data = { custom_actions = { { text = "My lookup", context = "highlight", prompt = "a" } } }
         local service = createService(data)
         local plugin = { action_service = service }
-        TestRunner:assertEqual(ActionService.bypassActionLabel(plugin, "highlight", "ui_1"), "My lookup")
+        TestRunner:assertEqual(ActionService.bypassActionName(plugin, "highlight", "ui_1"), "My lookup")
         local builtin = service:getAction("highlight", "quick_define")
-        TestRunner:assertEqual(ActionService.bypassActionLabel(plugin, "highlight", "quick_define"), builtin.text)
-        TestRunner:assertEqual(ActionService.bypassActionLabel(plugin, "highlight", "ui_7"), "ui_7 (no longer exists)")
-        TestRunner:assertEqual(ActionService.bypassActionLabel(nil, "highlight", "ui_7"), "ui_7 (no longer exists)", "no plugin")
+        TestRunner:assertEqual(ActionService.bypassActionName(plugin, "highlight", "quick_define"), builtin.text)
+        TestRunner:assertNil(ActionService.bypassActionName(plugin, "highlight", "ui_7"), "a deleted one: nil, the row says so")
+        TestRunner:assertNil(ActionService.bypassActionName(nil, "highlight", "ui_7"), "no plugin")
+        local schema = assert(io.open(PLUGIN_DIR_FOR_SCHEMA .. "/koassistant/ui/settings_schema.lua", "r")):read("*a")
+        local _, n = schema:gsub("bypassActionName%(plugin, \"highlight\", action_id%)", "")
+        TestRunner:assertEqual(n, 2, "both Bypass Action rows read it")
     end)
 end
 
