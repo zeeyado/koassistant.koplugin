@@ -82,11 +82,11 @@ end)
 local function pass(html, opts) return Bidi.addHtmlBidiAttributes(html, opts) end
 
 TestRunner:test("paragraphs: dir=\"rtl\" on right-to-left blocks, nothing on the others", function()
-    TestRunner:assertEqual(pass("<p>" .. AR .. "</p>"), '<p dir="rtl">' .. AR .. "</p>", "Arabic")
+    TestRunner:assertEqual(pass("<p>" .. AR .. "</p>"), '<p dir="rtl" class="koa-rtl">' .. AR .. "</p>", "Arabic")
     TestRunner:assertEqual(pass("<p>An English paragraph.</p>"), "<p>An English paragraph.</p>", "English untouched")
     TestRunner:assertEqual(pass("<p>◉ KOAssistant:</p>"), "<p>◉ KOAssistant:</p>", "the exchange marker untouched")
     TestRunner:assertEqual(pass('<p class="koa-math">x = 1</p>'), '<p class="koa-math">x = 1</p>', "a math paragraph untouched")
-    TestRunner:assertEqual(pass("<p><b>" .. AR2 .. "</b> " .. AR .. "</p>"), '<p dir="rtl"><b>' .. AR2 .. "</b> " .. AR .. "</p>",
+    TestRunner:assertEqual(pass("<p><b>" .. AR2 .. "</b> " .. AR .. "</p>"), '<p dir="rtl" class="koa-rtl"><b>' .. AR2 .. "</b> " .. AR .. "</p>",
         "inline tags do not count as words")
 end)
 
@@ -94,35 +94,35 @@ TestRunner:test("lists: a right-to-left item turns the list into marked paragrap
     TestRunner:assertEqual(pass("<ul>\n<li>one</li>\n<li>two</li>\n</ul>"), "<ul><li>one</li><li>two</li></ul>",
         "a left-to-right list keeps its markers and nesting (whitespace between tags collapsed)")
     TestRunner:assertEqual(pass("<ul><li>" .. AR2 .. "</li><li>an English item</li></ul>"),
-        '<p dir="rtl">• ' .. AR2 .. "</p><p>• an English item</p>", "each item in its own direction")
+        '<p dir="rtl" class="koa-rtl">• ' .. AR2 .. "</p><p>• an English item</p>", "each item in its own direction")
     TestRunner:assertEqual(pass("<ol><li>" .. AR2 .. "</li><li>" .. HE .. "</li></ol>"),
-        '<p dir="rtl">1. ' .. AR2 .. '</p><p dir="rtl">2. ' .. HE .. "</p>", "ordered items keep their numbers")
+        '<p dir="rtl" class="koa-rtl">1. ' .. AR2 .. '</p><p dir="rtl" class="koa-rtl">2. ' .. HE .. "</p>", "ordered items keep their numbers")
     TestRunner:assertEqual(pass("<p>• " .. AR2 .. "\n• second item</p>"),
-        '<p dir="rtl">• ' .. AR2 .. "</p><p>• second item</p>", "a fake bullet list, one paragraph per line")
+        '<p dir="rtl" class="koa-rtl">• ' .. AR2 .. "</p><p>• second item</p>", "a fake bullet list, one paragraph per line")
 end)
 
 TestRunner:test("an explicit alignment is swapped on right-to-left blocks (logical under dir=\"rtl\")", function()
     TestRunner:assertEqual(pass("<p>" .. AR .. "</p>", { text_align = "right" }),
-        '<p dir="rtl" style="text-align: left;">' .. AR .. "</p>", "Right: the physical right is the logical start")
+        '<p dir="rtl" class="koa-rtl" style="text-align: left;">' .. AR .. "</p>", "Right: the physical right is the logical start")
     TestRunner:assertEqual(pass("<p>" .. AR .. "</p>", { text_align = "left" }),
-        '<p dir="rtl" style="text-align: right;">' .. AR .. "</p>", "Left: the physical left is the logical end")
-    TestRunner:assertEqual(pass("<p>" .. AR .. "</p>", { text_align = "justify" }), '<p dir="rtl">' .. AR .. "</p>", "justify needs no swap")
+        '<p dir="rtl" class="koa-rtl" style="text-align: right;">' .. AR .. "</p>", "Left: the physical left is the logical end")
+    TestRunner:assertEqual(pass("<p>" .. AR .. "</p>", { text_align = "justify" }), '<p dir="rtl" class="koa-rtl">' .. AR .. "</p>", "justify needs no swap")
     TestRunner:assertEqual(pass("<p>plain</p>", { text_align = "right" }), "<p>plain</p>", "a left-to-right block relies on the stylesheet")
     TestRunner:assertEqual(pass("<ul><li>" .. AR2 .. "</li></ul>", { text_align = "right" }),
-        '<p dir="rtl" style="text-align: left;">• ' .. AR2 .. "</p>", "list paragraphs too")
+        '<p dir="rtl" class="koa-rtl" style="text-align: left;">• ' .. AR2 .. "</p>", "list paragraphs too")
 end)
 
 TestRunner:test("headings, quotes and table cells", function()
-    TestRunner:assertEqual(pass("<h2>" .. HE .. "</h2>"), '<h2 dir="rtl">' .. HE .. "</h2>", "heading")
+    TestRunner:assertEqual(pass("<h2>" .. HE .. "</h2>"), '<h2 dir="rtl" class="koa-rtl">' .. HE .. "</h2>", "heading")
     TestRunner:assertEqual(pass("<h2>Title</h2>"), "<h2>Title</h2>", "heading untouched")
     TestRunner:assertEqual(pass("<blockquote><p>" .. AR .. "</p></blockquote>"),
-        '<blockquote dir="rtl" style="border-left: none; border-right: 3px solid #ccc; padding-left: 0; padding-right: 1em;">'
-        .. '<p dir="rtl">' .. AR .. "</p></blockquote>", "a right-to-left quote mirrors its border and inset")
+        '<blockquote dir="rtl" class="koa-rtl" style="border-left: none; border-right: 3px solid #ccc; padding-left: 0; padding-right: 1em;">'
+        .. '<p dir="rtl" class="koa-rtl">' .. AR .. "</p></blockquote>", "a right-to-left quote mirrors its border and inset")
     TestRunner:assertEqual(pass("<blockquote><p>quoted</p></blockquote>"), "<blockquote><p>quoted</p></blockquote>", "quote untouched")
     TestRunner:assertEqual(pass('<td style="text-align:right">' .. AR .. "</td>"),
-        '<td dir="rtl" style="text-align:left">' .. AR .. "</td>", "a cell keeps its attributes, its alignment swapped")
+        '<td dir="rtl" class="koa-rtl" style="text-align:left">' .. AR .. "</td>", "a cell keeps its attributes, its alignment swapped")
     TestRunner:assertEqual(pass('<th style="text-align:left">Column</th>'), '<th style="text-align:left">Column</th>', "cell untouched")
-    TestRunner:assertEqual(pass("<td>" .. AR2 .. "</td>"), '<td dir="rtl">' .. AR2 .. "</td>", "a bare cell")
+    TestRunner:assertEqual(pass("<td>" .. AR2 .. "</td>"), '<td dir="rtl" class="koa-rtl">' .. AR2 .. "</td>", "a bare cell")
 end)
 
 return TestRunner:summary()

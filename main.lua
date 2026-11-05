@@ -21813,6 +21813,12 @@ function AskGPT:showXrayDefaultCarriedPicker()
   BookSettings.showXrayCarriedPicker({ plugin = self, ui = self.ui, target_override = "global" })
 end
 
+-- Settings ▸ Display Settings ▸ Rendering ▸ "Right-to-left text font" (B558):
+-- the rows of its sub-menu, built when it opens (the installed fonts)
+function AskGPT:rtlFontMenuItems()
+  return require("koassistant.ui.rtl_font").menuItems(self)
+end
+
 -- Settings ▸ Display Settings ▸ Emoji ▸ "Emoji Font" (B397): the bundled
 -- Noto Emoji font installed into KOReader, the wizard's installer reused
 function AskGPT:showEmojiFontSetup()

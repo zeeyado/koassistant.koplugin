@@ -116,6 +116,7 @@ Registry.SETTINGS_SUBKEYS = {
         "run_recent_models",        -- the hold menu's recent "More models…" picks (B345; newest first)
         "library_recent_folders",   -- folders added on the fly for a library run (newest first, five; never scan folders of their own)
         "favorite_models",          -- favorite models (B345): the long-press menus' first model spots; ♥ in pickers
+        "rtl_font",                 -- the font of right-to-left text in the Markdown view (nil = Noto Naskh Arabic, a family KOReader knows, false = none; B558)
     },
     internal = {
         "languages_migrated", "behavior_migrated",

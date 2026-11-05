@@ -264,6 +264,21 @@ local SettingsSchema = {
                             help_text = _("Show LaTeX math from responses as readable formulas: Greek letters, operators, superscripts, vectors, fractions as a/b. Markdown view only. Saved chats, copies and exports keep the original notation, which Obsidian and similar apps render fully."),
                         },
                         {
+                            id = "rtl_font",
+                            type = "submenu",
+                            text = _("Right-to-left text font"),
+                            callback = "rtlFontMenuItems",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("Right-to-left text font: %1"), require("koassistant.ui.rtl_font").label(f))
+                            end,
+                            enabled_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return f.render_markdown ~= false
+                            end,
+                            help_text = _("The font of Arabic, Persian and other right-to-left text in the Markdown view. Noto Naskh Arabic, the default, is the face KOReader gives Arabic books; Noto Sans Arabic UI is the face of its plain-text windows; any font KOReader knows can be picked (a font copied into KOReader's fonts folder appears after a restart). None shows those letters in the window's own fallback font, as before. Hebrew and other scripts the chosen font lacks keep that fallback."),
+                        },
+                        {
                             id = "chat_exchange_page_breaks",
                             type = "toggle",
                             text = _("Latest Reply on New Page"),

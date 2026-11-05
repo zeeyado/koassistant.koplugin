@@ -113,6 +113,10 @@ end
 -- no attribute selectors, so they ride inline)
 local QUOTE_RTL = ' style="border-left: none; border-right: 3px solid #ccc; padding-left: 0; padding-right: 1em;"'
 
+-- Every right-to-left block carries the class the viewer's CSS puts the
+-- right-to-left font on (koassistant/ui/rtl_font.lua, B558)
+local RTL_ATTRS = ' dir="rtl" class="koa-rtl"'
+
 --- Give every block of the HTML its direction.
 --- opts.use_starts_with_rtl: see blockDirection; opts.text_align: the viewer's
 --- setting ("auto" | "left" | "right" | "justify").
@@ -125,7 +129,7 @@ function Bidi.addHtmlBidiAttributes(html, opts)
     end
     local function open(tag, content)
         if dirOf(content) == "rtl" then
-            return "<" .. tag .. ' dir="rtl"' .. align .. ">"
+            return "<" .. tag .. RTL_ATTRS .. align .. ">"
         end
         return "<" .. tag .. ">"
     end
@@ -147,7 +151,7 @@ function Bidi.addHtmlBidiAttributes(html, opts)
         for n, item in ipairs(items) do
             local marker = kind == "ol" and (n .. ". ") or "• "
             if item.dir == "rtl" then
-                table.insert(out, '<p dir="rtl"' .. align .. ">" .. marker .. item.text .. "</p>")
+                table.insert(out, "<p" .. RTL_ATTRS .. align .. ">" .. marker .. item.text .. "</p>")
             else
                 table.insert(out, "<p>" .. marker .. item.text .. "</p>")
             end
@@ -189,7 +193,7 @@ function Bidi.addHtmlBidiAttributes(html, opts)
             attrs = attrs:gsub("text%-align:%s*left", "text-align:\1")
                 :gsub("text%-align:%s*right", "text-align:left")
                 :gsub("text%-align:\1", "text-align:right")
-            return "<" .. tag .. ' dir="rtl"' .. attrs .. ">" .. content .. "</" .. tag .. ">"
+            return "<" .. tag .. RTL_ATTRS .. attrs .. ">" .. content .. "</" .. tag .. ">"
         end)
         html = html:gsub("<" .. tag .. ">(.-)</" .. tag .. ">", function(content)
             return open(tag, content) .. content .. "</" .. tag .. ">"
@@ -199,7 +203,7 @@ function Bidi.addHtmlBidiAttributes(html, opts)
     -- A right-to-left quote (its paragraphs already carry their own dir)
     html = html:gsub("<blockquote>(.-)</blockquote>", function(content)
         if dirOf(content) == "rtl" then
-            return '<blockquote dir="rtl"' .. QUOTE_RTL .. ">" .. content .. "</blockquote>"
+            return "<blockquote" .. RTL_ATTRS .. QUOTE_RTL .. ">" .. content .. "</blockquote>"
         end
         return "<blockquote>" .. content .. "</blockquote>"
     end)

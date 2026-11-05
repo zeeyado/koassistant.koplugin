@@ -988,8 +988,10 @@ local function preprocessBrackets(text)
     return protected_text
 end
 
--- CSS for markdown rendering (function to support dynamic text-align)
-local function getViewerCSS(text_align)
+-- CSS for markdown rendering (function to support dynamic text-align).
+-- rtl_css: the right-to-left font's rules (koassistant/ui/rtl_font.lua; the
+-- direction pass marks those blocks with class="koa-rtl"), appended last.
+local function getViewerCSS(text_align, rtl_css)
     text_align = text_align or "auto"
     -- "auto" (recon 2g default, 2026-08-17): no text-align rule — paragraphs
     -- align to their writing direction via the direction pass's dir attributes
@@ -1106,7 +1108,7 @@ hr {
     border-top: 1px solid #999;
     margin: 0.8em 0;
 }
-]], align_rule)
+]], align_rule) .. (rtl_css or "")
 end
 
 local ChatGPTViewer = InputContainer:extend {
@@ -1246,6 +1248,14 @@ local ChatGPTViewer = InputContainer:extend {
   -- Configuration passed from dialogs.lua (must be in defaults to ensure proper option merging)
   configuration = nil,
 }
+
+-- The right-to-left font's CSS rules for this window (Settings > Display
+-- Settings > Rendering > Right-to-left text font; B558), read from the
+-- window's own configuration so a chat opened before a change keeps its look
+function ChatGPTViewer:_rtlFontCSS()
+  local features = self.configuration and self.configuration.features
+  return require("koassistant.ui.rtl_font").css(features)
+end
 
 function ChatGPTViewer:init()
   if self.default_hold_callback == nil then
@@ -2910,7 +2920,7 @@ function ChatGPTViewer:init()
     if html_body then
       return ScrollHtmlWidget:new {
         html_body = html_body,
-        css = getViewerCSS(self.text_align),
+        css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
         default_font_size = Screen:scaleBySize(self.markdown_font_size),
         width = self.width - 2 * self.text_padding - 2 * self.text_margin,
         height = h,
@@ -4478,7 +4488,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     -- Recreate the ScrollHtmlWidget with new content
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
-      css = getViewerCSS(self.text_align),
+      css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
       default_font_size = Screen:scaleBySize(self.markdown_font_size),
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
@@ -4657,7 +4667,7 @@ function ChatGPTViewer:rebuildScrollWidget()
       self._stream_carry_anchor, self._stream_carry_occurrence)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
-      css = getViewerCSS(self.text_align),
+      css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
       default_font_size = Screen:scaleBySize(self.markdown_font_size),
       width = self.width - 2 * self.text_padding - 2 * self.text_margin,
       height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
@@ -5206,7 +5216,7 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
       self._stream_carry_anchor, self._stream_carry_occurrence)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
-      css = getViewerCSS(self.text_align),
+      css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
       default_font_size = Screen:scaleBySize(self.markdown_font_size),
       width = self.scroll_text_w.width,
       height = self.scroll_text_w.height,
@@ -6292,7 +6302,7 @@ function ChatGPTViewer:refreshMarkdownDisplay()
   -- Create new scroll widget with updated settings
   self.scroll_text_w = ScrollHtmlWidget:new {
     html_body = html_body,
-    css = getViewerCSS(self.text_align),
+    css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
     default_font_size = Screen:scaleBySize(self.markdown_font_size),
     width = self.width - 2 * self.text_padding - 2 * self.text_margin,
     height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
