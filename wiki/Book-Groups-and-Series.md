@@ -221,7 +221,7 @@ In a series, lookups look past a book only once it is read (marked **Finished**,
 
 - When a later book with an X-Ray is held back, the search results and the no-results message carry a row naming it: **Search *Title* too (may contain spoilers)…**. The row shows whether or not that book has a hit, so it gives nothing away.
 - Each confirm (**Search this book**) opens exactly one more book, on its own page (**Results for "…" in *Title***), stacked over the page you confirmed from, so going back steps to the previous book. That page carries the row for the next one. A reveal does not stick: the next search starts at the chain again.
-- In the member list (**→ Group**), a held-back book is listed as "(later in the series)" without checking whether the entry appears in it, and opens only after a confirm (**Open it**).
+- In the member list (**→ Group**), a held-back book is listed as "(later in the series)" without checking whether the entry appears in it, and opens only after a confirm (**Open it**). The Group Hub's book rows say and ask the same before that book's Book Hub opens, when the hub was reached from an earlier book (its Group button, Book Hub or X-Ray); from the Groups list nothing is held back.
 - Marks, entity cards and matching selections never reach past the chain.
 - A project shares between all its books in both directions; a plain group shares nothing.
 

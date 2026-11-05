@@ -260,6 +260,17 @@ local function hubBuild(ctx)
         dim = true,
         callback = function() end,
     }
+    -- The later volumes the series holds back from the book this hub was
+    -- opened for, or the open book (B591; the "→ Group" popup's rule, B418):
+    -- their rows say so and ask before the member's Book Hub opens, since its
+    -- rows open that volume's X-Ray and Recap. Nothing is held back when no
+    -- book led here (the Groups list).
+    local held = {}
+    local from_file = ctx.file or open_file
+    if from_file then
+        local ok_held, set = pcall(require("koassistant.artifacts.action_cache").heldBackLaterFiles, from_file)
+        if ok_held and type(set) == "table" then held = set end
+    end
     local authors, seen = {}, {}
     for i, path in ipairs(group.books) do
         local captured = path
@@ -276,17 +287,23 @@ local function hubBuild(ctx)
         if not BookGroups.fileExists(captured) then
             title = title .. " " .. _("(missing)")
         end
+        if held[captured] then
+            title = GroupsUI.laterLabel(title)
+        end
+        local function openHub()
+            -- A member row opens the member's Book Hub; it stacks over this
+            -- page, and its up-arrow comes back here
+            require("koassistant.books.book_page").show({
+                file = captured, plugin = ctx.plugin, ui = ctx.ui,
+                title = raw_title, author = author, enable_emoji = em,
+            })
+        end
         items[#items + 1] = {
             text = E("\u{1F4D6}", i .. ". " .. title, em),
             mandatory = captured == open_file and _("open") or nil,
-            callback = function()
-                -- A member row opens the member's Book Hub; it stacks over this
-                -- page, and its up-arrow comes back here
-                require("koassistant.books.book_page").show({
-                    file = captured, plugin = ctx.plugin, ui = ctx.ui,
-                    title = raw_title, author = author, enable_emoji = em,
-                })
-            end,
+            callback = held[captured]
+                and function() GroupsUI.confirmLaterVolume(raw_title, openHub) end
+                or openHub,
             hold_callback = function()
                 GroupsUI.showMoveDialog(ctx.group_id, captured, flow_opts)
             end,
@@ -351,7 +368,8 @@ function GroupPage.close(opts) closePage("", opts) end
 
 --- Show (or refresh) the hub for one group.
 --- @param opts table { group_id (required), plugin, ui, on_close, front,
----   enable_emoji (nil = the icons setting) }
+---   enable_emoji (nil = the icons setting), file (the book the hub is
+---   opened for: a later volume of its series is held back, B591) }
 function GroupPage.show(opts)
     local group_id = opts and opts.group_id
     if not group_id then return end
@@ -366,7 +384,7 @@ function GroupPage.show(opts)
     logger.dbg("KOAssistant GroupHub: show", group_id)
     openPage("", {
         key = group_id, group_id = group_id, plugin = opts.plugin, ui = opts.ui,
-        on_close = opts.on_close, front = opts.front,
+        file = opts.file, on_close = opts.on_close, front = opts.front,
         enable_emoji = emojiSetting(opts.plugin, opts.enable_emoji),
     }, hubBuild, {
         hamburger = hubHamburger,

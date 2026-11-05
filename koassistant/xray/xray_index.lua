@@ -41,8 +41,9 @@ XrayIndex.FILE = "koassistant_xray_index.lua"
 -- Bumped whenever the matcher finds different spans for the same form, so
 -- a stored index is found again (2: Arabic matches start a word, B339;
 -- 3: each occurrence's capitals, B533 S2; 4: written in capitals, a
--- sentence start, B533 S3)
-local VERSION = 4
+-- sentence start, B533 S3; 5: typeset apostrophes and hyphens folded to
+-- the typed ones, B596)
+local VERSION = 5
 local MAX_LAYOUTS = 4
 -- A background request waits this long (debounced) before its pass starts:
 -- the book's own opening work and the first page turns go first

@@ -220,6 +220,33 @@ function GesturePicker.bindingsFor(data, action_id)
     return out
 end
 
+--- Every action id bound in either mode that starts with `prefix` and is
+--- not in the set `except`, sorted (B609: the Gestures screen's rows for
+--- bindings whose plugin id no longer resolves, so they can be removed where
+--- KOReader's gesture manager shows "Unknown item"). Pure.
+--- @return table ids
+function GesturePicker.boundIds(data, prefix, except)
+    local seen, out = {}, {}
+    for _idx, section_key in ipairs({ "gesture_reader", "gesture_fm" }) do
+        local section = (data or {})[section_key]
+        if type(section) == "table" then
+            for _slot, entry in pairs(section) do
+                if type(entry) == "table" then
+                    for id in pairs(entry) do
+                        if type(id) == "string" and id ~= "settings" and id:sub(1, #prefix) == prefix
+                            and not (except and except[id]) and not seen[id] then
+                            seen[id] = true
+                            out[#out + 1] = id
+                        end
+                    end
+                end
+            end
+        end
+    end
+    table.sort(out)
+    return out
+end
+
 --- One action's bindings in words: "Tap bottom-right corner (reader), …" or nil.
 function GesturePicker.bindingsText(data, action_id)
     local parts = {}
@@ -311,6 +338,19 @@ function GesturePicker.remove(plugin, section_key, slot, action_id)
     logger.dbg("KOAssistant gestures: removed", action_id, "from", slot, "in", section_key,
         live and "live" or "after a restart")
     return live and "live" or "restart"
+end
+
+--- Every binding of action_id taken down, in both modes (a deleted action's
+--- gestures go with it, B609).
+--- @return number how many, string "live" | "restart"
+function GesturePicker.forget(plugin, action_id)
+    local data = GesturePicker.access(plugin)
+    local bindings = GesturePicker.bindingsFor(data, action_id)
+    local how = "live"
+    for _idx, b in ipairs(bindings) do
+        how = GesturePicker.remove(plugin, b.section, b.slot, action_id)
+    end
+    return #bindings, how
 end
 
 --- The picker. opts = { plugin, action_id, action_label, section_key

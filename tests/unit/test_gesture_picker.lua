@@ -170,5 +170,53 @@ TestRunner:test("ready: KOReader's gesture data exists", function()
     TestRunner:assertTrue(not GesturePicker.ready(nil))
 end)
 
+print("\nBindings whose action no longer exists (B609)")
+
+TestRunner:test("boundIds: the plugin's bound ids minus the known ones, sorted; a slot's settings key skipped", function()
+    local data = {
+        gesture_reader = {
+            tap_top_left_corner = { koassistant_action_book_ui_3 = true,
+                settings = { order = { "koassistant_action_book_ui_3" } } },
+            tap_top_right_corner = { koassistant_quick_actions = true },
+            hold_top_left_corner = { toggle_frontlight = true },
+        },
+        gesture_fm = {
+            tap_top_left_corner = { koassistant_action_general_ui_9 = true, koassistant_quick_settings = true },
+        },
+    }
+    local known = { koassistant_quick_actions = true, koassistant_quick_settings = true }
+    TestRunner:assertEqual(table.concat(GesturePicker.boundIds(data, "koassistant_", known), ","),
+        "koassistant_action_book_ui_3,koassistant_action_general_ui_9")
+    TestRunner:assertEqual(#GesturePicker.boundIds(data, "koassistant_action_", { koassistant_action_book_ui_3 = true }), 1)
+    TestRunner:assertEqual(#GesturePicker.boundIds(nil, "koassistant_"), 0)
+    TestRunner:assertEqual(#GesturePicker.boundIds({ gesture_reader = {} }, "koassistant_"), 0)
+end)
+
+TestRunner:test("forget: every binding of an id in both modes goes; other actions and slots stay", function()
+    local data = {
+        gesture_reader = {
+            tap_top_left_corner = { koassistant_action_book_ui_3 = true },
+            tap_top_right_corner = { koassistant_action_book_ui_3 = true, toggle_frontlight = true },
+        },
+        gesture_fm = {
+            tap_top_left_corner = { koassistant_action_book_ui_3 = true },
+            hold_top_left_corner = { koassistant_quick_settings = true },
+        },
+    }
+    local flushed = 0
+    local plugin = { ui = { gestures = { settings = { data = data, flush = function() flushed = flushed + 1 end } } } }
+    local n, how = GesturePicker.forget(plugin, "koassistant_action_book_ui_3")
+    TestRunner:assertEqual(n, 3)
+    TestRunner:assertEqual(how, "live")
+    TestRunner:assertTrue(data.gesture_reader.tap_top_left_corner == nil, "a slot left with nothing goes back to nil")
+    TestRunner:assertEqual(data.gesture_reader.tap_top_right_corner.toggle_frontlight, true, "the other action on a slot stays")
+    TestRunner:assertTrue(data.gesture_reader.tap_top_right_corner.koassistant_action_book_ui_3 == nil)
+    TestRunner:assertTrue(data.gesture_fm.tap_top_left_corner == nil)
+    TestRunner:assertEqual(data.gesture_fm.hold_top_left_corner.koassistant_quick_settings, true)
+    TestRunner:assertTrue(flushed >= 1, "written")
+    TestRunner:assertEqual((GesturePicker.forget(plugin, "koassistant_action_book_ui_3")), 0, "nothing left to forget")
+    TestRunner:assertEqual(#GesturePicker.boundIds(data, "koassistant_action_"), 0, "and none listed as dead")
+end)
+
 print(string.format("\n=== Results: %d passed, %d failed ===", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

@@ -145,12 +145,13 @@ TestRunner:test("the reveal box and the full entry both open the names list (str
     local f = assert(io.open(root .. "/main.lua", "r"))
     local src = f:read("*all"); f:close()
     local at = assert(src:find('ok_text = _("Reveal")', 1, true), "the ahead confirm")
-    local block = src:sub(math.max(1, at - 1200), at + 400)
-    assert(block:find('other_buttons = {{{ text = _("Matching…"), callback = matching }}}', 1, true),
-        "the box's Matching… row")
-    assert(block:find('buttons_table = {{{ text = _("Matching…"), callback = matching }}}', 1, true),
-        "the full entry's Matching… row")
-    assert(block:find("showUpcomingNames(h, file)", 1, true), "both open the names list")
+    local block = src:sub(math.max(1, at - 1800), at + 400)
+    assert(block:find('other_buttons = {{{ text = _("Matching…"), callback = function() matching(true) end }}}', 1, true),
+        "the box's Matching… row: the tapped name alone (B590)")
+    assert(block:find('buttons_table = {{{ text = _("Matching…"), callback = function() matching(false) end }}}', 1, true),
+        "the full entry's Matching… row: every name")
+    assert(block:find("showUpcomingNames(h, file, tapped and { tapped = true } or nil)", 1, true),
+        "both open the names list, the box's on the tapped name")
 end)
 
 -- ---- resolve-order tests (S1, ref #90): real ActionCache under the

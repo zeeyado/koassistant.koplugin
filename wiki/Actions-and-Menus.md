@@ -185,7 +185,7 @@ Good to know:
 
 - In the app these actions show as ★ … (file). They can't be edited there (**Edit file** says so); **Duplicate** turns one into an action of your own that you can edit.
 - Each entry is known by its position in the file. Add new entries at the end: inserting or removing one shifts the on/off state and the menu placements of the entries after it.
-- If the file has an error, none of its actions load, and nothing on screen says so (crash.log has one line saying the file was not loaded).
+- If the file has an error, none of its actions load. The first time you use KOAssistant after a start, a notice names the error with its line; the file's actions stay out of the menus until it is fixed, and their places in the menus are kept.
 - `enabled` is **ignored in file-based actions**. The loader overwrites it from the Action Manager's own enable/disable state on every load, so a value written here has no effect. Disable the action in Manage Actions instead.
 
 **Optional fields.** Model and behavior:

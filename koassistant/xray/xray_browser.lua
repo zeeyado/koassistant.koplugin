@@ -2911,7 +2911,7 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
             for _idx, b in ipairs(also) do
                 local first = XrayCard.firstSentence(XrayCard.itemText(b.item))
                 local label = b.direction == "later"
-                    and T(_("%1 (later in the series)"), b.title) or b.title
+                    and require("koassistant.books.book_groups_ui").laterLabel(b.title) or b.title
                 lines[#lines + 1] = first ~= "" and T(_("%1: %2"), label, first) or label
             end
             detail_text = detail_text .. "\n" .. table.concat(lines, "\n")
@@ -4272,8 +4272,10 @@ local NAME_KINDS = {
 
 --- A row of the names screen as its button reads (B533), pure: the name,
 --- what it is, how it is matched. `matchable` = the entry's category is
---- matched in the text.
-function XrayBrowser.nameRowLabel(row, matchable)
+--- matched in the text. opts.no_kind leaves out what the name is (the
+--- reveal box's list, B590: "alias" would say the tapped word is somebody
+--- else's name).
+function XrayBrowser.nameRowLabel(row, matchable, opts)
     -- capitals: the reader's pick, or the book's usage (S3), named either
     -- way for a name with a capital to require (the name's options say
     -- the same)
@@ -4284,7 +4286,28 @@ function XrayBrowser.nameRowLabel(row, matchable)
         or row.case == "any" and _("any case")
         or row.auto and _("capitals only (automatic)")
         or _("any case (automatic)")
+    if opts and opts.no_kind then
+        return T(_("%1 · %2"), row.name, state)
+    end
     return T(_("%1 · %2 · %3"), row.name, NAME_KINDS[row.kind], state)
+end
+
+--- The row of the names screen a tapped text belongs to (B590), pure: the
+--- name whose exact keys the text matches (the rule the marks and the
+--- lookups share, so the underlined words find their name), else the text
+--- itself as a name of the AI's.
+--- @param rows table XrayBrowser.nameRows
+--- @param query string the tapped text
+--- @return table one row
+function XrayBrowser.tappedNameRow(rows, query)
+    local keys = {}
+    for _idx, k in ipairs(XrayParser.exactQueryKeys(query)) do keys[k] = true end
+    for _idx, row in ipairs(rows) do
+        for _j, k in ipairs(XrayParser.exactKeys(row.name)) do
+            if keys[k] then return row end
+        end
+    end
+    return { name = query, kind = "ai", matched = true }
 end
 
 --- A name's matching choices (B533 S1 to S3), pure: { { how, label }, ... }
@@ -4413,16 +4436,25 @@ end
 --- choices and record (the record is by the entry's name, so it holds when
 --- the checkpoint installs), and nothing that edits the X-Ray itself (no
 --- rename, add or delete). A choice applies at once and the list stays open.
---- @param hit table XrayCard.resolve's hit (item, category_key)
+--- From the reveal box, before Reveal (opts.tapped, B590), the list holds
+--- the tapped name alone, under its own words and without what it is, so
+--- it gives away neither the entry's name nor its other names; the full
+--- list once the entry is revealed.
+--- @param hit table XrayCard.resolve's hit (item, category_key, query)
 --- @param book_file string
-function XrayBrowser.showUpcomingNames(hit, book_file)
+--- @param opts table|nil { tapped = true }
+function XrayBrowser.showUpcomingNames(hit, book_file, opts)
     local ActionCache = require("koassistant.artifacts.action_cache")
     local item, category_key = hit.item or {}, hit.category_key
     local item_name = XrayParser.getItemName(item, category_key)
     local matchable = not DISTRIBUTION_EXCLUDED[category_key]
+    local tapped = opts and opts.tapped and type(hit.query) == "string" and hit.query ~= "" and hit.query or nil
+    local label_opts = tapped and { no_kind = true } or nil
     local function rows()
-        return XrayBrowser.nameRows(item, category_key, ActionCache.getUserAliases(book_file)[item_name],
+        local all = XrayBrowser.nameRows(item, category_key, ActionCache.getUserAliases(book_file)[item_name],
             ActionCache.autoCaps(book_file))
+        if not tapped then return all end
+        return { XrayBrowser.tappedNameRow(all, tapped) }
     end
     local list, options
     local showOptions
@@ -4430,7 +4462,7 @@ function XrayBrowser.showUpcomingNames(hit, book_file)
         local buttons = {}
         for _idx, row in ipairs(rows()) do
             local captured = row
-            buttons[#buttons + 1] = {{ text = XrayBrowser.nameRowLabel(row, matchable), callback = function()
+            buttons[#buttons + 1] = {{ text = XrayBrowser.nameRowLabel(row, matchable, label_opts), callback = function()
                 UIManager:close(list)
                 showOptions(captured)
             end }}
@@ -4439,7 +4471,8 @@ function XrayBrowser.showUpcomingNames(hit, book_file)
             UIManager:close(list)
         end }}
         list = ButtonDialog:new{
-            title = T(_("Names of \"%1\" (from the next checkpoint)"), item_name),
+            title = tapped and T(_("Matching of \"%1\" (from the next checkpoint)"), tapped)
+                or T(_("Names of \"%1\" (from the next checkpoint)"), item_name),
             buttons = buttons,
         }
         UIManager:show(list)
@@ -4481,7 +4514,7 @@ function XrayBrowser.showUpcomingNames(hit, book_file)
             UIManager:close(options)
             showList()
         end }}
-        local title = T(_("%1 · %2"), row.name, NAME_KINDS[row.kind])
+        local title = tapped and row.name or T(_("%1 · %2"), row.name, NAME_KINDS[row.kind])
         if XrayParser.capsExample(row.name) and #choices > 1 then
             title = title .. "\n" .. XrayBrowser.automaticLine(book_file, nil, item, category_key, row.name)
         end

@@ -1534,24 +1534,34 @@ function AskGPT:initSettings()
   self._settings_path = DataStorage:getSettingsDir() .. "/koassistant_settings.lua"
   -- Initialize settings with default values from configuration.lua
   self.settings = LuaSettings:open(self._settings_path)
+  -- Written back at the end only when a seed, a migration or the clean-up
+  -- below changed something (B602): LuaSettings' flush dumps, writes and
+  -- fsyncs the whole file, and every instance (the file browser's, each
+  -- book's) paid it, changed or not, then parsed the file a second time.
+  local dirty = false
   -- An allowance for one run (Allow once) lives on the features table while a
   -- dialog or a request holds it, and that table is the one a settings flush
   -- writes: one that reached the disk must not come back with the next start
   -- (B395)
   do
     local f = self.settings:readSetting("features")
-    if type(f) == "table" then
+    if type(f) == "table" and f._data_once ~= nil then
       f._data_once = nil
+      dirty = true
     end
   end
 
   -- Set default values if they don't exist
   if not self.settings:has("provider") then
     self.settings:saveSetting("provider", configuration.provider or "anthropic")
+    dirty = true
   end
   
-  if not self.settings:has("model") then
+  -- (configuration.model is nil without a configuration.lua: a nil write
+  -- stores nothing, and marking it would rewrite the file at every start)
+  if not self.settings:has("model") and configuration.model ~= nil then
     self.settings:saveSetting("model", configuration.model)
+    dirty = true
   end
   
   if not self.settings:has("features") then
@@ -1592,6 +1602,7 @@ function AskGPT:initSettings()
       end
     end
     self.settings:saveSetting("features", seed)
+    dirty = true
   end
 
   -- Migration for existing users: add new settings with defaults
@@ -1692,17 +1703,22 @@ function AskGPT:initSettings()
     if needs_save then
       self.settings:saveSetting("features", features)
       logger.info("KOAssistant: Migrated settings")
+      dirty = true
     end
   end
 
-  self.settings:flush()
+  if dirty then
+    self.settings:flush()
+  end
 
   -- Initialize Notebook module with plugin settings reference
   local Notebook = require("koassistant.chat.notebook")
   Notebook.init(self.settings)
 
-  -- Update the configuration with settings values
-  self:updateConfigFromSettings()
+  -- Update the configuration with settings values. The file was read a
+  -- moment ago and nothing else wrote it since (one thread, this instance's
+  -- own init), so the sync works from memory (B602)
+  self:updateConfigFromSettings({ in_memory = true })
 
   -- Tell the user once when we moved them onto a provider's new default model — a model
   -- change affects cost and behavior, so it must never be silent (defaults_propagation_plan.md
@@ -1727,13 +1743,14 @@ function AskGPT:initSettings()
   end
 end
 
-function AskGPT:updateConfigFromSettings()
+function AskGPT:updateConfigFromSettings(opts)
   -- Re-read settings from disk to ensure freshness across plugin instances.
   -- KOReader creates separate plugin instances for FileManager and ReaderUI;
   -- settings changed in one instance are flushed to disk but the other instance's
   -- in-memory LuaSettings remains stale. Re-reading ensures we always have the
-  -- latest values regardless of which instance modified them.
-  if self._settings_path then
+  -- latest values regardless of which instance modified them. opts.in_memory
+  -- skips the re-read: init's own call, right after the file was read (B602).
+  if self._settings_path and not (opts and opts.in_memory) then
     local fresh = LuaSettings:open(self._settings_path)
     local fresh_features = fresh:readSetting("features")
     if fresh_features then
@@ -7561,7 +7578,9 @@ function AskGPT:openGroupHubFor(file, opts)
   end
   local self_ref = self
   local function open(group)
-    GroupsUI.showGroup(group.id, { plugin = self_ref, ui = self_ref.ui,
+    -- file = the book the hub is opened for: its series holds later volumes
+    -- back from it (B591)
+    GroupsUI.showGroup(group.id, { plugin = self_ref, ui = self_ref.ui, file = file,
       on_close = opts.on_close, front = opts.front ~= false, enable_emoji = enable_emoji })
   end
   if #list == 0 then
@@ -7947,22 +7966,19 @@ function AskGPT:_showGroupMembersPopup(file, mode, opts)
             -- there — behind the search reveal's named confirm; the probe
             -- runs after it: the entry view (or just the note) from an entity
             -- page, the switch (plus the note on a miss) from the hamburger.
-            title = title .. " " .. _("(later in the series)")
+            title = GroupsUI.laterLabel(title)
             cb = function()
               UIManager:close(dialog)
-              UIManager:show(require("ui/widget/confirmbox"):new{
-                text = T(_("%1 comes later in the series and can reveal what happens in the books before it. Open it anyway?"), raw_title),
-                ok_text = _("Open it"),
-                ok_callback = function()
-                  local hit = entryHit()
-                  if entry_view then
-                    if hit and hit ~= true then openEntry(hit) else notInXray() end
-                    return
-                  end
-                  jump(raw_title)
-                  if not hit then notInXray() end
-                end,
-              })
+              -- (the words and the confirm are the Group Hub's rows' too, B591)
+              GroupsUI.confirmLaterVolume(raw_title, function()
+                local hit = entryHit()
+                if entry_view then
+                  if hit and hit ~= true then openEntry(hit) else notInXray() end
+                  return
+                end
+                jump(raw_title)
+                if not hit then notInXray() end
+              end)
             end
           else
             local hit = entryHit()
@@ -20717,15 +20733,18 @@ function AskGPT:openXrayCard(query, opts)
     -- exists only while the install waits: protection on, or the book kept
     -- on Follow my position; #120). The box and its page both offer
     -- Matching…, the names screen's choices for an entry the browser cannot
-    -- hold yet: from the box a wrong underline is switched off without
-    -- reading the entry (ConfirmBox closes itself after an extra row's tap).
-    local function matching()
-      require("koassistant.xray.xray_browser").showUpcomingNames(h, file)
+    -- hold yet. From the box, before Reveal, the list holds the tapped name
+    -- alone under its own words (B590: it used to be titled with the entry's
+    -- name and list every alias), so a wrong underline is switched off
+    -- without reading the entry (ConfirmBox closes itself after an extra
+    -- row's tap); the full entry's list has every name.
+    local function matching(tapped)
+      require("koassistant.xray.xray_browser").showUpcomingNames(h, file, tapped and { tapped = true } or nil)
     end
     local function reveal()
       XrayCard.showFullDetail(h, {
         add_default_buttons = true,
-        buttons_table = {{{ text = _("Matching…"), callback = matching }}},
+        buttons_table = {{{ text = _("Matching…"), callback = function() matching(false) end }}},
       })
     end
     local ConfirmBox = require("ui/widget/confirmbox")
@@ -20734,7 +20753,7 @@ function AskGPT:openXrayCard(query, opts)
         math.floor((h.ahead_progress or 0) * 100 + 0.5)),
       ok_text = _("Reveal"),
       ok_callback = reveal,
-      other_buttons = {{{ text = _("Matching…"), callback = matching }}},
+      other_buttons = {{{ text = _("Matching…"), callback = function() matching(true) end }}},
     })
   end
   -- Round 5: landing + style resolve per book (book three-way > global pair).
@@ -23656,6 +23675,22 @@ function AskGPT:ensureInitialized()
     })
   end
 
+  -- custom_actions.lua failed to load (B607): its actions are left out and
+  -- their menu placements kept until the file loads again; said once per
+  -- start, here like the configuration.lua notice
+  local custom_err = not AskGPT._custom_actions_warned and self.action_service
+    and self.action_service:customActionsError()
+  if custom_err then
+    AskGPT._custom_actions_warned = true
+    UIManager:show(InfoMessage:new{
+      text = _("custom_actions.lua has errors and was not loaded.") .. "\n\n"
+        .. (custom_err.kind == "nolist" and _("The file returned no list of actions.")
+          or tostring(custom_err.detail))
+        .. "\n\n" .. _("Its actions are left out until the file is fixed. Their places in the menus are kept."),
+      icon = "notice-warning",
+    })
+  end
+
   -- Check migration first (may show dialog if old chats exist)
   self:checkChatMigrationStatus()
 
@@ -23754,8 +23789,24 @@ function AskGPT:showGesturesScreen()
   local self_ref = self
   local dialog
   local buttons = {}
+  local known = {}
   for _idx, act in ipairs(self:_shortcutActionList()) do
     local action = act
+    known[action.id] = true
+    table.insert(buttons, { {
+      text = T(_("%1: %2"), action.title, GesturePicker.bindingsText(data, action.id) or _("not set")),
+      callback = function()
+        UIManager:close(dialog)
+        self_ref:showGestureActionDialog(action)
+      end,
+    } })
+  end
+  -- A gesture bound to a plugin id that no longer resolves (one of your own
+  -- actions deleted before B609 took its gestures with it, an id of an older
+  -- version): KOReader's gesture manager calls it "Unknown item"; here it is
+  -- listed so it can be removed (its dialog has the Remove rows alone)
+  for _idx, dead_id in ipairs(GesturePicker.boundIds(data, "koassistant_", known)) do
+    local action = { id = dead_id, title = _("An action that no longer exists") }
     table.insert(buttons, { {
       text = T(_("%1: %2"), action.title, GesturePicker.bindingsText(data, action.id) or _("not set")),
       callback = function()

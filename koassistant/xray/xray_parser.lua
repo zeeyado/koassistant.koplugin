@@ -2008,11 +2008,23 @@ function XrayParser.searchLedger(data, query, opts)
     return results
 end
 
+-- Typeset punctuation folded to the typed kind (B596): a book's curly
+-- apostrophe (U+2019, U+2018; U+02BC in some texts) is the model's straight
+-- one, its hyphen or non-breaking hyphen (U+2010, U+2011) the keyboard's.
+-- The same substitution runs in every normalization the matching reads
+-- (both match copies, the exact keys, the handles), so a span keeps its
+-- bytes on each side; KOReader's own search folds the same way
+-- (FOLD_APOSTROPHES, FOLD_HYPHENS).
+local function foldPunctuation(s)
+    return (s:gsub("\226\128[\152\153]", "'"):gsub("\202\188", "'"):gsub("\226\128[\144\145]", "-"))
+end
+XrayParser.foldPunctuation = foldPunctuation
+
 -- One normalization for handle-vs-selection equality: lower + Arabic
 -- normalize + whitespace collapse + trim (selections and JSON handles both
--- carry stray spacing).
+-- carry stray spacing), typeset apostrophes and hyphens as typed (B596).
 local function exactKey(s)
-    s = XrayParser.normalizeArabic(repairSeparators(s):lower()):gsub("\194\160", " "):gsub("%s+", " ")
+    s = XrayParser.normalizeArabic(foldPunctuation(repairSeparators(s)):lower()):gsub("\194\160", " "):gsub("%s+", " ")
     return s:match("^%s*(.-)%s*$") or s
 end
 
@@ -2624,7 +2636,8 @@ end
 --- Normalize text for matching: page text, chapter text and names alike.
 --- Case folded, invisible format characters dropped (soft hyphen, zero-width
 --- space/joiners, direction marks, word joiner, BOM), Arabic skeleton, every
---- whitespace run (no-break space included) one space.
+--- whitespace run (no-break space included) one space, a typeset apostrophe
+--- or hyphen as the typed one (B596).
 --- @param s string
 --- @return string
 function XrayParser.matchNormalize(s)
@@ -2632,6 +2645,7 @@ function XrayParser.matchNormalize(s)
     s = foldCase(s)
     s = s:gsub("\194\173", ""):gsub("\226\128[\139-\143]", "")
         :gsub("\226\129\160", ""):gsub("\239\187\191", "")
+    s = foldPunctuation(s)
     s = arabicMatchSkeleton(s)
     return (s:gsub("\194\160", " "):gsub("%s+", " "))
 end
@@ -2684,6 +2698,7 @@ function XrayParser.matchNormalizeKeepCase(s)
     s = composeNFC(s)
     s = s:gsub("\194\173", ""):gsub("\226\128[\139-\143]", "")
         :gsub("\226\129\160", ""):gsub("\239\187\191", "")
+    s = foldPunctuation(s)
     s = arabicMatchSkeleton(s)
     return (s:gsub("\194\160", " "):gsub("%s+", " "))
 end
@@ -2916,7 +2931,13 @@ function XrayParser.caseSearchRegex(text, required)
             if at_word_start then word = word + 1 end
             local exact = at_word_start and math.floor(req / 2 ^ (word - 1)) % 2 == 1
             local up, low = upperChar(ch), lowerChar(ch)
-            if exact or up == low then
+            if ch == "'" or ch == "-" then
+                -- the typed apostrophe or hyphen, or the book's typeset one
+                -- (B596: the plain search folds them itself, a regex does not)
+                out[#out + 1] = ch == "'"
+                    and ("['" .. regexAtom("\226\128\153") .. regexAtom("\226\128\152") .. regexAtom("\202\188") .. "]")
+                    or ("[-" .. regexAtom("\226\128\144") .. regexAtom("\226\128\145") .. "]")
+            elseif exact or up == low then
                 out[#out + 1] = regexAtom(ch)
             else
                 out[#out + 1] = "[" .. regexAtom(low) .. regexAtom(up) .. "]"
@@ -3515,10 +3536,11 @@ function XrayParser.piecesForSpan(ranges, s, e)
 end
 
 --- Handle normalization shared by the cross-entity containment layer (B266):
---- lowercase, Arabic-folded, NBSP and whitespace runs collapsed, trimmed.
+--- lowercase, Arabic-folded, NBSP and whitespace runs collapsed, trimmed,
+--- typeset apostrophes and hyphens as typed (B596).
 function XrayParser.normalizeHandle(s)
     if type(s) ~= "string" then return "" end
-    local h = XrayParser.normalizeArabic(s:lower())
+    local h = XrayParser.normalizeArabic(foldPunctuation(s:lower()))
     h = h:gsub("\194\160", " "):gsub("%s+", " ")
     return h:match("^%s*(.-)%s*$") or ""
 end

@@ -5739,10 +5739,24 @@ function PromptsManager:deletePrompt(prompt)
 
         for i = #custom_actions, 1, -1 do
             if custom_actions[i].text == prompt.text then
-                self.plugin.action_service:deleteUserAction(i)
-
+                local removed, dropped = self.plugin.action_service:deleteUserAction(i)
+                -- Its gestures go with it (B609): the gesture-menu entries
+                -- (dropped above) and KOReader's own bindings to its dispatcher
+                -- ids, which would otherwise read "Unknown item"
+                local gestures = 0
+                if removed then
+                    local GesturePicker = require("koassistant.ui.gesture_picker")
+                    for _idx, key in ipairs(dropped or {}) do
+                        local context = key:match("^([^:]+):")
+                        if context then
+                            gestures = gestures + GesturePicker.forget(self.plugin,
+                                "koassistant_action_" .. context .. "_ui_" .. tostring(i))
+                        end
+                    end
+                end
                 UIManager:show(InfoMessage:new{
-                    text = _("Action deleted successfully"),
+                    text = gestures > 0 and _("Action deleted, with its gestures.")
+                        or _("Action deleted successfully"),
                 })
                 break
             end

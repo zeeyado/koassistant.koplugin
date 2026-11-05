@@ -944,8 +944,25 @@ end
 function GroupsUI.showGroup(group_id, opts)
     opts = opts or {}
     require("koassistant.books.group_page").show({
-        group_id = group_id, plugin = opts.plugin, ui = opts.ui,
+        group_id = group_id, plugin = opts.plugin, ui = opts.ui, file = opts.file,
         on_close = opts.on_close, front = opts.front,
+    })
+end
+
+--- A later volume the series holds back from a book (G2; B418, B591): the
+--- words beside its row and the confirm before it opens, ONE copy for the
+--- "→ Group" popup, the Group Hub's member rows and the browser's lines.
+function GroupsUI.laterLabel(title)
+    return T(_("%1 (later in the series)"), title)
+end
+
+--- @param raw_title string the volume's title, undecorated
+--- @param on_open function runs on "Open it"
+function GroupsUI.confirmLaterVolume(raw_title, on_open)
+    UIManager:show(require("ui/widget/confirmbox"):new{
+        text = T(_("%1 comes later in the series and can reveal what happens in the books before it. Open it anyway?"), raw_title),
+        ok_text = _("Open it"),
+        ok_callback = on_open,
     })
 end
 

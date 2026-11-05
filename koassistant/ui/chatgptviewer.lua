@@ -5691,13 +5691,17 @@ end
 
 -- Capture current viewer state for restoration after recreation
 function ChatGPTViewer:captureState()
+  -- The place in the answer as the ratio scrollToRatio takes back (B611; the
+  -- two names asked for before existed in no KOReader, so every rotation,
+  -- resize and window-size toggle reopened the answer at its top): the HTML
+  -- widget's page ratio, or the plain-text widget's first visible line
   local scroll_ratio = 0
-  if self.scroll_text_w then
-    -- Try to get current scroll position as ratio (0-1)
-    if self.scroll_text_w.getScrolledRatio then
-      scroll_ratio = self.scroll_text_w:getScrolledRatio()
-    elseif self.scroll_text_w.getScrollPercent then
-      scroll_ratio = self.scroll_text_w:getScrollPercent() / 100
+  local w = self.scroll_text_w
+  if w then
+    if w.getCurrentRatio then
+      scroll_ratio = w:getCurrentRatio() or 0
+    elseif w.text_widget and w.text_widget.getVisibleHeightRatios then
+      scroll_ratio = (w.text_widget:getVisibleHeightRatios()) or 0
     end
   end
 
@@ -5741,8 +5745,6 @@ function ChatGPTViewer:restoreScrollPosition(scroll_ratio)
     if self.scroll_text_w then
       if self.scroll_text_w.scrollToRatio then
         self.scroll_text_w:scrollToRatio(scroll_ratio)
-      elseif self.scroll_text_w.scrollToPercent then
-        self.scroll_text_w:scrollToPercent(scroll_ratio * 100)
       end
       UIManager:setDirty(self, "ui")
     end

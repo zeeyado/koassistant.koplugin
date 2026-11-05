@@ -602,6 +602,67 @@ TestRunner:test("an upcoming entity's names and matching from its full entry (#1
     h.restore()
     if not ok then error(err, 0) end
 end)
+TestRunner:test("the reveal box's Matching… holds the tapped name alone, under its own words; the full entry's every name (B590)", function()
+    local h = namesHarness()
+    local ok, err = pcall(function()
+        -- the spoiler-surfaces sweep's reproduction: a nickname tapped before
+        -- Reveal; the list was titled with the entry's name and listed every alias
+        local hit = { source = "ahead", ahead_progress = 0.5, query = "the Ferryman", name = "Osric Dunmere",
+            category_key = "characters",
+            item = { name = "Osric Dunmere", description = "A ferryman of the marsh. Secretly the lost heir.",
+                aliases = { "the Ferryman", "the Lost Heir" } } }
+        local function nothingOfTheEntry(where)
+            local all = tostring(ui:top().title) .. "|" .. rowsOf()
+            TestRunner:assertTrue(not all:find("Osric", 1, true) and not all:find("Dunmere", 1, true)
+                and not all:find("Lost Heir", 1, true) and not all:find("from the AI", 1, true)
+                and not all:find("main name", 1, true), where .. ": " .. all)
+        end
+        ui.stack = {}
+        XrayBrowser.showUpcomingNames(hit, "/mock/book.epub", { tapped = true })
+        TestRunner:assertEqual(ui:top().title, "Matching of \"the Ferryman\" (from the next checkpoint)")
+        TestRunner:assertEqual(rowsOf(), "the Ferryman · any case (automatic) | Close", "the tapped name alone, not what it is")
+        nothingOfTheEntry("the list")
+        ui:tap("the Ferryman · any case (automatic)")
+        TestRunner:assertEqual((tostring(ui:top().title):match("^[^\n]+")), "the Ferryman", "the choices under the tapped word alone")
+        TestRunner:assertTrue(ui:has("○ " .. NOT_MATCHED) and ui:has("● Automatic (now any case)"), rowsOf())
+        nothingOfTheEntry("the choices")
+        ui:tap("○ " .. NOT_MATCHED)
+        TestRunner:assertEqual(h.store()["Osric Dunmere"].ignore[1], "the Ferryman", "saved by the entry's name, as the full list saves")
+        TestRunner:assertTrue(ui:has("● " .. NOT_MATCHED), "the list stays open, the mark moved: " .. rowsOf())
+        ui:tap("Back")
+        TestRunner:assertEqual(rowsOf(), "the Ferryman · not matched | Close")
+        nothingOfTheEntry("the list after the pick")
+        ui:tap("Close")
+        TestRunner:assertEqual(ui:top(), nil, "closed")
+        -- after Reveal, the full entry's Matching…: every name, the pick kept
+        ui.stack = {}
+        XrayBrowser.showUpcomingNames(hit, "/mock/book.epub")
+        TestRunner:assertEqual(ui:top().title, "Names of \"Osric Dunmere\" (from the next checkpoint)")
+        TestRunner:assertTrue(ui:has("Osric Dunmere · main name · any case (automatic)")
+            and ui:has("the Lost Heir · from the AI · any case (automatic)")
+            and ui:has("the Ferryman · from the AI · not matched"), rowsOf())
+    end)
+    h.restore()
+    if not ok then error(err, 0) end
+end)
+
+TestRunner:test("the box's wiring in main.lua: the box's Matching… passes the tapped name, the full entry's does not (B590)", function()
+    local here = debug.getinfo(1, "S").source:match("@?(.*)")
+    local root = here:gsub("/?tests/unit/[^/]+$", "")
+    if root == "" then root = "." end
+    local f = assert(io.open(root .. "/main.lua", "r"))
+    local src = f:read("*all")
+    f:close()
+    local at = assert(src:find('ok_text = _("Reveal")', 1, true), "the ahead confirm")
+    local block = src:sub(math.max(1, at - 1800), at + 400)
+    TestRunner:assertTrue(block:find("showUpcomingNames(h, file, tapped and { tapped = true } or nil)", 1, true) ~= nil,
+        "one opener, the tapped flag decides")
+    TestRunner:assertTrue(block:find('other_buttons = {{{ text = _("Matching…"), callback = function() matching(true) end }}}', 1, true) ~= nil,
+        "the box passes the tapped name")
+    TestRunner:assertTrue(block:find('buttons_table = {{{ text = _("Matching…"), callback = function() matching(false) end }}}', 1, true) ~= nil,
+        "the full entry lists every name")
+end)
+
 TestRunner:test("capitals: automatic, capitals only, any case; one choice marked, the row says which, Reset clears it (S2, S3)", function()
     local h = namesHarness()
     local ok, err = pcall(function()

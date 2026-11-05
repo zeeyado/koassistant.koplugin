@@ -992,5 +992,41 @@ TestRunner:test("merge: a dotted full-name alias bridges a rename (CJK rename fo
     TestRunner:eq(old.characters[1].name, "ソーン導師", "new name is primary")
 end)
 
+TestRunner:suite("B596: typeset apostrophes and hyphens read as typed")
+TestRunner:test("matchNormalize folds the curly apostrophes and the typeset hyphens; the capitals copy the same", function()
+    TestRunner:eq(XrayParser.matchNormalize("King\u{2019}s Landing"), "king's landing", "U+2019")
+    TestRunner:eq(XrayParser.matchNormalize("\u{2018}O\u{2019}Brien\u{2019}"), "'o'brien'", "U+2018 too")
+    TestRunner:eq(XrayParser.matchNormalize("O\u{02BC}Brien"), "o'brien", "the modifier letter apostrophe")
+    TestRunner:eq(XrayParser.matchNormalize("Mary\u{2010}Jane and Mary\u{2011}Jane"), "mary-jane and mary-jane",
+        "the hyphen and the non-breaking hyphen")
+    TestRunner:eq(XrayParser.matchNormalizeKeepCase("King\u{2019}s Landing"), "King's Landing")
+    TestRunner:eq(XrayParser.matchNormalize("King's Landing"), "king's landing", "the typed ones as they were")
+end)
+TestRunner:test("a name the AI wrote with a straight apostrophe or hyphen is found in a typeset text", function()
+    local text = "They rode to King\u{2019}s Landing, where O\u{2019}Brien met Mary\u{2011}Jane and the Others\u{2019} guard."
+    local norm, keep = XrayParser.matchNormalize(text), XrayParser.matchNormalizeKeepCase(text)
+    local function hits(item)
+        local set = XrayParser.matchTermSet(item)
+        local out = {}
+        for _idx, o in ipairs(XrayParser.occurrencesIn(norm, set, nil, keep)) do
+            out[#out + 1] = keep:sub(o[1], o[2])
+        end
+        return table.concat(out, "|")
+    end
+    TestRunner:eq(hits({ name = "King's Landing" }), "King's Landing", "the span reads back from the capitals copy")
+    TestRunner:eq(hits({ name = "O'Brien" }), "O'Brien")
+    TestRunner:eq(hits({ name = "Mary-Jane" }), "Mary-Jane")
+    TestRunner:eq(hits({ name = "the Others" }), "the Others", "a possessive's apostrophe stays outside the span")
+end)
+TestRunner:test("the exact keys agree, so a selection from the book opens the AI's entry", function()
+    TestRunner:eq(XrayParser.exactQueryKeys("King\u{2019}s Landing")[1], XrayParser.exactKeys("King's Landing")[1])
+    TestRunner:eq(XrayParser.exactQueryKeys("Mary\u{2011}Jane")[1], XrayParser.exactKeys("Mary-Jane")[1])
+    TestRunner:eq(XrayParser.normalizeHandle("O\u{2019}Brien"), XrayParser.normalizeHandle("O'Brien"), "the containment layer too")
+end)
+TestRunner:test("the case-sensitive search pattern takes the book's apostrophe and hyphen too", function()
+    TestRunner:eq(XrayParser.caseSearchRegex("O'Brien", 1), "O['\\u2019\\u2018\\u02BC][bB][rR][iI][eE][nN]")
+    TestRunner:eq(XrayParser.caseSearchRegex("Mary-Jane", 0), "[mM][aA][rR][yY][-\\u2010\\u2011][jJ][aA][nN][eE]")
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

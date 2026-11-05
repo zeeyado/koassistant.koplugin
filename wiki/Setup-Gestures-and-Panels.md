@@ -117,7 +117,7 @@ Now the same tap gives you Quick Settings in the file browser and Quick Actions 
 
 ### The Gestures Screen
 
-**Settings → Gestures** lists KOAssistant's gesture actions with the gestures each one has now, whether they were set there or in KOReader's gesture manager: the built-in ones ([Available Gesture Actions](#available-gesture-actions)) and any action you added to the gesture menu. Tap an action for its own dialog: a **Remove** row per gesture it has, and **Add a gesture (reader)…** or **Add a gesture (file browser)…** for the modes it works in, which opens the gesture picker. Changes apply at once while KOReader's gesture plugin is loaded; otherwise they take effect after a restart, and the screen says so.
+**Settings → Gestures** lists KOAssistant's gesture actions with the gestures each one has now, whether they were set there or in KOReader's gesture manager: the built-in ones ([Available Gesture Actions](#available-gesture-actions)) and any action you added to the gesture menu. Tap an action for its own dialog: a **Remove** row per gesture it has, and **Add a gesture (reader)…** or **Add a gesture (file browser)…** for the modes it works in, which opens the gesture picker. Changes apply at once while KOReader's gesture plugin is loaded; otherwise they take effect after a restart, and the screen says so. A gesture bound to a KOAssistant action that no longer exists (one of your own actions that you deleted, for instance) is listed too, as "An action that no longer exists", with its **Remove** rows; deleting one of your own actions removes its gestures with it.
 
 ### The gesture picker
 
