@@ -432,6 +432,8 @@ function AskGPT:init()
         end
         local UIManager = require("ui/uimanager")
         UIManager:scheduleIn(0.5, function()
+          -- the book closed again meanwhile: nothing to reopen (B606)
+          if not (self.ui and self.ui.document and self.ui.document.file == book_file) then return end
           local ActionCache = require("koassistant.artifacts.action_cache")
           local cached = ActionCache.getXrayCache(book_file)
           if cached then
@@ -454,6 +456,7 @@ function AskGPT:init()
       if bp_file and bp_file == bp_pending.book_file then
         local UIManager = require("ui/uimanager")
         UIManager:scheduleIn(0.5, function()
+          if not (self.ui and self.ui.document and self.ui.document.file == bp_file) then return end
           local props = self.ui and self.ui.doc_props
           BookPageReopen.show({
             file = bp_file,
@@ -1317,6 +1320,17 @@ function AskGPT:compareSelectedBooks(selected_files)
   showChatGPTDialog(ui_context, prompt_text, configuration, nil, self)
 end
 
+-- The plugin instance on screen now (B605): the multi-select button's patch
+-- is installed once, on the session's first instance, whose ui may be a
+-- FileManager that has since closed (B341's rule for the file browser rows)
+local function liveInstance(fallback)
+  local fm = FileManager.instance
+  if fm and fm.koassistant then return fm.koassistant end
+  local rui = require("apps/reader/readerui").instance
+  if rui and rui.koassistant then return rui.koassistant end
+  return fallback
+end
+
 -- Generate button for multi-select plus dialog
 function AskGPT:genMultipleKOAssistantButton(close_dialog_toggle_select_mode_callback, button_disabled, selected_files)
   return {
@@ -1340,7 +1354,7 @@ function AskGPT:genMultipleKOAssistantButton(close_dialog_toggle_select_mode_cal
           -- Don't toggle select mode yet - let the comparison finish first
           -- Schedule the comparison to run after dialog closes
           UIManager:scheduleIn(0.1, function()
-            self:compareSelectedBooks(files_copy)
+            liveInstance(self):compareSelectedBooks(files_copy)
           end)
         else
           logger.err("KOAssistant: No selected files found for comparison")
@@ -13209,8 +13223,21 @@ end
 --- per pair — offered pairs are remembered in the aliases sidecar
 --- (__dedup_offered) and never re-asked; the manual scan stays available.
 --- Background builds/promotions never ask (no dialog mid-reading).
-function AskGPT:maybeOfferDedupAsk(file)
+-- The ask one second after an install, if that book is still the open one
+-- then (B606: after a fast close the confirm landed over the file browser
+-- and spent the pair's one offer); an install for a closed book asks as
+-- before
+function AskGPT:_scheduleDedupAsk(file)
+  local self_ref = self
+  local was_open = self.ui and self.ui.document and self.ui.document.file == file
+  UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file, { was_open = was_open }) end)
+end
+
+function AskGPT:maybeOfferDedupAsk(file, opts)
   if not file then return end
+  if opts and opts.was_open and not (self.ui and self.ui.document and self.ui.document.file == file) then
+    return
+  end
   -- B001: never while a checkpoint build for this book runs. The ask stamps
   -- its pairs, so a "Not now" between two steps spent their one offer; the
   -- build asks once when it finishes (a stopped or cancelled one leaves the
@@ -13764,7 +13791,7 @@ function AskGPT:_showXrayLadderRungOptions(rung, opts)
           })
           self_ref:_reopenLiveXrayAfterInstall(file, opts)
           -- §14: every install into live runs the pair-check (stamped once per pair)
-          UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+          self_ref:_scheduleDedupAsk(file)
         else
           UIManager:show(InfoMessage:new{ text = _("Install failed. This checkpoint is no longer on disk."), timeout = 3 })
         end
@@ -15435,7 +15462,7 @@ function AskGPT:_fireXrayLadderPromotion(opts)
     -- quiet; the posture revert above deliberately skips it (corrective,
     -- that content was live before).
     local self_ref = self
-    UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+    self_ref:_scheduleDedupAsk(file)
   end
   self:_refreshXrayAutoState()
   return ok
@@ -15533,7 +15560,7 @@ function AskGPT:_switchToCompleteXrayRung(opts)
             timeout = 6,
           })
           -- §14: every install into live runs the pair-check (stamped once per pair)
-          UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+          self_ref:_scheduleDedupAsk(file)
         end,
       }},
       {{
@@ -15610,7 +15637,7 @@ function AskGPT:_switchBackToPositionRung(opts)
     -- (earlier content, pairs already stamped) but a ladder sweep can seed
     -- fresh pairs into a rung after its content was last live
     local self_ref = self
-    UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+    self_ref:_scheduleDedupAsk(file)
   else
     UIManager:show(InfoMessage:new{ text = _("Switch failed. The checkpoint could not be installed."), timeout = 3 })
   end
@@ -15677,7 +15704,7 @@ function AskGPT:_installAheadXrayRung(opts)
     })
     self_ref:_reopenLiveXrayAfterInstall(file, opts)
     if self_ref.maybeOfferDedupAsk then
-      UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+      self_ref:_scheduleDedupAsk(file)
     end
   end
   local ConfirmBox = require("ui/widget/confirmbox")
@@ -16532,7 +16559,7 @@ function AskGPT:_fireXrayLadderRung()
             end
             logger.info("KOAssistant: one-shot X-Ray installed at", tostring(gp))
             -- §14: every install into live runs the pair-check (stamped once per pair)
-            UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+            self_ref:_scheduleDedupAsk(file)
           end
         end
         if not cur.silent or features.xray_auto_notify == true then
@@ -16545,7 +16572,7 @@ function AskGPT:_fireXrayLadderRung()
         self_ref:_refreshXrayAutoState()
         -- B001: the dedup ask the build deferred, once, now that it is done
         if cur.dedup_pending then
-          UIManager:scheduleIn(1, function() self_ref:maybeOfferDedupAsk(file) end)
+          self_ref:_scheduleDedupAsk(file)
         end
         -- B261: a completed chain lifts the cooldown — the next due
         -- checkpoint may fire on the next page turn
@@ -17937,11 +17964,19 @@ function AskGPT:showReasoningModelBrowser(on_close_callback, show_all)
     if #buttons == 0 then
       table.insert(buttons, {{ text = _("No configurable models"), enabled = false }})
     end
-    table.insert(buttons, {{ text = _("Close"), callback = closeBrowser }})
+    -- Close and a tap outside bring the caller back (B587: Quick Settings
+    -- stayed closed); a pick hands on_close_callback on
+    table.insert(buttons, {{ text = _("Close"), callback = function()
+      closeBrowser()
+      if on_close_callback then on_close_callback() end
+    end }})
     self_ref._reasoning_browser_dialog = ButtonDialog:new{
       title = T(_("Reasoning · %1"), self_ref:getProviderDisplayName(provider)),
       buttons = buttons,
-      tap_close_callback = function() self_ref._reasoning_browser_dialog = nil end,
+      tap_close_callback = function()
+        self_ref._reasoning_browser_dialog = nil
+        if on_close_callback then on_close_callback() end
+      end,
     }
     UIManager:show(self_ref._reasoning_browser_dialog)
   end
@@ -17975,11 +18010,17 @@ function AskGPT:showReasoningModelBrowser(on_close_callback, show_all)
       end,
     }})
   end
-  table.insert(buttons, {{ text = _("Close"), callback = closeBrowser }})
+  table.insert(buttons, {{ text = _("Close"), callback = function()
+    closeBrowser()
+    if on_close_callback then on_close_callback() end
+  end }})
   self._reasoning_browser_dialog = ButtonDialog:new{
     title = _("Reasoning · pick a provider"),
     buttons = buttons,
-    tap_close_callback = function() self_ref._reasoning_browser_dialog = nil end,
+    tap_close_callback = function()
+      self_ref._reasoning_browser_dialog = nil
+      if on_close_callback then on_close_callback() end
+    end,
   }
   UIManager:show(self._reasoning_browser_dialog)
 end
@@ -19931,11 +19972,12 @@ end
 -- freshly at menu-open time (KOReader calls every factory on each onShowHighlightMenu
 -- and honors show_in_highlight_dialog_func), so enable/disable, membership and
 -- ordering-manager changes apply the next time the menu opens — no restart.
--- Membership beyond the slot cap appears only after the plugin re-inits (book reopen).
+-- Members past the slot cap are never drawn (B608: the cap was 15 and the
+-- ordering manager listed the rest as in the menu; 30 covers every real list).
 function AskGPT:registerHighlightMenuActions()
   if not self.ui or not self.ui.highlight then return end
 
-  local MAX_SLOTS = 15
+  local MAX_SLOTS = 30
 
   -- Per-menu-open memo shared by all slot closures. KOReader calls every registered
   -- factory synchronously in ONE sorted onShowHighlightMenu loop, so slot 01 always
@@ -20207,8 +20249,15 @@ function AskGPT:syncDictionaryBypass()
       end
 
       if not bypass_action then
-        -- Fallback to original if action not found
+        -- Fallback to original if action not found; said once per session (B610)
         logger.warn("KOAssistant: Dictionary bypass action not found: " .. action_id .. ", using original dictionary")
+        if not AskGPT._dict_bypass_missing_warned then
+          AskGPT._dict_bypass_missing_warned = true
+          UIManager:show(InfoMessage:new{
+            text = _("The dictionary bypass action no longer exists, so KOReader's dictionary opened. Pick another bypass action in Settings."),
+            timeout = 5,
+          })
+        end
         if dictionary._koassistant_original_onLookupWord then
           return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
         end
@@ -20572,6 +20621,14 @@ function AskGPT:syncHighlightBypass()
         local Actions = require("koassistant.prompts.actions")
         action = Actions.special and Actions.special[action_id]
       end
+      if not action and not AskGPT._hl_bypass_missing_warned then
+        -- the menu opens instead; said once per session (B610)
+        AskGPT._hl_bypass_missing_warned = true
+        UIManager:show(InfoMessage:new{
+          text = _("The highlight bypass action no longer exists, so the highlight menu opened. Pick another bypass action in Settings."),
+          timeout = 5,
+        })
+      end
 
       if action and hl_self.selected_text and hl_self.selected_text.text then
         -- Check cache requirements before executing
@@ -20625,12 +20682,13 @@ end
 
 --- Card landing router (point-4 v1, ref #78/#63): every EXACT entity hit
 --- (mark tap, dict-side intercept, highlight-side intercept) lands here.
---- Card first (identification tier, may peek at the newest built
---- checkpoint), full entry one tap away at the position tier; ahead-only
---- entities reveal their full entry behind a confirm while spoiler
---- protection is on. `features.xray_card_landing == false` restores the
---- straight-to-full-entry behavior — except ahead-only entities, which keep
---- the reveal flow (the position-tier lookup cannot show them).
+--- Card first (identification tier, may peek at the next checkpoint built
+--- past the position), full entry one tap away at the position tier; an
+--- upcoming entity (known from that checkpoint only) goes through its stages
+--- and reveals its full entry behind a confirm, whatever the spoiler setting
+--- (#120). `features.xray_card_landing == false` restores the
+--- straight-to-full-entry behavior — except upcoming entities, which keep
+--- the staged flow (the position-tier lookup cannot show them).
 --- Effective Upcoming Entities toggle for a book: book override > global,
 --- default ON (BookSettings.resolveXrayMarking .ahead). The three
 --- ahead-peek sites read this per call: the dict/highlight intercepts'
@@ -23672,7 +23730,10 @@ function AskGPT:ensureInitialized()
   -- Notify user if configuration.lua exists but failed to load (syntax error etc.)
   -- Shown here (first interaction) rather than at startup — avoids firing when
   -- the user isn't using KOAssistant, and provides immediate context.
-  if config_load_error then
+  -- once per session, not per plugin instance (B604: it came back at every
+  -- switch between the file browser and a book)
+  if config_load_error and not AskGPT._config_error_warned then
+    AskGPT._config_error_warned = true
     UIManager:show(InfoMessage:new{
       text = _("configuration.lua has errors and was not loaded.") .. "\n\n"
         .. config_load_error
@@ -24142,13 +24203,13 @@ function AskGPT:patchTextSelectionHandlers()
 
   -- Helper: clear highlight from a TextViewer's scroll widget
   -- (scroll_widget = post-2026-07 KOReader field name, scroll_text_w = older)
+  -- (B612: the HTML mode of KOReader's TextViewer holds a ScrollHtmlWidget
+  -- whose widget is htmlbox_widget, with the same two methods)
   local function clearViewerHighlight(viewer)
     local sw = viewer and (viewer.scroll_widget or viewer.scroll_text_w)
-    if sw and sw.text_widget then
-      local tw = sw.text_widget
-      if tw.clearHighlight and tw:clearHighlight() then
-        tw:redrawHighlight()
-      end
+    local tw = sw and (sw.text_widget or sw.htmlbox_widget)
+    if tw and tw.clearHighlight and tw:clearHighlight() then
+      tw:redrawHighlight()
     end
   end
 

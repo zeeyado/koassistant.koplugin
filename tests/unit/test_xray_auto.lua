@@ -1653,7 +1653,7 @@ TestRunner:test("B001: the dedup ask waits for a running checkpoint build (sourc
   local f = assert(io.open(plugin_dir .. "/main.lua", "r"))
   local main = f:read("*a")
   f:close()
-  local body = main:match("function AskGPT:maybeOfferDedupAsk%(file%)(.-)\nend\n")
+  local body = main:match("function AskGPT:maybeOfferDedupAsk%(file, opts%)(.-)\nend\n")
   TestRunner:assertTrue(body, "the ask found")
   local gate = body:find("build.dedup_pending = true", 1, true)
   local stamp = body:find("ActionCache.addDedupOfferedPairs(file, fresh)", 1, true)

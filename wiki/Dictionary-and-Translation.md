@@ -93,7 +93,7 @@ Dictionary, Quick Define, Deep Analysis and Translate do not carry the [spoiler 
 
 ## Dictionary bypass
 
-With the bypass on, selecting a word skips KOReader's dictionary popup and runs your chosen AI action at once.
+With the bypass on, selecting a word skips KOReader's dictionary popup and runs your chosen AI action at once. The Bypass Action row names your own actions too. If the action a bypass points at was deleted, KOReader's own dictionary (or the highlight menu) opens, with a one-time notice, until you pick another; deleting an action clears a bypass that pointed at it.
 
 1. **Settings → Dictionary Settings → Bypass KOReader Dictionary**: on.
 2. **Settings → Dictionary Settings → Bypass Action**: choose the action (Quick Define by default).

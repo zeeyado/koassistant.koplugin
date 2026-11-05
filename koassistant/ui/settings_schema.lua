@@ -754,7 +754,7 @@ local SettingsSchema = {
                     -- sites check ~= false; the resolver's "default" branch is
                     -- the single flip point for requests AND X-Ray promotion.
                     default = true,
-                    help_text = _("On by default: the AI is told not to reveal events beyond your current reading position in book and highlight chats, and X-Ray checkpoint updates follow your position instead of installing the newest version. Research mode disables protection. Override per book in Book Settings; per chat via the Spoiler chip (chat input's gear menu → Toolbar Buttons). Custom actions can use the {spoiler_free_nudge} placeholder."),
+                    help_text = _("On by default: the AI is told not to reveal events beyond your current reading position in book and highlight chats, and X-Ray checkpoint updates follow your position instead of installing the newest version. Research mode and a book marked Finished disable protection. Override per book in Book Settings; per chat via the Spoiler chip (chat input's gear menu → Toolbar Buttons). Custom actions can use the {spoiler_free_nudge} placeholder."),
                     separator = true,
                 },
                 -- Content Format submenu
@@ -1187,7 +1187,7 @@ local SettingsSchema = {
                                 { value = "name", text = _("Name only, tap to show a one-line description") },
                                 { value = "entry", text = _("First sentence right away") },
                             },
-                            help_text = _("What the card shows first for an upcoming entity, known only from the next checkpoint built ahead of you. Name only shows the tapped name and its category; a tap on the card adds the entry's first sentence, and another tap opens the full entry behind a spoiler confirmation. First sentence right away skips the first step (it can reveal that a name is another character's alias). Can be overridden per book."),
+                            help_text = _("What the card shows first for an upcoming entity, known only from the next checkpoint built past your reading position. Name only shows the tapped name as written and its category; a tap on the card adds the entry's first sentence, and another tap opens the full entry after a confirmation, whatever the spoiler setting. First sentence right away skips the first step. The confirmation box also offers Matching…, to stop a wrong underline without reading the entry. Can be overridden per book."),
                             enabled_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 return f.xray_show_ahead_entities ~= false
@@ -1215,7 +1215,7 @@ local SettingsSchema = {
                             text = _("Entity Card First"),
                             path = "features.xray_card_landing",
                             default = true,
-                            help_text = _("Exact entity hits (tapping a marked word, or selecting text that matches an entity) open a compact card first: the name, category and role, and a one-line identification, with the full entry a tap on the card away. The identification may come from the newest built checkpoint, so newly appearing names are known on sight; the full entry stays at your reading position, behind a confirmation, while spoiler protection is on. Off = open the full entry directly."),
+                            help_text = _("Exact entity hits (tapping a marked word, or selecting text that matches an entity) open a compact card first: the name, category and role, and a one-line identification, with the full entry a tap on the card away. An entity known only from the next checkpoint built past your reading position goes through stages instead (see Upcoming Entity Cards): its name, one line, then the full entry after a confirmation, whatever the spoiler setting. Off = open the full entry directly; an upcoming entity still goes through its stages."),
                             on_change = function(new_value, plugin)
                                 if plugin.syncXrayMarks then
                                     local UIManager = require("ui/uimanager")
@@ -1243,7 +1243,7 @@ local SettingsSchema = {
                                 { value = "footnote", text = _("Footnote panel (bottom of the screen)") },
                                 { value = "popup", text = _("Floating popup (near the tapped word)") },
                             },
-                            help_text = _("How the entity card is presented. The footnote panel slides in at the bottom of the screen, like KOReader's footnote popups, and follows the book's margins and font size. The floating popup is a small window anchored next to the tapped word. In both, tapping the card opens the full entry; tapping elsewhere dismisses it."),
+                            help_text = _("How the entity card is presented. The footnote panel slides in at the bottom of the screen, like KOReader's footnote popups, and follows the book's margins and font size. The floating popup is a small window anchored next to the tapped word. In both, tapping the card opens the full entry (an upcoming entity's card moves to its next stage); tapping elsewhere dismisses it."),
                         },
                         {
                             id = "xray_marking_density",
@@ -1663,17 +1663,9 @@ local SettingsSchema = {
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
                         local action_id = f.dictionary_bypass_action or "quick_define"
-                        -- Try to get action name
-                        local Actions = require("koassistant.prompts.actions")
-                        local action = Actions.getById(action_id)
-                        if action then
-                            return T(_("Bypass Action: %1"), action.text)
-                        end
-                        -- Check special actions
-                        if Actions.special and Actions.special[action_id] then
-                            return T(_("Bypass Action: %1"), Actions.special[action_id].text)
-                        end
-                        return T(_("Bypass Action: %1"), action_id)
+                        -- the reader's own actions by name too (B610)
+                        return T(_("Bypass Action: %1"),
+                            require("koassistant.prompts.action_service").bypassActionLabel(plugin, "highlight", action_id))
                     end,
                     callback = "buildDictionaryBypassActionMenu",
                     help_text = _("Action to trigger when dictionary bypass is enabled. With Look up in X-Ray, a tapped word that has an X-Ray entry opens it directly; any other word falls through to the normal dictionary."),
@@ -1968,17 +1960,9 @@ local SettingsSchema = {
                     text_func = function(plugin)
                         local f = plugin.settings:readSetting("features") or {}
                         local action_id = f.highlight_bypass_action or "translate"
-                        -- Try to get action name
-                        local Actions = require("koassistant.prompts.actions")
-                        local action = Actions.getById(action_id)
-                        if action then
-                            return T(_("Bypass Action: %1"), action.text)
-                        end
-                        -- Check special actions
-                        if Actions.special and Actions.special[action_id] then
-                            return T(_("Bypass Action: %1"), Actions.special[action_id].text)
-                        end
-                        return T(_("Bypass Action: %1"), action_id)
+                        -- the reader's own actions by name too (B610)
+                        return T(_("Bypass Action: %1"),
+                            require("koassistant.prompts.action_service").bypassActionLabel(plugin, "highlight", action_id))
                     end,
                     callback = "buildHighlightBypassActionMenu",
                     help_text = _("Action to trigger when highlight bypass is enabled"),

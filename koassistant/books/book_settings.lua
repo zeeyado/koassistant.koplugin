@@ -1271,7 +1271,10 @@ function BookSettings.showDomainResearch(opts)
     local document_path = opts.document_path
 
     local is_group = opts.scope == "group"
-    local doc_settings = opts.doc_settings or resolveDocSettings(ui, document_path)
+    -- opts.global_only: the global values alone (a general or library chat's
+    -- Domain chip beside an open book, B586)
+    local doc_settings = nil
+    if not opts.global_only then doc_settings = opts.doc_settings or resolveDocSettings(ui, document_path) end
     local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
     local all_domains = DomainLoader.getSortedDomains(features.custom_domains or {})
 
@@ -1326,7 +1329,7 @@ function BookSettings.showDomainResearch(opts)
             closeDialog()
             BookSettings.showDomainResearch({
                 plugin = plugin, ui = ui, document_path = document_path,
-                doc_settings = opts.doc_settings, scope = opts.scope,
+                doc_settings = opts.doc_settings, scope = opts.scope, global_only = opts.global_only,
                 on_close = on_close, target_override = new_target,
             })
         end,

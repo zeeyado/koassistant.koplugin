@@ -138,6 +138,13 @@ local SITES = {
     { "koassistant/ui/dialogs.lua", '.. (total_pages > 1 and ("  (" .. page .. "/" .. total_pages .. ")") or ""),', 2, "show_category_pick()" },
     -- OpenRouter's image catalog: the image settings panel comes back (S9)
     { "main.lua", "-- a tap outside is Close (B360)", 1, "on_close()" },
+    -- The reasoning model browser (Quick Settings comes back) and the Quick
+    -- preset's model chain (the mode picker comes back) (B587)
+    { "main.lua", 'title = T(_("Reasoning · %1"), self_ref:getProviderDisplayName(provider)),', 1, "on_close_callback()" },
+    { "main.lua", 'title = _("Reasoning · pick a provider"),', 1, "on_close_callback()" },
+    { "koassistant/ui/dialogs.lua", 'title = T(_("Model · %1"), provider_label),', 1, "opts.on_cancel()" },
+    { "koassistant/ui/dialogs.lua", 'title = opts.provider_title or _("Model · pick a provider"),', 1, "opts.on_cancel()" },
+    { "koassistant/ui/dialogs.lua", 'title = T(_("Tier for %1"), provider_label),', 1, "showQuickPresetModelMode(opts)" },
     -- Action wizard and editors
     { "koassistant/ui/prompts_manager.lua", 'title = _("Select Context"),', 1, "self:showStep1_NameAndContext(state)" },
     { "koassistant/ui/prompts_manager.lua", "self.wizard_behavior_dialog = ButtonDialog:new{", 1, "self:showStep3_Settings(state)" },

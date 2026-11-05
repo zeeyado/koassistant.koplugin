@@ -3,17 +3,18 @@ Compact entity card (A10 point-4, ref #78 / #63): ONE landing surface for
 exact entity hits — the ambient-mark tap and both selection intercepts all
 open this instead of jumping straight into the full browser entry.
 
-Two tiers (maintainer design 2026-08-14):
+Two tiers (maintainer design 2026-08-14; the upcoming rules of B269 and #120):
 - The CARD is the identification tier: name, category (+ role when the
   artifact has one — "Protagonist / Supporting"), the description's first
-  sentence. It may draw from the NEWEST BUILT checkpoint even when that is
-  ahead of the reader — "know who characters are when they first appear" —
-  which is the deliberate, bounded peek.
+  sentence. For an entity known only from the NEXT checkpoint built past
+  the reading position (pickAheadRung) it is staged: the tapped name as
+  written, then one line, then the confirm — "know who characters are when
+  they first appear" — the deliberate, bounded peek.
 - Tapping the card is the position tier: it resolves against the INSTALLED
   artifact via the existing exact-match lookup path (browser detail, natural
   back stack). An entity that exists ONLY ahead reveals its full entry
-  behind a confirm while spoiler protection is on; with protection off the
-  live artifact is the newest anyway (promotion), so no split exists.
+  behind a confirm, whatever the spoiler setting (it exists only while the
+  install waits); the confirm box also offers Matching… (B590).
 
 Two presentation styles (round 15, `features.xray_card_style`):
 - "footnote" (default): KOReader's FootnoteWidget — the bottom panel readers

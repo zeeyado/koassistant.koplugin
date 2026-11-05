@@ -221,7 +221,7 @@ local function ensureIndex(plugin, pageno)
     -- Point-4 identification peek: the newest built checkpoint AHEAD of the
     -- live artifact joins the index, so entities that first appear past the
     -- installed coverage get marked (and card-identified) when the reader
-    -- meets them. Full entries stay position-gated in the card router.
+    -- meets them. Full entries wait behind the card's confirm (the card router).
     -- P5: the Upcoming Entities setting stands the peek down (default on);
     -- with it off the key drops its "|ahead:" part, so a flip rebuilds the
     -- index on the next sync/scan by itself. Round 3: book override > global

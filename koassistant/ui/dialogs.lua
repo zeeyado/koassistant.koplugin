@@ -199,34 +199,10 @@ local function getPromptContext(config)
     return "highlight"  -- default
 end
 
--- Helper to persist domain selection to settings
--- This ensures domain selection survives restarts
-local function persistDomainSelection(plugin, domain_id)
-    if not plugin or not plugin.settings then return end
-    local features = plugin.settings:readSetting("features") or {}
-    features.selected_domain = domain_id
-    plugin.settings:saveSetting("features", features)
-    plugin.settings:flush()
-end
-
--- Helper to persist per-book domain selection to DocSettings
-local function persistBookDomain(doc_settings, domain_id)
-    if not doc_settings then return end
-    doc_settings:saveSetting(BookSettings.KEY_DOMAIN, domain_id)
-    doc_settings:flush()
-end
-
 -- Helper to read per-book domain from DocSettings
 local function getBookDomain(doc_settings)
     if not doc_settings then return nil end
     return doc_settings:readSetting(BookSettings.KEY_DOMAIN)
-end
-
--- Helper to persist per-book research mode to DocSettings
-local function persistBookResearchMode(doc_settings, value)
-    if not doc_settings then return end
-    doc_settings:saveSetting(BookSettings.KEY_RESEARCH, value)
-    doc_settings:flush()
 end
 
 -- Helper to read per-book research mode from DocSettings
@@ -460,6 +436,36 @@ local function quickToolsOff(action, features, quick_on)
     return quickPresetForces("tools", quick_on, features)
 end
 
+-- The web decision of a request, read BEFORE the bake runs (B588): the
+-- message's hallucination nudge is built before buildUnifiedRequestConfig,
+-- so it reads the same layers the bake applies (the action's flag, a run
+-- option's web pick, the chat's toggle, the book's override, then the Quick
+-- preset turning web off unless the pick touched it); effective = the
+-- override, else the global default, else Perplexity's native search.
+-- Nothing is consumed here. tests/unit/test_run_options.lua checks it
+-- against the bake.
+local function webSearchPreview(action, features, provider)
+    features = features or {}
+    local ws = action and action.enable_web_search
+    local run_variant = features._run_variant
+    local run_web
+    local quick = features._quick_answer_active
+    local RunOptions = require("koassistant.request.run_options")
+    if type(run_variant) == "table" and not RunOptions.isModelOnly(action) then
+        if run_variant.quick == true then quick = true elseif run_variant.quick == false then quick = false end
+        run_web = run_variant.web
+    end
+    if quick and action and (action.accept_quick_answer ~= true or RunOptions.isModelOnly(action)) then
+        quick = nil
+    end
+    if ws == nil and run_web ~= nil then ws = run_web == true end
+    if ws == nil then ws = features._web_search_active end
+    if ws == nil then ws = bookWebSearchOverride(features) end
+    if run_web == nil and quickPresetForces("web", quick, features, action) then ws = false end
+    if ws ~= nil then return ws == true end
+    if features.enable_web_search ~= nil then return features.enable_web_search == true end
+    return provider == "perplexity"
+end
 local function ensureReasoningHeadroom(api_params, provider, decision)
     if not (api_params and api_params.max_tokens and decision) then return end
     local might_reason = decision.mode == "on"
@@ -1138,10 +1144,15 @@ local function pickProviderModel(opts)
         if #buttons == 0 then
             table.insert(buttons, {{ text = _("No models listed for this provider"), enabled = false }})
         end
-        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        -- Cancel and a tap outside return where the caller says (B587)
+        table.insert(buttons, {{ text = _("Cancel"), callback = function()
+            UIManager:close(sub)
+            if opts.on_cancel then opts.on_cancel() end
+        end }})
         sub = ButtonDialog:new{
             title = T(_("Model · %1"), provider_label),
             buttons = buttons,
+            tap_close_callback = function() if opts.on_cancel then opts.on_cancel() end end,
         }
         UIManager:show(sub)
     end
@@ -1216,10 +1227,14 @@ local function pickProviderModel(opts)
                 end,
             }})
         end
-        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        table.insert(buttons, {{ text = _("Cancel"), callback = function()
+            UIManager:close(sub)
+            if opts.on_cancel then opts.on_cancel() end
+        end }})
         sub = ButtonDialog:new{
             title = opts.provider_title or _("Model · pick a provider"),
             buttons = buttons,
+            tap_close_callback = function() if opts.on_cancel then opts.on_cancel() end end,
         }
         UIManager:show(sub)
     end
@@ -1304,10 +1319,15 @@ showQuickPresetModelMode = function(opts)
                 end,
             }})
         end
-        table.insert(buttons, {{ text = _("Cancel"), callback = function() UIManager:close(sub) end }})
+        -- Cancel and a tap outside return to the mode picker (B587)
+        table.insert(buttons, {{ text = _("Cancel"), callback = function()
+            UIManager:close(sub)
+            showQuickPresetModelMode(opts)
+        end }})
         sub = ButtonDialog:new{
             title = T(_("Tier for %1"), provider_label),
             buttons = buttons,
+            tap_close_callback = function() showQuickPresetModelMode(opts) end,
         }
         UIManager:show(sub)
     end
@@ -1355,6 +1375,7 @@ showQuickPresetModelMode = function(opts)
                     on_provider = function(provider_id, provider_label)
                         pickTier(provider_id, provider_label, true)
                     end,
+                    on_cancel = function() showQuickPresetModelMode(opts) end,
                 })
             end),
             row(mode == "model"
@@ -1375,9 +1396,14 @@ showQuickPresetModelMode = function(opts)
                         end)
                         finish()
                     end,
+                    on_cancel = function() showQuickPresetModelMode(opts) end,
                 })
             end),
-            {{ text = _("Cancel"), callback = function() UIManager:close(dialog) end }},
+            -- Cancel returns to the editor as the tap outside does (B587)
+            {{ text = _("Cancel"), callback = function()
+                UIManager:close(dialog)
+                finish()
+            end }},
         },
     }
     UIManager:show(dialog)
@@ -5323,22 +5349,12 @@ if prune_book_text then
         end
     end
 
-    -- Determine if web search will be active for this request
-    -- Per-action override > per-chat toggle (dialog-launched actions) > per-book
-    -- override > global setting
-    -- Used by MessageBuilder to select web-aware hallucination nudge
-    local action_ws = prompt and prompt.enable_web_search
-    if action_ws == nil and config.features then
-        action_ws = config.features._web_search_active
-    end
-    if action_ws == nil then
-        action_ws = bookWebSearchOverride(config.features)
-    end
-    if action_ws ~= nil then
-        message_data.web_search_active = action_ws
-    else
-        message_data.web_search_active = config.features and config.features.enable_web_search == true
-    end
+    -- Whether web search will be active for this request: the bake's own
+    -- layers, read before it runs (B588: a run option's web pick and the
+    -- Quick preset were left out, so the nudge told the model to search
+    -- with web off). MessageBuilder picks the web-aware hallucination nudge
+    message_data.web_search_active = webSearchPreview(prompt, config.features,
+        config.provider or config.default_provider)
 
     -- Spoiler protection, message side (spoiler_posture_plan.md §3, B3/B4): resolve
     -- the request-layer posture for this action so prompts carrying
@@ -7353,101 +7369,25 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     local domain_target = (doc_settings and input_context ~= "general" and input_context ~= "library")
         and "book" or "global"
 
-    -- Function to show domain selector
-    -- Single list with target toggle at top when a book is open
+    -- The Domain chip (B586): the chip opens Book Settings' own Domain &
+    -- Research screen, one engine for the book's value, its group's (a book
+    -- that follows its group keeps following; the chip's own list wrote a
+    -- plain value over the marker) and the global one, as the Web and Tools
+    -- chips' holds open the engine. Its close re-reads what the chip shows.
     local function showDomainSelector()
         -- Close the on-screen keyboard first to prevent z-order issues
         input_dialog:onCloseKeyboard()
-
-        local DomainLoader = require("koassistant.prompts.domain_loader")
-        -- Get custom domains from settings
-        local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
-        local custom_domains = features.custom_domains or {}
-        -- Get all domains (folder + UI-created) sorted
-        local sorted_domains = DomainLoader.getSortedDomains(custom_domains)
-
-        -- Helper to close and refresh input dialog
-        local function closeAndRefresh()
-            UIManager:close(_G.domain_selector_dialog)
-            refreshInputDialog()
-        end
-
-        local global_domain_label = nil
-        for _i, d in ipairs(sorted_domains) do
-            if d.id == selected_domain then
-                global_domain_label = d.name or d.display_name or d.id
-                break
-            end
-        end
-        local state = {
-            domains = sorted_domains,
-            has_book = doc_settings ~= nil,
-            is_book_target = (doc_settings and domain_target == "book") or false,
-            book_domain = book_domain_id,
-            global_domain = selected_domain,
-            global_domain_label = global_domain_label,
-            book_research = book_research_id,
-            global_research = configuration.features and configuration.features.research_mode,
-            background_label = doc_settings and BookSettings.backgroundRowLabel(doc_settings) or nil,
-        }
-
-        local cb = {
-            set_target = function(new_target)
-                domain_target = new_target
-                UIManager:close(_G.domain_selector_dialog)
-                showDomainSelector()
+        BookSettings.showDomainResearch({
+            plugin = plugin, ui = ui_instance, doc_settings = doc_settings,
+            document_path = document_path, global_only = doc_settings == nil,
+            on_close = function()
+                book_domain_id = getBookDomain(doc_settings)
+                book_research_id = getBookResearchMode(doc_settings)
+                selected_domain = configuration and configuration.features
+                    and configuration.features.selected_domain or nil
+                refreshInputDialog()
             end,
-            pick_book_domain = function(val)
-                book_domain_id = val
-                persistBookDomain(doc_settings, val)
-                closeAndRefresh()
-            end,
-            pick_global_domain = function(id)
-                selected_domain = id
-                configuration.features = configuration.features or {}
-                configuration.features.selected_domain = id
-                persistDomainSelection(plugin, id)
-                closeAndRefresh()
-            end,
-            set_book_research = function(val)
-                book_research_id = val
-                persistBookResearchMode(doc_settings, val)
-                closeAndRefresh()
-            end,
-            set_global_research = function(val)
-                configuration.features = configuration.features or {}
-                configuration.features.research_mode = val
-                if plugin and plugin.settings then
-                    local f = plugin.settings:readSetting("features") or {}
-                    f.research_mode = val
-                    plugin.settings:saveSetting("features", f)
-                    plugin.settings:flush()
-                end
-                closeAndRefresh()
-            end,
-            -- Background (book_background_plan.md §4): book target only. Reopens this
-            -- picker so the row's preview refreshes; the input dialog itself is
-            -- refreshed on close (the Domain chip label doesn't show Background).
-            edit_background = function()
-                UIManager:close(_G.domain_selector_dialog)
-                BookSettings.showBackgroundEditor({
-                    plugin = plugin, doc_settings = doc_settings,
-                    on_close = showDomainSelector,
-                })
-            end,
-            close = function()
-                UIManager:close(_G.domain_selector_dialog)
-            end,
-        }
-
-        local buttons = BookSettings.buildDomainResearchButtons(state, cb)
-
-        local ButtonDialog = require("ui/widget/buttondialog")
-        _G.domain_selector_dialog = ButtonDialog:new{
-            title = _("Domain & Research"),
-            buttons = buttons,
-        }
-        UIManager:show(_G.domain_selector_dialog)
+        })
     end
 
     -- Get domain display name for button
@@ -14216,6 +14156,7 @@ return {
     resolveQuickPresetModel = resolveQuickPresetModel,
     -- Test seam (tests/unit/test_run_options.lua): the request bake
     _buildUnifiedRequestConfig = buildUnifiedRequestConfig,
+    webSearchPreview = webSearchPreview,  -- the message's web flag before the bake (B588)
     -- Test seam (tests/unit/test_front_matter_flow.lua): what a headless run hands back
     _headlessResult = headlessResult,
 }

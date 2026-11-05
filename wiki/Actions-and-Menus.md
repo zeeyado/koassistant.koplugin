@@ -312,7 +312,7 @@ In the highlight menu, actions read "Explain (KOA)", "Translate (KOA)" and so on
 
 **Managing the menu:**
 
-- Settings → Menus & Buttons → Highlight Menu Actions lists every highlight action; ✓ and a number mark the ones in the menu, in order (up to 15 shown).
+- Settings → Menus & Buttons → Highlight Menu Actions lists every highlight action; ✓ and a number mark the ones in the menu, in order (up to 30 shown).
 - Tap an action to add it to the menu or remove it; hold one that is in the menu to move it up or down.
 - Default actions can be removed (they won't come back on their own).
 - Freeform chat is always available through the **Send** button of the input dialog.
@@ -341,7 +341,7 @@ The first KOAssistant button of the highlight menu shows your model: 🤖 and it
 - **Show quick actions** (on): the action buttons (Explain, Translate and the rest of Highlight Menu Actions, the model button included).
 - **Show Add to Notebook button** (off): an **Add to notebook** button that saves the selected text straight to this book's notebook.
 - **Show (KOA) on KOAssistant's buttons** (on): marks KOAssistant's buttons with "(KOA)", to tell them apart from KOReader's own.
-- **Highlight Menu Actions**: which actions appear, and their order (up to 15 shown). Defaults, in order: Switch model, Translate, Explain, Quick Explain, Summarize, Quick Define, Dictionary, Look up in X-Ray, Generate Image; the last two appear only when the book has an X-Ray, and when an image provider is configured. See [Highlight menu actions](#highlight-menu-actions).
+- **Highlight Menu Actions**: which actions appear, and their order (up to 30 shown). Defaults, in order: Switch model, Translate, Explain, Quick Explain, Summarize, Quick Define, Dictionary, Look up in X-Ray, Generate Image; the last two appear only when the book has an X-Ray, and when an image provider is configured. See [Highlight menu actions](#highlight-menu-actions).
 
 ### Dictionary popup
 

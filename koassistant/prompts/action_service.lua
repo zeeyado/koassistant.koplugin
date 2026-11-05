@@ -1988,16 +1988,42 @@ local function buildDefaultGestureActions(actions_module)
     return result
 end
 
+-- A gesture default the reader removed stays removed (B581: the toggle
+-- deleted its key and the next read injected it again): the dismissed
+-- record the six action lists keep, here for the gesture menu
+local function dismissedGestureSet(service)
+    local out = {}
+    for _idx, key in ipairs(service.settings:readSetting("_dismissed_gesture_actions") or {}) do
+        if type(key) == "string" then out[key] = true end
+    end
+    return out
+end
+
+--- Record that the reader removed (or put back) a gesture-menu entry, so a
+--- default is not injected again (B581).
+function ActionService:setGestureDismissed(key, dismissed)
+    if type(key) ~= "string" then return end
+    local list = self.settings:readSetting("_dismissed_gesture_actions") or {}
+    local kept = {}
+    for _idx, k in ipairs(list) do
+        if k ~= key then kept[#kept + 1] = k end
+    end
+    if dismissed then kept[#kept + 1] = key end
+    self.settings:saveSetting("_dismissed_gesture_actions", kept)
+end
+
 --- Get processed gesture actions map (with defaults injected)
 --- This should be called instead of directly reading features.gesture_actions
 --- @return table: Map of "context:action_id" -> true
 function ActionService:getGestureActions()
     local features = self.settings:readSetting("features") or {}
     local saved = features.gesture_actions
+    local dismissed = dismissedGestureSet(self)
 
     -- If no saved settings, inject defaults
     if not saved then
         local defaults = buildDefaultGestureActions(self.Actions)
+        for key in pairs(dismissed) do defaults[key] = nil end
         -- Save defaults to settings
         features.gesture_actions = defaults
         self.settings:saveSetting("features", features)
@@ -2010,7 +2036,7 @@ function ActionService:getGestureActions()
     local changed = false
 
     for key, _val in pairs(defaults) do
-        if saved[key] == nil then
+        if saved[key] == nil and not dismissed[key] then
             -- New default action not in saved settings - add it
             saved[key] = true
             changed = true
@@ -2024,6 +2050,21 @@ function ActionService:getGestureActions()
     end
 
     return saved
+end
+
+--- The name a Settings row gives a bypass action (B610): a built-in or one
+--- of the reader's own through the service, a special action, else the id
+--- with "(no longer exists)".
+function ActionService.bypassActionLabel(plugin, context, action_id)
+    local _ = require("koassistant.core.gettext")
+    local T = require("ffi/util").template
+    local service = plugin and plugin.action_service
+    local action = service and service.getAction and service:getAction(context, action_id)
+    if action and action.text then return action.text end
+    local ok, Actions = pcall(require, "koassistant.prompts.actions")
+    local special = ok and Actions.special and Actions.special[action_id]
+    if special and special.text then return special.text end
+    return T(_("%1 (no longer exists)"), tostring(action_id))
 end
 
 -- ============================================================

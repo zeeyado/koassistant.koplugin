@@ -184,8 +184,15 @@ function SettingsManager:createMenuItem(plugin, item, schema)
                     return value == option.value
                 end,
                 callback = function()
+                    local old_value = self:getSettingValue(plugin, item.path or item.id)
+                    if old_value == nil then old_value = item.default end
                     self:setSettingValue(plugin, item.path or item.id, option.value)
                     plugin:updateConfigFromSettings()
+                    -- on_change as the dropdown branch calls it (B585: the
+                    -- X-Ray marking rows redraw the marks through it)
+                    if item.on_change then
+                        item.on_change(option.value, plugin, old_value)
+                    end
                 end,
                 keep_menu_open = true,
             })

@@ -1014,6 +1014,58 @@ local function runDeleteGesturesTests()
     end)
 end
 
+local function runGestureDismissTests()
+    print("\n--- A removed gesture default stays removed (B581) ---")
+
+    TestRunner:test("a default removed from the gesture menu is not injected again; put back, it is", function()
+        local data = { features = { gesture_actions = {} } }
+        local service = createService(data)
+        local map = service:getGestureActions()
+        TestRunner:assertEqual(map["general:news_update"], true, "News Update is a default of the gesture menu")
+        -- the Action Details toggle: off
+        data.features.gesture_actions["general:news_update"] = nil
+        service:setGestureDismissed("general:news_update", true)
+        TestRunner:assertEqual(data["_dismissed_gesture_actions"][1], "general:news_update", "recorded")
+        map = service:getGestureActions()
+        TestRunner:assertNil(map["general:news_update"], "not injected again on the next read")
+        -- a fresh table (no saved gestures at all) honours it too
+        data.features.gesture_actions = nil
+        map = service:getGestureActions()
+        TestRunner:assertNil(map["general:news_update"], "nor when the defaults are seeded")
+        -- on again
+        service:setGestureDismissed("general:news_update", false)
+        TestRunner:assertEqual(#data["_dismissed_gesture_actions"], 0, "the record is cleared")
+        data.features.gesture_actions = {}
+        map = service:getGestureActions()
+        TestRunner:assertEqual(map["general:news_update"], true, "back as a default")
+    end)
+
+    TestRunner:test("the record holds one entry per key", function()
+        local data = { features = { gesture_actions = {} } }
+        local service = createService(data)
+        service:setGestureDismissed("general:news_update", true)
+        service:setGestureDismissed("general:news_update", true)
+        TestRunner:assertEqual(#data["_dismissed_gesture_actions"], 1)
+        service:setGestureDismissed(nil, true)
+        TestRunner:assertEqual(#data["_dismissed_gesture_actions"], 1, "nothing for a missing key")
+    end)
+end
+
+local function runBypassLabelTests()
+    print("\n--- The bypass rows name the reader's own actions (B610) ---")
+
+    TestRunner:test("bypassActionLabel: a built-in, one of the reader's own, a special action, a deleted one", function()
+        local data = { custom_actions = { { text = "My lookup", context = "highlight", prompt = "a" } } }
+        local service = createService(data)
+        local plugin = { action_service = service }
+        TestRunner:assertEqual(ActionService.bypassActionLabel(plugin, "highlight", "ui_1"), "My lookup")
+        local builtin = service:getAction("highlight", "quick_define")
+        TestRunner:assertEqual(ActionService.bypassActionLabel(plugin, "highlight", "quick_define"), builtin.text)
+        TestRunner:assertEqual(ActionService.bypassActionLabel(plugin, "highlight", "ui_7"), "ui_7 (no longer exists)")
+        TestRunner:assertEqual(ActionService.bypassActionLabel(nil, "highlight", "ui_7"), "ui_7 (no longer exists)", "no plugin")
+    end)
+end
+
 local function runAll()
     print("\n=== Testing ActionService ===")
 
@@ -1028,6 +1080,8 @@ local function runAll()
     runModelButtonTests()
     runCustomActionsFileTests()
     runDeleteGesturesTests()
+    runGestureDismissTests()
+    runBypassLabelTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0
