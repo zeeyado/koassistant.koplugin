@@ -2550,6 +2550,13 @@ function AskGPT:fetchProviderModels(provider_id, opts)
     local ModelLists = require("koassistant.request.model_lists")
     models_url = ModelLists._docs.gemini.api_list .. "?key=" .. key
     list_field, name_field = "models", "name"
+  elseif provider_id == "bedrock" then
+    -- The control plane of the region in effect (PR #113); the key is required
+    if not key then return nil, _("Amazon Bedrock needs an API key to list models") end
+    -- (d.base_url already follows the region through the handler's URL hook)
+    models_url = require("koassistant.api.bedrock"):getModelsUrl(d.base_url)
+    headers = { ["Authorization"] = "Bearer " .. key }
+    list_field, name_field = "modelSummaries", "modelId"
   elseif provider_id == "perplexity" then
     -- Agent API: {base}/v1/agent lists its direct models at {base}/v1/models
     models_url = d.base_url:gsub("/v1/agent$", "") .. "/v1/models"
@@ -3074,6 +3081,7 @@ function AskGPT:getProviderDisplayName(provider_id)
     xai = "xAI",
     zai = "Z.AI",
     openrouter = "OpenRouter",
+    bedrock = "Amazon Bedrock",
     sambanova = "SambaNova",
     nvidia = "NVIDIA",
     minimax = "MiniMax",
@@ -4474,6 +4482,25 @@ function AskGPT:buildModelMenu(simplified, provider_override)
             { value = "international", text = _("International (Singapore)") },
             { value = "china", text = _("China (Beijing)") },
             { value = "us", text = _("US (Virginia)") },
+          } },
+      },
+      bedrock = {
+        { key = "bedrock_region", tpl = _("Region: %1"), default = "us-east-1",
+          options = {
+            { value = "us-east-1", text = _("US East (N. Virginia)") },
+            { value = "us-east-2", text = _("US East (Ohio)") },
+            { value = "us-west-2", text = _("US West (Oregon)") },
+            { value = "ca-central-1", text = _("Canada (Central)") },
+            { value = "eu-central-1", text = _("Europe (Frankfurt)") },
+            { value = "eu-west-1", text = _("Europe (Ireland)") },
+            { value = "eu-west-2", text = _("Europe (London)") },
+            { value = "eu-west-3", text = _("Europe (Paris)") },
+            { value = "eu-north-1", text = _("Europe (Stockholm)") },
+            { value = "ap-south-1", text = _("Asia Pacific (Mumbai)") },
+            { value = "ap-southeast-1", text = _("Asia Pacific (Singapore)") },
+            { value = "ap-southeast-2", text = _("Asia Pacific (Sydney)") },
+            { value = "ap-northeast-1", text = _("Asia Pacific (Tokyo)") },
+            { value = "sa-east-1", text = _("South America (São Paulo)") },
           } },
       },
       kimi = {

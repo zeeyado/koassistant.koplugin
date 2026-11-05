@@ -54,6 +54,7 @@ local function tokenField(body)
         or body.max_completion_tokens
         or body.max_output_tokens
         or (type(body.generationConfig) == "table" and body.generationConfig.maxOutputTokens or nil)
+        or (type(body.inferenceConfig) == "table" and body.inferenceConfig.maxTokens or nil)
 end
 
 local function buildBody(handler, provider, model, pin, extra_config)
@@ -100,6 +101,9 @@ local CASES = {
     { "opencode_go", "koassistant.api.opencode_go",      "glm-5.3-flash",               nil },
     -- A2Agent (#108): no curated ceiling; oversized asks were accepted and clamped upstream.
     { "a2agent",    "koassistant.api.a2agent",           "deepseek-v4-flash",           nil },
+    -- Amazon Bedrock (PR #113): no curated ceiling, the community 4096 fallback
+    -- (its models' caps differ by an order of magnitude); maxTokens under inferenceConfig.
+    { "bedrock",    "koassistant.api.bedrock",           "deepseek.v3.2",               nil },
 }
 
 for _idx, case in ipairs(CASES) do

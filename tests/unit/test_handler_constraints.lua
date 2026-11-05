@@ -63,10 +63,12 @@ local function build(provider, model, api_params, extra, module)
     return handler:buildRequestBody(MESSAGES, makeConfig(provider, model, api_params, extra)).body
 end
 
--- Where a body carries its temperature (Gemini: generationConfig, Ollama: options)
+-- Where a body carries its temperature (Gemini: generationConfig, Ollama: options,
+-- Bedrock: inferenceConfig)
 local function sentTemperature(body)
     if type(body.generationConfig) == "table" then return body.generationConfig.temperature end
     if type(body.options) == "table" then return body.options.temperature end
+    if type(body.inferenceConfig) == "table" then return body.inferenceConfig.temperature end
     return body.temperature
 end
 

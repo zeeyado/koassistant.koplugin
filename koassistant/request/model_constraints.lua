@@ -199,6 +199,22 @@ ModelConstraints.capabilities = {
             "gemini-3", "gemini-4",
         },
     },
+    bedrock = {
+        -- Forced Converse tool-call probes against bedrock-runtime by the
+        -- contributor (PR #113, 2026-09-19). Exact ids, plus the Nova family
+        -- prefixes: tool support and inference-profile requirements vary even
+        -- within one Bedrock vendor family.
+        tools = {
+            "deepseek.v3.2",
+            "openai.gpt-oss-20b-1:0",
+            "amazon.nova", "us.amazon.nova", "eu.amazon.nova",
+            "global.anthropic.claude-sonnet-4-6",
+            "mistral.mistral-large-3-675b-instruct",
+            "google.gemma-3-4b-it",
+            "minimax.minimax-m2.1",
+            "nvidia.nemotron-nano-3-30b",
+        },
+    },
     -- Note: Z.AI web search only works via a separate endpoint (/api/paas/v4/tools),
     -- NOT via the chat completions tools parameter (silently ignored).
     -- Book tools: GLM function calling on chat completions IS supported (verified

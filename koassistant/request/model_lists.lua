@@ -273,6 +273,34 @@ local ModelLists = {
         "minimax/minimax-m3",
     },
 
+    bedrock = {
+        -- Amazon Bedrock (PR #113, community): the Converse API; ids as Bedrock
+        -- spells them (a vendor prefix, a version suffix on the older ones; the
+        -- global./us./eu. prefixes are cross-region inference profiles). The key
+        -- selects what the account and the region serve: "Fetch models" lists
+        -- them. A short seed, one or two per vendor, from the contributor's
+        -- ~90-id list probed 2026-09-19 (every id below was in it).
+        "deepseek.v3.2",                          -- default; forced tool calls probed
+        "openai.gpt-oss-120b-1:0",
+        "openai.gpt-oss-20b-1:0",                 -- tools probed
+        "amazon.nova-pro-v1:0",                   -- tools probed (the Nova family)
+        "amazon.nova-2-lite-v1:0",
+        "amazon.nova-micro-v1:0",
+        "global.anthropic.claude-sonnet-5",
+        "global.anthropic.claude-sonnet-4-6",     -- tools probed
+        "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+        "meta.llama4-maverick-17b-instruct-v1:0",
+        "meta.llama3-3-70b-instruct-v1:0",
+        "mistral.mistral-large-3-675b-instruct",  -- tools probed
+        "qwen.qwen3-235b-a22b-2507-v1:0",
+        "moonshotai.kimi-k3",
+        "minimax.minimax-m2.1",                   -- tools probed
+        "google.gemma-3-27b-it",
+        "nvidia.nemotron-nano-3-30b",             -- tools probed
+        "zai.glm-5",
+        "xai.grok-4.6",
+    },
+
     requesty = {
         -- Requesty is an OpenAI-compatible model router (https://requesty.ai).
         -- Model naming: provider/model-name, but NOT the same convention as OpenRouter —
@@ -646,6 +674,10 @@ local ModelLists = {
         -- discovery + the full battery green on all 4 seed ids; tier rows kept.)
         together = true, sambanova = true,
         requesty = true, doubao = true,
+        -- Amazon Bedrock (PR #113, 2026-11-05): the contributor's probes only,
+        -- no key on the maintainer's side; its own wire, so a handler of its
+        -- own, not openai_compatible.
+        bedrock = true,
         -- M1 additions (ex hosted presets)
         cerebras = true, minimax = true, deepinfra = true, novita = true,
         hyperbolic = true, nebius = true, chutes = true, featherless = true,
@@ -681,6 +713,7 @@ local ModelLists = {
         anthropic  = { "claude-sonnet-5-5", "claude-sonnet-5", "claude-sonnet-4-6", "claude-sonnet-4-5-20250929" },
         openai     = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4", "gpt-5.2" },
         openai_codex = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4" },
+        bedrock    = { "deepseek.v3.2" },
         gemini     = { "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3-flash-preview" },
         deepseek   = { "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat" },
         ollama     = { "llama4", "llama3.3" },
@@ -957,6 +990,12 @@ local ModelLists = {
         openrouter = {
             api_list = "https://openrouter.ai/api/v1/models",
             docs = "https://openrouter.ai/models",
+        },
+        bedrock = {
+            -- The default region's control plane; main.lua's Fetch models builds
+            -- the URL for the region setting through the handler (needs the key)
+            api_list = "https://bedrock.us-east-1.amazonaws.com/foundation-models?byOutputModality=TEXT&byInferenceType=ON_DEMAND",
+            docs = "https://docs.aws.amazon.com/bedrock/latest/APIReference/API_runtime_Converse.html",
         },
         requesty = {
             api_list = "https://router.requesty.ai/v1/models",

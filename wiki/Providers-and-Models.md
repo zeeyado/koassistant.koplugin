@@ -1,10 +1,10 @@
 # Providers and Models
 
-KOAssistant works with 32 built-in AI providers and with any OpenAI-compatible service you add yourself. This page lists the providers and what each can do, what is free, how to use a subscription instead of API credits, how API keys work, and how to choose, add and rank models.
+KOAssistant works with 33 built-in AI providers and with any OpenAI-compatible service you add yourself. This page lists the providers and what each can do, what is free, how to use a subscription instead of API credits, how API keys work, and how to choose, add and rank models.
 
 ## Supported providers
 
-KOAssistant has **32 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin and *Docs-based* below) implemented from provider documentation. You can add any number of custom OpenAI-compatible providers yourself ([Custom providers](#custom-providers)). OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login. The name in brackets is the provider's id, which `apikeys.lua` (for its key) and `custom_models.lua` use. Please test and give feedback: fixes are quickly implemented.
+KOAssistant has **33 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin and *Docs-based* below) implemented from provider documentation. You can add any number of custom OpenAI-compatible providers yourself ([Custom providers](#custom-providers)). OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login. The name in brackets is the provider's id, which `apikeys.lua` (for its key) and `custom_models.lua` use. Please test and give feedback: fixes are quickly implemented.
 
 | Provider | Description | Status | Get API key |
 |----------|-------------|--------|-------------|
@@ -22,6 +22,7 @@ KOAssistant has **32 built-in providers**: a **curated set** the maintainer test
 | **xAI** (`xai`) | Grok models, up to 1M context | Tested | [console.x.ai](https://console.x.ai/) |
 | **OpenRouter** (`openrouter`) | Meta-provider, 500+ models ([Meta-providers](#meta-providers)) | Tested | [openrouter.ai](https://openrouter.ai/) |
 | **Requesty** (`requesty`) | OpenAI-compatible model router | Docs-based* | [requesty.ai](https://requesty.ai/) |
+| **Amazon Bedrock** (`bedrock`) | AWS-hosted models (Claude, Nova, Llama, Mistral, DeepSeek, Qwen and more) through the Converse API; a Bedrock API key, not an AWS access key, and a region setting under Provider Settings; answers arrive whole (no streaming yet); contributed in PR #113 | Docs-based* | [console.aws.amazon.com/bedrock](https://console.aws.amazon.com/bedrock/) |
 | **Cohere** (`cohere`) | Command models | Tested | [dashboard.cohere.com](https://dashboard.cohere.com/) |
 | **Qwen** (`qwen`) | Alibaba's Qwen models | Tested | [modelstudio.console.alibabacloud.com](https://modelstudio.console.alibabacloud.com/) (international; the China console differs) |
 | **Kimi** (`kimi`) | Moonshot models | Tested | [platform.kimi.ai](https://platform.kimi.ai/) (international; platform.moonshot.cn for the China region setting) |
@@ -56,7 +57,7 @@ You can help promote a docs-based provider to tested:
 ## What each provider can do
 
 - **Web search:** Anthropic, Gemini, OpenAI, OpenAI Subscription, xAI, Perplexity, OpenRouter, Z.AI and Qwen. Other providers ignore the setting and answer without searching. How each one searches, and the effort dial: [Reasoning, Web Search and Book Tools](Reasoning-Web-Search-and-Book-Tools).
-- **AI Book Tools** (experimental: the AI searches and reads the open book for grounded, page-referenced answers): Gemini, Anthropic, OpenAI (API or Subscription), OpenRouter, DeepSeek, Mistral, Groq, xAI, Fireworks, Qwen, Kimi, OpenCode Zen, OpenCode Go, A2Agent and Ollama (models whose server reports tool support). The community hosts Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless and Vercel AI Gateway, and custom providers, can use them for a model once **Test provider...** has recorded that it calls tools, or `custom_models.lua` grants it. A per-chat **Tools** chip turns them on; the setting behind it (off by default) decides whether the chip starts on, globally or per book. See [Reasoning, Web Search and Book Tools](Reasoning-Web-Search-and-Book-Tools).
+- **AI Book Tools** (experimental: the AI searches and reads the open book for grounded, page-referenced answers): Gemini, Anthropic, Amazon Bedrock (the probed ids: DeepSeek V3.2, the Nova family, Claude Sonnet 4.6, Mistral Large 3, gpt-oss-20b, Gemma 3 4B, MiniMax M2.1, Nemotron Nano 3), OpenAI (API or Subscription), OpenRouter, DeepSeek, Mistral, Groq, xAI, Fireworks, Qwen, Kimi, OpenCode Zen, OpenCode Go, A2Agent and Ollama (models whose server reports tool support). The community hosts Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless and Vercel AI Gateway, and custom providers, can use them for a model once **Test provider...** has recorded that it calls tools, or `custom_models.lua` grants it. A per-chat **Tools** chip turns them on; the setting behind it (off by default) decides whether the chip starts on, globally or per book. See [Reasoning, Web Search and Book Tools](Reasoning-Web-Search-and-Book-Tools).
 - **Image generation:** OpenAI, xAI, Gemini and OpenRouter. See [Image Generation](Image-Generation).
 - **Reasoning** depends on the model rather than the provider. The stance and the per-model settings are on [Reasoning, Web Search and Book Tools](Reasoning-Web-Search-and-Book-Tools); the models that cannot turn it off are listed under [Provider quirks](#provider-quirks).
 
@@ -117,7 +118,7 @@ The credits arrive each billing month, are spent before any credits you bought, 
 
 ## Choosing a provider and model
 
-**Settings → Model** is one row for both: it reads "Model: claude-sonnet-5-5 (Anthropic)", or whatever you use. Tap it for the provider and model menu (32 built-in providers plus your custom ones). The Provider and Model buttons of the Quick Settings panel open shorter versions of the same lists ([Setup, Gestures and Panels](Setup-Gestures-and-Panels)).
+**Settings → Model** is one row for both: it reads "Model: claude-sonnet-5-5 (Anthropic)", or whatever you use. Tap it for the provider and model menu (33 built-in providers plus your custom ones). The Provider and Model buttons of the Quick Settings panel open shorter versions of the same lists ([Setup, Gestures and Panels](Setup-Gestures-and-Panels)).
 
 ### The provider list
 
@@ -231,7 +232,7 @@ Some providers can't ship as presets because signup or auth is restricted. **Sil
 
 ## Fetching and testing models
 
-Most built-in providers ship a full model list. The community hosts (Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless and Vercel AI Gateway) ship only a tiny *seed* list ([Current default models](#current-default-models)). Two rows of a provider's model menu fill the gap; pick the provider in **Settings → Model** and add its key in **Settings → API Keys & Auth** first.
+Most built-in providers ship a full model list. The community hosts (Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless, Vercel AI Gateway and Amazon Bedrock) ship only a *seed* list ([Current default models](#current-default-models)). Two rows of a provider's model menu fill the gap; pick the provider in **Settings → Model** and add its key in **Settings → API Keys & Auth** first.
 
 - **Fetch models from provider...** pulls the provider's live model list into a picker. Tap a model to add it to your custom models (✓ marks the ones you already have). **Filter models...** narrows a long list (the picker shows the first 30), and **Add all (N)** appears when 20 or fewer are listed. Every provider has it except the OpenAI Subscription, which has no model list, and Ollama, whose menu already lists the installed models (**Refresh installed models**). Gemini needs a key to list its models.
 - **Test provider...** runs a quick capability check on the provider's current model: five small requests for Reachability, Streaming (SSE), Tool calling, Forced tool use (the search phase of AI Book Tools) and the Reasoning effort parameter. Each request is built the way a real one is (route, region, thinking off for the tool steps), and a failed step shows the provider's own explanation. Reachability also checks that KOAssistant can read the answer: a host that answers in another shape fails the step with the reason (a real request would fail too), the reply is shown when there is one, and a model that reasons first may answer the 16-token probe without text, which passes. When tool calling or the reasoning parameter passes, **Record capabilities for this model** saves the result, which makes features like AI Book Tools work where the model supports them.
@@ -326,6 +327,7 @@ The community hosts ship short built-in lists (the first id is the default). Som
 | **Chutes** | `deepseek-ai/DeepSeek-V4-Flash-0731-TEE` |
 | **Featherless** | `Qwen/Qwen3-32B` |
 | **Vercel AI Gateway** | `openai/gpt-5.5`, `anthropic/claude-sonnet-5` |
+| **Amazon Bedrock** | `deepseek.v3.2`, `openai.gpt-oss-120b-1:0`, `openai.gpt-oss-20b-1:0`, `amazon.nova-pro-v1:0`, `amazon.nova-2-lite-v1:0`, `amazon.nova-micro-v1:0`, `global.anthropic.claude-sonnet-5`, `global.anthropic.claude-sonnet-4-6` and 11 more |
 <!-- /generated: community -->
 
 > **Note:** OpenRouter, Requesty, Together, Fireworks and SambaNova use provider-prefixed or vendor-specific model IDs (`anthropic/claude-sonnet-5` on OpenRouter, `deepseek-ai/DeepSeek-V4-Pro-0813` on Together); see the provider's own catalog for exact strings, or use **Fetch models from provider...**. The routers spell the same model differently: `anthropic/claude-sonnet-5.5` and `x-ai/grok-4.3` on OpenRouter, `anthropic/claude-sonnet-5-5` and `xai/grok-4.3` on Requesty. Fireworks ids live under `accounts/fireworks/models/` and write a version's dots as "p" (`glm-5p3` is GLM-5.3).

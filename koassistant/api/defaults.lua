@@ -21,6 +21,7 @@ local function getDefaultModel(provider)
         mistral = "mistral-large-latest",
         xai = "grok-4.7",
         openrouter = "anthropic/claude-sonnet-5.5",
+        bedrock = "deepseek.v3.2",
         requesty = "openai/gpt-4o-mini",
         opencode = "deepseek-v4.1-flash",
         opencode_go = "kimi-k3",
@@ -148,6 +149,18 @@ local ProviderDefaults = {
             temperature = 0.7,
             max_tokens = 16384
         }
+    },
+    -- Amazon Bedrock (PR #113, community): the Converse API on the runtime host
+    -- of the region setting (koassistant/api/bedrock.lua builds the URL; this
+    -- base_url is the default region's). The community fallback of 4096:
+    -- Bedrock serves models whose output caps differ by an order of magnitude
+    -- (the Nova family low, Claude high), and a per-model ceiling is learned by
+    -- the max_tokens self-heal or declared in custom_models.lua.
+    bedrock = {
+        provider = "bedrock",
+        model = getDefaultModel("bedrock"),
+        base_url = "https://bedrock-runtime.us-east-1.amazonaws.com",
+        additional_parameters = { temperature = 0.7, max_tokens = 4096 }
     },
     requesty = {
         provider = "requesty",

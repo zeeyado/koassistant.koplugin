@@ -3353,6 +3353,33 @@ local SettingsSchema = {
                                 { value = "china", text = _("China (api.moonshot.cn)") },
                             },
                         },
+                        {
+                            id = "bedrock_region",
+                            type = "radio",
+                            text_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return T(_("Amazon Bedrock Region: %1"), f.bedrock_region or "us-east-1")
+                            end,
+                            help_text = _("The AWS region whose Bedrock runtime answers. A Bedrock API key is made in one region and works there; a model must be enabled for the account in that region. A base_url in configuration.lua overrides this setting."),
+                            path = "features.bedrock_region",
+                            default = "us-east-1",
+                            options = {
+                                { value = "us-east-1", text = _("US East (N. Virginia)") },
+                                { value = "us-east-2", text = _("US East (Ohio)") },
+                                { value = "us-west-2", text = _("US West (Oregon)") },
+                                { value = "ca-central-1", text = _("Canada (Central)") },
+                                { value = "eu-central-1", text = _("Europe (Frankfurt)") },
+                                { value = "eu-west-1", text = _("Europe (Ireland)") },
+                                { value = "eu-west-2", text = _("Europe (London)") },
+                                { value = "eu-west-3", text = _("Europe (Paris)") },
+                                { value = "eu-north-1", text = _("Europe (Stockholm)") },
+                                { value = "ap-south-1", text = _("Asia Pacific (Mumbai)") },
+                                { value = "ap-southeast-1", text = _("Asia Pacific (Singapore)") },
+                                { value = "ap-southeast-2", text = _("Asia Pacific (Sydney)") },
+                                { value = "ap-northeast-1", text = _("Asia Pacific (Tokyo)") },
+                                { value = "sa-east-1", text = _("South America (São Paulo)") },
+                            },
+                        },
                     },
                 },
                 {
