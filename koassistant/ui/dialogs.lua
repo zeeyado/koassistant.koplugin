@@ -12883,25 +12883,10 @@ local function handleLocalXrayLookup(ui, query, document_path, book_metadata, co
         -- entry whose name/alias CONTAINS it and the lookup landed on a results
         -- list instead of the obvious entry. Exactness outranks fuzzy hits;
         -- the results list remains for fuzzy-only matches and for
-        -- disambiguation when several entities share the exact name.
-        local query_exact = XrayParser.normalizeArabic(
-            (query:lower():gsub("^%s+", ""):gsub("%s+$", "")))
-        local exact = {}
-        for _idx, r in ipairs(results) do
-            local handles = { XrayParser.getItemName(r.item, r.category_key) }
-            local r_aliases = r.item.aliases
-            if type(r_aliases) == "string" then r_aliases = { r_aliases } end
-            if type(r_aliases) == "table" then
-                for _idx2, a in ipairs(r_aliases) do table.insert(handles, a) end
-            end
-            for _idx2, h in ipairs(handles) do
-                if type(h) == "string"
-                    and XrayParser.normalizeArabic(h:lower()) == query_exact then
-                    table.insert(exact, r)
-                    break
-                end
-            end
-        end
+        -- disambiguation when several entities share the exact name. The
+        -- exact rule is the marks' and the exact search's (B601: a main name
+        -- set to not matched, a capitals-only name in the other case).
+        local exact = XrayParser.exactLookupHits(results, query)
 
         -- Carried tier (S1, ref #90): exact stub handles join the exact set.
         -- A same-handle stub in the SAME family cannot coexist with a live

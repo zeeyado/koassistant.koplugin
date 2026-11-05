@@ -2333,7 +2333,7 @@ function XrayParser.findItemsInChapter(data, chapter_text)
     if not categories or #categories == 0 then return {} end
 
     local text_lower = XrayParser.matchNormalize(chapter_text)
-    local keep = XrayParser.matchNormalizeKeepCase(chapter_text)
+    local keep = XrayParser.alignedKeepCase(chapter_text, text_lower)
     local results = {}
 
     for _idx, cat in ipairs(categories) do
@@ -2372,7 +2372,7 @@ function XrayParser.findCharactersInChapter(data, chapter_text)
     if not characters or #characters == 0 then return {} end
 
     local text_lower = XrayParser.matchNormalize(chapter_text)
-    local keep = XrayParser.matchNormalizeKeepCase(chapter_text)
+    local keep = XrayParser.alignedKeepCase(chapter_text, text_lower)
     local results = {}
 
     for _idx, char in ipairs(characters) do
@@ -2656,9 +2656,10 @@ end
 -- of two words or more is free ("the Drowned" mid-sentence), all-caps text
 -- passes, and a word in a script without case counts as capitalized. The
 -- matcher finds a span in folded text; the capitals are read at the same
--- bytes of the text normalized WITHOUT the fold, and a span whose bytes do
--- not fold back to the match (a character the fold changed in length)
--- counts as capitalized: as before, never a mention lost.
+-- bytes of the text normalized WITHOUT the fold (alignedKeepCase: a
+-- character the fold changes in length takes its folded bytes, so the
+-- bytes after it still line up, B598), and a span whose bytes do not fold
+-- back to the match counts as capitalized: as before, never a mention lost.
 
 -- Composition only (the fold also composes, so decomposed accents keep
 -- their length on both sides); identity in unit tests
@@ -2704,6 +2705,60 @@ function XrayParser.matchNormalizeKeepCase(s)
 end
 
 XrayParser.foldCase = foldCase
+
+-- The start of the character at or after byte i (a continuation byte is
+-- skipped)
+local function charStart(s, i)
+    while i <= #s do
+        local b = s:byte(i)
+        if b < 0x80 or b >= 0xC0 then return i end
+        i = i + 1
+    end
+    return #s + 1
+end
+
+-- A run of non-ASCII text aligned to its fold: a piece whose fold keeps
+-- its length is copied; one that changes is split at the character nearest
+-- its middle, down to the one character, which takes its folded bytes
+-- (O(k log n) folds for k such characters in a run of n)
+local function alignRun(piece, out)
+    local folded = XrayParser.foldCase(piece)
+    if #folded == #piece then
+        out[#out + 1] = piece
+        return
+    end
+    local mid = charStart(piece, math.floor(#piece / 2) + 1)
+    if mid <= 1 or mid > #piece then
+        out[#out + 1] = folded
+        return
+    end
+    alignRun(piece:sub(1, mid - 1), out)
+    alignRun(piece:sub(mid), out)
+end
+
+--- matchNormalizeKeepCase aligned byte for byte to `norm`, the same text
+--- through matchNormalize: a character the fold changes in length (a
+--- ligature, a superscript, a full-width mark, a dotted capital I, a
+--- fraction) takes its folded bytes, so a span found in `norm` after it
+--- still reads its capitals at the right bytes (B598: one such character
+--- used to shift the copy for the rest of the page, and every later
+--- occurrence passed the capitals test as unreadable). The copy as it is
+--- when the lengths agree already, or when the rebuilt copy still differs
+--- (a fold that merges or splits characters).
+function XrayParser.alignedKeepCase(text, norm)
+    local keep = XrayParser.matchNormalizeKeepCase(text)
+    if type(norm) ~= "string" or #keep == #norm or not keep:find("[\128-\255]") then return keep end
+    local out, last = {}, 1
+    for s, e in keep:gmatch("()[\128-\255]+()") do
+        if s > last then out[#out + 1] = keep:sub(last, s - 1) end
+        alignRun(keep:sub(s, e - 1), out)
+        last = e
+    end
+    if last <= #keep then out[#out + 1] = keep:sub(last) end
+    local aligned = table.concat(out)
+    if #aligned == #norm then return aligned end
+    return keep
+end
 
 local function firstChar(word)
     local c = word:byte(1)
@@ -2823,10 +2878,14 @@ XrayParser.ABBREVIATIONS = {
     ie = true, eg = true, al = true, ph = true,
 }
 
--- The marks around a sentence start: what may open it (quotes, a bracket, a
--- dash, spaces) and what may close the sentence before it
-local OPENERS = { " ", "\"", "'", "(", "[", "\226\128\156", "\226\128\152", "\226\128\148", "\226\128\147" }
-local CLOSERS = { "\"", "'", ")", "]", "\226\128\157", "\226\128\153" }
+-- The marks around a sentence start: what may open it (quotes of every
+-- tradition, the guillemets both ways, the low German quotes, a bracket,
+-- the inverted Spanish marks, a dash, spaces) and what may close the
+-- sentence before it (B599)
+local OPENERS = { " ", "\"", "'", "(", "[", "\226\128\156", "\226\128\152", "\226\128\148", "\226\128\147",
+    "\194\171", "\194\187", "\226\128\185", "\226\128\186", "\226\128\158", "\226\128\154", "\194\191", "\194\161" }
+local CLOSERS = { "\"", "'", ")", "]", "\226\128\157", "\226\128\153",
+    "\194\187", "\194\171", "\226\128\186", "\226\128\185", "\226\128\156" }
 local function stripTail(s, marks)
     local changed = true
     while changed and s ~= "" do
@@ -2843,8 +2902,11 @@ end
 
 --- Whether a word starts a sentence, from the text before it in its
 --- paragraph: nothing but opening marks, or a sentence end before them
---- (. ! ? … : and their closing marks; a period after a listed
---- abbreviation or a single letter ends none).
+--- (. ! ? … : and their closing marks). A period after a listed
+--- abbreviation or a single letter may or may not end one ("No. 5", "the
+--- summer of No. 5. Summer came"): it counts as a start, which proves
+--- nothing about the capital after it (B599: read as mid-sentence, three
+--- "No. Summer" switched a name on).
 --- @param before string the paragraph's text before the word (matchNormalizeKeepCase)
 function XrayParser.startsSentence(before)
     if type(before) ~= "string" then return true end
@@ -2854,9 +2916,7 @@ function XrayParser.startsSentence(before)
     local last = before:sub(-1)
     if before:sub(-3) == "\226\128\166" or last == "!" or last == "?" or last == ":" then return true end
     if last ~= "." then return false end
-    local token = before:sub(1, -2):match("([%a]+)$")
-    if not token then return true end
-    return not (#token == 1 or XrayParser.ABBREVIATIONS[token:lower()])
+    return true
 end
 
 --- Whether a span is written in capitals: no lowercase letter and at least
@@ -3092,6 +3152,36 @@ end
 --- variant for Arabic (query side only: a handle is never article-stripped).
 --- @param query string
 --- @return table keys (empty for an empty query)
+--- The results of a substring search (searchAll) whose entry IS the query by
+--- one of its names: the one exact rule (exactHandleHit, so a bracketed
+--- name answers to its name alone), a main name set to not matched giving
+--- no hit, a capitals-only name hit only with its capitals, as searchAll's
+--- own exact mode reads them (B601: the lookup's fast path compared the raw
+--- names and opened an entry from either).
+function XrayParser.exactLookupHits(results, query)
+    local out = {}
+    local qkeys = XrayParser.exactQueryKeys(query)
+    if #qkeys == 0 then return out end
+    for _idx, r in ipairs(results or {}) do
+        local item = type(r) == "table" and r.item
+        if type(item) == "table" then
+            local handles = { { XrayParser.getItemName(item, r.category_key), item._name_off } }
+            for _idx2, a in ipairs(ensure_array(item.aliases) or {}) do handles[#handles + 1] = { a } end
+            for _idx2, h in ipairs(handles) do
+                local name, off = h[1], h[2]
+                if type(name) == "string" and not off and XrayParser.exactHandleHit(name, qkeys) then
+                    local req, words = XrayParser.handleCaps(name, item._caps)
+                    if not req or XrayParser.textCapsOk(query, req, words) then
+                        out[#out + 1] = r
+                        break
+                    end
+                end
+            end
+        end
+    end
+    return out
+end
+
 function XrayParser.exactQueryKeys(query)
     if type(query) ~= "string" or query == "" then return {} end
     local q = exactKey(query)
@@ -3420,7 +3510,7 @@ function XrayParser.newPieceNormalizer(keep_case)
         else
             local folded = XrayParser.matchNormalize(text)
             if keep_case then
-                local kept = XrayParser.matchNormalizeKeepCase(text)
+                local kept = XrayParser.alignedKeepCase(text, folded)
                 if #kept == #folded and foldCase(kept) == folded then
                     folded = kept
                 else

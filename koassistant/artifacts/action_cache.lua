@@ -1357,19 +1357,14 @@ local function fileKey(path)
     return attr and (tostring(attr.modification) .. ":" .. tostring(attr.size)) or "-"
 end
 
---- The stored layout of the name index this book is judged on: among the
---- layouts of the book file as it is now (XrayIndex.currentLayouts, which
---- read the same text) the one holding the most forms. nil until the index
---- has the book.
-local function bestLayout(document_path)
-    local XrayIndex = require("koassistant.xray.xray_index")
-    local best, most
-    for _idx, layout in ipairs(XrayIndex.currentLayouts(document_path)) do
-        local n = 0
-        for _f in pairs(type(layout.forms) == "table" and layout.forms or {}) do n = n + 1 end
-        if not most or n > most then best, most = layout, n end
-    end
-    return best
+--- The stored layouts of the name index this book is judged on: those of
+--- the book file as it is now (XrayIndex.currentLayouts, which read the same
+--- text), newest first; each name is judged on the first holding all its
+--- forms (XrayIndex.layoutHolding), since new forms are stored in the layout
+--- in use only (B597: the layout with the most forms could lack a name
+--- indexed after a font change). Empty until the index has the book.
+local function judgedLayouts(document_path)
+    return require("koassistant.xray.xray_index").currentLayouts(document_path)
 end
 
 --- The book's live X-Ray parsed with the reader's overlay merged, or nil
@@ -1385,9 +1380,9 @@ local function parsedLive(document_path)
 end
 
 --- The names this book's own usage sets to capitals only (B533 S3, the
---- automatic default; XrayIndex.autoCaps over the stored layout holding the
---- most forms among those of the book file as it is now, which read the same
---- text: bestLayout), memoized on the name index, the X-Ray, the ladder, the
+--- automatic default; XrayIndex.autoCaps over the stored layouts of the book
+--- file as it is now, which read the same text, each name on the first
+--- holding its forms: judgedLayouts), memoized on the name index, the X-Ray, the ladder, the
 --- reader's overlay and the book file. Empty until the index has the
 --- book: every name then matches any case, as before. The upcoming entities
 --- are judged too (#120: an entry known from the next checkpoint only, marked
@@ -1407,11 +1402,11 @@ function ActionCache.autoCaps(document_path, parsed)
     local memo = auto_caps_memo[document_path]
     if memo and memo.key == key then return memo.set, memo.sig end
     local set = {}
-    local best = bestLayout(document_path)
-    if best then
+    local layouts = judgedLayouts(document_path)
+    if #layouts > 0 then
         local judged = {}
         local function judge(data)
-            for n in pairs(XrayIndex.autoCaps(best, data, judged)) do set[n] = true end
+            for n in pairs(XrayIndex.autoCaps(layouts, data, judged)) do set[n] = true end
         end
         local live_p = 0
         if type(parsed) == "table" then
@@ -1467,15 +1462,12 @@ function ActionCache.capsCounts(document_path, name, data, entry)
     if not (document_path and type(name) == "string" and name ~= "") then return nil end
     local XrayIndex = require("koassistant.xray.xray_index")
     local XrayParser = require("koassistant.xray.xray_parser")
-    local best = bestLayout(document_path)
-    if not best then return nil end
     local set = XrayParser.matchTermSet({ name = name, _caps = { [name:lower()] = true } })
     if not (set and set.caps) then return nil end
-    for _idx, f in ipairs(set.all) do
-        if best.forms[f] == nil then return nil end
-    end
+    local layout = XrayIndex.layoutHolding(judgedLayouts(document_path), set.all)
+    if not layout then return nil end
     local handles = type(data) == "table" and entry and XrayParser.containingMatchHandles(data, entry) or nil
-    return XrayIndex.capsEvidence(best, set, handles)
+    return XrayIndex.capsEvidence(layout, set, handles)
 end
 
 --- The reader's overlay as the matchers read it (B533 S3): the stored records

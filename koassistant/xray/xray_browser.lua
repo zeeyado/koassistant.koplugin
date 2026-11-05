@@ -308,6 +308,18 @@ end
 --- exclude = XrayParser.containingHandles output (B266): a hit whose context
 --- spells another entity's longer handle around it is that entity's mention
 --- and is dropped here, so counts, tree and lists agree by construction.
+--- KOReader's PDF search matches a single word inside a longer one
+--- (koptinterface's word:find: "Christ" in "Christian", "Ann" in "Hannah"),
+--- and hands back the whole words it matched: a hit counts only when the
+--- term is those words as a whole (B600). The EPUB engine and the name
+--- index match whole words already.
+local function pdfWholeWord(matched_text, term_text)
+    local needle = (XrayParser.matchNormalize(term_text or ""):match("^%s*(.-)%s*$")) or ""
+    if needle == "" or type(matched_text) ~= "string" then return true end
+    return #XrayParser._collectMatchSpans(XrayParser.matchNormalize(matched_text), needle) > 0
+end
+XrayBrowser._pdfWholeWord = pdfWholeWord
+
 --- @return table hits Array of {page?, xp?, display_page, row_text, term, order}
 local function gatherMentionHits(ui, terms, exclude)
     local TextBoxWidget = require("ui/widget/textboxwidget")
@@ -335,6 +347,8 @@ local function gatherMentionHits(ui, terms, exclude)
                     page = r.start
                     local b = r.boxes and r.boxes[1]
                     key = tostring(page) .. "|" .. tostring(b and b.x) .. "|" .. tostring(b and b.y)
+                    -- the term inside a longer word is no mention (B600)
+                    if not pdfWholeWord(r.matched_text, term.text) then page = nil end
                 else
                     page = ui.document:getPageFromXPointer(r.start)
                     key = tostring(r.start)

@@ -12,8 +12,9 @@ local function setupPaths()
     package.path = table.concat({
         plugin_dir .. "/?.lua", tests_dir .. "/?.lua", tests_dir .. "/lib/?.lua", package.path,
     }, ";")
+    return plugin_dir
 end
-setupPaths()
+local PLUGIN_DIR = setupPaths()
 require("mock_koreader")
 
 -- A private sidecar folder for the index file
@@ -733,12 +734,18 @@ TestRunner:test("the PDF hits and KOReader's search: the same capitals", functio
 end)
 
 print("  [Automatic capitals (B533 S3)]")
-TestRunner:test("startsSentence: a paragraph's start or after a sentence end; abbreviations end none", function()
+TestRunner:test("startsSentence: a paragraph's start or after a sentence end; an abbreviation's period may end one (B599)", function()
     for _idx, before in ipairs({ "", "  \226\128\156", "It rained. ", "Who came? ", "He said: ",
-            "Wait\226\128\166 ", "\"Go home.\" ", "(It rained.) " }) do
+            "Wait\226\128\166 ", "\"Go home.\" ", "(It rained.) ",
+            -- a period after an abbreviation or a single letter: counted as a
+            -- start, which proves nothing ("No. Summer" is no evidence either way)
+            "Mr. ", "J. ", "No. ", "i. ", "Jan. ", "Ed. ",
+            -- the guillemets both ways, the low German quotes, the inverted Spanish marks
+            "\194\171", "He said: \194\171", "\194\171Go home.\194\187 ", "\226\128\158", "\226\128\158Go home.\226\128\156 ",
+            "\194\191", "\194\161", "\226\128\185", "\226\128\185Go.\226\128\186 " }) do
         TestRunner:ok(XrayParser.startsSentence(before), "starts after: " .. before)
     end
-    for _idx, before in ipairs({ "past the ", "Mr. ", "J. ", "He met her, ", "a\226\128\148" }) do
+    for _idx, before in ipairs({ "past the ", "He met her, ", "a\226\128\148", "the No ", "no. 5 and the " }) do
         TestRunner:ok(not XrayParser.startsSentence(before), "mid-sentence after: " .. before)
     end
 end)
@@ -794,6 +801,34 @@ for _idx, item in ipairs(AUTO_DATA.characters) do
     for _f, f in ipairs(XrayParser.matchTermSet(item).all) do auto_forms[#auto_forms + 1] = f end
 end
 local AUTO_LAYOUT = { stamp = "A1", forms = XrayIndex.scan(auto_doc, auto_forms, 1, 4) }
+TestRunner:test("a name is judged on the layout that holds its forms, the newest first (B597)", function()
+    -- after a font change the new forms go into the layout in use only: the
+    -- newer layout holds The Drowned's forms, the older one everything else
+    local drowned, others = {}, {}
+    local drowned_forms = XrayParser.matchTermSet({ name = "The Drowned" }).all
+    local is_drowned = {}
+    for _idx, f in ipairs(drowned_forms) do is_drowned[f] = true end
+    for f, enc in pairs(AUTO_LAYOUT.forms) do
+        if is_drowned[f] then drowned[f] = enc else others[f] = enc end
+    end
+    local newer, older = { stamp = "A2", forms = drowned }, { stamp = "A1", forms = others }
+    local n_new, n_old = 0, 0
+    for _f in pairs(drowned) do n_new = n_new + 1 end
+    for _f in pairs(others) do n_old = n_old + 1 end
+    TestRunner:ok(n_old > n_new, "the older layout holds more forms")
+    TestRunner:eq(XrayIndex.layoutHolding({ newer, older }, drowned_forms), newer, "The Drowned: the newer layout")
+    TestRunner:eq(XrayIndex.layoutHolding({ newer, older }, XrayParser.matchTermSet({ name = "Summer" }).all), older, "Summer: the older")
+    TestRunner:eq(XrayIndex.layoutHolding(older, drowned_forms), nil, "one layout without the forms: nothing")
+    TestRunner:eq(XrayIndex.layoutHolding({ older }, { "nowhere" }), nil)
+    TestRunner:eq(XrayIndex.layoutHolding(AUTO_LAYOUT, drowned_forms), AUTO_LAYOUT, "a single layout as before")
+    local auto = XrayIndex.autoCaps({ newer, older }, AUTO_DATA)
+    TestRunner:ok(auto["the drowned"], "judged on the newer layout, switched")
+    TestRunner:eq(next(XrayIndex.autoCaps(older, AUTO_DATA)), nil, "the layout with the most forms alone would not judge it")
+    local src = assert(io.open(PLUGIN_DIR .. "/koassistant/artifacts/action_cache.lua", "r")):read("*a")
+    TestRunner:ok(src:find("XrayIndex.layoutHolding(judgedLayouts(document_path), set.all)", 1, true) ~= nil, "capsCounts reads the layout holding the name")
+    TestRunner:ok(src:find("XrayIndex.autoCaps(layouts, data, judged)", 1, true) ~= nil, "autoCaps passes every current layout")
+    TestRunner:ok(src:find("local function bestLayout", 1, true) == nil, "the most-forms pick is gone")
+end)
 TestRunner:test("capsEvidence: how the book writes a name, read from the index", function()
     local set = XrayParser.matchTermSet({ name = "The Drowned", _caps = { ["the drowned"] = true } })
     local p, l = XrayIndex.capsEvidence(AUTO_LAYOUT, set, nil)

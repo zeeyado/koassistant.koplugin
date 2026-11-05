@@ -908,6 +908,18 @@ TestRunner:test("an AI merge lands on the kept entry; one the AI declines leaves
     if not ok then error(err, 0) end
 end)
 
+TestRunner:test("a PDF hit counts when the term is the matched words as a whole (B600)", function()
+    local whole = XrayBrowser._pdfWholeWord
+    TestRunner:assertTrue(whole("Christian", "Christ") == false, "Christ inside Christian")
+    TestRunner:assertTrue(whole("Hannah", "Ann") == false, "Ann inside Hannah")
+    TestRunner:assertTrue(whole("Christ,", "Christ") == true, "a trailing comma is no letter")
+    TestRunner:assertTrue(whole("Ann", "Ann") == true)
+    TestRunner:assertTrue(whole("Ann Lee", "Ann Lee") == true, "a two-word term")
+    TestRunner:assertTrue(whole("\226\128\156Christ\226\128\157", "Christ") == true, "quotes around it")
+    TestRunner:assertTrue(whole(nil, "Christ") == true, "no matched text: nothing to judge, kept")
+    TestRunner:assertTrue(whole("Christian", "") == true, "no term: kept")
+end)
+
 -- ------------------------------------------------------------------ cleanup
 ui:restore()
 ActionCache.getPromotedStubs, ActionCache.getXrayLadderCount = saved_promoted, saved_ladder

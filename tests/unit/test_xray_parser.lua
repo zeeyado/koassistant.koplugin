@@ -9,8 +9,9 @@ local function setupPaths()
     package.path = table.concat({
         plugin_dir .. "/?.lua", tests_dir .. "/?.lua", tests_dir .. "/lib/?.lua", package.path,
     }, ";")
+    return plugin_dir
 end
-setupPaths()
+local PLUGIN_DIR = setupPaths()
 require("mock_koreader")
 
 local XrayParser = require("koassistant.xray.xray_parser")
@@ -1026,6 +1027,74 @@ end)
 TestRunner:test("the case-sensitive search pattern takes the book's apostrophe and hyphen too", function()
     TestRunner:eq(XrayParser.caseSearchRegex("O'Brien", 1), "O['\\u2019\\u2018\\u02BC][bB][rR][iI][eE][nN]")
     TestRunner:eq(XrayParser.caseSearchRegex("Mary-Jane", 0), "[mM][aA][rR][yY][-\\u2010\\u2011][jJ][aA][nN][eE]")
+end)
+
+TestRunner:test("alignedKeepCase: a character the fold shortens takes its folded bytes, the capitals after it stay readable (B598)", function()
+    -- the unit harness has no utf8proc: a fold that shortens the fi ligature stands in
+    local real_fold = XrayParser.foldCase
+    XrayParser.foldCase = function(s) return (s:gsub("\239\172\129", "fi")):lower() end
+    local text = "The \239\172\129rst time, past the drowned trees, the Drowned lit fires."
+    local norm = (XrayParser.matchNormalize(text):gsub("\239\172\129", "fi"))
+    local plain = XrayParser.matchNormalizeKeepCase(text)
+    TestRunner:eq(#plain, #norm + 1, "the plain copy is one byte longer than the folded text")
+    local keep = XrayParser.alignedKeepCase(text, norm)
+    TestRunner:eq(keep, "The first time, past the drowned trees, the Drowned lit fires.", "aligned: the ligature folded, the capitals kept")
+    TestRunner:eq(#keep, #norm)
+    local set = XrayParser.matchTermSet({ name = "The Drowned", _caps = { ["the drowned"] = true } })
+    TestRunner:eq(#XrayParser.occurrencesIn(norm, set, nil, plain), 2, "the shifted copy passed both as unreadable")
+    local occ = XrayParser.occurrencesIn(norm, set, nil, keep)
+    TestRunner:eq(#occ, 1, "aligned: the lowercase one is left out")
+    TestRunner:eq(keep:sub(occ[1][1], occ[1][2]), "the Drowned")
+    TestRunner:ok(XrayParser.spanCapsOk(norm, keep, occ[1][1], occ[1][2], 2))
+    -- the lengths agree already: the copy as it is, nothing rebuilt
+    local same = "Past the drowned trees, the Drowned lit fires."
+    TestRunner:eq(XrayParser.alignedKeepCase(same, XrayParser.matchNormalize(same)), XrayParser.matchNormalizeKeepCase(same))
+    -- a fold the rebuild cannot follow (a character dropped): the plain copy, as before
+    local odd = "Caf\195\169 \239\172\129ne"
+    TestRunner:eq(XrayParser.alignedKeepCase(odd, "cafe fine"), XrayParser.matchNormalizeKeepCase(odd), "a length nothing reaches: unchanged")
+    XrayParser.foldCase = real_fold
+end)
+TestRunner:test("the chapter finders and the index scan read the aligned copy", function()
+    local src = assert(io.open(PLUGIN_DIR .. "/koassistant/xray/xray_parser.lua", "r")):read("*a")
+    local _, n = src:gsub("XrayParser%.alignedKeepCase%(chapter_text, text_lower%)", "")
+    TestRunner:eq(n, 2, "findItemsInChapter and findCharactersInChapter")
+    TestRunner:ok(src:find("local kept = XrayParser.alignedKeepCase(text, folded)", 1, true) ~= nil, "the search's capitals copy")
+    local idx = assert(io.open(PLUGIN_DIR .. "/koassistant/xray/xray_index.lua", "r")):read("*a")
+    TestRunner:ok(idx:find("keep = keep or XrayParser.alignedKeepCase(text, norm)", 1, true) ~= nil, "the index scan")
+end)
+TestRunner:test("exactLookupHits: the lookup's exact filter reads not matched and capitals only (B601)", function()
+    local data = { type = "fiction", characters = {
+        { name = "Mike", aliases = { "Michael" }, description = "a man" },
+        { name = "Mikey", description = "a boy" },
+        { name = "The Others", description = "a faction" },
+    } }
+    XrayParser.mergeUserAliases(data, {
+        ["Mike"] = { ignore = { "Mike" } },
+        ["The Others"] = { case = { ["the others"] = "capitals" } },
+    })
+    TestRunner:ok(data.characters[1]._name_off, "Mike set to not matched")
+    local function names(hits)
+        local out = {}
+        for _idx, r in ipairs(hits) do out[#out + 1] = r.item.name end
+        return table.concat(out, ",")
+    end
+    local results = XrayParser.searchAll(data, "mike", { skip_description = true })
+    TestRunner:eq(names(results), "Mike,Mikey", "the substring search lists both")
+    TestRunner:eq(names(XrayParser.exactLookupHits(results, "mike")), "", "not matched: no exact hit; Mikey is not exact")
+    results = XrayParser.searchAll(data, "michael", { skip_description = true })
+    TestRunner:eq(names(XrayParser.exactLookupHits(results, "Michael")), "Mike", "the alias still opens the entry")
+    results = XrayParser.searchAll(data, "the others", { skip_description = true })
+    TestRunner:eq(names(results), "The Others")
+    TestRunner:eq(names(XrayParser.exactLookupHits(results, "the others")), "", "capitals only: the lowercase query opens nothing")
+    TestRunner:eq(names(XrayParser.exactLookupHits(results, "The Others")), "The Others")
+    TestRunner:eq(names(XrayParser.exactLookupHits(results, "THE OTHERS")), "The Others", "capitals pass")
+    TestRunner:eq(#XrayParser.exactLookupHits(results, ""), 0)
+    local plain = { type = "fiction", characters = { { name = "Mike" } } }
+    results = XrayParser.searchAll(plain, "MIKE", { skip_description = true })
+    TestRunner:eq(names(XrayParser.exactLookupHits(results, "MIKE")), "Mike", "no record: any case, as before")
+    local src = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/dialogs.lua", "r")):read("*a")
+    TestRunner:ok(src:find("local exact = XrayParser.exactLookupHits(results, query)", 1, true) ~= nil, "the lookup's fast path uses it")
+    TestRunner:ok(src:find("normalizeArabic(h:lower()) == query_exact", 1, true) == nil, "the raw comparison is gone")
 end)
 
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
