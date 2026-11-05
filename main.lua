@@ -21727,6 +21727,46 @@ function AskGPT:showSetupWizardDev()
   require("koassistant.ui.setup_wizard").showDevMenu(self)
 end
 
+-- Settings ▸ Reading & Library ▸ X-Ray: the five global default rows (B584,
+-- #123). The schema names these methods; they left this file in the Setup
+-- Wizard commit (b7f657e6) and the rows tapped to nothing in v0.24.0 and
+-- v0.24.1, since the settings manager only logs a missing callback.
+-- tests/unit/test_named_targets.lua now checks every schema callback exists.
+-- Each opens the shared per-book picker on its Global tab.
+
+--- "Preset for New X-Rays" (B383): sets the three global dials below it
+function AskGPT:showXrayDefaultPresetPicker()
+  local BookSettings = require("koassistant.books.book_settings")
+  BookSettings.showXrayPresetPicker({ plugin = self, ui = self.ui, target_override = "global" })
+end
+
+--- "Categories for New X-Rays": the global working set (multiple choice;
+--- the categories picker reads opts.target, not target_override)
+function AskGPT:showXrayDefaultCategoriesPicker()
+  local BookSettings = require("koassistant.books.book_settings")
+  BookSettings.showXrayCategoriesPicker({ target = "global", plugin = self })
+end
+
+--- "Depth of New X-Rays": the global depth rung (depth axis 2026-08-25)
+function AskGPT:showXrayDefaultDepthPicker()
+  local BookSettings = require("koassistant.books.book_settings")
+  BookSettings.showXrayDepthPicker({ plugin = self, ui = self.ui, target_override = "global" })
+end
+
+--- "Type of New X-Rays" (B337c); no rebuild offer: a global default is not
+--- a pick for the open book's X-Ray
+function AskGPT:showXrayDefaultTypePicker()
+  local BookSettings = require("koassistant.books.book_settings")
+  BookSettings.showXrayTypePicker({ plugin = self, ui = self.ui, target_override = "global",
+    no_rebuild_offer = true })
+end
+
+--- "Carried Entries" (#116, B393): where carried entries are listed by default
+function AskGPT:showXrayDefaultCarriedPicker()
+  local BookSettings = require("koassistant.books.book_settings")
+  BookSettings.showXrayCarriedPicker({ plugin = self, ui = self.ui, target_override = "global" })
+end
+
 -- Settings ▸ Display Settings ▸ Emoji ▸ "Emoji Font" (B397): the bundled
 -- Noto Emoji font installed into KOReader, the wizard's installer reused
 function AskGPT:showEmojiFontSetup()
