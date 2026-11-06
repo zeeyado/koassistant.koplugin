@@ -1766,7 +1766,13 @@ function ChatGPTViewer:init()
         if hasDominantRTL(latest_response) then
           self.para_direction_rtl = true
           self.auto_para_direction = false
-          self.render_markdown = false
+          -- The per-chat MD/TXT tap (toggleMarkdown writes _chat_view_mode on
+          -- this chat's config) beats Auto RTL's plain text: a reader who
+          -- chose Markdown for an Arabic chat keeps it on every reply, reopen
+          -- and rotation (the sweep of 2026-11-06)
+          if self.configuration.features._chat_view_mode == nil then
+            self.render_markdown = false
+          end
         end
       end
     end
@@ -1777,7 +1783,9 @@ function ChatGPTViewer:init()
         if hasDominantRTL(self.text, 10000) then
           self.para_direction_rtl = true
           self.auto_para_direction = false
-          self.render_markdown = false
+          if self.configuration.features._chat_view_mode == nil then
+            self.render_markdown = false
+          end
         end
       end
     end
@@ -3575,6 +3583,7 @@ function ChatGPTViewer:landOnStreamPosition()
       logger.dbg("KOAssistant: stream-position carry — no usable anchor in snippet")
       return false
     end
+    self._stream_carry_occurrence = pending.occurrence
   end
   if not self.scroll_text_w then return false end
   if self.render_markdown then
@@ -3616,14 +3625,26 @@ function ChatGPTViewer:landOnStreamPosition()
       -- linearly, the reader's spot is the earliest occurrence). No marker
       -- (streamed artifact text): keep the last match, which still beats
       -- first across older turns.
+      -- (the anchor's per-page matches, read before the marker search
+      -- replaces the index)
+      local index = box._search_index
       local mfound = box:findText("◉ KOAssistant:")
       local mlist = box._match_page_list
       local marker_page = mfound and mlist and #mlist > 0 and mlist[#mlist] or nil
       if marker_page then
+        -- The occurrence the stream window counted (the reader's copy of a
+        -- phrase that repeats inside the reply, the one the carry break was
+        -- placed at): walk the pages from the marker's, summing each page's
+        -- matches, until it is reached; past the count, the last page that
+        -- holds the anchor (the sweep of 2026-11-06)
+        local want = tonumber(self._stream_carry_occurrence) or 1
+        local seen = 0
         for i = 1, #pages do
           if pages[i] >= marker_page then
             target = pages[i]
-            break
+            local on_page = index and index[pages[i]]
+            seen = seen + ((type(on_page) == "table" and #on_page > 0) and #on_page or 1)
+            if seen >= want then break end
           end
         end
       end
@@ -3664,7 +3685,16 @@ function ChatGPTViewer:landOnStreamPosition()
     end
     local last_byte
     if marker_byte then
-      last_byte = self.text:find(anchor, marker_byte, true)
+      -- the occurrence the stream window counted, from the label; past the
+      -- count, the last copy found (the sweep of 2026-11-06)
+      local want = tonumber(self._stream_carry_occurrence) or 1
+      local from = marker_byte
+      for _n = 1, want do
+        local s = self.text:find(anchor, from, true)
+        if not s then break end
+        last_byte = s
+        from = s + 1
+      end
     end
     if not last_byte then
       local search_start = 1
@@ -5212,7 +5242,7 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
   local textw_height = self.textw:getSize().h
 
   if self.render_markdown then
-    local auto_linked = autoLinkUrls(self.text)
+    local auto_linked = autoLinkUrls(applyMath(self, self.text))
     local bracket_escaped = preprocessBrackets(auto_linked)
     local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
     local html_body, err = MD(preprocessed_text, {})
@@ -6042,12 +6072,18 @@ function ChatGPTViewer:reapplyRtlMode()
   if is_rtl then
     self.para_direction_rtl = true
     self.auto_para_direction = false
-    self.render_markdown = false
+    -- the per-chat tap keeps its view (the sweep of 2026-11-06)
+    if features._chat_view_mode == nil then self.render_markdown = false end
   else
     self.para_direction_rtl = false
     self.auto_para_direction = true
-    -- Restore the user's markdown preference (init treats nil as the default: on).
-    self.render_markdown = features.render_markdown ~= false
+    -- Restore the per-chat tap, else the user's markdown preference (init
+    -- treats nil as the default: on).
+    if features._chat_view_mode ~= nil then
+      self.render_markdown = features._chat_view_mode
+    else
+      self.render_markdown = features.render_markdown ~= false
+    end
   end
   self:rebuildScrollWidget()
 end
@@ -6291,50 +6327,11 @@ function ChatGPTViewer:refreshMarkdownDisplay()
   if not self.render_markdown then
     return
   end
-
-  -- Re-convert markdown with new settings and update display
-  -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
-  local auto_linked = autoLinkUrls(self.text)
-  local bracket_escaped = preprocessBrackets(auto_linked)
-  local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
-  local html_body, err = MD(preprocessed_text, {})
-  if err then
-    logger.warn("ChatGPTViewer: could not generate HTML", err)
-    html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
-  end
-  -- For dictionary popup with RTL language, use "starts with RTL" detection
-  local dict_lang = self.configuration and self.configuration.features
-      and self.configuration.features.dictionary_language
-  local bidi_opts = { use_starts_with_rtl = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang) }
-  html_body = addHtmlBidiAttributes(html_body, bidi_opts)
-  -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
-  -- the classified opening tag so a split Arabic paragraph keeps direction
-  html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
-    self._stream_carry_anchor, self._stream_carry_occurrence)
-
-  -- Calculate current height
-  local textw_height = self.textw:getSize().h
-
-  -- Create new scroll widget with updated settings
-  self.scroll_text_w = ScrollHtmlWidget:new {
-    html_body = html_body,
-    css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
-    default_font_size = Screen:scaleBySize(self.markdown_font_size),
-    width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-    height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
-    dialog = self,
-    highlight_text_selection = true,
-    html_link_tapped_callback = handleLinkTap,
-  }
-
-  -- Update the frame container
-  self.textw:clear()
-  self.textw[1] = self.scroll_text_w
-
-  -- Refresh display
-  UIManager:setDirty(self, function()
-    return "ui", self.frame.dimen
-  end)
+  -- The one Markdown pipeline (the math pass, the IPA fix, the direction pass
+  -- with the alignment, the page breaks): a font size, alignment or Reset
+  -- rebuilt through a hand copy that had drifted (no math, no alignment
+  -- swap; the sweep of 2026-11-06)
+  self:rebuildScrollWidget()
 end
 
 -- Shared text-mode pipeline (koassistant/ui/minimal_popup.lua): the popup renders in

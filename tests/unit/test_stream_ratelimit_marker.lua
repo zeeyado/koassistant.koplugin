@@ -468,6 +468,38 @@ TestRunner:test("a Stop before the first token stops the waiting animation", fun
     TestRunner:assertTrue(left <= 1, "only cleanup's collection task remains, left " .. tostring(left))
 end)
 
+--- A chunk arrived and its throttled repaint is queued when the reader taps
+--- Stop: the tick used to hold scheduleIn's nil as its handle, so finishStream
+--- could not unschedule it and it painted the closed dialog once more
+--- (the sweep of 2026-11-06).
+TestRunner:test("a Stop with a repaint queued paints nothing after it", function()
+    RL._reset()
+    local CHUNK = 'data: {"choices":[{"index":0,"delta":{"content":"partial answer"},"finish_reason":null}]}\n\n'
+    pipe.segs, pipe.idx, pipe.pos, pipe.tick, pipe.ready_at, held =
+        { { text = CHUNK, delay = 0 }, { text = SSE_BODY, delay = 1000000 } }, 1, 1, 0, 0, ""
+    queue = {}
+    local completions = 0
+    StreamHandler:new{}:showStreamDialog(function() end, "groq", "openai/gpt-oss-20b",
+        { provider_name = "groq", model = "openai/gpt-oss-20b",
+          poll_interval_ms = 125, display_interval_ms = 1, prompt_chars = 100 },
+        function() completions = completions + 1 end)
+    local guard = 0
+    while #queue > 0 and pipe.idx == 1 and guard < 50 do
+        guard = guard + 1
+        table.remove(queue, 1)()
+    end
+    TestRunner:assertTrue(#queue >= 1, "the chunk's repaint is queued")
+    last_dialog.title_bar.close_callback()
+    local paints = 0
+    last_dialog._input_widget.setText = function() paints = paints + 1 end
+    for _ = 1, 60 do
+        if #queue == 0 then break end
+        table.remove(queue, 1)()
+    end
+    TestRunner:assertEqual(completions, 1, "the stream finished once")
+    TestRunner:assertEqual(paints, 0, "no repaint of the closed dialog after the Stop")
+end)
+
 -- The think machine engages on a LEADING <think> only; a block that starts
 -- mid-text streamed as answer text and was saved that way (the non-stream
 -- path removed it wherever it was).

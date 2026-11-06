@@ -1193,10 +1193,13 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     local function scheduleUIUpdate()
         if pending_ui_update or completed then return end
         pending_ui_update = true
-        ui_update_task = UIManager:scheduleIn(display_interval_sec, function()
+        -- scheduleIn returns NOTHING (KOReader): the handle finishStream
+        -- unschedules is the function itself, and a tick that still fires
+        -- after the stream finished paints nothing (the sweep of 2026-11-06)
+        local function tick()
             pending_ui_update = false
             ui_update_task = nil
-            if not completed and streamDialog and streamDialog._input_widget then
+            if not completed and not stream_finished and streamDialog and streamDialog._input_widget then
                 local iw = streamDialog._input_widget
                 local keep_charpos, keep_top
                 if not auto_scroll_active then
@@ -1247,7 +1250,9 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                     end
                 end
             end
-        end)
+        end
+        ui_update_task = tick
+        UIManager:scheduleIn(display_interval_sec, tick)
     end
 
     -- Functions to toggle auto-scroll (forward declarations)
@@ -2305,11 +2310,10 @@ function StreamHandler:extractContentFromSSE(event)
     -- OpenAI/DeepSeek/xAI format: choices[0].delta.content
     local choice = event.choices and event.choices[1]
     if choice then
-        -- Check for actual stop reasons (not just truthy - JSON null can be truthy in some parsers)
-        local finish = choice.finish_reason
-        if finish and type(finish) == "string" and finish ~= "" then
-            return nil, nil
-        end
+        -- A finish_reason on this chunk is read by checkIfTruncated and
+        -- abnormalStopReason; the chunk's own delta still counts (the sweep of
+        -- 2026-11-06: a host that sends the last words with the stop lost them;
+        -- an empty delta returns nothing below, as before)
         local delta = choice.delta
         if type(delta) == "table" then
             -- Check for web search tool calls (OpenAI/xAI)

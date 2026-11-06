@@ -152,4 +152,110 @@ TestRunner:test("the stream window's up hooks pause and then scroll", function()
         "page-up scrolls after the pause and is consumed only on the first page")
 end)
 
+print("")
+print("  [the sweep of 2026-11-06: the counted occurrence, one Markdown pipeline, the per-chat tap under Auto RTL]")
+
+TestRunner:test("plain text: the landing takes the occurrence the stream window counted, from the label", function()
+    local anchor = "one two three four five six"
+    local text = "▶ User: q\n\n◉ KOAssistant:\nIntro " .. anchor .. " seven.\nMiddle filler text here.\nLater "
+        .. anchor .. " eight.\nEnd."
+    local first = text:find(anchor, 1, true)
+    local second = text:find(anchor, first + 1, true)
+    local _s1, c1 = text:sub(1, first - 1):gsub("[^\128-\191]", "")
+    local _s2, c2 = text:sub(1, second - 1):gsub("[^\128-\191]", "")
+    local function land(occ)
+        local got
+        local v = setmetatable({ text = text, render_markdown = false, _stream_carry_anchor = anchor,
+            _stream_carry_occurrence = occ,
+            scroll_text_w = { moveCursorToCharPos = function(_self, pos) got = pos end } },
+            { __index = ChatGPTViewer })
+        TestRunner:assertTrue(v:landOnStreamPosition(), "landed")
+        return got
+    end
+    TestRunner:assertEqual(land(2), c2 + 1, "the second copy")
+    TestRunner:assertEqual(land(1), c1 + 1, "the first copy")
+    TestRunner:assertEqual(land(nil), c1 + 1, "no count: the first, as before")
+    TestRunner:assertEqual(land(5), c2 + 1, "past the count: the last copy found")
+end)
+
+TestRunner:test("Markdown: the pages from the marker's are walked by their match counts", function()
+    local anchor = "one two three four five six"
+    local function land(occ, per_page)
+        local scrolled
+        local box = { page_number = 1, page_count = 6 }
+        function box:findText(needle)
+            if needle:find("KOAssistant", 1, true) then
+                self._search_index = { [1] = { {} } }
+                self._match_page_list = { 1 }
+            else
+                self._search_index = {}
+                self._match_page_list = {}
+                for page, n in pairs(per_page) do
+                    local rects = {}
+                    for _i = 1, n do rects[#rects + 1] = {} end
+                    self._search_index[page] = rects
+                    table.insert(self._match_page_list, page)
+                end
+                table.sort(self._match_page_list)
+            end
+            return true
+        end
+        function box:clearSearch() end
+        local v = setmetatable({ text = "x", render_markdown = true, _stream_carry_anchor = anchor,
+            _stream_carry_occurrence = occ,
+            scroll_text_w = { htmlbox_widget = box, scrollToRatio = function(_self, r) scrolled = r end } },
+            { __index = ChatGPTViewer })
+        TestRunner:assertTrue(v:landOnStreamPosition(), "landed")
+        return scrolled
+    end
+    local function ratio(page) return (page - 0.5) / 6 end
+    TestRunner:assertEqual(land(1, { [2] = 1, [4] = 1 }), ratio(2), "the first copy's page")
+    TestRunner:assertEqual(land(2, { [2] = 1, [4] = 1 }), ratio(4), "the second copy's page")
+    TestRunner:assertEqual(land(2, { [2] = 2, [4] = 1 }), ratio(2), "two copies on one page: still that page")
+    TestRunner:assertEqual(land(3, { [2] = 2, [4] = 1 }), ratio(4), "the third is on the next")
+    TestRunner:assertEqual(land(9, { [2] = 2, [4] = 1 }), ratio(4), "past the count: the last page holding it")
+end)
+
+TestRunner:test("the late carry path reads the counted occurrence too", function()
+    local src = read("koassistant/ui/chatgptviewer.lua")
+    local a = src:find("function ChatGPTViewer:landOnStreamPosition()", 1, true)
+    local head = src:sub(a, a + 1200)
+    TestRunner:assertTrue(head:find("self._stream_carry_occurrence = pending.occurrence", 1, true) ~= nil)
+end)
+
+TestRunner:test("the refresh rebuilds through the one Markdown pipeline; the translate toggle keeps the math", function()
+    local src = read("koassistant/ui/chatgptviewer.lua")
+    local a = src:find("function ChatGPTViewer:refreshMarkdownDisplay()", 1, true)
+    local body = src:sub(a, src:find("\nend\n", a, true))
+    TestRunner:assertTrue(body:find("self:rebuildScrollWidget()", 1, true) ~= nil, "rebuildScrollWidget")
+    TestRunner:assertTrue(body:find("ScrollHtmlWidget:new", 1, true) == nil, "no hand copy of the pipeline left")
+    local t = src:find("function ChatGPTViewer:toggleTranslateQuoteVisibility()", 1, true)
+    local tbody = src:sub(t, src:find("\nend\n", t, true))
+    TestRunner:assertTrue(tbody:find("autoLinkUrls(applyMath(self, self.text))", 1, true) ~= nil, "the math pass")
+    TestRunner:assertTrue(tbody:find("autoLinkUrls(self.text)", 1, true) == nil)
+end)
+
+TestRunner:test("Auto RTL keeps the per-chat MD tap; reapplyRtlMode restores it", function()
+    local src = read("koassistant/ui/chatgptviewer.lua")
+    local n = select(2, src:gsub("if self%.configuration%.features%._chat_view_mode == nil then\n%s*self%.render_markdown = false", ""))
+    TestRunner:assertEqual(n, 2, "the chat and the simple view blocks")
+    -- reapplyRtlMode on a stub viewer: an Arabic text with the chat's tap set to Markdown
+    local arabic = string.rep("\216\167\217\132\216\185\216\177\216\168\217\138\216\169 ", 20)
+    local function reapply(features, md)
+        local v = setmetatable({ text = arabic, render_markdown = md, configuration = { features = features },
+            rebuildScrollWidget = function() end }, { __index = ChatGPTViewer })
+        v:reapplyRtlMode()
+        return v.render_markdown, v.para_direction_rtl
+    end
+    local md, rtl = reapply({ _chat_view_mode = true }, true)
+    TestRunner:assertEqual(md, true, "the tap's Markdown stays under Auto RTL")
+    TestRunner:assertEqual(rtl, true, "the direction is still right-to-left")
+    md = reapply({}, true)
+    TestRunner:assertEqual(md, false, "no tap: Auto RTL's plain text")
+    md = reapply({ rtl_chat_text_mode = false, _chat_view_mode = false, render_markdown = true }, true)
+    TestRunner:assertEqual(md, false, "Auto RTL off: the tap's plain text, not the setting's Markdown")
+    md = reapply({ rtl_chat_text_mode = false, render_markdown = true }, false)
+    TestRunner:assertEqual(md, true, "Auto RTL off, no tap: the setting")
+end)
+
 return TestRunner:summary()

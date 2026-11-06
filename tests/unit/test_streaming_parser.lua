@@ -118,6 +118,18 @@ TestRunner:test("returns nil on finish_reason=length", function()
     TestRunner:assertNil(extractContentFromSSE(event), "finish_reason=length")
 end)
 
+TestRunner:test("a chunk that carries finish_reason keeps its own text (the sweep of 2026-11-06)", function()
+    -- a host that sends the last words with the stop (vLLM on "length",
+    -- relays of Google's text + finishReason shape) lost them
+    local c = extractContentFromSSE({ choices = { { delta = { content = "The last sentence." }, finish_reason = "stop" } } })
+    TestRunner:assertEqual(c, "The last sentence.", "content with stop")
+    c = extractContentFromSSE({ choices = { { delta = { content = "cut here" }, finish_reason = "length" } } })
+    TestRunner:assertEqual(c, "cut here", "content with length")
+    local c2, r = extractContentFromSSE({ choices = { { delta = { reasoning_content = "last thought" }, finish_reason = "length" } } })
+    TestRunner:assertNil(c2, "no content")
+    TestRunner:assertEqual(r, "last thought", "the reasoning with length")
+end)
+
 TestRunner:test("ignores empty string finish_reason", function()
     local event = {
         choices = { { delta = { content = "Hello" }, finish_reason = "" } }
