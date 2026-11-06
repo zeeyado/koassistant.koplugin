@@ -3083,7 +3083,7 @@ local SettingsSchema = {
                                 local f = plugin.settings:readSetting("features") or {}
                                 return T(_("OpenAI model: %1"), imageModelLabel("openai", f.image_gen_model_openai))
                             end,
-                            help_text = _("gpt-image-2.5-flare is fast (about 11 s at low quality) and cheap; gpt-image-2.5-sunburst gives the finest detail but is slower."),
+                            help_text = _("gpt-image-2.6-flare is fast (about 10 s at low quality) and cheap; gpt-image-2.6-sunburst gives the finest detail but is slower (about 25 s). The 2.5 pair and gpt-image-2 stay listed; gpt-image-1-mini shuts down on 2026-12-01."),
                             path = "features.image_gen_model_openai",
                             default = "default",
                             options = imageModelOptions("openai"),

@@ -748,9 +748,10 @@ TestRunner:check("OpenRouter Sonnet 5.5: the lowest effort",
     ((minimalBody("openrouter", "anthropic/claude-sonnet-5.5") or {}).reasoning or {}).effort == "low")
 TestRunner:check("GPT-6 Sol: effort none on the OpenAI wire",
     (minimalBody("openai", "gpt-6-sol") or {}).reasoning_effort == "none")
-TestRunner:check("nothing to send -> no request (Fable 5.1 off, gpt-5.6 off by default)",
+TestRunner:check("nothing to send -> no request (Fable 5.1 off, gpt-5.4 off by default; 5.6 reasons by default since 2026-11-06)",
     ModelAudit.minimalBuilt("anthropic", "claude-fable-5-1", "k") == nil
-    and ModelAudit.minimalBuilt("openai", "gpt-5.6-terra", "k") == nil)
+    and ModelAudit.minimalBuilt("openai", "gpt-5.4", "k") == nil
+    and (minimalBody("openai", "gpt-5.6-terra") or {}).reasoning_effort == "none")
 
 local mcur = { profile = { axis = "effort", default_state = "on" }, temp_after_apply = 0.7 }
 TestRunner:check("a refused Minimal request is drift",
@@ -870,7 +871,7 @@ for _idx, case in ipairs({
         ModelAudit.keyVerdict(case[1], case[2], case[3]) == case[4])
 end
 TestRunner:check("the default model is the first listed",
-    ModelAudit.defaultModel("openai") == "gpt-5.6-terra"
+    ModelAudit.defaultModel("openai") == "gpt-6.1-terra"
         and ModelAudit.defaultModel("together") == "deepseek-ai/DeepSeek-V4-Pro-0813")
 TestRunner:check("a masked key echoed in an error is redacted",
     not ModelAudit.redact("Incorrect API key provided: 1a2b****9f8e."):find("1a2b", 1, true))

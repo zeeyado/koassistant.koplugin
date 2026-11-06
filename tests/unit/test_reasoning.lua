@@ -246,7 +246,7 @@ end)
 
 TestRunner:test("a2agent: binary on sends enabled only where reasoning is not the default", function()
     local flash = a2agentWire("deepseek-v4-flash", "maximum")
-    TestRunner:assertEqual(flash.thinking and flash.thinking.type, "enabled", "deepseek-v4-flash: the gateway default varies, Maximum sends an explicit enable")
+    TestRunner:assertNil(flash.thinking, "deepseek-v4-flash reasons by default (recheck 2026-11-06, it was recorded off): Maximum sends nothing")
     TestRunner:assertNil(a2agentWire("MiniMax-M3", "maximum").thinking,
         "MiniMax-M3 on = nothing sent (thinking enabled is refused)")
     TestRunner:assertNil(a2agentWire("deepseek-v4-pro", "maximum").thinking, "deepseek-v4-pro reasons by default")
@@ -1438,7 +1438,7 @@ TestRunner:test("refresh 2026-09-28: off reaches the wire only in a form the mod
     ap = offWire("openai", "gpt-6-astra")
     TestRunner:assertEqual(ap.reasoning and ap.reasoning.effort, "low", "gpt-6 astra cannot turn off: lowest")
     ap = offWire("openai", "gpt-5.6-terra")
-    TestRunner:assertEqual(ap.reasoning, nil, "gpt-5.6 is off by default: off stays silent")
+    TestRunner:assertEqual(ap.reasoning and ap.reasoning.effort, "none", "gpt-5.6 reasons by default (its page and the rechecks, 2026-11-06): off sends none")
     ap = offWire("anthropic", "claude-opus-5-5")
     TestRunner:assertEqual(ap.thinking and ap.thinking.type, "adaptive", "opus 5.5 never gets disabled")
     ap = offWire("anthropic", "claude-fable-5-1")

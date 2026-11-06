@@ -280,25 +280,25 @@ The first model in each provider's list is its default. These tables are generat
 | Provider | Default | Also listed |
 |----------|---------|-------------|
 | **Anthropic** | `claude-sonnet-5-5` | `claude-opus-5-5`, `claude-fable-5-1`, `claude-haiku-5-5`, `claude-sonnet-5`, `claude-opus-5`, `claude-fable-5` |
-| **OpenAI** | `gpt-5.6-terra` | `gpt-6.1-sol`, `gpt-6-astra`, `gpt-6-luna`, `gpt-6-sol`, `gpt-5.6-luna` |
+| **OpenAI** | `gpt-6.1-terra` | `gpt-6.1-sol`, `gpt-6-astra`, `gpt-6-luna`, `gpt-5.6-terra`, `gpt-6-sol`, `gpt-5.6-luna` |
 | **OpenAI Subscription** | `gpt-5.6-terra` | `gpt-6.1-sol`, `gpt-6-astra`, `gpt-6-luna`, `gpt-6-sol`, `gpt-5.6-luna` |
 | **DeepSeek** | `deepseek-flash` | `deepseek-v4-pro` |
 | **Gemini** | `gemini-3.8-flash` | `gemini-4-argon`, `gemini-3.5-flash-lite`, `gemini-3.6-flash`, `gemini-3.1-pro-preview`, `gemini-3.1-flash-lite` |
 | **Groq** | `openai/gpt-oss-120b` | `openai/gpt-oss-20b`, `qwen/qwen3.8-27b` |
-| **Mistral** | `mistral-large-latest` | `mistral-medium-latest`, `mistral-small-latest`, `magistral-medium-latest`, `magistral-small-latest`, `ministral-14b-latest`, `ministral-8b-latest`, `ministral-3b-latest`, `codestral-latest` |
+| **Mistral** | `mistral-large-4` | `mistral-large-latest`, `mistral-medium-latest`, `mistral-small-latest`, `magistral-medium-latest`, `magistral-small-latest`, `ministral-14b-latest`, `ministral-8b-latest`, `ministral-3b-latest` and 1 more |
 | **xAI** | `grok-4.7` | `grok-4.6`, `grok-4.5`, `grok-4.3`, `grok-4.20-0309-non-reasoning`, `grok-4.20-0309-reasoning`, `grok-build-0.1` |
-| **OpenRouter** | `anthropic/claude-sonnet-5.5` | `anthropic/claude-opus-5.5`, `anthropic/claude-fable-5.1`, `anthropic/claude-haiku-5.5`, `anthropic/claude-sonnet-5`, `anthropic/claude-opus-5`, `anthropic/claude-fable-5`, `openai/gpt-5.6-terra`, `openai/gpt-6.1-sol` and 27 more |
-| **Perplexity** | `perplexity/sonar` | `openai/gpt-6-luna`, `openai/gpt-6-sol`, `openai/gpt-6.1-sol`, `anthropic/claude-sonnet-5-5`, `google/gemini-3.8-flash`, `xai/grok-4.7` |
+| **OpenRouter** | `anthropic/claude-sonnet-5.5` | `anthropic/claude-opus-5.5`, `anthropic/claude-fable-5.1`, `anthropic/claude-haiku-5.5`, `anthropic/claude-sonnet-5`, `anthropic/claude-opus-5`, `anthropic/claude-fable-5`, `openai/gpt-6.1-terra`, `openai/gpt-5.6-terra` and 31 more |
+| **Perplexity** | `perplexity/sonar` | `openai/gpt-6-luna`, `openai/gpt-6-sol`, `openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`, `anthropic/claude-sonnet-5-5`, `anthropic/claude-haiku-5-5`, `google/gemini-3.8-flash`, `google/gemini-4-argon` and 1 more |
 | **Z.AI** | `glm-5.2` | `glm-5.3`, `glm-5.3-flash`, `glm-5.3-flashx`, `glm-5.1`, `glm-5`, `glm-5-turbo`, `glm-4.7`, `glm-4.7-flash` |
 | **Cohere** | `command-a-plus-05-2026` | `command-a-reasoning-08-2025`, `command-r7b-12-2024` |
-| **Kimi** | `kimi-k2.6` | `kimi-k3`, `kimi-k2.6-thinking`, `kimi-k2-turbo-preview` |
-| **Qwen** | `qwen3.8-max` | `qwen3.8-flash`, `qwen3.5-plus`, `qwen3.5-flash` |
+| **Kimi** | `kimi-k3` | `kimi-k3.1-pro`, `kimi-k3.1-pro-highspeed`, `kimi-k2.6` |
+| **Qwen** | `qwen3.8-max` | `qwen3.8-flash`, `qwen3.5-plus`, `qwen3.5-flash`, `deepseek-v4.1-flash-1017` |
 | **Ollama** | `llama4` | `llama3.3`, `llama3.3:70b`, `llama3.2`, `llama3.2:3b`, `qwen3.5`, `qwen3`, `qwen3:8b`, `qwen3:32b` and 12 more |
-| **Fireworks** | `accounts/fireworks/models/gpt-oss-120b` | `accounts/fireworks/models/glm-5p3`, `accounts/fireworks/models/glm-5p3-flash`, `accounts/fireworks/models/kimi-k3`, `accounts/fireworks/models/deepseek-v4p1-flash`, `accounts/fireworks/models/minimax-m3`, `accounts/fireworks/models/qwen3p8-max` |
-| **NVIDIA** | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `nvidia/nemotron-3-ultra-550b-a55b`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, `openai/gpt-oss-20b` |
-| **OpenCode Zen** | `deepseek-v4.1-flash` | `deepseek-v4-pro`, `glm-5.3-flash`, `glm-5.3`, `kimi-k3`, `qwen3.8-flash`, `minimax-m3`, `qwen3.6-plus` |
+| **Fireworks** | `accounts/fireworks/models/deepseek-v4p1-flash` | `accounts/fireworks/models/glm-5p3`, `accounts/fireworks/models/glm-5p3-flash`, `accounts/fireworks/models/kimi-k3p1-pro`, `accounts/fireworks/models/kimi-k3`, `accounts/fireworks/models/minimax-m3p1-flash`, `accounts/fireworks/models/minimax-m3`, `accounts/fireworks/models/qwen3p8-max` |
+| **NVIDIA** | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `nvidia/nemotron-3-ultra-550b-a55b`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, `openai/gpt-oss-20b`, `stepfun-ai/step-5-preview`, `nvidia/nemotron-3.5-bolt-e4b` |
+| **OpenCode Zen** | `deepseek-v4.1-flash` | `deepseek-v4-pro`, `glm-5.3-flash`, `glm-5.3`, `kimi-k3`, `qwen3.8-flash`, `minimax-m3`, `qwen3.6-plus`, `mistral-large-4` |
 | **OpenCode Go** | `kimi-k3` | `hy4-preview`, `longcat-2.0`, `minimax-m3`, `glm-5.3-flash`, `glm-5.3`, `glm-5.2`, `mimo-v2.6-pro`, `mimo-v2.6-flash` and 8 more |
-| **A2Agent** | `deepseek-v4-flash` | `deepseek-v4-pro`, `deepseek-v4.1-flash`, `glm-5.3`, `glm-5.3-flash`, `kimi-k3`, `qwen3.8-max`, `qwen3.8-flash`, `MiniMax-M3` |
+| **A2Agent** | `DeepSeek-V4.1-Flash-1017` | `deepseek-v4-flash`, `deepseek-v4-pro`, `deepseek-v4.1-flash`, `glm-5.3`, `glm-5.3-flash`, `kimi-k3`, `qwen3.8-max`, `qwen3.8-flash` and 2 more |
 <!-- /generated: defaults -->
 
 A few of these ids come with conditions:
@@ -372,19 +372,19 @@ The built-in picks, generated from the plugin's tier table when the page is publ
 | Provider | Frontier | Flagship | Standard | Fast | Ultrafast |
 |----------|----------|----------|----------|------|-----------|
 | **Anthropic** | `claude-fable-5-1` | `claude-opus-5-5` | `claude-sonnet-5-5` | `claude-haiku-5-5` | `claude-haiku-5-5` |
-| **OpenAI** | `gpt-6-astra` | `gpt-6.1-sol` | `gpt-5.6-terra` | `gpt-6-luna` | `gpt-6-luna` |
+| **OpenAI** | `gpt-6-astra` | `gpt-6.1-sol` | `gpt-6.1-terra` | `gpt-6-luna` | `gpt-6-luna` |
 | **OpenAI Subscription** | `gpt-6-astra` | `gpt-6.1-sol` | `gpt-5.6-terra` | `gpt-6-luna` | `gpt-6-luna` |
 | **DeepSeek** |  | `deepseek-v4-pro` | `deepseek-flash` | `deepseek-flash` | `deepseek-flash` |
 | **Gemini** | `gemini-4-argon` | `gemini-3.8-flash` | `gemini-3.8-flash` | `gemini-3.5-flash-lite` | `gemini-3.5-flash-lite` |
 | **Groq** |  | `openai/gpt-oss-120b` | `openai/gpt-oss-120b` | `openai/gpt-oss-20b` | `openai/gpt-oss-20b` |
-| **Mistral** |  | `mistral-large-latest` | `mistral-medium-latest` | `ministral-14b-latest` | `ministral-3b-latest` |
+| **Mistral** |  | `mistral-large-4` | `mistral-large-4` | `ministral-14b-latest` | `ministral-3b-latest` |
 | **xAI** |  | `grok-4.7` | `grok-4.20-0309-non-reasoning` | `grok-4.20-0309-non-reasoning` | `grok-4.20-0309-non-reasoning` |
 | **Z.AI** |  | `glm-5.3` | `glm-5` | `glm-5-turbo` | `glm-4.7-flash` |
 | **Cohere** |  | `command-a-plus-05-2026` | `command-a-plus-05-2026` | `command-r7b-12-2024` | `command-r7b-12-2024` |
-| **Kimi** |  | `kimi-k2.6` | `kimi-k2.6` | `kimi-k2.6` | `kimi-k2.6` |
+| **Kimi** |  | `kimi-k3.1-pro` | `kimi-k3` | `kimi-k3` | `kimi-k3` |
 | **Qwen** |  | `qwen3.8-max` | `qwen3.5-plus` | `qwen3.5-flash` | `qwen3.5-flash` |
 | **Ollama** |  | `llama4` | `llama3.3` | `llama3.2:3b` | `tinyllama` |
-| **Fireworks** |  | `accounts/fireworks/models/glm-5p3` | `accounts/fireworks/models/gpt-oss-120b` | `accounts/fireworks/models/gpt-oss-120b` | `accounts/fireworks/models/deepseek-v4p1-flash` |
+| **Fireworks** |  | `accounts/fireworks/models/glm-5p3` | `accounts/fireworks/models/deepseek-v4p1-flash` | `accounts/fireworks/models/deepseek-v4p1-flash` | `accounts/fireworks/models/deepseek-v4p1-flash` |
 | **NVIDIA** |  | `nvidia/nemotron-3-ultra-550b-a55b` | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `openai/gpt-oss-20b` | `openai/gpt-oss-20b` |
 | **Together** |  | `deepseek-ai/DeepSeek-V4-Pro-0813` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` |
 | **SambaNova** |  | `gpt-oss-120b` | `Meta-Llama-3.3-70B-Instruct` | `Meta-Llama-3.3-70B-Instruct` | `Meta-Llama-3.3-70B-Instruct` |

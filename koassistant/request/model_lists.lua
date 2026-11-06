@@ -37,15 +37,21 @@ local ModelLists = {
         -- + web search (Responses API). GPT-6 (astra > sol > luna, 2026-09; 6.1 Sol
         -- 2026-09-29): REASON BY DEFAULT (medium; sol and luna turn off with "none",
         -- astra and 6.1 cannot), otherwise the same shape (probed 2026-09-28 and
-        -- 2026-09-30). No GPT-6 terra exists: 5.6 terra stays the balanced default.
-        -- Prices per M tokens from OpenRouter's catalog, 2026-10-11.
-        "gpt-5.6-terra",                -- default + standard: balanced ($2/$12)
+        -- 2026-09-30). GPT-6.1 Terra (2026-10-26, $1/$5; battery 2026-11-06):
+        -- reasons by default (medium), off = "none", low..xhigh (no minimal, no
+        -- max), 128K out, temperature 1.0 only, tools + web search on Responses;
+        -- it takes the default and standard slots, 5.6 terra stays as the
+        -- previous terra. GPT-5.6's own page now names medium as its default
+        -- effort (web check 2026-11-06; the recheck saw a few reasoning tokens).
+        -- Prices per M tokens from OpenRouter's catalog, 2026-10-11 and 2026-11-06.
+        "gpt-6.1-terra",                -- default + standard: the balanced pick ($1/$5)
         "gpt-6.1-sol",                  -- flagship ($2/$10, like 6-sol); cannot turn reasoning off
         "gpt-6-astra",                  -- frontier ($10/$50); cannot turn reasoning off
         "gpt-6-luna",                   -- fast + ultrafast: the cheapest OpenAI model ($0.10/$0.50; half of 5.6-luna, below 5.4-nano); off = "none"
         -- Previous generation, one per line. Still served on the API, so an explicit
         -- pick of an id that left the picker is kept (resolveModelRefresh). Left
         -- 2026-10-11: gpt-5.6-sol, gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano.
+        "gpt-5.6-terra",                -- previous terra ($2/$12); the default until 2026-11-06
         "gpt-6-sol",                    -- previous sol ($2/$10); turns reasoning off
         "gpt-5.6-luna",                 -- previous luna ($0.20/$1.20); reasoning opt-in
         -- NOTE: *-pro variants are v1/responses only (not chat-completions): excluded.
@@ -158,8 +164,14 @@ local ModelLists = {
     },
 
     mistral = {
-        -- Flagship (Mistral Large 3 via -latest alias)
-        "mistral-large-latest",         -- flagship (default)
+        -- Mistral Large 4 (2026-10-06 public preview, GA card: 1M context,
+        -- $0.70/$2.10 per M; battery 2026-11-06 on the free plan): thinks by
+        -- default (no controls on this wire), temperature 0 to 1 (2.0 refused;
+        -- greedy needs top_p 1), 262K out, tools + forced calls + replay green.
+        -- The -latest alias answers 403 "not available in your subscription
+        -- tier" on the free plan, so the explicit id takes the default.
+        "mistral-large-4",              -- default + flagship + standard
+        "mistral-large-latest",         -- the rolling Large alias (plan-gated on the free tier)
         -- Medium (Mistral Medium 3.5)
         "mistral-medium-latest",        -- standard
         -- Small (Mistral Small 4 - unified reasoning/multimodal/coding, open-weight)
@@ -217,6 +229,7 @@ local ModelLists = {
 
         -- OpenAI (gpt-6: astra > sol > luna, reason by default; battery 2026-09-28;
         -- gpt-5.6: sol > terra > luna)
+        "openai/gpt-6.1-terra",         -- 2026-10-26; battery 2026-11-06 (reasons by default, off = none)
         "openai/gpt-5.6-terra",
         "openai/gpt-6.1-sol",           -- cannot turn reasoning off (battery 2026-09-30)
         "openai/gpt-6-astra",
@@ -240,6 +253,7 @@ local ModelLists = {
         -- DeepSeek
         "deepseek/deepseek-v4-pro",
         "deepseek/deepseek-v4.1-flash",                 -- 2026-09-10; battery 2026-09-28
+        "deepseek/deepseek-v4.1-flash-1017",            -- 2026-10-17; battery 2026-11-06
         "deepseek/deepseek-v4-flash",
 
         -- Z.AI
@@ -254,6 +268,7 @@ local ModelLists = {
         "meta-llama/llama-3.3-70b-instruct",
 
         -- Mistral
+        "mistralai/mistral-large-4-0",                  -- 2026-10-06; battery 2026-11-06 (reasons by default; effort low..max here, "none" refused)
         "mistralai/mistral-large-2512",
         "mistralai/mistral-medium-3.1",
 
@@ -270,6 +285,7 @@ local ModelLists = {
         -- Other notable (batteries 2026-09-28; they replace kimi-k2-thinking and
         -- minimax-m2.1, which reasoned by default under an off-by-default row)
         "moonshotai/kimi-k3",
+        "moonshotai/kimi-k3.1-pro",                     -- 2026-10-23; battery 2026-11-06
         "minimax/minimax-m3",
     },
 
@@ -342,6 +358,7 @@ local ModelLists = {
         "qwen3.8-flash",
         "qwen3.5-plus",                 -- standard
         "qwen3.5-flash",                -- fast + ultrafast
+        "deepseek-v4.1-flash-1017",     -- DeepSeek V4.1 Flash (2026-10-17) as Model Studio serves it; battery 2026-11-06: thinks by default, enable_thinking off works, temperature 0 to 2, tools + forced + replay green
         -- Gone 2026-10-14 (saved picks move via _retired): qwen3-max and qwen3-coder-plus
         -- answer 404 "Model not exist" (Alibaba's retirement of 2026-10-10); qwen-turbo
         -- left the list and answers only 429 "exceeded your current request limit".
@@ -355,13 +372,21 @@ local ModelLists = {
         -- there ("Not found ... or Permission denied") but stay listed for
         -- CN-platform users (region split; codex-precedent: never strip
         -- models that other plans/regions may serve — the error is clear).
-        "kimi-k2.6",                    -- default (the id served on both platforms)
         -- Kimi K3 (2026-07, 1M context; international platform, probed 2026-09-28):
         -- thinks by default, disable works, temperature 1 only while thinking,
-        -- tools + forced tool_choice + replay green.
-        "kimi-k3",                      -- flagship
-        "kimi-k2.6-thinking",           -- reasoning (CN platform)
-        "kimi-k2-turbo-preview",        -- fast (CN platform)
+        -- tools + forced tool_choice + replay green. The default since
+        -- 2026-11-06: Moonshot closed kimi-k2.6 to accounts made from
+        -- 2026-11-01 and retires it in late December (platform.kimi.ai/docs/models).
+        "kimi-k3",                      -- default + standard + fast + ultrafast
+        -- Kimi K3.1 Pro (2026-10-23; battery 2026-11-06): thinks by default,
+        -- temperature 1 only, tools + forced calls + replay green; the thinking
+        -- switch was not exercised on this wire (profile: on, no controls).
+        "kimi-k3.1-pro",                -- flagship
+        "kimi-k3.1-pro-highspeed",      -- the same model served faster (Moonshot prices it higher)
+        "kimi-k2.6",                    -- previous version: accounts made before 2026-11-01, until late December 2026
+        -- kimi-k2.6-thinking and kimi-k2-turbo-preview left 2026-11-06 (Moonshot's
+        -- page: turbo deprecated, -thinking no longer listed; both 404 on the
+        -- international platform since 2026-08-15); saved picks move via _retired.
     },
 
     together = {
@@ -384,11 +409,16 @@ local ModelLists = {
         -- (24 serving ids; Fireworks encodes dots as "p": k2p6 = k2.6).
         -- Default = the cheap workhorse, not the flagship (maintainer,
         -- same-day device round): deepseek-v4-pro stays the flagship tier.
-        "accounts/fireworks/models/gpt-oss-120b",                    -- standard/fast (default)
+        -- 2026-11-07: Fireworks takes gpt-oss-120b (the default since 2026-08) off
+        -- its serverless endpoints (changelog of 2026-10-19: dedicated deployments
+        -- only), so the cheap workhorse slot moves to deepseek-v4p1-flash and
+        -- saved picks follow via _retired.
+        "accounts/fireworks/models/deepseek-v4p1-flash",             -- default + standard/fast/ultrafast (reasoning can turn off)
         "accounts/fireworks/models/glm-5p3",                         -- flagship (thinking-only)
         "accounts/fireworks/models/glm-5p3-flash",
+        "accounts/fireworks/models/kimi-k3p1-pro",                   -- Kimi K3.1 Pro (battery 2026-11-06: none..max, temperature up to 1.0, tools + forced + replay green)
         "accounts/fireworks/models/kimi-k3",
-        "accounts/fireworks/models/deepseek-v4p1-flash",             -- fast deepseek (reasoning can turn off)
+        "accounts/fireworks/models/minimax-m3p1-flash",              -- MiniMax M3.1 Flash (battery 2026-11-06: none..max, temperature free, tools green)
         "accounts/fireworks/models/minimax-m3",
         "accounts/fireworks/models/qwen3p8-max",
         -- (2026-09-28: deepseek-v4-pro, deepseek-v4-flash-0731, kimi-k2p6 and
@@ -450,8 +480,11 @@ local ModelLists = {
         "openai/gpt-6-luna",            -- the model Perplexity's own fast/low/medium presets run
         "openai/gpt-6-sol",
         "openai/gpt-6.1-sol",           -- searched and cited 2026-09-30; takes no temperature
+        "openai/gpt-6.1-terra",         -- searched and cited 2026-11-06; takes temperature and effort none..high
         "anthropic/claude-sonnet-5-5",  -- replaces claude-sonnet-5 (same price; searched and cited 2026-09-29)
+        "anthropic/claude-haiku-5-5",   -- searched and cited 2026-11-06
         "google/gemini-3.8-flash",
+        "google/gemini-4-argon",        -- searched and cited 2026-11-06
         "xai/grok-4.7",
     },
 
@@ -517,6 +550,9 @@ local ModelLists = {
         -- same way nemotron-nano-3-30b-a3b went. Saved picks move via _retired.
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- ~1.2s 2026-08-29 (effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant); answered 2026-09-28 15:47 then HUNG (3 x 90 s) at 16:40 while the rest answered in 0-2 s, so it lost the fast/ultrafast picks
         "openai/gpt-oss-20b",                       -- fast + ultrafast (1 s, 2026-09-28); reasons by default, 131072 out
+        "stepfun-ai/step-5-preview",                -- battery 2026-11-06: reasons by default (reasoning_content), none..max accepted, 1M out
+        "nvidia/nemotron-3.5-bolt-e4b",             -- battery 2026-11-06: no reasoning by default (every effort accepted, as this gateway does), 1M out
+        -- minimaxai/minimax-m3.1-flash never answered the first request (read timeout, two tries 2026-11-06): not listed.
         -- RETIRED BY NVIDIA 2026-09-01 (HTTP 410 Gone, recheck 2026-09-28):
         --   nvidia/nemotron-3-nano-30b-a3b (was the ultrafast pick and the only
         --   tools grant), openai/gpt-oss-120b, minimaxai/minimax-m3. Listed but NOT
@@ -591,6 +627,7 @@ local ModelLists = {
         "qwen3.8-flash",                            -- B368 2026-10-14: book tools without a forced call
         "minimax-m3",
         "qwen3.6-plus",                             -- effort low..xhigh, off = none; rejects temperature 2.0
+        "mistral-large-4",                          -- battery 2026-11-06: thinks by default, effort low/medium/high (none, minimal, xhigh, max refused), temperature up to 1.0, 262K out, tools + forced + replay green
         -- Earlier sweeps (2026-09-05, 2026-09-28) left out: the Muse and Grok ids
         -- (server errors on this wire), kimi-k2.7-code (not found), the free ids
         -- (answer only inside OpenCode's own client), ling-3.0-flash-fin-free
@@ -642,7 +679,8 @@ local ModelLists = {
     -- the rest (22 ids). Meta router: NO tier placements. Facts per id:
     -- koassistant/request/model_constraints.lua.
     a2agent = {
-        "deepseek-v4-flash",                        -- default: the cheapest id with tools + a reasoning switch
+        "DeepSeek-V4.1-Flash-1017",                 -- default since 2026-11-06: the newest DeepSeek the gateway serves (2026-10-17; battery: none..max, temperature free, 393K out, tools + forced + replay green)
+        "deepseek-v4-flash",                        -- previous default: the cheapest id with tools + a reasoning switch
         "deepseek-v4-pro",
         "deepseek-v4.1-flash",
         "glm-5.3",
@@ -651,6 +689,7 @@ local ModelLists = {
         "qwen3.8-max",                              -- book tools without a forced call (refused while thinking; B368)
         "qwen3.8-flash",                            -- same
         "MiniMax-M3",                               -- reasoning arrives as <think> tags (parser strips)
+        "MiniMax-M3.1-Flash",                       -- battery 2026-11-06: adaptive thinking (effort "none" refused), minimal..max, 524K out, tools green
     },
 
     ---------------------------------------------------------------------------
@@ -709,27 +748,28 @@ local ModelLists = {
     -- heuristic only has to cover users who predate that.
     _shipped_defaults = {
         anthropic  = { "claude-sonnet-5-5", "claude-sonnet-5", "claude-sonnet-4-6", "claude-sonnet-4-5-20250929" },
-        openai     = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4", "gpt-5.2" },
+        openai     = { "gpt-6.1-terra", "gpt-5.6-terra", "gpt-5.5", "gpt-5.4", "gpt-5.2" },
         openai_codex = { "gpt-5.6-terra", "gpt-5.5", "gpt-5.4" },
         bedrock    = { "deepseek.v3.2" },
         gemini     = { "gemini-3.8-flash", "gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash", "gemini-3-flash-preview" },
         deepseek   = { "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "deepseek-chat" },
         ollama     = { "llama4", "llama3.3" },
         groq       = { "openai/gpt-oss-120b", "llama-3.3-70b-versatile" },
-        mistral    = { "mistral-large-latest" },
+        mistral    = { "mistral-large-4", "mistral-large-latest" },
         xai        = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-beta-0309-non-reasoning", "grok-4-1-fast-non-reasoning" },
         openrouter = { "anthropic/claude-sonnet-5.5", "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5" },
         requesty   = { "openai/gpt-4o-mini" },
         qwen       = { "qwen3.8-max", "qwen3-max" },
-        kimi       = { "kimi-k2.6", "kimi-k2.5", "kimi-k2-0905-preview" },
+        kimi       = { "kimi-k3", "kimi-k2.6", "kimi-k2.5", "kimi-k2-0905-preview" },
         together   = { "deepseek-ai/DeepSeek-V4-Pro-0813", "deepseek-ai/DeepSeek-V4-Pro", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8" },
-        fireworks  = { "accounts/fireworks/models/gpt-oss-120b", "accounts/fireworks/models/deepseek-v4-pro", "accounts/fireworks/models/llama4-maverick-instruct-basic" },
+        fireworks  = { "accounts/fireworks/models/deepseek-v4p1-flash", "accounts/fireworks/models/gpt-oss-120b", "accounts/fireworks/models/deepseek-v4-pro", "accounts/fireworks/models/llama4-maverick-instruct-basic" },
         sambanova  = { "gpt-oss-120b", "Llama-4-Maverick-17B-128E-Instruct", "Meta-Llama-4-Maverick-17B-128E-Instruct" },
         cohere     = { "command-a-plus-05-2026", "command-a-03-2025" },
         doubao     = { "doubao-seed-2.0-pro-32k", "doubao-1.8-pro-32k" },
         perplexity = { "perplexity/sonar", "fast", "sonar-pro", "sonar" },
         zai        = { "glm-5.2", "glm-5.1", "glm-5-turbo", "glm-5" },
         opencode   = { "deepseek-v4.1-flash", "deepseek-v4-flash" },
+        a2agent    = { "DeepSeek-V4.1-Flash-1017", "deepseek-v4-flash" },
         nvidia     = { "nvidia/nemotron-3.5-super-vl-120b-a12b", "nvidia/nemotron-3-super-120b-a12b" },
     },
 
@@ -789,6 +829,14 @@ local ModelLists = {
             ["mimo-v2.5-pro"] = "mimo-v2.6-pro",
             ["mimo-v2.5"] = "mimo-v2.6-flash",
         },
+        -- Moonshot's models page (2026-11-06): kimi-k2-turbo-preview deprecated,
+        -- kimi-k2.6-thinking no longer listed (both 404 on the international
+        -- platform since 2026-08-15). kimi-k2.6 itself retires in late December
+        -- 2026: map it here then.
+        kimi = {
+            ["kimi-k2.6-thinking"] = "kimi-k3",
+            ["kimi-k2-turbo-preview"] = "kimi-k3",
+        },
         opencode = {
             ["glm-5"] = "glm-5.3",
             ["kimi-k2.6"] = "kimi-k3",
@@ -801,7 +849,10 @@ local ModelLists = {
             ["accounts/fireworks/models/deepseek-v4-pro"] = "accounts/fireworks/models/glm-5p3",
             ["accounts/fireworks/models/deepseek-v4-flash-0731"] = "accounts/fireworks/models/deepseek-v4p1-flash",
             ["accounts/fireworks/models/kimi-k2p6"] = "accounts/fireworks/models/kimi-k3",
-            ["accounts/fireworks/models/gpt-oss-20b"] = "accounts/fireworks/models/gpt-oss-120b",
+            -- 2026-11-07: both gpt-oss ids leave Fireworks' serverless endpoints
+            -- (changelog 2026-10-19; 120b was the default until 2026-11-06)
+            ["accounts/fireworks/models/gpt-oss-20b"] = "accounts/fireworks/models/deepseek-v4p1-flash",
+            ["accounts/fireworks/models/gpt-oss-120b"] = "accounts/fireworks/models/deepseek-v4p1-flash",
             ["accounts/fireworks/models/glm-5p2"] = "accounts/fireworks/models/glm-5p3",   -- recheck 2026-09-29
         },
         -- Gone from Together's catalog 2026-09-28 (only the dated -0813 listed; catalog
@@ -871,7 +922,7 @@ local ModelLists = {
             deepseek = "deepseek-v4-pro",
             gemini = "gemini-3.8-flash",             -- Pro models are paid-only; keep tier free-tier usable (3.8-flash answers on a free key 2026-09-28)
             groq = "openai/gpt-oss-120b",            -- llama picks deprecated by Groq 2026-08-16
-            mistral = "mistral-large-latest",
+            mistral = "mistral-large-4",             -- the -latest alias is plan-gated on the free tier (403, 2026-11-06)
             xai = "grok-4.7",
             cohere = "command-a-plus-05-2026",
             ollama = "llama4",
@@ -879,7 +930,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/glm-5p3",       -- deepseek-v4-pro stopped serving 2026-09
             sambanova = "gpt-oss-120b",              -- Maverick deprecated 2026-06-09
             qwen = "qwen3.8-max",                    -- qwen3-max retired 2026-10-10
-            kimi = "kimi-k2.6",                      -- kimi-k3 probed on the international platform only; China-region keys exist (the pre-v0.21 migration), tier hints must never 400
+            kimi = "kimi-k3.1-pro",                  -- K3.1 Pro (battery 2026-11-06); k2.6 is closed to new accounts (the old note: kimi-k3 probed on the international platform only; China-region keys exist (the pre-v0.21 migration), tier hints must never 400
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5.3",                         -- always thinks (the 5.2 default can turn it off)
             nvidia = "nvidia/nemotron-3-ultra-550b-a55b",
@@ -888,20 +939,20 @@ local ModelLists = {
         -- Balanced performance and cost
         standard = {
             anthropic = "claude-sonnet-5-5",
-            openai = "gpt-5.6-terra",  -- standard/default
+            openai = "gpt-6.1-terra",  -- standard/default since 2026-11-06 ($1/$5)
             openai_codex = "gpt-5.6-terra",
             deepseek = "deepseek-flash",
             gemini = "gemini-3.8-flash",
             groq = "openai/gpt-oss-120b",
-            mistral = "mistral-medium-latest",
+            mistral = "mistral-large-4",             -- the free plan allows no requests on medium (0 per minute, 2026-11-06); Large 4 is cheap
             xai = "grok-4.20-0309-non-reasoning",
             cohere = "command-a-plus-05-2026",
             ollama = "llama3.3",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            fireworks = "accounts/fireworks/models/gpt-oss-120b", -- llama-v3p3 deprecated 2026-05-14, vendor target gpt-oss-120b
+            fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-120b leaves serverless 2026-11-07
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen3.5-plus",
-            kimi = "kimi-k2.6",
+            kimi = "kimi-k3",                        -- k2.6 closed to new accounts (2026-11-06)
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5",
             nvidia = "nvidia/nemotron-3.5-super-vl-120b-a12b",   -- super-120b stopped serving 2026-10-20
@@ -920,10 +971,10 @@ local ModelLists = {
             cohere = "command-r7b-12-2024",
             ollama = "llama3.2:3b",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
-            fireworks = "accounts/fireworks/models/gpt-oss-120b", -- llama-v3p3 deprecated 2026-05-14
+            fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-120b leaves serverless 2026-11-07
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen3.5-flash",
-            kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
+            kimi = "kimi-k3",   -- reasoning off for the fast-tier actions; k2.6 closed to new accounts (2026-11-06)
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
             nvidia = "openai/gpt-oss-20b",  -- 1 s; nano-omni hung 2026-09-28, lightning pulled: see the array note
@@ -945,7 +996,7 @@ local ModelLists = {
             fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-20b stopped serving 2026-09; reasoning can turn off
             sambanova = "Meta-Llama-3.3-70B-Instruct",
             qwen = "qwen3.5-flash",                  -- qwen-turbo gone 2026-10-14; the fast pick fills both
-            kimi = "kimi-k2.6", -- turbo-preview 404s on the international platform (2026-08-15); k2.6 serves everywhere
+            kimi = "kimi-k3",   -- see the fast tier
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
             nvidia = "openai/gpt-oss-20b",  -- nano-30b retired 2026-09-01 (410); nano-omni and lightning hang
@@ -1149,10 +1200,12 @@ local ModelLists = {
 -- Google for gemini-nano-banana-2.1).
 ModelLists._image_models = {
     openai = {
-        "gpt-image-2.5-flare",     -- default: OpenAI's pick for new work; 11 s at low quality (2026-10-14)
-        "gpt-image-2.5-sunburst",  -- the base model: finest detail, slower
+        "gpt-image-2.6-flare",     -- default: the 2.6 generation (2026-11-05); 10 s at low quality through the plugin's own builder (2026-11-06)
+        "gpt-image-2.6-sunburst",  -- the 2.6 base model: finest detail, slower (25 s)
+        "gpt-image-2.5-flare",     -- previous default
+        "gpt-image-2.5-sunburst",
         "gpt-image-2",             -- previous flagship
-        "gpt-image-1-mini",        -- previous fast pick
+        "gpt-image-1-mini",        -- previous fast pick; OpenAI shuts it down 2026-12-01 (its deprecations page)
     },
     xai = {
         "grok-imagine-image",      -- default: fast (~7 s), $0.02
@@ -1181,6 +1234,11 @@ ModelLists._image_models = {
 -- grok-imagine-image-quality (and its alias -pro) with grok-imagine-image-2.0
 -- at low quality from 2026-11-02.
 ModelLists._image_retired = {
+    -- OpenAI shut gpt-image-1 down 2026-10-23 (its deprecations page names the
+    -- 2.5 pair as the replacement); gpt-image-1-mini follows 2026-12-01.
+    openai = {
+        ["gpt-image-1"] = "gpt-image-2.5-flare",
+    },
     xai = {
         ["grok-imagine-image-quality"] = "grok-imagine-image-2.0",
         ["grok-imagine-image-pro"] = "grok-imagine-image-2.0",

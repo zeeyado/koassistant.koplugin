@@ -39,6 +39,7 @@ local ModelConstraints = {
         -- kimi-k3 (probed 2026-09-28): "only 1 is allowed" while thinking (the
         -- default); 0.6 accepted with thinking off, where kimi.lua drops it anyway.
         ["kimi-k3"] = { temperature = 1.0 },
+        ["kimi-k3.1-pro"] = { temperature = 1.0 },   -- prefix: -highspeed too ("only 1 is allowed", battery 2026-11-06)
     },
     a2agent = {
         -- kimi-k3 (probed 2026-09-27): accepts ONLY temperature 0, 0.6 and 1.0,
@@ -50,6 +51,9 @@ local ModelConstraints = {
         -- [0.0, 2.0)", 2026-09-28: the 3.8 family and 3.7-plus); 1.9 answers. The
         -- settings allow up to 2.0.
         _provider_max_temperature = 1.9,
+    },
+    mistral = {
+        _provider_max_temperature = 1.0,   -- Large 4 refuses 2.0 (battery 2026-11-06); the edge models accept it but lose nothing by the clamp
     },
     -- Add more providers/models as discovered
 }
@@ -319,6 +323,8 @@ ModelConstraints.capabilities = {
             "accounts/fireworks/models/deepseek-v4p1-flash",
             "accounts/fireworks/models/glm-5p3",
             "accounts/fireworks/models/kimi-k3",
+            "accounts/fireworks/models/kimi-k3p1-pro",     -- battery 2026-11-06 (forced + replay green)
+            "accounts/fireworks/models/minimax-m3p1-flash", -- battery 2026-11-06 (forced + replay green)
             "accounts/fireworks/models/minimax-m3",
         },
         tools = {
@@ -327,6 +333,8 @@ ModelConstraints.capabilities = {
             "accounts/fireworks/models/deepseek-v4p1-flash",
             "accounts/fireworks/models/glm-5p3",     -- prefix: glm-5p3-flash too (probed)
             "accounts/fireworks/models/kimi-k3",
+            "accounts/fireworks/models/kimi-k3p1-pro",     -- battery 2026-11-06 (forced + replay green)
+            "accounts/fireworks/models/minimax-m3p1-flash", -- battery 2026-11-06 (forced + replay green)
             "accounts/fireworks/models/minimax-m3",
         },
     },
@@ -354,6 +362,7 @@ ModelConstraints.capabilities = {
             "kimi-k3",
             "minimax-m3",
             "minimax-m2.7",
+            "mistral-large-4",   -- battery 2026-11-06
             "glm-5.2",
             "glm-5.1",
             "glm-5",
@@ -372,6 +381,7 @@ ModelConstraints.capabilities = {
             "kimi-k3",
             "minimax-m3",
             "minimax-m2.7",
+            "mistral-large-4",   -- battery 2026-11-06
             "glm-5.2",
             "glm-5.1",
             "glm-5",
@@ -461,6 +471,8 @@ ModelConstraints.capabilities = {
             "deepseek-v4-flash",
             "deepseek-v4-pro",
             "deepseek-v4.1-flash",
+            "DeepSeek-V4.1-Flash-1017",   -- battery 2026-11-06 (forced + replay green)
+            "MiniMax-M3.1-Flash",         -- battery 2026-11-06 (forced + replay green)
             "glm-5.3-flash",
             "glm-5.3",
             "kimi-k3",
@@ -472,6 +484,8 @@ ModelConstraints.capabilities = {
             "deepseek-v4-flash",
             "deepseek-v4-pro",
             "deepseek-v4.1-flash",
+            "DeepSeek-V4.1-Flash-1017",   -- battery 2026-11-06 (forced + replay green)
+            "MiniMax-M3.1-Flash",         -- battery 2026-11-06 (forced + replay green)
             "glm-5.3-flash",
             "glm-5.3",
             "kimi-k3",
@@ -494,8 +508,8 @@ ModelConstraints.capabilities = {
         -- replay. (qwen3-max, the tools model before, was retired 2026-10-10.)
         -- enable_search web search is wired in qwen.lua (server-side injection; no
         -- sources on this wire).
-        thinking = { "qwen3.8-", "qwen3.7-", "qwen3.5-" },
-        tools = { "qwen3.8-max", "qwen3.8-flash", "qwen3.5-plus", "qwen3.5-flash" },
+        thinking = { "qwen3.8-", "qwen3.7-", "qwen3.5-", "deepseek-v4.1-flash-1017" },   -- the DeepSeek id: enable_thinking on and off (battery 2026-11-06)
+        tools = { "qwen3.8-max", "qwen3.8-flash", "qwen3.5-plus", "qwen3.5-flash", "deepseek-v4.1-flash-1017" },
     },
     kimi = {
         -- kimi-k2.6 probed live 2026-08-15 (international platform): thinks by
@@ -506,8 +520,8 @@ ModelConstraints.capabilities = {
         -- (mode-locked, see forced params).
         -- kimi-k3 (probed 2026-09-28): same disable shape; tools + forced
         -- tool_choice + replay green with thinking on AND with it off.
-        thinking = { "kimi-k3", "kimi-k2.6" },
-        tools = { "kimi-k3", "kimi-k2.6" },
+        thinking = { "kimi-k3", "kimi-k2.6" },   -- kimi-k3.1-pro: its switch was not exercised on this wire (2026-11-06), so no grant
+        tools = { "kimi-k3", "kimi-k2.6" },      -- "kimi-k3" is a prefix: kimi-k3.1-pro and -highspeed too (forced + replay green 2026-11-06)
     },
     xai = {
         -- grok-4.7/4.6/4.5 support reasoning_effort minimal..xhigh ("none" rejected — probes
@@ -545,6 +559,7 @@ ModelConstraints.capabilities = {
         -- and "none" returns 0.
         reasoning = {
             "nvidia/nemotron-3",
+            "stepfun-ai/step-5-preview",   -- reasoning_content by default (battery 2026-11-06)
         },
         -- Function calling. EXACT ids, never a family prefix: within the very same
         -- nemotron-3 family some models emit structured tool_calls under
@@ -616,7 +631,7 @@ ModelConstraints.capabilities = {
         -- Magistral models always think (no toggle, extraction only)
         -- Returns structured content blocks with type: "thinking"
         -- ("magistral" = family fallback, item 19a)
-        thinking = { "magistral-medium", "magistral-small", "magistral" },
+        thinking = { "magistral-medium", "magistral-small", "magistral", "mistral-large-4" },   -- Large 4 thinks by default, no controls (battery 2026-11-06)
         -- Function calling for the book-tool workflows (tools wave 1; all current
         -- families per docs.mistral.ai/capabilities/function_calling). Magistral
         -- included: tool_calls coexists with structured thinking content, though a
@@ -693,6 +708,10 @@ ModelConstraints._max_output_tokens = {
     nvidia = {
         ["openai/gpt-oss-20b"] = 131072,  -- oversized-request error text (recheck 2026-09-28)
         ["nvidia/nemotron-3.5-super-vl-120b-a12b"] = 1048576,  -- stated by the oversized-request refusal (battery 2026-10-20)
+        ["nvidia/nemotron-3-ultra-550b-a55b"] = 1048576,       -- stated in the refusal (recheck 2026-11-06)
+        ["nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"] = 1048576,   -- same
+        ["stepfun-ai/step-5-preview"] = 1048576,               -- battery 2026-11-06
+        ["nvidia/nemotron-3.5-bolt-e4b"] = 1048576,            -- battery 2026-11-06
     },
     openrouter = {
         -- All values = top_provider.max_completion_tokens from the public
@@ -719,12 +738,22 @@ ModelConstraints._max_output_tokens = {
         ["perplexity/sonar-pro"] = 8000,
         ["moonshotai/kimi-k2-thinking"] = 100352,
         ["minimax/minimax-m2.1"] = 131072,
+        ["mistralai/mistral-large-4-0"] = 262144,   -- largest endpoint cap (battery 2026-11-06)
     },
     -- Community hosts (item 27 round 3, 2026-08-09). Adding entries here can only
     -- ever HELP: resolveMaxTokens asks min(32768, ceiling) and clampMaxTokens caps
     -- explicit values down, so a correct ceiling can never produce a 400 — unlike
     -- raising a provider's flat fallback, which can. Values read from each
     -- provider's own public /models catalog on 2026-08-09 unless noted.
+    fireworks = {
+        -- stated by the oversized-request refusals (recheck 2026-11-06)
+        ["accounts/fireworks/models/glm-5p3"] = 1048576,         -- prefix: glm-5p3-flash too
+        ["accounts/fireworks/models/kimi-k3"] = 1048576,
+        ["accounts/fireworks/models/deepseek-v4p1-flash"] = 1048576,
+    },
+    mistral = {
+        ["mistral-large-4"] = 262144,   -- stated in the refusal (battery 2026-11-06)
+    },
     cerebras = {
         -- Verified identical across every model Cerebras currently serves
         -- (gpt-oss-120b, zai-glm-4.7, gemma-4-31b): limits.max_completion_tokens
@@ -739,6 +768,8 @@ ModelConstraints._max_output_tokens = {
         ["qwen3.5-plus"] = 65536,
         ["qwen3.8-flash"] = 131072,   -- battery 2026-10-14
         ["deepseek-v4-pro"] = 1048576,   -- battery 2026-10-20 (stated; accepted silently in 2026-09)
+        ["glm-5.3"] = 1048576,           -- stated in the refusal (recheck 2026-11-06); glm-5.3-flash accepted silently
+        ["mistral-large-4"] = 262144,    -- battery 2026-11-06
         ["nemotron-3.5-lightning-free"] = 1000000,
     },
     opencode_go = {
@@ -769,6 +800,10 @@ ModelConstraints._max_output_tokens = {
         ["qwen3.8-max"] = 131072,
         ["qwen3.8-flash"] = 131072,
         ["MiniMax-M3"] = 524288,
+        ["MiniMax-M3.1-Flash"] = 524288,          -- battery 2026-11-06
+        ["DeepSeek-V4.1-Flash-1017"] = 393216,    -- battery 2026-11-06
+        ["deepseek-v4-pro"] = 393216,             -- stated in the refusal (recheck 2026-11-06)
+        ["deepseek-v4.1-flash"] = 393216,         -- same
     },
     deepinfra = {
         -- Docs state output caps at 16384 regardless of model. The catalog's
@@ -1199,6 +1234,13 @@ ModelConstraints.reasoning_profiles = {
         -- refused, so it cannot turn off; the family entry below would send "none" on
         -- Minimal and 400. The prefix covers later 6.1 ids on the safe side (marked
         -- unable to turn off, a model that could only stays on).
+        -- GPT-6.1 Terra (battery 2026-11-06): reasons by default, "none" accepted,
+        -- low..xhigh (minimal and max refused); before the 6.1- row, which cannot turn off.
+        { match = "gpt-6.1-terra", axis = "effort", default_state = "on",
+          can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } },
+          off_option = "none" },
         { match = "gpt-6.1-", axis = "effort", default_state = "on",
           can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
@@ -1210,10 +1252,14 @@ ModelConstraints.reasoning_profiles = {
           off_option = "none" },
         -- GPT-5.6 (luna/sol/terra): gated — reasoning OFF by default (verified 0 reasoning
         -- tokens with nothing sent, 2026-07-24). Opt-in effort none..xhigh (NO max — rejected).
-        { match = "gpt-5.6", axis = "effort", default_state = "off",
+        -- GPT-5.6 (2026-11-06): OpenAI's model page lists medium as the default
+        -- effort and "none" as the off value; the rechecks of 2026-10-14 and
+        -- 2026-11-06 saw reasoning tokens on a bare request. Was "off" here.
+        { match = "gpt-5.6", axis = "effort", default_state = "on",
           can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
-          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } },
+          off_option = "none" },
         -- GPT-5.5: reasons by default (medium), cannot be fully disabled.
         { match = "gpt-5.5", axis = "effort", default_state = "on",
           can_disable = false, can_enable = true,
@@ -1371,6 +1417,8 @@ ModelConstraints.reasoning_profiles = {
         -- (unknown/unprobeable) — they resolve to passthrough.
         { match = "kimi-k2.6", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
+        -- K3.1 Pro thinks by default; its switch was not exercised (battery 2026-11-06)
+        { match = "kimi-k3.1-pro", axis = "none", default_state = "on", can_disable = false, can_enable = false },
         -- kimi-k3 (probed 2026-09-28): the same shape (229 reasoning tokens bare on a
         -- harder prompt, thinking {type="disabled"} honoured).
         { match = "kimi-k3", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
@@ -1385,6 +1433,8 @@ ModelConstraints.reasoning_profiles = {
         -- default: no profile.)
         -- (Trailing "-": prefixMatch leaves "." unescaped, so a bare "qwen3.8" would
         -- also catch qwen3-8b.)
+        { match = "deepseek-v4.1-flash-1017", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },   -- battery 2026-11-06
         { match = "qwen3.8-", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         { match = "qwen3.7-", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
@@ -1444,6 +1494,9 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
         -- GPT-6.1 Sol here too (battery 2026-09-30): "Reasoning is mandatory" for
         -- effort none and enabled=false; the direct shape, as on astra.
+        { match = "openai/gpt-6.1-terra", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },   -- battery 2026-11-06: off = none
         { match = "openai/gpt-6.1-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
@@ -1473,6 +1526,11 @@ ModelConstraints.reasoning_profiles = {
         { match = "moonshotai/kimi-k3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        -- Mistral Large 4 (battery 2026-11-06): reasons by default; "none" refused, low..max accepted here;
+        -- the model's own axis is low/medium/high (the OpenCode door), so that is what we offer
+        { match = "mistralai/mistral-large-4", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
         -- (deepseek/deepseek-v4-flash showed no default reasoning here: catch-all)
         { match = "deepseek/deepseek-v4-pro", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
@@ -1547,6 +1605,12 @@ ModelConstraints.reasoning_profiles = {
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
     },
     nvidia = {
+        -- battery 2026-11-06: Bolt showed no reasoning on either prompt (the gateway
+        -- accepts every effort value silently); Step 5 returns reasoning_content
+        { match = "nvidia/nemotron-3.5-bolt", axis = "none", default_state = "off", can_disable = false, can_enable = false },
+        { match = "stepfun-ai/step-5", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
         -- Probed 2026-08-20: on by default (reasoning_content present with no
         -- param), effort honoured, and reasoning_effort="none" fully disables.
         { match = "nvidia/nemotron-3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
@@ -1626,6 +1690,10 @@ ModelConstraints.reasoning_profiles = {
         -- always safe; a catch-all's "none" would 400 on a GLM-like backend.
         -- Battery 2026-10-20 (the new Zen key, the eight listed ids): kimi-k3 now
         -- refuses minimal, medium and xhigh (low/high/max and "none" stay);
+        -- Mistral Large 4 (battery 2026-11-06): low/medium/high only; none, minimal, xhigh and max refused
+        { match = "mistral-large-4", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "medium",
+          stance_map = { minimal = { state = "on", option = "low" }, maximum = { state = "on", option = "high" } } },
         -- deepseek-v4.1-flash and deepseek-v4-pro take minimal; glm-5.3 and
         -- glm-5.3-flash take minimal too (still never "none"), hence the glm-5.3
         -- entry before the family one.
@@ -1740,6 +1808,9 @@ ModelConstraints.reasoning_profiles = {
         -- provider-wide catch-all: an unprobed id sends nothing, always safe.
         -- Temperature: the qwen ids reject 2.0 (recorded, not clamped, the
         -- opencode_go precedent); kimi-k3 is forced to 1.0 in the table above.
+        { match = "DeepSeek-V4.1-Flash-1017", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },   -- battery 2026-11-06
         { match = "deepseek-v4.1-flash", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
@@ -1748,7 +1819,8 @@ ModelConstraints.reasoning_profiles = {
         -- some requests and not others (4 of 5 probes off, the 2026-09-27
         -- device run on), so the default is recorded "off" and Maximum sends
         -- an explicit enable instead of trusting it.
-        { match = "deepseek-v4-flash", axis = "binary", default_state = "off", can_disable = true, can_enable = true,
+        -- reasons by default (recheck 2026-11-06 DRIFT; was "off" since the 2026-09-27 battery)
+        { match = "deepseek-v4-flash", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         -- Reasons by default; no clear effect of the level on the reply, so a
         -- switch like the direct DeepSeek API.
@@ -1769,6 +1841,10 @@ ModelConstraints.reasoning_profiles = {
         -- Reasoning arrives as <think> tags; reasoning_effort is ignored and
         -- thinking={type="enabled"} is refused (allowed: adaptive, disabled),
         -- so on = the default (nothing sent), off = thinking disabled.
+        -- M3.1 Flash requires adaptive thinking: "none" refused, minimal..max accepted (battery 2026-11-06)
+        { match = "MiniMax-M3.1-Flash", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "max" } } },
         { match = "MiniMax-M3", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
     },
@@ -1829,6 +1905,7 @@ ModelConstraints.reasoning_profiles = {
     mistral = {
         -- Magistral: always thinks, no control (extraction only).
         -- ("magistral" = family fallback, item 19a)
+        { match = "mistral-large-4", axis = "none", default_state = "on", can_disable = false, can_enable = false },   -- battery 2026-11-06
         { match = "magistral-medium", axis = "none", default_state = "on", can_disable = false, can_enable = false },
         { match = "magistral-small", axis = "none", default_state = "on", can_disable = false, can_enable = false },
         { match = "magistral", axis = "none", default_state = "on", can_disable = false, can_enable = false },

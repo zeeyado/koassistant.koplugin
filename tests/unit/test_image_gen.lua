@@ -356,15 +356,16 @@ local function runAll()
 
     print("  [Image models: defaults and retired picks]")
     TestRunner:test("resolveImageModel: default, retired, explicit", function()
-        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", nil), "gpt-image-2.5-flare")
-        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", "default"), "gpt-image-2.5-flare")
+        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", nil), "gpt-image-2.6-flare")
+        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", "default"), "gpt-image-2.6-flare")
         TestRunner:assertEquals(ModelLists.resolveImageModel("gemini", ""), "gemini-nano-banana-2.1")
         TestRunner:assertEquals(ModelLists.resolveImageModel("xai", "grok-imagine-image-quality"),
             "grok-imagine-image-2.0", "xAI serves the retired id with 2.0")
         TestRunner:assertEquals(ModelLists.resolveImageModel("xai", "grok-imagine-image-pro"), "grok-imagine-image-2.0")
         TestRunner:assertEquals(ModelLists.resolveImageModel("gemini", "gemini-3.1-flash-image"),
             "gemini-3.1-flash-image", "a pick that only left the picker is kept")
-        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", "gpt-image-1"), "gpt-image-1")
+        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", "gpt-image-1"), "gpt-image-2.5-flare", "shut down 2026-10-23: the 2.5 pair replaces it")
+        TestRunner:assertEquals(ModelLists.resolveImageModel("openai", "gpt-image-2"), "gpt-image-2", "a pick that only left the default slot is kept")
     end)
     TestRunner:test("_image_retired is skipped by provider iteration", function()
         for _idx, p in ipairs(ModelLists.getAllProviders()) do
@@ -1589,7 +1590,7 @@ local function runAll()
             TestRunner:assertEquals(by.look.items[1].text, "Shape: Fit my screen ▾", "Shape on its default")
             TestRunner:assertEquals(by.look.items[2].text, "Detail: Draft ▾", "Detail on its default")
             TestRunner:assertEquals(by.drawn.items[1].text, "Provider: OpenAI ▾")
-            TestRunner:assertEquals(by.drawn.items[2].text, "Model: gpt-image-2.5-flare ▾", "the model that draws, by its id")
+            TestRunner:assertEquals(by.drawn.items[2].text, "Model: gpt-image-2.6-flare ▾", "the model that draws, by its id")
             -- a value opens its list; a pick is the setting, then the popup rebuilds
             by.look.items[1].callback()
             TestRunner:assertEquals(popup.title, "Shape: Fit my screen", "titled as Settings titles the row")
