@@ -250,6 +250,58 @@ TestRunner:test("a title that is only the file name is named as a file name, nev
 end)
 
 print(string.rep("-", 50))
+print("\n  [the sweep of 2026-11-06: Title only, the context strip, data never re-scanned]")
+
+TestRunner:test("Title only drops {author} and {author_clause} in the book and highlight branches", function()
+    local out = MessageBuilder.build({ prompt = { prompt = "Tell me about {title}{author_clause}. Author: {author}." }, context = "book",
+        data = { book_metadata = { title = "T", author = "AUTH", author_clause = " by AUTH" }, _book_info_level = "title" },
+        using_new_format = true })
+    TestRunner:hasnt(out, "AUTH", "the book branch")
+    TestRunner:has(out, "Tell me about T. Author: .")
+    local out2 = MessageBuilder.build({ prompt = { prompt = 'Explain "{highlighted_text}" from {title}{author_clause}.' }, context = "highlight",
+        data = { highlighted_text = "w", book_title = "T", book_author = "AUTH", _book_info_level = "title" },
+        using_new_format = true })
+    TestRunner:hasnt(out2, "AUTH", "the highlight branch")
+    TestRunner:has(out2, 'Explain "w" from T.')
+    -- basic keeps the author
+    local out3 = MessageBuilder.build({ prompt = { prompt = "About {title}{author_clause}." }, context = "book",
+        data = { book_metadata = { title = "T", author = "AUTH", author_clause = " by AUTH" }, _book_info_level = "basic" },
+        using_new_format = true })
+    TestRunner:has(out3, "About T by AUTH.")
+end)
+
+TestRunner:test("the context strip keys on {context} alone; typed text saying In context survives", function()
+    local a = MessageBuilder.build({ prompt = { prompt = "In context of this chapter, explain the passage." }, context = "highlight",
+        data = { highlighted_text = "w" }, using_new_format = true })
+    TestRunner:has(a, "In context of this chapter, explain the passage.", "the action's own words stay")
+    local b = MessageBuilder.build({ prompt = { prompt = "Answer: {user_input}" }, context = "highlight",
+        data = { highlighted_text = "w", additional_input = "Explain this. In context, why?" }, using_new_format = true })
+    TestRunner:has(b, "Answer: Explain this. In context, why?", "the typed text is substituted after the strip")
+    TestRunner:hasnt(b, "[Additional user input]")
+    local c = MessageBuilder.build({ prompt = { prompt = "Word: {word}\nIn context: {context}\nExplain." }, context = "highlight",
+        data = { highlighted_text = "w", dictionary_context_mode = "none" }, using_new_format = true })
+    TestRunner:hasnt(c, "In context", "the label's line goes with its placeholder")
+    TestRunner:has(c, "Explain.")
+end)
+
+TestRunner:test("data is never re-scanned for placeholders: braces inside a selection or the book's text stay as written", function()
+    local a = MessageBuilder.build({ prompt = { prompt = 'Explain "{highlighted_text}" from {title}{author_clause}.' }, context = "highlight",
+        data = { highlighted_text = 'print(f"{title} by {author}")', book_title = "BT", book_author = "BA" }, using_new_format = true })
+    TestRunner:has(a, 'Explain "print(f"{title} by {author}")" from BT by BA.')
+    local b = MessageBuilder.build({ prompt = { prompt = "Summarize. {book_text_section}" }, context = "book",
+        data = { book_metadata = { title = "BT", author = "BA" }, book_text = "Use {title} and {highlights} and {count} here." },
+        using_new_format = true })
+    TestRunner:has(b, "Use {title} and {highlights} and {count} here.")
+    TestRunner:hasnt(b, "\238\128\128", "the mark is restored")
+    -- the nudges' own nested placeholders still resolve (a template, not data)
+    local c = MessageBuilder.build({ prompt = { prompt = "Go. {spoiler_free_nudge}" }, context = "book",
+        data = { book_metadata = { title = "BT" }, spoiler_free = true, reading_progress = "40%",
+            additional_input = "typed {reading_progress}" }, using_new_format = true })
+    TestRunner:has(c, "40%", "the template's one resolved")
+    TestRunner:has(c, "typed {reading_progress}", "the typed text's one kept")
+    TestRunner:eq(countOccur(c, "{reading_progress}"), 1, "and it is the only one left")
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))
 return TestRunner.failed == 0

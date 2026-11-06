@@ -1200,6 +1200,14 @@ function ContextExtractor:getVisiblePageText()
     return result
 end
 
+--- Whether an entry of KOReader's annotations list is a highlight. The list
+--- holds the page bookmarks too (no drawer, the page's first words as text),
+--- which are not the reader's highlights: every reader of the list that means
+--- highlights asks this (the sweep of 2026-11-06).
+function ContextExtractor.isHighlight(a)
+    return type(a) == "table" and a.drawer ~= nil and type(a.text) == "string" and a.text ~= ""
+end
+
 --- Format a raw annotations array into highlights (text only, no notes).
 -- @param annotations table Array of annotation tables from ui.annotation or sidecar
 -- @param options table { max_count = 100, include_chapter = true }
@@ -1215,7 +1223,7 @@ function ContextExtractor.formatHighlights(annotations, options)
 
     for _idx, annotation in ipairs(annotations) do
         if count >= max_count then break end
-        if annotation.text and annotation.text ~= "" then
+        if ContextExtractor.isHighlight(annotation) then
             count = count + 1
             table.insert(result.items, {
                 text = annotation.text,
@@ -1277,7 +1285,7 @@ function ContextExtractor.formatAnnotations(annotations, options)
 
     for _idx, annotation in ipairs(annotations) do
         if count >= max_count then break end
-        if annotation.text and annotation.text ~= "" then
+        if ContextExtractor.isHighlight(annotation) then
             count = count + 1
             table.insert(result.items, {
                 text = annotation.text,

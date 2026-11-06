@@ -137,6 +137,11 @@ end
 local function setupSidecarData(data)
     mock_sidecar_data = data or {}
     mock_sidecar_data._valid_path = true
+    -- the shape ReaderHighlight writes: every highlight carries its drawer (a
+    -- page bookmark has none and is not a highlight, ContextExtractor.isHighlight)
+    for _idx, a in ipairs(mock_sidecar_data.annotations or {}) do
+        if type(a) == "table" and a.drawer == nil then a.drawer = "lighten" end
+    end
 end
 
 --- Helper: reset all mock data

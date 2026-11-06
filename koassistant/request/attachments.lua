@@ -393,10 +393,17 @@ function Attachments.makeFile(path)
     local budget = Attachments.BUDGETS.file
     local data = f:read(budget + 1) or ""
     f:close()
+    -- a UTF-8 byte order mark is not content
+    if data:sub(1, 3) == "\239\187\191" then data = data:sub(4) end
     if data:gsub("%s", "") == "" then return nil, _("The file is empty.") end
     -- Pass the real file size — truncate() only saw the budget+1-byte window
     local text, note = Attachments.truncate(data, budget, "head",
         total > #data and total or nil)
+    -- Text only (the sweep of 2026-11-06): a Latin-1 or UTF-16 file would
+    -- reach the model repaired byte by byte, as mojibake or nothing
+    if text:find("%z") or ScopeResolver.utf8FirstBad(text) then
+        return nil, _("This file is not UTF-8 text.")
+    end
     local filename = path:match("([^/]+)$") or path
     return {
         type = "file",

@@ -1119,7 +1119,7 @@ function DataAccess.askForDispatch(plugin, action, features, ui, config, run_fn)
     if live and ui.annotation and type(ui.annotation.annotations) == "table" then
         local n, notes = 0, 0
         for _idx, a in ipairs(ui.annotation.annotations) do
-            if type(a) == "table" and type(a.text) == "string" and a.text ~= "" then
+            if require("koassistant.request.context_extractor").isHighlight(a) then
                 n = n + 1
                 if type(a.note) == "string" and a.note ~= "" then notes = notes + 1 end
             end
@@ -1153,7 +1153,7 @@ function DataAccess.askForDispatch(plugin, action, features, ui, config, run_fn)
     if live and ui.annotation and type(ui.annotation.annotations) == "table" then
         local n, notes = 0, 0
         for _idx, a in ipairs(ui.annotation.annotations) do
-            if type(a) == "table" and type(a.text) == "string" and a.text ~= "" then
+            if require("koassistant.request.context_extractor").isHighlight(a) then
                 n = n + 1
                 if type(a.note) == "string" and a.note ~= "" then notes = notes + 1 end
             end

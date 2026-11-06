@@ -877,9 +877,10 @@ local function findItemHighlights(item, ui)
     if #names == 0 then return {} end
 
     local matches = {}
+    local isHighlight = require("koassistant.request.context_extractor").isHighlight
     for _idx, annotation in ipairs(ui.annotation.annotations) do
         local ann_text = annotation.text
-        if ann_text and ann_text ~= "" then
+        if isHighlight(annotation) then
             local text_lower = ann_text:lower()
             for _idx2, name in ipairs(names) do
                 if text_lower:find(name, 1, true) then

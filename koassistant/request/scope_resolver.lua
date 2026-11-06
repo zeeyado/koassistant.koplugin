@@ -166,6 +166,25 @@ function ScopeResolver.utf8FirstBad(s)
     end
 end
 
+-- Where a sentence ends: the ASCII marks followed by a space (or at the end
+-- of the text unless `need_space`), and the marks of scripts that write no
+-- space after them, 。！？ (CJK), । (Devanagari) and ؟ (Arabic), anywhere
+-- (the sweep of 2026-11-06: a sentence cut kept a whole CJK paragraph).
+-- Returns the position of the mark's last byte, or nil.
+local SENTENCE_MARKS = { "。", "！", "？", "।", "؟" }
+local function sentenceEndPos(text, from, need_space)
+    from = from or 1
+    local start, stop
+    local s = text:find("[%.!%?]%s", from)
+    if not s and not need_space then s = text:find("[%.!%?]$", from) end
+    if s then start, stop = s, s end
+    for _idx, mark in ipairs(SENTENCE_MARKS) do
+        local m = text:find(mark, from, true)
+        if m and (not start or m < start) then start, stop = m, m + #mark - 1 end
+    end
+    return stop
+end
+
 --- Drop every byte that is not part of a valid UTF-8 sequence.
 function ScopeResolver.utf8Repair(s)
     local out, pos, keep_from = {}, 1, 1
@@ -217,7 +236,11 @@ function ScopeResolver.paragraphWindow(prev, next_text, n, max_per_side)
     -- clean, so snapping those would drop a whole leading sentence. Degrades
     -- to the raw cut when the capped window holds no boundary at all.
     local function snapStartToSentence(text)
-        local _, e = text:find("[%.!%?]%s+")
+        local e = sentenceEndPos(text, 1, true)
+        if e then
+            local _, ws = text:find("^%s*", e + 1)
+            e = ws or e
+        end
         if e and e < #text then return text:sub(e + 1) end
         return text
     end
@@ -225,11 +248,10 @@ function ScopeResolver.paragraphWindow(prev, next_text, n, max_per_side)
         local last
         local pos = 1
         while true do
-            local s = text:find("[%.!%?]", pos)
-            if not s then break end
-            local nxt = text:sub(s + 1, s + 1)
-            if nxt == "" or nxt:match("%s") then last = s end
-            pos = s + 1
+            local e = sentenceEndPos(text, pos)
+            if not e then break end
+            last = e
+            pos = e + 1
         end
         if last and last < #text then return text:sub(1, last) end
         return text
@@ -362,7 +384,7 @@ function ScopeResolver.limitAfter(next_text, after_limit)
     if after_limit == "none" then return "" end
     if after_limit == "sentence" and next_text ~= "" then
         -- Keep only to the end of the sentence the selection sits in
-        local e = next_text:find("[%.!%?]%s") or next_text:find("[%.!%?]$")
+        local e = sentenceEndPos(next_text, 1)
         if e then next_text = next_text:sub(1, e) end
     elseif after_limit == "paragraph" and next_text ~= "" then
         -- Keep only the remainder of the selection's own paragraph
@@ -444,17 +466,18 @@ function ScopeResolver.trimContext(prev, next_text, highlighted_text, mode, opts
             local starts = {}
             local pos = 1
             while true do
-                local s, e = text:find("[%.!%?]%s+", pos)
-                if not s then break end
-                starts[#starts + 1] = e + 1
-                pos = e + 1
+                local e = sentenceEndPos(text, pos, true)
+                if not e then break end
+                local _, ws = text:find("^%s*", e + 1)
+                starts[#starts + 1] = (ws or e) + 1
+                pos = (ws or e) + 1
             end
             local from = starts[#starts - 1] or 1
             return text:sub(from)
         end
         local function findSentenceEnd(text)
-            -- Search forwards for sentence end (.!?)
-            local end_pos = text:find("[%.!%?]%s") or text:find("[%.!%?]$")
+            -- Search forwards for the sentence's end
+            local end_pos = sentenceEndPos(text, 1)
             if end_pos then
                 return text:sub(1, end_pos)
             end

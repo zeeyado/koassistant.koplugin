@@ -53,9 +53,18 @@ local RAW_DATA_PLACEHOLDERS = {
     "{incremental_book_text}", "{entity_index}",
 }
 
-local function replace_placeholder(text, placeholder, replacement)
+-- A "{" inside the reader's or the book's text (U+E000, a private-use mark):
+-- data is never scanned for placeholders again (the sweep of 2026-11-06): a
+-- "{title}" inside a selection or the book's text stayed a placeholder for
+-- every later substitution. The mark goes back to "{" once, at the end of build.
+local DATA_BRACE = "\238\128\128"
+
+local function replace_placeholder(text, placeholder, replacement, is_data)
     if not text or not placeholder then return text end
     replacement = replacement or ""
+    if is_data and type(replacement) == "string" and replacement:find("{", 1, true) then
+        replacement = replacement:gsub("{", DATA_BRACE)
+    end
     -- Replace ALL occurrences (plain text search, no pattern interpretation)
     -- search_start advances past each replacement to avoid infinite loops
     -- when the replacement text itself contains the placeholder pattern
@@ -199,16 +208,6 @@ function MessageBuilder.build(params)
         user_prompt = ""
     end
 
-    -- {user_input}: the typed text rides INSIDE the prompt instead of the
-    -- "[Additional user input]" tail (2026-09-07; the placeholder was recognized by
-    -- the action manager but never substituted, so the braces went to the model)
-    local input_consumed = false
-    if data.additional_input and data.additional_input ~= ""
-            and user_prompt:find("{user_input}", 1, true) then
-        user_prompt = replace_placeholder(user_prompt, "{user_input}", data.additional_input)
-        input_consumed = true
-    end
-
     -- Substitute utility placeholders (conciseness/hallucination nudges)
     -- These are defined in Templates but used in both template and direct-prompt actions
     -- Hallucination nudge adapts: when web search is active, encourages searching before admitting
@@ -245,11 +244,13 @@ function MessageBuilder.build(params)
     -- after it, and a nil context would leave the raw {context} placeholder in the
     -- prompt. The {context_section} form is already guarded the same way.
     if data.dictionary_context_mode == "none" or not data.context or data.context == "" then
-        -- Context explicitly disabled: strip lines with {context} and "In context" markers
+        -- Context explicitly disabled: strip the lines holding {context} (the
+        -- label sits on the placeholder's line; a prose line that happens to
+        -- say "In context" is the action's own words and stays, the sweep of
+        -- 2026-11-06)
         local lines = {}
         for line in (user_prompt .. "\n"):gmatch("([^\n]*)\n") do
-            if not line:find("{context}", 1, true) and
-               not line:find("In context", 1, true) then
+            if not line:find("{context}", 1, true) then
                 table.insert(lines, line)
             end
         end
@@ -259,16 +260,28 @@ function MessageBuilder.build(params)
         end
         user_prompt = table.concat(lines, "\n")
     else
-        user_prompt = replace_placeholder(user_prompt, "{context}", data.context)
+        user_prompt = replace_placeholder(user_prompt, "{context}", data.context, true)
+    end
+
+    -- {user_input}: the typed text rides INSIDE the prompt instead of the
+    -- "[Additional user input]" tail (2026-09-07; the placeholder was recognized by
+    -- the action manager but never substituted, so the braces went to the model).
+    -- After the context strip above: the typed text is the reader's, never a
+    -- line to strip (the sweep of 2026-11-06)
+    local input_consumed = false
+    if data.additional_input and data.additional_input ~= ""
+            and user_prompt:find("{user_input}", 1, true) then
+        user_prompt = replace_placeholder(user_prompt, "{user_input}", data.additional_input, true)
+        input_consumed = true
     end
 
     -- Substitute context extraction placeholders (applies to all contexts)
     -- Using replace_placeholder to avoid issues with % in reading_progress
     if data.reading_progress then
-        user_prompt = replace_placeholder(user_prompt, "{reading_progress}", data.reading_progress)
+        user_prompt = replace_placeholder(user_prompt, "{reading_progress}", data.reading_progress, true)
     end
     if data.progress_decimal then
-        user_prompt = replace_placeholder(user_prompt, "{progress_decimal}", data.progress_decimal)
+        user_prompt = replace_placeholder(user_prompt, "{progress_decimal}", data.progress_decimal, true)
     end
 
     -- Section-aware placeholders: include label when content exists, empty string when not
@@ -282,7 +295,7 @@ function MessageBuilder.build(params)
     if logger then
         logger.dbg("MessageBuilder: book_text_section len=", #book_text_section)
     end
-    user_prompt = replace_placeholder(user_prompt, "{book_text_section}", book_text_section)
+    user_prompt = replace_placeholder(user_prompt, "{book_text_section}", book_text_section, true)
 
     -- {highlights_section} - includes "My highlights so far:\n" label
     local highlights_section = ""
@@ -292,7 +305,7 @@ function MessageBuilder.build(params)
     if logger then
         logger.dbg("MessageBuilder: highlights_section len=", #highlights_section)
     end
-    user_prompt = replace_placeholder(user_prompt, "{highlights_section}", highlights_section)
+    user_prompt = replace_placeholder(user_prompt, "{highlights_section}", highlights_section, true)
 
     -- {annotations_section} - adaptive label based on degradation state
     -- Full annotations: "My annotations:" / Degraded to highlights: "My highlights so far:"
@@ -304,21 +317,21 @@ function MessageBuilder.build(params)
             annotations_section = "My annotations:\n" .. data.annotations
         end
     end
-    user_prompt = replace_placeholder(user_prompt, "{annotations_section}", annotations_section)
+    user_prompt = replace_placeholder(user_prompt, "{annotations_section}", annotations_section, true)
 
     -- {notebook_section} - includes "My notebook entries:\n" label
     local notebook_section = ""
     if data.notebook_content and data.notebook_content ~= "" then
         notebook_section = "My notebook entries:\n" .. data.notebook_content
     end
-    user_prompt = replace_placeholder(user_prompt, "{notebook_section}", notebook_section)
+    user_prompt = replace_placeholder(user_prompt, "{notebook_section}", notebook_section, true)
 
     -- {library_section} - includes "My library:\n" label, disappears when empty
     local library_section = ""
     if data.library_content and data.library_content ~= "" then
         library_section = "My library:\n" .. data.library_content
     end
-    user_prompt = replace_placeholder(user_prompt, "{library_section}", library_section)
+    user_prompt = replace_placeholder(user_prompt, "{library_section}", library_section, true)
 
     -- {previous_results_section} - action-scoped history stopgap
     -- (action_history_plan.md v0.5): data.previous_results is populated in
@@ -330,8 +343,8 @@ function MessageBuilder.build(params)
             .. " (reference only; avoid repeating the same items unless there is"
             .. " a significant new development):\n" .. data.previous_results
     end
-    user_prompt = replace_placeholder(user_prompt, "{previous_results_section}", previous_results_section)
-    user_prompt = replace_placeholder(user_prompt, "{previous_results}", data.previous_results or "")
+    user_prompt = replace_placeholder(user_prompt, "{previous_results_section}", previous_results_section, true)
+    user_prompt = replace_placeholder(user_prompt, "{previous_results}", data.previous_results or "", true)
 
     -- {full_document_section} - includes "Full document:\n" label, or the section's own
     -- when the text is one section (data.full_document_label, set by the extractor; B391)
@@ -339,7 +352,7 @@ function MessageBuilder.build(params)
     if data.full_document and data.full_document ~= "" then
         full_document_section = (data.full_document_label or "Full document:") .. "\n" .. data.full_document
     end
-    user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section)
+    user_prompt = replace_placeholder(user_prompt, "{full_document_section}", full_document_section, true)
 
     -- {document_context_section} - unified placeholder that resolves based on _source_mode
     -- Replaces separate {full_document_section} / {summary_cache_section} in unified actions
@@ -359,7 +372,7 @@ function MessageBuilder.build(params)
     end
     -- "ai_knowledge" or missing data (incl. a zero-gather smart retrieval): remains empty
     -- (text_fallback_nudge will fill in)
-    user_prompt = replace_placeholder(user_prompt, "{document_context_section}", document_context_section)
+    user_prompt = replace_placeholder(user_prompt, "{document_context_section}", document_context_section, true)
 
     -- {text_fallback_nudge} - conditional: appears only when document text is empty
     -- Helps actions degrade gracefully by telling AI to use training knowledge
@@ -384,7 +397,7 @@ function MessageBuilder.build(params)
     if data.spoiler_free and Templates then
         if data.reading_progress and data.reading_progress ~= "" and data.reading_progress ~= "0%" then
             spoiler_free_nudge = Templates.SPOILER_FREE_NUDGE or ""
-            spoiler_free_nudge = replace_placeholder(spoiler_free_nudge, "{reading_progress}", data.reading_progress)
+            spoiler_free_nudge = replace_placeholder(spoiler_free_nudge, "{reading_progress}", data.reading_progress, true)
         else
             spoiler_free_nudge = Templates.SPOILER_FREE_NUDGE_NO_PROGRESS or ""
         end
@@ -398,7 +411,7 @@ function MessageBuilder.build(params)
     if data.context and data.context ~= "" and data.dictionary_context_mode ~= "none" then
         context_section = "Word appears in this context: " .. data.context
     end
-    user_prompt = replace_placeholder(user_prompt, "{context_section}", context_section)
+    user_prompt = replace_placeholder(user_prompt, "{context_section}", context_section, true)
 
     -- {surrounding_context_section} - text around highlight, for any highlight action
     -- Placeholder present → resolve in place; absent (ambient inclusion) → the labeled
@@ -409,10 +422,10 @@ function MessageBuilder.build(params)
         surrounding_context_section = sc_label .. "\n" .. data.surrounding_context
     end
     local had_sc_placeholder = user_prompt:find("{surrounding_context", 1, true) ~= nil
-    user_prompt = replace_placeholder(user_prompt, "{surrounding_context_section}", surrounding_context_section)
+    user_prompt = replace_placeholder(user_prompt, "{surrounding_context_section}", surrounding_context_section, true)
     -- Raw placeholder
     if data.surrounding_context then
-        user_prompt = replace_placeholder(user_prompt, "{surrounding_context}", data.surrounding_context)
+        user_prompt = replace_placeholder(user_prompt, "{surrounding_context}", data.surrounding_context, true)
     end
     if surrounding_context_section ~= "" and not had_sc_placeholder then
         user_prompt = user_prompt .. "\n\n" .. surrounding_context_section
@@ -423,44 +436,44 @@ function MessageBuilder.build(params)
     if data.page_text and data.page_text ~= "" then
         page_text_section = "Current page text:\n" .. data.page_text
     end
-    user_prompt = replace_placeholder(user_prompt, "{page_text_section}", page_text_section)
+    user_prompt = replace_placeholder(user_prompt, "{page_text_section}", page_text_section, true)
     -- Raw placeholder
     if data.page_text then
-        user_prompt = replace_placeholder(user_prompt, "{page_text}", data.page_text)
+        user_prompt = replace_placeholder(user_prompt, "{page_text}", data.page_text, true)
     end
 
     -- Raw placeholders (for custom prompts that want their own labels)
     if data.highlights ~= nil then
-        user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights)
+        user_prompt = replace_placeholder(user_prompt, "{highlights}", data.highlights, true)
     end
     if data.annotations ~= nil then
-        user_prompt = replace_placeholder(user_prompt, "{annotations}", data.annotations)
+        user_prompt = replace_placeholder(user_prompt, "{annotations}", data.annotations, true)
     end
     if data.book_text then
-        user_prompt = replace_placeholder(user_prompt, "{book_text}", data.book_text)
+        user_prompt = replace_placeholder(user_prompt, "{book_text}", data.book_text, true)
     end
     if data.chapter_title then
-        user_prompt = replace_placeholder(user_prompt, "{chapter_title}", data.chapter_title)
+        user_prompt = replace_placeholder(user_prompt, "{chapter_title}", data.chapter_title, true)
     end
     if data.chapters_read then
-        user_prompt = replace_placeholder(user_prompt, "{chapters_read}", data.chapters_read)
+        user_prompt = replace_placeholder(user_prompt, "{chapters_read}", data.chapters_read, true)
     end
     if data.page_number then
-        user_prompt = replace_placeholder(user_prompt, "{page_number}", data.page_number)
+        user_prompt = replace_placeholder(user_prompt, "{page_number}", data.page_number, true)
     end
     if data.time_since_last_read then
         logger.dbg("MessageBuilder: last read clause", data.time_since_last_read ~= "" and data.time_since_last_read or "none")
-        user_prompt = replace_placeholder(user_prompt, "{time_since_last_read}", data.time_since_last_read)
+        user_prompt = replace_placeholder(user_prompt, "{time_since_last_read}", data.time_since_last_read, true)
         -- {time_since_last_read_section}: "Last read: 3 days ago", nothing when
         -- the statistics hold no record (Recap's clause, B466)
         user_prompt = replace_placeholder(user_prompt, "{time_since_last_read_section}",
-            data.time_since_last_read ~= "" and ("Last read: " .. data.time_since_last_read) or "")
+            data.time_since_last_read ~= "" and ("Last read: " .. data.time_since_last_read) or "", true)
     end
     if data.notebook_content ~= nil then
-        user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content)
+        user_prompt = replace_placeholder(user_prompt, "{notebook}", data.notebook_content, true)
     end
     if data.library_content ~= nil then
-        user_prompt = replace_placeholder(user_prompt, "{library}", data.library_content)
+        user_prompt = replace_placeholder(user_prompt, "{library}", data.library_content, true)
     end
 
     -- Stats engagement group placeholders
@@ -469,34 +482,34 @@ function MessageBuilder.build(params)
     user_prompt = resolveStatsGroupPlaceholders(user_prompt, data)
 
     if data.full_document then
-        user_prompt = replace_placeholder(user_prompt, "{full_document}", data.full_document)
+        user_prompt = replace_placeholder(user_prompt, "{full_document}", data.full_document, true)
     end
 
     -- Cache-related placeholders (for X-Ray/Recap incremental updates)
     -- {cached_result} - the previous AI response
     if data.cached_result then
-        user_prompt = replace_placeholder(user_prompt, "{cached_result}", data.cached_result)
+        user_prompt = replace_placeholder(user_prompt, "{cached_result}", data.cached_result, true)
     end
     -- {cached_progress} - formatted progress when cached (e.g., "30%")
     if data.cached_progress then
-        user_prompt = replace_placeholder(user_prompt, "{cached_progress}", data.cached_progress)
+        user_prompt = replace_placeholder(user_prompt, "{cached_progress}", data.cached_progress, true)
     end
     -- {incremental_book_text_section} - text from cached position to current, with label
     local incremental_section = ""
     if data.incremental_book_text and data.incremental_book_text ~= "" then
         incremental_section = "New content since your last analysis:\n" .. data.incremental_book_text
     end
-    user_prompt = replace_placeholder(user_prompt, "{incremental_book_text_section}", incremental_section)
+    user_prompt = replace_placeholder(user_prompt, "{incremental_book_text_section}", incremental_section, true)
     -- Raw placeholder (for custom prompts that want their own labels)
     if data.incremental_book_text then
-        user_prompt = replace_placeholder(user_prompt, "{incremental_book_text}", data.incremental_book_text)
+        user_prompt = replace_placeholder(user_prompt, "{incremental_book_text}", data.incremental_book_text, true)
     end
     -- {entity_index} - compact listing of existing entity names for merge-based updates
     local entity_index_section = ""
     if data.entity_index and data.entity_index ~= "" then
         entity_index_section = "Existing entities in previous analysis:\n" .. data.entity_index
     end
-    user_prompt = replace_placeholder(user_prompt, "{entity_index}", entity_index_section)
+    user_prompt = replace_placeholder(user_prompt, "{entity_index}", entity_index_section, true)
 
     -- Document cache placeholders (cached AI responses from previous X-Ray/Summary)
     -- {xray_cache_section} - previous X-Ray with progress label
@@ -517,10 +530,10 @@ function MessageBuilder.build(params)
         end
         xray_cache_section = label .. ":\n" .. cache_text
     end
-    user_prompt = replace_placeholder(user_prompt, "{xray_cache_section}", xray_cache_section)
+    user_prompt = replace_placeholder(user_prompt, "{xray_cache_section}", xray_cache_section, true)
     -- Raw placeholder (preserves original format - JSON or markdown)
     if data.xray_cache then
-        user_prompt = replace_placeholder(user_prompt, "{xray_cache}", data.xray_cache)
+        user_prompt = replace_placeholder(user_prompt, "{xray_cache}", data.xray_cache, true)
     end
 
     -- {analyze_cache_section} - previous full document analysis
@@ -528,10 +541,10 @@ function MessageBuilder.build(params)
     if data.analyze_cache and data.analyze_cache ~= "" then
         analyze_cache_section = "Document analysis:\n" .. data.analyze_cache
     end
-    user_prompt = replace_placeholder(user_prompt, "{analyze_cache_section}", analyze_cache_section)
+    user_prompt = replace_placeholder(user_prompt, "{analyze_cache_section}", analyze_cache_section, true)
     -- Raw placeholder
     if data.analyze_cache then
-        user_prompt = replace_placeholder(user_prompt, "{analyze_cache}", data.analyze_cache)
+        user_prompt = replace_placeholder(user_prompt, "{analyze_cache}", data.analyze_cache, true)
     end
 
     -- {summary_cache_section} - previous full document summary
@@ -539,10 +552,10 @@ function MessageBuilder.build(params)
     if data.summary_cache and data.summary_cache ~= "" then
         summary_cache_section = "Document summary:\n" .. data.summary_cache
     end
-    user_prompt = replace_placeholder(user_prompt, "{summary_cache_section}", summary_cache_section)
+    user_prompt = replace_placeholder(user_prompt, "{summary_cache_section}", summary_cache_section, true)
     -- Raw placeholder
     if data.summary_cache then
-        user_prompt = replace_placeholder(user_prompt, "{summary_cache}", data.summary_cache)
+        user_prompt = replace_placeholder(user_prompt, "{summary_cache}", data.summary_cache, true)
     end
 
     -- A raw data placeholder whose data was never fetched (a flag off, a cache
@@ -560,7 +573,7 @@ function MessageBuilder.build(params)
     -- branch below uses this to avoid duplicating the selection into its [Context] block.
     local prompt_had_highlight_var = user_prompt:find("{highlighted_text}", 1, true) ~= nil
     if data.highlighted_text then
-        user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text)
+        user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text, true)
     end
 
     -- Handle different contexts
@@ -622,8 +635,8 @@ function MessageBuilder.build(params)
                     table.insert(books_list, book_str)
                 end
             end
-            user_prompt = replace_placeholder(user_prompt, "{count}", tostring(count))
-            user_prompt = replace_placeholder(user_prompt, "{books_list}", table.concat(books_list, "\n\n"))
+            user_prompt = replace_placeholder(user_prompt, "{count}", tostring(count), true)
+            user_prompt = replace_placeholder(user_prompt, "{books_list}", table.concat(books_list, "\n\n"), true)
         elseif data.book_context then
             -- Fallback: use pre-formatted book context if books_info not available
             table.insert(parts, "[Context]")
@@ -668,10 +681,14 @@ function MessageBuilder.build(params)
                 user_prompt = replace_placeholder(user_prompt, '"{title}"', "this book")
                 user_prompt = replace_placeholder(user_prompt, "{title}", "this book")
             end
-            user_prompt = replace_placeholder(user_prompt, "{title}", metadata.title or "Unknown")
-            user_prompt = replace_placeholder(user_prompt, "{author}", metadata.author or "")
-            user_prompt = replace_placeholder(user_prompt, "{author_clause}", metadata.author_clause or "")
-            user_prompt = replace_placeholder(user_prompt, "{doi_clause}", metadata.doi_clause or "")
+            -- Title only (B500): the author stays out of the prompt as it stays
+            -- out of the context line above (the sweep of 2026-11-06)
+            local author = book_info_level ~= "title" and metadata.author or ""
+            local author_clause = book_info_level ~= "title" and metadata.author_clause or ""
+            user_prompt = replace_placeholder(user_prompt, "{title}", metadata.title or "Unknown", true)
+            user_prompt = replace_placeholder(user_prompt, "{author}", author, true)
+            user_prompt = replace_placeholder(user_prompt, "{author_clause}", author_clause, true)
+            user_prompt = replace_placeholder(user_prompt, "{doi_clause}", metadata.doi_clause or "", true)
         elseif data.book_context and book_info_level ~= "none" then
             -- Fallback: use pre-formatted book context string if metadata not available
             table.insert(parts, "[Context]")
@@ -750,13 +767,15 @@ function MessageBuilder.build(params)
             user_prompt = replace_placeholder(user_prompt, '"{title}"', "this book")
             user_prompt = replace_placeholder(user_prompt, "{title}", "this book")
         end
-        user_prompt = replace_placeholder(user_prompt, "{title}", data.book_title or "")
-        user_prompt = replace_placeholder(user_prompt, "{author}", data.book_author or "")
+        -- Title only: no author (the context line above has none either)
+        local hl_author = (data._book_info_level or "basic") ~= "title" and data.book_author or nil
+        user_prompt = replace_placeholder(user_prompt, "{title}", data.book_title or "", true)
+        user_prompt = replace_placeholder(user_prompt, "{author}", hl_author or "", true)
         user_prompt = replace_placeholder(user_prompt, "{author_clause}",
-            (data.book_author and data.book_author ~= "") and (" by " .. data.book_author) or "")
-        user_prompt = replace_placeholder(user_prompt, "{doi_clause}", data.doi_clause or "")
+            (hl_author and hl_author ~= "") and (" by " .. hl_author) or "", true)
+        user_prompt = replace_placeholder(user_prompt, "{doi_clause}", data.doi_clause or "", true)
         if data.highlighted_text then
-            user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text)
+            user_prompt = replace_placeholder(user_prompt, "{highlighted_text}", data.highlighted_text, true)
         end
 
         table.insert(parts, "[Request]")
@@ -770,7 +789,8 @@ function MessageBuilder.build(params)
         table.insert(parts, data.additional_input)
     end
 
-    return table.concat(parts, "\n")
+    -- the data's own braces back (DATA_BRACE), once
+    return (table.concat(parts, "\n"):gsub(DATA_BRACE, "{"))
 end
 
 --- Substitute template variables in a prompt string.
