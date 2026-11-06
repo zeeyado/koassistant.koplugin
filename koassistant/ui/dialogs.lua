@@ -959,6 +959,11 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     -- which Defaults.ProviderDefaults never did).
     local reasoning_model = ModelConstraints.dispatchModel({
         provider = provider, model = config.model, features = config.features })
+    -- an id the provider no longer serves goes out as its replacement (the
+    -- wire maps it): the profile and the pref are the replacement's (the
+    -- sweep of 2026-11-06; a retired id's off sent a literal the new refuses)
+    reasoning_model = require("koassistant.request.model_lists").retiredReplacement(provider, reasoning_model)
+        or reasoning_model
     local reasoning_decision = ModelConstraints.resolveReasoning(provider, reasoning_model, {
         global_stance = ReasoningPrefs.getStance(features),
         model_pref = ReasoningPrefs.getModelPref(features, provider, reasoning_model),
@@ -1821,6 +1826,7 @@ local function applyQuickReplyOverrides(config, plugin)
     -- One model id per request (audit B3): the shared resolver (see the bake).
     local model = ModelConstraints.dispatchModel({
         provider = provider, model = config.model, features = config.features })
+    model = require("koassistant.request.model_lists").retiredReplacement(provider, model) or model
     -- {follow=true} sentinel = reply-time "Follow settings" pick on a chat with
     -- a baked reasoning override: resolve WITHOUT a session layer (prefs/stance).
     local sr = f._session_reasoning

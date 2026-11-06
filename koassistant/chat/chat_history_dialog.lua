@@ -1807,6 +1807,8 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         -- which Defaults.ProviderDefaults never did).
         local bake_model = ModelConstraints.dispatchModel({
             provider = bake_provider, model = config.model, features = config.features })
+        bake_model = require("koassistant.request.model_lists").retiredReplacement(bake_provider, bake_model)
+            or bake_model
         local sr = config.features._session_reasoning
         if sr and sr.follow then sr = nil end
         local decision = ModelConstraints.resolveReasoning(bake_provider, bake_model, {

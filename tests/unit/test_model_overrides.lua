@@ -283,6 +283,14 @@ TestRunner:check("recordDerived updates in-memory layer (persisted=" .. tostring
     ModelOverrides.derivedParam("openrouter", "a/b", "tools") == true)
 TestRunner:check("derivedParam false for absent param",
     ModelOverrides.derivedParam("openrouter", "a/b", "reasoning") == false)
+-- The sweep of 2026-11-06: a ceiling learned by the self-heal before any
+-- fetch makes an entry with no params; it must hold no opinion on them
+TestRunner:check("a learned-only entry (never fetched) keeps the catch-all: derivedParam nil",
+    (function()
+        ModelOverrides.recordDerivedMaxOutput("openrouter", "learned/only", 4096)
+        return ModelOverrides.derivedParam("openrouter", "learned/only", "tools") == nil
+            and ModelOverrides.derivedMaxOutput("openrouter", "learned/only") == 4096
+    end)())
 TestRunner:check("derivedParam nil for unknown model",
     ModelOverrides.derivedParam("openrouter", "a/c", "tools") == nil)
 

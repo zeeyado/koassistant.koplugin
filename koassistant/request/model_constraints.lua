@@ -560,6 +560,7 @@ ModelConstraints.capabilities = {
         reasoning = {
             "nvidia/nemotron-3",
             "stepfun-ai/step-5-preview",   -- reasoning_content by default (battery 2026-11-06)
+            "openai/gpt-oss-20b",          -- effort low/medium/high (battery 2026-10-20); its profile sat ungated
         },
         -- Function calling. EXACT ids, never a family prefix: within the very same
         -- nemotron-3 family some models emit structured tool_calls under
@@ -3073,6 +3074,17 @@ function ModelConstraints.resolveReasoning(provider, model, layers)
             option = profile.default_option
         end
     end
+    -- A level the profile does not list (a pref stored for another model, an
+    -- action's effort from another provider's ladder) resolves to the
+    -- default level, never to a literal the provider refuses (the sweep of
+    -- 2026-11-06); budget numbers are untouched
+    if type(option) == "string" and type(profile.options) == "table" and #profile.options > 0 then
+        local listed = false
+        for _i, o in ipairs(profile.options) do
+            if o == option then listed = true end
+        end
+        if not listed then option = profile.default_option or profile.options[1] end
+    end
 
     decision.option = (type(option) == "string") and option or nil  -- resolved level name (for display)
     if profile.axis == "effort" or profile.axis == "adaptive_effort" then
@@ -3169,7 +3181,10 @@ ModelConstraints.REASONING_WIRE_KEYS = {
 function ModelConstraints.reasoningDisplayEnabled(api_params)
     if type(api_params) ~= "table" then return false end
     for _idx, key in ipairs(ModelConstraints.REASONING_WIRE_KEYS) do
-        local v = api_params[key]
+        -- the decision record is no wire key (the list keeps it for the
+        -- rebase clear): a request that sends nothing showed the reasoning
+        -- line through it (the sweep of 2026-11-06)
+        local v = key ~= "_reasoning" and api_params[key] or nil
         if v ~= nil and v ~= false and v ~= 0 and v ~= "none" then
             if type(v) ~= "table" then return true end
             if v.type ~= "disabled" and v.type ~= "between_tools" and v.enabled ~= false

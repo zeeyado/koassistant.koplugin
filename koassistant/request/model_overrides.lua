@@ -206,7 +206,11 @@ end
 function ModelOverrides.derivedParam(provider, model, param)
     local derived = ensureDerived()
     local entry = derived and derived[provider] and derived[provider][model]
-    if not entry or type(entry.params) ~= "table" then return nil end
+    -- an entry written by the max_tokens self-heal alone (fetched = 0) holds
+    -- no opinion on the wire params: its empty params read as "none
+    -- supported" and took the catch-all profile away (the sweep of
+    -- 2026-11-06; files already written heal the same way)
+    if not entry or (entry.fetched or 0) == 0 or type(entry.params) ~= "table" then return nil end
     return entry.params[param] == true
 end
 

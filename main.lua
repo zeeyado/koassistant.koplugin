@@ -2962,6 +2962,9 @@ function AskGPT:testProvider(provider_id)
         if not caps.tools then return nil, _("skipped - tools not accepted") end
         local code, body = post("forced_tools")
         if tonumber(code) == 200 then return true end
+        -- a model that refuses a forced call cannot serve the gather round:
+        -- Record must not grant it tools (the sweep of 2026-11-06)
+        caps.tools = nil
         if serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - book tools' search phase may not work"), tostring(code))
       end },

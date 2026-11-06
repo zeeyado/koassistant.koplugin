@@ -1588,4 +1588,54 @@ TestRunner:test("recheck 2026-09-29: Minimal sends a shape these models accept",
 end)
 
 -- Summary
+print("")
+print("  [the sweep of 2026-11-06: the display rule, a retired id's profile, an unlisted level, NVIDIA's gpt-oss]")
+
+TestRunner:test("the reasoning line does not show for a request that sends nothing (the decision is no wire key)", function()
+    TestRunner:assertFalse(ModelConstraints.reasoningDisplayEnabled({ _reasoning = { mode = "on", send_nothing = true } }),
+        "the decision record alone")
+    TestRunner:assertFalse(ModelConstraints.reasoningDisplayEnabled({ _reasoning = { mode = "off" } }))
+    TestRunner:assertTrue(ModelConstraints.reasoningDisplayEnabled({ _reasoning = { mode = "on" }, reasoning = { effort = "low" } }),
+        "a wire key beside it")
+end)
+
+TestRunner:test("a retired id bakes its replacement's reasoning (the wire sends the replacement)", function()
+    local ModelLists = require("koassistant.request.model_lists")
+    local Dialogs = require("koassistant.ui.dialogs")
+    local old = "accounts/fireworks/models/gpt-oss-120b"
+    local new = ModelLists.retiredReplacement("fireworks", old)
+    TestRunner:assertTrue(new ~= nil and new ~= old, "the fixture: a retired Fireworks id")
+    local cfg = { provider = "fireworks", model = old, provider_settings = {},
+        features = { _reasoning_override_active = { force = "off" } } }
+    Dialogs._buildUnifiedRequestConfig(cfg, nil, nil, nil)
+    local want = ModelConstraints.resolveReasoning("fireworks", new, { session_override = { force = "off" } })
+    local got = cfg.api_params._reasoning
+    TestRunner:assertEqual(got and got.mode, want.mode, "the mode is the replacement's")
+    TestRunner:assertEqual(got and got.option, want.option, "and its level")
+    TestRunner:assertEqual(got and got.off_option, want.off_option, "and its off")
+end)
+
+TestRunner:test("a level the profile does not list resolves to the default level", function()
+    local d = ModelConstraints.resolveReasoning("nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b",
+        { action_override = { force = "on", effort = "xhigh" } })
+    TestRunner:assertEqual(d.effort, "high", "an unlisted effort: the default")
+    local m = ModelConstraints.resolveReasoning("nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b",
+        { model_pref = { state = "on", effort = "minimal" } })
+    TestRunner:assertEqual(m.effort, "high", "a stale pref: the default")
+    local ok_level = ModelConstraints.resolveReasoning("nvidia", "nvidia/nemotron-3.5-super-vl-120b-a12b",
+        { action_override = { force = "on", effort = "low" } })
+    TestRunner:assertEqual(ok_level.effort, "low", "a listed level stays")
+end)
+
+TestRunner:test("every NVIDIA id with an effort profile has the reasoning capability", function()
+    local ModelLists = require("koassistant.request.model_lists")
+    for _idx, id in ipairs(ModelLists.nvidia) do
+        local prof = ModelConstraints.getReasoningProfile("nvidia", id)
+        if prof and prof.axis == "effort" then
+            TestRunner:assertTrue(ModelConstraints.supportsCapability("nvidia", id, "reasoning"), "gated: " .. id)
+        end
+    end
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("nvidia", "openai/gpt-oss-20b", "reasoning"))
+end)
+
 return TestRunner:summary()

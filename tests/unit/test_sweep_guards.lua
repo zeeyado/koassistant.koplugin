@@ -264,4 +264,16 @@ TestRunner:test("a restore reloads this instance's settings in place, the object
         "run first thing on a successful restore")
 end)
 
+print("")
+print("  [Test provider: a refused forced call grants no tools]")
+
+TestRunner:test("the Forced tool use step clears caps.tools on every failure return", function()
+    local a = main:find('label = _("Forced tool use (book-tools search)")', 1, true)
+    TestRunner:assertTrue(a ~= nil, "the step")
+    local body = main:sub(a, main:find("end },", a, true))
+    local cleared = body:find("caps.tools = nil", 1, true)
+    local first_false = body:find("return false", 1, true)
+    TestRunner:assertTrue(cleared ~= nil and first_false ~= nil and cleared < first_false, "cleared before the failure returns")
+end)
+
 return TestRunner:summary()
