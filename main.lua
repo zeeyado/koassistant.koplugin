@@ -2083,7 +2083,7 @@ function AskGPT:removeCustomModel(provider, model)
       self.settings:flush()
 
       -- If removed model was selected, reset to effective default
-      if self:getCurrentModel() == model then
+      if self:getCurrentProvider() == provider and self:getCurrentModel() == model then
         features.model = self:getEffectiveDefaultModel(provider)
         -- Baked a default, not a user pick: clear the explicitness flag so future
         -- default bumps can still refresh it (defaults_propagation_plan.md §3).
@@ -4612,29 +4612,19 @@ function AskGPT:buildModelMenu(simplified, provider_override)
                     if new_model ~= "" then
                       local success, err = self_ref:saveCustomModel(provider, new_model)
                       if success then
-                        -- Select the new model (a hand-added model is by definition a
-                        -- deliberate pick — never auto-refresh away from it)
-                        local f = self_ref.settings:readSetting("features") or {}
-                        f.model = new_model
-                        f.model_explicit = f.model_explicit or {}
-                        f.model_explicit[provider] = true
-                        self_ref.settings:saveSetting("features", f)
-                        self_ref.settings:flush()
-                        self_ref:updateConfigFromSettings()
-                        UIManager:show(Notification:new{
-                          text = T(_("Added: %1"), new_model),
-                          timeout = 1.5,
-                        })
+                        -- The hub opens every provider's panel, so the pick goes
+                        -- through switchModel: the provider moves with the model
+                        -- (an inline write left the model under the active
+                        -- provider, sweep 2026-11-06); it records the Ollama pick
+                        -- and shows its own notice
+                        self_ref:switchModel(provider, new_model, provider_display_name)
                         refresh()
                         -- OpenRouter: derive capabilities (tools/reasoning) from the
                         -- provider's per-model metadata so the new model works beyond
                         -- the curated lists. Delayed so the notification paints first;
                         -- offline failure is silent (family fallbacks still apply,
                         -- retry via Manage custom models -> Refresh).
-                        if provider == "ollama" then
-                          self_ref:recordOllamaModelPick(new_model)
-                        end
-                        if provider == "openrouter" or provider == "ollama" then
+                        if provider == "openrouter" then  -- Ollama's fetch is switchModel's
                           UIManager:scheduleIn(0.2, function()
                             if self_ref:fetchDerivedModelCaps(provider, new_model) then
                               UIManager:show(Notification:new{
@@ -5055,7 +5045,8 @@ function AskGPT:showManageCustomModelsMenu(provider, on_change)
           local current_model = features.model
 
           -- Check if current model is a custom one that will be removed
-          local was_custom = self_ref:isCustomModel(provider, current_model)
+          local was_custom = self_ref:getCurrentProvider() == provider
+            and self_ref:isCustomModel(provider, current_model)
 
           features.custom_models = features.custom_models or {}
           features.custom_models[provider] = {}
@@ -6582,14 +6573,24 @@ function AskGPT:executeDictAction(action, word, dict_popup, non_reader_lookup, l
     self:updateConfigFromSettings()
     -- Pass dictionary popup reference so X-Ray browser can close it
     -- when launching book text search (prevents widget stack blocking)
-    configuration.features._source_widget = dict_popup
+    -- A copy with a scrubbed features table (sweep 2026-11-06): the shared
+    -- configuration keeps an earlier chat's is_book_context and book_metadata
+    -- (a file browser Chat, a Book Hub beside the open book), which forced the
+    -- X-Ray lookup and the picture onto that other book. The popup reference
+    -- and the surrounding text ride the copy and die with it.
+    local local_config = {}
+    for k, v in pairs(configuration) do local_config[k] = v end
+    local_config.features = {}
+    for k, v in pairs(configuration.features) do local_config.features[k] = v end
+    self:_scrubContextFeatures(local_config.features)
+    local_config.features._source_widget = dict_popup
     -- The surrounding-text window, pre-extracted above while the selection
     -- was alive: an image made from the popup got the title/author frame
     -- only (B460)
-    configuration.features._selection_context_window = sc_window
+    local_config.features._selection_context_window = sc_window
     -- Chat-originated lookups carry the chat's own book — it beats whatever
     -- the reader happens to have open (device 2026-08-13: wrong-book lookups)
-    Dialogs.executeDirectAction(self.ui, action, word, configuration, self,
+    Dialogs.executeDirectAction(self.ui, action, word, local_config, self,
       { document_path = lookup_book, run_variant = run_variant })
   else
     -- Ensure network is available (use runWhenConnected to avoid blocking DNS check)
@@ -8797,7 +8798,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
 
   if not cached_entry or not cached_entry.result then
     -- No cache: Generate (to X%) / Generate (complete) / Cancel
-    if self:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+    if self:_checkRequirements(action, target_file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
 
     -- "to X%" only when not already at ~100%
     if current_progress and current_progress.decimal < 0.995 then
@@ -8854,7 +8855,8 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
       text = T(_("View %1"), action_name .. view_detail),
       callback = function()
         UIManager:close(dialog)
-        self_ref:viewCachedAction(action, action_id, cached_entry)
+        self_ref:viewCachedAction(action, action_id, cached_entry,
+          { file = target_file, book_title = opts and opts.book_title, book_author = opts and opts.book_author })
       end,
     }})
 
@@ -8871,7 +8873,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
         text = update_text,
         callback = function()
           UIManager:close(dialog)
-          if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+          if self_ref:_checkRequirements(action, target_file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           on_update()
         end,
       }})
@@ -8882,7 +8884,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
       text = T(_("Redo %1 (complete)"), action_name),
       callback = function()
         UIManager:close(dialog)
-        if self_ref:_checkRequirements(action, nil, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
+        if self_ref:_checkRequirements(action, target_file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
         if is_file_browser then
           on_update({ complete_analysis = true })
         else
@@ -17296,6 +17298,11 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   for k, v in pairs((configuration or {}).features or {}) do
     config_copy.features[k] = v
   end
+  -- The shared features carry the last chat's flags (a library chat's
+  -- is_library_context, which getPromptContext tests before book; a chat's
+  -- Spoiler chip): scrub the copy first, book_metadata and book_context are
+  -- rebuilt below (sweep 2026-11-06)
+  self:_scrubContextFeatures(config_copy.features)
   config_copy.features.is_book_context = true  -- Signal book context to getPromptContext()
   -- An allowance for this run (Allow once, B395) is only ever the one the
   -- popup's question handed over (opts.data_once, the kinds): a record left on
@@ -20374,7 +20381,13 @@ function AskGPT:syncDictionaryBypass()
       if bypass_action.local_handler then
         -- Local actions don't need network or dictionary-specific config
         self_ref:updateConfigFromSettings()
-        Dialogs.executeDirectAction(self_ref.ui, bypass_action, clean_word, configuration, self_ref,
+        -- The same scrubbed copy as executeDictAction's local branch (sweep 2026-11-06)
+        local local_config = {}
+        for k, v in pairs(configuration) do local_config[k] = v end
+        local_config.features = {}
+        for k, v in pairs(configuration.features) do local_config.features[k] = v end
+        self_ref:_scrubContextFeatures(local_config.features)
+        Dialogs.executeDirectAction(self_ref.ui, bypass_action, clean_word, local_config, self_ref,
           lookup_book_override and { document_path = lookup_book_override } or nil)
       else
         NetworkMgr:runWhenConnected(function()
@@ -21105,6 +21118,7 @@ function AskGPT:_scrubContextFeatures(features)
   -- left stale a direct-entry smart-retrieval gather would clamp (or un-clamp) its
   -- reading scope from the LAST chat's chip instead of this book's posture
   -- (spoiler_posture_plan B1).
+  features._source_widget = nil
   features._spoiler_free_active = nil
   -- Spoiler-scope consent is request-scoped (one-shot, consumed at the first
   -- protected send); any stray on the shared table dies here
