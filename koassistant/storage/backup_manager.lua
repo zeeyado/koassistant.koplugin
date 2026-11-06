@@ -1642,17 +1642,21 @@ function BackupManager:restoreBackup(backup_path, options)
         end
 
         -- Settings-dir stores copied back as-is (same registry list as the backup side)
+        -- (a copy that fails is the restore failing: the error reaches the
+        -- rollback below and the reader, the sweep of 2026-11-06)
         for _idx, ref in ipairs(StorageRegistry.backupSettingsFiles()) do
             local src = temp_dir .. "/settings/" .. ref
             if lfs.attributes(src, "mode") == "file" then
-                self:_copyFile(src, self.SETTINGS_DIR .. "/" .. ref)
+                local ok, e = self:_copyFile(src, self.SETTINGS_DIR .. "/" .. ref)
+                if not ok then error(e or ("Failed to restore " .. ref)) end
             end
         end
         -- Old backups carry the library pinned store under its pre-rename name
         local backup_pinned_multi_old = temp_dir .. "/settings/koassistant_pinned_multi_book.lua"
         if lfs.attributes(temp_dir .. "/settings/koassistant_pinned_library.lua", "mode") ~= "file"
                 and lfs.attributes(backup_pinned_multi_old, "mode") == "file" then
-            self:_copyFile(backup_pinned_multi_old, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
+            local ok, e = self:_copyFile(backup_pinned_multi_old, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
+            if not ok then error(e or "Failed to restore koassistant_pinned_library.lua") end
         end
     end
 
@@ -1663,7 +1667,8 @@ function BackupManager:restoreBackup(backup_path, options)
             if not entry.credential or restore_creds then
                 local src = temp_dir .. "/configs/" .. entry.ref
                 if lfs.attributes(src, "mode") == "file" then
-                    self:_copyFile(src, self.PLUGIN_DIR .. "/" .. entry.ref)
+                    local ok, e = self:_copyFile(src, self.PLUGIN_DIR .. "/" .. entry.ref)
+                    if not ok then error(e or ("Failed to restore " .. entry.ref)) end
                 end
             end
         end
@@ -1681,7 +1686,8 @@ function BackupManager:restoreBackup(backup_path, options)
                         os.execute(string.format('rm -rf "%s"', safe_path))
                     end
                 end
-                self:_copyDirectory(src, dest)
+                local ok, e = self:_copyDirectory(src, dest)
+                if not ok then error(e or ("Failed to restore " .. dir_name)) end
             end
         end
     end
@@ -1715,7 +1721,8 @@ function BackupManager:restoreBackup(backup_path, options)
                 end
             end
 
-            self:_copyDirectory(backup_chats_dir, self.CHAT_DIR)
+            local ok, e = self:_copyDirectory(backup_chats_dir, self.CHAT_DIR)
+            if not ok then error(e or "Failed to restore the chats folder") end
             -- Nothing reads that layout any more: the caller runs the v1
             -- importer (AskGPT:migrateChatsToDocSettings) when this is set
             v1_chats_restored = true

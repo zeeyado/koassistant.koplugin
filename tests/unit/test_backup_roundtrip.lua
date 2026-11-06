@@ -650,5 +650,30 @@ TestRunner:test("the restore confirmation says it is a full copy with the keys (
 end)
 
 wipeTmp()
+-- The sweep of 2026-11-06: a copy that fails is the restore failing (the
+-- error reaches the rollback and the reader), never a silent partial restore
+do
+    local bm4 = freshManager()
+    seed()
+    local backup4 = bm4:createBackup(BACKUP_OPTS)
+    local real_copy = bm4._copyFile
+    bm4._copyFile = function(self, src, dest)
+        if tostring(dest):find("/plugin/configuration.lua", 1, true) then
+            return false, "No space left on device"
+        end
+        return real_copy(self, src, dest)
+    end
+    local failed = bm4:restoreBackup(backup4.backup_path, {
+        restore_settings = true, restore_configs = true, restore_content = true,
+        restore_api_keys = true, merge_mode = false, skip_restore_point = true,
+    })
+    bm4._copyFile = nil
+    TestRunner:test("a copy that fails fails the restore, with the reason", function()
+        TestRunner:assertTrue(failed and failed.success == false, "the restore reports failure")
+        TestRunner:assertTrue(failed and tostring(failed.error):find("No space left", 1, true) ~= nil,
+            "the reason is the copy's: " .. tostring(failed and failed.error))
+    end)
+end
+
 restoreMocks()
 return TestRunner:summary()

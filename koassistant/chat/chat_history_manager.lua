@@ -1300,8 +1300,6 @@ function ChatHistoryManager:deleteChatFromDocSettings(ui, chat_id, document_path
         return false
     end
 
-    local stored_path = chats[chat_id].document_path
-
     -- Delete the chat
     chats[chat_id] = nil
 
@@ -1313,9 +1311,12 @@ function ChatHistoryManager:deleteChatFromDocSettings(ui, chat_id, document_path
         return false
     end
 
-    -- Update chat index
-    if stored_path and stored_path ~= "__GENERAL_CHATS__" then
-        self:updateChatIndex(stored_path, "delete", chat_id, chats,
+    -- Update chat index under the file just written: a chat saved before
+    -- the book was moved still records its old path, and the index entry
+    -- under that path had been re-keyed away (the sweep of 2026-11-06;
+    -- audit findings_by_module.md)
+    if actual_doc_path ~= "__GENERAL_CHATS__" then
+        self:updateChatIndex(actual_doc_path, "delete", chat_id, chats,
             { doc_props = doc_settings:readSetting("doc_props"), has_props = true })
     end
 

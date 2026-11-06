@@ -108,7 +108,9 @@ function Languages.getAllIds()
 end
 
 -- KOReader locale code → plugin language ID mapping
--- Covers all locales from KOReader's frontend/ui/language.lua
+-- Covers the locales of KOReader's frontend/ui/language.lua except Hebrew
+-- (no plugin language for it yet); Esperanto, Basque, Galician and Kazakh
+-- resolve through KOREADER_LOCALE_FALLBACK below.
 -- Uses base codes where KOReader uses country-specific codes (e.g., it for it_IT)
 Languages.KOREADER_LOCALE_MAP = {
     C       = "English",
@@ -125,9 +127,11 @@ Languages.KOREADER_LOCALE_MAP = {
     fa      = "Persian",
     fi      = "Finnish",
     fr      = "French",
+    ga      = "Irish",
     hi      = "Hindi",
     hr      = "Croatian",
     hu      = "Hungarian",
+    id      = "Indonesian",
     it      = "Italian",
     ja      = "Japanese",
     ka      = "Georgian",
@@ -142,6 +146,7 @@ Languages.KOREADER_LOCALE_MAP = {
     ro      = "Romanian",
     ru      = "Russian",
     sk      = "Slovak",
+    sl      = "Slovenian",
     sr      = "Serbian",
     sv      = "Swedish",
     th      = "Thai",
