@@ -232,13 +232,14 @@ local function getLatestResponse(message_history)
     return ""
 end
 
--- "New page per exchange" (opt-in, 2026-08-12): a CSS page break before each
--- user turn makes every exchange start at a physical page top in the paginated
--- HTML view — the landing jump becomes EXACT instead of page-granular. MuPDF's
--- HTML layout honors page-break-before (its own FB2/HTML default stylesheets
--- use it — verified in libwrap-mupdf). The FIRST marker keeps no break (it
--- would render a leading blank page); non-transcript viewers carry no marker,
--- so this is a structural no-op for them.
+-- "Latest reply on new page" (default on since 2026-08-12): a CSS page break
+-- after the newest reply's label makes the reply start at a physical page top
+-- in the paginated HTML view, so the landing jump is EXACT instead of
+-- page-granular. MuPDF's plain-HTML layout honours page-break-AFTER only (the
+-- -before rule is a no-op there, probed 2026-08-12 and again 2026-10-28), so
+-- the break rides an empty spacer div (applyExchangePageBreaks below and
+-- div.koa-exchange-break in getViewerCSS). Non-transcript viewers carry no
+-- marker, so this is a structural no-op for them.
 -- Reading-position carry: extract a render-safe VERBATIM anchor from a raw
 -- stream snippet. The snippet is raw response text whose markdown syntax
 -- disappears in the rendered view (**bold**, # headings, [links](url), table
@@ -473,16 +474,22 @@ local function applyExchangePageBreaks(html_body, configuration, carry_anchor, c
   html_body = applyCarryPageBreak(html_body, carry_anchor, carry_occurrence)
   local f = configuration and configuration.features
   -- Default ON since 2026-08-12 (maintainer: no longer experimental)
-  if f and f.chat_exchange_page_breaks == false then return html_body end
+  if f and f.chat_exchange_page_breaks == false then return html_body, false end
   -- LAST reply only (maintainer 2026-08-12): the goal is the NEWEST reply
   -- presented from a page top — older exchanges stay compact, so the
   -- transcript never accumulates whitespace; every re-render (each reply)
   -- moves the single break forward. Display-only by construction: the spacer
   -- exists in the rendered HTML, never in the transcript, saves or exports.
   -- MuPDF's plain-HTML layout only implements page-break-AFTER (headless
-  -- probe), so an empty spacer div carrying the -after rule goes IN FRONT of
-  -- the marker (see div.koa-exchange-break in getViewerCSS). luamd emits the
-  -- marker as its own plain paragraph (verified against the bundled lib).
+  -- probe), so an empty spacer div carrying the -after rule does the split
+  -- (see div.koa-exchange-break in getViewerCSS). luamd emits the marker as
+  -- its own plain paragraph (verified against the bundled lib).
+  -- The spacer sits AFTER the reply's label (maintainer 2026-11-06, B561):
+  -- the question, the usage line (reasoning, web, lookups) and the label stay
+  -- on the page before, and the landed page opens with the reply's first
+  -- line. The short-prefix skip of 2026-08-12 (a short first question kept
+  -- its reply under it) is gone: the reply always opens its own page.
+  -- Returns the body and whether the spacer went in (the landing reads it).
   local marker = "<p>◉ KOAssistant:</p>"
   local last_pos, search_start = nil, 1
   while true do
@@ -493,22 +500,19 @@ local function applyExchangePageBreaks(html_body, configuration, carry_anchor, c
   end
   if not last_pos then
     logger.dbg("KOAssistant: exchange page break — no marker")
-    return html_body
+    return html_body, false
   end
-  -- Smart skip (maintainer 2026-08-12): when everything BEFORE the reply is
-  -- short (a fresh chat's first question, a run of short exchanges), breaking
-  -- would strand a near-empty first page — the reply belongs right under the
-  -- question. Rough visible-text length of the prefix is the proxy for "fits
-  -- the first page"; a long first question still gets its break.
-  local visible_prefix = html_body:sub(1, last_pos - 1):gsub("<[^>]*>", "")
-  if #visible_prefix < 500 then
-    logger.dbg("KOAssistant: exchange page break — skipped, short prefix", #visible_prefix)
-    return html_body
+  local after = last_pos + #marker
+  -- Nothing visible after the label (an empty reply): a break would end the
+  -- transcript with a blank page
+  if not html_body:sub(after):gsub("<[^>]*>", ""):match("%S") then
+    logger.dbg("KOAssistant: exchange page break — nothing after the label")
+    return html_body, false
   end
-  logger.dbg("KOAssistant: exchange page break before last reply: yes")
-  return html_body:sub(1, last_pos - 1)
+  logger.dbg("KOAssistant: exchange page break after the last reply's label: yes")
+  return html_body:sub(1, after - 1)
     .. '<div class="koa-exchange-break"></div>'
-    .. html_body:sub(last_pos)
+    .. html_body:sub(after), true
 end
 
 -- The direction pass (koassistant/ui/bidi.lua): every paragraph, heading,
@@ -2904,7 +2908,7 @@ function ChatGPTViewer:init()
     html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
     -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body = applyExchangePageBreaks(html_body, self.configuration,
+    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
       self._stream_carry_anchor, self._stream_carry_occurrence)
   else
     -- If not rendering Markdown, optionally strip markdown syntax for cleaner display
@@ -3719,7 +3723,7 @@ function ChatGPTViewer:scrollToLastQuestion()
     local box = self.scroll_text_w.htmlbox_widget
     if box and box.findText and self.scroll_text_w.scrollToRatio then
       local painted_page = box.page_number
-      local target
+      local target, matched
       for _idx, marker in ipairs(markers) do
         local found = box:findText(marker)
         -- findText lands on the FIRST match from the current page and builds
@@ -3744,7 +3748,17 @@ function ChatGPTViewer:scrollToLastQuestion()
         -- jump through scrollToRatio, the one path with the full repaint
         -- recipe (freeBb + render + dirty the widget region).
         box.page_number = painted_page
-        if target then break end
+        if target then
+          matched = marker
+          break
+        end
+      end
+      -- With the spacer after the label (applyExchangePageBreaks), the reply
+      -- itself opens the NEXT page: the label's page holds the question and
+      -- the usage line (B561)
+      if target and matched == markers[1] and self._reply_break
+          and box.page_count and target < box.page_count then
+        target = target + 1
       end
       logger.dbg("KOAssistant: scrollToLastQuestion md — painted page", painted_page,
         "of", box.page_count, "target:", target or "none")
@@ -3798,19 +3812,21 @@ function ChatGPTViewer:scrollToLastQuestion()
             break
           end
         end
-        if L > tw.lines_per_page then
-          -- Content before the reply exceeds the first screen — top-align it.
-          -- (The widget clamps near the end: it never scrolls past a full
-          -- last screen, which is the correct floor for short tails.)
-          logger.dbg("KOAssistant: scrollToLastQuestion txt — line", L, "of", #lines, "to top")
-          self.scroll_text_w:scrollToRatio(
-            (L - 1 + tw.lines_per_page / 2 + 0.5) / #lines, false)
-        else
-          -- Everything fits from the top (fresh chat, short exchanges):
-          -- stay at the top, the reply sits right under the question
-          logger.dbg("KOAssistant: scrollToLastQuestion txt — line", L, "within first screen, staying top")
-          self.scroll_text_w:scrollToRatio(0, false)
+        -- The reply's first line of TEXT, past the label and the blank line
+        -- under it (an empty line has end_offset = offset - 1): the landed
+        -- screen opens with the reply, the label and the question sit on the
+        -- screen before (B561, 2026-11-06). Top-aligned whenever the widget
+        -- can: it never scrolls past a full last screen (the right floor for
+        -- a short tail), and a chat that fits one screen stays at the top.
+        local R = L + 1
+        while R < #lines and lines[R].end_offset
+            and lines[R].end_offset < (lines[R].offset or 1) do
+          R = R + 1
         end
+        if R > #lines then R = L end
+        logger.dbg("KOAssistant: scrollToLastQuestion txt — line", R, "of", #lines, "to top")
+        self.scroll_text_w:scrollToRatio(
+          (R - 1 + tw.lines_per_page / 2 + 0.5) / #lines, false)
         -- Cursor placement on the freshly rendered view (cursor-only paint)
         self.scroll_text_w:moveCursorToCharPos(target_pos)
       else
@@ -4482,7 +4498,7 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
     -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body = applyExchangePageBreaks(html_body, self.configuration,
+    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
       self._stream_carry_anchor, self._stream_carry_occurrence)
 
     -- Recreate the ScrollHtmlWidget with new content
@@ -4663,7 +4679,7 @@ function ChatGPTViewer:rebuildScrollWidget()
     html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
     -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body = applyExchangePageBreaks(html_body, self.configuration,
+    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
       self._stream_carry_anchor, self._stream_carry_occurrence)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
@@ -5212,7 +5228,7 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
     html_body = addHtmlBidiAttributes(html_body, bidi_opts)
     -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
     -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body = applyExchangePageBreaks(html_body, self.configuration,
+    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
       self._stream_carry_anchor, self._stream_carry_occurrence)
     self.scroll_text_w = ScrollHtmlWidget:new {
       html_body = html_body,
@@ -6293,7 +6309,7 @@ function ChatGPTViewer:refreshMarkdownDisplay()
   html_body = addHtmlBidiAttributes(html_body, bidi_opts)
   -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
   -- the classified opening tag so a split Arabic paragraph keeps direction
-  html_body = applyExchangePageBreaks(html_body, self.configuration,
+  html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
     self._stream_carry_anchor, self._stream_carry_occurrence)
 
   -- Calculate current height
@@ -6335,5 +6351,7 @@ ChatGPTViewer.hasDominantRTL = hasDominantRTL
 -- extractor is shared rather than duplicated (inline-required there — no
 -- module cycle: capture runs long after both modules are loaded)
 ChatGPTViewer.extractCarryAnchor = extractCarryAnchor
+-- Test seam (tests/unit/test_viewer_landing.lua): the spacer after the label
+ChatGPTViewer._applyExchangePageBreaks = applyExchangePageBreaks
 
 return ChatGPTViewer

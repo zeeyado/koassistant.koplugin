@@ -1437,9 +1437,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     -- following is already off, so the hooks are inert until it matters.
     --
     -- Directional rule: an UPWARD step input (button, key, swipe) while
-    -- FOLLOWING pauses in place and is CONSUMED — "stop the page where it is"
-    -- (maintainer 2026-08-15); looking back is the NEXT press, which scrolls
-    -- normally once following is off. A DOWNWARD scroll pauses only when the
+    -- FOLLOWING pauses the follow AND scrolls up (maintainer 2026-11-06,
+    -- replacing the consumed first press of 2026-08-15: one press to look
+    -- back, not two); on the first page, where nothing is above, it only
+    -- pauses, and the view stays where it is. A DOWNWARD scroll pauses only when the
     -- view actually moved: page-down while sitting at the tail moves nothing,
     -- and silently stopping the follow there left the stream stalled exactly
     -- where the reader wanted it. Pan/drag is direct manipulation — it pauses
@@ -1456,9 +1457,9 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         local original_scrollUp = streamDialog._input_widget.scrollUp
         streamDialog._input_widget.scrollUp = function(self_widget, ...)
             if auto_scroll_active then
-                -- First upward press while following: freeze in place, eat the scroll
+                -- First upward press while following: pause, then scroll up
+                -- like any press (a no-op on the first page)
                 turnOffAutoScroll("scroll-up button")
-                return
             end
             return original_scrollUp(self_widget, ...)
         end
@@ -1487,9 +1488,9 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                 inner.scrollText = function(self_w, direction, ...)
                     if direction and direction < 0 then
                         if auto_scroll_active then
-                            -- First upward step while following: freeze in place
+                            -- First upward step while following: pause, then
+                            -- scroll up like any step (a no-op on the first page)
                             turnOffAutoScroll("swipe/key up")
-                            return
                         end
                         return orig_scrollText(self_w, direction, ...)
                     end
@@ -1524,10 +1525,14 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             if orig_onScrollUp then
                 inner.onScrollUp = function(self_w, ...)
                     if auto_scroll_active then
-                        -- First upward key while following: freeze in place,
-                        -- consume the event (true = handled, no propagation)
+                        -- First upward key while following: pause, then scroll
+                        -- up when there is anything above; on the first page
+                        -- the event is consumed (true = handled, no propagation)
+                        -- so the pause is all it does
                         turnOffAutoScroll("page-up")
-                        return true
+                        local handled = orig_onScrollUp(self_w, ...)
+                        if handled == nil then return true end
+                        return handled
                     end
                     return orig_onScrollUp(self_w, ...)
                 end

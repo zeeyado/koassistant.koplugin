@@ -284,7 +284,7 @@ local SettingsSchema = {
                             text = _("Latest Reply on New Page"),
                             path = "features.chat_exchange_page_breaks",
                             default = true,
-                            help_text = _("Present the newest reply from the top of a fresh page. Markdown chats get a real page break before it (older exchanges stay compact; the break moves forward with each reply and never touches saves or exports); Plain Text chats align the view so the reply starts the screen. Chat viewer only."),
+                            help_text = _("Open the newest reply on a fresh page: your question, the usage line and the KOAssistant label stay on the page before, and the reply's first line opens the page. Markdown chats get a real page break (older exchanges stay compact; the break moves forward with each reply and never touches saves or exports); Plain Text chats align the view so the reply's first line starts the screen. Chat window only."),
                         },
                         {
                             id = "scroll_to_last_message",
@@ -292,7 +292,7 @@ local SettingsSchema = {
                             text = _("Open Chats at Latest Exchange"),
                             path = "features.scroll_to_last_message",
                             default = true,
-                            help_text = _("When opening a saved chat, jump to the newest question and reply instead of the top. Replies always land on the newest exchange regardless of this setting. Independent of New Page per Exchange (that one changes the page layout; this one changes where an opened chat starts)."),
+                            help_text = _("When opening a saved chat, jump to the newest reply instead of the top. Replies always land on the newest reply regardless of this setting. Independent of Latest Reply on New Page (that one changes the page layout; this one changes where an opened chat starts)."),
                         },
                         {
                             id = "plain_text_options",

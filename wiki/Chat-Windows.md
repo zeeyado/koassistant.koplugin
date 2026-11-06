@@ -93,7 +93,7 @@ With streaming on (the default), responses appear in real time as the AI generat
 
 **How the text moves:**
 
-- **Auto-scroll** (default): follows new text as it appears. It pauses when you swipe, use page buttons, or tap the scroll controls: the first step up stops the page where it is (the next one scrolls back), a step down pauses it only when the view actually moves, and dragging pauses it where you let go. Tap Autoscroll to follow again.
+- **Auto-scroll** (default): follows new text as it appears. It pauses when you swipe, use page buttons, or tap the scroll controls: the first step up pauses it and scrolls back a page in the same press (on the first page, where there is nothing above, it only pauses), a step down pauses it only when the view actually moves, and dragging pauses it where you let go. Tap Autoscroll to follow again.
 - **Page-based scroll** (default): text fills the current page top-down, then advances to a blank page when full, minimizing full-screen e-ink refreshes. Turn it off for continuous bottom-scrolling. It needs Auto-scroll.
 - **Keep your place**: if auto-scroll is off or paused and you keep reading while the rest streams in, the finished chat opens at your spot instead of jumping to the newest reply (in Markdown it opens on the page holding your line; in Plain Text your line starts the view).
 
@@ -174,8 +174,8 @@ The languages themselves are set on [Languages](Languages).
 
 **Where a chat opens** (also under **Settings → Display Settings → Rendering**):
 
-- **Latest Reply on New Page** (on): presents the newest reply from the top of a fresh page. Markdown chats get a real page break before it (older exchanges stay compact; the break moves forward with each reply and never touches saves or exports); Plain Text chats align the view so the reply starts the screen. Chat window only.
-- **Open Chats at Latest Exchange** (on): when you open a saved chat, it jumps to the newest question and reply instead of the top. Replies always land on the newest exchange regardless. Independent of Latest Reply on New Page, which changes the page layout rather than the starting point.
+- **Latest Reply on New Page** (on): opens the newest reply on a fresh page. Your question, the usage line (reasoning, web search, book lookups) and the KOAssistant label stay on the page before, and the page you land on starts with the reply's first line, the first answer of a chat included (step back one page for the question). Markdown chats get a real page break (older exchanges stay compact; the break moves forward with each reply and never touches saves or exports); Plain Text chats align the view so the reply's first line starts the screen. Chat window only.
+- **Open Chats at Latest Exchange** (on): when you open a saved chat, it jumps to the newest reply instead of the top. Replies always land on the newest reply regardless. Independent of Latest Reply on New Page, which changes the page layout rather than the starting point.
 
 ## Quotes
 

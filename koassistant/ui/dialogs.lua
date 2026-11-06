@@ -2586,10 +2586,12 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
         translate_view = use_translate_view,  -- Use translate view for translations
         translate_hide_quote = translate_hide_quote,  -- Initial hide state for original text
         selection_data = selection_data,  -- For "Save to Note" feature
-        -- Scroll to last question if setting enabled AND this is a follow-up response
-        -- First response should always start from top (user needs to read it)
+        -- Land on the reply when the setting allows, the FIRST answer included
+        -- (B561, 2026-11-06): a long question or highlight puts the answer on
+        -- page 2, and the reader came for the answer (the question is one
+        -- step back). The landing is a no-op when the reply is on page 1.
         scroll_to_last_question = not (temp_config and temp_config.features and temp_config.features.scroll_to_last_message == false)
-            and history and history.getAssistantTurnCount and history:getAssistantTurnCount() > 1,
+            and history and history.getAssistantTurnCount and history:getAssistantTurnCount() >= 1,
         -- Set BOTH property names for compatibility:
         -- original_history: used by toggleDebugDisplay, toggleHighlightVisibility, etc.
         -- _message_history: used by expandToFullView for text regeneration
@@ -2723,7 +2725,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                     -- exchange. The scroll_to_last_message toggle keeps governing the
                     -- OPEN/resume paths only.
                     local to_last_question = history and history.getAssistantTurnCount
-                        and history:getAssistantTurnCount() > 1
+                        and history:getAssistantTurnCount() >= 1
                     logger.dbg("KOAssistant: reply landing — to_last_question:",
                         to_last_question and true or false)
                     -- Create a new viewer with updated content
