@@ -245,6 +245,20 @@ TestRunner:test("the book list is judged for the provider the Send goes to", fun
         "except after the question's Continue without: the reader chose (2026-10-20)")
 end)
 
+TestRunner:test("the position line is judged for the provider the Send goes to (the sweep of 2026-11-06)", function()
+    local expr = dialogs_src:match(
+        "local function appendSendPosition%(%).-allows%(\"position\",%s*{ features = configuration%.features or {},%s*provider = (.-) }%) then")
+    TestRunner:assertTrue(expr, "the position gate's provider")
+    local pick = assert(load("local send_rv, configuration = ...; return " .. expr, "position provider"))
+    local cfg = { provider = "ollama", features = { provider = "ollama" } }
+    TestRunner:assertEqual(pick({ provider = "openai", model = "gpt-5.5" }, cfg), "openai", "the Send's long-press pick")
+    TestRunner:assertEqual(pick(nil, cfg), "ollama", "no pick: the dialog's provider")
+    local Gates = require("koassistant.request.privacy_gates")
+    local f = { enable_basic_stats = false, trusted_providers = { "ollama" } }
+    TestRunner:assertTrue(Gates.allows("position", { features = f, provider = "ollama" }), "trusted: the line goes")
+    TestRunner:assertFalse(Gates.allows("position", { features = f, provider = "openai" }), "re-pointed to an untrusted provider: it does not")
+end)
+
 -- ------------------------------------------------------------------- (d)
 
 print("\n  [(d) X-Ray chat highlights]")

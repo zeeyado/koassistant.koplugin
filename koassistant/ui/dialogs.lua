@@ -986,6 +986,37 @@ local function buildUnifiedRequestConfig(config, domain_context, action, plugin)
     return true
 end
 
+-- THE dispatch transients: the just-in-time keys an entry sets on the SOURCE
+-- config for ONE dispatch (the chips' state, a run option, the scope and source
+-- picks, the Attach flag, the allowance, the X-Ray chat's prefix).
+-- handlePredefinedPrompt copies the config, then reads each key from the source
+-- and clears it: `entry` right after the copy, `later` at the site that reads
+-- it. A run the funnel's question cancels or refuses never reaches those
+-- reads, so DataAccess.askForDispatch clears the whole list through
+-- dropDispatchTransients, or a shared config would hand them to the next,
+-- unrelated request (the sweep of 2026-11-06).
+local DISPATCH_TRANSIENTS = {
+    entry = {
+        "_web_search_active", "_data_once",
+        "_quick_answer_active", "_reasoning_override_active", "_model_override_active",
+        "_session_quick_answer", "_chat_view_mode", "_session_reasoning", "_session_model",
+        "_session_book_info", "_run_variant",
+    },
+    later = {
+        "_attachments_active", "_xray_context_prefix", "_non_document_selection",
+        "_selection_context_window", "_highlight_context_active",
+        "_source_mode", "_highlight_section_scope", "_forced_document_context",
+        "_smart_retrieval_lookups", "_complete_analysis",
+    },
+    -- (the headless runs' own marks, _background_*, _ladder_* and _merge_payload,
+    -- are consumed too, but those runs never reach the question)
+}
+local function dropDispatchTransients(features)
+    if type(features) ~= "table" then return end
+    for _idx, k in ipairs(DISPATCH_TRANSIENTS.entry) do features[k] = nil end
+    for _idx, k in ipairs(DISPATCH_TRANSIENTS.later) do features[k] = nil end
+end
+
 local function createTempConfig(prompt, base_config)
     -- Use the passed base_config if available, otherwise fall back to CONFIGURATION
     local source_config = base_config or CONFIGURATION or {}
@@ -2075,6 +2106,7 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
         new_dialog.onSetRotationMode = function(self, rotation)
             return self:onScreenResize(nil)
         end
+        save_dialog = new_dialog  -- the buttons close and read THIS dialog now
         UIManager:show(new_dialog)
     end
 
@@ -2313,6 +2345,7 @@ local function showTagsMenu(document_path, chat_id, chat_history_manager)
                     new_tag_dialog.onSetRotationMode = function(self, rotation)
                         return self:onScreenResize(nil)
                     end
+                    tag_input = new_tag_dialog  -- the buttons act on THIS dialog now
                     UIManager:show(new_tag_dialog)
                     new_tag_dialog:onShowKeyboard()
                 end
@@ -3256,9 +3289,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             -- Get effective document path
             local effective_path = document_path
             if not effective_path then
-                local is_general = temp_config and temp_config.features and temp_config.features.is_general_context
-                if is_general then
+                local tf = temp_config and temp_config.features
+                if tf and tf.is_general_context then
                     effective_path = "__GENERAL_CHATS__"
+                elseif tf and tf.is_library_context then
+                    effective_path = "__LIBRARY_CHATS__"
                 else
                     UIManager:show(InfoMessage:new{
                         text = _("Cannot tag: no document context"),
@@ -3722,27 +3757,15 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     temp_config._not_saved = nil
     -- The per-chat Web value (if any) rode into temp_config with the features copy;
     -- consume it from the SOURCE config so it can't go stale on the shared table.
+    -- The allowance for this run (Allow once, B395) the same: the copy in
+    -- temp_config is the request's (the gather below judges on
+    -- temp_config.features) and the chat's, for its replies. The Quick controls
+    -- (the dispatch consumables AND the chip state: the copies are the chat's
+    -- live state for dialog launches) and the run option (B345, set
+    -- just-in-time by executeDirectAction / the input dialog, consumed from the
+    -- copy by the bake). The list is DISPATCH_TRANSIENTS.entry, one copy.
     if config and config.features then
-        config.features._web_search_active = nil
-        -- An allowance for this run (Allow once, B395): the copy in temp_config
-        -- is the request's (the gather below judges on temp_config.features) and
-        -- the chat's, for its replies; the source must not carry it into the
-        -- next request
-        config.features._data_once = nil
-        -- Quick controls: consume the dispatch consumables AND the chip state from
-        -- the SOURCE config (same staleness rule — the copies already rode into
-        -- temp_config for dialog launches, where they are the chat's live state).
-        config.features._quick_answer_active = nil
-        config.features._reasoning_override_active = nil
-        config.features._model_override_active = nil
-        config.features._session_quick_answer = nil
-        config.features._chat_view_mode = nil
-        config.features._session_reasoning = nil
-        config.features._session_model = nil
-        config.features._session_book_info = nil
-        -- Run option (B345): set just-in-time by executeDirectAction / the input
-        -- dialog; the copy in temp_config is consumed by the bake
-        config.features._run_variant = nil
+        for _idx, k in ipairs(DISPATCH_TRANSIENTS.entry) do config.features[k] = nil end
     end
     -- DIRECT entries (highlight menu / gestures / QA tiles — no dialog) must not
     -- inherit chip state: a reply-⚡ write on a shared-identity chat config can
@@ -4976,12 +4999,19 @@ if prune_book_text then
     end
 
     -- Full-document or update-to-100%: override progress to 100% so cache is stored at 1.0
-    -- and extraction covers the entire document
-    if config.features and (config.features._full_document_xray or config.features._update_to_full_progress or config.features._complete_analysis)
-            and ui and ui.document then
+    -- and extraction covers the entire document. A closed book's run (the file
+    -- browser's, or a hub's beside an open book) goes to 100% too, with no page
+    -- of the OPEN book as its own (the sweep of 2026-11-06); the complete
+    -- analysis flag is consumed here (a dialog's config carries it just in time)
+    local complete_analysis = config.features and config.features._complete_analysis
+    if config.features then config.features._complete_analysis = nil end
+    if config.features and (config.features._full_document_xray or config.features._update_to_full_progress or complete_analysis)
+            and ((ui and ui.document) or is_file_browser_target) then
         message_data.progress_decimal = "1.0"
         message_data.reading_progress = "100%"
-        message_data.progress_page = ui.document.info and ui.document.info.number_of_pages
+        if ui and ui.document and not is_file_browser_target then
+            message_data.progress_page = ui.document.info and ui.document.info.number_of_pages
+        end
     end
 
     -- Ladder rung (§6 slice 1): generate AS IF the reader stood at the rung boundary.
@@ -5355,8 +5385,11 @@ if prune_book_text then
     -- layers, read before it runs (B588: a run option's web pick and the
     -- Quick preset were left out, so the nudge told the model to search
     -- with web off). MessageBuilder picks the web-aware hallucination nudge
-    message_data.web_search_active = webSearchPreview(prompt, config.features,
-        config.provider or config.default_provider)
+    -- (the request's own copy, temp_config.features: the run option's pick
+    -- and the Quick preset's flags were consumed from the source config at
+    -- the dispatch entry and live only on the copy now).
+    message_data.web_search_active = webSearchPreview(prompt, temp_config.features,
+        temp_config.provider or config.provider or config.default_provider)
 
     -- Spoiler protection, message side (spoiler_posture_plan.md §3, B3/B4): resolve
     -- the request-layer posture for this action so prompts carrying
@@ -6550,7 +6583,7 @@ if prune_book_text then
         -- auto updates) keep today's silent send. The announce toast rides
         -- _ladder_send_toast and fires only when the request actually goes —
         -- nothing may announce a build the size warning can still cancel.
-        local xb_build = config.features and config.features._ladder_build
+        local xb_build = message_data._ladder_build
             and require("koassistant.xray.xray_auto").ladderBuild() or nil
         local function ladderSendToast()
             local toast = config.features and config.features._ladder_send_toast
@@ -7516,7 +7549,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             return
         end
 
-        local function runAction()
+        local function runAction(update_opts)
             UIManager:scheduleIn(0.1, function()
                 local function onPromptComplete(history, temp_config_or_error)
                     if history then
@@ -7659,6 +7692,11 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                     require("koassistant.request.attachments").count() > 0 or nil
                 -- Run option (B345): same just-in-time set-or-clear
                 configuration.features._run_variant = run_variant
+                -- Generate (complete) from the cache popup (Analyze Notes): the
+                -- run goes to 100% whatever the position; consumed by the
+                -- request, as executeFileBrowserAction's copy carries it
+                configuration.features._complete_analysis =
+                    (update_opts and update_opts.complete_analysis) or nil
 
                 handlePredefinedPrompt(action_id, highlighted_text, ui_instance, configuration, nil, plugin, additional_input, onPromptComplete, book_metadata)
             end)
@@ -9797,8 +9835,9 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- only, 60-cap)
                         if not require("koassistant.request.privacy_gates").allows("position",
                                 { features = configuration.features or {},
-                                  provider = require("koassistant.ui.dialogs").effectiveDispatchProvider(
-                                      configuration.features or {}, nil, configuration.provider) }) then
+                                  provider = send_rv and send_rv.provider
+                                      or require("koassistant.ui.dialogs").effectiveDispatchProvider(
+                                          configuration.features or {}, nil, configuration.provider) }) then
                             return
                         end
                         local prog = book_metadata and book_metadata.reading_progress
@@ -13535,6 +13574,28 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
         local wiki_key = ActionCache.WIKI_PREFIX .. wiki_category .. ":" .. normalized
 
         -- Helper: show wiki in simple_view with regenerate/delete
+        -- The text around the selection (the wiki's surrounding-context section)
+        -- is the nearby_text kind: a headless run never asks at dispatch
+        -- (executeActionForResult sets _data_no_question), so the question is
+        -- asked here, once, as the X-Ray browser's AI Wiki asks; nothing to ask
+        -- without a selection window. A Cancel drops what this entry set on the
+        -- config (the run option, the window), as a dispatch would have consumed it
+        local function askWikiAccess(run)
+            local f = configuration and configuration.features
+            if not (f and f._selection_context_window) then
+                run()
+                return
+            end
+            require("koassistant.ui.data_access").withAccess(plugin, action, {
+                features = f, path = document_path, ui = ui,
+                provider = effectiveDispatchProvider(f, action, configuration.provider),
+                kinds = { { kind = "nearby_text", required = false } },
+                action_name = _("AI Wiki"),
+                on_cancel = function() dropDispatchTransients(f) end,
+                on_refused = function() dropDispatchTransients(f) end,
+            }, run)
+        end
+
         local function showWikiArtifact(wiki_text)
             local Notification = require("ui/widget/notification")
             local wiki_viewer = ChatGPTViewer:new{
@@ -13544,6 +13605,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                 cache_type_name = _("AI Wiki"),
                 configuration = configuration,
                 on_regenerate = function()
+                    askWikiAccess(function()
                     executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata,
                         function(result, meta)
                             if result then
@@ -13556,6 +13618,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                                 })
                             end
                         end)
+                    end)
                 end,
                 regenerate_label = _("Regenerate"),
                 on_delete = function()
@@ -13590,6 +13653,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
             -- just-in-time, consumed by handlePredefinedPrompt
             configuration.features._run_variant = wiki_variant
         end
+        askWikiAccess(function()
         executeActionForResult(action, highlighted_text, ui, configuration, plugin, book_metadata,
             function(result, metadata)
                 if result then
@@ -13599,6 +13663,7 @@ local function executeDirectAction(ui, action, highlighted_text, configuration, 
                     showRequestError(_("Error: ") .. (metadata or "Unknown error"))
                 end
             end)
+        end)
         return
     end
 
@@ -13917,6 +13982,10 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
         end
     end
 
+    -- The run option (B345) the bake consumes: a question below re-enters this
+    -- function after the bake, so the pick is put back for that second bake
+    local run_variant = configuration.features._run_variant
+
     -- Build system prompt (standard book chat)
     buildUnifiedRequestConfig(configuration, domain_context, nil, plugin)
 
@@ -13941,6 +14010,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
                 book = nb_book, kinds = { "notebook" }, action_name = _("Chat about this notebook"),
                 amounts = { notebook = _("your notebook for this book") },
             }, function()
+                configuration.features._run_variant = run_variant
                 launchArtifactChat(user_question, artifact_content, artifact_type_name, ui,
                     configuration, plugin, book_metadata, opts)
             end)
@@ -13974,6 +14044,7 @@ local function launchArtifactChat(user_question, artifact_content, artifact_type
                     notebook = T(_("this %1, built with your notebook"), what),
                 },
             }, function()
+                configuration.features._run_variant = run_variant
                 launchArtifactChat(user_question, artifact_content, artifact_type_name, ui,
                     configuration, plugin, book_metadata, opts)
             end)
@@ -14159,6 +14230,8 @@ return {
     -- Test seam (tests/unit/test_run_options.lua): the request bake
     _buildUnifiedRequestConfig = buildUnifiedRequestConfig,
     webSearchPreview = webSearchPreview,  -- the message's web flag before the bake (B588)
+    DISPATCH_TRANSIENTS = DISPATCH_TRANSIENTS,  -- the keys a dispatch consumes from its source config
+    dropDispatchTransients = dropDispatchTransients,  -- the funnel's Cancel clears them as a dispatch would
     -- Test seam (tests/unit/test_front_matter_flow.lua): what a headless run hands back
     _headlessResult = headlessResult,
 }

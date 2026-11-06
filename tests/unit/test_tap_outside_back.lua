@@ -172,6 +172,43 @@ for _idx, site in ipairs(SITES) do
     end)
 end
 
+TestRunner:suite("a section picker's Cancel comes back to the popup that opened it (the sweep of 2026-11-06)")
+
+TestRunner:test("every section picker in main.lua carries on_cancel; the name inputs take the way back", function()
+    local src = read("main.lua")
+    local n, missing = 0, {}
+    local pos = 1
+    while true do
+        local a = src:find("_showSectionPicker(action, {", pos, true)
+        if not a then break end
+        n = n + 1
+        local open = src:find("{", a, true)
+        local depth, i = 0, open
+        repeat
+            local c = src:sub(i, i)
+            if c == "{" then depth = depth + 1 elseif c == "}" then depth = depth - 1 end
+            i = i + 1
+        until depth == 0 or i > #src
+        local opts = src:sub(open, i - 1)
+        if not opts:find("on_cancel", 1, true) then
+            local line = select(2, src:sub(1, a):gsub("\n", "")) + 1
+            missing[#missing + 1] = tostring(line)
+        end
+        pos = a + 1  -- a picker opened inside another's on_select is scanned too
+    end
+    TestRunner:assertTrue(n >= 11, "the pickers were found (" .. n .. ")")
+    TestRunner:assertTrue(#missing == 0, "pickers without a way back at lines " .. table.concat(missing, ", "))
+    TestRunner:assertTrue(not src:find("_showSectionPicker(action,\n", 1, true), "no picker opened with a bare option table")
+    -- the range picker's first pick takes the popup's reopen; the X-Ray popup passes it
+    TestRunner:assertTrue(src:find("function AskGPT:_showSectionRangePicker(action, run_variant, on_cancel)", 1, true) ~= nil)
+    local _s, ranges = src:gsub("self_ref:_showSectionRangePicker%(action, opts and opts%.run_variant, function%(%)\n%s*self_ref:_showXrayScopePopup%(action, action_id, on_update, cached_entry, opts%)\n%s*end%)", "")
+    TestRunner:assertTrue(ranges == 2, "the X-Ray popup's two range rows, got " .. ranges)
+    -- both name inputs run the way back from their Cancel
+    TestRunner:assertTrue(src:find("if opts and opts.on_cancel then opts.on_cancel() end", 1, true) ~= nil, "the section name input")
+    TestRunner:assertTrue(src:find("function AskGPT:_showSectionXrayNameInput(action, entry, run_variant, on_cancel)", 1, true) ~= nil, "the section X-Ray name input")
+    TestRunner:assertTrue(src:find("self_ref:_showSectionXrayNameInput(action, entry, opts and opts.run_variant, opts and opts.on_cancel)", 1, true) ~= nil, "handed on by the picker's default landing")
+end)
+
 TestRunner:suite("the merge picker hands its reopen to the shared confirms (B394 slice 1)")
 
 TestRunner:test("the picker's fold and chain rows come back to the picker", function()

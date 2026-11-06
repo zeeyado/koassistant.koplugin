@@ -594,4 +594,42 @@ TestRunner:test("webSearchPreview: the message's web flag is what the bake decid
     TestRunner:assertEqual(Dialogs.webSearchPreview(plain, { enable_web_search = false }, "perplexity"), false, "unless turned off")
 end)
 
+TestRunner:test("the bake consumes the run option: a second bake on the same config needs it put back", function()
+    -- launchArtifactChat bakes, asks the stamps' question, and bakes again on
+    -- re-entry: the pick must be restored between, or the second bake runs
+    -- on the main model with reasoning on
+    local f = { is_book_context = true, _run_variant = { provider = "openai", model = "gpt-5.5", reasoning = "off" } }
+    local cfg = { provider = "anthropic", provider_settings = {}, features = f }
+    Dialogs._buildUnifiedRequestConfig(cfg, nil, nil, nil)
+    TestRunner:assertEqual(cfg.provider, "openai", "bake 1: the pick")
+    TestRunner:assertEqual(f._run_variant, nil, "consumed")
+    local d1 = cfg.api_params and cfg.api_params._reasoning
+    TestRunner:assertEqual(d1 and d1.option, "low", "No reasoning = the lowest effort on a model that cannot turn it off (bake 1)")
+    TestRunner:assertEqual(f._run_reasoning, "off", "the pick recorded for the window")
+    -- without the pick put back the second bake sends nothing (the model's own default)
+    Dialogs._buildUnifiedRequestConfig(cfg, nil, nil, nil)
+    local d2 = cfg.api_params and cfg.api_params._reasoning
+    TestRunner:assertEqual(d2 and d2.send_nothing, true, "bake 2 without the pick: the default")
+    TestRunner:assertEqual(f._run_reasoning, nil)
+    f._run_variant = { provider = "openai", model = "gpt-5.5", reasoning = "off" }
+    Dialogs._buildUnifiedRequestConfig(cfg, nil, nil, nil)
+    local d3 = cfg.api_params and cfg.api_params._reasoning
+    TestRunner:assertEqual(cfg.provider, "openai", "bake 3 with the pick put back")
+    TestRunner:assertEqual(d3 and d3.option, "low", "the pick again")
+    TestRunner:assertEqual(f._run_reasoning, "off")
+end)
+
+TestRunner:test("the preview reads the request's own config copy, not the consumed source (the sweep of 2026-11-06)", function()
+    -- handlePredefinedPrompt consumes the run option and the chat's web toggle
+    -- from the SOURCE config at its entry; the copy (temp_config) keeps them,
+    -- so the message's flag must be read there or every pick reads as unset
+    local f = assert(io.open("koassistant/ui/dialogs.lua"))
+    local src = f:read("*a")
+    f:close()
+    TestRunner:assertTrue(src:find("message_data.web_search_active = webSearchPreview(prompt, temp_config.features,", 1, true) ~= nil,
+        "the call site passes temp_config.features")
+    TestRunner:assertTrue(src:find("webSearchPreview(prompt, config.features,", 1, true) == nil,
+        "never the consumed source")
+end)
+
 return TestRunner:summary()

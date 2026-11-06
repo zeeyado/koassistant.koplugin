@@ -238,6 +238,64 @@ TestRunner:test("a refusal or a Cancel runs the caller's hook; nothing runs", fu
     TestRunner:assertFalse(ran, "the run did not")
 end)
 
+TestRunner:test("the funnel's Cancel clears every dispatch transient, as the dispatch would have (the sweep of 2026-11-06)", function()
+    -- A direct entry sets its run option, the chips' state and the allowance
+    -- on a shared config just in time; handlePredefinedPrompt consumes them.
+    -- A Cancel at the question never reaches those reads, so the funnel's
+    -- drop must clear the same list, or the next unrelated request inherits them
+    local Dialogs = require("koassistant.ui.dialogs")
+    local stubbed = {}
+    local function stub(name, fn) stubbed[name] = DataAccess[name]; DataAccess[name] = fn end
+    stub("needsFor", function() return { { kind = "book_text", state = "ask" } }, nil end)
+    stub("plan", function() return { asked = { "book_text" } } end)
+    stub("scanFolders", function() return { "/x" } end)
+    stub("windowAmounts", function() return nil, nil end)
+    stub("folderWindowNeed", function() return nil end)
+    stub("withAccess", function(plugin, action, opts, run_fn) opts.on_cancel() end)
+    local cf = { is_general_context = true, enable_web_search = true,
+        _web_search_active = true, _model_override_active = { provider = "x", model = "y" },
+        _quick_answer_active = true, _attachments_active = true, _run_variant = { web = true },
+        _data_once = { book = "b" }, _highlight_context_active = "sentence", _xray_context_prefix = "p",
+        _source_mode = "summary", _forced_document_context = "ctx" }
+    local ok, asked = pcall(DataAccess.askForDispatch, {}, { id = "a", prompt = "" }, cf, nil,
+        { provider = "anthropic" }, function() end)
+    for name, fn in pairs(stubbed) do DataAccess[name] = fn end
+    TestRunner:assertTrue(ok, "askForDispatch ran: " .. tostring(asked))
+    TestRunner:assertEqual(asked, true, "the question was asked")
+    local left = {}
+    for k in pairs(cf) do
+        if k:sub(1, 1) == "_" then left[#left + 1] = k end
+    end
+    table.sort(left)
+    TestRunner:assertEqual(table.concat(left, ","), "", "no transient left on the shared features")
+    TestRunner:assertEqual(cf.enable_web_search, true, "the settings stay")
+    TestRunner:assertEqual(cf.is_general_context, true)
+    -- The list is the one the dispatch consumes: every `config.features._x = nil`
+    -- inside handlePredefinedPrompt names a key of the list (a new consumable
+    -- added at a read site must join it, or a Cancel leaves it behind)
+    local f = assert(io.open("koassistant/ui/dialogs.lua"))
+    local src = f:read("*a")
+    f:close()
+    local from = src:find("\nhandlePredefinedPrompt = function(", 1, true)
+    local to = src:find("\nlocal function ", from + 1, true) or #src
+    local span = src:sub(from, to)
+    local listed = {}
+    for _idx, k in ipairs(Dialogs.DISPATCH_TRANSIENTS.entry) do listed[k] = true end
+    for _idx, k in ipairs(Dialogs.DISPATCH_TRANSIENTS.later) do listed[k] = true end
+    local n = 0
+    for key in span:gmatch("config%.features%.(_[%w_]+) = nil") do
+        -- (the headless runs' marks never reach the question: the funnel skips
+        -- them, and _data_no_question is cleared before it)
+        local headless = key:find("^_background_") or key:find("^_ladder_")
+            or key == "_merge_payload" or key == "_data_no_question"
+        if not headless then
+            n = n + 1
+            TestRunner:assertTrue(listed[key] == true, "consumed at a read site and in the list: " .. key)
+        end
+    end
+    TestRunner:assertTrue(n >= 7, "the read sites were found (" .. n .. ")")
+end)
+
 SDS.resolve = saved.resolve
 UIManager.show = saved.show
 

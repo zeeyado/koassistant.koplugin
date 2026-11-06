@@ -209,10 +209,8 @@ local SettingsSchema = {
             type = "submenu",
             emoji = "🤖",
             text_func = function(plugin)
-                local f = plugin.settings:readSetting("features") or {}
-                local provider = f.provider or "anthropic"
                 return T(_("Model: %1 (%2)"), plugin:getCurrentModel(),
-                    plugin:getProviderDisplayName(provider))
+                    plugin:getProviderDisplayName(plugin:getCurrentProvider()))
             end,
             callback = "buildProviderModelHub",
         },
@@ -2940,9 +2938,8 @@ local SettingsSchema = {
                     -- rather than disable — this is a GLOBAL default that still applies to every
                     -- other model the reader switches to (same rule as the QS web-search tile).
                     suffix_func = function(plugin)
-                        local f = plugin.settings:readSetting("features") or {}
                         local mode = ModelConstraints.temperatureSupport(
-                            f.provider or "anthropic", plugin:getCurrentModel())
+                            plugin:getCurrentProvider(), plugin:getCurrentModel())
                         if mode == "rejected" then return _("ignored by this model") end
                         if mode == "forced" then return _("fixed by this model") end
                         return nil

@@ -5117,6 +5117,15 @@ local function guiKeyCount(value)
 end
 
 -- Helper: Check if user has any API keys configured (GUI or file), excluding a specific provider
+-- The first API key switches the main provider to it (a fresh install). A
+-- reader whose provider needs no key of this kind (the OpenAI Subscription's
+-- sign-in, Ollama, a configuration.lua key) or who already has another key is
+-- adding a provider, not choosing one; re-saving the current provider's own
+-- key switches nothing either (the sweep of 2026-11-06).
+local function firstKeySwitches(current, provider, current_configured, other_keys)
+  return current ~= provider and not current_configured and not other_keys
+end
+
 local function hasAnyApiKeys(gui_keys, exclude_provider)
   -- Check GUI keys
   for provider, key in pairs(gui_keys or {}) do
@@ -5315,7 +5324,9 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
               local f = self_ref.settings:readSetting("features") or {}
               f.api_keys = f.api_keys or {}
               -- Check if this is the user's first API key (before saving)
-              local is_first_key = not hasAnyApiKeys(f.api_keys, provider)
+              local current = self_ref:getCurrentProvider()
+              local is_first_key = firstKeySwitches(current, provider,
+                self_ref:isProviderConfigured(current), hasAnyApiKeys(f.api_keys, provider))
               local stored = f.api_keys[provider]
               if append or type(stored) == "table" then
                 -- Multi-key shape: append as a { key } entry, converting a legacy
@@ -5343,7 +5354,7 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
               -- Auto-select provider if this is the first API key
               if is_first_key then
                 f.provider = provider
-                f.model = nil  -- Reset to new provider's default
+                f.model = self_ref:getEffectiveDefaultModel(provider)  -- the new provider's default
                 message = T(_("%1 API key saved. %1 selected as provider."), display_name)
               end
               self_ref.settings:saveSetting("features", f)
@@ -8591,9 +8602,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
           if self_ref:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
           self_ref:_showSectionPicker(action, {
             title = T(_("Select Section for %1"), action_name),
+            on_cancel = function() self_ref:showCacheActionPopup(action, action_id, on_update, opts) end,
             on_select = function(entry)
-              self_ref:_showSectionNameInput(action, action_id, entry,
-                opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
+              self_ref:_showSectionNameInput(action, action_id, entry, {
+                run_variant = opts and opts.run_variant or nil,
+                on_cancel = function() self_ref:showCacheActionPopup(action, action_id, on_update, opts) end,
+              })
             end,
           })
         end,
@@ -8739,9 +8753,12 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
         if self_ref:_checkRequirements(action, file, opts and opts.run_variant and opts.run_variant.provider or nil) then return end
         self_ref:_showSectionPicker(action, {
           title = T(_("Select Section for %1"), action_name),
+          on_cancel = function() self_ref:showCacheActionPopup(action, action_id, on_update, opts) end,
           on_select = function(entry)
-            self_ref:_showSectionNameInput(action, action_id, entry,
-                opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
+            self_ref:_showSectionNameInput(action, action_id, entry, {
+              run_variant = opts and opts.run_variant or nil,
+              on_cancel = function() self_ref:showCacheActionPopup(action, action_id, on_update, opts) end,
+            })
           end,
         })
       end,
@@ -9353,6 +9370,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             UIManager:close(current_dialog)
             self_ref:_showSectionPicker(action, {
               title = _("Start from which section?"),
+              on_cancel = function() buildAndShow() end,
               on_select = function(entry)
                 if entry.start_page > chapter.current_page then
                   -- An empty/backwards span; teach rather than filter (hiding later
@@ -9395,9 +9413,11 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             end
             self_ref:_showSectionPicker(action, {
               title = _("Range start: which section?"),
+              on_cancel = function() buildAndShow() end,
               on_select = function(start_entry)
                 self_ref:_showSectionPicker(action, {
                   title = _("Range end: which section?"),
+                  on_cancel = function() buildAndShow() end,
                   on_select = function(end_entry)
                     if end_entry.start_page < start_entry.start_page then
                       UIManager:show(InfoMessage:new{
@@ -9426,6 +9446,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
             UIManager:close(current_dialog)
             self_ref:_showSectionPicker(action, {
               title = T(_("Select Section for %1"), action_name),
+              on_cancel = function() buildAndShow() end,
               on_select = function(entry)
                 if opts.for_highlight then
                   -- Highlight scope: no naming needed, just set the section
@@ -9443,6 +9464,7 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                 else
                   -- Book scope: name the section now (shows in popup before Run)
                   self_ref:_showSectionNameInput(action, action_id, entry, {
+                    on_cancel = function() buildAndShow() end,
                     on_confirm = function(label)
                       state.scope = "section"
                       state.section_entry = entry
@@ -10168,15 +10190,21 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           text = _("Generate Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionPicker(action,
-              opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
+            self_ref:_showSectionPicker(action, {
+              run_variant = opts and opts.run_variant or nil,
+              on_cancel = function()
+                self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+              end,
+            })
           end,
         }})
         table.insert(nc_sec_rows, {{
           text = _("Generate for a section range…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionRangePicker(action, opts and opts.run_variant)
+            self_ref:_showSectionRangePicker(action, opts and opts.run_variant, function()
+              self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+            end)
           end,
         }})
       end
@@ -10715,15 +10743,21 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
           text = _("Generate Section X-Ray…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionPicker(action,
-              opts and opts.run_variant and { run_variant = opts.run_variant } or nil)
+            self_ref:_showSectionPicker(action, {
+              run_variant = opts and opts.run_variant or nil,
+              on_cancel = function()
+                self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+              end,
+            })
           end,
         }})
         table.insert(c_sec_rows, {{
           text = _("Generate for a section range…"),
           callback = function()
             UIManager:close(dialog)
-            self_ref:_showSectionRangePicker(action, opts and opts.run_variant)
+            self_ref:_showSectionRangePicker(action, opts and opts.run_variant, function()
+              self_ref:_showXrayScopePopup(action, action_id, on_update, cached_entry, opts)
+            end)
           end,
         }})
       end
@@ -11286,7 +11320,7 @@ function AskGPT:_showSectionPicker(action, opts)
     if opts and opts.on_select then
       opts.on_select(entry)
     else
-      self_ref:_showSectionXrayNameInput(action, entry, opts and opts.run_variant)
+      self_ref:_showSectionXrayNameInput(action, entry, opts and opts.run_variant, opts and opts.on_cancel)
     end
     return true
   end
@@ -11320,16 +11354,18 @@ end
 --- TOC picks → one synthetic entry spanning both (union span, composite label),
 --- which rides the normal name-input + generate path — one API call instead of
 --- build-per-chapter + merge. Picks may come in either order.
-function AskGPT:_showSectionRangePicker(action, run_variant)
+function AskGPT:_showSectionRangePicker(action, run_variant, on_cancel)
   local self_ref = self
   self:_showSectionPicker(action, {
     title = _("Section range: pick the first section"),
+    -- Back from the first pick: the popup that opened the range comes back
+    on_cancel = on_cancel,
     on_select = function(first)
       self_ref:_showSectionPicker(action, {
         title = _("Section range: pick the last section"),
         on_cancel = function()
           -- Back one step: re-open the first pick, not abandon the flow
-          self_ref:_showSectionRangePicker(action, run_variant)
+          self_ref:_showSectionRangePicker(action, run_variant, on_cancel)
         end,
         on_select = function(second)
           local a, b = first, second
@@ -11345,7 +11381,7 @@ function AskGPT:_showSectionRangePicker(action, run_variant)
               depth = math.min(a.depth or 1, b.depth or 1),
             }
           end
-          self_ref:_showSectionXrayNameInput(action, entry, run_variant)
+          self_ref:_showSectionXrayNameInput(action, entry, run_variant, on_cancel)
         end,
       })
     end,
@@ -12592,7 +12628,7 @@ end
 --- Show name input for a Section X-Ray, then trigger generation.
 --- @param action table: The base xray action definition
 --- @param entry table: TOC entry { title, start_page, end_page, depth }
-function AskGPT:_showSectionXrayNameInput(action, entry, run_variant)
+function AskGPT:_showSectionXrayNameInput(action, entry, run_variant, on_cancel)
   local InputDialog = require("ui/widget/inputdialog")
   local ActionCache = require("koassistant.artifacts.action_cache")
   local Actions = require("koassistant.prompts.actions")
@@ -12621,6 +12657,8 @@ function AskGPT:_showSectionXrayNameInput(action, entry, run_variant)
           id = "close",
           callback = function()
             UIManager:close(input_dialog)
+            -- the X-Ray popup the section was picked from comes back (B360)
+            if on_cancel then on_cancel() end
           end,
         },
         {
@@ -12901,6 +12939,8 @@ function AskGPT:_showSectionNameInput(action, action_id, entry, opts)
           id = "close",
           callback = function()
             UIManager:close(input_dialog)
+            -- the popup the section was picked from comes back (B360)
+            if opts and opts.on_cancel then opts.on_cancel() end
           end,
         },
         {
@@ -17715,7 +17755,7 @@ function AskGPT:showReasoningQuickPopup(on_close_callback, provider_arg, model_a
   local self_ref = self
 
   local features = self.settings:readSetting("features") or {}
-  local provider = provider_arg or features.provider or "anthropic"
+  local provider = provider_arg or self:getCurrentProvider()
   local provider_display = self:getProviderDisplayName(provider)
   local model = model_arg or self:getCurrentModel() or "default"
   local profile = ModelConstraints.getReasoningProfile(provider, model)
@@ -18340,7 +18380,7 @@ function AskGPT:onKOAssistantAISettings(on_close_callback)
   end
 
   local features = self.settings:readSetting("features") or {}
-  local provider = features.provider or "anthropic"
+  local provider = self:getCurrentProvider()
   local provider_display = self:getProviderDisplayName(provider)
   local model = self:getCurrentModel() or "default"
   local behavior_id = features.selected_behavior or "standard"
@@ -20387,8 +20427,11 @@ function AskGPT:syncDictionaryBypass()
         local_config.features = {}
         for k, v in pairs(configuration.features) do local_config.features[k] = v end
         self_ref:_scrubContextFeatures(local_config.features)
-        Dialogs.executeDirectAction(self_ref.ui, bypass_action, clean_word, local_config, self_ref,
-          lookup_book_override and { document_path = lookup_book_override } or nil)
+        Dialogs.executeDirectAction(self_ref.ui, bypass_action, clean_word, local_config, self_ref, {
+          -- the window's own book, else the open one (the sweep of 2026-11-06)
+          document_path = lookup_book_override
+            or (self_ref.ui.document and self_ref.ui.document.file),
+        })
       else
         NetworkMgr:runWhenConnected(function()
           -- Make sure we're using the latest configuration
@@ -20689,8 +20732,12 @@ function AskGPT:_openXrayEntityDirect(query, opts)
     configuration.features = configuration.features or {}
     configuration.features._xray_lookup_target = opts.target
   end
-  Dialogs.executeDirectAction(self.ui, xaction, query, configuration, self,
-    opts and opts.document_path and { document_path = opts.document_path } or nil)
+  -- The open book, unless the card named another: a stale book chat's identity
+  -- on the shared configuration must not redirect the lookup (the sweep of 2026-11-06)
+  Dialogs.executeDirectAction(self.ui, xaction, query, configuration, self, {
+    document_path = (opts and opts.document_path)
+      or (self.ui and self.ui.document and self.ui.document.file),
+  })
 end
 
 --- Card landing router (point-4 v1, ref #78/#63): every EXACT entity hit
@@ -23193,6 +23240,24 @@ function AskGPT:_showRestoreOptionsDialog(backup_manager, backup, manifest, stat
 end
 
 -- Perform restore (internal helper)
+--- Replace this instance's settings data with the file's (after a restore
+--- wrote it through another object). The settings object keeps its identity
+--- (the action service, the notebook and the menus hold it) and the features
+--- table keeps its reference (configuration.features is synced from it);
+--- updateConfigFromSettings does the features merge and the sync.
+function AskGPT:_reloadSettingsFromDisk()
+  if not self._settings_path then return end
+  local fresh = LuaSettings:open(self._settings_path)
+  local data = self.settings.data
+  for k in pairs(data) do
+    if k ~= "features" and fresh.data[k] == nil then data[k] = nil end
+  end
+  for k, v in pairs(fresh.data) do
+    if k ~= "features" then data[k] = v end
+  end
+  self:updateConfigFromSettings()
+end
+
 function AskGPT:_performRestore(backup_manager, backup, options)
   local InfoMessage = require("ui/widget/infomessage")
   local ConfirmBox = require("ui/widget/confirmbox")
@@ -23215,6 +23280,11 @@ function AskGPT:_performRestore(backup_manager, backup, options)
       UIManager:close(progress_msg)
 
       if result.success then
+        -- This instance's settings object still held the table from before
+        -- the restore: its next flush (any toggle) would have written that
+        -- back over the restored file. Reload in place, so every module
+        -- holding this object reads the restored values (the sweep of 2026-11-06)
+        self:_reloadSettingsFromDisk()
         if result.v1_chats_restored then
           -- The backup predates chat storage v2: its chats came back in the
           -- old hash-folder layout, which nothing reads any more. Import them

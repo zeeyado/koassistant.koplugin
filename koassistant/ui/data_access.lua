@@ -1027,9 +1027,12 @@ function DataAccess.askForDispatch(plugin, action, features, ui, config, run_fn)
     local sm = cf._source_mode
     -- A refusal or a Cancel: the chat this run would have opened never starts
     -- (an input dialog closes before its action dispatches), so the chat's
-    -- allowance ends here, never reaching a later request
+    -- allowance ends here, never reaching a later request; the same for every
+    -- other just-in-time key the dispatch would have consumed from this config
+    -- (a run option, the chips' state, the scope pick: Dialogs.DISPATCH_TRANSIENTS),
+    -- which a shared config would otherwise hand to the next, unrelated request
     local function drop()
-        cf._data_once = nil
+        require("koassistant.ui.dialogs").dropDispatchTransients(cf)
     end
     -- Book info None (B500): an action with nothing of the book to go on but
     -- its title says so, instead of asking the AI about "this book"
