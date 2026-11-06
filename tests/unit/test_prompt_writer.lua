@@ -414,5 +414,26 @@ TestRunner:test("provenance: who wrote it and from what; what privacy left out",
     TestRunner:assert(has(line, "from the entry's description"), "an entry has no passage: " .. line)
 end)
 
+print("  [the sweep of 2026-11-06: a name set to capitals only]")
+TestRunner:test("entriesFor and the suggestions honour a capitals-only name, as the marks do", function()
+    local XrayParser = require("koassistant.xray.xray_parser")
+    local data = { type = "fiction", characters = {
+        { name = "Will", role = "a boy", description = "A boy." },
+        { name = "Anna", role = "his sister", description = "A girl." },
+    } }
+    XrayParser.mergeUserAliases(data, { Will = { case = { will = "capitals" } } })
+    local function names(list)
+        local out = {}
+        for _i, e in ipairs(list) do out[#out + 1] = e.name end
+        return table.concat(out, ",")
+    end
+    TestRunner:assertEquals(names(PromptWriter.entriesFor("Anna said she will go home.", data)), "Anna",
+        "a lowercase will is not the boy")
+    TestRunner:assertEquals(names(PromptWriter.entriesFor("Anna said Will went home.", data)), "Anna,Will",
+        "the capitalized name is")
+    local tiers = PromptWriter.pickerTiers(data, "Anna said she will go home.")
+    TestRunner:assertEquals(names(tiers.suggested), "Anna", "the suggestions follow the same rule")
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

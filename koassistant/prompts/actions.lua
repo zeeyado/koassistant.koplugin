@@ -2624,7 +2624,7 @@ All labels and explanations in {dictionary_language}. Inline bold labels, no hea
         },
         builtin = true,
     },
-    deep = {
+    dictionary_deep = {
         id = "dictionary_deep",
         skip_spoiler = true,
         text = _("Deep Analysis"),

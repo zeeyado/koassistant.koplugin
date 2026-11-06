@@ -1317,7 +1317,7 @@ function BookToolRunner.run(params)
                 web_available = features.enable_web_search == true
             end
             web_available = web_available
-                and ModelConstraints.supportsWebSearch(provider, config.model)
+                and ModelConstraints.supportsWebSearch(provider, ModelConstraints.dispatchModel(config))
             if web_available then
                 context_text = "[Book lookup note]\nBook lookups found no relevant passages for this question. Search the web if that would help answer it; otherwise answer from the conversation and general knowledge, and say so when the book text would have been needed."
             else

@@ -61,6 +61,29 @@ end
 function TestActions:runAll()
     print("\n=== Testing koassistant/prompts/actions.lua ===\n")
 
+    -- The sweep of 2026-11-06: getById looks a table up by key, so every key
+    -- is its action's id (the special table's "deep" hid dictionary_deep)
+    self:test("every built-in action's table key is its id; getById finds dictionary_deep", function()
+        local Constants = require("koassistant.core.constants")
+        local mismatched = {}
+        for _idx, name in ipairs({ Constants.CONTEXTS.HIGHLIGHT, Constants.CONTEXTS.BOOK,
+                Constants.CONTEXTS.LIBRARY, Constants.CONTEXTS.GENERAL, "special" }) do
+            for key, action in pairs(Actions[name] or {}) do
+                if type(action) == "table" and action.id and action.id ~= key then
+                    mismatched[#mismatched + 1] = name .. ":" .. key .. "->" .. action.id
+                end
+            end
+        end
+        self:assertEquals(table.concat(mismatched, " "), "", "keys equal ids")
+        local deep = Actions.getById("dictionary_deep")
+        self:assert(deep and deep.id == "dictionary_deep", "getById finds the deep analysis")
+        local listed = false
+        for _idx, a in ipairs(Actions.getForContext("highlight")) do
+            if a.id == "dictionary_deep" then listed = true end
+        end
+        self:assert(listed, "listed among the highlight actions")
+    end)
+
     -- Test PLACEHOLDER_TO_FLAG mapping exists
     self:test("PLACEHOLDER_TO_FLAG is defined", function()
         self:assertEquals(type(Actions.PLACEHOLDER_TO_FLAG), "table")

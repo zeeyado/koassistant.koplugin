@@ -1183,7 +1183,16 @@ end
 
 function BookTools:getEffectiveToc()
     local document = self.ui and self.ui.document
-    local toc = self.ui and self.ui.toc and self.ui.toc.toc
+    local reader_toc = self.ui and self.ui.toc
+    -- KOReader builds the table of contents on first use (ReaderToc:fillToc):
+    -- a book opened and never asked for its contents had none here, so the
+    -- tools and the X-Ray's outline saw a book without chapters (the sweep
+    -- of 2026-11-06; the other direct readers, main.lua's quiz trigger, the
+    -- scope popup and the X-Ray browser, are filed as open)
+    if reader_toc and reader_toc.toc == nil and type(reader_toc.fillToc) == "function" then
+        pcall(reader_toc.fillToc, reader_toc)
+    end
+    local toc = reader_toc and reader_toc.toc
     if not toc or #toc == 0 then return nil end
 
     if document and document.hasHiddenFlows and document:hasHiddenFlows() then

@@ -363,7 +363,7 @@ end)
 TestRunner:test("built-in exclusions and inclusions carry the right flags", function()
     TestRunner:assertEqual(Actions.special.dictionary.use_surrounding_context, false, "dictionary excluded")
     TestRunner:assertEqual(Actions.special.quick_define.use_surrounding_context, false, "quick_define excluded")
-    TestRunner:assertEqual(Actions.special.deep.use_surrounding_context, false, "dictionary_deep excluded")
+    TestRunner:assertEqual(Actions.special.dictionary_deep.use_surrounding_context, false, "dictionary_deep excluded")
     TestRunner:assertEqual(Actions.highlight.wiki.use_surrounding_context, true, "wiki stays explicit-true")
     TestRunner:assertNil(Actions.highlight.fact_check.use_surrounding_context,
         "fact_check follows ambient (strong beneficiary)")

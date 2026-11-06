@@ -837,4 +837,34 @@ TestRunner:test("xrayOutlineBlock (B337b): the contents of an X-Ray create's tex
     TestRunner:assertEqual(BookTools.xrayOutlineBlock(makeToolsWithPages(pages, 28, {}).ui, 10), nil, "no contents, no block")
 end)
 
+TestRunner:test("a table of contents KOReader has not built yet is built on first use (the sweep of 2026-11-06)", function()
+    local filled = 0
+    local ui = {
+        document = {
+            info = { has_pages = true, number_of_pages = 4 },
+            getPageText = function(_self, page) return DEMO_PAGES[page] or "" end,
+        },
+        view = { state = { page = 3 } },
+        toc = {
+            toc = nil,  -- ReaderToc fills it on first use
+            fillToc = function(self)
+                filled = filled + 1
+                self.toc = {
+                    { title = "Chapter 1", page = 1, depth = 1 },
+                    { title = "Chapter 2", page = 3, depth = 1 },
+                }
+            end,
+        },
+    }
+    local tools = BookTools:new(ui, { enable_book_text_extraction = true })
+    local toc = tools:toc()
+    TestRunner:assertEqual(filled, 1, "built once")
+    TestRunner:assertTrue(type(toc) == "table" and toc.total_entries == 2, "the entries are there: " .. tostring(toc and toc.total_entries))
+    tools:toc()
+    TestRunner:assertEqual(filled, 1, "not built again")
+    local outline = tools:getOutline()
+    TestRunner:assertTrue(type(outline) == "table" and outline.has_toc and outline.total == 2,
+        "the outline reads it too (" .. tostring(outline and outline.total) .. ")")
+end)
+
 return TestRunner:summary()

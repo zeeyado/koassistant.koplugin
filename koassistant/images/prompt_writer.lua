@@ -208,6 +208,9 @@ local function namedIn(text, data)
     if type(text) ~= "string" or text == "" then return {} end
     local XrayParser = require("koassistant.xray.xray_parser")
     local norm = XrayParser.matchNormalize(text)
+    -- the capitals of the text, for a name set to capitals only (B533 S2;
+    -- the sweep of 2026-11-06: the writer named "Will" for every "will")
+    local keep = XrayParser.alignedKeepCase(text, norm)
     local found, own_spans = {}, {}
     for _pass, carried in ipairs({ false, true }) do
         for _idx, cat in ipairs(XrayParser.getCategories(data) or {}) do
@@ -217,8 +220,8 @@ local function namedIn(text, data)
                         and XrayParser.matchTermSet(item) or nil
                     -- the cheap pass first: the containing forms of other entries
                     -- are worked out only for an entry the text names
-                    if set and #XrayParser.occurrencesIn(norm, set) > 0 then
-                        local occ = XrayParser.occurrencesIn(norm, set, XrayParser.containingMatchHandles(data, item))
+                    if set and #XrayParser.occurrencesIn(norm, set, nil, keep) > 0 then
+                        local occ = XrayParser.occurrencesIn(norm, set, XrayParser.containingMatchHandles(data, item), keep)
                         if carried then
                             local kept = {}
                             for _k, o in ipairs(occ) do

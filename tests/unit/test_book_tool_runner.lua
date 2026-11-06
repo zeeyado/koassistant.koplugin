@@ -642,7 +642,7 @@ TestRunner:test("gather: empty bundle note mentions web search when available", 
     -- All lookups fail (unknown tool → ok=false → skipped by the bundle) so the
     -- honest "[Book lookup note]" fires; with web search on it must not read as an
     -- instruction to skip searching.
-    local function run(features_extra)
+    local function run(features_extra, provider)
         local calls = 0
         local gen_messages
         local function query_fn(messages, _config, callback)
@@ -666,7 +666,7 @@ TestRunner:test("gather: empty bundle note mentions web search when available", 
         BookToolRunner.run({
             query_fn = query_fn,
             messages = { { role = "user", content = "who were his parents?" } },
-            config = { provider = "anthropic", features = features },
+            config = { provider = provider or "anthropic", features = features },
             ui = makeUi(),
             on_complete = function() end,
         })
@@ -688,6 +688,14 @@ TestRunner:test("gather: empty bundle note mentions web search when available", 
     TestRunner:assertTrue(without_web ~= nil, "note present with web off")
     TestRunner:assertTrue(without_web:find("Search the web", 1, true) == nil,
         "no web mention when web search is off")
+
+    -- a provider whose web search is per model, on a config with no model set
+    -- (the routine route): the note reads the model the request goes to, the
+    -- provider's default (one model id per request; the sweep of 2026-11-06)
+    local gemini_default = run({ enable_web_search = true }, "gemini")
+    TestRunner:assertTrue(gemini_default ~= nil, "note present")
+    TestRunner:assertTrue(gemini_default:find("Search the web", 1, true) ~= nil,
+        "the default model's web search counts (a bare config.model read as none)")
 end)
 
 TestRunner:test("gather: done alongside lookups in one turn executes the lookups first", function()
