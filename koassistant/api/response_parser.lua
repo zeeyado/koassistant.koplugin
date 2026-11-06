@@ -70,6 +70,7 @@ local NORMAL_STOPS = {
     end_turn = true, max_tokens = true, stop_sequence = true, tool_use = true,  -- Anthropic
     pause_turn = true,
     STOP = true, MAX_TOKENS = true,                                            -- Gemini
+    model_length = true,                                                       -- Mistral's "length"
 }
 ResponseParser.STOP_PREFIX = ResponseParser.NOTICE_PREFIX .. " stopped early by the provider: "
 
@@ -99,6 +100,30 @@ function ResponseParser.withStopNotice(content, reason)
         return content .. ResponseParser.stopNotice(ab)
     end
     return content
+end
+
+-- A JSON null decodes to a function sentinel in KOReader's json, so a field
+-- read off a provider's message is a non-empty string or nothing: a null
+-- reasoning stored on a message made the saved chats file unloadable
+-- (sweep 2026-11-06).
+local function str(v)
+    if type(v) == "string" and v ~= "" then return v end
+    return nil
+end
+
+-- The tail every chat-completions transformer shares: a cut-off answer
+-- carries the truncation notice (finish_reason "length"; Mistral says
+-- "model_length") and an abnormal stop its notice, so the cache and the
+-- X-Ray writes read ResponseParser.isIncomplete. Until 2026-11-06 only the
+-- OpenAI, DeepSeek, NVIDIA and Z.AI transformers did this; the others saved
+-- a cut answer as whole.
+local function finishChat(content, choice)
+    local reason = type(choice) == "table" and choice.finish_reason or nil
+    if type(content) == "string" and content ~= ""
+            and (reason == "length" or reason == "model_length") then
+        content = content .. ResponseParser.TRUNCATION_NOTICE
+    end
+    return ResponseParser.withStopNotice(content, reason)
 end
 
 -- Inline marker inserted where a web search ran mid-answer (report 3(b) decision,
@@ -886,7 +911,7 @@ local RESPONSE_TRANSFORMERS = {
             local content = message.content
             -- Tool-call messages carry content:null → luajson's truthy function sentinel
             if type(content) ~= "string" then content = nil end
-            local reasoning = message.reasoning_content  -- DeepSeek reasoner returns this
+            local reasoning = str(message.reasoning_content)  -- DeepSeek reasoner returns this
 
             -- Book-tool function calls → neutral shape for the tool runner.
             -- raw_assistant_turn keeps message.reasoning_content: DeepSeek V3.2+
@@ -955,6 +980,10 @@ local RESPONSE_TRANSFORMERS = {
                     and response.message.thinking ~= "" then
                 reasoning = response.message.thinking
             end
+            if type(clean_content) == "string" and clean_content ~= ""
+                    and response.done_reason == "length" then
+                clean_content = clean_content .. ResponseParser.TRUNCATION_NOTICE
+            end
             return true, clean_content, reasoning
         end
         return false, "Unexpected response format"
@@ -983,7 +1012,7 @@ local RESPONSE_TRANSFORMERS = {
 
             -- Extract <think> tags from R1 models
             local clean_content, reasoning = extractThinkTags(content)
-            return true, clean_content, reasoning
+            return true, finishChat(clean_content, response.choices[1]), reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1024,11 +1053,11 @@ local RESPONSE_TRANSFORMERS = {
                 end
                 local text = table.concat(text_parts, "\n")
                 local thinking = #think_parts > 0 and table.concat(think_parts, "\n") or nil
-                return true, text, thinking
+                return true, finishChat(text, response.choices[1]), thinking
             end
             -- Non-Magistral models return a string (null sentinel normalized)
             if type(content) ~= "string" then content = nil end
-            return true, content
+            return true, finishChat(content, response.choices[1])
         end
         return false, "Unexpected response format"
     end,
@@ -1058,7 +1087,7 @@ local RESPONSE_TRANSFORMERS = {
             end
 
             -- xAI returns reasoning_content for grok reasoning models
-            local reasoning = message.reasoning_content
+            local reasoning = str(message.reasoning_content)
 
             -- Book-tool function calls → neutral shape for the tool runner
             -- (chat wire only — xai.lua never routes tool sessions to Responses)
@@ -1071,7 +1100,7 @@ local RESPONSE_TRANSFORMERS = {
                 }, reasoning, web_search_used
             end
 
-            return true, content, reasoning, web_search_used
+            return true, finishChat(content, response.choices[1]), reasoning, web_search_used
         end
         return false, "Unexpected response format"
     end,
@@ -1103,7 +1132,7 @@ local RESPONSE_TRANSFORMERS = {
             end
 
             -- OpenRouter normalizes reasoning to message.reasoning field
-            local reasoning = message.reasoning
+            local reasoning = str(message.reasoning)
 
             -- Book-tool function calls → neutral shape (OpenAI wire: arguments is a JSON string;
             -- type check, not truthiness: an explicit tool_calls:null is the luajson sentinel)
@@ -1129,7 +1158,7 @@ local RESPONSE_TRANSFORMERS = {
                 end
             end
 
-            return true, content, reasoning, web_search_used
+            return true, finishChat(content, response.choices[1]), reasoning, web_search_used
         end
         return false, "Unexpected response format"
     end,
@@ -1144,8 +1173,8 @@ local RESPONSE_TRANSFORMERS = {
 
             -- Requesty normalizes reasoning to message.reasoning (like OpenRouter);
             -- fall back to reasoning_content used by some backends.
-            local reasoning = message.reasoning or message.reasoning_content
-            return true, content, reasoning
+            local reasoning = str(message.reasoning) or str(message.reasoning_content)
+            return true, finishChat(str(content), response.choices[1]), reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1173,7 +1202,7 @@ local RESPONSE_TRANSFORMERS = {
             -- Passive extraction: Qwen thinking models return reasoning_content
             local reasoning = type(message.reasoning_content) == "string"
                 and message.reasoning_content or nil
-            return true, content, reasoning
+            return true, finishChat(content, response.choices[1]), reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1202,7 +1231,7 @@ local RESPONSE_TRANSFORMERS = {
             -- Passive extraction: Kimi thinking models return reasoning_content
             local reasoning = type(message.reasoning_content) == "string"
                 and message.reasoning_content or nil
-            return true, content, reasoning
+            return true, finishChat(content, response.choices[1]), reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1232,7 +1261,7 @@ local RESPONSE_TRANSFORMERS = {
             local reasoning = type(message.reasoning_content) == "string"
                 and message.reasoning_content or nil
             local clean_content, think_reasoning = extractThinkTags(content)
-            return true, clean_content, reasoning or think_reasoning
+            return true, finishChat(clean_content, response.choices[1]), reasoning or think_reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1265,7 +1294,7 @@ local RESPONSE_TRANSFORMERS = {
             local reasoning = type(message.reasoning_content) == "string"
                 and message.reasoning_content or nil
             local clean_content, think_reasoning = extractThinkTags(content)
-            return true, clean_content, reasoning or think_reasoning
+            return true, finishChat(clean_content, response.choices[1]), reasoning or think_reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1314,19 +1343,14 @@ local RESPONSE_TRANSFORMERS = {
                 end
             end
 
-            local finish_reason = response.choices[1].finish_reason
             if not content or content == "" then
                 -- Reasoning ran to the token ceiling without producing an answer.
                 return true, ResponseParser.interruptedNotice(
                     "the model returned only its reasoning"), reasoning
             end
-            if finish_reason == "length" then
-                content = content .. ResponseParser.TRUNCATION_NOTICE
-            end
-            content = ResponseParser.withStopNotice(content, finish_reason)
 
             local clean_content, think_reasoning = extractThinkTags(content)
-            return true, clean_content, reasoning or think_reasoning
+            return true, finishChat(clean_content, response.choices[1]), reasoning or think_reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1336,10 +1360,10 @@ local RESPONSE_TRANSFORMERS = {
             return false, response.error.message or response.error.type or "Unknown error"
         end
         if response.choices and response.choices[1] and response.choices[1].message then
-            local content = response.choices[1].message.content
+            local content = str(response.choices[1].message.content)
             -- Extract <think> tags from R1 models
             local clean_content, reasoning = extractThinkTags(content)
-            return true, clean_content, reasoning
+            return true, finishChat(clean_content, response.choices[1]), reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1370,9 +1394,16 @@ local RESPONSE_TRANSFORMERS = {
                 end
                 if #texts > 0 or #thinks > 0 then
                     local reasoning = #thinks > 0 and table.concat(thinks, "\n") or nil
-                    return true, table.concat(texts, ""), reasoning
+                    local text = table.concat(texts, "")
+                    if text ~= "" and response.finish_reason == "MAX_TOKENS" then
+                        text = text .. ResponseParser.TRUNCATION_NOTICE
+                    end
+                    return true, text, reasoning
                 end
             elseif type(content) == "string" then
+                if content ~= "" and response.finish_reason == "MAX_TOKENS" then
+                    content = content .. ResponseParser.TRUNCATION_NOTICE
+                end
                 return true, content
             end
         end
@@ -1386,8 +1417,8 @@ local RESPONSE_TRANSFORMERS = {
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
             -- Passive extraction: Doubao thinking models return reasoning_content
-            local reasoning = message.reasoning_content
-            return true, message.content, reasoning
+            local reasoning = str(message.reasoning_content)
+            return true, finishChat(str(message.content), response.choices[1]), reasoning
         end
         return false, "Unexpected response format"
     end,
@@ -1398,13 +1429,9 @@ local RESPONSE_TRANSFORMERS = {
         end
         if response.choices and response.choices[1] and response.choices[1].message then
             local message = response.choices[1].message
-            local content = message.content
-            local reasoning = message.reasoning_content  -- GLM-4.5+ returns this
+            local content = finishChat(str(message.content), response.choices[1])
+            local reasoning = str(message.reasoning_content)  -- GLM-4.5+ returns this
             -- Check for truncation
-            local finish_reason = response.choices[1].finish_reason
-            if content and content ~= "" and finish_reason == "length" then
-                content = content .. ResponseParser.TRUNCATION_NOTICE
-            end
             -- Check for web search usage (top-level array in Z.AI responses)
             local web_search_used = nil
             if type(response.web_search) == "table" and #response.web_search > 0 then

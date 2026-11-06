@@ -74,8 +74,43 @@ end
 --- Repair pass applied to every successfully parsed quiz.
 --- @param data table
 --- @return table The same table
+-- A field the model sends as JSON null decodes to a function sentinel in
+-- KOReader's json: the viewer took the length of key_points and the export
+-- printed a model answer, so a null crashed the quiz window on reveal
+-- (sweep 2026-11-06). Keep strings only, and only string key points and
+-- options.
+local function normalizeQuestionFields(q)
+    if type(q.explanation) ~= "string" then q.explanation = nil end
+    if type(q.model_answer) ~= "string" then q.model_answer = nil end
+    if q.key_points ~= nil then
+        local kept = {}
+        if type(q.key_points) == "table" then
+            for _j, kp in ipairs(q.key_points) do
+                if type(kp) == "string" then table.insert(kept, kp) end
+            end
+        end
+        q.key_points = kept
+    end
+    if type(q.options) == "table" then
+        if #q.options > 0 then
+            local kept = {}
+            for _j, opt in ipairs(q.options) do
+                if type(opt) == "string" then table.insert(kept, opt) end
+            end
+            q.options = kept
+        else
+            for k, v in pairs(q.options) do
+                if type(v) ~= "string" then q.options[k] = nil end
+            end
+        end
+    end
+end
+
+QuizParser._normalizeQuestionFields = normalizeQuestionFields  -- test seam
+
 local function normalizeQuiz(data)
     for _idx, q in ipairs(data.questions or {}) do
+        normalizeQuestionFields(q)
         if q.type == "multiple_choice" then normalizeCorrect(q) end
     end
     return data

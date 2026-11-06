@@ -69,7 +69,10 @@ function MessageHistory:addAssistantMessage(content, model, reasoning, debug_inf
         content = content
     }
     -- Store reasoning if provided (for models with visible thinking)
-    if reasoning then
+    -- A string (the text), true (streamed, not captured) or the table marker
+    -- ({ _requested = true, ... }); never a decoded JSON null, a function
+    -- sentinel the saved chats file cannot hold (sweep 2026-11-06)
+    if reasoning ~= nil and type(reasoning) ~= "function" then
         message.reasoning = reasoning
     end
     -- Store response provenance. The 5th arg is either the legacy boolean (web search

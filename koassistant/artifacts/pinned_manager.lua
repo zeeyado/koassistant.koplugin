@@ -155,7 +155,10 @@ local function savePinned(document_path, pinned)
         util.makePath(dir)
     end
 
-    local file, err = io.open(path, "w")
+    -- Written to a temp file and renamed over the old one, as saveCache does:
+    -- a cut-off write never tears the reader's pins (sweep 2026-11-06)
+    local tmp_path = path .. ".tmp"
+    local file, err = io.open(tmp_path, "w")
     if not file then
         logger.err("KOAssistant PinnedManager: Failed to open for writing:", err)
         return false
@@ -173,6 +176,17 @@ local function savePinned(document_path, pinned)
             end
             file:write(string.format("        timestamp = %s,\n", tostring(entry.timestamp or 0)))
             file:write(string.format("        model = %q,\n", entry.model or ""))
+            -- The data stamps and the provider (B395 slice 5): the chat about a
+            -- pin and the Attach pick judge them; the writer dropped them until
+            -- 2026-11-06, so every pin read as text-built from an unknown provider
+            if type(entry.provider) == "string" then
+                file:write(string.format("        provider = %q,\n", entry.provider))
+            end
+            for _k, key in ipairs({ "used_book_text", "used_highlights", "used_annotations", "used_notebook" }) do
+                if type(entry[key]) == "boolean" then
+                    file:write(string.format("        %s = %s,\n", key, tostring(entry[key])))
+                end
+            end
             file:write(string.format("        context_type = %q,\n", entry.context_type or "book"))
             file:write(string.format("        version = %s,\n", tostring(entry.version or PINNED_VERSION)))
             if entry.book_title then
@@ -191,7 +205,12 @@ local function savePinned(document_path, pinned)
         end
     end
     file:write("}\n")
-    file:close()
+    local closed = file:close()
+    if not closed or not os.rename(tmp_path, path) then
+        logger.warn("KOAssistant PinnedManager: pinned write failed, the old file is kept:", path)
+        os.remove(tmp_path)
+        return false
+    end
 
     logger.dbg("KOAssistant PinnedManager: Saved pinned for", document_path)
     return true

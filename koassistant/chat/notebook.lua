@@ -525,8 +525,12 @@ function Notebook.append(notebook_path, entry)
         return false, "Failed to open: " .. (err or "unknown")
     end
 
-    file:write(entry)
-    file:close()
+    local wrote = file:write(entry)
+    local closed = file:close()
+    if not wrote or not closed then
+        logger.err("KOAssistant Notebook: Failed to write the entry (full card?)")
+        return false, "Failed to write the entry"
+    end
     return true, nil
 end
 
@@ -868,8 +872,12 @@ function Notebook.create(document_path)
         return false, "Failed to create: " .. (err or "unknown")
     end
 
-    file:write(table.concat(content_parts, ""))
-    file:close()
+    local wrote = file:write(table.concat(content_parts, ""))
+    local closed = file:close()
+    if not wrote or not closed then
+        logger.err("KOAssistant Notebook: Failed to write the new notebook (full card?)")
+        return false, "Failed to write the new notebook"
+    end
 
     -- Store DocSettings ref for vault mode (travels with book on move)
     if location ~= "sidecar" and final_filename then
@@ -939,6 +947,24 @@ end
 --- @param features table Current features settings (contains paths)
 --- @return number moved Count of successfully moved notebooks
 --- @return number failed Count of failed moves
+-- Writes the whole content and proves it landed (the write and the close
+-- succeed and the size on disk matches) before a caller may remove the file
+-- it replaces: with buffered io a full card fails at close, and a cut copy
+-- replaced the only good notebook while the move reported success (sweep
+-- 2026-11-06). A partial file is removed.
+local function writeWhole(path, content)
+    local file = io.open(path, "w")
+    if not file then return false end
+    local wrote = file:write(content)
+    local closed = file:close()
+    if wrote and closed and lfs.attributes(path, "size") == #content then
+        return true
+    end
+    os.remove(path)
+    return false
+end
+Notebook._writeWhole = writeWhole
+
 function Notebook.migrateAll(from_location, to_location, features)
     local util = require("util")
     local index = G_reader_settings:readSetting("koassistant_notebook_index", {})
@@ -976,10 +1002,7 @@ function Notebook.migrateAll(from_location, to_location, features)
                 local dir = new_path:match("(.*/)") or ""
                 if dir ~= "" then util.makePath(dir) end
                 local clean_content = Notebook.stripFrontmatter(nb.content)
-                local file = io.open(new_path, "w")
-                if file then
-                    file:write(clean_content)
-                    file:close()
+                if writeWhole(new_path, clean_content) then
                     ok = true
                     -- Remove DocSettings ref (no longer needed in sidecar mode)
                     local ds = SafeDocSettings.resolve(nb.doc_path)
@@ -1019,10 +1042,7 @@ function Notebook.migrateAll(from_location, to_location, features)
                     content = Notebook.generateFrontmatter(nb.doc_path, doc_props) .. content
                 end
 
-                local file = io.open(new_path, "w")
-                if file then
-                    file:write(content)
-                    file:close()
+                if writeWhole(new_path, content) then
                     ok = true
                     -- Store DocSettings ref
                     ds:saveSetting("koassistant_notebook_ref", {

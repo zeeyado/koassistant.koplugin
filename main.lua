@@ -2924,7 +2924,7 @@ function AskGPT:testProvider(provider_id)
         if n == 200 then
           -- The parser's verdict on the 200 (B484): an answer in a shape it
           -- cannot read fails the first real request, so it fails this step
-          local kind, text = ProviderProbe.answer(handler, body, responses)
+          local kind, text = ProviderProbe.answer(handler, body, responses, provider_id)
           if kind == "unreadable" then
             return false, _("HTTP 200, but the answer is in a shape KOAssistant cannot read; a real request would fail")
           elseif kind == "text" then

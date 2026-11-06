@@ -899,6 +899,45 @@ TestRunner:test("abnormalStop: normal reasons and non-strings are nil", function
     TestRunner:assertEqual(ResponseParser.abnormalStop("SAFETY"), "SAFETY", "abnormal passes through")
 end)
 
+-- The sweep of 2026-11-06: a JSON null is a function sentinel in KOReader's
+-- json and must never ride out as reasoning or content; a cut answer on every
+-- chat-completions wire carries the truncation notice.
+local NULL = function() end
+local OPENAI_WIRE = { "groq", "mistral", "xai", "openrouter", "requesty", "qwen", "kimi",
+    "together", "fireworks", "sambanova", "doubao", "zai", "nvidia", "deepseek" }
+TestRunner:test("null reasoning and content never escape the OpenAI-wire parsers", function()
+    for _idx, key in ipairs(OPENAI_WIRE) do
+        local ok, content, reasoning = ResponseParser:parseResponse({ choices = { {
+            message = { content = "Hello.", reasoning = NULL, reasoning_content = NULL },
+            finish_reason = "stop" } } }, key)
+        TestRunner:assertTrue(ok, key .. ": parses")
+        TestRunner:assertTrue(type(content) == "string" and content:find("Hello", 1, true) ~= nil, key .. ": the text")
+        TestRunner:assertTrue(type(reasoning) ~= "function", key .. ": no function sentinel as reasoning")
+        local ok2, content2 = ResponseParser:parseResponse({ choices = { {
+            message = { content = NULL }, finish_reason = "stop" } } }, key)
+        TestRunner:assertTrue(ok2 and type(content2) ~= "function", key .. ": a null content is not a function")
+    end
+end)
+TestRunner:test("a cut answer carries the truncation notice on every OpenAI-wire parser", function()
+    for _idx, key in ipairs(OPENAI_WIRE) do
+        local reason = key == "mistral" and "model_length" or "length"
+        local ok, content = ResponseParser:parseResponse({ choices = { {
+            message = { content = "Hello." }, finish_reason = reason } } }, key)
+        TestRunner:assertTrue(ok, key .. ": parses")
+        TestRunner:assertTrue(ResponseParser.isIncomplete(content), key .. ": incomplete on " .. reason)
+        local ok3, whole = ResponseParser:parseResponse({ choices = { {
+            message = { content = "Hello." }, finish_reason = "stop" } } }, key)
+        TestRunner:assertTrue(ok3 and not ResponseParser.isIncomplete(whole), key .. ": whole on stop")
+    end
+    local ok, c = ResponseParser:parseResponse({ message = { content = { { type = "text", text = "Hello." } } },
+        finish_reason = "MAX_TOKENS" }, "cohere")
+    TestRunner:assertTrue(ok and ResponseParser.isIncomplete(c), "cohere MAX_TOKENS")
+    local ok2, c2 = ResponseParser:parseResponse({ message = { content = "Hello." }, done_reason = "length" }, "ollama")
+    TestRunner:assertTrue(ok2 and ResponseParser.isIncomplete(c2), "ollama done_reason length")
+    local ok4, c4 = ResponseParser:parseResponse({ message = { content = "Hello." }, done_reason = "stop" }, "ollama")
+    TestRunner:assertTrue(ok4 and not ResponseParser.isIncomplete(c4), "ollama whole on stop")
+end)
+
 -- Summary
 local success = TestRunner:summary()
 return success

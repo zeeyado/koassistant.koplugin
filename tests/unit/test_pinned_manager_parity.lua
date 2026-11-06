@@ -149,5 +149,34 @@ end)
 -- Cleanup
 os.execute(string.format("rm -rf %q", TMP_ROOT))
 
+TestRunner:test("the provider and the data stamps round-trip (B395 slice 5; dropped by the writer until 2026-11-06)", function()
+    assert(PinnedManager.addPin(DOC_PATH, {
+        id = "pin_stamped",
+        action_id = "chat",
+        action_text = "Chat",
+        result = "stamped",
+        user_prompt = "q",
+        context_type = "book",
+        provider = "gemini",
+        used_book_text = true,
+        used_highlights = false,
+        used_annotations = true,
+        used_notebook = false,
+    }), "addPin should succeed")
+    local entry = reloadById("pin_stamped")
+    assert(entry, "the stamped pin reloads")
+    TestRunner:assertEqual(entry.provider, "gemini", "the provider")
+    TestRunner:assertEqual(entry.used_book_text, true, "used_book_text")
+    TestRunner:assertEqual(entry.used_highlights, false, "used_highlights false is kept")
+    TestRunner:assertEqual(entry.used_annotations, true, "used_annotations")
+    TestRunner:assertEqual(entry.used_notebook, false, "used_notebook false is kept")
+    assert(PinnedManager.addPin(DOC_PATH, {
+        id = "pin_plain", action_id = "chat", action_text = "Chat", result = "plain", user_prompt = "q",
+        context_type = "book",
+    }), "addPin should succeed")
+    local plain = reloadById("pin_plain")
+    assert(plain and plain.provider == nil and plain.used_highlights == nil, "an unstamped pin stays unstamped")
+end)
+
 local ok = TestRunner:summary()
 return ok

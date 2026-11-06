@@ -73,13 +73,17 @@ end
 --- @return string kind  "text" (an answer) | "empty" (a readable answer with no
 ---   text: the 16-token probe starves a model that reasons first) | "unreadable"
 --- @return string|nil text  the answer, for "text"
-function ProviderProbe.answer(handler, body, responses)
+function ProviderProbe.answer(handler, body, responses, provider_id)
     local json = require("json")
     local ok, parsed = pcall(json.decode, body)
     if not ok or type(parsed) ~= "table" then return "unreadable" end
+    -- The OpenAI and DeepSeek handlers extend BaseHandler and name no parser
+    -- key, so the provider id is the last resort (without it the Reachability
+    -- step called their correct answers unreadable; sweep 2026-11-06)
     local key = responses and "openai_responses"
         or (handler.getResponseParserKey and handler:getResponseParserKey())
         or handler.provider_name
+        or provider_id
     local ResponseParser = require("koassistant.api.response_parser")
     local called, success, content = pcall(ResponseParser.parseResponse, ResponseParser, parsed, key)
     if not called or not success then return "unreadable" end

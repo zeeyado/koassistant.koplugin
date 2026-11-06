@@ -1145,8 +1145,9 @@ function GroupsUI.showBookRow(path, opts)
             align = "left",
             callback = function()
                 BookGroups.addBook(captured.id, path)
-                reopen()
-                -- G1 (Q-A): a group that sets values asks before the book follows them
+                -- G1 (Q-A): a group that sets values asks before the book follows
+                -- them; its done callback reopens this popup once (a bare reopen
+                -- here as well stacked two copies, sweep 2026-11-06)
                 require("koassistant.books.group_settings").offerJoin(captured.id, { path },
                     { plugin = opts.plugin, ui = opts.ui }, reopen)
             end,

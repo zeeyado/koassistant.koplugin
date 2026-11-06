@@ -639,9 +639,13 @@ local function translateAndShowContent(markdown_content, target_language, title,
     local saved_features = settings:readSetting("features") or {}
 
     -- Build configuration for translation - respect user's streaming setting
+    -- The main chat provider and its model (features.provider / features.model);
+    -- the top-level "provider" and "model" keys are seeded once at first start
+    -- and never updated, so the request went to that seed, Anthropic for
+    -- most readers (sweep 2026-11-06)
     local configuration = {
-        provider = settings:readSetting("provider") or "anthropic",
-        model = settings:readSetting("model"),
+        provider = require("koassistant.core.config_helper").mainProvider(saved_features),
+        model = saved_features.model,
         features = {
             enable_streaming = saved_features.enable_streaming ~= false,  -- Respect user setting (default true)
             large_stream_dialog = true,  -- Use larger dialog for better readability

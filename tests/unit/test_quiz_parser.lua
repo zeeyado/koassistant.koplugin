@@ -239,6 +239,21 @@ end)
 
 print("")
 print(string.rep("-", 50))
+TestRunner:suite("null fields (a function sentinel in KOReader's json) never reach the viewer")
+TestRunner:test("explanation, model answer, key points and options keep strings only", function()
+    local NULL = function() end
+    local q = { type = "short_answer", question = "Q?", model_answer = NULL, explanation = NULL,
+        key_points = { "a", NULL, "b" }, options = { A = "a", B = NULL, C = "c" } }
+    QP._normalizeQuestionFields(q)
+    assert(q.model_answer == nil and q.explanation == nil, "nulls dropped")
+    assert(#q.key_points == 2 and q.key_points[2] == "b", "key points kept strings only")
+    assert(q.options.B == nil and q.options.C == "c", "options kept strings only")
+    local q2 = { type = "essay", question = "Q?", key_points = NULL, options = { "x", NULL, "y" } }
+    QP._normalizeQuestionFields(q2)
+    assert(#q2.key_points == 0, "a null list becomes empty")
+    assert(#q2.options == 2 and q2.options[2] == "y", "a null option in a list is dropped")
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))
 return TestRunner.failed == 0

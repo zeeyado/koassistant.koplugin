@@ -1585,6 +1585,13 @@ function BookSettings.showLayeredPicker(spec, opts)
     -- picker edits a GROUP's value; the book tab then reads "For this group"
     local is_group = opts.scope == "group"
     local doc_settings = opts.doc_settings or resolveDocSettings(ui, document_path)
+    -- A spec with no key and no rows has no per-book value (the position,
+    -- library and habits privacy pickers): no book layer, no For this book
+    -- tab, whatever book is in scope (a tap there saved under a nil key and
+    -- crashed KOReader; sweep 2026-11-06)
+    if spec.key == nil and spec.rows == nil then
+        doc_settings = nil
+    end
     local features = plugin and plugin.settings and plugin.settings:readSetting("features") or {}
     -- Explicit if-chain: read_book may legitimately return false (an and/or
     -- fold here would drop explicit-off overrides)
