@@ -67,7 +67,7 @@ The debug rows sit under **Settings → Advanced**:
 - **Debug Detail Level** (with Show Debug in Chat on): Minimal shows the messages alone, Names (the default) adds the provider, model and settings line, Full also adds the start of each part of the system prompt (behavior, domain, language).
 - **Truncate Large Content (debug)** (with Console Debug on; on by default): in Console Debug's output, a field longer than 5,000 characters (book text, saved results, message text) is cut to its first and last 2,000 characters with a notice. The debug block in the chat window is always shortened this way.
 - **AI Book Tools: Show Lookups (debug)**: appends the AI's book lookups, their raw results and the token usage to each answer; may include book text. See [Reasoning, Web Search and Book Tools](Reasoning-Web-Search-and-Book-Tools).
-- **Test Connection**: sends one short message (capped at 512 tokens) to the current provider and model, over the endpoint you use (a custom endpoint from `configuration.lua`, the Ollama server picked in the menu, a Z.AI, Qwen or Kimi region), and shows the reply or the error until you tap it away.
+- **Test Connection**: sends one short message (capped at 512 tokens) to the current provider and model, over the endpoint you use (a custom endpoint from `configuration.lua`, the Ollama server picked in the menu, a Z.AI, Qwen, Kimi or Bedrock region), and shows the reply or the error until you tap it away.
 
 The **Everything (debug)** export level (**Settings → Chat & Export Settings → Content Format**) is not the debug block: it adds every context message (long ones shortened) to the export, but not the settings line or the system prompt.
 

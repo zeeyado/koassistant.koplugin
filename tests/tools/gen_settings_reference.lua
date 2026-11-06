@@ -16,6 +16,11 @@ local Gen = {}
 -- Owner page per row or submenu id. A row without an entry inherits its
 -- nearest ancestor's; the fallback is the Settings-Reference page itself.
 Gen.OWNERS = {
+    gestures_screen = "Setup-Gestures-and-Panels",
+    setup_wizard = "Setup-Gestures-and-Panels",
+    about = "Backups-and-Updates",
+    auto_check_updates = "Backups-and-Updates",
+    check_updates = "Backups-and-Updates",
     temperature = "Providers-and-Models",
     use_action_tiers = "Providers-and-Models",
     enable_book_tools = "Reasoning-Web-Search-and-Book-Tools",

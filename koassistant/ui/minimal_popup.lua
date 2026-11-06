@@ -243,7 +243,9 @@ function MinimalPopup.showForResponse(opts)
     --   1. Direction. Dict/translate launches resolve from the language setting
     --      (rtl_language, handled above — mirrors the viewer's explicit-RTL
     --      branches). Other registered actions get the standard-chat auto-detect:
-    --      rtl_chat_text_mode (default on) + hasDominantRTL on the response.
+    --      hasDominantRTL on the response (the popup is plain text by
+    --      construction, so its direction is always detected; Auto RTL mode
+    --      for Chat is the Markdown windows' switch, off by default).
     --   2. stripMarkdown (strip_markdown_in_text_mode, default on): **bold** →
     --      PTF markers TextBoxWidget renders as real bold, LRM bidi fixes so an
     --      Arabic headword in a Latin-script definition keeps the line LTR-based.
@@ -253,7 +255,6 @@ function MinimalPopup.showForResponse(opts)
     local ok_v, Viewer = pcall(require, "koassistant.ui.chatgptviewer")
     if ok_v and Viewer then
         if para_direction_rtl == nil and not opts.rtl_language
-                and (not f or f.rtl_chat_text_mode ~= false)
                 and Viewer.hasDominantRTL and Viewer.hasDominantRTL(text) then
             para_direction_rtl = true
         end

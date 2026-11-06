@@ -44,7 +44,7 @@ Saving, tags, pinning and starring are explained on [Conversations, Notebooks an
 Tap the gear icon in the title bar:
 
 - **Font Size**: 12 to 32 (default 20). It sizes the Markdown view (Plain Text uses a fixed size) and the text of the streaming window.
-- **Alignment**: cycles **Auto → Left → Justify → Right**. Auto, the default, follows each paragraph's own direction (left for LTR, right for RTL) instead of forcing one side, so RTL answers align right; Left and Right put every paragraph on that side, right-to-left ones included.
+- **Alignment** (Markdown view; Plain Text starts every paragraph at its own side): cycles **Auto → Left → Justify → Right**. Auto, the default, follows each paragraph's own direction (left for LTR, right for RTL) instead of forcing one side, so RTL answers align right; Left and Right put every paragraph on that side, right-to-left ones included.
 - **Reset to Defaults**: font size 20 and Auto alignment.
 - **Window Size**: Standard or Expanded, the same setting as Display Settings ([Window size and rotation](#window-size-and-rotation)). Not offered on compact dictionary popups.
 - **Show Excerpt** (dictionary windows only): the same setting as **Settings → Dictionary Settings → Show Excerpt**; see [Dictionary and Translation](Dictionary-and-Translation).
@@ -137,8 +137,8 @@ KOAssistant offers two view modes for displaying AI responses.
 
 **Plain Text view**
 
-- Uses KOReader's native text rendering with proper font fallback
-- **Recommended for Arabic** and other RTL/non-Latin scripts
+- Uses KOReader's interface fonts, which fall back letter by letter (Noto faces for Arabic, Devanagari and Bengali, FreeSans for Hebrew, and emoji once the emoji font is installed)
+- Recommended for scripts the Markdown view draws in its plain serif fallback (Hebrew, Devanagari, Bengali, Thai) and for emoji; Arabic and Persian read well in both views
 - Markdown is stripped to keep the text readable (**Settings → Display Settings → Rendering → Plain Text Options → Apply Markdown Stripping**, on by default; turn it off to see the raw markdown):
   - Headers → hierarchical symbols (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`)
   - **Bold** → renders as actual bold
@@ -156,19 +156,19 @@ KOAssistant offers two view modes for displaying AI responses.
 
 Long-pressing **MD ON / TXT ON** opens the **Display** menu: **Default view mode**, **Latest reply on new page**, **Font Size**, **Alignment**, **Strip markdown in text mode** and **Auto RTL mode for Chat**, the same settings as in the gear menu and Display Settings.
 
-**If text doesn't render correctly in Markdown view**, switch to Plain Text: KOReader's HTML renderer has no per-character font fallback, while Plain Text uses KOReader's native text rendering. See [Troubleshooting](Troubleshooting).
+**If text does not render correctly in the Markdown view**, switch to Plain Text: the Markdown renderer picks one font per paragraph and draws a letter that font lacks in a fixed fallback face (no emoji there), while Plain Text uses KOReader's interface fonts letter by letter. See [Troubleshooting](Troubleshooting).
 
 **Math formulas:** in Markdown view, LaTeX math in responses (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`) is shown as readable formulas: Greek letters and operators as real symbols, superscripts and subscripts, vector arrows and hats, roots, fractions as `a/b`, and `$$` blocks on their own centered line. This is display-only: saved chats, copies, exports and notebook entries keep the original LaTeX, which apps like Obsidian render fully. Plain Text view shows the LaTeX as written. Toggle it under **Settings → Display Settings → Rendering → Render Math Formulas** (on by default; grayed out while Plain Text is your default). True typesetting (stacked fractions, matrices) is not possible in the window's renderer; those flatten to `a/b` and `(a, b; c, d)`.
 
-**Right-to-left text in the Markdown view.** Every paragraph, heading, list item, quote and table cell is laid out in its own direction, decided by the majority of its words (the first word when they tie), so a chat that mixes directions reads right block by block: an Arabic answer with a Latin name in it, an English answer quoting Arabic, an earlier right-to-left reply above a later English one. Arabic, Persian, Urdu, Syriac and the other right-to-left scripts all count. A right-to-left quote mirrors its border, and the Left and Right alignments keep their side for both directions. Left-to-right lists are real lists (nested ones indented); a list with a right-to-left item is shown as marked lines, since the renderer draws no markers for a right-to-left list. Right-to-left letters are drawn in **Noto Naskh Arabic**, the face KOReader gives Arabic books, so an Arabic or Persian answer in the Markdown view looks like one in a book, bold included; the **Right-to-left text font** row below picks another face.
+**Right-to-left text in the Markdown view.** Every paragraph, heading, list item, quote and table cell is laid out in its own direction, decided by the majority of its words (the first word when they tie), so a chat that mixes directions reads right block by block: an Arabic answer with a Latin name in it, an English answer quoting Arabic, an earlier right-to-left reply above a later English one. Arabic, Persian, Urdu, Syriac and the other right-to-left scripts all count. A right-to-left quote mirrors its border, and the Left and Right alignments keep their side for both directions. Left-to-right lists are real lists (nested ones indented); a list with a right-to-left item is shown as marked lines, since the renderer draws no markers for a right-to-left list. Right-to-left paragraphs, headings, list items, quotes and table cells are drawn in **Noto Naskh Arabic**, the face KOReader gives Arabic books, bold included, so an Arabic or Persian answer in the Markdown view looks like one in a book; a right-to-left word inside a left-to-right paragraph keeps the window's fallback face. The **Right-to-left text font** row below picks another face.
 
 **Right-to-left text** (all under **Settings → Display Settings → Rendering**):
 
-- **Auto RTL mode for Chat** (on): chat and artifact windows switch to RTL mode (right-aligned text and Plain Text) when the latest response has more right-to-left letters (of any right-to-left script) than Latin ones. English text referencing Arabic stays in Markdown, and your Markdown or Plain Text preference holds for everything else. Turning it off removes all automatic RTL adjustments. Grayed out while Plain Text is your default. A chat whose **MD ON / TXT ON** you tapped keeps that choice across replies, a reopen and a rotation.
+- **Auto RTL mode for Chat** (off): when on, chat and artifact windows switch to right-aligned Plain Text when the latest response has more right-to-left letters (of any right-to-left script) than Latin ones; English text referencing Arabic stays in Markdown. Off by default: the Markdown view lays every paragraph out in its own direction and draws the right-to-left ones in the font above. Grayed out while Plain Text is your default. A chat whose **MD ON / TXT ON** you tapped keeps that choice across replies, a reopen and a rotation.
 - **Right-to-left text font** (Noto Naskh Arabic): the font of Arabic, Persian and other right-to-left text in the Markdown view. **Noto Sans Arabic UI** is the face of KOReader's own text windows; any font KOReader knows can be picked, each row drawn in its own face (a font you copy into KOReader's fonts folder appears after a restart); **None** keeps the window's fallback font. A script the chosen font lacks (Hebrew, in both shipped faces) stays in that fallback. Grayed out while Plain Text is your default.
-- **Text Mode for Dictionary** (off): dictionary windows always use Plain Text, regardless of your view mode, for better font support with non-Latin scripts.
+- **Text Mode for Dictionary** (off): dictionary windows always use Plain Text, regardless of your view mode; better for scripts the Markdown view draws in its plain fallback face (Hebrew, Devanagari, Bengali, Thai).
 - **Text Mode for RTL Dictionary** (on): dictionary windows use Plain Text when your dictionary language is RTL (Arabic, Classical Arabic, Persian or Urdu). Grayed out when Text Mode for Dictionary is on.
-- **Text Mode for RTL Translate** (on): the translate window uses Plain Text when your translation language is RTL.
+- **Text Mode for RTL Translate** (off): when on, the translate window uses Plain Text when your translation language is RTL; off, the Markdown view shows the translation right-to-left in the right-to-left font and the original left-to-right.
 
 The languages themselves are set on [Languages](Languages).
 

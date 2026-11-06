@@ -11,8 +11,8 @@ perfectly on export); this is a DISPLAY-ONLY view transform, applied at the
 markdown pre-pass, never to saves, copies, exports or the plain-text view.
 
 WHAT RENDERS (probed headlessly against the bundled libwrap-mupdf 2026-09-02;
-MuPDF ships its own Noto fonts on every platform, so the desktop probe is
-representative):
+KOReader's MuPDF has no built-in fonts and loads the font files KOReader ships,
+the same on every platform, so the desktop probe is representative):
   - Greek, operators, relations, arrows, set/logic symbols → Unicode
   - ^ / _ → <sup> / <sub> (MuPDF renders both well)
   - \vec \hat \bar \dot \tilde → combining marks (render fine on Noto Sans)

@@ -247,7 +247,7 @@ local SettingsSchema = {
                                 { value = true, label = _("Markdown") },
                                 { value = false, label = _("Plain Text") },
                             },
-                            help_text = _("Markdown renders formatting. Plain Text has better font support for Arabic/CJK."),
+                            help_text = _("Markdown renders formatting; it draws Arabic and Persian in the right-to-left font, each paragraph in its own direction. Plain Text uses KOReader's interface fonts, which draw more scripts in their own face (Hebrew, Devanagari, Bengali) and show emoji."),
                         },
                         {
                             id = "render_math",
@@ -274,7 +274,7 @@ local SettingsSchema = {
                                 local f = plugin.settings:readSetting("features") or {}
                                 return f.render_markdown ~= false
                             end,
-                            help_text = _("The font of Arabic, Persian and other right-to-left text in the Markdown view. Noto Naskh Arabic, the default, is the face KOReader gives Arabic books; Noto Sans Arabic UI is the face of its plain-text windows; any font KOReader knows can be picked (a font copied into KOReader's fonts folder appears after a restart). None shows those letters in the window's own fallback font, as before. Hebrew and other scripts the chosen font lacks keep that fallback."),
+                            help_text = _("The font of right-to-left paragraphs (Arabic, Persian and the other right-to-left scripts) in the Markdown view. Noto Naskh Arabic, the default, is the face KOReader gives Arabic books; Noto Sans Arabic UI is the face of its plain-text windows; any font KOReader knows can be picked (a font copied into KOReader's fonts folder appears after a restart). None shows those letters in the window's own fallback font, as before. Hebrew and other scripts the chosen font lacks keep that fallback."),
                         },
                         {
                             id = "chat_exchange_page_breaks",
@@ -314,7 +314,7 @@ local SettingsSchema = {
                             text = _("Text Mode for Dictionary"),
                             path = "features.dictionary_text_mode",
                             default = false,
-                            help_text = _("Use Plain Text mode for dictionary popup. Better font support for non-Latin scripts."),
+                            help_text = _("Use Plain Text mode for dictionary popup. Better for scripts the Markdown view draws in its plain fallback face (Hebrew, Devanagari, Bengali, Thai)."),
                         },
                         {
                             id = "rtl_dictionary_text_mode",
@@ -333,20 +333,20 @@ local SettingsSchema = {
                             type = "toggle",
                             text = _("Text Mode for RTL Translate"),
                             path = "features.rtl_translate_text_mode",
-                            default = true,
-                            help_text = _("Use Plain Text mode for translate popup when translation language is Arabic, Classical Arabic, Persian or Urdu."),
+                            default = false,
+                            help_text = _("Use Plain Text mode for the translate window when the translation language is Arabic, Classical Arabic, Persian or Urdu. Off by default: the Markdown view draws those languages in the right-to-left font, the translated text right-to-left and the original left-to-right."),
                         },
                         {
                             id = "rtl_chat_text_mode",
                             type = "toggle",
                             text = _("Auto RTL mode for Chat"),
                             path = "features.rtl_chat_text_mode",
-                            default = true,
+                            default = false,
                             enabled_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}
                                 return f.render_markdown ~= false
                             end,
-                            help_text = _("Automatically detect RTL content and switch to RTL mode (right-aligned text + Plain Text). Activates when the latest response has more RTL than Latin characters. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."),
+                            help_text = _("Switch chat and artifact windows to right-aligned Plain Text when the latest response has more right-to-left than Latin letters. Off by default: the Markdown view lays every paragraph out in its own direction and draws Arabic and Persian in the right-to-left font. Disabling removes all automatic RTL adjustments. Grayed out when markdown is disabled."),
                         },
                     },
                 },

@@ -35,7 +35,7 @@ koreader
 
 > **This is the only time you install by hand.** After this, KOAssistant updates itself: when a new version is available, you see its release notes with an **Update Now** button. One tap handles everything (download, install, keeping your settings). See [Backups and Updates](Backups-and-Updates).
 
-**Alternative:** install KOAssistant from inside KOReader with the [App Store plugin](https://github.com/omer-faruq/appstore.koplugin), which browses, installs and updates KOReader plugins without a computer. It can install from releases or from the latest main branch code.
+**Alternative:** [Storefront](https://github.com/ultimatejimmy/storefront.koplugin) or the [App Store plugin](https://github.com/omer-faruq/appstore.koplugin) install KOAssistant from inside KOReader, from releases or from the latest main branch code, with no computer.
 
 ## 2. Restart KOReader
 

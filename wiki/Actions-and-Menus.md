@@ -333,7 +333,7 @@ The first KOAssistant button of the highlight menu shows your model: 🤖 and it
 
 ## Menus & Buttons
 
-**Settings → Menus & Buttons** controls where KOAssistant appears in KOReader's menus, panels and buttons. It gathers the placement toggles that used to sit under "KOReader Integration", "Highlight Settings", "Dictionary Settings", "Quick Settings" and "Quick Actions". Which *actions* appear on each surface is set in its action list here, or in the Action Manager (hold an action).
+**Settings → Menus & Buttons** controls where KOAssistant appears in KOReader's menus, panels and buttons. Which *actions* appear on each surface is set in its action list here, or in the Action Manager (hold an action).
 
 ### Highlight menu
 

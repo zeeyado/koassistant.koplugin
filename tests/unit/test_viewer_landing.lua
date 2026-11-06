@@ -247,11 +247,13 @@ TestRunner:test("Auto RTL keeps the per-chat MD tap; reapplyRtlMode restores it"
         v:reapplyRtlMode()
         return v.render_markdown, v.para_direction_rtl
     end
-    local md, rtl = reapply({ _chat_view_mode = true }, true)
+    local md, rtl = reapply({ rtl_chat_text_mode = true, _chat_view_mode = true }, true)
     TestRunner:assertEqual(md, true, "the tap's Markdown stays under Auto RTL")
     TestRunner:assertEqual(rtl, true, "the direction is still right-to-left")
-    md = reapply({}, true)
+    md = reapply({ rtl_chat_text_mode = true }, true)
     TestRunner:assertEqual(md, false, "no tap: Auto RTL's plain text")
+    md = reapply({}, true)
+    TestRunner:assertEqual(md, true, "Auto RTL off by default: the Markdown view stays")
     md = reapply({ rtl_chat_text_mode = false, _chat_view_mode = false, render_markdown = true }, true)
     TestRunner:assertEqual(md, false, "Auto RTL off: the tap's plain text, not the setting's Markdown")
     md = reapply({ rtl_chat_text_mode = false, render_markdown = true }, false)

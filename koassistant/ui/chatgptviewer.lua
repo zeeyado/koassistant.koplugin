@@ -1022,12 +1022,13 @@ blockquote {
     border-left: 3px solid #ccc;
 }
 
-/* "New page per exchange": applyExchangePageBreaks injects an empty spacer
-   div before each reply marker. MuPDF's plain-HTML layout implements
-   page-break-AFTER but NOT page-break-before, and ignores inline style
-   attributes entirely (both probed headlessly against the bundled libwrap-mupdf
-   2026-08-12: 30 paras + pb-after = 31 pages, pb-before = no-op, font-size
-   rule = applied) — so the break rides an -after rule on the spacer. */
+/* "Latest reply on new page": applyExchangePageBreaks puts an empty spacer
+   div after the newest reply's label (B561). MuPDF's plain-HTML layout
+   implements page-break-AFTER but NOT page-break-before (probed headlessly
+   against the bundled libwrap-mupdf 2026-08-12 and 2026-10-28: 30 paras +
+   pb-after = 31 pages, pb-before = no-op), so the break rides an -after rule
+   on the spacer. Inline style attributes ARE applied (the direction pass
+   writes the alignment swap and a quote's inset inline). */
 div.koa-exchange-break {
     page-break-after: always;
 }
@@ -1753,7 +1754,7 @@ function ChatGPTViewer:init()
         self.para_direction_rtl = true
         self.auto_para_direction = false  -- Override auto-detection with explicit RTL
         -- Default to text mode for RTL translation if setting enabled
-        if self.configuration.features.rtl_translate_text_mode ~= false then
+        if self.configuration.features.rtl_translate_text_mode == true then
           self.render_markdown = false
         end
       end
@@ -1761,7 +1762,7 @@ function ChatGPTViewer:init()
     -- Standard chat view: auto-detect RTL in AI response if setting enabled
     -- (compact_view and translate_view have their own RTL handling via language settings)
     if not self.compact_view and not self.dictionary_view and not self.translate_view and not self.simple_view then
-      if self.configuration.features.rtl_chat_text_mode ~= false then
+      if self.configuration.features.rtl_chat_text_mode == true then
         local latest_response = getLatestResponse(self._message_history or self.original_history)
         if hasDominantRTL(latest_response) then
           self.para_direction_rtl = true
@@ -1779,7 +1780,7 @@ function ChatGPTViewer:init()
     -- Simple view (caches/summaries): auto-detect RTL in content
     -- Uses sampling (first 10KB) for performance on large cached content
     if self.simple_view and self.text then
-      if self.configuration.features.rtl_chat_text_mode ~= false then
+      if self.configuration.features.rtl_chat_text_mode == true then
         if hasDominantRTL(self.text, 10000) then
           self.para_direction_rtl = true
           self.auto_para_direction = false
@@ -6061,13 +6062,15 @@ function ChatGPTViewer:cycleWindowSize()
 end
 
 -- Re-apply the auto-RTL-for-chat setting to THIS viewer after it is toggled from the
--- MD/TXT quick menu (note E). Mirrors the detection init runs on open: when enabled and
--- the content is dominantly RTL, force RTL paragraph direction + plain text (RTL renders
--- poorly through the markdown/HTML path); otherwise restore LTR auto-direction and the
--- user's markdown preference. Then rebuild in place.
+-- MD/TXT quick menu (note E). Mirrors the detection init runs on open: when the
+-- setting is on (off by default since the Markdown view lays right-to-left blocks
+-- out through the direction pass and draws them in the right-to-left font, B558)
+-- and the content is dominantly RTL, force RTL paragraph direction + plain text;
+-- otherwise restore LTR auto-direction and the chat's own tap, else the user's
+-- markdown preference. Then rebuild in place.
 function ChatGPTViewer:reapplyRtlMode()
   local features = self.configuration and self.configuration.features or {}
-  local rtl_enabled = features.rtl_chat_text_mode ~= false
+  local rtl_enabled = features.rtl_chat_text_mode == true
   local is_rtl = rtl_enabled and self.text and hasDominantRTL(self.text, 10000)
   if is_rtl then
     self.para_direction_rtl = true
@@ -6258,10 +6261,10 @@ function ChatGPTViewer:showRenderingQuickSettings()
       {{
         text = _("Auto RTL mode for Chat") .. ": "
           .. ((self.configuration and self.configuration.features
-               and self.configuration.features.rtl_chat_text_mode ~= false) and _("On") or _("Off")),
+               and self.configuration.features.rtl_chat_text_mode == true) and _("On") or _("Off")),
         callback = function()
           local features = self.configuration and self.configuration.features or {}
-          local enabled = features.rtl_chat_text_mode ~= false
+          local enabled = features.rtl_chat_text_mode == true
           self:persistFeatureSetting("rtl_chat_text_mode", not enabled)
           self:reapplyRtlMode()
           UIManager:close(dialog)
