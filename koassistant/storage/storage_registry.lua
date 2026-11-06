@@ -107,6 +107,7 @@ Registry.SETTINGS_SUBKEYS = {
         "selected_behavior", "selected_domain", "trusted_providers",
         "gesture_actions", "markdown_font_size", "export_custom_path",
         "session_chips", "_dismissed_session_chips",
+        "_dismissed_gesture_actions",                        -- top-level (see TOPLEVEL_SUBKEYS): the gesture defaults the reader removed (B581)
         "minimal_popup_actions",
         "ollama_num_ctx",           -- ollama context-window cap (model menu row; nil = automatic sizing)
         "xray_default_categories",  -- global default for new X-Rays' category groups (presets v0.21)
@@ -162,6 +163,7 @@ Registry.TOPLEVEL_SUBKEYS = {
     custom_actions = true,
     custom_prompts = true,
     setup_wizard_completed = true,
+    _dismissed_gesture_actions = true,
 }
 
 -- ── The inventory ────────────────────────────────────────────────────────────

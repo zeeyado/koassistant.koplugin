@@ -312,7 +312,7 @@ Explained on [Actions and Menus](Actions-and-Menus).
 | Show quick actions | toggle | Add action shortcuts (Explain, Translate, etc.) to the highlight menu. Takes effect the next time the menu opens. | On |  | [Actions and Menus](Actions-and-Menus) |
 | Show Add to Notebook button | toggle | Add an 'Add to notebook' button to the highlight menu, saving the selected text directly to this book's notebook. Takes effect the next time the menu opens. | Off |  | [Actions and Menus](Actions-and-Menus) |
 | Show (KOA) on KOAssistant's buttons | toggle | Mark KOAssistant's buttons in the highlight menu with '(KOA)', to tell them apart from KOReader's own. Takes effect the next time the menu opens. | On |  | [Actions and Menus](Actions-and-Menus) |
-| Highlight Menu Actions | action | Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 15 shown). |  |  | [Actions and Menus](Actions-and-Menus) |
+| Highlight Menu Actions | action | Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 30 shown). |  |  | [Actions and Menus](Actions-and-Menus) |
 | **Dictionary popup** | | | | | |
 | Show AI buttons | toggle | Add AI buttons to KOReader's dictionary popup. | On |  | [Actions and Menus](Actions-and-Menus) |
 | Show (KOA) on KOAssistant's buttons | toggle | Mark KOAssistant's buttons in the dictionary popup with '(KOA)', to tell them apart from KOReader's own. Takes effect on the next lookup. (Grayed out unless Show AI buttons is On.) | On |  | [Actions and Menus](Actions-and-Menus) |

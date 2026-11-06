@@ -21728,6 +21728,9 @@ function AskGPT:resetActionMenus(silent)
   -- File browser actions
   self.settings:delSetting("file_browser_actions")
   self.settings:delSetting("_dismissed_file_browser_actions")
+  -- the gesture defaults the reader removed come back with a reset (B581;
+  -- the queue audit of 2026-11-06)
+  self.settings:delSetting("_dismissed_gesture_actions")
   -- Input dialog actions (all contexts — keys derived from ActionService so a
   -- new context can't be missed here; library once was)
   for _i, key in ipairs(ActionService.getInputContextKeys()) do

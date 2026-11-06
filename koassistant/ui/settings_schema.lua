@@ -2446,7 +2446,7 @@ local SettingsSchema = {
                     text = _("Highlight Menu Actions"),
                     callback = "showHighlightMenuManager",
                     keep_menu_open = true,
-                    help_text = _("Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 15 shown)."),
+                    help_text = _("Choose which actions appear in the highlight menu. Changes take effect the next time the menu opens (up to 30 shown)."),
                     separator = true,
                 },
                 -- Dictionary popup

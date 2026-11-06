@@ -32,7 +32,8 @@ The Reasoning tile in Quick Settings shows the effective state for the current m
 | Gemini 2.5 flash | thinks by default | Off / budget, dynamic to max |
 | OpenAI GPT-6 sol / luna | reasons by default | Off / effort low to xhigh |
 | OpenAI GPT-6 astra, GPT-6.1 sol | reasons by default | effort low to xhigh; cannot be fully disabled |
-| OpenAI GPT-5.6 family, GPT-5.4 family | off by default (gated) | Off / effort low to xhigh |
+| OpenAI GPT-6.1 terra (the default), GPT-5.6 terra, GPT-5.6 family | reasons by default (medium) | Off / effort low to xhigh |
+| OpenAI GPT-5.4 family | off by default (gated) | Off / effort low to xhigh |
 | OpenAI GPT-5.5 | reasons by default | effort low / medium / high; cannot be fully disabled |
 | DeepSeek V4 and Flash, Z.AI GLM-4.7 to 5.2, SambaNova DeepSeek-V3.x | thinks by default | On / Off |
 | Z.AI GLM-5.3 family | always thinks | no control |
@@ -42,8 +43,12 @@ The Reasoning tile in Quick Settings shows the effective state for the current m
 | xAI Grok 4.20 reasoning | always reasons | no control |
 | Groq gpt-oss, Together DeepSeek-V4-Pro | always reason | effort only, low / medium / high |
 | Groq Qwen 3.8 27B | off by default | Off / effort low / medium / high |
-| Fireworks models | reason by default | Off / effort (GLM-5.3 and gpt-oss: effort only) |
+| Fireworks models | reason by default | Off / effort (GLM-5.3: effort only) |
+| Mistral Large 4 | thinks by default | no control on Mistral's own wire (low / medium / high through OpenCode Zen and OpenRouter) |
 | Mistral Magistral | always reasons | no control; the thinking is extracted and viewable |
+| Kimi K3.1 Pro | always thinks | no control |
+| NVIDIA Step 5 preview, nemotron-3 family | reason by default | Off / effort low / medium / high |
+| A2Agent DeepSeek-V4.1-Flash, MiniMax-M3.1-Flash | reason by default | Off / effort (MiniMax: effort only) |
 
 Temperature is forced to 1.0 where a model's reasoning requires it (Claude adaptive and extended thinking, Z.AI thinking). Sonnet 5.5, Opus 5.5, Haiku 5.5, Opus 5, Fable 5.1, Fable 5, Sonnet 5, Opus 4.8 and Opus 4.7 reject sampling parameters outright, and Google deprecated them for every Gemini 3 model and Gemini 4 Argon, so those requests carry none; **Settings → Advanced → Temperature** says "ignored by this model" for them.
 
