@@ -5251,7 +5251,7 @@ end
 -- @param append boolean: optional, Save ADDS a key to the GUI list instead of replacing
 --        the stored value (the key manager's "Add API key..." row; Clear is hidden —
 --        per-key deletion lives in the manager)
-function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change, append)
+function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change, append, on_cancel)
   local self_ref = self
   display_name = display_name or provider:gsub("^%l", string.upper)
   local features = self.settings:readSetting("features") or {}
@@ -5290,6 +5290,9 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
           id = "close",
           callback = function()
             UIManager:close(input_dialog)
+            -- the screen that opened this dialog comes back (the wizard's
+            -- provider list; the sweep of 2026-11-06)
+            if on_cancel then on_cancel() end
           end,
         },
         {
@@ -5368,6 +5371,7 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
               if on_change then on_change() end
             else
               UIManager:close(input_dialog)
+              if on_cancel then on_cancel() end
             end
           end,
         },

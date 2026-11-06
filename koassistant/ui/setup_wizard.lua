@@ -546,9 +546,12 @@ function SetupWizard.installFont(plugin, opts)
     local function restartThen()
         local UIM = require("ui/uimanager")
         local Device = require("device")
-        if not ctx or not Device:canRestart() then
-            -- outside the chain, or a device that cannot restart itself (the
-            -- note "takes effect on next restart"): KOReader's own ask
+        if not ctx or ctx.single or not Device:canRestart() then
+            -- outside the chain, a single topic (Settings > Setup Wizard >
+            -- Icons: no chain to resume, the glyph test alone comes at the
+            -- next start through resumePending; the sweep of 2026-11-06),
+            -- or a device that cannot restart itself (the note "takes effect
+            -- on next restart"): KOReader's own ask
             UIM:askForRestart()
             done(true)
             return
@@ -849,6 +852,8 @@ function SetupWizard.stepProvider(plugin, ctx, next_step)
         UIManager:show(followup)
     end
 
+    local render  -- the provider list (drawn below); a cancelled key entry returns to it
+
     local function pickProvider(choice)
         closeDialog()
         if choice.id == "ollama" then
@@ -870,7 +875,7 @@ function SetupWizard.stepProvider(plugin, ctx, next_step)
         plugin:showApiKeyDialog(choice.id, choice.name, false, function()
             table.insert(ctx.results, T(_("Provider: %1"), choice.name))
             offerTest(choice.id, choice.name)
-        end)
+        end, nil, render)
     end
 
     local function keyedNow()
@@ -880,7 +885,6 @@ function SetupWizard.stepProvider(plugin, ctx, next_step)
             require("koassistant.api.base").isPlaceholderKey)
     end
 
-    local render
 
     -- Every other built-in provider, by display name, two per row
     local function showOthers()

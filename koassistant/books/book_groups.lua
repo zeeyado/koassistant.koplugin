@@ -369,6 +369,62 @@ function BookGroups.addBook(id, path)
     return false
 end
 
+--- Add several books in one write (the sweep of 2026-11-06: the add flows
+--- saved and notified once per book, a whole folder of fifty rewriting the
+--- file fifty times). Books already in the group are skipped.
+--- @return table the paths added, in order
+function BookGroups.addBooks(id, paths)
+    local added = {}
+    if type(paths) ~= "table" then return added end
+    local data = load()
+    for _idx, group in ipairs(data.groups) do
+        if group.id == id then
+            for _p, path in ipairs(paths) do
+                if type(path) == "string" and path ~= "" and not indexOf(group, path) then
+                    group.books[#group.books + 1] = path
+                    added[#added + 1] = path
+                end
+            end
+            if #added > 0 then save(data); notify(id) end
+            return added
+        end
+    end
+    return added
+end
+
+--- Put the group's books in this order, in one write: the listed paths
+--- first, in the list's order, then the unlisted ones as they were.
+--- @return boolean changed
+function BookGroups.setOrder(id, ordered_paths)
+    if type(ordered_paths) ~= "table" then return false end
+    local data = load()
+    for _idx, group in ipairs(data.groups) do
+        if group.id == id then
+            local present, placed = {}, {}
+            for _b, p in ipairs(group.books) do present[p] = true end
+            local books = {}
+            for _p, path in ipairs(ordered_paths) do
+                if present[path] and not placed[path] then
+                    placed[path] = true
+                    books[#books + 1] = path
+                end
+            end
+            for _b, p in ipairs(group.books) do
+                if not placed[p] then books[#books + 1] = p end
+            end
+            local changed = false
+            for i = 1, #books do
+                if books[i] ~= group.books[i] then changed = true end
+            end
+            if not changed then return false end
+            group.books = books
+            save(data); notify(id)
+            return true
+        end
+    end
+    return false
+end
+
 function BookGroups.removeBook(id, path)
     local data = load()
     for _idx, group in ipairs(data.groups) do

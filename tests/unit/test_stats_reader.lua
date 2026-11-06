@@ -456,6 +456,29 @@ if TestRunner.failed > 0 then
     os.exit(1)
 end
 -- Harness contract (tests/README.md): a file returning nil is counted as
+print("\n--- foldRows: two rows for one book (the sweep of 2026-11-06) ---")
+TestRunner:test("a book under two ids: the time summed, the pages capped, the newest row's name and last_open", function()
+    local StatsReader = require("koassistant.books.stats_reader")
+    local result = {
+        title = { "Old Title", "New Title", "Other" },
+        authors = { "A", "A", "B" },
+        md5 = { "m1", "m1", "m2" },
+        total_read_time = { "600", "900", "30" },
+        total_read_pages = { "200", "150", "3" },
+        last_open = { "1000", "2000", "500" },
+        pages = { "300", "300", "50" },
+    }
+    local lookup = StatsReader.foldRows(result)
+    TestRunner:assertEqual(lookup.m1.total_read_time, 1500, "the time summed")
+    TestRunner:assertEqual(lookup.m1.total_read_pages, 300, "the pages summed, capped at the book's")
+    TestRunner:assertEqual(lookup.m1.last_open, 2000, "the newest")
+    TestRunner:assertEqual(lookup.m1.title, "New Title", "the newest row's title")
+    TestRunner:assertEqual(lookup.m2.total_read_time, 30, "a single row as before")
+    local n = 0
+    for _k in pairs(lookup) do n = n + 1 end
+    TestRunner:assertEqual(n, 2)
+end)
+
 -- PASSING by run_tests.lua — this was the suite's only nil-return offender
 -- (test-suite audit 2026-08-17)
 return TestRunner.failed == 0

@@ -1911,7 +1911,19 @@ end)
 
 print("")
 print(string.rep("-", 50))
+TestRunner:test("Domain & Research reads the book's explicit Off (the sweep of 2026-11-06)", function()
+    local f = assert(io.open("koassistant/books/book_settings.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    local a = src:find("function BookSettings.showDomainResearch(", 1, true)
+    local body = src:sub(a, a + 2500)
+    assert(body:find("if doc_settings then book_research = doc_settings:readSetting(BookSettings.KEY_RESEARCH) end", 1, true) ~= nil,
+        "an explicit if, so false stays false")
+    assert(body:find("readSetting(BookSettings.KEY_RESEARCH) or nil", 1, true) == nil, "no and-or read left")
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))
+
 
 return TestRunner.failed == 0

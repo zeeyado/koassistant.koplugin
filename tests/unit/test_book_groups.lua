@@ -631,5 +631,48 @@ TestRunner:test("a hub add row's picker stays on that row's source (B407)", func
     if not ok then error(err, 0) end
 end)
 
+print("")
+print("  [the sweep of 2026-11-06: one write for a batch of books, one for an order]")
+
+TestRunner:test("addBooks: fifty books, one save, one notify; setOrder: one save", function()
+    local saves = 0
+    BookGroups._setStoreForTests({
+        readSetting = function(_self, key) return mem[key] end,
+        saveSetting = function(_self, key, value) mem[key] = value; saves = saves + 1 end,
+        flush = function() end,
+    })
+    local changes = 0
+    BookGroups.on_change = function() changes = changes + 1 end
+    local g = BookGroups.create("Batch Series")
+    saves, changes = 0, 0
+    local paths = {}
+    for i = 1, 50 do paths[i] = "/books/batch/v" .. i .. ".epub" end
+    paths[#paths + 1] = paths[1]  -- a duplicate in the list
+    local added = BookGroups.addBooks(g.id, paths)
+    TestRunner:assertEqual(#added, 50, "fifty added, the duplicate skipped")
+    TestRunner:assertEqual(saves, 1, "one save")
+    TestRunner:assertEqual(changes, 1, "one notify")
+    TestRunner:assertEqual(#BookGroups.byId(g.id).books, 50)
+    TestRunner:assertEqual(#BookGroups.addBooks(g.id, { paths[3], paths[4] }), 0, "already there: nothing added")
+    TestRunner:assertEqual(saves, 1, "and nothing written")
+    saves, changes = 0, 0
+    TestRunner:assertTrue(BookGroups.setOrder(g.id, { paths[50], paths[49], "/books/elsewhere.epub" }), "reordered")
+    local books = BookGroups.byId(g.id).books
+    TestRunner:assertEqual(books[1], paths[50])
+    TestRunner:assertEqual(books[2], paths[49])
+    TestRunner:assertEqual(books[3], paths[1], "the unlisted keep their order after the listed")
+    TestRunner:assertEqual(#books, 50, "a path not in the group is ignored")
+    TestRunner:assertEqual(saves, 1, "one save for the order")
+    TestRunner:assertFalse(BookGroups.setOrder(g.id, { paths[50], paths[49] }), "the same order: no write")
+    TestRunner:assertEqual(saves, 1)
+    BookGroups.on_change = nil
+    BookGroups.remove(g.id)
+    BookGroups._setStoreForTests({
+        readSetting = function(_self, key) return mem[key] end,
+        saveSetting = function(_self, key, value) mem[key] = value end,
+        flush = function() end,
+    })
+end)
+
 local ok = TestRunner:summary()
 return ok

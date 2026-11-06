@@ -79,7 +79,7 @@ TestRunner:test("the reader's names: a write a full card cuts short keeps the ol
     local al = { [AC.NEVER_MERGE_KEY] = { { "A", "B" }, { "C", "D" } }, ["Name"] = { add = { "alias1" } } }
     TestRunner:assertTrue(AC.setUserAliases(DOC, al), "the first write")
     local real_open = io.open
-    io.open = function(path, mode)
+    io.open = function(path, mode)  -- luacheck: ignore 122
         local f, e = real_open(path, mode)
         if not f or mode ~= "w" then return f, e end
         local written, budget = 0, 40
@@ -99,7 +99,7 @@ TestRunner:test("the reader's names: a write a full card cuts short keeps the ol
     local al2 = AC.getUserAliases(DOC)
     al2["Other"] = { add = { "x" } }
     local ok = AC.setUserAliases(DOC, al2)
-    io.open = real_open
+    io.open = real_open  -- luacheck: ignore 122
     TestRunner:assertFalse(ok, "the failed write says so")
     local back = AC.getUserAliases(DOC)
     local n = 0

@@ -91,6 +91,7 @@ Registry.SETTINGS_SUBKEYS = {
     assets = {
         "custom_actions", "custom_prompts",                 -- top-level (see TOPLEVEL_SUBKEYS)
         "custom_behaviors", "custom_domains",
+        "custom_behavior_next_id", "custom_domain_next_id",  -- the ids' counters (never reused; the sweep of 2026-11-06)
         "custom_providers", "custom_models", "provider_default_models",
         "model_explicit",                                   -- which providers have a deliberate model pick
         "tier_overrides",                                   -- tier GUI placements (docs/tier_gui_plan.md)

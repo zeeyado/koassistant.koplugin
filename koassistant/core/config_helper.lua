@@ -270,4 +270,27 @@ function ConfigHelper:buildDebugInfo(config)
     return debug_info
 end
 
+--- The ids' counter of a custom list (domains, behaviors): never below the
+--- highest id in the list, never lowered (the sweep of 2026-11-06: the highest
+--- id deleted and added again gave the new entry the old one's id, and every
+--- book or action set to the old one followed the new). Called before a
+--- delete (so the deleted id stays reserved) and by the generator; the keys
+--- are registered in the storage registry.
+--- @param features table the features table (written in place)
+--- @param list table|nil the entries, each with an id "custom_<n>"
+--- @param key string the counter's key in features
+--- @return number the next id's number
+function ConfigHelper.reserveNextId(features, list, key)
+    local max_num = 0
+    for _idx, entry in ipairs(list or {}) do
+        local num = type(entry) == "table" and type(entry.id) == "string"
+            and tonumber(entry.id:match("custom_(%d+)")) or nil
+        if num and num > max_num then max_num = num end
+    end
+    local n = tonumber(features[key])
+    if not n or n <= max_num then n = max_num + 1 end
+    features[key] = n
+    return n
+end
+
 return ConfigHelper

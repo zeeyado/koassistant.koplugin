@@ -133,4 +133,65 @@ TestRunner:test("the row deletes through the method that clears the selection", 
     TestRunner:assertTrue(src:find("self_ref:deleteAllCustomDomains()", 1, true), "the row calls it")
 end)
 
+print("")
+print("  [the sweep of 2026-11-06: ids never reused; a template fills the editor]")
+
+TestRunner:test("a deleted highest id is never given to a new domain", function()
+    local plugin, store = pluginWith({ custom_domains = twoCustom() })
+    local dm = DomainManager:new(plugin)
+    dm:deleteCustomDomain("custom_2")
+    local id = dm:generateDomainId()
+    TestRunner:assertEqual(id, "custom_3", "the counter is seeded past the highest id ever seen")
+    TestRunner:assertEqual(store.features.custom_domain_next_id, 4, "and grows")
+    dm:deleteCustomDomain("custom_1")
+    TestRunner:assertEqual(dm:generateDomainId(), "custom_4", "a Delete all leaves the counter alone")
+    local fresh = DomainManager:new(pluginWith({ custom_domains = twoCustom(), custom_domain_next_id = 9 }))
+    TestRunner:assertEqual(fresh:generateDomainId(), "custom_9", "a stored counter is honoured")
+    local Registry = require("koassistant.storage.storage_registry")
+    local listed = {}
+    for _idx, k in ipairs(Registry.SETTINGS_SUBKEYS.assets) do listed[k] = true end
+    TestRunner:assertTrue(listed.custom_domain_next_id and listed.custom_behavior_next_id, "both counters registered")
+end)
+
+TestRunner:test("Use as Template while editing fills the editor with the template", function()
+    local Recorder = require("ui_recorder")
+    local ui = Recorder.install()
+    local plugin = pluginWith({ custom_domains = twoCustom() })
+    local dm = DomainManager:new(plugin)
+    dm:showDomainEditor({ id = "custom_1", name = "One", context = "first" }, "a template context", "Template Name")
+    local top = ui:top()
+    TestRunner:assertEqual(top and top.input, "Template Name", "the template's name, not the domain's")
+    ui.stack = {}
+    dm:showDomainEditor({ id = "custom_1", name = "One", context = "first" })
+    TestRunner:assertEqual(ui:top().input, "One", "an edit without a template keeps the domain")
+    ui:restore()
+end)
+
+TestRunner:test("the behavior manager: the same counter and the same editor rule", function()
+    local STUB2 = { "ui/widget/menu", "ui/widget/confirmbox", "ui/widget/textviewer" }
+    local kept = { manager = package.loaded["koassistant.ui.behavior_manager"] }
+    for _idx, name in ipairs(STUB2) do
+        kept[name] = package.loaded[name]
+        if not package.loaded[name] then
+            package.loaded[name] = { new = function(_self, o) return o or {} end, extend = function(_self, o) return o or {} end }
+        end
+    end
+    package.loaded["koassistant.ui.behavior_manager"] = nil
+    local ok, BehaviorManager = pcall(require, "koassistant.ui.behavior_manager")
+    package.loaded["koassistant.ui.behavior_manager"] = kept.manager
+    for _idx, name in ipairs(STUB2) do package.loaded[name] = kept[name] end
+    TestRunner:assertTrue(ok, "the behavior manager loads: " .. tostring(BehaviorManager))
+    local plugin, store = pluginWith({ custom_behaviors = {
+        { id = "custom_1", name = "One", text = "first" }, { id = "custom_2", name = "Two", text = "second" } } })
+    local bm = BehaviorManager:new(plugin)
+    bm:deleteCustomBehavior("custom_2")
+    TestRunner:assertEqual(bm:generateBehaviorId(), "custom_3")
+    TestRunner:assertEqual(store.features.custom_behavior_next_id, 4)
+    local Recorder = require("ui_recorder")
+    local ui = Recorder.install()
+    bm:showBehaviorEditor({ id = "custom_1", name = "One", text = "first" }, "a template text", "Template Name")
+    TestRunner:assertEqual(ui:top() and ui:top().input, "Template Name")
+    ui:restore()
+end)
+
 return TestRunner:summary()

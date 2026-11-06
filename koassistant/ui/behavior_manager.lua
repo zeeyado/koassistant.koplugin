@@ -54,15 +54,22 @@ end
 
 -- Generate a unique ID for a new custom behavior
 function BehaviorManager:generateBehaviorId()
-    local custom = self:getCustomBehaviors()
-    local max_num = 0
-    for _idx, b in ipairs(custom) do
-        local num = tonumber(b.id:match("custom_(%d+)"))
-        if num and num > max_num then
-            max_num = num
-        end
-    end
-    return "custom_" .. (max_num + 1)
+    -- a counter that only grows, as the domains' (ConfigHelper.reserveNextId;
+    -- the sweep of 2026-11-06)
+    local features = self.plugin.settings:readSetting("features") or {}
+    local n = require("koassistant.core.config_helper").reserveNextId(
+        features, features.custom_behaviors, "custom_behavior_next_id")
+    features.custom_behavior_next_id = n + 1
+    self.plugin.settings:saveSetting("features", features)
+    return "custom_" .. n
+end
+
+-- The ids in the list stay reserved after a delete
+function BehaviorManager:reserveIds()
+    local features = self.plugin.settings:readSetting("features") or {}
+    require("koassistant.core.config_helper").reserveNextId(
+        features, features.custom_behaviors, "custom_behavior_next_id")
+    self.plugin.settings:saveSetting("features", features)
 end
 
 -- Add a new custom behavior
@@ -94,6 +101,7 @@ end
 
 -- Delete a custom behavior
 function BehaviorManager:deleteCustomBehavior(id)
+    self:reserveIds()
     local custom = self:getCustomBehaviors()
     for i, b in ipairs(custom) do
         if b.id == id then
@@ -424,8 +432,9 @@ end
 -- @param template_name: Optional name to pre-fill
 function BehaviorManager:showBehaviorEditor(behavior, template_text, template_name)
     local is_new = (behavior == nil)
-    local initial_name = behavior and behavior.name or template_name or ""
-    local initial_text = behavior and behavior.text or template_text or ""
+    -- a template picked while editing fills the editor (the sweep of 2026-11-06)
+    local initial_name = template_name or (behavior and behavior.name) or ""
+    local initial_text = template_text or (behavior and behavior.text) or ""
 
     -- Step 1: Name input
     local name_dialog

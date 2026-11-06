@@ -1279,7 +1279,10 @@ function BookSettings.showDomainResearch(opts)
     local all_domains = DomainLoader.getSortedDomains(features.custom_domains or {})
 
     local book_domain = doc_settings and doc_settings:readSetting(BookSettings.KEY_DOMAIN) or nil
-    local book_research = doc_settings and doc_settings:readSetting(BookSettings.KEY_RESEARCH) or nil
+    -- (an explicit if: the book's Off is false, which `and ... or nil` read as
+    -- not set, the sweep of 2026-11-06)
+    local book_research = nil
+    if doc_settings then book_research = doc_settings:readSetting(BookSettings.KEY_RESEARCH) end
 
     -- Default to "book" whenever a book is in hand (2026-09-07: it used to
     -- need an existing override, so the normal first visit opened on Global).

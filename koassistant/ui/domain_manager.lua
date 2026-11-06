@@ -10,6 +10,7 @@ local ButtonDialog = require("ui/widget/buttondialog")
 local TextViewer = require("ui/widget/textviewer")
 local UIConstants = require("koassistant.ui.constants")
 local DomainLoader = require("koassistant.prompts.domain_loader")
+local ConfigHelper = require("koassistant.core.config_helper")
 
 local DomainManager = {}
 
@@ -40,15 +41,20 @@ end
 
 -- Generate a unique ID for a new custom domain
 function DomainManager:generateDomainId()
-    local custom = self:getCustomDomains()
-    local max_num = 0
-    for _idx, d in ipairs(custom) do
-        local num = tonumber(d.id:match("custom_(%d+)"))
-        if num and num > max_num then
-            max_num = num
-        end
-    end
-    return "custom_" .. (max_num + 1)
+    -- a counter that only grows (ConfigHelper.reserveNextId; the sweep of
+    -- 2026-11-06): a deleted id is never given to a new domain
+    local features = self.plugin.settings:readSetting("features") or {}
+    local n = ConfigHelper.reserveNextId(features, features.custom_domains, "custom_domain_next_id")
+    features.custom_domain_next_id = n + 1
+    self.plugin.settings:saveSetting("features", features)
+    return "custom_" .. n
+end
+
+-- The ids in the list stay reserved after a delete
+function DomainManager:reserveIds()
+    local features = self.plugin.settings:readSetting("features") or {}
+    ConfigHelper.reserveNextId(features, features.custom_domains, "custom_domain_next_id")
+    self.plugin.settings:saveSetting("features", features)
 end
 
 -- Add a new custom domain
@@ -80,6 +86,7 @@ end
 
 -- Delete a custom domain
 function DomainManager:deleteCustomDomain(id)
+    self:reserveIds()
     local custom = self:getCustomDomains()
     for i, d in ipairs(custom) do
         if d.id == id then
@@ -100,6 +107,7 @@ end
 
 -- Delete every custom domain
 function DomainManager:deleteAllCustomDomains()
+    self:reserveIds()
     local custom = self:getCustomDomains()
     self:saveCustomDomains({})
     -- If a deleted domain was selected, clear selection (as deleteCustomDomain does)
@@ -439,8 +447,9 @@ end
 -- @param template_name: Optional name to pre-fill
 function DomainManager:showDomainEditor(domain, template_context, template_name)
     local is_new = (domain == nil)
-    local initial_name = domain and domain.name or template_name or ""
-    local initial_context = domain and domain.context or template_context or ""
+    -- a template picked while editing fills the editor (the sweep of 2026-11-06)
+    local initial_name = template_name or (domain and domain.name) or ""
+    local initial_context = template_context or (domain and domain.context) or ""
 
     -- Step 1: Name input
     local name_dialog

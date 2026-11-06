@@ -164,12 +164,27 @@ function StatsReader.loadAllStats()
         return nil
     end
 
+    local lookup = StatsReader.foldRows(result)
+
+    pcall(conn.close, conn)
+    return lookup
+end
+
+--- The book table's rows by md5. KOReader keeps one row per book id, and a
+--- book opened under two ids (a move, a re-import) has two rows for one
+--- md5: the last row read won, so part of its time was lost (the sweep of
+--- 2026-11-06). Pure: the rows are folded, the time and pages summed (the
+--- pages capped at the book's), last_open the newest, title and authors from
+--- the newest row.
+--- @param result table the columns as lua-ljsqlite3's exec returns them
+--- @return table { [md5] = { title, authors, total_read_time, total_read_pages, last_open, pages } }
+function StatsReader.foldRows(result)
     local lookup = {}
     local count = #result.md5
     for i = 1, count do
         local md5 = result.md5[i]
         if md5 and md5 ~= "" then
-            lookup[md5] = {
+            local row = {
                 title = result.title[i],
                 authors = result.authors[i],
                 total_read_time = tonumber(result.total_read_time[i]) or 0,
@@ -177,10 +192,22 @@ function StatsReader.loadAllStats()
                 last_open = tonumber(result.last_open[i]),
                 pages = tonumber(result.pages[i]) or 0,
             }
+            local have = lookup[md5]
+            if not have then
+                lookup[md5] = row
+            else
+                local newer = (row.last_open or 0) >= (have.last_open or 0)
+                have.total_read_time = have.total_read_time + row.total_read_time
+                have.pages = math.max(have.pages, row.pages)
+                have.total_read_pages = math.min(have.total_read_pages + row.total_read_pages,
+                    have.pages > 0 and have.pages or math.huge)
+                if newer then
+                    have.last_open = row.last_open
+                    have.title, have.authors = row.title, row.authors
+                end
+            end
         end
     end
-
-    pcall(conn.close, conn)
     return lookup
 end
 

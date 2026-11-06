@@ -234,10 +234,9 @@ local function runSeriesScan(group_id, seed_path, sp, candidates, source_label, 
             buttons = {
                 {{ text = T(_("Add all (%1)"), #matches), callback = function()
                     UIManager:close(ask)
-                    local added = 0
-                    for _idx, m in ipairs(matches) do
-                        if BookGroups.addBook(group_id, m.path) then added = added + 1 end
-                    end
+                    local paths = {}
+                    for _idx, m in ipairs(matches) do paths[#paths + 1] = m.path end
+                    local added = #BookGroups.addBooks(group_id, paths)
                     local idx_map = { [seed_path] = sp.idx }
                     for _idx, m in ipairs(matches) do idx_map[m.path] = m.idx end
                     local g = BookGroups.byId(group_id)
@@ -247,9 +246,9 @@ local function runSeriesScan(group_id, seed_path, sp, candidates, source_label, 
                             entries[#entries + 1] = { path = p, idx = idx_map[p] }
                         end
                         local sorted = BookGroups.orderBySeriesIndex(entries)
-                        for i, e in ipairs(sorted) do
-                            BookGroups.moveBookTo(group_id, e.path, i)
-                        end
+                        local order = {}
+                        for i, e in ipairs(sorted) do order[i] = e.path end
+                        BookGroups.setOrder(group_id, order)
                     end
                     UIManager:show(require("ui/widget/notification"):new{
                         text = T(_("Added %1 book(s)."), added),
@@ -681,10 +680,7 @@ end
 local function addSelected(group_id, opts, selected_files)
     local BookPicker = require("koassistant.ui.book_picker")
     local BookGroups = groups()
-    local added = {}
-    for _idx, path in ipairs(BookPicker.orderedSelection(selected_files)) do
-        if BookGroups.addBook(group_id, path) then added[#added + 1] = path end
-    end
+    local added = BookGroups.addBooks(group_id, BookPicker.orderedSelection(selected_files))
     addedDone(group_id, opts, added)
 end
 
@@ -771,11 +767,7 @@ function GroupsUI.addFolderFlow(group_id, opts)
                 buttons = {
                     {{ text = T(_("Add all (%1)"), #paths), callback = function()
                         UIManager:close(ask)
-                        local added = {}
-                        for _idx, path in ipairs(paths) do
-                            if BookGroups.addBook(group_id, path) then added[#added + 1] = path end
-                        end
-                        addedDone(group_id, opts, added)
+                        addedDone(group_id, opts, BookGroups.addBooks(group_id, paths))
                     end }},
                     {{ text = _("Choose which…"), callback = function()
                         UIManager:close(ask)
@@ -824,11 +816,7 @@ function GroupsUI.addCollectionFlow(group_id, opts)
             buttons = {
                 {{ text = T(_("Add all (%1)"), #paths), callback = function()
                     UIManager:close(ask)
-                    local added = {}
-                    for _idx, path in ipairs(paths) do
-                        if BookGroups.addBook(group_id, path) then added[#added + 1] = path end
-                    end
-                    addedDone(group_id, opts, added)
+                    addedDone(group_id, opts, BookGroups.addBooks(group_id, paths))
                 end }},
                 {{ text = _("Choose which…"), callback = function()
                     UIManager:close(ask)
