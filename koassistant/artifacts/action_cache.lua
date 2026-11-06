@@ -625,6 +625,11 @@ function ActionCache.clearAll(document_path)
     ActionCache.clearXrayCheckpoints(document_path)
     ActionCache.clearXrayLadder(document_path)
     updateArtifactIndex(document_path, nil)
+    -- the open book's marks redraw without its X-Ray (notifyEdited is
+    -- defined further down; the sweep of 2026-11-06)
+    if type(ActionCache.on_xray_edited) == "function" then
+        pcall(ActionCache.on_xray_edited, document_path)
+    end
     return true
 end
 
@@ -1261,7 +1266,10 @@ function ActionCache.setUserAliases(document_path, aliases_table)
         util.makePath(dir)
     end
 
-    local file, err = io.open(path, "w")
+    -- a temp file renamed over the old one, as saveCache does: a write a
+    -- full card cuts short never tears the reader's names (the sweep of 2026-11-06)
+    local tmp = path .. ".tmp"
+    local file, err = io.open(tmp, "w")
     if not file then
         logger.err("KOAssistant ActionCache: Failed to open user aliases file for writing:", err)
         return false
@@ -1342,7 +1350,15 @@ function ActionCache.setUserAliases(document_path, aliases_table)
         end
     end
     file:write("}\n")
-    file:close()
+    local closed, close_err = file:close()
+    local moved, move_err
+    if closed then moved, move_err = os.rename(tmp, path) end
+    if not moved then
+        os.remove(tmp)
+        logger.warn("KOAssistant ActionCache: user aliases not saved for", document_path, ":",
+            tostring(close_err or move_err))
+        return false
+    end
 
     logger.dbg("KOAssistant ActionCache: Saved user aliases for", document_path)
     notifyEdited(document_path)
@@ -2892,6 +2908,11 @@ end
 local parsed_xray_memo = {}
 local parsed_xray_memo_n = 0
 local PARSED_XRAY_MEMO_MAX = 12
+-- the files of the walk in progress (groupXrays, heldBackLater): a full memo
+-- drops what the walk does not read and never a book of the walk, so a
+-- group's books stay parsed between walks (13 group books wiped the memo on
+-- every page turn; the sweep of 2026-11-06)
+local parsed_xray_memo_walk = nil
 
 --- Nearest earlier X-Rayed book in the current book's ORDERED group (S2,
 --- ref #90): its parsed main X-Ray (own user aliases merged) answers
@@ -2955,8 +2976,13 @@ function ActionCache.parsedXrayFor(file)
     end
     if not m then
         if parsed_xray_memo_n >= PARSED_XRAY_MEMO_MAX then
-            parsed_xray_memo = {}
-            parsed_xray_memo_n = 0
+            local keep = parsed_xray_memo_walk
+            for f in pairs(parsed_xray_memo) do
+                if not (keep and keep[f]) then
+                    parsed_xray_memo[f] = nil
+                    parsed_xray_memo_n = parsed_xray_memo_n - 1
+                end
+            end
         end
         parsed_xray_memo_n = parsed_xray_memo_n + 1
     end
@@ -3026,6 +3052,8 @@ function ActionCache.groupXrays(document_path, opts)
     if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return out, "-" end
     local rows = BookGroups.lookupBooksFor(document_path, true)
     if #rows == 0 then return out, "-" end
+    parsed_xray_memo_walk = {}
+    for _idx, row in ipairs(rows) do parsed_xray_memo_walk[row.file] = true end
     local all_later = (opts and opts.include_later) and true or false
     local reveal_left = (opts and tonumber(opts.reveal)) or 0
     local reach = all_later and #rows or laterReach(document_path, rows)
@@ -3070,6 +3098,8 @@ local function heldBackLater(document_path, reveal)
     if not ok_bg or type(BookGroups.lookupBooksFor) ~= "function" then return out end
     local rows = BookGroups.lookupBooksFor(document_path, true)
     if #rows == 0 or rows[#rows].direction ~= "later" then return out end
+    parsed_xray_memo_walk = {}
+    for _idx, row in ipairs(rows) do parsed_xray_memo_walk[row.file] = true end
     local reach = laterReach(document_path, rows)
     local skip, seen = tonumber(reveal) or 0, 0
     for _idx, row in ipairs(rows) do

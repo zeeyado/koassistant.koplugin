@@ -6384,8 +6384,16 @@ function XrayBrowser:_mentionsFromIndex(layout, first, last)
             for _idx2, item in ipairs(cat.items) do
                 local set = XrayParser.matchTermSet(item)
                 if set then
-                    local counts, total = XrayIndex.entityPages(layout, set,
-                        XrayParser.containingMatchHandles(self.xray_data, item), first, last)
+                    -- the containing handles (the costly part) only for a
+                    -- name the index holds at all: they only remove spans,
+                    -- as _carriedMentionsFromIndex counts (the sweep of 2026-11-06)
+                    local counts, total = XrayIndex.entityPages(layout, set, nil, first, last)
+                    if total and total > 0 then
+                        local handles = XrayParser.containingMatchHandles(self.xray_data, item)
+                        if handles then
+                            counts, total = XrayIndex.entityPages(layout, set, handles, first, last)
+                        end
+                    end
                     if hidden and counts then
                         total = 0
                         for p, c in pairs(counts) do

@@ -42,8 +42,9 @@ XrayIndex.FILE = "koassistant_xray_index.lua"
 -- a stored index is found again (2: Arabic matches start a word, B339;
 -- 3: each occurrence's capitals, B533 S2; 4: written in capitals, a
 -- sentence start, B533 S3; 5: typeset apostrophes and hyphens folded to
--- the typed ones, B596)
-local VERSION = 5
+-- the typed ones, B596; 6: the word boundary applies to Vietnamese, the
+-- Indic scripts and Hebrew, the sweep of 2026-11-06)
+local VERSION = 6
 local MAX_LAYOUTS = 4
 -- A background request waits this long (debounced) before its pass starts:
 -- the book's own opening work and the first page turns go first

@@ -1097,5 +1097,54 @@ TestRunner:test("exactLookupHits: the lookup's exact filter reads not matched an
     TestRunner:ok(src:find("normalizeArabic(h:lower()) == query_exact", 1, true) == nil, "the raw comparison is gone")
 end)
 
+TestRunner:suite("the sweep of 2026-11-06: one case fold for every search; the chapter finders count cheap first")
+
+TestRunner:test("the exact route, searchAll and searchCharacters fold case through XrayParser.foldCase", function()
+    -- a toy fold standing in for utf8proc's (the unit suite has none): three
+    -- Cyrillic capitals; everything else as string.lower
+    local saved = XrayParser.foldCase
+    local MAP = { ["А"] = "а", ["Н"] = "н", ["Д"] = "д", ["Е"] = "е" }
+    XrayParser.foldCase = function(text)
+        return (text:lower():gsub("[\208\209][\128-\191]", function(c) return MAP[c] or c end))
+    end
+    local data = { type = "fiction", characters = {
+        { name = "Анна", aliases = { "дед" }, description = "x" },
+        { name = "Anna", description = "z" } } }
+    local set = {}
+    XrayParser.foldExactHandles(data, set)
+    TestRunner:ok(XrayParser.matchExactHandle(set, "АННА"), "the route: capitals")
+    TestRunner:ok(XrayParser.matchExactHandle(set, "анна"), "the route: lowercase")
+    TestRunner:ok(XrayParser.matchExactHandle(set, "Дед"), "an alias")
+    TestRunner:ok(not XrayParser.matchExactHandle(set, "Никто"), "a miss stays a miss")
+    TestRunner:eq(#XrayParser.searchAll(data, "АННА"), 1, "fuzzy search, capitals")
+    TestRunner:eq(#XrayParser.searchAll(data, "Дед", { exact = true }), 1, "exact search, an alias")
+    TestRunner:eq(#XrayParser.searchCharacters(data, "АННА"), 1, "searchCharacters")
+    TestRunner:eq(XrayParser.normalizeHandle("АННА"), "анна", "normalizeHandle")
+    local with_ledger = { [XrayParser.DORMANT_KEY] = { { name = "Данна", category = "characters", description = "d" } } }
+    TestRunner:eq(#XrayParser.searchLedger(with_ledger, "ДАННА"), 1, "searchLedger")
+    XrayParser.foldCase = saved
+end)
+
+TestRunner:test("the chapter finders count without the containing handles first, then with them", function()
+    local data = XrayParser.parse('{"characters":[{"name":"Vivian Kubrick","description":"a"},{"name":"Kubrick","description":"b"},{"name":"Nobody","description":"c"}]}')
+    local text = "Vivian Kubrick came in. Kubrick left. Vivian Kubrick again."
+    local items = XrayParser.findItemsInChapter(data, text)
+    local by = {}
+    for _i, r in ipairs(items) do by[r.item.name] = r.count end
+    TestRunner:eq(by["Vivian Kubrick"], 2)
+    TestRunner:eq(by["Kubrick"], 1, "the inner hits inside the longer name are not his")
+    TestRunner:eq(by["Nobody"], nil, "a name the text lacks is not listed")
+    local chars = XrayParser.findCharactersInChapter(data, text)
+    local byc = {}
+    for _i, r in ipairs(chars) do byc[r.item.name] = r.count end
+    TestRunner:eq(byc["Kubrick"], 1)
+    TestRunner:eq(byc["Vivian Kubrick"], 2)
+    -- the same as the handles-always count
+    local norm = XrayParser.matchNormalize(text)
+    local keep = XrayParser.alignedKeepCase(text, norm)
+    local k = data.characters[2]
+    TestRunner:eq(XrayParser.countItemOccurrences(k, norm, XrayParser.containingMatchHandles(data, k), keep), 1)
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

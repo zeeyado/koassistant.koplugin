@@ -192,6 +192,118 @@ end
 
 --- Reload disk state on stamp change, re-pick the artifacts, rebuild the
 --- entity index when the pick changed. Cheap when nothing moved.
+-- The word runs of a form: every substring from a word's start to a word's
+-- end (the matcher's word test, XrayParser._isWordCharAt), shorter than the
+-- form; a term equal to one of them sits in the form at word boundaries.
+local function wordRuns(form, XrayParser)
+  local starts, ends = {}, {}
+  local i, n = 1, #form
+  local in_word = false
+  while i <= n do
+    local b = form:byte(i)
+    local len = (b < 0x80 and 1) or (b >= 0xF0 and 4) or (b >= 0xE0 and 3) or (b >= 0xC0 and 2) or 1
+    if XrayParser._isWordCharAt(form, i, false) then
+      if not in_word then
+        starts[#starts + 1] = i
+        in_word = true
+      end
+      ends[#starts] = math.min(i + len - 1, n)
+    else
+      in_word = false
+    end
+    i = i + len
+  end
+  local runs = {}
+  for a = 1, #starts do
+    for e = a, #starts do
+      if not (a == 1 and e == #starts) then
+        runs[#runs + 1] = form:sub(starts[a], ends[e])
+      end
+    end
+  end
+  return runs
+end
+
+-- Whether a term starts and ends with a word character (its match in a
+-- form then starts at a word's start and ends at a word's end)
+local function wordEdged(term, XrayParser)
+  if term == "" or not XrayParser._isWordCharAt(term, 1, false) then return false end
+  local last = #term
+  while last > 1 and term:byte(last) >= 0x80 and term:byte(last) < 0xC0 do last = last - 1 end
+  return XrayParser._isWordCharAt(term, last, false)
+end
+
+-- Cross-entity containment (B266), hashed (the sweep of 2026-11-06): every
+-- word run of every form maps to the entities holding it, so a term looks
+-- up its candidates instead of meeting every other entity's every form
+-- (2,000 entities: 215 ms became 5 ms on the bench; the pass runs at every
+-- rebuild of the index, on the UI thread). A term of a script the matcher
+-- reads without word boundaries (CJK, Thai, Arabic) or one not edged by
+-- word characters keeps the substring walk over every form; the test of a
+-- candidate is the pairwise pass's own. Writes `longer` (the entities whose
+-- forms contain one of this entity's minimal terms, ascending) and
+-- `handles` (those forms, sorted) on each entity.
+local function containment(ents, XrayParser)
+  local map = {}
+  for j, b in ipairs(ents) do
+    if b.set then
+      for _tb, tb in ipairs(b.set.all) do
+        for _r, run in ipairs(wordRuns(tb, XrayParser)) do
+          local list = map[run]
+          if not list then
+            list = {}
+            map[run] = list
+          end
+          list[#list + 1] = { j, tb }
+        end
+      end
+    end
+  end
+  for i, a in ipairs(ents) do
+    local longer, handles, seen_j, seen_h
+    if a.set then
+      for _ta, ta in ipairs(a.set.minimal) do
+        local candidates
+        if XrayParser._skipBoundaryCheck(ta) or not wordEdged(ta, XrayParser) then
+          candidates = nil  -- every form
+        else
+          candidates = map[ta] or {}
+        end
+        local function consider(j, tb)
+          if j ~= i and #tb > #ta and tb:find(ta, 1, true)
+              and XrayParser.handleContainsWord(tb, ta) then
+            if not (seen_j and seen_j[j]) then
+              seen_j = seen_j or {}
+              seen_j[j] = true
+              longer = longer or {}
+              longer[#longer + 1] = j
+            end
+            if not (seen_h and seen_h[tb]) then
+              seen_h = seen_h or {}
+              seen_h[tb] = true
+              handles = handles or {}
+              handles[#handles + 1] = tb
+            end
+          end
+        end
+        if candidates then
+          for _c, c in ipairs(candidates) do consider(c[1], c[2]) end
+        else
+          for j, b in ipairs(ents) do
+            if j ~= i and b.set then
+              for _tb, tb in ipairs(b.set.all) do consider(j, tb) end
+            end
+          end
+        end
+      end
+    end
+    if longer then table.sort(longer) end
+    if handles then table.sort(handles) end
+    a.longer = longer
+    a.handles = handles
+  end
+end
+
 local function ensureIndex(plugin, pageno)
   local ActionCache = require("koassistant.artifacts.action_cache")
   -- The page count joins the stamps: a font, margin or rotation change moves
@@ -377,37 +489,7 @@ local function ensureIndex(plugin, pageno)
   -- theirs) and the containing forms (`handles`: the name index applies the
   -- same rule to the spacing). Index-time only, so the per-turn scan pays
   -- nothing for it.
-  for i, a in ipairs(ents) do
-    local longer, handles, seen_h
-    if a.set then
-      for j, b in ipairs(ents) do
-        if i ~= j and b.set then
-          local hit = false
-          for _tb, tb in ipairs(b.set.all) do
-            for _ta, ta in ipairs(a.set.minimal) do
-              if #tb > #ta and tb:find(ta, 1, true)
-                  and XrayParser.handleContainsWord(tb, ta) then
-                hit = true
-                seen_h = seen_h or {}
-                if not seen_h[tb] then
-                  seen_h[tb] = true
-                  handles = handles or {}
-                  handles[#handles + 1] = tb
-                end
-                break
-              end
-            end
-          end
-          if hit then
-            longer = longer or {}
-            longer[#longer + 1] = j
-          end
-        end
-      end
-    end
-    a.longer = longer
-    a.handles = handles
-  end
+  containment(ents, XrayParser)
   st.entities = #ents > 0 and ents or nil
   st.artifact_key = key
   -- the automatic capitals these entities were built with (onNameIndexReady)
@@ -662,6 +744,7 @@ end
 -- Test seam: the headless probes and unit tests drive the page matcher
 -- with a hand-built state (entities, spacing, families, file)
 XrayMarks._computeMarks = computeMarks
+XrayMarks._containment = containment  -- the hashed pass, checked against the pairwise one in tests
 
 -- Test seam: the headless scenarios read the visible page's marks
 function XrayMarks._pageMarks()
@@ -891,7 +974,10 @@ function XrayMarks.sync(plugin)
   local eligible = marking.enabled
       and ui and ui.document and ui.rolling and ui.view
   if not eligible then
-    XrayMarks.teardown(plugin)
+    -- the marks stand down (a search, a settings row): the name index's
+    -- background pass is the book's and goes on, the Mentions and Chapter
+    -- Appearances views read it (the sweep of 2026-11-06)
+    XrayMarks.teardown(plugin, { keep_index = true })
     return
   end
 
@@ -943,12 +1029,15 @@ function XrayMarks.sync(plugin)
   end
 end
 
-function XrayMarks.teardown(plugin)
+function XrayMarks.teardown(plugin, opts)
   local ui = plugin and plugin.ui
   local was_painting = st and st.paint_boxes
   st = nil
-  -- The background name-index pass belongs to the open book's marks
-  require("koassistant.xray.xray_index").stop(true)
+  -- The background name-index pass goes with the book (a close), not with
+  -- the marks alone (opts.keep_index: sync's stand-down)
+  if not (opts and opts.keep_index) then
+    require("koassistant.xray.xray_index").stop(true)
+  end
   if ui and ui.view and ui.view.view_modules
       and ui.view.view_modules[MODULE_NAME] then
     ui.view.view_modules[MODULE_NAME] = nil

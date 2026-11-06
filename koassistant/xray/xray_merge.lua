@@ -647,7 +647,10 @@ end
 --- Case-insensitive alias union, first list's order first; nil when empty.
 local function unionAliases(a, b)
     local out, seen = {}, {}
-    for _idx, list in ipairs({ a, b }) do
+    -- two explicit passes: ipairs over { a, b } stopped at a nil a, so a
+    -- stub seeded without aliases never gained the source's later ones
+    -- (the sweep of 2026-11-06)
+    local function addAll(list)
         for _i, alias in ipairs(type(list) == "table" and list or {}) do
             if type(alias) == "string" and alias ~= "" and not seen[alias:lower()] then
                 seen[alias:lower()] = true
@@ -655,6 +658,8 @@ local function unionAliases(a, b)
             end
         end
     end
+    addAll(a)
+    addAll(b)
     return #out > 0 and out or nil
 end
 

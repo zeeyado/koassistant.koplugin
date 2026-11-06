@@ -372,7 +372,15 @@ local function confirmDeleteAll(ctx)
         text = T(_("Delete ALL artifacts for \"%1\"?\n\nThis removes the X-Ray (with its archived versions and checkpoints), summaries, analyses, wiki entries and every other artifact. Chats, notebook, pinned items and generated images are kept.\n\nThis cannot be undone."), ctx.title),
         ok_text = _("Delete"),
         ok_callback = function()
-            require("koassistant.artifacts.action_cache").clearAll(ctx.file)
+            local ActionCache = require("koassistant.artifacts.action_cache")
+            -- the X-Ray lineage goes with its artifacts: the book's automation
+            -- is pinned off, as every other delete of a live X-Ray does
+            local had = ActionCache.hasAnyXray(ctx.file) or #(ActionCache.getXrayLadder(ctx.file) or {}) > 0
+            ActionCache.clearAll(ctx.file)
+            if had then
+                require("koassistant.books.book_settings").clearXrayLineageState(
+                    require("koassistant.storage.doc_settings").resolve(ctx.file, ctx.ui))
+            end
             BookPage._stale = true
             UIManager:show(InfoMessage:new{ text = _("Artifacts deleted."), timeout = 2 })
         end,

@@ -635,6 +635,55 @@ TestRunner:test("reseedGroup carries between nonfiction members that declare no 
     TestRunner:eq(XrayMerge.reseedGroup(pgroup, features, nil, nil), 0, "idempotent")
 end)
 
+TestRunner:suite("the sweep of 2026-11-06: a stub gains the source's later aliases; the memo holds a whole group")
+
+TestRunner:test("a carried row seeded without aliases takes the ones a re-seed brings", function()
+    local XrayMerge = require("koassistant.xray.xray_merge")
+    local json = require("json")
+    local DK = XrayParser.DORMANT_KEY
+    local function src(aliases)
+        return XrayParser.parse(json.encode({ type = "fiction", characters = {
+            { name = "Zed Quill", aliases = aliases, description = "a person", role = "lead" } } }))
+    end
+    local function find(base)
+        for _i, st in ipairs(base[DK] or {}) do if st.name == "Zed Quill" then return st end end
+    end
+    local base = XrayParser.parse(json.encode({ type = "fiction", characters = { { name = "Other One", description = "x" } } }))
+    XrayMerge.populateDormant(base, nil, src(nil), "Src", TMP_ROOT .. "/s.epub", "Tgt", TMP_ROOT .. "/t.epub")
+    TestRunner:eq(find(base) and find(base).aliases, nil, "seeded without aliases")
+    local _added, refreshed = XrayMerge.populateDormant(base, nil, src({ "Zed" }), "Src", TMP_ROOT .. "/s.epub", "Tgt", TMP_ROOT .. "/t.epub")
+    local st = find(base)
+    TestRunner:eq(st and st.aliases and table.concat(st.aliases, ","), "Zed", "the re-seed's alias is held")
+    TestRunner:ok((refreshed or 0) >= 1, "counted as refreshed")
+end)
+
+TestRunner:test("thirteen or more earlier books: two walks parse each book once", function()
+    local g2 = BookGroups.create("Memo Floor Series")
+    local files = {}
+    local NB = 14
+    for i = 1, NB + 1 do
+        local f = TMP_ROOT .. "/memo" .. i .. ".epub"
+        os.execute(string.format("mkdir -p %q", f .. ".sdr"))
+        files[i] = f
+        BookGroups.addBook(g2.id, f)
+        if i <= NB then
+            local js = '{"characters":[{"name":"Name' .. i .. ' Person","description":"d"}]}'
+            assert(ActionCache.set(f, "xray", js, 1.0, { model = "m", used_book_text = true }))
+            assert(ActionCache.setXrayCache(f, js, 1.0, { model = "m", used_book_text = true }))
+        end
+    end
+    local open = files[NB + 1]
+    local parses = 0
+    local orig = XrayParser.parse
+    XrayParser.parse = function(...) parses = parses + 1 return orig(...) end
+    local first = ActionCache.groupXrays(open)
+    ActionCache.groupXrays(open)
+    ActionCache.groupXrays(open)
+    XrayParser.parse = orig
+    TestRunner:eq(#first, NB, "every earlier book listed")
+    TestRunner:eq(parses, NB, "parsed once each over three walks (the memo was wiped at 12 before)")
+end)
+
 package.loaded["luasettings"] = prior_luasettings
 package.loaded["koassistant.books.book_groups"] = nil
 package.loaded["koassistant.artifacts.action_cache"] = nil

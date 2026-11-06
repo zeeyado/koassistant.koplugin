@@ -554,9 +554,18 @@ function ArtifactBrowser:showDocumentOptions(doc, opts)
                             text = _("Delete all artifacts for this document?\n\nThis cannot be undone."),
                             ok_text = _("Delete"),
                             ok_callback = function()
-                                ActionCache.clearAll(doc.path)
-                                -- Invalidate file browser row cache
                                 local AskGPT = self_ref:getAskGPTInstance()
+                                -- the X-Ray lineage goes with its artifacts: the
+                                -- book's automation is pinned off, as every other
+                                -- delete of a live X-Ray does (the sweep of 2026-11-06)
+                                local had = ActionCache.hasAnyXray(doc.path)
+                                    or #(ActionCache.getXrayLadder(doc.path) or {}) > 0
+                                ActionCache.clearAll(doc.path)
+                                if had then
+                                    require("koassistant.books.book_settings").clearXrayLineageState(
+                                        require("koassistant.storage.doc_settings").resolve(doc.path, AskGPT and AskGPT.ui))
+                                end
+                                -- Invalidate file browser row cache
                                 if AskGPT then
                                     AskGPT._file_dialog_row_cache = { file = nil, rows = nil }
                                 end

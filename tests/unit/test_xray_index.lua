@@ -956,6 +956,127 @@ TestRunner:test("autoCaps: the names this book writes both ways switch to capita
     TestRunner:eq(before .. " -> " .. after, "2 -> 1", "the underline leaves \"the drowned trees\"")
 end)
 
+TestRunner:suite("the sweep of 2026-11-06: the word boundary per script, the kept index pass, the hashed containment")
+
+TestRunner:test("a name of a script with word boundaries counts whole words only; CJK and Arabic as before", function()
+    local function count(name, text)
+        return #XrayParser._collectMatchSpans(XrayParser.matchNormalize(text), XrayParser.matchNormalize(name))
+    end
+    TestRunner:eq(count("Lệ", "Anh ra lệnh."), 0, "Vietnamese inside a word")
+    TestRunner:eq(count("Lệ", "Cô Lệ đến."), 1, "Vietnamese whole word")
+    TestRunner:eq(count("Hà", "Hàng"), 0, "a 2-byte-only Vietnamese name inside a word")
+    TestRunner:eq(count("राम", "वह आराम से"), 0, "Devanagari inside a word")
+    TestRunner:eq(count("राम", "राम आया"), 1, "Devanagari whole word")
+    TestRunner:eq(count("राम", "राम। आया"), 1, "the danda is no word character")
+    TestRunner:eq(count("דן", "גן עדן"), 0, "Hebrew inside a word")
+    TestRunner:eq(count("דן", "דן בא"), 1, "Hebrew whole word")
+    TestRunner:eq(count("דן", "בית־דן"), 1, "the maqaf is no word character")
+    TestRunner:eq(count("Ἀχιλλεύς", "XἈχιλλεύςY"), 0, "polytonic Greek inside a word")
+    TestRunner:eq(count("ნინო", "ნინოს"), 0, "Georgian inside a word")
+    TestRunner:eq(count("Ян", "Янтарь"), 0, "Cyrillic inside a word (as before)")
+    TestRunner:eq(count("Lea", "Leap"), 0, "Latin inside a word (as before)")
+    TestRunner:eq(count("東京", "私は東京に住む"), 1, "CJK: no boundary needed (as before)")
+    TestRunner:eq(count("สมชาย", "คุณสมชายมา"), 1, "Thai: no boundary needed")
+    TestRunner:eq(count("한국", "대한국민"), 1, "Hangul: no boundary needed")
+    TestRunner:eq(count("نار", "النار"), 1, "Arabic: the article prefix rule (as before)")
+    TestRunner:ok(XrayParser._skipBoundaryCheck("東京") and XrayParser._skipBoundaryCheck("نار"), "the seam")
+    TestRunner:ok(not XrayParser._skipBoundaryCheck("Lệ") and not XrayParser._skipBoundaryCheck("דן"), "the seam")
+end)
+
+TestRunner:test("the marks standing down keep the name index's pass; a close drops it", function()
+    local saved_in, saved_un = UIManager.scheduleIn, UIManager.unschedule
+    local scheduled = {}
+    UIManager.scheduleIn = function(_s, _d, fn) scheduled[fn] = true end
+    UIManager.unschedule = function(_s, fn) scheduled[fn] = nil end
+    local function n() local c = 0 for _ in pairs(scheduled) do c = c + 1 end return c end
+    local doc = { file = SIDECAR .. "/kept.epub", getPageXPointer = function() return "" end,
+        info = { number_of_pages = 300 }, getDocumentRenderingHash = function() return 1234 end,
+        getCurrentPage = function() return 1 end }
+    local ui = { document = doc, rolling = {}, view = { view_modules = {} } }
+    XrayIndex.stop(true)
+    local layout = XrayIndex.ready(ui, { "anna", "boris" })
+    TestRunner:eq(layout, nil, "nothing stored yet")
+    TestRunner:eq(n(), 1, "the pass is queued")
+    local plugin = { ui = ui, settings = { readSetting = function() return { xray_marking = false } end } }
+    XrayMarks.sync(plugin)
+    TestRunner:eq(n(), 1, "the marks off: the pass stays queued (Mentions reads it)")
+    XrayMarks.teardown(plugin)
+    TestRunner:eq(n(), 0, "a plain teardown (the book closes) drops it")
+    UIManager.scheduleIn, UIManager.unschedule = saved_in, saved_un
+end)
+
+TestRunner:test("the hashed containment pass gives the pairwise pass's answer", function()
+    local data = XrayParser.parse(require("json").encode({ type = "fiction", characters = {
+        { name = "Vivian Kubrick", aliases = { "Viv" }, description = "d" },
+        { name = "Kubrick", description = "d" },
+        { name = "Jean-Luc Picard", description = "d" },
+        { name = "Luc", description = "d" },
+        { name = "Jean-Luc", description = "d" },
+        { name = "O'Brien", description = "d" },
+        { name = "Miles O'Brien", description = "d" },
+        { name = "Brien", description = "d" },
+        { name = "Anna", description = "d" },
+        { name = "Anna Karenina", aliases = { "Karenina" }, description = "d" },
+        { name = "東京", description = "d" },
+        { name = "東京タワー", description = "d" },
+        { name = "نار", description = "d" },
+        { name = "النار الكبيرة", description = "d" },
+        { name = "Mr Kubrick", description = "d" },
+    } }))
+    local function build()
+        local ents = XrayParser.buildMarkEntities(data)
+        for _i, e in ipairs(ents) do e.longer, e.handles = nil, nil end
+        return ents
+    end
+    -- the pairwise pass as it was (the reference)
+    local function pairwise(ents)
+        for i, a in ipairs(ents) do
+            local longer, handles, seen_h
+            if a.set then
+                for j, b in ipairs(ents) do
+                    if i ~= j and b.set then
+                        local hit = false
+                        for _tb, tb in ipairs(b.set.all) do
+                            for _ta, ta in ipairs(a.set.minimal) do
+                                if #tb > #ta and tb:find(ta, 1, true)
+                                        and XrayParser.handleContainsWord(tb, ta) then
+                                    hit = true
+                                    seen_h = seen_h or {}
+                                    if not seen_h[tb] then
+                                        seen_h[tb] = true
+                                        handles = handles or {}
+                                        handles[#handles + 1] = tb
+                                    end
+                                    break
+                                end
+                            end
+                        end
+                        if hit then
+                            longer = longer or {}
+                            longer[#longer + 1] = j
+                        end
+                    end
+                end
+            end
+            if longer then table.sort(longer) end
+            if handles then table.sort(handles) end
+            a.longer, a.handles = longer, handles
+        end
+        return ents
+    end
+    local ref = pairwise(build())
+    local got = build()
+    XrayMarks._containment(got, XrayParser)
+    local function list(t) return t and table.concat(t, ",") or "-" end
+    local hits = 0
+    for i = 1, #ref do
+        TestRunner:eq(list(got[i].longer), list(ref[i].longer), "longer of " .. tostring(ref[i].name))
+        TestRunner:eq(list(got[i].handles), list(ref[i].handles), "handles of " .. tostring(ref[i].name))
+        if ref[i].longer then hits = hits + 1 end
+    end
+    TestRunner:ok(hits >= 6, "the fixture holds contained names (" .. hits .. ")")
+end)
+
 os.execute('rm -rf "' .. SIDECAR .. '"')
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0
