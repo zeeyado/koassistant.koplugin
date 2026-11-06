@@ -147,6 +147,7 @@ ModelAudit.NOISE = {
     qwen = {
         "asr", "tts", "livetranslate", "realtime", "omni", "qwen-mt", "character",
         "s2s", "tingwu", "captioner", "wan2", "z-image", "-vl-", "qvq",
+        "pre-mock",  -- Model Studio's gateway test entries (pre-mock_ptu_auth_v2_*, 2026-11-06)
     },
     together = { "lora", "-base" },  -- LoRA adapters and base (non-instruct) weights
 }
@@ -242,7 +243,19 @@ ModelAudit.DELIBERATE_SKIPS = {
         ["command-r-plus-08-2024"] = "older generation",
         ["command-a-vision-07-2025"] = "vision model",
         ["c4ai-aya-vision-32b"] = "vision model",
-        ["north-mini-code-1-0"] = "coding model",
+        ["north-mini-code-1.0"] = "coding model",
+        -- 2026-11-06: specialised endpoints (translation, Arabic, the tiny Aya set)
+        ["command-a-translate-08-2025"] = "translation model",
+        ["north-small-translate-1.0"] = "translation model",
+        ["command-r7b-arabic-02-2025"] = "regional variant of the curated r7b",
+        ["c4ai-aya-expanse-32b"] = "older multilingual generation",
+        ["tiny-aya-earth"] = "tiny regional model",
+        ["tiny-aya-fire"] = "tiny regional model",
+        ["tiny-aya-global"] = "tiny regional model",
+        ["tiny-aya-water"] = "tiny regional model",
+    },
+    zai = {
+        ["glm-5.3-flashx-legal"] = "legal-domain variant of the curated flashx (2026-11-06)",
     },
 }
 

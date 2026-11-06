@@ -297,7 +297,7 @@ The first model in each provider's list is its default. These tables are generat
 | **Fireworks** | `accounts/fireworks/models/gpt-oss-120b` | `accounts/fireworks/models/glm-5p3`, `accounts/fireworks/models/glm-5p3-flash`, `accounts/fireworks/models/kimi-k3`, `accounts/fireworks/models/deepseek-v4p1-flash`, `accounts/fireworks/models/minimax-m3`, `accounts/fireworks/models/qwen3p8-max` |
 | **NVIDIA** | `nvidia/nemotron-3.5-super-vl-120b-a12b` | `nvidia/nemotron-3-ultra-550b-a55b`, `nvidia/nemotron-3-nano-omni-30b-a3b-reasoning`, `openai/gpt-oss-20b` |
 | **OpenCode Zen** | `deepseek-v4.1-flash` | `deepseek-v4-pro`, `glm-5.3-flash`, `glm-5.3`, `kimi-k3`, `qwen3.8-flash`, `minimax-m3`, `qwen3.6-plus` |
-| **OpenCode Go** | `kimi-k3` | `hy4-preview`, `longcat-2.0`, `minimax-m3`, `glm-5.3-flash`, `glm-5.3`, `glm-5.2`, `mimo-v2.5-pro`, `mimo-v2.5` and 8 more |
+| **OpenCode Go** | `kimi-k3` | `hy4-preview`, `longcat-2.0`, `minimax-m3`, `glm-5.3-flash`, `glm-5.3`, `glm-5.2`, `mimo-v2.6-pro`, `mimo-v2.6-flash` and 8 more |
 | **A2Agent** | `deepseek-v4-flash` | `deepseek-v4-pro`, `deepseek-v4.1-flash`, `glm-5.3`, `glm-5.3-flash`, `kimi-k3`, `qwen3.8-max`, `qwen3.8-flash`, `MiniMax-M3` |
 <!-- /generated: defaults -->
 
@@ -314,8 +314,8 @@ The community hosts ship short built-in lists (the first id is the default). Som
 <!-- generated: community -->
 | Provider | Built-in list |
 |----------|---------------|
-| **Together** | `deepseek-ai/DeepSeek-V4-Pro-0813`, `deepseek-ai/DeepSeek-V4-Flash-0731`, `meta-llama/Llama-3.3-70B-Instruct-Turbo`, `moonshotai/Kimi-K2.6`, `zai-org/GLM-5.2` |
-| **SambaNova** | `gpt-oss-120b`, `DeepSeek-V3.1`, `DeepSeek-V3.2`, `Meta-Llama-3.3-70B-Instruct`, `MiniMax-M3`, `gemma-4-31B-it` |
+| **Together** | `deepseek-ai/DeepSeek-V4-Pro-0813`, `deepseek-ai/DeepSeek-V4.1-Flash`, `meta-llama/Llama-3.3-70B-Instruct-Turbo`, `moonshotai/Kimi-K2.6`, `zai-org/GLM-5.2` |
+| **SambaNova** | `gpt-oss-120b`, `Meta-Llama-3.3-70B-Instruct`, `MiniMax-M3.1-Flash`, `gemma-4-31B-it` |
 | **Requesty** | `openai/gpt-4o-mini`, `openai/gpt-5.5`, `openai/gpt-5.4`, `anthropic/claude-sonnet-5-5`, `anthropic/claude-opus-5-5`, `anthropic/claude-fable-5.1`, `anthropic/claude-sonnet-5`, `anthropic/claude-opus-5` and 6 more |
 | **Doubao** | `doubao-seed-2.0-pro-32k`, `doubao-seed-2.0-pro-256k`, `doubao-seed-2.0-lite`, `doubao-seed-2.0-code` |
 | **Cerebras** | `gpt-oss-120b`, `gemma-4-31b` |

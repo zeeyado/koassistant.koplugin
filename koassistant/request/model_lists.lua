@@ -367,7 +367,7 @@ local ModelLists = {
     together = {
         -- DeepSeek V4 (current)
         "deepseek-ai/DeepSeek-V4-Pro-0813",                  -- default + flagship; the bare -Pro slug left the catalog (2026-09-28, -30), only this dated id is listed (the Flash-0731 precedent; unverified by request: our key has no credits)
-        "deepseek-ai/DeepSeek-V4-Flash-0731", -- dated variant is the live id (catalog-verified 2026-08-15; the bare -Flash slug is gone)
+        "deepseek-ai/DeepSeek-V4.1-Flash",                   -- the -0731 Flash left the catalog by 2026-11-06 (catalog evidence; a dated -1017 sibling is listed too)
         -- Llama 3.3
         "meta-llama/Llama-3.3-70B-Instruct-Turbo",           -- standard/fast
         -- Other
@@ -405,14 +405,12 @@ local ModelLists = {
     sambanova = {
         -- gpt-oss (Production tier)
         "gpt-oss-120b",                                      -- flagship (default)
-        -- DeepSeek
-        "DeepSeek-V3.1",                                     -- reasoning (128K ctx)
-        "DeepSeek-V3.2",                                     -- preview (32K ctx per docs)
+        -- (the DeepSeek V3 pair left the catalog by 2026-11-06; catalog evidence, the key is refused)
         -- Llama 3.x
         "Meta-Llama-3.3-70B-Instruct",                       -- standard/fast
         -- Other
-        "MiniMax-M3",                                        -- replaced MiniMax-M2.7 in the catalog by 2026-10-14
-                                                             -- (1M ctx; catalog only: the key is refused)
+        "MiniMax-M3.1-Flash",                                -- replaced MiniMax-M3 in the catalog by 2026-11-06
+                                                             -- (catalog only: the key is refused)
         "gemma-4-31B-it",
         -- (Llama-4-Maverick-17B-128E-Instruct — the former default/flagship —
         -- deprecated by SambaNova 2026-06-09 and absent from their live model
@@ -623,8 +621,8 @@ local ModelLists = {
         "glm-5.3-flash",                            -- green; effort low/high/max only on this endpoint
         "glm-5.3",
         "glm-5.2",
-        "mimo-v2.5-pro",
-        "mimo-v2.5",
+        "mimo-v2.6-pro",                            -- the v2.5 pair left Go's catalog by 2026-11-06 (catalog evidence); unprobed here (no Go subscription)
+        "mimo-v2.6-flash",                          -- same
         "hy3",
         -- (2026-09-28, answered even without a Go subscription: glm-5.1, minimax-m2.5,
         -- qwen3.7-max, qwen3.6-plus and kimi-k2.6 "deprecated, use ...", glm-5 and
@@ -787,6 +785,9 @@ local ModelLists = {
             -- left Go's catalog by 2026-10-20; deepseek-v4.1-flash is listed in their place
             ["deepseek-v4-flash"] = "deepseek-v4.1-flash",
             ["deepseek-v4-flash-vision-exp"] = "deepseek-v4.1-flash",
+            -- left Go's catalog by 2026-11-06; the v2.6 pair is listed in their place
+            ["mimo-v2.5-pro"] = "mimo-v2.6-pro",
+            ["mimo-v2.5"] = "mimo-v2.6-flash",
         },
         opencode = {
             ["glm-5"] = "glm-5.3",
@@ -807,6 +808,8 @@ local ModelLists = {
         -- evidence, the key has no credits to confirm by request).
         together = {
             ["deepseek-ai/DeepSeek-V4-Pro"] = "deepseek-ai/DeepSeek-V4-Pro-0813",
+            -- gone by 2026-11-06 (catalog evidence); the bare 4.1 Flash is listed
+            ["deepseek-ai/DeepSeek-V4-Flash-0731"] = "deepseek-ai/DeepSeek-V4.1-Flash",
         },
         -- Google answers these with another model since 2026-10-08 (changelog; the
         -- response's modelVersion names the replacement, checked 2026-10-14). Moving the
@@ -830,7 +833,12 @@ local ModelLists = {
         },
         -- Gone from SambaNova's catalog by 2026-10-14 (catalog evidence; the key is refused).
         sambanova = {
-            ["MiniMax-M2.7"] = "MiniMax-M3",
+            ["MiniMax-M2.7"] = "MiniMax-M3.1-Flash",
+            -- Gone by 2026-11-06 (catalog evidence): MiniMax-M3 to its successor, the
+            -- DeepSeek V3 pair to the default (no DeepSeek left in the catalog).
+            ["MiniMax-M3"] = "MiniMax-M3.1-Flash",
+            ["DeepSeek-V3.1"] = "gpt-oss-120b",
+            ["DeepSeek-V3.2"] = "gpt-oss-120b",
         },
     },
 
