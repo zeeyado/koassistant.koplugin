@@ -4,6 +4,7 @@
 local _ = require("koassistant.core.gettext")
 local InputText = require("ui/widget/inputtext")
 local InputDialog = require("ui/widget/inputdialog")
+local StreamMarkdown = require("koassistant.request.stream_markdown")
 local UIManager = require("ui/uimanager")
 local Font = require("ui/font")
 local Size = require("ui/size")
@@ -612,6 +613,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     local interrupted_detail    -- Provider error that ended the stream early (not a token limit)
     -- Hidden streaming: accumulate data but show placeholder (for quiz etc.)
     local hidden_streaming = settings and settings.hidden_streaming
+    -- Markdown while streaming (B562): the rendered view stands in for the
+    -- plain widget; never for a hidden stream (its placeholder and Show/Hide
+    -- are plain text)
+    local markdown_stream = settings and settings.stream_markdown == true and not hidden_streaming or false
     -- The placeholder was hardcoded quiz wording, so every other hidden-output
     -- action (X-Ray merges since round 25) announced itself as "Generating
     -- quiz" (device report). Callers name their own work; quiz stays default.
@@ -1109,6 +1114,9 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         if not keep_read_position or auto_scroll_active then return nil end
         if not first_content_received or hidden_streaming or in_reasoning_phase then return nil end
         local iw = streamDialog and streamDialog._input_widget
+        -- The Markdown view reads its page's first words (the viewer lands on
+        -- the page holding them, counting occurrences the same way)
+        if iw and iw.markdown_stream then return iw:capturePosition() end
         local stw = iw and iw.text_widget
         local tb = stw and stw.text_widget
         local vsl = tb and tb.vertical_string_list
@@ -1202,7 +1210,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             if not completed and not stream_finished and streamDialog and streamDialog._input_widget then
                 local iw = streamDialog._input_widget
                 local keep_charpos, keep_top
-                if not auto_scroll_active then
+                if not auto_scroll_active and not iw.markdown_stream then
                     -- Preserve user's manual scroll position
                     iw:resyncPos()
                     -- Capture NOW: the unpadded setText below clamp-yanks the
@@ -1236,17 +1244,25 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                             or status_suffix
                     end
                 end
-                iw:setText(display, true)
+                if iw.markdown_stream then
+                    -- The rendered view decides when to re-render (line ends, a
+                    -- floor between renders) and shows the last page while
+                    -- following, the reader's page otherwise
+                    iw.follow = auto_scroll_active
+                    iw:setText(display)
+                else
+                    iw:setText(display, true)
 
-                if not (hidden_streaming and not hidden_output_visible) then
-                    if auto_scroll_active then
-                        if page_scroll then
-                            applyPageScroll(iw, display)
-                        else
-                            iw:scrollToBottom()
+                    if not (hidden_streaming and not hidden_output_visible) then
+                        if auto_scroll_active then
+                            if page_scroll then
+                                applyPageScroll(iw, display)
+                            else
+                                iw:scrollToBottom()
+                            end
+                        elseif page_scroll then
+                            holdPageScroll(iw, display, keep_charpos, keep_top)
                         end
-                    elseif page_scroll then
-                        holdPageScroll(iw, display, keep_charpos, keep_top)
                     end
                 end
             end
@@ -1276,7 +1292,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         auto_scroll_active = true
         logger.dbg("KOAssistant: stream autoscroll resumed — toggle")
         local iw = streamDialog._input_widget
-        if iw then
+        if iw and iw.markdown_stream then
+            -- The rendered view: the latest text, then its last page
+            iw.follow = true
+            iw:setText(in_reasoning_phase and table.concat(reasoning_buffer) or table.concat(result_buffer))
+            iw:jumpToEnd()
+        elseif iw then
             if page_scroll then
                 -- Page-based: jump to the last page of content. Compose the
                 -- hidden shape when a hidden stream's output is concealed —
@@ -1407,7 +1428,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
 
     streamDialog = InputDialog:new{
         title = stream_title,
-        inputtext_class = StreamText,
+        inputtext_class = markdown_stream and StreamMarkdown or StreamText,
         input_face = Font:getFace("infofont", font_size),
 
         -- size parameters
@@ -1426,6 +1447,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         auto_para_direction = true,
         scroll_by_pan = true,
         buttons = dialog_buttons,
+        -- The Markdown view's render options (koassistant/request/stream_markdown.lua)
+        koa_stream = markdown_stream and {
+            features = settings and settings.features,
+            text_align = settings and settings.text_align,
+            font_size = font_size,
+        } or nil,
     }
 
     -- Add close button to title bar
@@ -1451,7 +1478,11 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     -- where the reader wanted it. Pan/drag is direct manipulation — it pauses
     -- AND honors the dragged position, never consumed.
     do
+        -- The view's position: the plain widget's top line, the Markdown
+        -- view's page (its inner widget is a ScrollHtmlWidget, with the same
+        -- scrollText and onScrollUp the hooks below wrap)
         local function innerLineNum(stw)
+            if stw and stw.htmlbox_widget then return stw.htmlbox_widget.page_number end
             local tb = stw and stw.text_widget
             return tb and tb.virtual_line_num
         end

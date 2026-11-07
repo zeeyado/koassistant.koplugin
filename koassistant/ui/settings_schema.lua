@@ -566,6 +566,19 @@ local SettingsSchema = {
                             help_text = _("Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink. Disable for continuous bottom-scrolling."),
                         },
                         {
+                            id = "stream_markdown",
+                            type = "toggle",
+                            text = _("Markdown While Streaming"),
+                            path = "features.stream_markdown",
+                            default = false,
+                            depends_on = { id = "enable_streaming", value = true },
+                            enabled_func = function(plugin)
+                                local f = plugin.settings:readSetting("features") or {}
+                                return f.render_markdown ~= false
+                            end,
+                            help_text = _("Show the answer rendered while it streams (bold, headings, lists, the fonts of every script) instead of plain text swapped for the rendered view at the end. It re-renders at line ends, about every two seconds and less often as the answer grows; each render lays the whole answer out again, which takes longer on slow devices and in long answers. Grayed out while Plain Text is your default."),
+                        },
+                        {
                             id = "large_stream_dialog",
                             type = "toggle",
                             text = _("Large Stream Dialog"),

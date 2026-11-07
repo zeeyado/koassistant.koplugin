@@ -165,7 +165,9 @@ local last_dialog  -- the stream dialog the handler built last (its close callba
 function InputDialogStub:new(o)
     o = o or {}
     setmetatable(o, { __index = self })
-    o._input_widget = (o.inputtext_class or InputTextStub):new{}
+    o._input_widget = (o.inputtext_class or InputTextStub):new{ parent = o, width = 500, height = 400 }
+    -- KOReader's Widget:new calls init; the stub classes do not (InputTextStub has none)
+    if o._input_widget.init then o._input_widget:init() end
     o.title_bar = { init = function() end }
     last_dialog = o
     return o
@@ -201,18 +203,19 @@ local REFUSAL_BODY = '{"error": {"message": "Request too large for model `openai
 
 --- Drive the real streaming loop over one recorded pipe buffer.
 --- @return boolean ok, string|nil content, string|nil err
-local function runStream(segments)
+local function runStream(segments, extra_settings)
     RL._reset()
     if type(segments) == "string" then segments = { { text = segments, delay = 0 } } end
     pipe.segs, pipe.idx, pipe.pos, pipe.tick, pipe.ready_at, held = segments, 1, 1, 0, 0, ""
     queue = {}
     local out = {}
+    -- 125 ms: the drain grace is max(4 polls, 0.5 s / interval), so this keeps
+    -- the bound at 4 polls; the replay never sleeps, so it costs nothing.
+    local settings = { provider_name = "groq", model = "openai/gpt-oss-20b",
+        poll_interval_ms = 125, display_interval_ms = 1, prompt_chars = 100 }
+    for k, v in pairs(extra_settings or {}) do settings[k] = v end
     StreamHandler:new{}:showStreamDialog(
-        function() end, "groq", "openai/gpt-oss-20b",
-        -- 125 ms: the drain grace is max(4 polls, 0.5 s / interval), so this keeps
-        -- the bound at 4 polls; the replay never sleeps, so it costs nothing.
-        { provider_name = "groq", model = "openai/gpt-oss-20b",
-          poll_interval_ms = 125, display_interval_ms = 1, prompt_chars = 100 },
+        function() end, "groq", "openai/gpt-oss-20b", settings,
         function(ok, content, err)
             -- pipe.tick counts pipe polls; snapshot it AT completion so the
             -- post-finish subprocess collection (cleanup's 5 s task) is not counted
@@ -512,6 +515,35 @@ TestRunner:test("a <think> block that starts mid-text is split off at the stream
         "no think tag in the answer: " .. tostring(content))
     TestRunner:assertTrue(content:find("The answer.", 1, true) ~= nil, "the answer kept: " .. tostring(content))
     TestRunner:assertTrue(content:find("deep thought", 1, true) == nil, "the reasoning left the answer")
+end)
+
+-- Markdown while streaming (B562): the dialog's input widget is the Markdown
+-- view, which renders the chunks through the viewer's pipeline and the stream
+-- completes as before; a hidden stream keeps the plain widget.
+TestRunner:test("Markdown while streaming: the rendered view takes the chunks, the stream completes", function()
+    local saved_fc = package.loaded["ui/widget/container/framecontainer"].getSize
+    package.loaded["ui/widget/container/framecontainer"].getSize = function() return { w = 500, h = 400 } end
+    -- the first chunk alone, then the rest four polls later: the repaint tick
+    -- between them renders the chunk (the tick pending at the finish is dropped
+    -- with the dialog, as for the plain widget)
+    local first = 'data: {"choices":[{"index":0,"delta":{"content":"# Title\\n\\n"},"finish_reason":null}]}\n\n'
+    local rest = 'data: {"choices":[{"index":0,"delta":{"content":"A **bold** line"},"finish_reason":null}]}\n\n'
+        .. 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\n' .. 'data: [DONE]\n\n'
+    local ok, content = runStream({ { text = first, delay = 0 }, { text = rest, delay = 4 } },
+        { stream_markdown = true, features = { render_math = true }, text_align = "auto" })
+    TestRunner:assertTrue(ok, "stream completed")
+    TestRunner:assertEqual(content, "# Title\n\nA **bold** line", "answer text intact")
+    local iw = last_dialog._input_widget
+    TestRunner:assertTrue(iw and iw.markdown_stream == true, "the Markdown view is the dialog's widget")
+    TestRunner:assertTrue((iw.renders or 0) >= 2, "rendered the waiting text and the chunk: " .. tostring(iw.renders))
+    -- the unit mock's markdown renderer is not luamd: the chunk reached the HTML view
+    TestRunner:assertTrue(type(iw.scroll_w) == "table" and type(iw.scroll_w.html_body) == "string"
+        and iw.scroll_w.html_body:find("Title", 1, true) ~= nil, "the chunk reached the HTML view: " .. tostring(iw.scroll_w and iw.scroll_w.html_body))
+    TestRunner:assertEqual(last_dialog.koa_stream.text_align, "auto", "the render options ride the dialog")
+    ok = runStream(first .. rest, { stream_markdown = true, hidden_streaming = true })
+    TestRunner:assertTrue(ok, "a hidden stream completes")
+    TestRunner:assertTrue(not last_dialog._input_widget.markdown_stream, "a hidden stream keeps the plain widget")
+    package.loaded["ui/widget/container/framecontainer"].getSize = saved_fc
 end)
 
 -- ------------------------------------------------------------------

@@ -984,6 +984,15 @@ It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a mi
             quick_retry_available = (config.features and config.features._quick_eligible == true)
                 and not (config.features and config.features.hidden_streaming) or false,
             quick_already_active = config.features and config.features._session_quick_answer == true,
+            -- Markdown while streaming (B562): the answer rendered as it streams,
+            -- when the setting is on and this chat shows Markdown (the View Mode,
+            -- or the chat's own MD/TXT tap); the render reads the features (the
+            -- fonts, math) and the alignment
+            stream_markdown = (config.features and config.features.stream_markdown == true
+                and config.features.render_markdown ~= false
+                and config.features._chat_view_mode ~= false) or false,
+            features = config.features,
+            text_align = config.features and config.features.text_align,
         }
 
         -- Streaming is async - show dialog and call on_complete when done
