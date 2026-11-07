@@ -96,7 +96,7 @@ With streaming on (the default), responses appear in real time as the AI generat
 - **Auto-scroll** (default): follows new text as it appears. It pauses when you swipe, use page buttons, or tap the scroll controls: the first step up pauses it and scrolls back a page in the same press (on the first page, where there is nothing above, it only pauses), a step down pauses it only when the view actually moves, and dragging pauses it where you let go. Tap Autoscroll to follow again.
 - **Page-based scroll** (default): text fills the current page top-down, then advances to a blank page when full, minimizing full-screen e-ink refreshes. Turn it off for continuous bottom-scrolling. It needs Auto-scroll.
 - **Keep your place**: if auto-scroll is off or paused and you keep reading while the rest streams in, the finished chat opens at your spot instead of jumping to the newest reply (in Markdown it opens on the page holding your line; in Plain Text your line starts the view).
-- **Markdown while streaming** (**Settings → Display Settings → Streaming → Markdown While Streaming**, off by default): the answer is shown rendered as it streams, bold, headings, lists and every script in its own face, instead of plain text swapped for the rendered view at the end. It re-renders at line ends, about every two seconds and less often as the answer grows, since each render lays the whole answer out again; following shows the last page, and a pause keeps your page while the rest arrives. It applies when the chat shows Markdown (your View Mode or the chat's own MD ON tap) and never to hidden streams such as quizzes. Off, the window streams plain text as before.
+- **Markdown while streaming** (**Settings → Chat & Export Settings → Streaming → Markdown While Streaming**, off by default): the answer is shown rendered as it streams, bold, headings, lists and every script in its own face, instead of plain text swapped for the rendered view at the end. It re-renders at line ends, about every two seconds and less often as the answer grows, since each render lays the whole answer out again; following shows the last page, and a pause keeps your page while the rest arrives. It applies to a chat shown in Markdown (a chat you switched with MD ON, else your View Mode) and never to hidden streams such as quizzes. The rendered window pages like a chat window (a swipe, a tap on the page's left or right half, the arrow buttons or page keys); dragging does not scroll it. Off, the window streams plain text as before.
 
 **While the AI searches the web**, the window shows "Searching the web..." and then each query, with a "Found:" line naming the sites that turn up (🔍 and 🔗 prefixes with Emoji Menu Icons). Any prose the AI writes before searching stays visible, followed by an inline *[Searched the web]* marker, so you can see where the search happened.
 
@@ -110,6 +110,7 @@ With streaming on (the default), responses appear in real time as the AI generat
 - **Large Stream Dialog** (on): the streaming window takes the size of a chat window. Off, it is a smaller window you can move.
 - **Stream Poll Interval (ms)**: how often to check for new stream data (default 125 ms, range 25 to 1000). Lower values are snappier but use more battery.
 - **Display Refresh Interval (ms)**: how often to refresh the display during streaming (default 250 ms, range 100 to 500). Higher values improve performance on slower devices.
+- **Markdown While Streaming** (off): the rendered view while streaming, described above. Grayed out while Plain Text is your default view mode.
 
 Dictionary and translate lookups have their own switches (**Settings → Dictionary Settings → Enable Streaming**, **Settings → Translate Settings → Enable Streaming**), and [Minimal Popup](#minimal-popup) answers never stream.
 
@@ -123,7 +124,7 @@ Short answers can skip the full-screen window entirely. With the minimal popup o
 - **Dismiss:** tap outside the popup, or press a page-turn or Back key.
 - **No streaming:** these requests skip the streaming window. A small notice in the corner ("Translating…", or the action's name) keeps the page visible while the request runs; a tap, a key press or a swipe cancels it. Replies in the expanded window follow your streaming setting again.
 - It applies only to actions run on a highlight, and never to full-page translation.
-- The popup shows the answer as plain text, following **Apply Markdown Stripping** and the right-to-left rules of [Markdown and plain text](#markdown-and-plain-text).
+- The popup shows the answer as plain text, following **Apply Markdown Stripping**, laid out right-to-left when the answer mostly is ([Markdown and plain text](#markdown-and-plain-text)).
 - The popup stands aside automatically when a dictionary window is covering the book.
 - A Quick Settings tile (**Minimal Popup: On** / **Off**) toggles the whole feature and remembers whether you had When it fits or Always. Hold the tile for the mode and the per-action toggles.
 
@@ -139,7 +140,7 @@ KOAssistant offers two view modes for displaying AI responses.
 **Plain Text view**
 
 - Uses KOReader's interface fonts, which fall back letter by letter (Noto faces for Arabic, Devanagari and Bengali, FreeSans for Hebrew, and emoji once the emoji font is installed)
-- Thai and the other scripts the Markdown view has no face of its own for read better here; everything else, Arabic, Hebrew and emoji included, reads well in both views
+- Thai and the other scripts the Markdown view has no face of its own for read better here; Arabic and Hebrew read well in both views. Emoji need the installed emoji font here ([Troubleshooting](Troubleshooting#emoji-font-setup)); the Markdown view draws them on its own
 - Markdown is stripped to keep the text readable (**Settings → Display Settings → Rendering → Plain Text Options → Apply Markdown Stripping**, on by default; turn it off to see the raw markdown):
   - Headers → hierarchical symbols (`▉ **H1**`, `◤ **H2**`, `◆ **H3**`)
   - **Bold** → renders as actual bold

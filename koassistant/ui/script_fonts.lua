@@ -26,10 +26,13 @@ KOReader's own interface falls back to for those scripts (frontend/ui/font.lua:
 Noto Sans Devanagari UI, Noto Sans Bengali UI; FreeSans for Hebrew) and the
 Noto Emoji file this plugin bundles for its menu icons, read from the plugin's
 own folder, so emoji draw with no install. A face whose file is missing gets
-no rule and its spans are inert (the window as before). Every weight and
-style is registered, a repeated file included, so MuPDF synthesizes bold and
-italic for a family that has none (probed 2026-10-28 and 2026-11-07,
-docs/research/2026-10-28/arabic-font.md).
+no rule and its spans are inert (the window as before). MuPDF reads every
+@font-face file a document declares, whether its text uses the face or not,
+so css() takes the document's HTML and emits only the faces its spans name
+(an English answer declares none), and a face registers two rules, its
+regular and its bold file (the regular again where there is none, so MuPDF
+emboldens it); an italic span takes the regular face (probed 2026-10-28 and
+2026-11-07, docs/research/2026-10-28/arabic-font.md).
 ]]
 
 local ScriptFonts = {}
@@ -162,33 +165,38 @@ function ScriptFonts.fixedFaces(entry)
     return facesFromFiles(regular, bold)
 end
 
--- The rules of one face: four @font-face lines under its family name and the
--- class rule, 'Noto Sans' after the family so a file that goes missing falls
--- back to the window's font, never to Times
-local function rulesFor(family, class, faces)
-    local rules = {}
-    for _idx, face in ipairs(faces) do
-        rules[#rules + 1] = string.format("@font-face { font-family: '%s'; src: url('%s');%s%s }",
-            family, face.path,
-            face.bold and " font-weight: bold;" or "",
-            face.italic and " font-style: italic;" or "")
+-- The rules of one face: its regular and its bold @font-face line under the
+-- family name (faces[1] and faces[3] of the four combos) and the class rule,
+-- 'Noto Sans' after the family so a file that goes missing falls back to the
+-- window's font, never to Times. opts.no_bold = the regular alone (emoji).
+local function rulesFor(family, class, faces, opts)
+    local rules = {
+        string.format("@font-face { font-family: '%s'; src: url('%s'); }", family, faces[1].path),
+    }
+    if not (opts and opts.no_bold) then
+        rules[#rules + 1] = string.format("@font-face { font-family: '%s'; src: url('%s'); font-weight: bold; }",
+            family, faces[3].path)
     end
     rules[#rules + 1] = string.format(".%s { font-family: '%s', 'Noto Sans'; }", class, family)
     return table.concat(rules, "\n")
 end
 
 local memo = {}         -- the Arabic rules per family
-local fixed_memo = nil  -- the fixed faces' rules, once
+local fixed_memo = {}   -- the fixed faces' rules per class ("" without the file)
 
-local function fixedCSS()
-    if fixed_memo ~= nil then return fixed_memo end
-    local parts = {}
-    for _idx, entry in ipairs(ScriptFonts.FIXED) do
-        local faces = ScriptFonts.fixedFaces(entry)
-        if faces then parts[#parts + 1] = rulesFor(entry.family, entry.class, faces) end
-    end
-    fixed_memo = table.concat(parts, "\n")
-    return fixed_memo
+-- A fixed face's rules, resolved once
+local function fixedRules(entry)
+    local cached = fixed_memo[entry.class]
+    if cached ~= nil then return cached end
+    local faces = ScriptFonts.fixedFaces(entry)
+    local css = faces and rulesFor(entry.family, entry.class, faces, { no_bold = entry.class == ScriptFonts.EMOJI_CLASS }) or ""
+    fixed_memo[entry.class] = css
+    return css
+end
+
+-- Whether the document names a class (the run pass writes class="...")
+local function documentUses(html, class)
+    return html == nil or html:find('class="' .. class .. '"', 1, true) ~= nil
 end
 
 --- The Arabic face's rules alone, "" without a family or its files (the
@@ -204,22 +212,29 @@ function ScriptFonts.arabicCSS(features)
     return css
 end
 
---- The CSS fragment for a features table: the Arabic face's rules and the
---- fixed faces', each only with its files there; "" when none. Memoized
---- (fonts are registered once per KOReader start).
-function ScriptFonts.css(features)
+--- The CSS fragment for a document: the rules of the faces its spans name
+--- (every present face when html is nil), each only with its files there;
+--- "" when none. The rules themselves are memoized (the files are resolved
+--- once per KOReader start); MuPDF loads only what a document declares.
+function ScriptFonts.css(features, html)
     local parts = {}
-    local arabic = ScriptFonts.arabicCSS(features)
-    if arabic ~= "" then parts[#parts + 1] = arabic end
-    local fixed = fixedCSS()
-    if fixed ~= "" then parts[#parts + 1] = fixed end
+    if documentUses(html, ScriptFonts.CLASS) then
+        local arabic = ScriptFonts.arabicCSS(features)
+        if arabic ~= "" then parts[#parts + 1] = arabic end
+    end
+    for _idx, entry in ipairs(ScriptFonts.FIXED) do
+        if documentUses(html, entry.class) then
+            local rules = fixedRules(entry)
+            if rules ~= "" then parts[#parts + 1] = rules end
+        end
+    end
     if #parts == 0 then return "" end
     return "\n" .. table.concat(parts, "\n") .. "\n"
 end
 
 function ScriptFonts.reset()
     memo = {}
-    fixed_memo = nil
+    fixed_memo = {}
 end
 
 --- The label of the Settings row: the family, "None" without one, "(not
@@ -310,12 +325,15 @@ end
 -- ---------------------------------------------------------------------------
 
 -- The scripts, by the UTF-8 byte patterns of their letters: Arabic
--- (U+0600-06FF, U+0880-08FF, the presentation forms U+FB50-FDFF and
--- U+FE70-FEFF), Hebrew (U+0590-05FF, U+FB1D-FB4F), Devanagari (U+0900-097F),
--- Bengali (U+0980-09FF). A token's class is the first script found in it.
+-- (U+0600-06FF, the supplement U+0750-077F, U+0880-08FF, the presentation
+-- forms U+FB50-FDFF and U+FE70-FEFF), Hebrew (U+0590-05FF, U+FB1D-FB4F),
+-- Devanagari (U+0900-097F), Bengali (U+0980-09FF). A token's class is the
+-- script of the FIRST such letter in it, so a Bengali word ending in the
+-- danda (U+0964, a Devanagari character every Bengali sentence ends with)
+-- stays Bengali and a Hebrew word with an Arabic comma stays Hebrew.
 local SCRIPTS = {
     { class = ScriptFonts.CLASS, patterns = {
-        "[\216-\219][\128-\191]", "\224[\162-\163][\128-\191]",
+        "[\216-\219][\128-\191]", "\221[\144-\191]", "\224[\162-\163][\128-\191]",
         "\239\173[\144-\191]", "\239[\174-\183][\128-\191]",
         "\239\185[\176-\191]", "\239[\186-\187][\128-\191]",
     } },
@@ -324,24 +342,28 @@ local SCRIPTS = {
     { class = "koa-beng", patterns = { "\224[\166-\167][\128-\191]" } },
 }
 -- The lead bytes those letters start with: one find rules most text out
-local SCRIPT_LEAD = "[\214-\219\224\239]"
+local SCRIPT_LEAD = "[\214-\219\221\224\239]"
 
 local function classOf(token)
     if not token:find(SCRIPT_LEAD) then return nil end
+    local best, best_at = nil, nil
     for _idx, script in ipairs(SCRIPTS) do
         for _jdx, p in ipairs(script.patterns) do
-            if token:find(p) then return script.class end
+            local at = token:find(p)
+            if at and (not best_at or at < best_at) then
+                best, best_at = script.class, at
+            end
         end
     end
-    return nil
+    return best
 end
 
 -- Emoji. The supplementary characters (U+1F000-1FAFF: faces, objects, flags'
 -- letters, skin tones) are emoji as they stand; among the three-byte symbols
 -- only the ones Unicode presents as emoji by default count on their own
--- (⚡ ✅ ❌ ⭐ and the others below), the rest of U+2300-2BFF, © and ® only
--- with the emoji variation selector (U+FE0F) after them, so a check mark, an
--- arrow or a bullet keeps the window's font. A keycap is a digit, # or *
+-- (⚡ ✅ ❌ ⭐ and the others below), any other three-byte symbol (↔ ✔ ㊗ and
+-- the rest), © and ® only with the emoji variation selector (U+FE0F) after
+-- them, so a check mark, an arrow or a bullet keeps the window's font. A keycap is a digit, # or *
 -- with U+20E3 after it. A sequence continues through the variation selector,
 -- the joiner (U+200D) and what follows it, a keycap, a tag character
 -- (U+E0020-E007F) and any adjacent emoji.
@@ -376,8 +398,8 @@ local function emojiStart(s, i)
         if s:byte(i + 1) == 0x9F then return 4 end
         return nil
     end
-    if b == 0xE2 then
-        if DEFAULT_EMOJI[s:sub(i, i + 2)] then return 3 end
+    if b == 0xE2 and DEFAULT_EMOJI[s:sub(i, i + 2)] then return 3 end
+    if b >= 0xE0 and b <= 0xEF then
         if s:sub(i + 3, i + 5) == VS16 then return 3 end
         return nil
     end
@@ -420,7 +442,7 @@ local function markEmoji(token)
     if not mayHoldEmoji(token) then return token end
     local out, pos, n = {}, 1, #token
     while pos <= n do
-        local c = token:find("[\240\226\194#%*0-9]", pos)
+        local c = token:find("[\240\224-\239\194#%*0-9]", pos)
         if not c then break end
         local len = emojiStart(token, c)
         if len then
@@ -484,21 +506,37 @@ local function markNode(text)
     return table.concat(out)
 end
 
+-- The end of the tag that starts at ts: the first '>' outside a quoted
+-- attribute value (a link's address may hold one), nil for a tag never closed
+local function tagEnd(html, ts)
+    local pos = ts + 1
+    while true do
+        local q = html:find("[>\"']", pos)
+        if not q then return nil end
+        local c = html:sub(q, q)
+        if c == ">" then return q end
+        local close = html:find(c, q + 1, true)
+        if not close then return nil end
+        pos = close + 1
+    end
+end
+
 --- The HTML with every run of Arabic, Hebrew, Devanagari or Bengali letters
 --- and every emoji wrapped in a span of its class (tags and their attributes
---- untouched). Returns the same string when nothing in it needs a span.
+--- untouched; a '<' that starts no tag, as in "x < 3", is text). Returns the
+--- same string when nothing in it needs a span.
 function ScriptFonts.markRuns(html)
     if type(html) ~= "string" or html == "" then return html end
     if not html:find(SCRIPT_LEAD) and not mayHoldEmoji(html) then return html end
     local out, pos, n = {}, 1, #html
     while pos <= n do
-        local ts = html:find("<", pos, true)
+        local ts = html:find("<[%a/!?]", pos)
         if not ts then
             out[#out + 1] = markNode(html:sub(pos))
             break
         end
         if ts > pos then out[#out + 1] = markNode(html:sub(pos, ts - 1)) end
-        local te = html:find(">", ts, true)
+        local te = tagEnd(html, ts)
         if not te then
             out[#out + 1] = html:sub(ts)
             break

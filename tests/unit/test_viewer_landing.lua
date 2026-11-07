@@ -261,7 +261,7 @@ TestRunner:test("one Markdown pipeline: every HTML build goes through it, the sp
     TestRunner:assertEqual(builds, 4, "init, update, rebuild, the translate toggle")
     local _, widgets = src:gsub("self:_htmlWidget%(", "")
     TestRunner:assertEqual(widgets, 4, "the content widget built in one place, used four times")
-    local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(%)%)", "")
+    local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(html_body%)%)", "")
     TestRunner:assertEqual(css_sites, 1, "one CSS site")
     local a = src:find("local function markdownHtml(viewer, text, opts)", 1, true)
     local body = src:sub(a, src:find("\nend\n", a, true))

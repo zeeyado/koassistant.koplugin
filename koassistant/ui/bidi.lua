@@ -86,8 +86,8 @@ function Bidi.blockDirection(text, opts)
     return first or "ltr"
 end
 
---- Auto RTL mode's test (the switch to plain text): right-to-left letters
---- outnumber Latin ones in the text, or in its first sample_size bytes
+--- The minimal popup's direction test: right-to-left letters outnumber
+--- Latin ones in the text, or in its first sample_size bytes
 function Bidi.hasDominantRTL(text, sample_size)
     if not text or text == "" then return false end
     local check = sample_size and text:sub(1, sample_size) or text

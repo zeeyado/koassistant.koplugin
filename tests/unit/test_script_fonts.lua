@@ -129,22 +129,28 @@ TestRunner:test("the fixed faces: KOReader's files for Hebrew, Devanagari and Be
     TestRunner:assertEqual(#by_class["koa-emoji"], 4, "four combos on the one file")
 end)
 
-TestRunner:test("the CSS: each face's rules under its family, the class rule with Noto Sans after, nothing without a file", function()
+TestRunner:test("the CSS: two rules per face under its family, the class rule with Noto Sans after, nothing without a file", function()
     have("noto/NotoNaskhArabic-Regular.ttf", "noto/NotoNaskhArabic-Bold.ttf", "fonts/NotoEmoji-Regular.ttf")
     local css = SF.css({})
     local reg = FAKE_DIR .. "/noto/NotoNaskhArabic-Regular.ttf"
     local bold = FAKE_DIR .. "/noto/NotoNaskhArabic-Bold.ttf"
     TestRunner:assertTrue(css:find("@font-face { font-family: 'KOA RTL'; src: url('" .. reg .. "'); }", 1, true) ~= nil, "regular rule")
-    TestRunner:assertTrue(css:find("@font-face { font-family: 'KOA RTL'; src: url('" .. reg .. "'); font-style: italic; }", 1, true) ~= nil, "italic rule")
     TestRunner:assertTrue(css:find("@font-face { font-family: 'KOA RTL'; src: url('" .. bold .. "'); font-weight: bold; }", 1, true) ~= nil, "bold rule")
-    TestRunner:assertTrue(css:find("@font-face { font-family: 'KOA RTL'; src: url('" .. bold .. "'); font-weight: bold; font-style: italic; }", 1, true) ~= nil, "bold italic rule")
+    TestRunner:assertTrue(css:find("font-style: italic", 1, true) == nil, "no italic rules (an italic span takes the regular face)")
     TestRunner:assertTrue(css:find(".koa-arab { font-family: 'KOA RTL', 'Noto Sans'; }", 1, true) ~= nil, "the Arabic class rule, Noto Sans after")
     TestRunner:assertTrue(css:find(".koa-emoji { font-family: 'KOA Emoji', 'Noto Sans'; }", 1, true) ~= nil, "the emoji class rule")
     TestRunner:assertTrue(css:find("src: url('" .. FAKE_PLUGIN .. "/fonts/NotoEmoji-Regular.ttf')", 1, true) ~= nil, "the emoji file")
     TestRunner:assertTrue(css:find("koa-hebr", 1, true) == nil and css:find("koa-deva", 1, true) == nil, "no rule for a face without its file")
     local _, n = css:gsub("@font%-face", "")
-    TestRunner:assertEqual(n, 8, "four rules per present face")
+    TestRunner:assertEqual(n, 3, "regular and bold for the Arabic face, the regular alone for emoji")
     TestRunner:assertTrue(css:find("koa-rtl", 1, true) == nil, "no block class rule")
+    -- a document declares only the faces its spans name: MuPDF reads every declared file
+    TestRunner:assertEqual(SF.css({}, "<p>plain english</p>"), "", "an English document declares no face")
+    local arabic_only = SF.css({}, '<p>the word <span class="koa-arab">x</span></p>')
+    TestRunner:assertTrue(arabic_only:find("KOA RTL", 1, true) ~= nil and arabic_only:find("koa-emoji", 1, true) == nil, "the Arabic face alone")
+    local emoji_only = SF.css({}, '<p>ok <span class="koa-emoji">x</span></p>')
+    TestRunner:assertTrue(emoji_only:find("KOA RTL", 1, true) == nil and emoji_only:find("koa-emoji", 1, true) ~= nil, "the emoji face alone")
+    TestRunner:assertEqual(SF.css({}, '<p><span class="koa-hebr">x</span></p>'), "", "a named face without its file: nothing")
     local none = SF.css({ rtl_font = false })
     TestRunner:assertTrue(none:find("KOA RTL", 1, true) == nil and none:find("koa-emoji", 1, true) ~= nil, "none: no Arabic rule, the fixed faces stay")
     TestRunner:assertEqual(SF.arabicCSS({ rtl_font = "Nowhere Font" }), "", "a family with no file: no Arabic rule")
@@ -157,6 +163,12 @@ TestRunner:test("the CSS: each face's rules under its family, the class rule wit
     TestRunner:assertEqual(SF.css({}), built, "memoized")
     SF.reset()
     TestRunner:assertEqual(SF.css({}), "", "after reset the missing files count")
+    -- a fixed face with one file: the regular again under bold (MuPDF emboldens)
+    have("freefont/FreeSans.ttf")
+    local hebrew = SF.css({}, '<p><span class="koa-hebr">x</span></p>')
+    local _, rules = hebrew:gsub("@font%-face", "")
+    TestRunner:assertEqual(rules, 2, "regular and bold on the one file")
+    TestRunner:assertTrue(hebrew:find("src: url('" .. FAKE_DIR .. "/freefont/FreeSans.ttf'); font-weight: bold; }", 1, true) ~= nil, "the bold rule on the regular file")
 end)
 
 TestRunner:test("the Settings row's label", function()
@@ -248,6 +260,20 @@ TestRunner:test("the run pass: emoji each in their own span, sequences whole, te
         "an emoji glued to a word, and inside a script run")
 end)
 
+TestRunner:test("the run pass: a word's class is its first script letter; a tag ends outside quotes; a bare '<' is text", function()
+    TestRunner:assertEqual(SF.markRuns("<p>আমি ভাত খাই। তুমি</p>"), '<p><span class="koa-beng">আমি ভাত খাই। তুমি</span></p>',
+        "a Bengali sentence ending in the danda (a Devanagari character) stays Bengali")
+    TestRunner:assertEqual(SF.markRuns("<p>שלום، x</p>"), '<p><span class="koa-hebr">שלום،</span> x</p>', "a Hebrew word with an Arabic comma stays Hebrew")
+    TestRunner:assertEqual(SF.markRuns('<p><a href="http://x/?a>b" title="c>d">' .. AR .. "</a></p>"),
+        '<p><a href="http://x/?a>b" title="c>d"><span class="koa-arab">' .. AR .. "</span></a></p>", "a '>' inside a quoted attribute does not end the tag")
+    TestRunner:assertEqual(SF.markRuns("<p>if x < 3 🔍 " .. AR .. " and y > 2</p>"),
+        '<p>if x < 3 <span class="koa-emoji">🔍</span> <span class="koa-arab">' .. AR .. "</span> and y > 2</p>", "a '<' that starts no tag is text")
+    TestRunner:assertEqual(SF.markRuns("<p>ݐ and ㊗️ and ↔️</p>"),
+        '<p><span class="koa-arab">ݐ</span> and <span class="koa-emoji">㊗️</span> and <span class="koa-emoji">↔️</span></p>',
+        "an Arabic Supplement letter, a CJK symbol and an arrow with the emoji selector")
+    TestRunner:assertEqual(SF.markRuns("<!-- a comment > here --><p>" .. AR .. "</p>"), '<!-- a comment > here --><p><span class="koa-arab">' .. AR .. "</span></p>", "a comment is a tag")
+end)
+
 TestRunner:test("the run pass: text with nothing to wrap comes back as the same string", function()
     local plain = "<p>plain english, nothing here: 100% fine, yes. <b>bold</b> ◉ KOAssistant: ✓ → •</p>"
     TestRunner:assertTrue(SF.markRuns(plain) == plain, "unchanged")
@@ -272,15 +298,15 @@ TestRunner:test("the viewer: one CSS site with the rules, the pipeline ends with
     local f = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/chatgptviewer.lua", "r"))
     local src = f:read("*a")
     f:close()
-    local _, sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(%)%)", "")
-    TestRunner:assertEqual(sites, 1, "the content widget's one builder")
+    local _, sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(html_body%)%)", "")
+    TestRunner:assertEqual(sites, 1, "the content widget's one builder, the document's HTML passed for its faces")
     local _, bare = src:gsub("getViewerCSS%(self%.text_align%)", "")
     TestRunner:assertEqual(bare, 0, "no site without the rules")
     TestRunner:assertTrue(src:find("]], align_rule) .. (rtl_css or \"\")", 1, true) ~= nil, "the builder appends them last")
-    TestRunner:assertTrue(src:find("function ChatGPTViewer:_scriptFontCSS()", 1, true) ~= nil, "the window's own reader of its configuration")
+    TestRunner:assertTrue(src:find("function ChatGPTViewer:_scriptFontCSS(html_body)", 1, true) ~= nil, "the window's own reader of its configuration, per document")
     TestRunner:assertTrue(src:find("return ScriptFonts.markRuns(html_body), reply_break", 1, true) ~= nil, "the span pass last")
     TestRunner:assertTrue(src:find("function ChatGPTViewer.markdownHtml(text, opts)", 1, true) ~= nil
-        and src:find("function ChatGPTViewer.viewerCSS(text_align, features)", 1, true) ~= nil, "the exports for the streaming window")
+        and src:find("function ChatGPTViewer.viewerCSS(text_align, features, html_body)", 1, true) ~= nil, "the exports for the streaming window")
 end)
 
 TestRunner:test("the installed KOReader ships the faces and they resolve by file; the plugin carries the emoji font", function()

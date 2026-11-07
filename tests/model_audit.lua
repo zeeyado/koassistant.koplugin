@@ -187,8 +187,7 @@ ModelAudit.DELIBERATE_SKIPS = {
         ["gemini-2.0-flash-001"] = "old generation",
         ["gemini-2.0-flash-lite"] = "old generation",
         ["gemini-2.0-flash-lite-001"] = "old generation",
-        ["gemini-2.5-flash"] = "left the picker 2026-10-14: served only to accounts that used 2.5 before",
-        ["gemini-2.5-pro"] = "left the picker 2026-10-14: served only to accounts that used 2.5 before",
+        -- gemini-2.5-flash and -pro are in _retired since 2026-11-07 (rerouted 2026-12-01)
         ["gemini-2.5-flash-lite"] = "left the picker 2026-10-14: served only to accounts that used 2.5 before",
     },
     openai = {

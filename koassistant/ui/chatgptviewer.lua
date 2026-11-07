@@ -213,13 +213,31 @@ local function fixIPABidi(text)
     return text
 end
 
--- Auto RTL mode's test (the switch to plain text, for chat and artifact
--- windows): right-to-left letters of any script (Arabic, Hebrew, Persian,
--- Urdu, Syriac ...) outnumber Latin ones, so English text that merely quotes
--- Arabic stays as it is. Optional sample_size limits the scan to the first N
--- bytes (large cached content).
+-- The minimal popup's direction test (exported below): right-to-left letters
+-- of any script (Arabic, Hebrew, Persian, Urdu, Syriac ...) outnumber Latin
+-- ones, so English text that merely quotes Arabic stays as it is. Optional
+-- sample_size limits the scan to the first N bytes (large cached content).
 local hasDominantRTL = Bidi.hasDominantRTL
 
+-- "Latest reply on new page" (default on since 2026-08-12): a CSS page break
+-- after the newest reply's label makes the reply start at a physical page top
+-- in the paginated HTML view, so the landing jump is EXACT instead of
+-- page-granular. MuPDF's plain-HTML layout honours page-break-AFTER only (the
+-- -before rule is a no-op there, probed 2026-08-12 and again 2026-10-28), so
+-- the break rides an empty spacer div (applyExchangePageBreaks below and
+-- div.koa-exchange-break in getViewerCSS). Non-transcript viewers carry no
+-- marker, so this is a structural no-op for them.
+-- Reading-position carry: extract a render-safe VERBATIM anchor from a raw
+-- stream snippet. The snippet is raw response text whose markdown syntax
+-- disappears in the rendered view (**bold**, # headings, [links](url), table
+-- pipes) and may be stripped in plain-text mode. Split on syntax chars and
+-- newlines, take the first clean run's first ~4 words with their original
+-- inter-word punctuation — every search that uses the anchor is literal.
+-- UTF-8 aware char count / prefix. The anchor gates below are CHARACTER
+-- counts: byte counts passed 6-character Arabic runs as "long enough to be
+-- unique" (2-3 bytes per char) and rejected every CJK run outright, so Arabic
+-- landings split at the wrong paragraph and CJK carries never fired
+-- (2026-08-15 device round).
 local function ulen(s)
   local _stripped, n = s:gsub("[^\128-\191]", "")
   return n
@@ -1227,9 +1245,9 @@ local ChatGPTViewer = InputContainer:extend {
 -- Rendering > Right-to-left text font for the Arabic face; the fixed faces for
 -- Hebrew, Devanagari, Bengali and emoji; B558, B621), read from the window's
 -- own configuration so a chat opened before a change keeps its look
-function ChatGPTViewer:_scriptFontCSS()
+function ChatGPTViewer:_scriptFontCSS(html_body)
   local features = self.configuration and self.configuration.features
-  return ScriptFonts.css(features)
+  return ScriptFonts.css(features, html_body)
 end
 
 -- A dictionary window of a right-to-left language: the IPA reorder before
@@ -1285,7 +1303,7 @@ end
 function ChatGPTViewer:_htmlWidget(html_body, width, height)
   return ScrollHtmlWidget:new {
     html_body = html_body,
-    css = getViewerCSS(self.text_align, self:_scriptFontCSS()),
+    css = getViewerCSS(self.text_align, self:_scriptFontCSS(html_body)),
     default_font_size = Screen:scaleBySize(self.markdown_font_size),
     width = width,
     height = height,
@@ -6186,8 +6204,8 @@ function ChatGPTViewer.markdownHtml(text, opts)
   }
   return (markdownHtml(stand_in, text, {}))
 end
-function ChatGPTViewer.viewerCSS(text_align, features)
-  return getViewerCSS(text_align or "auto", ScriptFonts.css(features))
+function ChatGPTViewer.viewerCSS(text_align, features, html_body)
+  return getViewerCSS(text_align or "auto", ScriptFonts.css(features, html_body))
 end
 
 -- Exported for the stream capture side (2026-08-15): the occurrence ordinal

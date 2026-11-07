@@ -48,7 +48,7 @@ Why it asks: extraction sends the book's content to the provider, raises token u
 
 ## Emoji font setup
 
-Emoji icons in the plugin's menus and buttons (Emoji Menu Icons, Emoji Data Access Indicators) need an emoji font installed in KOReader, which ships none. The icons work in menus, the action manager, the X-Ray browser and chat-window buttons. The chat view itself needs no install: it draws emoji with the plugin's bundled copy of the same font.
+Emoji icons in the plugin's menus and buttons (Emoji Menu Icons, Emoji Data Access Indicators) need an emoji font installed in KOReader, which ships none. The icons work in menus, the action manager, the X-Ray browser and chat-window buttons. The Markdown chat view needs no install: it draws emoji with the plugin's bundled copy of the same font. Plain Text windows and the Minimal Popup use KOReader's interface fonts, so they show emoji only once the font is installed.
 
 **The short route:** **Settings → Display Settings → Emoji → Emoji Font** installs the bundled Noto Emoji font into KOReader's fonts folder, enables it as a UI fallback font and asks for a restart; after the restart the same row shows a display test whose **Yes, enable** turns the icons on (with the icons already on, its buttons read **Yes, looks good** and **No, reinstall the font**, which copies the font again). The row's label says where you are (Not Installed, Restart KOReader, Installed). The Setup Wizard's Icons step (**Settings → Setup Wizard**) runs the same install and test. If the icons are on and no emoji font is there, the plugin offers the install once when it starts. The steps below are the same thing by hand.
 

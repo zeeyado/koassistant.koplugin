@@ -1743,7 +1743,7 @@ function AskGPT:initSettings()
       -- Unprompted at startup, so the first line names the plugin it comes from.
       UIManager:show(InfoMessage:new{
         text = _("KOAssistant") .. "\n\n" .. (notice.retired
-          and T(_("Model updated to %1.\n\nYour provider no longer offers %2. Pick a different model any time in Settings."),
+          and T(_("Model updated to %1.\n\nYour provider retired %2, or is about to. Pick a different model any time in Settings."),
             notice.to, notice.from or "?")
           or T(_("Model updated to %1.\n\nYour provider's default changed (you were on %2). Pick a different model any time in Settings."),
             notice.to, notice.from or "?")),
@@ -2827,6 +2827,9 @@ function AskGPT:testProvider(provider_id)
       features = { custom_providers = self:getCustomProviders() },
     }) or model
   end
+  -- A stored pick the provider retired goes out as its replacement (the
+  -- router maps it the same way), so the probe tests what a request sends
+  model = require("koassistant.request.model_lists").retiredReplacement(provider_id, model) or model
   if not model or model == "" then
     model = self:getCustomModels(provider_id)[1]
   end

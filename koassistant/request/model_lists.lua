@@ -369,9 +369,8 @@ local ModelLists = {
         -- platform 2026-08-15: it serves ONLY kimi-k2.6 (+ a k2.7-code slug),
         -- thinks by default, and temperature is mode-locked (see
         -- model_constraints kimi note). The -thinking and -turbo ids 404
-        -- there ("Not found ... or Permission denied") but stay listed for
-        -- CN-platform users (region split; codex-precedent: never strip
-        -- models that other plans/regions may serve — the error is clear).
+        -- there ("Not found ... or Permission denied"); they stayed listed for
+        -- CN-platform users until 2026-11-06, when Moonshot's page dropped them.
         -- Kimi K3 (2026-07, 1M context; international platform, probed 2026-09-28):
         -- thinks by default, disable works, temperature 1 only while thinking,
         -- tools + forced tool_choice + replay green. The default since
@@ -1207,8 +1206,9 @@ local ModelLists = {
 -- Refreshed 2026-10-14 (docs/image_round_plan.md, rulings R1 + R2): the chat
 -- lists' rule, current models then one previous version per line. Left the
 -- picker, still served (a saved pick keeps working): gpt-image-1.5,
--- gpt-image-1, chatgpt-image-latest, gemini-3.1-flash-image (deprecated by
--- Google for gemini-nano-banana-2.1).
+-- chatgpt-image-latest, gemini-3.1-flash-image (deprecated by Google for
+-- gemini-nano-banana-2.1); gpt-image-1 and gpt-image-1-mini go out as their
+-- replacement (_image_retired).
 ModelLists._image_models = {
     openai = {
         "gpt-image-2.6-flare",     -- default: the 2.6 generation (2026-11-05); 10 s at low quality through the plugin's own builder (2026-11-06)

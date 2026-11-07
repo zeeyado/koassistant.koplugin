@@ -12,11 +12,14 @@ and the handler branches on `markdown_stream` where it reads the plain
 widget's lines. A render is a re-layout of the whole text by MuPDF (about
 0.2 s at 3,000 words on the device, 0.5 s at 9,000), so it happens at line
 ends with a floor between renders that grows with the cost of the last one,
-and at once for a short text (the waiting animation, the first words).
+and at once for a short text (the waiting animation, the first words); a
+render the floor held back is scheduled for the floor's end, so a pause in
+the chunks (a web search, a slow provider) still shows what arrived.
 Pagination is stable top-down (probed 2026-10-28), so a paused reader keeps
 their page while the tail grows; following shows the last page. The reader's
 spot for the completion viewer is the first line of their page, read from the
-page's text (capturePosition). Settings: features.stream_markdown (off by
+page's text (capturePosition; CJK segments joined without spaces, as the text
+has none). Settings: features.stream_markdown (off by
 default), applied when the chat shows Markdown (koassistant/request/gpt_query.lua
 builds the stream settings; the dialog carries `koa_stream` = the features,
 the alignment and the font size for the render).
@@ -49,7 +52,7 @@ local StreamMarkdown = InputContainer:extend{
 StreamMarkdown.SHORT = 400          -- bytes: a text this short renders at once
 StreamMarkdown.FLOOR = 1.5          -- seconds between renders, at least
 StreamMarkdown.COST_FACTOR = 6      -- the floor grows to this many times the last render's cost
-StreamMarkdown.CAPTURE_PAGES = 40   -- pages read back for the occurrence count at most
+StreamMarkdown.CAPTURE_PAGES = 10   -- pages read back for the occurrence count at most (each a text extraction)
 
 -- Wall-clock seconds (a floor between renders must not count CPU time, which
 -- barely moves while the window waits for the next chunk)
@@ -63,17 +66,16 @@ end
 StreamMarkdown._now = nowSeconds
 
 --- Whether a render is due, pure: state = { rendered = the text last rendered
---- (nil before the first), rendered_at = seconds, floor = seconds }.
+--- (nil before the first), rendered_at = seconds, floor = seconds }. Returns
+--- true, or false and the seconds left on the floor when that is what holds
+--- it (nil when nothing changed).
 function StreamMarkdown.renderDue(state, text, now)
     if state.rendered == nil then return true end
-    if text == state.rendered then return false end
+    if text == state.rendered then return false, nil end
     if #text < StreamMarkdown.SHORT then return true end
-    if now - (state.rendered_at or 0) < (state.floor or StreamMarkdown.FLOOR) then return false end
-    -- a line end since the last render (a paragraph, a list item, a heading):
-    -- the line the model is still writing waits for its end
-    local _, lines_now = text:gsub("\n", "")
-    local _, lines_then = state.rendered:gsub("\n", "")
-    return lines_now > lines_then
+    local left = (state.floor or StreamMarkdown.FLOOR) - (now - (state.rendered_at or 0))
+    if left > 0 then return false, left end
+    return true
 end
 
 function StreamMarkdown:init()
@@ -96,12 +98,11 @@ function StreamMarkdown:_buildScrollWidget(html_body)
     local Viewer = require("koassistant.ui.chatgptviewer")
     return ScrollHtmlWidget:new{
         html_body = html_body,
-        css = Viewer.viewerCSS(opts.text_align, opts.features),
+        css = Viewer.viewerCSS(opts.text_align, opts.features, html_body),
         default_font_size = Screen:scaleBySize(opts.font_size or 20),
         width = self.width,
         height = self.height,
         dialog = self.parent,
-        scroll_callback = self.scroll_callback,
         highlight_text_selection = false,
     }
 end
@@ -134,22 +135,51 @@ function StreamMarkdown:initTextBox()
         local page = self.follow and box.page_count or math.min(keep_page, box.page_count)
         if page ~= box.page_number and box.setPageNumber then
             box:setPageNumber(page)
-            if new._updateScrollBar then new:_updateScrollBar() end
         end
     end
+    -- The dialog's scroll buttons hear the page once, at its final value (the
+    -- widget's init reported page 1 to nobody)
+    new.scroll_callback = self.scroll_callback
+    if new._updateScrollBar then new:_updateScrollBar() end
     if old_box and old_box.free then old_box:free() end
+    self:_dropPending()
     self.rendered = text
     self.rendered_at = StreamMarkdown._now()
     local cost = self.rendered_at - t0
     self.floor = math.max(StreamMarkdown.FLOOR, cost * StreamMarkdown.COST_FACTOR)
     self.renders = (self.renders or 0) + 1
-    UIManager:setDirty(self.parent, function() return "ui", self.dimen end)
+    -- "fast" as the plain stream widget repaints: the text area alone, no flash
+    UIManager:setDirty(self.parent, function() return "fast", self.dimen end)
+end
+
+-- The render the floor held back, scheduled for the floor's end; dropped by
+-- a render that comes first and at close
+function StreamMarkdown:_dropPending()
+    if self._pending then
+        UIManager:unschedule(self._pending)
+        self._pending = nil
+    end
+end
+
+function StreamMarkdown:_schedulePending(seconds)
+    if self._pending or self._closed then return end
+    local task
+    task = function()
+        if self._pending ~= task then return end
+        self._pending = nil
+        if not self._closed and self.text ~= self.rendered then self:initTextBox() end
+    end
+    self._pending = task
+    UIManager:scheduleIn(seconds, task)
 end
 
 function StreamMarkdown:setText(text)
     self.text = text or ""
-    if StreamMarkdown.renderDue(self, self.text, StreamMarkdown._now()) then
+    local due, left = StreamMarkdown.renderDue(self, self.text, StreamMarkdown._now())
+    if due then
         self:initTextBox()
+    elseif left then
+        self:_schedulePending(left)
     end
 end
 
@@ -190,34 +220,43 @@ function StreamMarkdown:scrollToTop()
     if self.scroll_w and self.scroll_w.scrollToRatio then self.scroll_w:scrollToRatio(0) end
 end
 
---- The last page, painted (following resumed, the tail wanted)
+--- The last page, painted (following resumed, the tail wanted): the
+--- widget's own scroll, which drops the page's old bitmap and redraws
 function StreamMarkdown:jumpToEnd()
-    local box = self.scroll_w and self.scroll_w.htmlbox_widget
-    if not box or not box.page_count then return end
-    if box.page_number ~= box.page_count then
-        box:setPageNumber(box.page_count)
-        if self.scroll_w._updateScrollBar then self.scroll_w:_updateScrollBar() end
-        UIManager:setDirty(self.parent, function() return "ui", self.dimen end)
-    end
+    if self.scroll_w and self.scroll_w.scrollToRatio then self.scroll_w:scrollToRatio(1) end
 end
 StreamMarkdown.scrollToBottom = StreamMarkdown.jumpToEnd
 
--- The words of a page of the document, space-joined
+-- A character of a script written without spaces (CJK, kana, Hangul): MuPDF
+-- hands such text back in odd segments, which join back without a space
+local function spaceless(ch)
+    local b = ch:byte(1)
+    return b ~= nil and b >= 0xE3 and b <= 0xED
+end
+
+-- The words of a page of the document, joined by a space except between two
+-- spaceless-script segments
 local function pageText(box, n)
     local ok, page = pcall(box.document.openPage, box.document, n)
     if not ok or not page then return "" end
     local ok_t, lines = pcall(page.getPageText, page)
     pcall(page.close, page)
     if not ok_t or type(lines) ~= "table" then return "" end
-    local words = {}
+    local out = {}
     for _idx, line in ipairs(lines) do
         if type(line) == "table" then
             for _jdx, w in ipairs(line) do
-                if type(w) == "table" and type(w.word) == "string" then words[#words + 1] = w.word end
+                if type(w) == "table" and type(w.word) == "string" and w.word ~= "" then
+                    local prev = out[#out]
+                    if prev and not (spaceless(prev:sub(-3)) and spaceless(w.word:sub(1, 3))) then
+                        out[#out + 1] = " "
+                    end
+                    out[#out + 1] = w.word
+                end
             end
         end
     end
-    return table.concat(words, " ")
+    return table.concat(out)
 end
 
 --- The reader's spot for the completion viewer: the first words of their
@@ -249,8 +288,10 @@ function StreamMarkdown:capturePosition()
 end
 
 function StreamMarkdown:onCloseWidget()
-    -- the renders repaint with "ui"; a flashui at the end clears e-ink ghosting,
-    -- as the plain stream widget does
+    self._closed = true
+    self:_dropPending()
+    -- the renders repaint with "fast"; a flashui at the end clears e-ink
+    -- ghosting, as the plain stream widget does
     UIManager:setDirty(self.parent, function() return "flashui", self.dimen end)
 end
 

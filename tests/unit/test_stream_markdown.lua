@@ -40,6 +40,9 @@ function TestRunner:assertTrue(v, msg) if not v then error((msg or "expected tru
 
 print("\nMarkdown while streaming (B562)")
 
+-- The real viewer, for the hand-off test below (the stub replaces it for the widget tests)
+local RealViewer = require("koassistant.ui.chatgptviewer")
+
 -- The mocks this widget needs beyond the shared ones, restored at the end
 local SAVED = {}
 for _idx, k in ipairs({ "ui/widget/scrollhtmlwidget", "device", "ui/uimanager", "koassistant.ui.chatgptviewer",
@@ -72,7 +75,10 @@ function FakeScroll:scrollToRatio(r) self.htmlbox_widget.page_number = r == 0 an
 package.loaded["ui/widget/scrollhtmlwidget"] = FakeScroll
 package.loaded["device"] = { screen = { scaleBySize = function(_s, n) return n end, getWidth = function() return 600 end, getHeight = function() return 800 end } }
 local dirty = 0
-package.loaded["ui/uimanager"] = { setDirty = function() dirty = dirty + 1 end, show = function() end, close = function() end, scheduleIn = function() end, unschedule = function() end }
+local queued = {}
+package.loaded["ui/uimanager"] = { setDirty = function() dirty = dirty + 1 end, show = function() end, close = function() end,
+    scheduleIn = function(_s, sec, fn) queued[#queued + 1] = { sec = sec, fn = fn } end,
+    unschedule = function(_s, fn) for i, q in ipairs(queued) do if q.fn == fn then table.remove(queued, i); break end end end }
 package.loaded["ui/widget/container/framecontainer"].getSize = function() return { w = 600, h = 400 } end
 local rendered_texts = {}
 package.loaded["koassistant.ui.chatgptviewer"] = {
@@ -86,17 +92,17 @@ local SM = require("koassistant.request.stream_markdown")
 local clock = 100
 SM._now = function() return clock end
 
-TestRunner:test("the render policy: the first text, a short text, a line end past the floor", function()
+TestRunner:test("the render policy: the first text, a short text, any change past the floor, the seconds left inside it", function()
     local due = SM.renderDue
     TestRunner:assertTrue(due({}, "anything", 0), "nothing rendered yet: due")
     local long = string.rep("word ", 100) .. "\n" .. string.rep("more ", 100)
     local st = { rendered = long, rendered_at = 10, floor = 1.5 }
-    TestRunner:assertTrue(not due(st, long, 20), "the same text: never")
+    local d, left = due(st, long, 20)
+    TestRunner:assertTrue(not d and left == nil, "the same text: never, nothing to wait for")
     TestRunner:assertTrue(due(st, "short", 10.1), "a short text renders at once")
-    TestRunner:assertTrue(not due(st, long .. " tail", 10.5), "a longer tail on the same line, inside the floor: no")
-    TestRunner:assertTrue(not due(st, long .. " tail", 20), "past the floor but no new line end: no")
-    TestRunner:assertTrue(not due(st, long .. "\nnext line", 10.5), "a new line inside the floor: not yet")
-    TestRunner:assertTrue(due(st, long .. "\nnext line", 11.5), "a new line past the floor: due")
+    d, left = due(st, long .. " tail", 10.5)
+    TestRunner:assertTrue(not d and math.abs(left - 1.0) < 1e-9, "inside the floor: no, a second left")
+    TestRunner:assertTrue(due(st, long .. " tail", 11.5), "past the floor: any change renders (a one-paragraph answer never waits for a line end)")
     st.floor = 6
     TestRunner:assertTrue(not due(st, long .. "\nnext line", 14), "a grown floor holds longer")
     TestRunner:assertTrue(due(st, long .. "\nnext line", 16.1), "then renders")
@@ -142,11 +148,21 @@ TestRunner:test("following shows the last page; paused keeps the reader's page w
     w:setText(long .. string.rep("more lines arriving later\n", 30))
     TestRunner:assertTrue(w:pageCount() > 6, "more pages")
     TestRunner:assertEqual(w:currentPage(), 2, "the page kept across the render")
-    -- the tail is one line longer inside the floor: no render
+    -- the tail grows inside the floor: no render now, one scheduled for the floor's end
     local renders = w.renders
+    queued = {}
     w:setText(w.text .. "tail")
     TestRunner:assertEqual(w.renders, renders, "no render inside the floor")
-    -- following resumed: the last page
+    TestRunner:assertEqual(#queued, 1, "a catch-up render scheduled")
+    TestRunner:assertTrue(queued[1].sec > 0 and queued[1].sec <= w.floor, "for the floor's end")
+    w:setText(w.text .. " more")
+    TestRunner:assertEqual(#queued, 1, "one catch-up at a time")
+    clock = clock + 10
+    queued[1].fn()
+    TestRunner:assertEqual(w.renders, renders + 1, "the catch-up rendered what arrived")
+    TestRunner:assertEqual(w.rendered, w.text, "all of it")
+    TestRunner:assertEqual(#queued, 1, "the fired task is left to the mock; nothing new scheduled")
+    -- following resumed: the last page through the widget's own scroll
     w.follow = true
     w:jumpToEnd()
     TestRunner:assertEqual(w:currentPage(), w:pageCount(), "the end")
@@ -166,6 +182,7 @@ TestRunner:test("the position capture: the page's first words and the anchor's o
         { { { word = "The" }, { word = "quick" }, { word = "brown" } }, { { word = "fox" } } },
         { { { word = "Once" }, { word = "again" }, { word = "here" }, { word = "The" }, { word = "quick" }, { word = "brown" } } },
         { { { word = "The" }, { word = "quick" }, { word = "brown" }, { word = "dog" } } },
+        { { { word = "これは" }, { word = "日" }, { word = "本" }, { word = "語" }, { word = "の長" }, { word = "い段" }, { word = "落" }, { word = "and" }, { word = "then" } } },
     }
     local doc = {
         openPage = function(_self, n)
@@ -190,7 +207,34 @@ TestRunner:test("the position capture: the page's first words and the anchor's o
     snippet, occurrence = w:capturePosition()
     TestRunner:assertEqual(snippet, "Once again here The quick brown")
     TestRunner:assertEqual(occurrence, 1, "its own anchor is new")
+    box.page_count = 4
+    box.page_number = 4
+    snippet = w:capturePosition()
+    TestRunner:assertEqual(snippet, "これは日本語の長い段落 and then", "spaceless-script segments join without spaces, a space before Latin")
     FakeScroll.doc = nil
+end)
+
+TestRunner:test("the hand-off: the captured words land through the viewer's own split and ordinal", function()
+    -- the snippet the capture builds (the page's words joined by spaces) is what
+    -- the viewer's landing reads: the anchor it extracts splits the holding
+    -- paragraph at those words, at the counted occurrence
+    -- a lead of over forty characters: a spot within the reply's first words is
+    -- the reply start to the viewer (the marker break already tops it)
+    local para = "Long before the story begins there is a quiet morning in the valley and then the fox jumps over the lazy dog and keeps running far away from the farm"
+    local html = "<p>a question</p><p>◉ KOAssistant:</p><p>" .. para .. ". Again: " .. para .. ".</p>"
+    local snippet = "jumps over the lazy dog and keeps running far away from the farm"
+    local anchor = RealViewer.extractCarryAnchor(snippet)
+    TestRunner:assertEqual(anchor, "jumps over the lazy dog and", "six words of the page's first line")
+    local cfg = { features = { chat_exchange_page_breaks = true } }
+    local out = RealViewer._applyExchangePageBreaks(html, cfg, anchor, 2)
+    local div = '<div class="koa-exchange-break"></div>'
+    local first = out:find(anchor, 1, true)
+    local second = out:find(anchor, first + 1, true)
+    local split = out:find(div .. "<p>" .. anchor, 1, true)
+    TestRunner:assertTrue(split ~= nil, "the paragraph is split at the anchor")
+    TestRunner:assertTrue(split + #div + 3 == second, "at the second occurrence, the one the capture counted")
+    out = RealViewer._applyExchangePageBreaks(html, cfg, anchor, 1)
+    TestRunner:assertTrue(out:find(div .. "<p>" .. anchor, 1, true) + #div + 3 == out:find(anchor, 1, true), "the first occurrence with ordinal 1")
 end)
 
 TestRunner:test("the stream handler: the Markdown view where the plain widget's lines were read", function()
@@ -205,7 +249,9 @@ TestRunner:test("the stream handler: the Markdown view where the plain widget's 
     local g = assert(io.open(PLUGIN_DIR .. "/koassistant/request/gpt_query.lua", "r"))
     local gq = g:read("*a")
     g:close()
-    TestRunner:assertTrue(gq:find("config.features._chat_view_mode ~= false) or false", 1, true) ~= nil, "the chat's own tap counts")
+    TestRunner:assertTrue(gq:find("config.features._chat_view_mode == true", 1, true) ~= nil
+        and gq:find("config.features._chat_view_mode == nil and config.features.render_markdown ~= false", 1, true) ~= nil,
+        "the chat's own tap first, else the View Mode")
     TestRunner:assertTrue(gq:find("stream_markdown = (config.features and config.features.stream_markdown == true", 1, true) ~= nil, "the setting")
 end)
 

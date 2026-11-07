@@ -29,7 +29,6 @@ The Reasoning tile in Quick Settings shows the effective state for the current m
 | Claude Opus 4.8 / 4.7 / 4.6, Sonnet 4.6 | adaptive, off by default | Off / effort low to high; Opus adds xhigh, max |
 | Gemini 4 Argon, Gemini 3 (3.8 / 3.6 flash, 3.1 pro) | thinks by default | effort low to high (3.6 flash also minimal); cannot be fully disabled |
 | Gemini 3 flash-lite (3.5, 3.1) | off by default | Off / effort minimal to high |
-| Gemini 2.5 flash | thinks by default | Off / budget, dynamic to max |
 | OpenAI GPT-6 sol / luna | reasons by default | Off / effort low to xhigh |
 | OpenAI GPT-6 astra, GPT-6.1 sol | reasons by default | effort low to xhigh; cannot be fully disabled |
 | OpenAI GPT-6.1 terra (the default), GPT-5.6 terra, GPT-5.6 family | reasons by default (medium) | Off / effort low to xhigh |

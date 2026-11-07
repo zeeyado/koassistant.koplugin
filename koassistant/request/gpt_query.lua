@@ -989,8 +989,8 @@ It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a mi
             -- or the chat's own MD/TXT tap); the render reads the features (the
             -- fonts, math) and the alignment
             stream_markdown = (config.features and config.features.stream_markdown == true
-                and config.features.render_markdown ~= false
-                and config.features._chat_view_mode ~= false) or false,
+                and (config.features._chat_view_mode == true
+                    or (config.features._chat_view_mode == nil and config.features.render_markdown ~= false))) or false,
             features = config.features,
             text_align = config.features and config.features.text_align,
         }
