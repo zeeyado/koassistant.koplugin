@@ -383,10 +383,11 @@ local ModelLists = {
         -- switch was not exercised on this wire (profile: on, no controls).
         "kimi-k3.1-pro",                -- flagship
         "kimi-k3.1-pro-highspeed",      -- the same model served faster (Moonshot prices it higher)
-        "kimi-k2.6",                    -- previous version: accounts made before 2026-11-01, until late December 2026
-        -- kimi-k2.6-thinking and kimi-k2-turbo-preview left 2026-11-06 (Moonshot's
-        -- page: turbo deprecated, -thinking no longer listed; both 404 on the
-        -- international platform since 2026-08-15); saved picks move via _retired.
+        -- kimi-k2.6 left 2026-11-07 ahead of its late-December retirement (closed to
+        -- accounts made from 2026-11-01; the maintainer took the dated retirements at
+        -- v0.25.0); kimi-k2.6-thinking and kimi-k2-turbo-preview left 2026-11-06
+        -- (Moonshot's page: turbo deprecated, -thinking no longer listed; both 404 on
+        -- the international platform since 2026-08-15); saved picks move via _retired.
     },
 
     together = {
@@ -831,11 +832,17 @@ local ModelLists = {
         },
         -- Moonshot's models page (2026-11-06): kimi-k2-turbo-preview deprecated,
         -- kimi-k2.6-thinking no longer listed (both 404 on the international
-        -- platform since 2026-08-15). kimi-k2.6 itself retires in late December
-        -- 2026: map it here then.
+        -- platform since 2026-08-15); kimi-k2.6 retires in late December 2026,
+        -- mapped 2026-11-07 (the dated retirements ride v0.25.0).
         kimi = {
             ["kimi-k2.6-thinking"] = "kimi-k3",
             ["kimi-k2-turbo-preview"] = "kimi-k3",
+            ["kimi-k2.6"] = "kimi-k3",
+        },
+        -- Anthropic's deprecations page: claude-sonnet-4-5-20250929 retires 2026-11-30
+        -- (the id left the picker long ago; only a saved pick moves; mapped 2026-11-07).
+        anthropic = {
+            ["claude-sonnet-4-5-20250929"] = "claude-sonnet-5-5",
         },
         opencode = {
             ["glm-5"] = "glm-5.3",
@@ -868,6 +875,10 @@ local ModelLists = {
         gemini = {
             ["gemini-3.7-flash"] = "gemini-3.8-flash",
             ["gemini-3.5-flash"] = "gemini-3.6-flash",
+            -- AI Studio changelog 2026-11-02: the 2.5 pair is rerouted on 2026-12-01
+            -- (mapped 2026-11-07; the old ids would answer with the new models anyway)
+            ["gemini-2.5-pro"] = "gemini-3.8-flash",
+            ["gemini-2.5-flash"] = "gemini-3.5-flash-lite",
         },
         -- Model Studio 2026-10-14: qwen3-max and qwen3-coder-plus answer 404 "Model not
         -- exist"; qwen-turbo left the list and answers only a 429 request limit.
@@ -1205,7 +1216,7 @@ ModelLists._image_models = {
         "gpt-image-2.5-flare",     -- previous default
         "gpt-image-2.5-sunburst",
         "gpt-image-2",             -- previous flagship
-        "gpt-image-1-mini",        -- previous fast pick; OpenAI shuts it down 2026-12-01 (its deprecations page)
+        -- gpt-image-1-mini left 2026-11-07 ahead of its shutdown on 2026-12-01; a saved pick moves via _image_retired
     },
     xai = {
         "grok-imagine-image",      -- default: fast (~7 s), $0.02
@@ -1235,9 +1246,10 @@ ModelLists._image_models = {
 -- at low quality from 2026-11-02.
 ModelLists._image_retired = {
     -- OpenAI shut gpt-image-1 down 2026-10-23 (its deprecations page names the
-    -- 2.5 pair as the replacement); gpt-image-1-mini follows 2026-12-01.
+    -- 2.5 pair as the replacement); gpt-image-1-mini follows 2026-12-01 (mapped 2026-11-07).
     openai = {
         ["gpt-image-1"] = "gpt-image-2.5-flare",
+        ["gpt-image-1-mini"] = "gpt-image-2.5-flare",
     },
     xai = {
         ["grok-imagine-image-quality"] = "grok-imagine-image-2.0",
