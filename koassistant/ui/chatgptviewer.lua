@@ -43,6 +43,7 @@ local SpinWidget = require("ui/widget/spinwidget")
 local UIConstants = require("koassistant.ui.constants")
 local Languages = require("koassistant.core.languages")
 local Constants = require("koassistant.core.constants")
+local ScriptFonts = require("koassistant.ui.script_fonts")
 
 -- Strip markdown syntax for text mode (preserves readability without formatting)
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
@@ -219,38 +220,6 @@ end
 -- bytes (large cached content).
 local hasDominantRTL = Bidi.hasDominantRTL
 
--- Get the latest assistant response from message history (excludes user input/context)
-local function getLatestResponse(message_history)
-    if not message_history or not message_history.messages then return "" end
-    -- Iterate backwards to find the last assistant message
-    for i = #message_history.messages, 1, -1 do
-        local msg = message_history.messages[i]
-        if msg.role == "assistant" and msg.content then
-            return msg.content
-        end
-    end
-    return ""
-end
-
--- "Latest reply on new page" (default on since 2026-08-12): a CSS page break
--- after the newest reply's label makes the reply start at a physical page top
--- in the paginated HTML view, so the landing jump is EXACT instead of
--- page-granular. MuPDF's plain-HTML layout honours page-break-AFTER only (the
--- -before rule is a no-op there, probed 2026-08-12 and again 2026-10-28), so
--- the break rides an empty spacer div (applyExchangePageBreaks below and
--- div.koa-exchange-break in getViewerCSS). Non-transcript viewers carry no
--- marker, so this is a structural no-op for them.
--- Reading-position carry: extract a render-safe VERBATIM anchor from a raw
--- stream snippet. The snippet is raw response text whose markdown syntax
--- disappears in the rendered view (**bold**, # headings, [links](url), table
--- pipes) and may be stripped in plain-text mode. Split on syntax chars and
--- newlines, take the first clean run's first ~4 words with their original
--- inter-word punctuation — every search that uses the anchor is literal.
--- UTF-8 aware char count / prefix. The anchor gates below are CHARACTER
--- counts: byte counts passed 6-character Arabic runs as "long enough to be
--- unique" (2-3 bytes per char) and rejected every CJK run outright, so Arabic
--- landings split at the wrong paragraph and CJK carries never fired
--- (2026-08-15 device round).
 local function ulen(s)
   local _stripped, n = s:gsub("[^\128-\191]", "")
   return n
@@ -993,8 +962,8 @@ local function preprocessBrackets(text)
 end
 
 -- CSS for markdown rendering (function to support dynamic text-align).
--- rtl_css: the right-to-left font's rules (koassistant/ui/rtl_font.lua; the
--- direction pass marks those blocks with class="koa-rtl"), appended last.
+-- rtl_css: the script fonts' rules (koassistant/ui/script_fonts.lua; its run
+-- pass wraps the scripts' runs and emoji in spans of those classes), appended last.
 local function getViewerCSS(text_align, rtl_css)
     text_align = text_align or "auto"
     -- "auto" (recon 2g default, 2026-08-17): no text-align rule — paragraphs
@@ -1254,12 +1223,76 @@ local ChatGPTViewer = InputContainer:extend {
   configuration = nil,
 }
 
--- The right-to-left font's CSS rules for this window (Settings > Display
--- Settings > Rendering > Right-to-left text font; B558), read from the
--- window's own configuration so a chat opened before a change keeps its look
-function ChatGPTViewer:_rtlFontCSS()
+-- The script fonts' CSS rules for this window (Settings > Display Settings >
+-- Rendering > Right-to-left text font for the Arabic face; the fixed faces for
+-- Hebrew, Devanagari, Bengali and emoji; B558, B621), read from the window's
+-- own configuration so a chat opened before a change keeps its look
+function ChatGPTViewer:_scriptFontCSS()
   local features = self.configuration and self.configuration.features
-  return require("koassistant.ui.rtl_font").css(features)
+  return ScriptFonts.css(features)
+end
+
+-- A dictionary window of a right-to-left language: the IPA reorder before
+-- the Markdown pass and the "starts with RTL" block rule of the direction pass
+function ChatGPTViewer:_needsRtlFix()
+  local dict_lang = self.configuration and self.configuration.features
+      and self.configuration.features.dictionary_language
+  return (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang) or false
+end
+
+-- THE Markdown pipeline, one copy for every build of the HTML view (init,
+-- update, rebuildScrollWidget, the translate toggle; the refresh goes through
+-- rebuild; the streaming window renders through the export below): the IPA
+-- reorder, the math pass, links, brackets, tables, luamd, the direction pass
+-- (post-bidi page breaks copy the classified opening tag so a split Arabic
+-- paragraph keeps its direction, 2026-08-15), then the script runs' spans
+-- last, since the page breaks match the HTML by its text. `viewer` is any
+-- table with render_math, text_align and configuration.
+local function markdownHtml(viewer, text, opts)
+  opts = opts or {}
+  local source_text = text or ""
+  if opts.ipa_fix then source_text = fixIPABidi(source_text) end
+  local auto_linked = autoLinkUrls(applyMath(viewer, source_text))
+  local bracket_escaped = preprocessBrackets(auto_linked)
+  local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
+  local html_body, err = MD(preprocessed_text, {})
+  if err then
+    logger.warn("ChatGPTViewer: could not generate HTML", err)
+    -- Fallback to plain text if HTML generation fails
+    html_body = "<pre>" .. (text or "Missing text.") .. "</pre>"
+  end
+  html_body = addHtmlBidiAttributes(html_body, { use_starts_with_rtl = opts.ipa_fix, text_align = viewer.text_align })
+  local reply_break
+  html_body, reply_break = applyExchangePageBreaks(html_body, viewer.configuration,
+    opts.carry_anchor, opts.carry_occurrence)
+  return ScriptFonts.markRuns(html_body), reply_break
+end
+
+-- This window's HTML for its text: the pipeline above on its own settings
+-- and carry anchor; the reply break it finds is kept for the landing
+function ChatGPTViewer:_markdownHtml(text)
+  local html_body, reply_break = markdownHtml(self, text, {
+    ipa_fix = self:_needsRtlFix(),
+    carry_anchor = self._stream_carry_anchor,
+    carry_occurrence = self._stream_carry_occurrence,
+  })
+  self._reply_break = reply_break
+  return html_body
+end
+
+-- The content widget of the HTML view, one copy: the CSS with the script
+-- fonts' rules, the font size, the link handler
+function ChatGPTViewer:_htmlWidget(html_body, width, height)
+  return ScrollHtmlWidget:new {
+    html_body = html_body,
+    css = getViewerCSS(self.text_align, self:_scriptFontCSS()),
+    default_font_size = Screen:scaleBySize(self.markdown_font_size),
+    width = width,
+    height = height,
+    dialog = self,
+    highlight_text_selection = true,
+    html_link_tapped_callback = handleLinkTap,
+  }
 end
 
 function ChatGPTViewer:init()
@@ -1729,66 +1762,23 @@ function ChatGPTViewer:init()
     if self.configuration.features.translate_hide_quote then
       self.translate_hide_quote = true
     end
-    -- Dictionary view: text mode and RTL settings (applies to both compact and full dictionary)
+    -- Dictionary windows (compact and full-size): Plain Text when the reader
+    -- asked for it, and the plain-text widget's direction from the dictionary
+    -- language. The Markdown view needs no switch: every block is laid out
+    -- in its own direction and every script drawn in its own face (B621).
     if self.compact_view or self.dictionary_view then
-      -- Check if text mode is forced for all dictionary lookups
       if self.configuration.features.dictionary_text_mode then
         self.render_markdown = false
       end
-      -- Set RTL paragraph direction when dictionary language is RTL
-      local dict_lang = self.configuration.features.dictionary_language
-      if Languages.isRTL(dict_lang) then
+      if Languages.isRTL(self.configuration.features.dictionary_language) then
         self.para_direction_rtl = true
         self.auto_para_direction = false  -- Override auto-detection with explicit RTL
-        -- Default to text mode for RTL dictionary if setting enabled (and not already forced)
-        if not self.configuration.features.dictionary_text_mode and
-           self.configuration.features.rtl_dictionary_text_mode ~= false then
-          self.render_markdown = false
-        end
       end
     end
-    -- Translate view: RTL text mode setting
-    if self.translate_view then
-      local trans_lang = self.configuration.features.translation_language
-      if Languages.isRTL(trans_lang) then
-        self.para_direction_rtl = true
-        self.auto_para_direction = false  -- Override auto-detection with explicit RTL
-        -- Default to text mode for RTL translation if setting enabled
-        if self.configuration.features.rtl_translate_text_mode == true then
-          self.render_markdown = false
-        end
-      end
-    end
-    -- Standard chat view: auto-detect RTL in AI response if setting enabled
-    -- (compact_view and translate_view have their own RTL handling via language settings)
-    if not self.compact_view and not self.dictionary_view and not self.translate_view and not self.simple_view then
-      if self.configuration.features.rtl_chat_text_mode == true then
-        local latest_response = getLatestResponse(self._message_history or self.original_history)
-        if hasDominantRTL(latest_response) then
-          self.para_direction_rtl = true
-          self.auto_para_direction = false
-          -- The per-chat MD/TXT tap (toggleMarkdown writes _chat_view_mode on
-          -- this chat's config) beats Auto RTL's plain text: a reader who
-          -- chose Markdown for an Arabic chat keeps it on every reply, reopen
-          -- and rotation (the sweep of 2026-11-06)
-          if self.configuration.features._chat_view_mode == nil then
-            self.render_markdown = false
-          end
-        end
-      end
-    end
-    -- Simple view (caches/summaries): auto-detect RTL in content
-    -- Uses sampling (first 10KB) for performance on large cached content
-    if self.simple_view and self.text then
-      if self.configuration.features.rtl_chat_text_mode == true then
-        if hasDominantRTL(self.text, 10000) then
-          self.para_direction_rtl = true
-          self.auto_para_direction = false
-          if self.configuration.features._chat_view_mode == nil then
-            self.render_markdown = false
-          end
-        end
-      end
+    -- Translate window: the plain-text widget's direction from the translation language
+    if self.translate_view and Languages.isRTL(self.configuration.features.translation_language) then
+      self.para_direction_rtl = true
+      self.auto_para_direction = false  -- Override auto-detection with explicit RTL
     end
   end
 
@@ -2885,40 +2875,13 @@ function ChatGPTViewer:init()
   local text_chrome = titlebar:getHeight() + self.button_table:getSize().h
     + 2 * self.text_padding + 2 * self.text_margin
 
-  -- For dictionary popup with RTL language, detect early for IPA fix
-  local dict_lang = self.configuration and self.configuration.features
-      and self.configuration.features.dictionary_language
-  local is_rtl_lang = Languages.isRTL(dict_lang)
-  local needs_rtl_fix = (self.compact_view or self.dictionary_view) and is_rtl_lang
+  local needs_rtl_fix = self:_needsRtlFix()
 
   -- The text as the content widget shows it: HTML when rendering Markdown,
   -- plain text otherwise
   local html_body, display_text
   if self.render_markdown then
-    -- Convert Markdown to HTML and render in a ScrollHtmlWidget
-    -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
-    local source_text = self.text
-    -- Fix IPA BiDi issues before HTML conversion when RTL dictionary language
-    if needs_rtl_fix then
-      source_text = fixIPABidi(source_text)
-    end
-    local auto_linked = autoLinkUrls(applyMath(self, source_text))
-    local bracket_escaped = preprocessBrackets(auto_linked)
-    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
-    local err
-    html_body, err = MD(preprocessed_text, {})
-    if err then
-      logger.warn("ChatGPTViewer: could not generate HTML", err)
-      -- Fallback to plain text if HTML generation fails
-      html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
-    end
-    -- For dictionary popup with RTL language, use "starts with RTL" detection
-    local bidi_opts = { use_starts_with_rtl = needs_rtl_fix, text_align = self.text_align }
-    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
-    -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
-    -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
-      self._stream_carry_anchor, self._stream_carry_occurrence)
+    html_body = self:_markdownHtml(self.text)
   else
     -- If not rendering Markdown, optionally strip markdown syntax for cleaner display
     display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
@@ -2931,16 +2894,7 @@ function ChatGPTViewer:init()
   -- window, again at the height the text needs for a fitted one
   local function buildContent(h)
     if html_body then
-      return ScrollHtmlWidget:new {
-        html_body = html_body,
-        css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
-        default_font_size = Screen:scaleBySize(self.markdown_font_size),
-        width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-        height = h,
-        dialog = self,
-        highlight_text_selection = true,
-        html_link_tapped_callback = handleLinkTap,
-      }
+      return self:_htmlWidget(html_body, self.width - 2 * self.text_padding - 2 * self.text_margin, h)
     end
     return ScrollTextWidget:new {
       text = display_text,
@@ -4511,39 +4465,11 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
   end
   
   if self.render_markdown then
-    -- Convert Markdown to HTML and update the ScrollHtmlWidget
-    -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
-    local auto_linked = autoLinkUrls(applyMath(self, new_text))
-    local bracket_escaped = preprocessBrackets(auto_linked)
-    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
-    local html_body, err = MD(preprocessed_text, {})
-    if err then
-      logger.warn("ChatGPTViewer: could not generate HTML", err)
-      html_body = "<pre>" .. (new_text or "Missing text.") .. "</pre>"
-    end
-    -- For dictionary popup with RTL language, use "starts with RTL" detection
-    local dict_lang = self.configuration and self.configuration.features
-        and self.configuration.features.dictionary_language
-    local bidi_opts = { use_starts_with_rtl = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang),
-      text_align = self.text_align }
-    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
-    -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
-    -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
-      self._stream_carry_anchor, self._stream_carry_occurrence)
-
     -- Recreate the ScrollHtmlWidget with new content
-    self.scroll_text_w = ScrollHtmlWidget:new {
-      html_body = html_body,
-      css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
-      default_font_size = Screen:scaleBySize(self.markdown_font_size),
-      width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-      height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
-      dialog = self,
-      highlight_text_selection = true,
-      html_link_tapped_callback = handleLinkTap,
-    }
-    
+    self.scroll_text_w = self:_htmlWidget(self:_markdownHtml(new_text),
+      self.width - 2 * self.text_padding - 2 * self.text_margin,
+      self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin)
+
     -- Update the frame container with the new scroll widget
     self.textw:clear()
     self.textw[1] = self.scroll_text_w
@@ -4684,44 +4610,12 @@ function ChatGPTViewer:rebuildScrollWidget()
   -- Rebuild the scroll widget with new rendering mode
   local textw_height = self.textw:getSize().h
   
-  -- Check if RTL dictionary popup for IPA fix
-  local dict_lang = self.configuration and self.configuration.features
-      and self.configuration.features.dictionary_language
-  local needs_rtl_fix = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang)
+  local needs_rtl_fix = self:_needsRtlFix()
 
   if self.render_markdown then
-    -- Convert to markdown
-    -- 1. Auto-linkify plain URLs, 2. Escape non-link brackets, 3. Convert tables
-    local source_text = self.text
-    -- Fix IPA BiDi issues before HTML conversion when RTL dictionary language
-    if needs_rtl_fix then
-      source_text = fixIPABidi(source_text)
-    end
-    local auto_linked = autoLinkUrls(applyMath(self, source_text))
-    local bracket_escaped = preprocessBrackets(auto_linked)
-    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
-    local html_body, err = MD(preprocessed_text, {})
-    if err then
-      logger.warn("ChatGPTViewer: could not generate HTML", err)
-      html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
-    end
-    -- For dictionary popup with RTL language, use "starts with RTL" detection
-    local bidi_opts = { use_starts_with_rtl = needs_rtl_fix, text_align = self.text_align }
-    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
-    -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
-    -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
-      self._stream_carry_anchor, self._stream_carry_occurrence)
-    self.scroll_text_w = ScrollHtmlWidget:new {
-      html_body = html_body,
-      css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
-      default_font_size = Screen:scaleBySize(self.markdown_font_size),
-      width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-      height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
-      dialog = self,
-      highlight_text_selection = true,
-      html_link_tapped_callback = handleLinkTap,
-    }
+    self.scroll_text_w = self:_htmlWidget(self:_markdownHtml(self.text),
+      self.width - 2 * self.text_padding - 2 * self.text_margin,
+      textw_height - 2 * self.text_padding - 2 * self.text_margin)
   else
     -- Convert to plain text with optional markdown stripping
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
@@ -5243,34 +5137,8 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
   local textw_height = self.textw:getSize().h
 
   if self.render_markdown then
-    local auto_linked = autoLinkUrls(applyMath(self, self.text))
-    local bracket_escaped = preprocessBrackets(auto_linked)
-    local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
-    local html_body, err = MD(preprocessed_text, {})
-    if err then
-      logger.warn("ChatGPTViewer: could not generate HTML", err)
-      html_body = "<pre>" .. (self.text or "Missing text.") .. "</pre>"
-    end
-    -- For dictionary popup with RTL language, use "starts with RTL" detection
-    local dict_lang = self.configuration and self.configuration.features
-        and self.configuration.features.dictionary_language
-    local bidi_opts = { use_starts_with_rtl = (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang),
-      text_align = self.text_align }
-    html_body = addHtmlBidiAttributes(html_body, bidi_opts)
-    -- Page breaks run POST-bidi (2026-08-15): the paragraph splitter copies
-    -- the classified opening tag so a split Arabic paragraph keeps direction
-    html_body, self._reply_break = applyExchangePageBreaks(html_body, self.configuration,
-      self._stream_carry_anchor, self._stream_carry_occurrence)
-    self.scroll_text_w = ScrollHtmlWidget:new {
-      html_body = html_body,
-      css = getViewerCSS(self.text_align, self:_rtlFontCSS()),
-      default_font_size = Screen:scaleBySize(self.markdown_font_size),
-      width = self.scroll_text_w.width,
-      height = self.scroll_text_w.height,
-      dialog = self,
-      highlight_text_selection = true,
-      html_link_tapped_callback = handleLinkTap,
-    }
+    self.scroll_text_w = self:_htmlWidget(self:_markdownHtml(self.text),
+      self.scroll_text_w.width, self.scroll_text_w.height)
   else
     -- Plain text mode with optional markdown stripping
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
@@ -6061,36 +5929,6 @@ function ChatGPTViewer:cycleWindowSize()
   })
 end
 
--- Re-apply the auto-RTL-for-chat setting to THIS viewer after it is toggled from the
--- MD/TXT quick menu (note E). Mirrors the detection init runs on open: when the
--- setting is on (off by default since the Markdown view lays right-to-left blocks
--- out through the direction pass and draws them in the right-to-left font, B558)
--- and the content is dominantly RTL, force RTL paragraph direction + plain text;
--- otherwise restore LTR auto-direction and the chat's own tap, else the user's
--- markdown preference. Then rebuild in place.
-function ChatGPTViewer:reapplyRtlMode()
-  local features = self.configuration and self.configuration.features or {}
-  local rtl_enabled = features.rtl_chat_text_mode == true
-  local is_rtl = rtl_enabled and self.text and hasDominantRTL(self.text, 10000)
-  if is_rtl then
-    self.para_direction_rtl = true
-    self.auto_para_direction = false
-    -- the per-chat tap keeps its view (the sweep of 2026-11-06)
-    if features._chat_view_mode == nil then self.render_markdown = false end
-  else
-    self.para_direction_rtl = false
-    self.auto_para_direction = true
-    -- Restore the per-chat tap, else the user's markdown preference (init
-    -- treats nil as the default: on).
-    if features._chat_view_mode ~= nil then
-      self.render_markdown = features._chat_view_mode
-    else
-      self.render_markdown = features.render_markdown ~= false
-    end
-  end
-  self:rebuildScrollWidget()
-end
-
 -- Anchor helper (slice (e) note A): returns a ButtonDialog `anchor` function pointing
 -- at a button in the viewer's button row by id, so the popup opens next to its
 -- triggering button. Returns nil when the button row is absent (dialog then centers);
@@ -6258,19 +6096,6 @@ function ChatGPTViewer:showRenderingQuickSettings()
           self:showRenderingQuickSettings()
         end,
       }},
-      {{
-        text = _("Auto RTL mode for Chat") .. ": "
-          .. ((self.configuration and self.configuration.features
-               and self.configuration.features.rtl_chat_text_mode == true) and _("On") or _("Off")),
-        callback = function()
-          local features = self.configuration and self.configuration.features or {}
-          local enabled = features.rtl_chat_text_mode == true
-          self:persistFeatureSetting("rtl_chat_text_mode", not enabled)
-          self:reapplyRtlMode()
-          UIManager:close(dialog)
-          self:showRenderingQuickSettings()
-        end,
-      }},
     },
   }
   UIManager:show(dialog)
@@ -6345,6 +6170,25 @@ end
 ChatGPTViewer.stripMarkdown = stripMarkdown
 ChatGPTViewer.fixIPABidi = fixIPABidi
 ChatGPTViewer.hasDominantRTL = hasDominantRTL
+
+-- The Markdown pipeline and the CSS for a window that is not this viewer
+-- (the streaming window's Markdown view, koassistant/request/stream_handler.lua):
+-- opts = { features = the request's features, text_align = the setting }.
+-- The exchange page breaks need the transcript markers, which a streamed
+-- answer has none of, so none are added there.
+function ChatGPTViewer.markdownHtml(text, opts)
+  opts = opts or {}
+  local features = opts.features or {}
+  local stand_in = {
+    render_math = features.render_math ~= false,
+    text_align = opts.text_align or features.text_align or "auto",
+    configuration = { features = features },
+  }
+  return (markdownHtml(stand_in, text, {}))
+end
+function ChatGPTViewer.viewerCSS(text_align, features)
+  return getViewerCSS(text_align or "auto", ScriptFonts.css(features))
+end
 
 -- Exported for the stream capture side (2026-08-15): the occurrence ordinal
 -- must be counted against the SAME anchor the viewer will extract, so the

@@ -129,7 +129,7 @@ Both dictionary windows share two rows of buttons:
 
 | Button | Does |
 |---|---|
-| **MD ON** / **TXT ON** | Switches between Markdown and Plain Text ("MD ON" while Markdown is active). For right-to-left languages it may start at TXT ON ([Right-to-left languages](#right-to-left-languages)). Long-press for the display options ([Chat Windows](Chat-Windows#markdown-and-plain-text)) |
+| **MD ON** / **TXT ON** | Switches between Markdown and Plain Text ("MD ON" while Markdown is active). Long-press for the display options ([Chat Windows](Chat-Windows#markdown-and-plain-text)) |
 | **Copy** | Copies what **Copy Content** names (the definition only, by default). Long-press to choose this time |
 | **+Note** | Saves the answer as a KOReader note attached to the looked-up word (the highlight stays on the word). Grayed out when the word's position is not known, as for a word looked up inside another window |
 | **Wiki** | Looks the word up through KOReader's Wikipedia lookup |
@@ -140,7 +140,7 @@ Both dictionary windows share two rows of buttons:
 | **The action's name** | Shows the current action; tap to switch to another action of the dictionary popup (directly when there is only one other, otherwise from a list). AI Wiki, Look up in X-Ray and Switch model are not offered here |
 | **Close** | Closes the window. Long-press to close everything down to the page at once (dictionary windows and the highlight menu too) |
 
-The gear menu of both windows has **Show Excerpt** ([Show Excerpt](#show-excerpt)); the full-size window also has **Window Size** ([Chat Windows](Chat-Windows#window-size-and-rotation)). For right-to-left dictionary languages both windows use Plain Text (when the setting is on) and align bidirectional text correctly.
+The gear menu of both windows has **Show Excerpt** ([Show Excerpt](#show-excerpt)); the full-size window also has **Window Size** ([Chat Windows](Chat-Windows#window-size-and-rotation)). For right-to-left dictionary languages both windows lay mixed entries out correctly ([Right-to-left languages](#right-to-left-languages)).
 
 ## Translation
 
@@ -196,11 +196,11 @@ A book's own language shows "(book)" instead. In the Settings menu the rows say 
 
 Dictionary and translate windows handle right-to-left (RTL) languages specially. When your dictionary or translation language is Arabic, Classical Arabic, Persian or Urdu:
 
-- **Automatic RTL mode:** the window aligns right to left. Dictionary windows use Plain Text for it (**Settings → Display Settings → Rendering → Text Mode for RTL Dictionary**, on by default); translate windows stay in the Markdown view, the translation right-to-left in the right-to-left font and the original left-to-right, unless **Text Mode for RTL Translate** (off by default) is on. **Text Mode for Dictionary** (off by default) uses Plain Text in dictionary windows for every language, which helps the scripts the Markdown view draws in its plain fallback face (Hebrew, Devanagari, Bengali, Thai); while it is on, the RTL dictionary switch is grayed out.
+- **Direction:** the window lays its text out right to left: in the Markdown view paragraph by paragraph (in a dictionary window a paragraph that starts with a right-to-left word is laid out right-to-left, so a headword followed by a Latin pronunciation guide and an English gloss stays on the right; in a translate window the translation reads right-to-left and the original left-to-right), in Plain Text as a whole. **Text Mode for Dictionary** (**Settings → Display Settings → Rendering**, off by default) uses Plain Text in dictionary windows whatever your View Mode.
 - **Bidirectional alignment:** entries with right-to-left content are aligned correctly, and mixed content (an Arabic headword with an English pronunciation guide) reads in the right order.
 - **Phonetic transcriptions** are anchored to display correctly beside right-to-left headwords.
 
-Both views draw Arabic and Persian properly (the Markdown view in the **Right-to-left text font**); Hebrew reads better in Plain Text. When the language is not right-to-left, your Markdown or Plain Text preference stays as it is. In the Markdown view every paragraph takes its own direction, and in a dictionary window of a right-to-left language a paragraph that starts with a right-to-left word is laid out right-to-left, so a headword followed by a Latin pronunciation guide and an English gloss stays on the right. Chat and artifact windows check their content instead (**Auto RTL mode for Chat**): see [Chat Windows](Chat-Windows#markdown-and-plain-text) and [Languages](Languages#right-to-left-scripts). Fonts that do not render at all: [Troubleshooting](Troubleshooting#font-issues-with-arabic-and-other-right-to-left-scripts).
+Both views draw Arabic, Persian and Hebrew in their own faces (in the Markdown view the **Right-to-left text font** for Arabic and Persian, FreeSans for Hebrew). Your Markdown or Plain Text preference stays as it is whatever the language. Chat and artifact windows lay every paragraph out in its own direction the same way: see [Chat Windows](Chat-Windows#markdown-and-plain-text) and [Languages](Languages#right-to-left-scripts). Fonts that do not render at all: [Troubleshooting](Troubleshooting#font-issues-with-arabic-and-other-right-to-left-scripts).
 
 ## Custom dictionary actions
 
@@ -232,7 +232,6 @@ A duplicate keeps the original's view mode and its model and reasoning settings.
 
 - Give dictionary actions a **lighter model** (for example Haiku) with a per-action model override. Translate and Quick Define already ask for your provider's faster model while **Settings → Advanced → Faster Models for Quick Actions** is on (the default; see [Providers and Models](Providers-and-Models)).
 - **Context on** (the default) disambiguates the word as it is used; **context off** gives complete entries with every sense.
-- For right-to-left languages the compact window switches to Plain Text on its own.
 
 ## Vocabulary builder
 

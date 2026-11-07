@@ -51,6 +51,16 @@ function Migrations.run(features)
     features.use_new_request_format = nil
     needs_save = true
   end
+  -- The plain-text switches for right-to-left text left 2026-11-07 (B621):
+  -- the Markdown view lays every block out in its own direction and draws
+  -- every script in its own face, so a reader who had one on would otherwise
+  -- never see that. Cleared, not kept.
+  for _idx, k in ipairs({ "rtl_chat_text_mode", "rtl_translate_text_mode", "rtl_dictionary_text_mode" }) do
+    if features[k] ~= nil then
+      features[k] = nil
+      needs_save = true
+    end
+  end
 
   -- Clean up transient flags that should never be persisted
   -- These are set at runtime for dictionary lookups but should not be saved

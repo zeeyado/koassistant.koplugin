@@ -12,7 +12,8 @@ block's tokens, the first strong token breaking a tie. A list with dir="rtl"
 draws NO marker in any configuration, so a list with a right-to-left item
 becomes paragraphs with a literal marker; a list without one stays a list.
 LTR blocks are left as they are (the body is LTR), so the markers other
-passes look for ("<p>◉ KOAssistant:</p>") stay untouched.
+passes look for ("<p>◉ KOAssistant:</p>") stay untouched. Direction only:
+the fonts of the scripts are the script_fonts pass, which runs after this one.
 ]]
 local Bidi = {}
 
@@ -113,9 +114,9 @@ end
 -- no attribute selectors, so they ride inline)
 local QUOTE_RTL = ' style="border-left: none; border-right: 3px solid #ccc; padding-left: 0; padding-right: 1em;"'
 
--- Every right-to-left block carries the class the viewer's CSS puts the
--- right-to-left font on (koassistant/ui/rtl_font.lua, B558)
-local RTL_ATTRS = ' dir="rtl" class="koa-rtl"'
+-- A right-to-left block carries its direction alone: the fonts ride the
+-- script runs' spans (koassistant/ui/script_fonts.lua, B558, B621)
+local RTL_ATTRS = ' dir="rtl"'
 
 --- Give every block of the HTML its direction.
 --- opts.use_starts_with_rtl: see blockDirection; opts.text_align: the viewer's

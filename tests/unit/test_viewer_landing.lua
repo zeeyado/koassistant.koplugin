@@ -231,33 +231,43 @@ TestRunner:test("the refresh rebuilds through the one Markdown pipeline; the tra
     TestRunner:assertTrue(body:find("ScrollHtmlWidget:new", 1, true) == nil, "no hand copy of the pipeline left")
     local t = src:find("function ChatGPTViewer:toggleTranslateQuoteVisibility()", 1, true)
     local tbody = src:sub(t, src:find("\nend\n", t, true))
-    TestRunner:assertTrue(tbody:find("autoLinkUrls(applyMath(self, self.text))", 1, true) ~= nil, "the math pass")
-    TestRunner:assertTrue(tbody:find("autoLinkUrls(self.text)", 1, true) == nil)
+    TestRunner:assertTrue(tbody:find("self:_markdownHtml(self.text)", 1, true) ~= nil, "the one pipeline, the math pass inside it")
+    TestRunner:assertTrue(tbody:find("autoLinkUrls(", 1, true) == nil, "no hand copy of the pipeline")
 end)
 
-TestRunner:test("Auto RTL keeps the per-chat MD tap; reapplyRtlMode restores it", function()
+TestRunner:test("no plain-text switch for right-to-left text is left; the windows keep direction only (B621)", function()
     local src = read("koassistant/ui/chatgptviewer.lua")
-    local n = select(2, src:gsub("if self%.configuration%.features%._chat_view_mode == nil then\n%s*self%.render_markdown = false", ""))
-    TestRunner:assertEqual(n, 2, "the chat and the simple view blocks")
-    -- reapplyRtlMode on a stub viewer: an Arabic text with the chat's tap set to Markdown
-    local arabic = string.rep("\216\167\217\132\216\185\216\177\216\168\217\138\216\169 ", 20)
-    local function reapply(features, md)
-        local v = setmetatable({ text = arabic, render_markdown = md, configuration = { features = features },
-            rebuildScrollWidget = function() end }, { __index = ChatGPTViewer })
-        v:reapplyRtlMode()
-        return v.render_markdown, v.para_direction_rtl
+    for _idx, gone in ipairs({ "rtl_chat_text_mode", "rtl_translate_text_mode", "rtl_dictionary_text_mode",
+        "reapplyRtlMode", "getLatestResponse" }) do
+        TestRunner:assertTrue(src:find(gone, 1, true) == nil, gone .. " is gone from the viewer")
     end
-    local md, rtl = reapply({ rtl_chat_text_mode = true, _chat_view_mode = true }, true)
-    TestRunner:assertEqual(md, true, "the tap's Markdown stays under Auto RTL")
-    TestRunner:assertEqual(rtl, true, "the direction is still right-to-left")
-    md = reapply({ rtl_chat_text_mode = true }, true)
-    TestRunner:assertEqual(md, false, "no tap: Auto RTL's plain text")
-    md = reapply({}, true)
-    TestRunner:assertEqual(md, true, "Auto RTL off by default: the Markdown view stays")
-    md = reapply({ rtl_chat_text_mode = false, _chat_view_mode = false, render_markdown = true }, true)
-    TestRunner:assertEqual(md, false, "Auto RTL off: the tap's plain text, not the setting's Markdown")
-    md = reapply({ rtl_chat_text_mode = false, render_markdown = true }, false)
-    TestRunner:assertEqual(md, true, "Auto RTL off, no tap: the setting")
+    -- the dictionary and translate windows set the plain-text widget's direction, nothing else
+    local a = src:find("if self.compact_view or self.dictionary_view then\n      if self.configuration.features.dictionary_text_mode then", 1, true)
+    TestRunner:assertTrue(a ~= nil, "the dictionary block")
+    local block = src:sub(a, src:find("  end\n", src:find("translate_view and Languages.isRTL", a, true), true))
+    local _, forced = block:gsub("self%.render_markdown = false", "")
+    TestRunner:assertEqual(forced, 1, "Plain Text only on the reader's own Text Mode for Dictionary")
+    -- the schema and the quick settings carry no such row
+    local schema = read("koassistant/ui/settings_schema.lua")
+    TestRunner:assertTrue(schema:find("rtl_chat_text_mode", 1, true) == nil and schema:find("rtl_translate_text_mode", 1, true) == nil
+        and schema:find("rtl_dictionary_text_mode", 1, true) == nil, "no schema row")
+end)
+
+TestRunner:test("one Markdown pipeline: every HTML build goes through it, the span pass last", function()
+    local src = read("koassistant/ui/chatgptviewer.lua")
+    local _, md_calls = src:gsub("MD%(preprocessed_text, {}%)", "")
+    TestRunner:assertEqual(md_calls, 1, "luamd is called in one place")
+    local _, builds = src:gsub("self:_markdownHtml%(", "")
+    TestRunner:assertEqual(builds, 4, "init, update, rebuild, the translate toggle")
+    local _, widgets = src:gsub("self:_htmlWidget%(", "")
+    TestRunner:assertEqual(widgets, 4, "the content widget built in one place, used four times")
+    local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(%)%)", "")
+    TestRunner:assertEqual(css_sites, 1, "one CSS site")
+    local a = src:find("local function markdownHtml(viewer, text, opts)", 1, true)
+    local body = src:sub(a, src:find("\nend\n", a, true))
+    local breaks = body:find("applyExchangePageBreaks(", 1, true)
+    local spans = body:find("ScriptFonts.markRuns(", 1, true)
+    TestRunner:assertTrue(breaks and spans and spans > breaks, "the spans after the page breaks")
 end)
 
 return TestRunner:summary()

@@ -3511,8 +3511,7 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
                 or nil,
             -- Text-mode settings + the dict-family gate for the IPA bidi fix:
             -- the popup renders through the viewer's shared text-mode pipeline
-            -- and honors the same settings (strip_markdown_in_text_mode,
-            -- rtl_chat_text_mode).
+            -- and honors the same settings (strip_markdown_in_text_mode).
             features = mp_f,
             is_dictionary = (use_compact_view or use_dictionary_view) or nil,
             on_expand = function()

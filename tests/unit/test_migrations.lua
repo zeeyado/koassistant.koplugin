@@ -467,4 +467,20 @@ TestRunner:test("Default takes the new defaults; a Shape already set is kept", f
     TestRunner:assertEqual(Migrations.run(f), false, "the old keys are gone: nothing runs again")
 end)
 
+TestRunner:suite("The right-to-left plain-text switches (B621)")
+
+TestRunner:test("the three switches are cleared whatever their value; nothing without them", function()
+    local f = { rtl_chat_text_mode = true, rtl_translate_text_mode = false, rtl_dictionary_text_mode = true,
+                render_markdown = false, _privacy_ask_migrated = true, _reasoning_v2_migrated = true }
+    TestRunner:assertTrue(Migrations.run(f), "a change")
+    TestRunner:assertEqual(f.rtl_chat_text_mode, nil)
+    TestRunner:assertEqual(f.rtl_translate_text_mode, nil)
+    TestRunner:assertEqual(f.rtl_dictionary_text_mode, nil)
+    TestRunner:assertEqual(f.render_markdown, false, "the reader's own View Mode is kept")
+    local before = {}
+    for k, v in pairs(f) do before[k] = v end
+    Migrations.run(f)
+    for k, v in pairs(before) do TestRunner:assertEqual(f[k], v, k .. " unchanged on the second run") end
+end)
+
 return TestRunner:summary()

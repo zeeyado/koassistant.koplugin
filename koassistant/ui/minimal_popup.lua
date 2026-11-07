@@ -244,8 +244,8 @@ function MinimalPopup.showForResponse(opts)
     --      (rtl_language, handled above — mirrors the viewer's explicit-RTL
     --      branches). Other registered actions get the standard-chat auto-detect:
     --      hasDominantRTL on the response (the popup is plain text by
-    --      construction, so its direction is always detected; Auto RTL mode
-    --      for Chat is the Markdown windows' switch, off by default).
+    --      construction, so its direction is always detected; the Markdown
+    --      windows need no switch, every block takes its own direction).
     --   2. stripMarkdown (strip_markdown_in_text_mode, default on): **bold** →
     --      PTF markers TextBoxWidget renders as real bold, LRM bidi fixes so an
     --      Arabic headword in a Latin-script definition keeps the line LTR-based.

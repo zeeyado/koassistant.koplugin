@@ -21945,7 +21945,7 @@ end
 -- Settings ▸ Display Settings ▸ Rendering ▸ "Right-to-left text font" (B558):
 -- the rows of its sub-menu, built when it opens (the installed fonts)
 function AskGPT:rtlFontMenuItems()
-  return require("koassistant.ui.rtl_font").menuItems(self)
+  return require("koassistant.ui.script_fonts").menuItems(self)
 end
 
 -- Settings ▸ Display Settings ▸ Emoji ▸ "Emoji Font" (B397): the bundled
