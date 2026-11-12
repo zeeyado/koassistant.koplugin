@@ -8623,7 +8623,7 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
         end,
       }})
       table.insert(nc_buttons, {{
-        text = _("Cancel"),
+        text = _("Close"),
         callback = function()
           UIManager:close(no_cache_dialog)
         end,
@@ -8775,9 +8775,9 @@ function AskGPT:showCacheActionPopup(action, action_id, on_update, opts)
     }})
   end
 
-  -- Cancel
+  -- Close (nothing is cancelled: a build that runs goes on)
   table.insert(buttons, {{
-    text = _("Cancel"),
+    text = _("Close"),
     callback = function()
       UIManager:close(dialog)
     end,
@@ -8850,7 +8850,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
       end,
     }})
     table.insert(buttons, {{
-      text = _("Cancel"),
+      text = _("Close"),
       callback = function()
         UIManager:close(dialog)
       end,
@@ -8922,7 +8922,7 @@ function AskGPT:_showAnalyzeNotesScopePopup(action, action_id, on_update, cached
     }})
 
     table.insert(buttons, {{
-      text = _("Cancel"),
+      text = _("Close"),
       callback = function()
         UIManager:close(dialog)
       end,
@@ -10440,7 +10440,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       }})
     end
     table.insert(buttons, {{
-      text = _("Cancel"),
+      text = _("Close"),
       callback = function()
         UIManager:close(dialog)
       end,
@@ -10897,7 +10897,7 @@ function AskGPT:_showXrayScopePopup(action, action_id, on_update, cached_entry, 
       end,
     }})
     table.insert(buttons, {{
-      text = _("Cancel"),
+      text = _("Close"),
       callback = function()
         UIManager:close(dialog)
       end,
