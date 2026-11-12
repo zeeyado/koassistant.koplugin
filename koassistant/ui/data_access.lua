@@ -521,6 +521,25 @@ end
 -- How strict a state is, for a kind sent to more than one provider
 local STATE_RANK = { allow = 0, ask = 1, never = 2 }
 
+--- What a saved result was built with beyond the book's text, for a run that
+--- continues it (an update sends the result back with the new text): the
+--- kinds as optional entries of an explicit list (needsFor's opts.kinds) and
+--- the question's line for each. `name` = the result's name ("X-Ray").
+--- @return table kinds, table amounts
+function DataAccess.baseKinds(entry, name)
+    local kinds, amounts = {}, {}
+    local k = type(entry) == "table" and Gates.stampedKinds(entry) or {}
+    if k.highlights then
+        kinds[#kinds + 1] = { kind = "highlights", required = false }
+        amounts.highlights = T(_("the saved %1, which was built with your highlights"), name)
+    end
+    if k.annotations then
+        kinds[#kinds + 1] = { kind = "annotations", required = false }
+        amounts.annotations = T(_("the saved %1, which was built with your notes"), name)
+    end
+    return kinds, amounts
+end
+
 --- What a run wants, with each kind's state: the action's declarations for
 --- its book (Gates.needs), a set of picked books (needsForSet), or an
 --- explicit list of kinds (a pick that is not an action). With opts.kinds,
@@ -1072,6 +1091,22 @@ function DataAccess.askForDispatch(plugin, action, features, ui, config, run_fn)
             end
         end
     end
+    -- The run's own saved result, when the run continues it (an action with
+    -- an update prompt, not a rebuild): its stamps are asked too
+    -- (Gates.needs, stamps.own)
+    local own_amounts
+    if path and action.update_prompt and action.id and not cf._xray_rebuild and not cf._ladder_fresh then
+        local okc, ActionCache = pcall(require, "koassistant.artifacts.action_cache")
+        local okg, own = pcall(function() return okc and ActionCache.get(path, action.id) end)
+        if okg and type(own) == "table" and own.result then
+            local kinds
+            kinds, own_amounts = DataAccess.baseKinds(own, action.text or action.id)
+            if #kinds > 0 then
+                stamps = stamps or {}
+                stamps.own = own
+            end
+        end
+    end
     local prompt_text = action.prompt or ""
     local nearby = prompt_text:find("{page_text", 1, true) ~= nil
     -- The context around a selection, only when this run will carry it: the
@@ -1126,6 +1161,16 @@ function DataAccess.askForDispatch(plugin, action, features, ui, config, run_fn)
         end
         amounts.highlights = T(_("your highlights (%1)"), n)
         amounts.annotations = T(_("your notes on highlights (%1)"), notes)
+    end
+    -- A kind asked only for the saved result's sake says so: the run sends
+    -- the result, not today's highlights
+    if stamps and stamps.own and own_amounts then
+        if not action.use_highlights and not action.use_annotations then
+            amounts.highlights = own_amounts.highlights or amounts.highlights
+        end
+        if not action.use_annotations then
+            amounts.annotations = own_amounts.annotations or amounts.annotations
+        end
     end
     -- What the run has to send (2026-10-20): an optional kind with nothing
     -- behind it is not asked (Gates.needs opts.exists): the reading habits

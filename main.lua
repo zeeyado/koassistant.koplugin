@@ -15020,12 +15020,13 @@ function AskGPT:_askXrayAutoConsent(file, action, features)
   local Gates = require("koassistant.request.privacy_gates")
   local self_ref = self
   local cf = configuration and configuration.features or features
+  local auto_amounts = { book_text = _("text from this book, in checkpoints as you read") }
   require("koassistant.ui.data_access").withAccess(self, action, {
     features = cf, path = file, ui = self.ui,
     provider = Gates.dispatchProvider(cf, action, action.provider or cf.provider),
-    action_name = _("Automatic X-Ray"), kinds = { "book_text" }, required = true,
+    action_name = _("Automatic X-Ray"), kinds = self:_xrayBuildKinds(file, auto_amounts), required = true,
     standing_only = true,
-    amounts = { book_text = _("text from this book, in checkpoints as you read") },
+    amounts = auto_amounts,
     note = _("Automatic X-Ray is on for this book. \"Allow for this book\" lets it build in the background; Cancel pauses it for this book."),
     on_cancel = function()
       XrayAuto.suppressAuto(file, "consent")
@@ -15236,12 +15237,14 @@ function AskGPT:_fireXrayAutoUpdate(opts)
       -- unasked (2026-10-20): the question writes on a private copy
       local da_feats = {}
       for k, v in pairs(cf) do da_feats[k] = v end
+      local update_amounts = { book_text = _("text from this book, up to your reading position") }
       require("koassistant.ui.data_access").withAccess(self, action, {
         features = da_feats, path = file, ui = self.ui,
         provider = Gates.dispatchProvider(cf, action,
           (opts.run_variant and opts.run_variant.provider) or action.provider or cf.provider),
-        action_name = action.text or _("X-Ray"), kinds = { "book_text" }, required = true,
-        amounts = { book_text = _("text from this book, up to your reading position") },
+        action_name = action.text or _("X-Ray"), kinds = self:_xrayBuildKinds(file, update_amounts),
+        required = true,
+        amounts = update_amounts,
       }, function(granted)
         opts.data_asked = true
         opts.data_once = granted and granted.once or nil
@@ -15954,13 +15957,16 @@ function AskGPT:_startXrayLadderBuild(build_opts)
     -- a private copy: the Allow once rides build_opts.data_once (2026-10-20)
     local da_feats = {}
     for k, v in pairs(cf) do da_feats[k] = v end
+    local build_amounts = { book_text = (build_opts and build_opts.one_shot)
+      and _("text from this book, in one background request")
+      or _("text from this book, read in checkpoints") }
     local da_opts = {
       features = da_feats, path = file, ui = self.ui,
       provider = Gates.dispatchProvider(cf, action, run_provider or action.provider or cf.provider),
-      action_name = action.text or _("X-Ray"), kinds = { "book_text" }, required = true,
-      amounts = { book_text = (build_opts and build_opts.one_shot)
-        and _("text from this book, in one background request")
-        or _("text from this book, read in checkpoints") },
+      action_name = action.text or _("X-Ray"),
+      kinds = self:_xrayBuildKinds(file, build_amounts, build_opts and build_opts.rebuild),
+      required = true,
+      amounts = build_amounts,
     }
     local da_needs = DA.needsFor(action, da_opts)
     local da_plan = DA.plan(da_needs)
@@ -21144,6 +21150,42 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
     end,
   }
   UIManager:show(dialog)
+end
+
+--- The kinds an X-Ray build asks for: the book's text, required, and what
+--- the saved X-Ray it continues was built with, optional (an X-Ray from when
+--- X-Rays read highlights carries that stamp). The update sends the saved
+--- X-Ray back with the new text and the dispatch withholds it unless every
+--- stamped kind is allowed: asked for the text alone, such an X-Ray was
+--- rebuilt in full by every update and never continued by a checkpoint step
+--- (audit 2026-11-12). `amounts` gains the question's line for each kind.
+--- @param file string the book
+--- @param amounts table the question's lines by kind (written to)
+--- @param fresh boolean|nil a rebuild or a build from nothing: no base is sent
+--- @return table kinds for DataAccess.withAccess
+function AskGPT:_xrayBuildKinds(file, amounts, fresh)
+  local kinds = { "book_text" }
+  if fresh or not file then return kinds end
+  local ActionCache = require("koassistant.artifacts.action_cache")
+  local DataAccess = require("koassistant.ui.data_access")
+  local seen = {}
+  for _idx, get in ipairs({
+    function() return ActionCache.get(file, "xray") end,
+    function() return ActionCache.getXrayCache(file) end,
+  }) do
+    local ok, entry = pcall(get)
+    if ok and type(entry) == "table" and entry.result then
+      local base_kinds, base_amounts = DataAccess.baseKinds(entry, _("X-Ray"))
+      for _j, k in ipairs(base_kinds) do
+        if not seen[k.kind] then
+          seen[k.kind] = true
+          kinds[#kinds + 1] = k
+          amounts[k.kind] = base_amounts[k.kind]
+        end
+      end
+    end
+  end
+  return kinds
 end
 
 --- A features copy for a run about ONE book, made from the shared table: the

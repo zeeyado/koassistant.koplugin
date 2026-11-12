@@ -296,6 +296,84 @@ TestRunner:test("the funnel's Cancel clears every dispatch transient, as the dis
     TestRunner:assertTrue(n >= 7, "the read sites were found (" .. n .. ")")
 end)
 
+-- Audit 2026-11-12: a run that continues its own saved result sends that
+-- result back with the new text, so what the result was built with is a kind
+-- the run needs. The question named the book's text alone; the dispatch then
+-- withheld a result built with highlights whatever the reader answered: an
+-- X-Ray from when X-Rays read highlights was rebuilt in full by every update
+-- and never continued by a checkpoint step ("nothing was sent").
+print("")
+print("  [a run that continues its own saved result asks for what it was built with]")
+
+local function kindsOf(needs)
+    local out = {}
+    for _idx, n in ipairs(needs) do out[#out + 1] = n.kind .. (n.required and "!" or "") .. ":" .. n.state end
+    return table.concat(out, " ")
+end
+
+TestRunner:test("Gates.needs: the saved result's highlights and notes are asked, optional; the text stays the action's", function()
+    local action = { id = "xray", use_book_text = true, requires = { "book_text" },
+        prompt = "{book_text_section}", update_prompt = "{cached_result} {incremental_book_text_section}" }
+    local ctx = Gates.context({}, "openai", {})
+    TestRunner:assertEqual(kindsOf(Gates.needs(action, ctx, {})), "book_text!:ask", "no saved result: the text alone")
+    TestRunner:assertEqual(kindsOf(Gates.needs(action, ctx, { stamps = { own = { result = "{}", used_book_text = true } } })),
+        "book_text!:ask", "a result built from text alone adds nothing")
+    TestRunner:assertEqual(kindsOf(Gates.needs(action, ctx,
+        { stamps = { own = { result = "{}", used_book_text = true, used_highlights = true } } })),
+        "book_text!:ask highlights:ask", "a result built with highlights: highlights asked, optional")
+    TestRunner:assertEqual(kindsOf(Gates.needs(action, ctx,
+        { stamps = { own = { result = "{}", used_highlights = true, used_annotations = true } } })),
+        "book_text!:ask highlights:ask annotations:ask", "and with notes: both")
+    -- nothing live to send does not drop a kind the saved result carries
+    TestRunner:assertEqual(kindsOf(Gates.needs(action, ctx,
+        { stamps = { own = { result = "{}", used_highlights = true } }, exists = { highlights = false } })),
+        "book_text!:ask highlights:ask", "kept although the book holds no highlights now")
+    -- already allowed: listed as allowed, so the question has nothing to ask for it
+    local allowed = Gates.context({ enable_highlights_sharing = true }, "openai", {})
+    TestRunner:assertEqual(kindsOf(Gates.needs(action, allowed,
+        { stamps = { own = { result = "{}", used_highlights = true } } })),
+        "book_text!:ask highlights:allow", "Highlights on Allow: nothing to ask")
+end)
+
+TestRunner:test("baseKinds: the kinds and the question's lines for a build that lists its kinds by hand", function()
+    local kinds, amounts = DataAccess.baseKinds({ result = "{}", used_book_text = true, used_highlights = true }, "X-Ray")
+    TestRunner:assertEqual(#kinds, 1, "one kind")
+    TestRunner:assertEqual(kinds[1].kind, "highlights")
+    TestRunner:assertEqual(kinds[1].required, false, "optional: declined, the run starts over from the text")
+    TestRunner:assertEqual(amounts.highlights, "the saved X-Ray, which was built with your highlights")
+    local none = DataAccess.baseKinds({ result = "{}", used_book_text = true }, "X-Ray")
+    TestRunner:assertEqual(#none, 0, "a result built from text alone: nothing more to ask")
+    TestRunner:assertEqual(#DataAccess.baseKinds(nil, "X-Ray"), 0, "no saved result")
+    -- the list a build hands to the question: the text required, the rest optional
+    local list = { "book_text" }
+    for _idx, k in ipairs(kinds) do list[#list + 1] = k end
+    local needs = DataAccess.needsFor({ id = "xray" }, { features = {}, provider = "openai", kinds = list, required = true })
+    TestRunner:assertEqual(kindsOf(needs), "book_text!:ask highlights:ask", "as the question reads it")
+    local plan = DataAccess.plan(needs)
+    TestRunner:assertEqual(#plan.asked, 2, "both asked in one question")
+end)
+
+TestRunner:test("the three X-Ray build questions and the dispatch question all ask for the saved result's kinds", function()
+    local function read(rel)
+        local info = debug.getinfo(1, "S").source:match("@?(.*)")
+        local root = info:match("(.+)/tests/unit/[^/]+$") or "."
+        local f = assert(io.open(root .. "/" .. rel, "r"))
+        local text = f:read("*a")
+        f:close()
+        return text
+    end
+    local main = read("main.lua")
+    local n = 0
+    for _hit in main:gmatch("kinds = self:_xrayBuildKinds%(") do n = n + 1 end
+    TestRunner:assertEqual(n, 3, "the automatic engine's question, the background update's and the checkpoint build's")
+    TestRunner:assertTrue(main:find('kinds = { "book_text" }, required = true', 1, true) == nil,
+        "no X-Ray build lists the text alone any more")
+    local da = read("koassistant/ui/data_access.lua")
+    TestRunner:assertTrue(da:find("stamps.own = own", 1, true) ~= nil, "the dispatch question collects the run's own saved result")
+    TestRunner:assertTrue(da:find("not cf._xray_rebuild and not cf._ladder_fresh", 1, true) ~= nil,
+        "never for a rebuild, which sends no saved result")
+end)
+
 SDS.resolve = saved.resolve
 UIManager.show = saved.show
 

@@ -402,6 +402,19 @@ function Gates.needs(action, ctx, opts)
     if summary_read and stamps.summary and Gates.stampedKinds(stamps.summary).book_text then
         want("book_text", false); stored.book_text = true
     end
+    -- The run's own saved result, when the run continues it (an update sends
+    -- it back with the new text): what it was built with beyond the book's
+    -- text is a kind the run needs too, optional (declined, the run starts
+    -- over from the text). Until 2026-11-12 the question named the text
+    -- alone, and the dispatch then withheld a result built with highlights
+    -- whatever the reader had answered: an X-Ray from when X-Rays read
+    -- highlights was rebuilt in full by every update and never continued by
+    -- a checkpoint step.
+    if stamps.own then
+        local k = Gates.stampedKinds(stamps.own)
+        if k.highlights then want("highlights", false); stored.highlights = true end
+        if k.annotations then want("annotations", false); stored.annotations = true end
+    end
     local exists = opts.exists or {}
     local out = {}
     for _idx, kind in ipairs(Gates.KINDS) do
