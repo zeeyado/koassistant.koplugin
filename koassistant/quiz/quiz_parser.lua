@@ -77,17 +77,32 @@ end
 -- A field the model sends as JSON null decodes to a function sentinel in
 -- KOReader's json: the viewer took the length of key_points and the export
 -- printed a model answer, so a null crashed the quiz window on reveal
--- (sweep 2026-11-06). Keep strings only, and only string key points and
--- options.
+-- (sweep 2026-11-06). Text fields keep strings; an option or a key point
+-- keeps a string or a NUMBER (a year, a count: the first version of this
+-- pass kept strings only, and a question about dates lost every answer
+-- button, audit 2026-11-12); a key_points string is one point, not none.
+local function asText(v)
+    if type(v) == "string" then return v end
+    if type(v) == "number" then
+        -- 1914, never 1914.0
+        if v == math.floor(v) and math.abs(v) < 1e15 then return string.format("%d", v) end
+        return tostring(v)
+    end
+    return nil
+end
+
 local function normalizeQuestionFields(q)
     if type(q.explanation) ~= "string" then q.explanation = nil end
-    if type(q.model_answer) ~= "string" then q.model_answer = nil end
+    if type(q.model_answer) ~= "string" then q.model_answer = asText(q.model_answer) end
     if q.key_points ~= nil then
         local kept = {}
         if type(q.key_points) == "table" then
             for _j, kp in ipairs(q.key_points) do
-                if type(kp) == "string" then table.insert(kept, kp) end
+                local text = asText(kp)
+                if text then table.insert(kept, text) end
             end
+        elseif asText(q.key_points) then
+            kept[1] = asText(q.key_points)
         end
         q.key_points = kept
     end
@@ -95,12 +110,13 @@ local function normalizeQuestionFields(q)
         if #q.options > 0 then
             local kept = {}
             for _j, opt in ipairs(q.options) do
-                if type(opt) == "string" then table.insert(kept, opt) end
+                local text = asText(opt)
+                if text then table.insert(kept, text) end
             end
             q.options = kept
         else
             for k, v in pairs(q.options) do
-                if type(v) ~= "string" then q.options[k] = nil end
+                q.options[k] = asText(v)
             end
         end
     end

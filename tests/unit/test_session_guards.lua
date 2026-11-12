@@ -101,6 +101,63 @@ TestRunner:test("B586: the Domain chip opens the shared Domain & Research screen
     TestRunner:assertTrue(engine:find("scope = opts.scope, global_only = opts.global_only,", 1, true) ~= nil, "and hands it to its target switch")
 end)
 
+-- Audit 2026-11-12: the chip's close re-read the global domain from the
+-- DIALOG's configuration, which a chat about an X-Ray entry holds as a copy:
+-- a Global pick (written to the settings and to the plugin's shared
+-- configuration) never reached the chat. The hand-off runs here: the real
+-- Domain & Research screen through the recorder, and the dialog's own close
+-- callback, cut from the source, on a copy of the configuration.
+TestRunner:test("the Domain chip's Global pick reaches a chat that runs on a copy of the configuration", function()
+    local src = read("koassistant/ui/dialogs.lua")
+    local a = src:find("            on_close = function()\n                book_domain_id = getBookDomain(doc_settings)", 1, true)
+    TestRunner:assertTrue(a ~= nil, "the chip's close callback is where it was")
+    local b = src:find("\n            end,\n", a, true)
+    local body = src:sub(a, b):gsub("^%s*on_close = function%(%)", "")
+    local Recorder = require("ui_recorder")
+    local ui = Recorder.install()
+    local DomainLoader = require("koassistant.prompts.domain_loader")
+    local saved_sorted = DomainLoader.getSortedDomains
+    DomainLoader.getSortedDomains = function()
+        return { { id = "history", name = "History" }, { id = "philosophy", name = "Philosophy" } }
+    end
+    local stored = { selected_domain = "history" }
+    local shared = { features = { selected_domain = "history" } }
+    local plugin = {
+        settings = {
+            readSetting = function(_s, k) if k == "features" then return stored end end,
+            saveSetting = function(_s, k, v) if k == "features" then stored = v end end,
+            flush = function() end,
+        },
+        updateConfigFromSettings = function() shared.features.selected_domain = stored.selected_domain end,
+    }
+    -- the chat's own configuration: a copy, as xray_browser's chatAboutItem makes
+    local chat = { features = {} }
+    for k, v in pairs(shared.features) do chat.features[k] = v end
+    local book = {}
+    local ds = { readSetting = function(_s, k) return book[k] end,
+        saveSetting = function(_s, k, v) book[k] = v end, flush = function() end }
+    local env = setmetatable({
+        getBookDomain = function() return nil end, getBookResearchMode = function() return nil end,
+        doc_settings = ds, configuration = chat, plugin = plugin,
+        refreshInputDialog = function() end,
+    }, { __index = _G })
+    -- the callback's body as a chunk: what it assigns (selected_domain, the
+    -- book's two values) lands in env
+    local chunk = assert((loadstring or load)(body, "chip_on_close", "t", env))
+    if setfenv then setfenv(chunk, env) end
+    local on_close = function() chunk() end
+    local BookSettings = require("koassistant.books.book_settings")
+    BookSettings.showDomainResearch({ plugin = plugin, ui = nil, doc_settings = ds,
+        document_path = "/books/b.epub", global_only = false, on_close = on_close })
+    ui:tap("○ Global")
+    ui:tap("○ Philosophy")
+    ui:restore()
+    DomainLoader.getSortedDomains = saved_sorted
+    TestRunner:assertEqual(stored.selected_domain, "philosophy", "the pick is in the settings")
+    TestRunner:assertEqual(chat.features.selected_domain, "philosophy", "and on the chat's own copy")
+    TestRunner:assertEqual(env.selected_domain, "philosophy", "and it is the domain the chip shows and the Send uses")
+end)
+
 -- A function of main.lua, cut from the source and defined on a bare table
 local function cutMethod(main, name)
     local a = main:find("\nfunction AskGPT:" .. name .. "(", 1, true)
@@ -148,6 +205,32 @@ TestRunner:test("a book run copied from settings a library dialog marked resolve
         TestRunner:assertTrue(body:find("config_copy.features.is_book_context = true", 1, true) == nil,
             name .. " does not set the mark alone")
     end
+end)
+
+-- Audit 2026-11-12: a custom action with a section or range picker asks the
+-- reader to confirm reading past their position; the book-level runner's
+-- scrub (2026-11-06) then dropped that consent from the run's copy, and the
+-- request told the model not to reveal what the reader had just asked for.
+-- The runner's own lines and the scrub, cut from the source.
+TestRunner:test("a book-level run keeps the consent to read past the position across its scrub", function()
+    local main = read("main.lua")
+    local AskGPT = cutMethod(main, "_scrubContextFeatures")
+    local _m, runner = cutMethod(main, "_executeBookLevelActionDirect")
+    local a = runner:find("  local scope_consent = config_copy.features._spoiler_scope_consent", 1, true)
+    local b = runner:find("  config_copy.features.is_book_context = true", a or 1, true)
+    TestRunner:assertTrue(a ~= nil and b ~= nil, "the runner's hand-off is where it was")
+    local configuration = { features = { _spoiler_scope_consent = true, is_library_context = true } }
+    local config_copy = { features = {} }
+    for k, v in pairs(configuration.features) do config_copy.features[k] = v end
+    local env = setmetatable({ self = AskGPT, config_copy = config_copy, configuration = configuration },
+        { __index = _G })
+    local chunk = assert((loadstring or load)(runner:sub(a, b - 1), "consent", "t", env))
+    if setfenv then setfenv(chunk, env) end
+    chunk()
+    TestRunner:assertEqual(config_copy.features._spoiler_scope_consent, true, "the run's copy keeps the consent")
+    TestRunner:assertEqual(config_copy.features.is_library_context, nil, "the scrub still ran on the copy")
+    TestRunner:assertEqual(configuration.features._spoiler_scope_consent, nil,
+        "and the shared table no longer holds it for the next request")
 end)
 
 TestRunner:test("B604: the configuration.lua notice once per session", function()

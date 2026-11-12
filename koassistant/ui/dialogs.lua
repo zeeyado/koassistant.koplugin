@@ -7423,6 +7423,17 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
             on_close = function()
                 book_domain_id = getBookDomain(doc_settings)
                 book_research_id = getBookResearchMode(doc_settings)
+                -- A Global pick is written to the settings and to the plugin's
+                -- shared configuration; this dialog may run on a COPY of it (a
+                -- chat about an X-Ray entry does), which the pick never
+                -- reached: the chip and the Send kept the old domain (audit
+                -- 2026-11-12). The two global values are read from the
+                -- settings and put on this dialog's own configuration.
+                local saved = plugin and plugin.settings and plugin.settings:readSetting("features")
+                if type(saved) == "table" and configuration and configuration.features then
+                    configuration.features.selected_domain = saved.selected_domain
+                    configuration.features.research_mode = saved.research_mode
+                end
                 selected_domain = configuration and configuration.features
                     and configuration.features.selected_domain or nil
                 refreshInputDialog()

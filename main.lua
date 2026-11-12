@@ -17357,8 +17357,16 @@ function AskGPT:_executeBookLevelActionDirect(action, action_id, opts)
   -- The shared features carry the last chat's flags (a library chat's
   -- is_library_context, which getPromptContext tests before book; a chat's
   -- Spoiler chip): scrub the copy first, book_metadata and book_context are
-  -- rebuilt below (sweep 2026-11-06)
+  -- rebuilt below (sweep 2026-11-06). The scope popup's consent to read past
+  -- the position is THIS run's (set on the shared table just before it): it
+  -- rides the copy across the scrub and leaves the shared table, where the
+  -- next request would have spent it (audit 2026-11-12)
+  local scope_consent = config_copy.features._spoiler_scope_consent
   self:_scrubContextFeatures(config_copy.features)
+  config_copy.features._spoiler_scope_consent = scope_consent
+  if configuration and configuration.features then
+    configuration.features._spoiler_scope_consent = nil
+  end
   config_copy.features.is_book_context = true  -- Signal book context to getPromptContext()
   -- An allowance for this run (Allow once, B395) is only ever the one the
   -- popup's question handed over (opts.data_once, the kinds): a record left on

@@ -253,6 +253,33 @@ TestRunner:test("explanation, model answer, key points and options keep strings 
     assert(#q2.key_points == 0, "a null list becomes empty")
     assert(#q2.options == 2 and q2.options[2] == "y", "a null option in a list is dropped")
 end)
+-- Audit 2026-11-12: the null pass kept strings only, so a question about
+-- dates (options 1914, 1918, ...) lost every answer button and a key_points
+-- string became an empty list. Numbers are answers; only non-text is dropped.
+TestRunner:test("options and key points that are numbers stay, as text", function()
+    local NULL = function() end
+    local q = { type = "multiple_choice", question = "When did it start?", correct = "B",
+        options = { A = 1914, B = 1918, C = "1939", D = NULL } }
+    QP._normalizeQuestionFields(q)
+    assert(q.options.A == "1914" and q.options.B == "1918", "number options kept as text: " .. tostring(q.options.A))
+    assert(q.options.C == "1939" and q.options.D == nil, "a string stays, a null goes")
+    local q2 = { type = "multiple_choice", question = "How many?", options = { 3, 4.5, NULL, "five", true } }
+    QP._normalizeQuestionFields(q2)
+    assert(#q2.options == 3 and q2.options[1] == "3" and q2.options[2] == "4.5" and q2.options[3] == "five",
+        "a list of options keeps numbers and strings: " .. table.concat(q2.options, "|"))
+    local q3 = { type = "essay", question = "Q?", key_points = "one point as a string", model_answer = 42 }
+    QP._normalizeQuestionFields(q3)
+    assert(#q3.key_points == 1 and q3.key_points[1] == "one point as a string", "a key_points string is one point")
+    assert(q3.model_answer == "42", "a number as the model answer is its text")
+end)
+TestRunner:test("a whole quiz with numeric options parses with its options", function()
+    local d = QP.parse('{"questions":[{"type":"multiple_choice","question":"When did it end?",'
+        .. '"options":{"A":1914,"B":1918,"C":1939,"D":1945},"correct":"B","explanation":"It ended in 1918."}]}')
+    assert(d and d.questions and d.questions[1], "parsed")
+    local o = d.questions[1].options
+    assert(o.A == "1914" and o.B == "1918" and o.C == "1939" and o.D == "1945", "four options, as text")
+    assert(d.questions[1].correct == "B", "the correct letter")
+end)
 
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 print(string.rep("-", 50))
