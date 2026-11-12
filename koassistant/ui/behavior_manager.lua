@@ -253,6 +253,11 @@ function BehaviorManager:_showMenuOptions()
                 UIManager:show(ConfirmBox:new{
                     text = _("This will delete all custom behaviors and reset selection to Standard. Continue?"),
                     ok_callback = function()
+                        -- the deleted behaviors' ids stay reserved, as on a
+                        -- single delete: an action pinned to custom_1 must
+                        -- never run a later behavior that took the id
+                        -- (audit 2026-11-12)
+                        self_ref:reserveIds()
                         self_ref:saveCustomBehaviors({})
                         self_ref:setSelectedBehavior("standard")
                         self_ref:refreshMenu()

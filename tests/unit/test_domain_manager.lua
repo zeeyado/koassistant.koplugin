@@ -149,8 +149,17 @@ TestRunner:test("a deleted highest id is never given to a new domain", function(
     TestRunner:assertEqual(fresh:generateDomainId(), "custom_9", "a stored counter is honoured")
     local Registry = require("koassistant.storage.storage_registry")
     local listed = {}
-    for _idx, k in ipairs(Registry.SETTINGS_SUBKEYS.assets) do listed[k] = true end
+    for _idx, k in ipairs(Registry.SETTINGS_SUBKEYS.internal) do listed[k] = true end
     TestRunner:assertTrue(listed.custom_domain_next_id and listed.custom_behavior_next_id, "both counters registered")
+    -- Fresh Start drops the custom domains and keeps every book's own domain
+    -- value: the counters must outlive it, or the next new domain takes an id
+    -- a book still points at (audit 2026-11-12)
+    local kept = {}
+    for _idx, k in ipairs(Registry.freshStartPreserve()) do kept[k] = true end
+    TestRunner:assertTrue(kept["features.custom_domain_next_id"] and kept["features.custom_behavior_next_id"],
+        "both counters survive Fresh Start")
+    TestRunner:assertTrue(not kept["features.custom_domains"] and not kept["features.custom_behaviors"],
+        "the lists themselves do not")
 end)
 
 TestRunner:test("Use as Template while editing fills the editor with the template", function()

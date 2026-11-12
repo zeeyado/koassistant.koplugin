@@ -299,6 +299,16 @@ TestRunner:test("after a restore the stores that held the old state read the dis
     TestRunner:assertTrue(groups:find("function BookGroups.reload()", 1, true) ~= nil, "BookGroups.reload exists")
 end)
 
+TestRunner:test("Restore defaults on behaviors keeps the deleted ids reserved", function()
+    local src = read("koassistant/ui/behavior_manager.lua")
+    local a = src:find('_("Restore defaults")', 1, true)
+    TestRunner:assertTrue(a ~= nil, "the row")
+    local row = src:sub(a, a + 900)
+    local reserve = row:find("self_ref:reserveIds()", 1, true)
+    local save = row:find("self_ref:saveCustomBehaviors({})", 1, true)
+    TestRunner:assertTrue(reserve ~= nil and save ~= nil and reserve < save, "ids reserved before the list is emptied")
+end)
+
 TestRunner:test("a failed restore names its reason without a source position or the chats' text", function()
     local src = read("koassistant/storage/backup_manager.lua")
     for line in src:gmatch("[^\n]+") do

@@ -91,7 +91,6 @@ Registry.SETTINGS_SUBKEYS = {
     assets = {
         "custom_actions", "custom_prompts",                 -- top-level (see TOPLEVEL_SUBKEYS)
         "custom_behaviors", "custom_domains",
-        "custom_behavior_next_id", "custom_domain_next_id",  -- the ids' counters (never reused; the sweep of 2026-11-06)
         "custom_providers", "custom_models", "provider_default_models",
         "model_explicit",                                   -- which providers have a deliberate model pick
         "tier_overrides",                                   -- tier GUI placements (docs/tier_gui_plan.md)
@@ -121,6 +120,12 @@ Registry.SETTINGS_SUBKEYS = {
         "rtl_font",                 -- the font of right-to-left text in the Markdown view (nil = Noto Naskh Arabic, a family KOReader knows, false = none; B558)
     },
     internal = {
+        -- The custom behaviors' and domains' id counters (never reused; the
+        -- sweep of 2026-11-06). Internal, not assets: Fresh Start drops the
+        -- assets and keeps every book's own domain value, so a counter that
+        -- started over handed the next domain an id some book still points
+        -- at (audit 2026-11-12)
+        "custom_behavior_next_id", "custom_domain_next_id",
         "languages_migrated", "behavior_migrated",
         "_reasoning_v2_migrated",
         "_xray_auto_v2_migrated",
