@@ -79,12 +79,16 @@ end)
 
 TestRunner:test("the two bench tools require the moved modules by their new ids", function()
     for _idx, rel in ipairs({ "tests/bench/xray_bench.lua", "tests/bench/front_matter_probe.lua" }) do
-        local h = assert(io.open(PLUGIN_DIR .. "/" .. rel, "r"))
-        local src = h:read("*a")
-        h:close()
-        TestRunner:assertTrue(src:find('require("koassistant_', 1, true) == nil, rel .. ": a pre-relayout name")
-        TestRunner:assertTrue(src:find('require("model_constraints")', 1, true) == nil, rel .. ": the bare constraints name")
-        TestRunner:assertTrue(src:find('require("koassistant.xray.xray_parser")', 1, true) ~= nil, rel .. ": the parser's new id")
+        -- the bench folder is not tracked: a clone has no such file, and the
+        -- suite must pass there too (it failed on every clean checkout)
+        local h = io.open(PLUGIN_DIR .. "/" .. rel, "r")
+        if h then
+            local src = h:read("*a")
+            h:close()
+            TestRunner:assertTrue(src:find('require("koassistant_', 1, true) == nil, rel .. ": a pre-relayout name")
+            TestRunner:assertTrue(src:find('require("model_constraints")', 1, true) == nil, rel .. ": the bare constraints name")
+            TestRunner:assertTrue(src:find('require("koassistant.xray.xray_parser")', 1, true) ~= nil, rel .. ": the parser's new id")
+        end
     end
 end)
 
