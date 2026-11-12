@@ -5073,6 +5073,9 @@ function XrayBrowser:chatAboutItem(detail_text, entity)
         config.features.book_metadata = freshBookMetadata(config.features.book_metadata,
             self.metadata.book_file, self.metadata.title, self.metadata.book_author)
     end
+    -- The entry's book, for the request's per-book settings: this X-Ray need
+    -- not be the open book's (set or cleared on every open, as the block below)
+    config.features._xray_entry_book = self.metadata.book_file or nil
     -- Clear stale selection data - the "highlight" is AI-generated, not a real book selection,
     -- so "Save to Note" must be disabled (prevents saving to a random prior highlight position)
     config.features.selection_data = nil
@@ -5198,6 +5201,8 @@ function XrayBrowser:runWikiForItem(item, category_key, title, source, nav_conte
         config.features.book_metadata = freshBookMetadata(config.features.book_metadata,
             file, self.metadata.title, self.metadata.book_author)
     end
+    -- and the request reads that book's own settings (see chatAboutItem)
+    config.features._xray_entry_book = file
 
     -- Set item description as disambiguation context (consumed by _forced_surrounding_context)
     config.features._forced_surrounding_context = XrayParser.formatItemDetail(item, category_key)

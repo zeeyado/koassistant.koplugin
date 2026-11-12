@@ -14417,8 +14417,10 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
           configuration.features.is_general_context = nil
           configuration.features.is_book_context = true
           configuration.features.is_library_context = nil
-          configuration.features.book_metadata = buildBookMetadata(bt, ba, file, getRawDocProps(file))
-          configuration.features.book_context = bookContextString(configuration.features.book_metadata)
+          local own_metadata = buildBookMetadata(bt, ba, file, getRawDocProps(file))
+          local own_context = bookContextString(own_metadata)
+          configuration.features.book_metadata = own_metadata
+          configuration.features.book_context = own_context
           NetworkMgr:runWhenConnected(function()
             self_ref2:ensureInitialized()
             self_ref2:updateConfigFromSettings()
@@ -14430,8 +14432,11 @@ function AskGPT:viewCachedAction(action, action_id, cached_entry, opts)
             for k, v in pairs((configuration or {}).features or {}) do
               config_copy.features[k] = v
             end
+            -- as executeFileBrowserAction: the last dialog's leftovers go,
+            -- the book is this window's
+            self_ref2:_asBookRunFor(config_copy.features, own_metadata, own_context)
             Dialogs.executeDirectAction(self_ref2.ui, action,
-                config_copy.features.book_context or "", config_copy, self_ref2)
+                own_context or "", config_copy, self_ref2)
           end)
           end)
         end
@@ -17466,10 +17471,11 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
   configuration.features.is_general_context = nil
   configuration.features.is_book_context = true
   configuration.features.is_library_context = nil
-  configuration.features.book_metadata = buildBookMetadata(title, authors, file, getRawDocProps(file) or book_props)
+  local own_metadata = buildBookMetadata(title, authors, file, getRawDocProps(file) or book_props)
+  configuration.features.book_metadata = own_metadata
 
   -- Display/fallback book-context string, derived from the overridden metadata (title+author only).
-  local book_context = bookContextString(configuration.features.book_metadata)
+  local book_context = bookContextString(own_metadata)
   configuration.features.book_context = book_context
 
   NetworkMgr:runWhenConnected(function()
@@ -17494,9 +17500,11 @@ function AskGPT:executeFileBrowserAction(file, title, authors, book_props, actio
     for k, v in pairs((configuration or {}).features or {}) do
       config_copy.features[k] = v
     end
-    -- A chat's run allowance (B395) never rides a book-level run
-    config_copy.features._data_once = nil
-  
+    -- Nothing of the last dialog rides this run (its Spoiler chip value made
+    -- a protected book run unprotected, B651 b; a chat's run allowance, B395),
+    -- and the book is the one this entry was called for
+    self:_asBookRunFor(config_copy.features, own_metadata, book_context)
+
     -- Signal synthetic book metadata (same as _executeBookLevelActionDirect)
     config_copy.features._is_book_level_action = true
 
@@ -21213,6 +21221,22 @@ function AskGPT:_asBookRun(features)
   features.is_book_context = true
 end
 
+--- A features copy for a run about ONE book that need not be the open one (a
+--- file-browser action, a closed book's Regenerate), made from the shared
+--- table: everything the last dialog left there goes (the full scrub), and
+--- the book is the one the entry built its identity for, handed over, never
+--- read back from the shared table (another entry can rewrite it while the
+--- network comes up).
+--- @param features table the run's own copy
+--- @param metadata table the book's identity (buildBookMetadata)
+--- @param book_context string|nil its display string
+function AskGPT:_asBookRunFor(features, metadata, book_context)
+  self:_scrubContextFeatures(features)
+  features.is_book_context = true
+  features.book_metadata = metadata
+  features.book_context = book_context
+end
+
 -- Scrub cross-context state from a features table before entering a new context.
 -- The module-level `configuration` is SHARED between the FileManager and ReaderUI
 -- plugin instances and across entry points: general/library/file-browser entries
@@ -21259,6 +21283,8 @@ function AskGPT:_scrubContextFeatures(features)
   -- An allowance for one run (Allow once, B395) is the request's, consumed at
   -- its dispatch; a stray on the shared table would let data out unasked
   features._data_once = nil
+  -- The book of an X-Ray entry's chat or wiki lives on that chat's own copy
+  features._xray_entry_book = nil
 end
 
 function AskGPT:executeHighlightBypassAction(action, selected_text, highlight_instance)

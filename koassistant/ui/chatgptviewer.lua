@@ -1347,10 +1347,30 @@ function ChatGPTViewer:_htmlWidget(html_body, width, height)
   }
 end
 
+--- An artifact window is about its own book. Its creators build it on the
+--- plugin's shared configuration, whose `document_path` can name another
+--- book (a chat continued from Chat History wrote its book there, and nothing
+--- took it off): Add to Notebook then wrote into that book's notebook, and a
+--- held word was looked up in that book's X-Ray. The window takes a copy of
+--- the configuration's top level that names its own book; `features` stays
+--- the shared table, so settings read live as before.
+--- @return table|nil the configuration the window uses
+function ChatGPTViewer.ownBookConfiguration(configuration, simple_view, artifact_file)
+  if not (simple_view and artifact_file and type(configuration) == "table")
+      or configuration.document_path == artifact_file then
+    return configuration
+  end
+  local own = {}
+  for k, v in pairs(configuration) do own[k] = v end
+  own.document_path = artifact_file
+  return own
+end
+
 function ChatGPTViewer:init()
   if self.default_hold_callback == nil then
     self.default_hold_callback = function() self:holdClose() end
   end
+  self.configuration = ChatGPTViewer.ownBookConfiguration(self.configuration, self.simple_view, self._artifact_file)
   -- Window dimensions come from the shared constants, which honor the
   -- "Window Size" setting (standard 95% / expanded near-full). The region is
   -- what we are centred in: expanded mode shrinks it to keep the status bar

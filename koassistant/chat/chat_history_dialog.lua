@@ -1670,7 +1670,6 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
 
     config = config or {}
     config.features = config.features or {}
-    config.document_path = document_path  -- Needed for notebook save
     -- Shared-table hygiene: clear per-chat Send transients that persist on the
     -- shared module-level configuration (underscore keys survive disk sync) —
     -- the resumed chat's OWN state is restored from chat.control_state below
@@ -1719,6 +1718,11 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
         config.features._quick_reply_private = true
         -- A resumed chat keeps its saved id as its conversation id (B285 / #107)
         config.conversation_id = chat.id
+        -- The chat's book, for its notebook save and its selection tools: on
+        -- the private copy alone. Written on the passed table (the plugin's
+        -- shared one) it stayed there, and every artifact window opened later
+        -- took it for its own book (the shared-state map, 2026-11-12)
+        config.document_path = document_path
     end
 
     -- Reactivate the chat's saved control state (parity §8c persistence,

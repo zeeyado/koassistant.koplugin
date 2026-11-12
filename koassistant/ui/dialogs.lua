@@ -4117,7 +4117,16 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- sidecar. Other contexts keep preferring book_metadata.file (file browser/artifact
     -- target); book-level entries repopulate it for their target before reaching here.
     local per_book_file
-    if context == "highlight" and ui and ui.document and ui.document.file then
+    if context == "highlight" and config.features and config.features._xray_entry_book then
+        -- A chat or an AI Wiki article about an X-Ray entry is a highlight
+        -- request whose "highlight" belongs to the entry's book, which need not
+        -- be the open one (a Book Hub's or a group's X-Ray beside another open
+        -- book): the request took the open book's domain, languages, research
+        -- mode and spoiler posture, and judged the nearby-text gate for it,
+        -- while its text came from the entry's book (the shared-state map,
+        -- 2026-11-12). The entry's own entry points name the book.
+        per_book_file = config.features._xray_entry_book
+    elseif context == "highlight" and ui and ui.document and ui.document.file then
         per_book_file = ui.document.file
     elseif context == "general" or context == "library" then
         -- no book: a general or library action beside an open book took that
@@ -10200,6 +10209,14 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
                         -- the next dialog starts on the setting
                         shared_features._data_once = nil
                         shared_features._session_book_info = nil
+                        -- The consent to read past the position (written just
+                        -- above, before this copy) is this request's alone: it
+                        -- rides the copy, which spends it. Left on the shared
+                        -- table, the next chat opened by an entry that does not
+                        -- scrub (a file-browser or Book Hub chat) sent its first
+                        -- protected turn without the spoiler line (the
+                        -- shared-state map, 2026-11-12)
+                        shared_features._spoiler_scope_consent = nil
                         -- Per-chat conversation id on the private copy (B285 / #107)
                         configuration.conversation_id = history.conversation_id
                         -- Send's long-press pick rides the private copy to the bake
