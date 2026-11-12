@@ -209,19 +209,19 @@ Registry.entries = {
     {
         id = "pinned_general", label = "Pinned (general)",
         location = "settings_dir", ref = "koassistant_pinned_general.lua",
-        category = "artifacts", backup = true,
+        category = "artifacts", backup = true, merge = "pins",
         reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
     },
     {
         id = "pinned_library", label = "Pinned (library)",
         location = "settings_dir", ref = "koassistant_pinned_library.lua",
-        category = "artifacts", backup = true,
+        category = "artifacts", backup = true, merge = "pins",
         reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
     },
     {
         id = "book_groups", label = "Groups",
         location = "settings_dir", ref = "koassistant_book_groups.lua",
-        category = "artifacts", backup = true,
+        category = "artifacts", backup = true, merge = "groups",
         reset_in = { "wipe_all" }, opt_in_reset = true, uninstall = true,
         notes = "User-authored ordered book groups (item 46). NOT an index — never auto-pruned or rebuilt; missing member files stay listed.",
     },
@@ -546,6 +546,27 @@ function Registry.backupSettingsFiles()
     end
     return out
 end
+
+--- How a restore in Merge mode joins a backed-up settings-dir store with the
+--- one on the device: "pins" (a pin file: its pins by id), "groups" (the book
+--- groups file: its groups by id, the id counter never lower), nil = the
+--- backup's file replaces the device's.
+function Registry.mergeKind(ref)
+    for _, e in ipairs(Registry.entries) do
+        if e.location == "settings_dir" and e.ref == ref then return e.merge end
+    end
+    return nil
+end
+
+--- The settings' lists of things the reader made, each item with an `id`: a
+--- restore in Merge mode joins them by id (an item both hold takes the
+--- backup's version, an item only the device holds stays).
+Registry.MERGE_BY_ID = { "custom_domains", "custom_behaviors", "custom_providers" }
+
+--- The settings' id counters. No restore, in either mode, lowers one: an id
+--- handed out once is never handed out again (a book's own setting or an
+--- action may still point at it).
+Registry.ID_COUNTERS = { "custom_domain_next_id", "custom_behavior_next_id" }
 
 -- Plugin-folder dirs the backup includes (domains/, behaviors/).
 function Registry.backupPluginDirs()

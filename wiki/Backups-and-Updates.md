@@ -112,7 +112,9 @@ A restore point, a full backup with your API keys and chats, is created before e
 
 **Replace** replaces the current settings with the backup, after the restore point: what you backed up is exactly what you get. Restoring settings this way without API keys keeps the keys you have (entered in Settings, in `apikeys.lua`, or the OpenAI Subscription sign-in).
 
-**Merge** combines the backup with the current settings: feature toggles take the backup's values; custom content (providers, models, actions) is taken from the backup wholesale, so anything you created after the backup was made is removed; API keys merge by provider with the backup winning; domains and behaviors merge by filename.
+**Merge** combines the backup with what is on the device. Plain settings take the backup's values. The things you made that are kept one by one are joined: custom domains, behaviors and providers created in the app, book groups, general and library pinned answers and chats made after the backup stay, and one that both hold takes the backup's version. Custom actions and the custom model list are taken from the backup wholesale, so an action you made after the backup is removed. API keys merge by provider with the backup winning; domain and behavior files merge by filename.
+
+In both modes a restore never hands out an old id again: a custom domain, behavior or book group you create after a restore gets a new id, even when the backup is older than the last one you had made (a book set to a domain or following a group that the restore removed must not silently take a new one).
 
 ### Managing backups
 

@@ -103,6 +103,29 @@ local function migrateSidecarIfNeeded(document_path, current_path, filename)
     return require("koassistant.storage.storage_registry").migrateSidecarFile(document_path, current_path, filename)
 end
 
+--- The pins of one pin file, by its path (a store's own file, or the copy a
+--- backup holds). nil when it cannot be read as a pin list.
+--- @param path string
+--- @return table|nil Array of pinned entries
+function PinnedManager.readFile(path)
+    local ok, data = pcall(dofile, path)
+    if not (ok and type(data) == "table") then return nil end
+    -- writeLongString writes a guard "\n" before each long-string closer. Lua strips the
+    -- leading newline after "[==[" but keeps the trailing guard, so strip exactly one
+    -- trailing newline from each long-string field to make the round-trip lossless.
+    for _idx, entry in ipairs(data) do
+        if type(entry) == "table" then
+            if type(entry.result) == "string" and entry.result:sub(-1) == "\n" then
+                entry.result = entry.result:sub(1, -2)
+            end
+            if type(entry.user_prompt) == "string" and entry.user_prompt:sub(-1) == "\n" then
+                entry.user_prompt = entry.user_prompt:sub(1, -2)
+            end
+        end
+    end
+    return data
+end
+
 --- Load pinned artifacts from file.
 --- @param document_path string Document path or special key
 --- @return table Array of pinned entries
@@ -118,36 +141,18 @@ local function loadPinned(document_path)
         end
     end
 
-    local ok, data = pcall(dofile, path)
-    if ok and type(data) == "table" then
-        -- writeLongString writes a guard "\n" before each long-string closer. Lua strips the
-        -- leading newline after "[==[" but keeps the trailing guard, so strip exactly one
-        -- trailing newline from each long-string field to make the round-trip lossless.
-        for _idx, entry in ipairs(data) do
-            if type(entry) == "table" then
-                if type(entry.result) == "string" and entry.result:sub(-1) == "\n" then
-                    entry.result = entry.result:sub(1, -2)
-                end
-                if type(entry.user_prompt) == "string" and entry.user_prompt:sub(-1) == "\n" then
-                    entry.user_prompt = entry.user_prompt:sub(1, -2)
-                end
-            end
-        end
-        return data
-    else
-        logger.warn("KOAssistant PinnedManager: Failed to load:", path)
-        return {}
-    end
+    local data = PinnedManager.readFile(path)
+    if data then return data end
+    logger.warn("KOAssistant PinnedManager: Failed to load:", path)
+    return {}
 end
 
---- Save pinned artifacts to file with safe serialization.
---- @param document_path string Document path or special key
+--- Write a pin list to a pin file, by its path, with safe serialization (the
+--- store's own writer; a restore in Merge mode writes the merged list with it).
+--- @param path string
 --- @param pinned table Array of pinned entries
 --- @return boolean success
-local function savePinned(document_path, pinned)
-    local path = PinnedManager.getPath(document_path)
-    if not path then return false end
-
+function PinnedManager.writeFile(path, pinned)
     -- Ensure directory exists
     local util = require("util")
     local dir = path:match("(.*/)")
@@ -211,7 +216,17 @@ local function savePinned(document_path, pinned)
         os.remove(tmp_path)
         return false
     end
+    return true
+end
 
+--- Save pinned artifacts to file with safe serialization.
+--- @param document_path string Document path or special key
+--- @param pinned table Array of pinned entries
+--- @return boolean success
+local function savePinned(document_path, pinned)
+    local path = PinnedManager.getPath(document_path)
+    if not path then return false end
+    if not PinnedManager.writeFile(path, pinned) then return false end
     logger.dbg("KOAssistant PinnedManager: Saved pinned for", document_path)
     return true
 end

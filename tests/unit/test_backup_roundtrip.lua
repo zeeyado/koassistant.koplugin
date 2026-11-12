@@ -779,5 +779,130 @@ do
     end)
 end
 
+-- B660: a restore in Merge mode keeps what was made after the backup (the
+-- backup's lists and files replaced the device's: the groups, custom domains,
+-- behaviors, providers and general pins made since were gone), and no restore,
+-- in either mode, lowers an id counter (a merged restore took the domain
+-- counter from 5 to 4, so the next new domain got a dropped domain's id)
+do
+    wipeTmp()
+    local bm8 = freshManager()
+    seed()
+    local PinnedManager = require("koassistant.artifacts.pinned_manager")
+    local SETTINGS = TMP .. "/settings/koassistant_settings.lua"
+    local GROUPS = TMP .. "/settings/koassistant_book_groups.lua"
+    local PINS = TMP .. "/settings/koassistant_pinned_general.lua"
+    local function writeSettings(features)
+        writeFile(SETTINGS, "return " .. serialize({ features = features, provider = "anthropic" }) .. "\n")
+    end
+    local function writeGroups(data)
+        writeFile(GROUPS, "return " .. serialize({ book_groups = data }) .. "\n")
+    end
+    local function byId(list)
+        local out = {}
+        for _i, item in ipairs(list or {}) do out[item.id] = item end
+        return out
+    end
+    local function count(list) local n = 0 for _i in ipairs(list or {}) do n = n + 1 end return n end
+
+    -- the device when the backup is made
+    writeSettings({
+        custom_domains = { { id = "custom_1", name = "History", context = "as backed up" }, { id = "custom_2", name = "Law", context = "x" } },
+        custom_domain_next_id = 3,
+        custom_behaviors = { { id = "custom_1", name = "Terse" } },
+        custom_behavior_next_id = 2,
+        custom_providers = { { id = "custom_local", name = "Local" } },
+        a_toggle = "backup",
+    })
+    writeGroups({ version = 1, next_id = 3, groups = {
+        { id = "g1", name = "Series", books = { "/b/1.epub" } }, { id = "g2", name = "Project", books = {} } } })
+    PinnedManager.writeFile(PINS, { { id = "pin_1", action_text = "Chat", result = "first", timestamp = 1 } })
+    local made = bm8:createBackup(BACKUP_OPTS)
+
+    -- the device later: one more of each, and a change to an item the backup holds
+    local function later()
+        writeSettings({
+            custom_domains = { { id = "custom_1", name = "History", context = "edited since" }, { id = "custom_2", name = "Law", context = "x" },
+                { id = "custom_3", name = "Made after the backup", context = "z" } },
+            custom_domain_next_id = 4,
+            custom_behaviors = { { id = "custom_1", name = "Terse" }, { id = "custom_2", name = "Made after the backup" } },
+            custom_behavior_next_id = 3,
+            custom_providers = { { id = "custom_local", name = "Local" }, { id = "custom_after", name = "Made after the backup" } },
+            a_toggle = "device",
+        })
+        writeGroups({ version = 1, next_id = 4, groups = {
+            { id = "g1", name = "Series, renamed since", books = { "/b/1.epub" } }, { id = "g2", name = "Project", books = {} },
+            { id = "g3", name = "Made after the backup", books = { "/b/9.epub" } } } })
+        PinnedManager.writeFile(PINS, { { id = "pin_1", action_text = "Chat", result = "first", timestamp = 1 },
+            { id = "pin_2", action_text = "Chat", result = "made after the backup", timestamp = 2 } })
+    end
+    local RESTORE = { restore_settings = true, restore_configs = true, restore_content = true,
+        restore_api_keys = true, skip_restore_point = true }
+
+    later()
+    RESTORE.merge_mode = true
+    local merged = bm8:restoreBackup(made.backup_path, RESTORE)
+    TestRunner:test("a Merge restore succeeds", function()
+        TestRunner:assertTrue(merged and merged.success == true, tostring(merged and merged.error))
+    end)
+    TestRunner:test("Merge keeps the custom domains, behaviors and providers made after the backup", function()
+        local f = LuaSettingsStub:open(SETTINGS):readSetting("features")
+        local domains = byId(f.custom_domains)
+        TestRunner:assertTrue(domains.custom_3 ~= nil, "the domain made after the backup is still there")
+        TestRunner:assertTrue(count(f.custom_domains) == 3, "three domains, none twice: " .. count(f.custom_domains))
+        TestRunner:assertTrue(domains.custom_1.context == "as backed up", "a domain both hold takes the backup's version")
+        TestRunner:assertTrue(byId(f.custom_behaviors).custom_2 ~= nil and count(f.custom_behaviors) == 2, "the behavior too")
+        TestRunner:assertTrue(byId(f.custom_providers).custom_after ~= nil and count(f.custom_providers) == 2, "and the provider")
+        TestRunner:assertTrue(f.a_toggle == "backup", "a plain setting takes the backup's value, as before")
+    end)
+    TestRunner:test("Merge does not lower the id counters", function()
+        local f = LuaSettingsStub:open(SETTINGS):readSetting("features")
+        TestRunner:assertTrue(f.custom_domain_next_id == 4, "the domain counter stays at 4: " .. tostring(f.custom_domain_next_id))
+        TestRunner:assertTrue(f.custom_behavior_next_id == 3, "the behavior counter stays at 3: " .. tostring(f.custom_behavior_next_id))
+    end)
+    TestRunner:test("Merge keeps the group made after the backup", function()
+        local g = LuaSettingsStub:open(GROUPS):readSetting("book_groups")
+        local groups = byId(g.groups)
+        TestRunner:assertTrue(groups.g3 ~= nil and groups.g3.books[1] == "/b/9.epub", "the group and its books")
+        TestRunner:assertTrue(count(g.groups) == 3, "three groups: " .. count(g.groups))
+        TestRunner:assertTrue(groups.g1.name == "Series", "a group both hold takes the backup's version")
+        TestRunner:assertTrue(g.next_id == 4, "the groups' counter stays at 4: " .. tostring(g.next_id))
+    end)
+    TestRunner:test("Merge keeps the pin made after the backup", function()
+        local pins = PinnedManager.readFile(PINS)
+        TestRunner:assertTrue(type(pins) == "table" and #pins == 2, "two pins: " .. tostring(pins and #pins))
+        local at = byId(pins)
+        TestRunner:assertTrue(at.pin_1 and at.pin_1.result == "first" and at.pin_2
+            and at.pin_2.result == "made after the backup", "both whole")
+    end)
+
+    -- Replace is still "the backup's state", but the counters never go back
+    later()
+    RESTORE.merge_mode = false
+    local replaced = bm8:restoreBackup(made.backup_path, RESTORE)
+    TestRunner:test("a Replace restore takes the backup's lists and still does not lower a counter", function()
+        TestRunner:assertTrue(replaced and replaced.success == true, tostring(replaced and replaced.error))
+        local f = LuaSettingsStub:open(SETTINGS):readSetting("features")
+        TestRunner:assertTrue(count(f.custom_domains) == 2 and byId(f.custom_domains).custom_3 == nil, "the backup's two domains")
+        TestRunner:assertTrue(f.custom_domain_next_id == 4, "the next new domain gets id 4, never the dropped domain's 3: "
+            .. tostring(f.custom_domain_next_id))
+        local g = LuaSettingsStub:open(GROUPS):readSetting("book_groups")
+        TestRunner:assertTrue(count(g.groups) == 2 and byId(g.groups).g3 == nil, "the backup's two groups")
+        TestRunner:assertTrue(g.next_id == 4, "the next new group gets g4, never g3 (a book may still follow g3): " .. tostring(g.next_id))
+        local pins = PinnedManager.readFile(PINS)
+        TestRunner:assertTrue(type(pins) == "table" and #pins == 1, "the backup's one pin")
+    end)
+    TestRunner:test("the list merge: the device's order, the backup's version, the backup's own after", function()
+        local out = BackupManager._mergeListById(
+            { { id = "b", v = 1 }, { id = "a", v = 1 }, { id = "c", v = 1 } },
+            { { id = "a", v = 2 }, { id = "d", v = 2 } })
+        local ids = {}
+        for _i, item in ipairs(out) do ids[#ids + 1] = item.id .. item.v end
+        TestRunner:assertTrue(table.concat(ids, " ") == "b1 a2 c1 d2", table.concat(ids, " "))
+        TestRunner:assertTrue(BackupManager._mergeListById(nil, { { id = "a" } })[1].id == "a", "nothing on the device")
+        TestRunner:assertTrue(BackupManager._mergeListById({ { id = "a" } }, nil)[1].id == "a", "nothing in the backup")
+    end)
+end
+
 restoreMocks()
 return TestRunner:summary()

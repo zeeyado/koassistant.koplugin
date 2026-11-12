@@ -780,6 +780,105 @@ function BackupManager:exportBookSettingsToTable()
     return out
 end
 
+-- Two lists of things the reader made, joined by id (a restore in Merge
+-- mode, B660): an item both hold takes the backup's version in the device's
+-- place, an item only the device holds stays, an item only the backup holds
+-- is added after them. Before, the backup's list replaced the device's, and
+-- everything made after the backup was gone.
+local function mergeListById(current, backup)
+    if type(backup) ~= "table" then return current end
+    if type(current) ~= "table" then return backup end
+    local from_backup = {}
+    for _idx, item in ipairs(backup) do
+        if type(item) == "table" and item.id ~= nil then from_backup[item.id] = item end
+    end
+    local out, placed = {}, {}
+    for _idx, item in ipairs(current) do
+        local id = type(item) == "table" and item.id or nil
+        if id ~= nil and from_backup[id] then
+            out[#out + 1] = from_backup[id]
+            placed[id] = true
+        else
+            out[#out + 1] = item
+        end
+    end
+    for _idx, item in ipairs(backup) do
+        local id = type(item) == "table" and item.id or nil
+        if id == nil or not placed[id] then out[#out + 1] = item end
+    end
+    return out
+end
+BackupManager._mergeListById = mergeListById
+
+-- An id counter is never lowered by a restore, in either mode: `target` keeps
+-- the larger of its own value and `other`'s for every counter the registry
+-- names. A lower counter handed the next new domain the id of one the restore
+-- had dropped, which a book's own setting could still point at (B660).
+local function keepCounters(target, other)
+    for _idx, key in ipairs(StorageRegistry.ID_COUNTERS) do
+        local mine, theirs = tonumber(target[key]), tonumber(other[key])
+        if theirs and (not mine or theirs > mine) then target[key] = other[key] end
+    end
+end
+
+--- The book groups file of a backup onto the device's. Replace: the backup's
+--- file as it is. Merge: its groups joined with the device's by id (a group
+--- made after the backup stays). In both, the id counter is never lowered: a
+--- book that followed a group made after the backup keeps that group's
+--- marker, and the next new group would take that id and the book would
+--- follow it (B660).
+function BackupManager:_restoreGroupsFile(src, dest, merge_mode)
+    local function groupsOf(path)
+        if lfs.attributes(path, "mode") ~= "file" then return nil end
+        local ok, data = pcall(function() return LuaSettings:open(path):readSetting("book_groups") end)
+        return ok and type(data) == "table" and data or nil
+    end
+    local had, incoming = groupsOf(dest), groupsOf(src)
+    if not had or not incoming then
+        -- nothing to join and no counter to keep: the backup's file as it is
+        return self:_copyFile(src, dest)
+    end
+    local data = incoming
+    if merge_mode then
+        data = had
+        data.groups = mergeListById(had.groups, incoming.groups)
+        data.version = math.max(tonumber(had.version) or 1, tonumber(incoming.version) or 1)
+    else
+        local ok, e = self:_copyFile(src, dest)
+        if not ok then return false, e end
+    end
+    local next_id = math.max(tonumber(had.next_id) or 1, tonumber(incoming.next_id) or 1)
+    for _idx, group in ipairs(type(data.groups) == "table" and data.groups or {}) do
+        local n = type(group) == "table" and type(group.id) == "string" and tonumber(group.id:match("^g(%d+)$"))
+        if n and n >= next_id then next_id = n + 1 end
+    end
+    if not merge_mode and next_id == (tonumber(incoming.next_id) or 1) then return true end
+    data.next_id = next_id
+    local ok, e = pcall(function()
+        local store = LuaSettings:open(dest)
+        store:saveSetting("book_groups", data)
+        store:flush()
+    end)
+    if not ok then return false, "Failed to write the book groups: " .. tostring(e) end
+    return true
+end
+
+--- A pin file of a backup onto the device's, in Merge mode: the pins joined
+--- by id, so a pin made after the backup stays (B660). A file that is no pin
+--- list on either side is copied as it is.
+function BackupManager:_mergePinFile(src, dest)
+    local PinnedManager = require("koassistant.artifacts.pinned_manager")
+    local incoming = PinnedManager.readFile(src)
+    local current = lfs.attributes(dest, "mode") == "file" and PinnedManager.readFile(dest) or nil
+    if not incoming or not current or #current == 0 then
+        return self:_copyFile(src, dest)
+    end
+    if not PinnedManager.writeFile(dest, mergeListById(current, incoming)) then
+        return false, "Failed to write " .. tostring(dest:match("[^/]+$"))
+    end
+    return true
+end
+
 -- Restore per-book settings from koassistant_book_settings.json.
 -- merge_mode: backup values win per key over the current file; otherwise the
 -- book's settings are replaced by the backup's. Books missing locally are skipped.
@@ -1571,13 +1670,22 @@ function BackupManager:restoreBackup(backup_path, options)
                     end
                 end
 
-                -- Merge other features (backup takes precedence)
+                -- Merge other features (backup takes precedence). The lists of
+                -- things the reader made are joined by id, and no id counter
+                -- is lowered (B660)
+                local had = {}
+                for _idx, key in ipairs(StorageRegistry.MERGE_BY_ID) do had[key] = current_features[key] end
+                for _idx, key in ipairs(StorageRegistry.ID_COUNTERS) do had[key] = current_features[key] end
                 for key, value in pairs(backup_features) do
                     local credential = key == "api_keys" or key == "openai_codex_oauth"
                     if not credential or (options.restore_api_keys and manifest.contents.api_keys) then
                         current_features[key] = value
                     end
                 end
+                for _idx, key in ipairs(StorageRegistry.MERGE_BY_ID) do
+                    current_features[key] = mergeListById(had[key], backup_features[key])
+                end
+                keepCounters(current_features, had)
 
                 -- Validate and clean custom actions from features
                 if current_features.custom_actions then
@@ -1637,11 +1745,13 @@ function BackupManager:restoreBackup(backup_path, options)
 
                 -- Create new settings file with validated data
                 local new_settings = LuaSettings:open(current_settings_file)
+                local current_features = new_settings:readSetting("features") or {}
+                -- no id counter is lowered, in this mode either (B660)
+                keepCounters(backup_features, current_features)
                 if not options.restore_api_keys or not manifest.contents.api_keys then
                     -- The keys entered in Settings, the subscription sign-in and
                     -- the key selection stay as they are: a Replace restore from
                     -- a backup without keys (the default backup) wiped them (B471)
-                    local current_features = new_settings:readSetting("features") or {}
                     backup_features.api_keys = current_features.api_keys
                     backup_features.openai_codex_oauth = current_features.openai_codex_oauth
                     backup_features.api_key_selected = current_features.api_key_selected
@@ -1679,13 +1789,25 @@ function BackupManager:restoreBackup(backup_path, options)
             end
         end
 
-        -- Settings-dir stores copied back as-is (same registry list as the backup side)
+        -- Settings-dir stores (same registry list as the backup side): copied
+        -- back as they are, except where the registry names a way to join
+        -- them (Merge mode keeps the pins and groups made after the backup,
+        -- and the groups' id counter is never lowered, B660)
         -- (a copy that fails is the restore failing: the error reaches the
         -- rollback below and the reader, the sweep of 2026-11-06)
         for _idx, ref in ipairs(StorageRegistry.backupSettingsFiles()) do
             local src = temp_dir .. "/settings/" .. ref
             if lfs.attributes(src, "mode") == "file" then
-                local ok, e = self:_copyFile(src, self.SETTINGS_DIR .. "/" .. ref)
+                local dest = self.SETTINGS_DIR .. "/" .. ref
+                local kind = StorageRegistry.mergeKind(ref)
+                local ok, e
+                if kind == "groups" then
+                    ok, e = self:_restoreGroupsFile(src, dest, options.merge_mode)
+                elseif kind == "pins" and options.merge_mode then
+                    ok, e = self:_mergePinFile(src, dest)
+                else
+                    ok, e = self:_copyFile(src, dest)
+                end
                 if not ok then error(e or ("Failed to restore " .. ref), 0) end
             end
         end
