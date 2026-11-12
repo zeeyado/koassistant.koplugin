@@ -101,6 +101,55 @@ TestRunner:test("B586: the Domain chip opens the shared Domain & Research screen
     TestRunner:assertTrue(engine:find("scope = opts.scope, global_only = opts.global_only,", 1, true) ~= nil, "and hands it to its target switch")
 end)
 
+-- A function of main.lua, cut from the source and defined on a bare table
+local function cutMethod(main, name)
+    local a = main:find("\nfunction AskGPT:" .. name .. "(", 1, true)
+    TestRunner:assertTrue(a ~= nil, name .. " exists")
+    local b = main:find("\nend\n", a, true)
+    local AskGPT = {}
+    assert((loadstring or load)("local AskGPT = ...\n" .. main:sub(a, b + 4), name))(AskGPT)
+    return AskGPT, main:sub(a, b)
+end
+
+-- Audit 2026-11-12 (B647; the second report on issue #123): the Library
+-- dialog, a group chat and the file browser's compare mark the shared
+-- settings as a library run and nothing takes the mark off. A book run that
+-- copied them and only added its own mark was resolved as a library run,
+-- which has no book to save to: an X-Ray in one request was shown and not
+-- saved, a checkpoint build stopped at its first step. The hand-off runs
+-- here: the run's own function and the dialogs module's context rule, both
+-- cut from the source.
+TestRunner:test("a book run copied from settings a library dialog marked resolves as a book run", function()
+    local main = read("main.lua")
+    local AskGPT = cutMethod(main, "_asBookRun")
+    local dialogs = read("koassistant/ui/dialogs.lua")
+    local c = dialogs:find("\nlocal function getPromptContext(config)\n", 1, true)
+    TestRunner:assertTrue(c ~= nil, "getPromptContext is where it was")
+    local d = dialogs:find("\nend\n", c, true)
+    local getPromptContext = assert((loadstring or load)(dialogs:sub(c, d + 4) .. "\nreturn getPromptContext", "ctx"))()
+    -- what a library dialog leaves on the shared table
+    local shared = { is_library_context = true, books_info = { {} }, _group_launch = { id = "g" }, a_setting = 7 }
+    local old, copy = {}, {}
+    for k, v in pairs(shared) do old[k], copy[k] = v, v end
+    old.is_book_context = true
+    TestRunner:assertEqual(getPromptContext({ features = old }), "library",
+        "the book mark alone left the run a library run (the defect)")
+    AskGPT:_asBookRun(copy)
+    TestRunner:assertEqual(getPromptContext({ features = copy }), "book", "the run is a book run")
+    TestRunner:assertEqual(copy.books_info, nil, "the library run's books left the copy")
+    TestRunner:assertEqual(copy._group_launch, nil, "and its group")
+    TestRunner:assertEqual(copy.a_setting, 7, "settings stay")
+    TestRunner:assertEqual(shared.is_library_context, true, "the shared table is not touched")
+    -- every run that copies the shared settings for ONE book goes through it
+    for _idx, name in ipairs({ "_generateSummaryAndContinue", "_fireXrayAutoUpdate", "_fireXrayLadderRung" }) do
+        local _m, body = cutMethod(main, name)
+        TestRunner:assertTrue(body:find("self:_asBookRun(config_copy.features)", 1, true) ~= nil,
+            name .. " sets the book's context through _asBookRun")
+        TestRunner:assertTrue(body:find("config_copy.features.is_book_context = true", 1, true) == nil,
+            name .. " does not set the mark alone")
+    end
+end)
+
 TestRunner:test("B604: the configuration.lua notice once per session", function()
     local src = read("main.lua")
     TestRunner:assertTrue(src:find("if config_load_error and not AskGPT._config_error_warned then", 1, true) ~= nil, "guarded on the class")

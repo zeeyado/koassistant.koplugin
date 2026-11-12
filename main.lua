@@ -10000,7 +10000,7 @@ function AskGPT:_generateSummaryAndContinue(on_done, section_scope, data_once)
   for k, v in pairs((configuration or {}).features or {}) do
     config_copy.features[k] = v
   end
-  config_copy.features.is_book_context = true
+  self:_asBookRun(config_copy.features)
   -- The popup's allowance covers the summary generated on the way (B395)
   config_copy.features._data_once = nil
   if data_once then
@@ -15263,7 +15263,7 @@ function AskGPT:_fireXrayAutoUpdate(opts)
   if opts.data_once then
     require("koassistant.request.privacy_gates").grantOnce(config_copy.features, file, opts.data_once)
   end
-  config_copy.features.is_book_context = true
+  self:_asBookRun(config_copy.features)
   config_copy.features._background_request = true
   config_copy.features._is_book_level_action = true
   -- A manual update started from a run option (B345) runs on the picked model
@@ -16341,7 +16341,7 @@ function AskGPT:_fireXrayLadderRung()
   for k, v in pairs(configuration or {}) do config_copy[k] = v end
   config_copy.features = {}
   for k, v in pairs((configuration or {}).features or {}) do config_copy.features[k] = v end
-  config_copy.features.is_book_context = true
+  self:_asBookRun(config_copy.features)
   config_copy.features._background_request = true
   config_copy.features._background_create = create_mode or nil
   config_copy.features._is_book_level_action = true
@@ -21144,6 +21144,23 @@ function AskGPT:_showXrayMarkingQuickSettings(opts)
     end,
   }
   UIManager:show(dialog)
+end
+
+--- A features copy for a run about ONE book, made from the shared table: the
+--- marks of every other context leave, the book's is set (B647). A library
+--- dialog, a group chat and the file browser's compare mark the shared table
+--- as a library run and nothing takes the mark off; getPromptContext reads
+--- library before book, and a library run has no book to save to. A run that
+--- copied the table and only added its own mark showed its answer and saved
+--- nothing: an X-Ray in one request was gone at the next open, and every
+--- checkpoint step stopped the build (issue #123, the second report). Narrower
+--- than _scrubContextFeatures on purpose: the run's own transients stay.
+function AskGPT:_asBookRun(features)
+  features.is_general_context = nil
+  features.is_library_context = nil
+  features.books_info = nil
+  features._group_launch = nil
+  features.is_book_context = true
 end
 
 -- Scrub cross-context state from a features table before entering a new context.
