@@ -2670,6 +2670,8 @@ do
     if ok and type(Utf8Proc) == "table" and type(Utf8Proc.lowercase) == "function" then
         foldCase = function(text)
             if not text:find("[\128-\255]") then return text:lower() end
+            -- never invalid UTF-8 into utf8proc: it ends the app (utf8Mask)
+            text = require("koassistant.request.scope_resolver").utf8Mask(text)
             local folded_ok, folded = pcall(Utf8Proc.lowercase, text, true)
             if folded_ok and type(folded) == "string" then return folded end
             return text:lower()
@@ -2738,6 +2740,7 @@ do
         if type(Utf8Proc.normalize_NFC) == "function" then
             composeNFC = function(text)
                 if not text:find("[\128-\255]") then return text end
+                text = require("koassistant.request.scope_resolver").utf8Mask(text)
                 local nok, out = pcall(Utf8Proc.normalize_NFC, text)
                 if nok and type(out) == "string" then return out end
                 return text

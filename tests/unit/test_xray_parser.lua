@@ -1171,5 +1171,38 @@ TestRunner:test("audit: a lookup folds typeset apostrophes and hyphens on its su
     TestRunner:eq(#XrayParser.searchAll(data, "Nobody", { skip_description = true }), 0)
 end)
 
+TestRunner:test("audit: no text reaches KOReader's utf8proc without its invalid bytes masked", function()
+    local SR = require("koassistant.request.scope_resolver")
+    TestRunner:eq(SR.utf8Mask("Ann\255a"), "Ann?a")
+    TestRunner:eq(SR.utf8Mask("caf\195"), "caf?")
+    TestRunner:eq(SR.utf8Mask("a\237\160\189b"), "a???b")
+    TestRunner:eq(SR.utf8Mask("\192\175"), "??")
+    local clean = "caf\195\169 \228\184\173 \240\159\148\141"
+    TestRunner:ok(SR.utf8Mask(clean) == clean)
+    TestRunner:eq(#SR.utf8Mask("x\255\254y\128"), 5)
+    -- every call of the wrapper's two NULL-returning functions is behind the mask
+    local function read(rel)
+        local here = debug.getinfo(1, "S").source:match("@?(.*)")
+        local root = here:match("(.+)/tests/unit/[^/]+$") or "."
+        local f = assert(io.open(root .. "/" .. rel, "r"))
+        local text = f:read("*a")
+        f:close()
+        return text
+    end
+    for _i, rel in ipairs({ "koassistant/xray/xray_parser.lua", "koassistant/tools/book_tools.lua" }) do
+        local src = read(rel)
+        local calls, guarded = 0, 0
+        for line_start in src:gmatch("()pcall%(Utf8Proc%.[%w_]+, text") do
+            local call = src:sub(line_start, line_start + 60)
+            if call:find("Utf8Proc.lowercase, text", 1, true) or call:find("Utf8Proc.normalize_NFC, text", 1, true) then
+                calls = calls + 1
+                local before = src:sub(math.max(1, line_start - 260), line_start)
+                if before:find('utf8Mask(text)', 1, true) then guarded = guarded + 1 end
+            end
+        end
+        TestRunner:ok(calls > 0 and guarded == calls)
+    end
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

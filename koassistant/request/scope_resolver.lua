@@ -210,6 +210,35 @@ local function sentenceEndPos(text, from, need_space)
     return stop
 end
 
+--- The string with every byte that is not part of a valid UTF-8 sequence
+--- replaced by "?": the SAME length, so a position found in the result
+--- holds in the original; the string itself when it is clean. For text
+--- handed to KOReader's utf8proc wrapper (ffi/utf8proc.lua): its fold and
+--- its NFC return NULL on invalid UTF-8 and the wrapper passes that to
+--- ffi.string, which ends the app with a segfault no pcall catches. A held
+--- word of a PDF or DjVu text layer, a name in an old X-Ray, a tool's query
+--- can carry such bytes (audit 2026-11-12).
+function ScopeResolver.utf8Mask(s)
+    local first = ScopeResolver.utf8FirstBad(s)
+    if not first then return s end
+    local out, pos, keep_from = {}, first, 1
+    while true do
+        local i = s:find("[\128-\255]", pos)
+        if not i then break end
+        local len = utf8SeqLen(s, i)
+        if len then
+            pos = i + len
+        else
+            out[#out + 1] = s:sub(keep_from, i - 1)
+            out[#out + 1] = "?"
+            pos = i + 1
+            keep_from = pos
+        end
+    end
+    out[#out + 1] = s:sub(keep_from)
+    return table.concat(out)
+end
+
 --- Drop every byte that is not part of a valid UTF-8 sequence.
 function ScopeResolver.utf8Repair(s)
     local out, pos, keep_from = {}, 1, 1

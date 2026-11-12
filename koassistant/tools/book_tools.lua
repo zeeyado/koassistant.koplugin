@@ -18,12 +18,17 @@ do
             -- Cyrillic, Arabic, CJK...); C2 and E2 start the punctuation English text is
             -- full of (no-break space, curly quotes, dashes, ellipsis), which has no case.
             if not text:find("[\195-\225\227-\244]") then return text:lower() end
+            -- never invalid UTF-8 into utf8proc: it ends the app (a query the
+            -- model wrote with half an escape pair, a damaged text layer)
+            text = require("koassistant.request.scope_resolver").utf8Mask(text)
             local folded_ok, folded = pcall(Utf8Proc.lowercase, text, true)
             if folded_ok and type(folded) == "string" then return folded end
             return text:lower()
         end
     end
 end
+-- the one fold of text and query, for the scenario that feeds it invalid bytes
+BookTools._lowercase = lowercase
 
 local MAX_READ_PAGES = 5
 local MAX_READ_CHARS = 8000
