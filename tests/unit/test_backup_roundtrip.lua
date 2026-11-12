@@ -675,5 +675,109 @@ do
     end)
 end
 
+-- Audit 2026-11-12: createBackup ignored the result of every copy and write,
+-- so on a nearly full card a backup reported success with a file missing or
+-- cut. A restore's restore point is made by the same function: a rollback
+-- from a cut one said "rolled back" while what the reader had made since the
+-- backup was gone. The first failed copy or short write fails the backup,
+-- and a restore that cannot make its restore point stops before it starts.
+wipeTmp()
+do
+    local bm5 = freshManager()
+    seed()
+    local real_copy = bm5._copyFile
+    bm5._copyFile = function(self, src, dest)
+        if tostring(src):find("koassistant_book_groups.lua", 1, true) then
+            return false, "No space left on device"
+        end
+        return real_copy(self, src, dest)
+    end
+    local made = bm5:createBackup(BACKUP_OPTS)
+    TestRunner:test("a copy that fails fails the backup, with the reason, and leaves no archive", function()
+        TestRunner:assertTrue(made and made.success == false, "the backup reports failure")
+        TestRunner:assertTrue(tostring(made.error):find("No space left", 1, true) ~= nil,
+            "the reason is the copy's: " .. tostring(made.error))
+        local left = false
+        for entry in real_lfs.dir(TMP .. "/data/koassistant_backups") do
+            if entry:match("%.koa$") then left = true end
+        end
+        TestRunner:assertTrue(not left, "no archive that lacks the groups")
+    end)
+    -- a restore whose restore point cannot be made whole never starts
+    bm5._copyFile = nil
+    local good = bm5:createBackup(BACKUP_OPTS)
+    TestRunner:test("the backup succeeds again once copies work", function()
+        TestRunner:assertTrue(good and good.success == true, tostring(good and good.error))
+    end)
+    writeFile(TMP .. "/settings/koassistant_book_groups.lua", 'return {\n  ["groups"] = { { ["name"] = "made after the backup", ["books"] = {} } },\n}\n')
+    bm5._copyFile = function(self, src, dest)
+        -- the restore point's copy of the groups fails (a full card)
+        if tostring(src):find("/settings/koassistant_book_groups.lua", 1, true)
+                and tostring(dest):find("/.temp_", 1, true) and not tostring(dest):find("/.temp_restore_", 1, true) then
+            return false, "No space left on device"
+        end
+        return real_copy(self, src, dest)
+    end
+    local refused = bm5:restoreBackup(good.backup_path, {
+        restore_settings = true, restore_configs = true, restore_content = true,
+        restore_api_keys = true, merge_mode = false,
+    })
+    bm5._copyFile = nil
+    TestRunner:test("a restore whose restore point cannot be made whole stops before it changes anything", function()
+        TestRunner:assertTrue(refused and refused.success == false, "the restore is refused")
+        TestRunner:assertTrue(tostring(refused.error):find("restore point", 1, true) ~= nil,
+            "it says the restore point could not be made: " .. tostring(refused.error))
+        TestRunner:assertTrue(readFile(TMP .. "/settings/koassistant_book_groups.lua"):find("made after the backup", 1, true) ~= nil,
+            "the group made after the backup is still there")
+    end)
+end
+
+-- Two archives within one second: the second never replaces the first (a
+-- restore point made the second its backup was made was written over it)
+do
+    wipeTmp()
+    local bm7 = freshManager()
+    seed()
+    local first = bm7:createBackup(BACKUP_OPTS)
+    local second = bm7:createBackup(BACKUP_OPTS)
+    TestRunner:test("a second backup in the same second takes its own name", function()
+        TestRunner:assertTrue(first.success and second.success, "both are made")
+        TestRunner:assertTrue(first.backup_path ~= second.backup_path, "under two names: " .. tostring(second.backup_name))
+        TestRunner:assertTrue(exists(first.backup_path) and exists(second.backup_path), "and both exist")
+    end)
+    -- and a restore of a backup made this very second still finds it
+    local same_second = bm7:restoreBackup(first.backup_path, {
+        restore_settings = true, restore_configs = true, restore_content = true,
+        restore_api_keys = true, merge_mode = false,
+    })
+    TestRunner:test("a restore started in the second its backup was made succeeds", function()
+        TestRunner:assertTrue(same_second and same_second.success == true, tostring(same_second and same_second.error))
+    end)
+end
+
+-- a write the card cuts short reports no error: the size on disk decides
+do
+    wipeTmp()
+    local bm6 = freshManager()
+    seed()
+    local real_open = io.open
+    io.open = function(path, mode) -- luacheck: ignore
+        if mode == "w" and tostring(path):find("manifest.json", 1, true) then
+            local f = real_open(path, mode)
+            return setmetatable({}, { __index = function(_t, k)
+                if k == "write" then return function(_self, data) return f:write(data:sub(1, 10)) end end
+                if k == "close" then return function() return f:close() end end
+            end })
+        end
+        return real_open(path, mode)
+    end
+    local cut = bm6:createBackup(BACKUP_OPTS)
+    io.open = real_open -- luacheck: ignore
+    TestRunner:test("a file written short fails the backup although no call reported an error", function()
+        TestRunner:assertTrue(cut and cut.success == false, "the backup reports failure")
+        TestRunner:assertTrue(tostring(cut.error):find("manifest", 1, true) ~= nil, "naming what was not written: " .. tostring(cut.error))
+    end)
+end
+
 restoreMocks()
 return TestRunner:summary()

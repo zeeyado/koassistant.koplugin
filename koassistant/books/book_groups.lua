@@ -46,6 +46,14 @@ local function store()
     return settings
 end
 
+--- The groups file was replaced on disk (a restore): drop the session's
+--- handle, so the next read opens the file as it is now. Kept, the handle
+--- still held the groups from before the restore and the next group change
+--- wrote those back over the restored file (audit 2026-11-12).
+function BookGroups.reload()
+    settings = nil
+end
+
 --- Test seam: inject a fake LuaSettings-like handle (readSetting/saveSetting/flush).
 function BookGroups._setStoreForTests(s)
     settings = s

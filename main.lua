@@ -23365,6 +23365,14 @@ function AskGPT:_performRestore(backup_manager, backup, options)
         -- back over the restored file. Reload in place, so every module
         -- holding this object reads the restored values (the sweep of 2026-11-06)
         self:_reloadSettingsFromDisk()
+        -- Two more stores held what was there before the restore and would
+        -- have written it back at their next change, before any restart: the
+        -- book groups' session handle (the next group change saved the old
+        -- groups over the restored file) and the action list's cache (a menu
+        -- build pruned the restored custom actions it did not know from the
+        -- menus' order lists). Both read the disk again (audit 2026-11-12).
+        require("koassistant.books.book_groups").reload()
+        if self.action_service then self.action_service.actions_cache = nil end
         if result.v1_chats_restored then
           -- The backup predates chat storage v2: its chats came back in the
           -- old hash-folder layout, which nothing reads any more. Import them

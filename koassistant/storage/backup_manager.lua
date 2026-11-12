@@ -912,6 +912,16 @@ function BackupManager:createBackup(options)
     local temp_dir = self.BACKUP_DIR .. "/.temp_" .. timestamp .. "_" .. random_suffix
     local backup_name = "koassistant_backup_" .. timestamp .. ".koa"
     local backup_path = self.BACKUP_DIR .. "/" .. backup_name
+    -- Never over an existing archive: the name holds the time to the second,
+    -- and a restore point made in the second its backup was made was written
+    -- over that backup and renamed away, so the restore then had nothing to
+    -- restore from (audit 2026-11-12)
+    local nth = 1
+    while lfs.attributes(backup_path, "mode") do
+        nth = nth + 1
+        backup_name = "koassistant_backup_" .. timestamp .. "_" .. nth .. ".koa"
+        backup_path = self.BACKUP_DIR .. "/" .. backup_name
+    end
 
     -- Create temp directory
     if not lfs.attributes(temp_dir, "mode") then
@@ -927,6 +937,31 @@ function BackupManager:createBackup(options)
     -- Count items for manifest
     local counts = self:_countItems(options)
 
+    -- Every copy and write below is checked (audit 2026-11-12). They were
+    -- not: on a nearly full card a backup reported success with a file
+    -- missing or cut, and a restore's restore point is made here, so a
+    -- rollback from such a point said "rolled back" while chats or groups
+    -- made since the backup were gone. The first failure fails the backup.
+    local failure
+    local function copyChecked(src, dest)
+        local ok, e = self:_copyFile(src, dest)
+        if not ok and not failure then
+            failure = e or ("Could not copy " .. (tostring(src):match("[^/]+$") or "a file"))
+        end
+    end
+    local function writeChecked(path, data, what)
+        local f = io.open(path, "w")
+        local ok = f ~= nil
+        if f then
+            if not f:write(data) then ok = false end
+            if not f:close() then ok = false end
+        end
+        -- a write the card cut short may report no error: the size on disk says
+        if ok and lfs.attributes(path, "size") ~= #data then ok = false end
+        if not ok and not failure then failure = "Could not write " .. what end
+        return ok
+    end
+
     -- Copy settings (always include, excluding API keys if requested)
     if options.include_settings then
         local settings_dir = temp_dir .. "/settings"
@@ -936,7 +971,7 @@ function BackupManager:createBackup(options)
         if lfs.attributes(settings_file, "mode") == "file" then
             if options.include_api_keys then
                 -- Copy settings as-is
-                self:_copyFile(settings_file, settings_dir .. "/koassistant_settings.lua")
+                copyChecked(settings_file, settings_dir .. "/koassistant_settings.lua")
             else
                 -- Copy settings but remove API keys
                 local settings = LuaSettings:open(settings_file)
@@ -959,6 +994,9 @@ function BackupManager:createBackup(options)
                 end
 
                 temp_settings:flush()
+                if not failure and (lfs.attributes(settings_dir .. "/koassistant_settings.lua", "size") or 0) == 0 then
+                    failure = "Could not write the settings"
+                end
 
                 -- Restore API keys in original settings (don't modify user's settings)
                 -- No need to restore since we're just reading
@@ -971,14 +1009,13 @@ function BackupManager:createBackup(options)
         if next(book_settings) then
             local ok_enc, json_string = pcall(JSON.encode, book_settings)
             if ok_enc then
-                local bs_file = io.open(settings_dir .. "/koassistant_book_settings.json", "w")
-                if bs_file then
-                    bs_file:write(json_string)
-                    bs_file:close()
+                if writeChecked(settings_dir .. "/koassistant_book_settings.json", json_string,
+                        "the per-book settings") then
                     logger.info("BackupManager: Exported per-book settings")
                 end
             else
-                logger.warn("BackupManager: Failed to encode per-book settings:", json_string)
+                logger.warn("BackupManager: Failed to encode per-book settings (" .. #tostring(json_string) .. " bytes of error)")
+                if not failure then failure = "Could not encode the per-book settings" end
             end
         end
 
@@ -987,7 +1024,7 @@ function BackupManager:createBackup(options)
         for _idx, ref in ipairs(StorageRegistry.backupSettingsFiles()) do
             local src = self.SETTINGS_DIR .. "/" .. ref
             if lfs.attributes(src, "mode") == "file" then
-                self:_copyFile(src, settings_dir .. "/" .. ref)
+                copyChecked(src, settings_dir .. "/" .. ref)
             end
         end
     end
@@ -1000,7 +1037,7 @@ function BackupManager:createBackup(options)
             if not entry.credential or options.include_api_keys then
                 local src = self.PLUGIN_DIR .. "/" .. entry.ref
                 if lfs.attributes(src, "mode") == "file" then
-                    self:_copyFile(src, configs_dir .. "/" .. entry.ref)
+                    copyChecked(src, configs_dir .. "/" .. entry.ref)
                 end
             end
         end
@@ -1044,22 +1081,12 @@ function BackupManager:createBackup(options)
                 if not options.skip_lock then
                     self:_releaseLock()
                 end
-                return { success = false, error = "Failed to encode chats to JSON: " .. tostring(json_string) }
+                return { success = false, error = "Failed to encode chats to JSON" }
             end
 
-            local file = io.open(json_path, "w")
-            if not file then
-                self:_removeTempDir(temp_dir)
-                if not options.skip_lock then
-                    self:_releaseLock()
-                end
-                return { success = false, error = "Failed to create chat JSON file" }
+            if writeChecked(json_path, json_string, "the chats") then
+                logger.info("BackupManager: Exported chats to JSON (v2 storage)")
             end
-
-            file:write(json_string)
-            file:close()
-
-            logger.info("BackupManager: Exported chats to JSON (v2 storage)")
         else
             logger.info("BackupManager: No chats to backup (v2 storage)")
         end
@@ -1067,16 +1094,18 @@ function BackupManager:createBackup(options)
 
     -- Create manifest
     local manifest_json = self:_createManifest(options, counts)
-    local manifest_file = io.open(temp_dir .. "/manifest.json", "w")
-    if not manifest_file then
+    writeChecked(temp_dir .. "/manifest.json", manifest_json, "the backup's manifest")
+
+    -- Anything above that was not copied or written whole: no backup, and
+    -- for a restore no restore point, so the restore stops before it starts
+    if failure then
+        logger.warn("BackupManager: backup not made: " .. failure)
         self:_removeTempDir(temp_dir)
         if not options.skip_lock then
             self:_releaseLock()
         end
-        return { success = false, error = "Failed to create manifest file" }
+        return { success = false, error = failure }
     end
-    manifest_file:write(manifest_json)
-    manifest_file:close()
 
     -- Create archive
     local success, err_msg = self:_createArchive(temp_dir, backup_path)
@@ -1317,7 +1346,13 @@ function BackupManager:createRestorePoint()
     local safe_dest, err_dest = self:_sanitizePath(restore_point_path)
 
     if safe_src and safe_dest then
-        os.execute(string.format('mv "%s" "%s"', safe_src, safe_dest))
+        -- a rename that fails leaves no restore point under its name: the
+        -- rollback would look for a file that is not there
+        if not shellOk(os.execute(string.format('mv "%s" "%s"', safe_src, safe_dest)))
+                or not lfs.attributes(restore_point_path, "mode") then
+            logger.err("BackupManager: could not rename the backup to a restore point")
+            return { success = false, error = "Failed to rename backup to restore point" }
+        end
     else
         logger.err("BackupManager: Path sanitization failed for mv:", err_src or err_dest)
         return { success = false, error = "Failed to rename backup to restore point" }
@@ -1352,7 +1387,10 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
     -- Decode JSON
     local success, all_chats = pcall(JSON.decode, content)
     if not success then
-        return false, "Failed to decode chat JSON: " .. tostring(all_chats)
+        -- The decoder's message quotes the text it failed on: the reader's
+        -- chats. It reaches the log and the restore's warning, so only the
+        -- size goes out (audit 2026-11-12)
+        return false, "Failed to decode chat JSON (" .. tostring(#content) .. " bytes)"
     end
 
     local restored_count = 0
@@ -1404,7 +1442,7 @@ function BackupManager:restoreChatsFromJSON(json_path, merge_mode)
                 end
 
                 local ok_w, err_w = BookStore.writeChats(doc_path, existing_chats)
-                if not ok_w then error(err_w or "chats write failed") end
+                if not ok_w then error(err_w or "chats write failed", 0) end
 
                 -- Update chat index (title/author: KOReader's doc_props)
                 local doc_settings = SafeDocSettings.resolve(doc_path)
@@ -1648,15 +1686,20 @@ function BackupManager:restoreBackup(backup_path, options)
             local src = temp_dir .. "/settings/" .. ref
             if lfs.attributes(src, "mode") == "file" then
                 local ok, e = self:_copyFile(src, self.SETTINGS_DIR .. "/" .. ref)
-                if not ok then error(e or ("Failed to restore " .. ref)) end
+                if not ok then error(e or ("Failed to restore " .. ref), 0) end
             end
         end
+        -- The groups file is among them: the book groups module holds one
+        -- handle on it for the session and would write the groups from
+        -- before the restore back at the next group change (audit
+        -- 2026-11-12). It opens the file again at its next read.
+        pcall(function() require("koassistant.books.book_groups").reload() end)
         -- Old backups carry the library pinned store under its pre-rename name
         local backup_pinned_multi_old = temp_dir .. "/settings/koassistant_pinned_multi_book.lua"
         if lfs.attributes(temp_dir .. "/settings/koassistant_pinned_library.lua", "mode") ~= "file"
                 and lfs.attributes(backup_pinned_multi_old, "mode") == "file" then
             local ok, e = self:_copyFile(backup_pinned_multi_old, self.SETTINGS_DIR .. "/koassistant_pinned_library.lua")
-            if not ok then error(e or "Failed to restore koassistant_pinned_library.lua") end
+            if not ok then error(e or "Failed to restore koassistant_pinned_library.lua", 0) end
         end
     end
 
@@ -1668,7 +1711,7 @@ function BackupManager:restoreBackup(backup_path, options)
                 local src = temp_dir .. "/configs/" .. entry.ref
                 if lfs.attributes(src, "mode") == "file" then
                     local ok, e = self:_copyFile(src, self.PLUGIN_DIR .. "/" .. entry.ref)
-                    if not ok then error(e or ("Failed to restore " .. entry.ref)) end
+                    if not ok then error(e or ("Failed to restore " .. entry.ref), 0) end
                 end
             end
         end
@@ -1687,7 +1730,7 @@ function BackupManager:restoreBackup(backup_path, options)
                     end
                 end
                 local ok, e = self:_copyDirectory(src, dest)
-                if not ok then error(e or ("Failed to restore " .. dir_name)) end
+                if not ok then error(e or ("Failed to restore " .. dir_name), 0) end
             end
         end
     end
@@ -1722,7 +1765,7 @@ function BackupManager:restoreBackup(backup_path, options)
             end
 
             local ok, e = self:_copyDirectory(backup_chats_dir, self.CHAT_DIR)
-            if not ok then error(e or "Failed to restore the chats folder") end
+            if not ok then error(e or "Failed to restore the chats folder", 0) end
             -- Nothing reads that layout any more: the caller runs the v1
             -- importer (AskGPT:migrateChatsToDocSettings) when this is set
             v1_chats_restored = true
