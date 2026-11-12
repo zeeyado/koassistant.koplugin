@@ -7,8 +7,10 @@ block aligns to the right, puts a trailing period at its end, orders a Latin
 word inside Arabic text correctly, and takes inline `style` (a quote's border
 and inset can be mirrored). `text-align: left/right` are LOGICAL under
 dir="rtl", so an explicit alignment is swapped on an RTL block. dir="auto" is
-first-strong only, so the pass decides the direction itself: the majority of a
-block's tokens, the first strong token breaking a tie. A list with dir="rtl"
+first-strong only, so the pass decides the direction itself: a block that
+begins in the main direction of its message keeps it, any other block takes
+the majority of its tokens, the first strong token breaking a tie. A list
+with dir="rtl"
 draws NO marker in any configuration, so a list with a right-to-left item
 becomes paragraphs with a literal marker; a list without one stays a list.
 LTR blocks are left as they are (the body is LTR), so the markers other
@@ -62,13 +64,35 @@ function Bidi.tokenDirection(token)
     return nil
 end
 
---- The direction of a block of text (tags stripped): the majority of its
---- tokens, the first strong token breaking a tie, so an Arabic paragraph that
---- names a Latin author stays right-to-left and an English one that quotes
---- Arabic stays left-to-right. opts.use_starts_with_rtl: a block whose first
---- strong token is right-to-left counts as such whatever follows (the
---- dictionary window of a right-to-left language: a headword, then IPA and an
---- English gloss).
+--- The main direction of a text (tags stripped): the one most of its strong
+--- tokens have, nil when neither leads. A message's main direction is the
+--- direction of the language it is written in.
+--- @return string|nil "rtl" | "ltr"
+function Bidi.mainDirection(text)
+    if not text or text == "" then return nil end
+    if not Bidi.hasRTL(text) then return "ltr" end
+    text = text:gsub("&[#%w]+;", " ")
+    local rtl, ltr = 0, 0
+    for token in text:gmatch("%S+") do
+        local d = Bidi.tokenDirection(token)
+        if d == "rtl" then rtl = rtl + 1 elseif d == "ltr" then ltr = ltr + 1 end
+    end
+    if rtl > ltr then return "rtl" elseif ltr > rtl then return "ltr" end
+    return nil
+end
+
+--- The direction of a block of text (tags stripped). A block whose first
+--- strong token has the main direction of its message (opts.main) keeps that
+--- direction whatever follows: in an English answer, "Synonyms:" and four
+--- Arabic words is an English line (by the majority it was laid out
+--- right-to-left, the label on the right with its colon before it), and in
+--- an Arabic answer a line that opens in Arabic and lists Latin terms is an
+--- Arabic one. Any other block takes the majority of its tokens, the first
+--- strong token breaking a tie, so an Arabic paragraph that opens with a
+--- Latin name stays right-to-left and an English one that quotes Arabic
+--- stays left-to-right. opts.use_starts_with_rtl: the main direction is
+--- right-to-left whatever the text holds (the dictionary window of a
+--- right-to-left language: a headword, then IPA and an English gloss).
 --- @return string "rtl" | "ltr"
 function Bidi.blockDirection(text, opts)
     if not text or text == "" then return "ltr" end
@@ -81,7 +105,8 @@ function Bidi.blockDirection(text, opts)
             if d == "rtl" then rtl = rtl + 1 else ltr = ltr + 1 end
         end
     end
-    if first == "rtl" and opts and opts.use_starts_with_rtl then return "rtl" end
+    local main = opts and (opts.use_starts_with_rtl and "rtl" or opts.main) or nil
+    if first and first == main then return main end
     if rtl > ltr then return "rtl" elseif ltr > rtl then return "ltr" end
     return first or "ltr"
 end
@@ -118,15 +143,12 @@ local QUOTE_RTL = ' style="border-left: none; border-right: 3px solid #ccc; padd
 -- script runs' spans (koassistant/ui/script_fonts.lua, B558, B621)
 local RTL_ATTRS = ' dir="rtl"'
 
---- Give every block of the HTML its direction.
---- opts.use_starts_with_rtl: see blockDirection; opts.text_align: the viewer's
---- setting ("auto" | "left" | "right" | "justify").
-function Bidi.addHtmlBidiAttributes(html, opts)
-    if not html then return html end
-    opts = opts or {}
+-- The blocks of one message (or of a whole document that has no messages)
+local function addPieceAttributes(html, opts)
     local align = alignStyle(opts.text_align)
+    local block_opts = { use_starts_with_rtl = opts.use_starts_with_rtl, main = Bidi.mainDirection(stripTags(html)) }
     local function dirOf(content)
-        return Bidi.blockDirection(stripTags(content), opts)
+        return Bidi.blockDirection(stripTags(content), block_opts)
     end
     local function open(tag, content)
         if dirOf(content) == "rtl" then
@@ -134,9 +156,6 @@ function Bidi.addHtmlBidiAttributes(html, opts)
         end
         return "<" .. tag .. ">"
     end
-    -- Whitespace between tags is layout noise to the patterns below
-    html = html:gsub(">%s+<", "><")
-
     -- Lists: a list with a right-to-left item becomes paragraphs with a literal
     -- marker, each in its own direction (MuPDF draws no marker for a list with
     -- dir="rtl"); a list with none stays a list, with real markers and nesting
@@ -209,6 +228,35 @@ function Bidi.addHtmlBidiAttributes(html, opts)
         return "<blockquote>" .. content .. "</blockquote>"
     end)
     return html
+end
+
+-- A message starts at a paragraph that opens with its marker: "▶ User:" and
+-- "◉ KOAssistant:" in a chat, "▶ " and "◉ " before the text in the compact
+-- and translate views
+local MESSAGE_STARTS = { "<p>▶", "<p>◉" }
+
+--- Give every block of the HTML its direction.
+--- opts.use_starts_with_rtl: see blockDirection; opts.text_align: the viewer's
+--- setting ("auto" | "left" | "right" | "justify"). Each message of a chat is
+--- judged on its own: its main direction is its own language's (a chat can
+--- change language, and a translation follows its original).
+function Bidi.addHtmlBidiAttributes(html, opts)
+    if not html then return html end
+    opts = opts or {}
+    -- Whitespace between tags is layout noise to the patterns of the pass
+    html = html:gsub(">%s+<", "><")
+    local out, at = {}, 1
+    while true do
+        local next_start
+        for _, marker in ipairs(MESSAGE_STARTS) do
+            local s = html:find(marker, at + 1, true)
+            if s and (not next_start or s < next_start) then next_start = s end
+        end
+        out[#out + 1] = addPieceAttributes(html:sub(at, (next_start or 0) - 1), opts)
+        if not next_start then break end
+        at = next_start
+    end
+    return table.concat(out)
 end
 
 return Bidi

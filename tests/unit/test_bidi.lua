@@ -125,4 +125,72 @@ TestRunner:test("headings, quotes and table cells", function()
     TestRunner:assertEqual(pass("<td>" .. AR2 .. "</td>"), '<td dir="rtl">' .. AR2 .. "</td>", "a bare cell")
 end)
 
+-- A block that begins in its message's main direction keeps it (2026-11-12:
+-- in an English dictionary entry the line "Synonyms:" followed by four Arabic
+-- words was laid out right-to-left by the majority, the label on the right
+-- with its colon before it).
+local SYN = "<strong>Synonyms:</strong> ظلام خفيف, عتمة, ضبابية, تغبيش"
+local ENTRY = "<p><strong>غبش</strong> /ɣabaʃ/ — noun (lemma: غَبَش)</p>"
+    .. "<ol><li>Dimness or haziness, the half-light of dawn or dusk.</li><li>Blurred sight.</li></ol>"
+    .. "<p><strong>Etymology:</strong> From the root غ-ب-ش (gh-b-sh), dimness and indistinctness.</p>"
+    .. "<p>" .. SYN .. "</p>"
+
+TestRunner:test("the main direction of a text is the direction most of its words have", function()
+    TestRunner:assertEqual(Bidi.mainDirection("An English answer that quotes كتاب once"), "ltr", "English")
+    TestRunner:assertEqual(Bidi.mainDirection(AR .. " Avicenna"), "rtl", "Arabic")
+    TestRunner:assertEqual(Bidi.mainDirection("book كتاب"), nil, "neither leads")
+    TestRunner:assertEqual(Bidi.mainDirection("1. 2. 3."), "ltr", "no right-to-left letter at all")
+    TestRunner:assertEqual(Bidi.mainDirection(""), nil, "empty")
+end)
+
+TestRunner:test("a block that begins in the main direction keeps it; any other block goes by its majority", function()
+    local syn = "Synonyms: ظلام خفيف, عتمة, ضبابية, تغبيش"
+    TestRunner:assertEqual(Bidi.blockDirection(syn), "rtl", "by the majority alone, the label line was right-to-left")
+    TestRunner:assertEqual(Bidi.blockDirection(syn, { main = "ltr" }), "ltr", "in an English answer it is an English line")
+    TestRunner:assertEqual(Bidi.blockDirection(syn, { main = "rtl" }), "rtl", "in an Arabic answer the majority decides")
+    TestRunner:assertEqual(Bidi.blockDirection("Compare ظلام خفيف and عتمة and ضبابية", { main = "ltr" }), "ltr",
+        "an English sentence with more Arabic words than English ones")
+    TestRunner:assertEqual(Bidi.blockDirection("المرادفات: dim, haze, blur, fog", { main = "rtl" }), "rtl",
+        "the mirror: an Arabic label before Latin words, in an Arabic answer")
+    TestRunner:assertEqual(Bidi.blockDirection("المرادفات: dim, haze, blur, fog", { main = "ltr" }), "ltr",
+        "the same line in an English answer: the majority")
+    TestRunner:assertEqual(Bidi.blockDirection(AR, { main = "ltr" }), "rtl", "an Arabic quotation in an English answer")
+    TestRunner:assertEqual(Bidi.blockDirection("API: " .. AR, { main = "rtl" }), "rtl",
+        "a Latin term explained in Arabic, in an Arabic answer")
+    TestRunner:assertEqual(Bidi.blockDirection("1. — " .. AR2, { main = "ltr" }), "rtl", "neutral tokens first: the first word decides")
+    TestRunner:assertEqual(Bidi.blockDirection("noun " .. AR2, { use_starts_with_rtl = true, main = "ltr" }), "rtl",
+        "the dictionary option outranks the text's own main direction")
+end)
+
+TestRunner:test("an English dictionary entry about an Arabic word: every line left-to-right, the label line too", function()
+    local out = pass(ENTRY)
+    TestRunner:assertTrue(out:find("<p>" .. SYN .. "</p>", 1, true) ~= nil, "the Synonyms line takes no dir")
+    TestRunner:assertTrue(out:find('dir="rtl"', 1, true) == nil, "no block of the entry is right-to-left")
+    -- the same line as a list item: the list stays a list
+    local listed = pass("<p>An English lead-in sentence for the list below.</p><ul><li>" .. SYN .. "</li><li>Root: three letters</li></ul>")
+    TestRunner:assertTrue(listed:find("<ul><li>", 1, true) ~= nil and listed:find('dir="rtl"', 1, true) == nil,
+        "a list whose items begin in English keeps its markers")
+end)
+
+TestRunner:test("each message of a chat has its own main direction", function()
+    local arabic_answer = "<p>" .. AR .. "</p><p>" .. AR2 .. "</p><p>المرادفات: dim, haze, blur, fog</p>"
+    local chat = "<p>▶ User:</p><p>" .. AR2 .. "</p><p>◉ KOAssistant:</p>" .. arabic_answer
+        .. "<p>▶ User:</p><p>And in English, with its synonyms?</p><p>◉ KOAssistant:</p>" .. ENTRY
+    local out = pass(chat)
+    TestRunner:assertTrue(out:find('<p dir="rtl">المرادفات: dim, haze, blur, fog</p>', 1, true) ~= nil,
+        "the Arabic answer's label line is right-to-left")
+    TestRunner:assertTrue(out:find("<p>" .. SYN .. "</p>", 1, true) ~= nil,
+        "the English answer's label line is left-to-right, under a longer Arabic answer")
+    local _, markers = out:gsub("<p>◉ KOAssistant:</p>", "")
+    TestRunner:assertEqual(markers, 2, "the reply markers are untouched (the landing looks for them)")
+    local _, users = out:gsub("<p>▶ User:</p>", "")
+    TestRunner:assertEqual(users, 2, "and the question markers")
+    -- a translation window: the original and the translation are two messages
+    local translated = pass("<p>▶ A long English original, many words of it, far more than the translation holds.</p>"
+        .. "<p>◉ Microsoft " .. AR .. "</p>")
+    TestRunner:assertTrue(translated:find('<p dir="rtl">◉ Microsoft ' .. AR .. "</p>", 1, true) ~= nil,
+        "an Arabic translation that opens with a Latin name is right-to-left whatever the original's length")
+    TestRunner:assertTrue(translated:find("<p>▶ A long English original", 1, true) ~= nil, "the original left-to-right")
+end)
+
 return TestRunner:summary()
