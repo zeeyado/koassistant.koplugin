@@ -116,7 +116,7 @@ TestRunner:test("another family resolves through crengine, its missing styles on
     TestRunner:assertEqual(SF.faces("Amiri"), nil, "no engine: nothing")
 end)
 
-TestRunner:test("the fixed faces: KOReader's files for Hebrew, Devanagari and Bengali, the plugin's emoji file; none without the file", function()
+TestRunner:test("the fixed faces: KOReader's files for Hebrew and Devanagari, the plugin's emoji file; none without the file; no Bengali face", function()
     have("freefont/FreeSans.ttf", "noto/NotoSansDevanagariUI-Regular.ttf", "noto/NotoSansDevanagariUI-Bold.ttf",
         "fonts/NotoEmoji-Regular.ttf")
     local by_class = {}
@@ -124,7 +124,7 @@ TestRunner:test("the fixed faces: KOReader's files for Hebrew, Devanagari and Be
     TestRunner:assertEqual(by_class["koa-hebr"][1].path, FAKE_DIR .. "/freefont/FreeSans.ttf", "Hebrew: FreeSans")
     TestRunner:assertEqual(by_class["koa-hebr"][3].path, by_class["koa-hebr"][1].path, "its bold synthesized")
     TestRunner:assertEqual(by_class["koa-deva"][3].path, FAKE_DIR .. "/noto/NotoSansDevanagariUI-Bold.ttf", "Devanagari's real bold")
-    TestRunner:assertEqual(by_class["koa-beng"], nil, "Bengali's file missing: no face")
+    TestRunner:assertEqual(by_class["koa-beng"], nil, "Bengali takes no face (audit 2026-11-12)")
     TestRunner:assertEqual(by_class["koa-emoji"][1].path, FAKE_PLUGIN .. "/fonts/NotoEmoji-Regular.ttf", "emoji from the plugin's folder")
     TestRunner:assertEqual(#by_class["koa-emoji"], 4, "four combos on the one file")
 end)
@@ -234,8 +234,8 @@ TestRunner:test("the run pass: a script's run in its span, inside any block, mer
         '<p dir="rtl"><span class="koa-arab">' .. AR2 .. '</span> <b><span class="koa-arab">' .. AR .. "</span></b> (reading is fun) "
         .. '<span class="koa-arab">' .. AR .. ".</span></p>", "a right-to-left paragraph: the runs, the Latin between them in the block's font")
     TestRunner:assertEqual(SF.markRuns("<p>" .. HE .. " and " .. DEVA .. " and " .. BENG .. "</p>"),
-        '<p><span class="koa-hebr">' .. HE .. '</span> and <span class="koa-deva">' .. DEVA .. '</span> and <span class="koa-beng">' .. BENG .. "</span></p>",
-        "Hebrew, Devanagari and Bengali, each run merged across its space")
+        '<p><span class="koa-hebr">' .. HE .. '</span> and <span class="koa-deva">' .. DEVA .. '</span> and ' .. BENG .. "</p>",
+        "Hebrew and Devanagari, each run merged across its space; Bengali left in the window's font")
     TestRunner:assertEqual(SF.markRuns("<p>123 " .. AR .. " 456 " .. AR .. "</p>"),
         '<p>123 <span class="koa-arab">' .. AR .. '</span> 456 <span class="koa-arab">' .. AR .. "</span></p>", "digits between two runs stay outside")
     TestRunner:assertEqual(SF.markRuns("<p>&quot;" .. AR .. "&quot; &amp; <code>x = " .. AR .. '</code> <a href="http://a.b/?q=1">' .. AR .. "</a></p>"),
@@ -261,8 +261,14 @@ TestRunner:test("the run pass: emoji each in their own span, sequences whole, te
 end)
 
 TestRunner:test("the run pass: a word's class is its first script letter; a tag ends outside quotes; a bare '<' is text", function()
-    TestRunner:assertEqual(SF.markRuns("<p>আমি ভাত খাই। তুমি</p>"), '<p><span class="koa-beng">আমি ভাত খাই। তুমি</span></p>',
-        "a Bengali sentence ending in the danda (a Devanagari character) stays Bengali")
+    -- Bengali takes no face (in Noto Sans Bengali UI a held word selected a
+    -- fragment of itself), and its words are still never classed by the danda
+    -- that ends them: the Devanagari face has no Bengali letters
+    local bengali = "<p>আমি ভাত খাই। তুমি</p>"
+    TestRunner:assertEqual(SF.markRuns(bengali), bengali,
+        "a Bengali sentence ending in the danda (a Devanagari character) gets no span, the Devanagari face's least of all")
+    TestRunner:assertEqual(SF.markRuns("<p>খাই। " .. DEVA .. "</p>"), '<p>খাই। <span class="koa-deva">' .. DEVA .. "</span></p>",
+        "a Devanagari run after it still takes its face")
     TestRunner:assertEqual(SF.markRuns("<p>שלום، x</p>"), '<p><span class="koa-hebr">שלום،</span> x</p>', "a Hebrew word with an Arabic comma stays Hebrew")
     TestRunner:assertEqual(SF.markRuns('<p><a href="http://x/?a>b" title="c>d">' .. AR .. "</a></p>"),
         '<p><a href="http://x/?a>b" title="c>d"><span class="koa-arab">' .. AR .. "</span></a></p>", "a '>' inside a quoted attribute does not end the tag")
@@ -330,7 +336,7 @@ TestRunner:test("the installed KOReader ships the faces and they resolve by file
         TestRunner:assertTrue(SF.fixedFaces(entry) ~= nil, entry.family .. " resolves")
     end
     local css = SF.css({})
-    for _idx, class in ipairs({ "koa-arab", "koa-hebr", "koa-deva", "koa-beng", "koa-emoji" }) do
+    for _idx, class in ipairs({ "koa-arab", "koa-hebr", "koa-deva", "koa-emoji" }) do
         TestRunner:assertTrue(css:find("." .. class .. " {", 1, true) ~= nil, class .. " has its rule")
     end
 end)

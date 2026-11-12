@@ -1,7 +1,8 @@
 --[[
 The fonts of the scripts the window's own font lacks, in the Markdown view
-(B558; extended 2026-11-07 to runs inside any block, Hebrew, Devanagari,
-Bengali and emoji, when the plain-text switches for right-to-left text left).
+(B558; extended 2026-11-07 to runs inside any block, Hebrew, Devanagari and
+emoji, when the plain-text switches for right-to-left text left; Bengali had
+a face for a week and lost it, see SCRIPTS below).
 
 KOReader's MuPDF is built without built-in fonts: every family a style sheet
 names must be a file it can open, and the only per-glyph fallback it installs
@@ -23,7 +24,7 @@ Arabic, the face KOReader's own fallback list gives Arabic books; a family
 KOReader knows, resolved through crengine as KOReader's footnote popup does
 for the book's font; false = none). The other faces are fixed: the files
 KOReader's own interface falls back to for those scripts (frontend/ui/font.lua:
-Noto Sans Devanagari UI, Noto Sans Bengali UI; FreeSans for Hebrew) and the
+Noto Sans Devanagari UI; FreeSans for Hebrew) and the
 Noto Emoji file this plugin bundles for its menu icons, read from the plugin's
 own folder, so emoji draw with no install. A face whose file is missing gets
 no rule and its spans are inert (the window as before). MuPDF reads every
@@ -53,7 +54,6 @@ ScriptFonts.SHIPPED = {
 ScriptFonts.FIXED = {
     { class = "koa-hebr", family = "KOA Hebrew", regular = "freefont/FreeSans.ttf" },
     { class = "koa-deva", family = "KOA Devanagari", regular = "noto/NotoSansDevanagariUI-Regular.ttf", bold = "noto/NotoSansDevanagariUI-Bold.ttf" },
-    { class = "koa-beng", family = "KOA Bengali", regular = "noto/NotoSansBengaliUI-Regular.ttf", bold = "noto/NotoSansBengaliUI-Bold.ttf" },
     { class = ScriptFonts.EMOJI_CLASS, family = "KOA Emoji", plugin = "fonts/NotoEmoji-Regular.ttf" },
 }
 
@@ -331,6 +331,12 @@ end
 -- script of the FIRST such letter in it, so a Bengali word ending in the
 -- danda (U+0964, a Devanagari character every Bengali sentence ends with)
 -- stays Bengali and a Hebrew word with an Arabic comma stays Hebrew.
+-- Bengali is recognized and takes NO face (class false: no span, the
+-- window's fallback font as before): in Noto Sans Bengali UI MuPDF hands a
+-- word with a pre-base vowel sign back in pieces, so a held word selected a
+-- fragment of itself for the lookup, the copy and Add to reply (audit
+-- 2026-11-12, KOReader's own hold on each word, old view against new). It
+-- stays in the table so that its words are never classed by their danda.
 local SCRIPTS = {
     { class = ScriptFonts.CLASS, patterns = {
         "[\216-\219][\128-\191]", "\221[\144-\191]", "\224[\162-\163][\128-\191]",
@@ -339,7 +345,7 @@ local SCRIPTS = {
     } },
     { class = "koa-hebr", patterns = { "\214[\144-\191]", "\215[\128-\191]", "\239\172[\157-\191]", "\239\173[\128-\143]" } },
     { class = "koa-deva", patterns = { "\224[\164-\165][\128-\191]" } },
-    { class = "koa-beng", patterns = { "\224[\166-\167][\128-\191]" } },
+    { class = false, patterns = { "\224[\166-\167][\128-\191]" } },
 }
 -- The lead bytes those letters start with: one find rules most text out
 local SCRIPT_LEAD = "[\214-\219\221\224\239]"

@@ -247,7 +247,7 @@ local SettingsSchema = {
                                 { value = true, label = _("Markdown") },
                                 { value = false, label = _("Plain Text") },
                             },
-                            help_text = _("Markdown renders formatting, lays every paragraph out in its own direction and draws each script in its own face: Arabic and Persian in the right-to-left font, Hebrew, Devanagari and Bengali in KOReader's interface faces, emoji with the bundled emoji font. Plain Text uses KOReader's interface fonts and keeps headers, bold and lists readable."),
+                            help_text = _("Markdown renders formatting, lays every paragraph out in its own direction and draws each script in its own face: Arabic and Persian in the right-to-left font, Hebrew and Devanagari in KOReader's interface faces, emoji with the bundled emoji font. Plain Text uses KOReader's interface fonts and keeps headers, bold and lists readable."),
                         },
                         {
                             id = "render_math",
