@@ -1556,7 +1556,11 @@ function ResponseParser:parseResponse(response, provider)
                                    provider, response_str)
     end
 
-    return success, result, reasoning, web_search_used
+    -- An emoji a provider wrote as an escape pair leaves KOReader's JSON
+    -- decoder as two invalid halves: joined here, the one exit of every
+    -- whole answer (audit 2026-11-12; the stream joins its own pieces)
+    local joinSurrogates = require("koassistant.request.scope_resolver").joinSurrogates
+    return success, joinSurrogates(result), joinSurrogates(reasoning), web_search_used
 end
 
 -- Expose citation formatter for stream handler

@@ -166,6 +166,31 @@ function ScopeResolver.utf8FirstBad(s)
     end
 end
 
+--- A character outside the Basic Multilingual Plane (an emoji, a rare CJK
+--- character, a mathematical letter) that a provider's JSON wrote as an
+--- escape pair (\uD83D\uDD0D) comes out of KOReader's JSON decoder as two
+--- three-byte halves: the decoder (common/json/decode/strings.lua) turns each
+--- \uXXXX into its own sequence and knows no pairs. The result is invalid
+--- UTF-8: six replacement characters on screen, saved so in the chat, and
+--- dropped at the next send. The two halves are joined into the one
+--- four-byte character; a half with no partner stays as it is (the request
+--- encoder drops it). One find for a string that holds none.
+--- @param s any
+--- @return any the string repaired, or the value itself when it is no string
+function ScopeResolver.joinSurrogates(s)
+    if type(s) ~= "string" or not s:find("\237[\160-\175]") then return s end
+    return (s:gsub("\237([\160-\175])([\128-\191])\237([\176-\191])([\128-\191])", function(a, b, c, d)
+        local hi = 0xD000 + (a:byte() - 0x80) * 64 + (b:byte() - 0x80)
+        local lo = 0xD000 + (c:byte() - 0x80) * 64 + (d:byte() - 0x80)
+        local cp = 0x10000 + (hi - 0xD800) * 0x400 + (lo - 0xDC00)
+        return string.char(
+            0xF0 + math.floor(cp / 0x40000),
+            0x80 + math.floor(cp / 0x1000) % 0x40,
+            0x80 + math.floor(cp / 0x40) % 0x40,
+            0x80 + cp % 0x40)
+    end))
+end
+
 -- Where a sentence ends: the ASCII marks followed by a space (or at the end
 -- of the text unless `need_space`), and the marks of scripts that write no
 -- space after them, 。！？ (CJK), । (Devanagari) and ؟ (Arabic), anywhere

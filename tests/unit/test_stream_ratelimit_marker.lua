@@ -546,6 +546,27 @@ TestRunner:test("Markdown while streaming: the rendered view takes the chunks, t
     package.loaded["ui/widget/container/framecontainer"].getSize = saved_fc
 end)
 
+-- Audit 2026-11-12: an emoji a provider writes as an escape pair
+-- (\uD83D\uDD0D) leaves KOReader's JSON decoder as two three-byte halves,
+-- invalid UTF-8 that drew as six replacement characters and was saved so.
+-- The decoder of this suite joins pairs by itself, so the halves are fed as
+-- the bytes KOReader's decoder produces.
+TestRunner:test("an emoji that arrives as two surrogate halves is joined, in one piece or split across two", function()
+    local HI, LO, EMOJI = "\237\160\189", "\237\180\141", "\240\159\148\141"
+    local function event(text)
+        return 'data: {"choices":[{"delta":{"content":"' .. text .. '"},"finish_reason":null}]}\n\n'
+    end
+    local done = 'data: {"choices":[{"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'
+    local ok, content = runStream(event("look " .. HI .. LO .. " here") .. done)
+    TestRunner:assertTrue(ok, "the stream completes")
+    TestRunner:assertEqual(content, "look " .. EMOJI .. " here", "both halves in one piece: one character")
+    local ok2, content2 = runStream(event("look " .. HI) .. event(LO .. " here") .. done)
+    TestRunner:assertTrue(ok2, "the split stream completes")
+    TestRunner:assertEqual(content2, "look " .. EMOJI .. " here", "the halves in two pieces: joined at the end")
+    local ok3, content3 = runStream(event("plain text, caf\195\169 and \228\184\173") .. done)
+    TestRunner:assertTrue(ok3 and content3 == "plain text, caf\195\169 and \228\184\173", "other text is untouched")
+end)
+
 -- ------------------------------------------------------------------
 RL._reset()
 package.loaded["koassistant.request.stream_handler"] = nil

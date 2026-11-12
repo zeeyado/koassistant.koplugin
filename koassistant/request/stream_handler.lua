@@ -764,6 +764,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         end
 
         local result = table.concat(result_buffer):match("^%s*(.-)%s*$") or "" -- trim
+        -- An emoji sent as an escape pair: each piece was joined as it came
+        -- (KOReader's JSON decoder leaves the pair as two invalid halves);
+        -- once more on the whole, for a pair split across two pieces
+        result = require("koassistant.request.scope_resolver").joinSurrogates(result)
         -- A search with no prose after it leaves a dangling trailing marker
         do
             local marker = require("koassistant.api.response_parser").WEB_SEARCH_MARKER
@@ -954,7 +958,8 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         end
 
         -- Pass reasoning content as 4th arg, web_search_used as 5th, usage as 6th.
-        local reasoning_content = #reasoning_buffer > 0 and table.concat(reasoning_buffer) or nil
+        local reasoning_content = #reasoning_buffer > 0
+            and require("koassistant.request.scope_resolver").joinSurrogates(table.concat(reasoning_buffer)) or nil
         -- Web-search slot: provenance table when source details were captured, else
         -- plain true (legacy shape). Bare Perplexity citation URLs are folded in only
         -- when no titled search_results arrived for the same response.
@@ -1978,7 +1983,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
 
                             -- Handle reasoning content (displayed with header, saved separately)
                             if type(reasoning) == "string" and #reasoning > 0 then
-                                table.insert(reasoning_buffer, reasoning)
+                                table.insert(reasoning_buffer, require("koassistant.request.scope_resolver").joinSurrogates(reasoning))
 
                                 -- Update UI with reasoning
                                 if not first_content_received then
@@ -2033,7 +2038,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    table.insert(result_buffer, content)
+                                    table.insert(result_buffer, require("koassistant.request.scope_resolver").joinSurrogates(content))
                                     has_streamed_content = true
 
                                     -- Update UI
@@ -2131,7 +2136,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
 
                                 -- Handle reasoning content (same logic as SSE handling)
                                 if type(reasoning) == "string" and #reasoning > 0 then
-                                    table.insert(reasoning_buffer, reasoning)
+                                    table.insert(reasoning_buffer, require("koassistant.request.scope_resolver").joinSurrogates(reasoning))
 
                                     if not first_content_received then
                                         first_content_received = true
@@ -2152,7 +2157,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                         if auto_scroll_active then page_top_line = 1 end
                                     end
 
-                                    table.insert(result_buffer, content)
+                                    table.insert(result_buffer, require("koassistant.request.scope_resolver").joinSurrogates(content))
                                     has_streamed_content = true
 
                                     if not first_content_received then
