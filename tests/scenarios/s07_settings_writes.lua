@@ -6,6 +6,20 @@
 -- frontend headless, the plugin loaded by PluginLoader (boot.lua).
 local S = dofile(os.getenv("KOA_PLUGIN") .. "/tests/scenarios/boot.lua")
 
+-- Every scenario of a run shares one home (run.sh), so an earlier scenario
+-- may have seeded the settings file already: boot.lua alone leaves one key in
+-- it (auto_check_updates), the plugin's first instance many. Read before the
+-- counters go in. (Audit 2026-11-12: the seed was asserted without this, so
+-- the default run, where s01 comes first, always reported this scenario failed.)
+local seeded_before = false
+do
+    local settings = require("luasettings"):open(
+        require("datastorage"):getSettingsDir() .. "/koassistant_settings.lua")
+    local n = 0
+    for _k in pairs(settings:readSetting("features") or {}) do n = n + 1 end
+    seeded_before = n > 1
+end
+
 -- LuaSettings writes through util.writeToFile and reads through dofile
 -- (frontend/luasettings.lua); both counted for the plugin's settings file
 local writes, reads = 0, 0
@@ -23,8 +37,13 @@ end
 
 S.fileManager()
 S.check(S.plugin ~= nil, "the file browser's plugin instance")
-S.note("the file browser instance (a fresh home): writes", writes, "reads", reads)
-S.check(writes >= 1, "the first instance seeds the settings file")
+S.note("the file browser instance: writes", writes, "reads", reads,
+    seeded_before and "(a home an earlier scenario seeded)" or "(a fresh home)")
+if seeded_before then
+    S.check(writes == 0, "a home seeded earlier: the first instance of this scenario writes nothing")
+else
+    S.check(writes >= 1, "a fresh home: the first instance seeds the settings file")
+end
 S.closeFileManager()
 local w1, r1 = writes, reads
 S.note("after the file browser closed: writes", w1, "reads", r1)

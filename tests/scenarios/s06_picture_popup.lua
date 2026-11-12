@@ -68,8 +68,12 @@ S.check(all:find("Add a note… | X-Ray entries: Gil Rook ▾", 1, true) ~= nil,
     "a note, and the entry the passage names already on the list")
 S.check(all:find("Prompt: Written by AI ▾ | Style: Book illustration ▾ | Shape: Fit my screen ▾ | Detail: Draft ▾", 1, true) ~= nil,
     "each setting by its name and value, two to a row, as the creation form's dials")
-S.check(all:find("Provider: OpenAI ▾ | Model: gpt-image-2.5-flare ▾", 1, true) ~= nil,
-    "the provider and the model that draw")
+-- The model is the image list's first entry, whatever a model round made it
+-- (it was typed here, and the round of 2026-11-06 moved the default without
+-- this scenario being run: audit 2026-11-12)
+local DEFAULT_IMAGE_MODEL = require("koassistant.request.model_lists")._image_models.openai[1]
+S.check(all:find("Provider: OpenAI ▾ | Model: " .. DEFAULT_IMAGE_MODEL .. " ▾", 1, true) ~= nil,
+    "the provider and the model that draw (" .. DEFAULT_IMAGE_MODEL .. ")")
 S.check(not all:find("Write the prompt with AI", 1, true), "no check box: the Prompt dial says it")
 S.check(all:find("Generate", 1, true) ~= nil, "Generate at the foot")
 S.check(drawn == nil, "nothing drawn yet")
@@ -283,7 +287,7 @@ Dialogs.executeDirectAction(ui, Actions.highlight.image_gen, passage, S.plugin.c
 S.settle()
 S.tap("OpenAI")
 S.check(title() == "Generate Image"
-    and table.concat(S.texts(), " | "):find("Provider: OpenAI ▾ | Model: gpt-image-2.5-flare ▾", 1, true) ~= nil,
+    and table.concat(S.texts(), " | "):find("Provider: OpenAI ▾ | Model: " .. DEFAULT_IMAGE_MODEL .. " ▾", 1, true) ~= nil,
     "after the answer: the popup, on the provider that draws and its model")
 S.check(S.plugin.settings:readSetting("features").image_gen_provider == "openai", "the answer saved as Provider")
 S.closeAll()
