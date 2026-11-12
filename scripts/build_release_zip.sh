@@ -10,7 +10,7 @@
 # it, to offer an update from a build; a release build never does, since the
 # updater requires _meta.lua to equal the tag.
 #
-# While scripts/release_shims.txt exists in the ref (v0.24.0, B481), the zip
+# While scripts/release_shims.txt exists in the ref (v0.24.0 and v0.25.0, B481), the zip
 # also carries a one-line file at every path a module had before the layout
 # change, returning the module at its new one: a plugin still running from
 # memory after the update loads modules by their old names until the restart.

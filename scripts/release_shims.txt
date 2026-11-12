@@ -1,6 +1,9 @@
-# Transitional shims the release zip carries at the old paths (B481, v0.24.0 only):
-# old path, then the module id it returns. scripts/build_release_zip.sh writes them
-# while this file exists. Delete this file at the v0.25.0 open.
+# Transitional shims the release zip carries at the old paths (B481, v0.24.0 and
+# v0.25.0): old path, then the module id it returns. scripts/build_release_zip.sh
+# writes them while this file exists. Kept one release longer (2026-11-12): a
+# reader who updates from v0.23 or older straight to v0.25.0 and postpones the
+# restart still runs the old plugin from memory, which loads modules by their
+# old names. Delete this file at the v0.26.0 open.
 koassistant_logger.lua koassistant.core.logger
 koassistant_constants.lua koassistant.core.constants
 koassistant_gettext.lua koassistant.core.gettext
