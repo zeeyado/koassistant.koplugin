@@ -50,26 +50,69 @@ end
 
 print("Running: test_viewer_landing")
 print("")
-print("  [the spacer after the newest label]")
+print("  [the break on the newest label]")
+
+-- The break rides the label's own paragraph (audit 2026-11-12): as an empty
+-- spacer block after it, the block spilled onto a page of its own whenever
+-- the label was a page's last line, and the window landed on that empty page
+-- (tests/scenarios/s09_reply_landing.lua shows it in the real widget)
+local BREAK_LABEL = '<p class="koa-exchange-break">◉ KOAssistant:</p>'
 
 TestRunner:test("the question, the usage line and the label stay before the break", function()
     local body = "<p>▶ User:</p><p>q</p><p>🧠 Reasoning used</p>" .. LABEL .. "<p>the answer</p><p>more</p>"
     local out, placed = breaks(body, ON, nil, nil)
     TestRunner:assertEqual(placed, true)
-    TestRunner:assertEqual(count(out, SPACER), 1)
-    TestRunner:assertTrue(out:find(LABEL .. SPACER .. "<p>the answer</p>", 1, true) ~= nil,
-        "the spacer sits between the label and the reply's first paragraph")
-    TestRunner:assertTrue(out:find("<p>🧠 Reasoning used</p>" .. LABEL, 1, true) ~= nil,
+    TestRunner:assertEqual(count(out, BREAK_LABEL), 1)
+    TestRunner:assertEqual(count(out, SPACER), 0)
+    TestRunner:assertTrue(out:find(BREAK_LABEL .. "<p>the answer</p>", 1, true) ~= nil,
+        "the label carries the break and the reply's first paragraph follows it")
+    TestRunner:assertTrue(out:find("<p>🧠 Reasoning used</p>" .. BREAK_LABEL, 1, true) ~= nil,
         "the usage line keeps its place before the label")
+    TestRunner:assertEqual(#out, #body + #BREAK_LABEL - #LABEL)
 end)
 
 TestRunner:test("the newest reply only", function()
     local body = "<p>▶ User:</p><p>q1</p>" .. LABEL .. "<p>a1</p><p>▶ User:</p><p>q2</p>" .. LABEL .. "<p>a2</p>"
     local out, placed = breaks(body, ON, nil, nil)
     TestRunner:assertEqual(placed, true)
-    TestRunner:assertEqual(count(out, SPACER), 1)
-    TestRunner:assertTrue(out:find(LABEL .. SPACER .. "<p>a2</p>", 1, true) ~= nil, "after the second label")
+    TestRunner:assertEqual(count(out, BREAK_LABEL), 1)
+    TestRunner:assertTrue(out:find(BREAK_LABEL .. "<p>a2</p>", 1, true) ~= nil, "on the second label")
     TestRunner:assertTrue(out:find(LABEL .. "<p>a1</p>", 1, true) ~= nil, "the first exchange untouched")
+end)
+
+TestRunner:test("a window that opens at the top keeps the released rule: the break before the label, none after a short prefix", function()
+    local body = "<p>▶ User:</p><p>q</p>" .. LABEL .. "<p>the answer</p>"
+    local out, placed = breaks(body, ON, nil, nil, false)
+    TestRunner:assertEqual(out, body)
+    TestRunner:assertEqual(placed, false)
+    local _landed, placed_landing = breaks(body, ON, nil, nil, true)
+    TestRunner:assertEqual(placed_landing, true)
+    -- a long question: the label and its reply start the new page together
+    local long = "<p>▶ User:</p><p>" .. string.rep("a long question ", 40) .. "</p>" .. LABEL .. "<p>the answer</p>"
+    local out_long, placed_long = breaks(long, ON, nil, nil, false)
+    TestRunner:assertEqual(placed_long, false)
+    TestRunner:assertTrue(out_long:find("</p>" .. SPACER .. LABEL .. "<p>the answer</p>", 1, true) ~= nil,
+        "the spacer sits before the label, which keeps its reply")
+    TestRunner:assertEqual(count(out_long, BREAK_LABEL), 0)
+end)
+
+TestRunner:test("nothing before the label: no page for the label alone", function()
+    local body = LABEL .. "<p>the answer</p><p>more</p>"
+    local out, placed = breaks(body, ON, nil, nil, true)
+    TestRunner:assertEqual(out, body)
+    TestRunner:assertEqual(placed, false)
+    local blank_before = "<p> </p>" .. LABEL .. "<p>the answer</p>"
+    local out2, placed2 = breaks(blank_before, ON, nil, nil, true)
+    TestRunner:assertEqual(out2, blank_before)
+    TestRunner:assertEqual(placed2, false)
+end)
+
+TestRunner:test("the viewer hands its landing flag to the break", function()
+    local src = read("koassistant/ui/chatgptviewer.lua")
+    TestRunner:assertTrue(src:find("opts.carry_anchor, opts.carry_occurrence, viewer.scroll_to_last_question)", 1, true) ~= nil,
+        "markdownHtml passes scroll_to_last_question")
+    TestRunner:assertTrue(src:find("\n.koa%-exchange%-break {") ~= nil,
+        "the CSS rule serves the label paragraph and the carry's spacer div alike")
 end)
 
 TestRunner:test("a short first question gets the page too", function()

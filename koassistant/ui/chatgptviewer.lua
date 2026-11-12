@@ -450,7 +450,7 @@ local function applyCarryPageBreak(html_body, carry_anchor, carry_occurrence)
   return html_body:sub(1, best - 1) .. DIV .. html_body:sub(best)
 end
 
-local function applyExchangePageBreaks(html_body, configuration, carry_anchor, carry_occurrence)
+local function applyExchangePageBreaks(html_body, configuration, carry_anchor, carry_occurrence, lands)
   -- Runs AFTER addHtmlBidiAttributes since 2026-08-15: splitting a mixed
   -- Arabic paragraph BEFORE the bidi pass made the two halves classify
   -- differently (isPureRTL = has-RTL AND no-Latin), so the landed half
@@ -471,12 +471,27 @@ local function applyExchangePageBreaks(html_body, configuration, carry_anchor, c
   -- probe), so an empty spacer div carrying the -after rule does the split
   -- (see div.koa-exchange-break in getViewerCSS). luamd emits the marker as
   -- its own plain paragraph (verified against the bundled lib).
-  -- The spacer sits AFTER the reply's label (maintainer 2026-11-06, B561):
+  -- The break comes AFTER the reply's label (maintainer 2026-11-06, B561):
   -- the question, the usage line (reasoning, web, lookups) and the label stay
   -- on the page before, and the landed page opens with the reply's first
-  -- line. The short-prefix skip of 2026-08-12 (a short first question kept
-  -- its reply under it) is gone: the reply always opens its own page.
-  -- Returns the body and whether the spacer went in (the landing reads it).
+  -- line. Three rules from the audit of 2026-11-12, each seen as a defect in
+  -- the real widget (tests/scenarios/s09_reply_landing.lua):
+  -- 1. The label goes to the page before only where the window lands on the
+  --    reply. A window that opens at the top (`lands` false: Open Chats at
+  --    Latest Exchange off, the Chat button of a dictionary or translate
+  --    window, a saved chat of one exchange) showed a first page holding the
+  --    question and the label, the reply a page turn away: it keeps the rule
+  --    of every release up to v0.24.1 (the break BEFORE the label, so the
+  --    label and its reply start the new page together, and none after a
+  --    short prefix, where the reply belongs under its question).
+  -- 2. Nothing before the label (an action run with nothing typed): no
+  --    break, or a page would hold the label alone.
+  -- 3. Where the window lands, the break rides the label's own paragraph.
+  --    As an empty spacer block after it, the block spilled onto a page of
+  --    its own whenever the label was a page's last line, and the window
+  --    landed on that empty page.
+  -- Returns the body and whether the landing's break went in (the landing
+  -- reads it: the reply is then on the page after the label's).
   local marker = "<p>◉ KOAssistant:</p>"
   local last_pos, search_start = nil, 1
   while true do
@@ -496,9 +511,27 @@ local function applyExchangePageBreaks(html_body, configuration, carry_anchor, c
     logger.dbg("KOAssistant: exchange page break — nothing after the label")
     return html_body, false
   end
+  -- Nothing visible before the label: the page before would hold it alone
+  local visible_prefix = html_body:sub(1, last_pos - 1):gsub("<[^>]*>", "")
+  if not visible_prefix:match("%S") then
+    logger.dbg("KOAssistant: exchange page break — nothing before the label")
+    return html_body, false
+  end
+  if lands == false then
+    -- Rough visible-text length of the prefix is the proxy for "fits the
+    -- first page" (the released rule, 2026-08-12)
+    if #visible_prefix < 500 then
+      logger.dbg("KOAssistant: exchange page break — opens at the top, short prefix, none")
+      return html_body, false
+    end
+    logger.dbg("KOAssistant: exchange page break before the last reply's label (opens at the top): yes")
+    return html_body:sub(1, last_pos - 1)
+      .. '<div class="koa-exchange-break"></div>'
+      .. html_body:sub(last_pos), false
+  end
   logger.dbg("KOAssistant: exchange page break after the last reply's label: yes")
-  return html_body:sub(1, after - 1)
-    .. '<div class="koa-exchange-break"></div>'
+  return html_body:sub(1, last_pos - 1)
+    .. '<p class="koa-exchange-break">◉ KOAssistant:</p>'
     .. html_body:sub(after), true
 end
 
@@ -1009,14 +1042,15 @@ blockquote {
     border-left: 3px solid #ccc;
 }
 
-/* "Latest reply on new page": applyExchangePageBreaks puts an empty spacer
-   div after the newest reply's label (B561). MuPDF's plain-HTML layout
-   implements page-break-AFTER but NOT page-break-before (probed headlessly
-   against the bundled libwrap-mupdf 2026-08-12 and 2026-10-28: 30 paras +
-   pb-after = 31 pages, pb-before = no-op), so the break rides an -after rule
-   on the spacer. Inline style attributes ARE applied (the direction pass
-   writes the alignment swap and a quote's inset inline). */
-div.koa-exchange-break {
+/* "Latest reply on new page": applyExchangePageBreaks gives the newest
+   reply's label paragraph this class (B561), and the stream-position carry
+   puts an empty spacer div of the same class before the reader's block.
+   MuPDF's plain-HTML layout implements page-break-AFTER but NOT
+   page-break-before (probed headlessly against the bundled libwrap-mupdf
+   2026-08-12 and 2026-10-28: 30 paras + pb-after = 31 pages, pb-before =
+   no-op), so both ride an -after rule. Inline style attributes ARE applied
+   (the direction pass writes the alignment swap and a quote's inset inline). */
+.koa-exchange-break {
     page-break-after: always;
 }
 
@@ -1282,7 +1316,7 @@ local function markdownHtml(viewer, text, opts)
   html_body = addHtmlBidiAttributes(html_body, { use_starts_with_rtl = opts.ipa_fix, text_align = viewer.text_align })
   local reply_break
   html_body, reply_break = applyExchangePageBreaks(html_body, viewer.configuration,
-    opts.carry_anchor, opts.carry_occurrence)
+    opts.carry_anchor, opts.carry_occurrence, viewer.scroll_to_last_question)
   return ScriptFonts.markRuns(html_body), reply_break
 end
 
