@@ -2245,9 +2245,11 @@ end
 --- @param event table: Parsed JSON event
 --- @return boolean truncated
 function StreamHandler:checkIfTruncated(event)
-    -- OpenAI/DeepSeek format: finish_reason = "length"
+    -- OpenAI/DeepSeek format: finish_reason = "length" (Mistral's
+    -- "model_length" too: the parser's one rule)
     local choice = event.choices and event.choices[1]
-    if choice and choice.finish_reason == "length" then
+    if type(choice) == "table"
+            and require("koassistant.api.response_parser").isCutReason(choice.finish_reason) then
         return true
     end
 

@@ -71,8 +71,26 @@ local NORMAL_STOPS = {
     pause_turn = true,
     STOP = true, MAX_TOKENS = true,                                            -- Gemini
     model_length = true,                                                       -- Mistral's "length"
+    -- "The model wrote its end-of-sequence token": a natural stop by its
+    -- meaning, as text-generation-inference servers spell it. Unknown to this
+    -- list, it marked every whole answer of such a server as stopped early,
+    -- and no X-Ray or other saved result was ever kept there ("X-Ray not
+    -- saved: the answer stopped before it finished", seen with the stub
+    -- provider in the real app, audit 2026-11-12).
+    eos = true, eos_token = true,
 }
 ResponseParser.STOP_PREFIX = ResponseParser.NOTICE_PREFIX .. " stopped early by the provider: "
+
+--- Whether a chat-completions finish reason means the answer was cut at a
+--- length limit: "length" everywhere, "model_length" on Mistral (the model's
+--- context ran out). ONE rule for the whole answers and for the stream: a
+--- reason that is normal in NORMAL_STOPS and unknown to the stream's cut check
+--- passed a cut answer as whole (audit 2026-11-12).
+--- @param reason any
+--- @return boolean
+function ResponseParser.isCutReason(reason)
+    return reason == "length" or reason == "model_length"
+end
 
 --- The finish reason when it is abnormal, else nil (nil/non-string = the json
 --- null sentinel or a missing field, never a reason).
@@ -119,8 +137,7 @@ end
 -- a cut answer as whole.
 local function finishChat(content, choice)
     local reason = type(choice) == "table" and choice.finish_reason or nil
-    if type(content) == "string" and content ~= ""
-            and (reason == "length" or reason == "model_length") then
+    if type(content) == "string" and content ~= "" and ResponseParser.isCutReason(reason) then
         content = content .. ResponseParser.TRUNCATION_NOTICE
     end
     return ResponseParser.withStopNotice(content, reason)
@@ -609,7 +626,7 @@ local RESPONSE_TRANSFORMERS = {
             end
             -- Check for truncation (finish_reason: "length" means max tokens hit)
             local finish_reason = response.choices[1].finish_reason
-            if content and content ~= "" and finish_reason == "length" then
+            if content and content ~= "" and ResponseParser.isCutReason(finish_reason) then
                 content = content .. ResponseParser.TRUNCATION_NOTICE
             end
             content = ResponseParser.withStopNotice(content, finish_reason)
@@ -928,7 +945,7 @@ local RESPONSE_TRANSFORMERS = {
 
             -- Check for truncation
             local finish_reason = response.choices[1].finish_reason
-            if content and content ~= "" and finish_reason == "length" then
+            if content and content ~= "" and ResponseParser.isCutReason(finish_reason) then
                 content = content .. ResponseParser.TRUNCATION_NOTICE
             end
             content = ResponseParser.withStopNotice(content, finish_reason)
