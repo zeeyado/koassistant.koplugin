@@ -98,8 +98,9 @@ end
 -- Community providers with NO ceiling data keep their conservative fallback.
 -- Their live catalogs justify it and disprove a flat raise: vercel's gateway
 -- floor is 4000, featherless has a 2048 context floor, hyperbolic publishes
--- nothing at all (checked 2026-08-09).
-for _idx, prov in ipairs({ "hyperbolic", "featherless", "vercel", "chutes", "bedrock" }) do
+-- nothing at all (checked 2026-08-09); uberllm's gateway floor is 2000
+-- (checked 2026-11-12).
+for _idx, prov in ipairs({ "hyperbolic", "featherless", "vercel", "chutes", "bedrock", "uberllm" }) do
     TestRunner.assert(ModelConstraints.resolveMaxTokens(prov, "some-model", 4096) == 4096,
         prov .. " has no ceiling data -> keeps its conservative 4096 fallback")
 end
