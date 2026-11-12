@@ -1146,5 +1146,30 @@ TestRunner:test("the chapter finders count without the containing handles first,
     TestRunner:eq(XrayParser.countItemOccurrences(k, norm, XrayParser.containingMatchHandles(data, k), keep), 1)
 end)
 
+-- Audit 2026-11-12 (the matching reviewer). What needs KOReader's own fold
+-- (invalid bytes in it, a capital whose fold changes length) is checked on
+-- the real runtime by tests/scenarios/s11_matching_runtime.lua; here the
+-- parts that are plain byte logic.
+TestRunner:test("audit: the marks of Armenian and Ethiopic end a word, so a name before them matches", function()
+    local function hits(text, name)
+        local set = XrayParser.matchTermSet({ name = name }, "all")
+        return #XrayParser.occurrencesIn(XrayParser.matchNormalize(text), set)
+    end
+    local ARM = "\212\177\214\128\214\130\213\189\213\181\213\161\213\175"
+    TestRunner:eq(hits(ARM .. "\214\137 " .. ARM .. "\213\157 " .. ARM, ARM), 3)
+    local ETH = "\225\138\160\225\137\160\225\137\160"
+    TestRunner:eq(hits(ETH .. "\225\141\163 " .. ETH .. "\225\141\162 " .. ETH, ETH), 3)
+    -- a longer word of the script is still no hit
+    TestRunner:eq(hits(ARM .. "\213\171\214\129", ARM), 0)
+end)
+
+TestRunner:test("audit: a lookup folds typeset apostrophes and hyphens on its substring path too", function()
+    local data = { characters = { { name = "O'Brannagh", description = "A pilot." },
+        { name = "R2\226\128\145D9", description = "A machine." } } }
+    TestRunner:eq(#XrayParser.searchAll(data, "O\226\128\153Brannagh", { skip_description = true }), 1)
+    TestRunner:eq(#XrayParser.searchAll(data, "R2-D9", { skip_description = true }), 1)
+    TestRunner:eq(#XrayParser.searchAll(data, "Nobody", { skip_description = true }), 0)
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

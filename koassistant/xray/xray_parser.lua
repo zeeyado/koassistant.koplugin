@@ -1842,8 +1842,14 @@ function XrayParser.searchAll(data, query, opts)
 
     local categories = XrayParser.getCategories(data)
     -- A pasted "_" spelling finds the dotted entry (#90)
-    local query_lower = XrayParser.normalizeArabic(XrayParser.foldCase(repairSeparators(query)))
-    local normalize = XrayParser.normalizeArabic
+    -- Typeset apostrophes and hyphens fold like the plain ones on both sides
+    -- (B596 did it for the exact lookups and the marks; this substring path
+    -- still said "No results" for a word the page underlines, audit 2026-11-12)
+    local query_lower = XrayParser.normalizeArabic(XrayParser.foldCase(
+        XrayParser.foldPunctuation(repairSeparators(query))))
+    local function normalize(text)
+        return XrayParser.normalizeArabic(XrayParser.foldPunctuation(text))
+    end
     -- Arabic: also try ال-stripped query so "النار" finds "نار" and vice versa
     local query_stripped = nil
     if XrayParser.containsArabic(query_lower) then
@@ -2474,6 +2480,14 @@ local function isWordCharAt(text, pos, scan_back)
     -- maqaf, paseq, sof pasuq, geresh and gershayim (the sweep of 2026-11-06)
     if cp == 0x0964 or cp == 0x0965 then return false end
     if cp == 0x05BE or cp == 0x05C0 or cp == 0x05C3 or cp == 0x05F3 or cp == 0x05F4 then return false end
+    -- the Armenian marks (apostrophe to abbreviation mark, the full stop and
+    -- the hyphen), the Ethiopic ones (wordspace to paragraph separator) and
+    -- the Georgian paragraph separator: once these scripts took the boundary
+    -- check (the sweep of 2026-11-06), a name before its script's own comma
+    -- or full stop no longer matched (audit 2026-11-12)
+    if (cp >= 0x055A and cp <= 0x055F) or cp == 0x0589 or cp == 0x058A then return false end
+    if cp >= 0x1361 and cp <= 0x1368 then return false end
+    if cp == 0x10FB then return false end
 
     -- Everything else (accented letters, Cyrillic, Greek, etc.): word character
     return true
@@ -2786,6 +2800,25 @@ local function alignRun(piece, out)
     end
     local mid = charStart(piece, math.floor(#piece / 2) + 1)
     if mid <= 1 or mid > #piece then
+        -- One character whose fold changes its length. A capital keeps its
+        -- capital: the fold with its first letter upper-cased, when that has
+        -- the fold's length and folds back to it (the dotted capital I
+        -- becomes "I" and the combining dot, a full-width capital its plain
+        -- capital). Taking the fold as it is read every such capital as
+        -- lowercase: a name set to capitals only stopped matching wherever
+        -- its first letter was one, and the automatic rule counted its
+        -- capitalized uses as lowercase (audit 2026-11-12).
+        if lowerChar(piece) ~= piece then
+            local c = folded:byte(1)
+            local n = c and (c < 0x80 and 1 or c < 0xE0 and 2 or c < 0xF0 and 3 or 4) or 0
+            if n > 0 then
+                local capital = upperChar(folded:sub(1, n)) .. folded:sub(n + 1)
+                if #capital == #folded and capital ~= folded and XrayParser.foldCase(capital) == folded then
+                    out[#out + 1] = capital
+                    return
+                end
+            end
+        end
         out[#out + 1] = folded
         return
     end

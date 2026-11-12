@@ -316,6 +316,13 @@ end
 local function pdfWholeWord(matched_text, term_text)
     local needle = (XrayParser.matchNormalize(term_text or ""):match("^%s*(.-)%s*$")) or ""
     if needle == "" or type(matched_text) ~= "string" then return true end
+    -- A script written without spaces (Chinese, Japanese, Thai): the PDF
+    -- engine hands each character back as a word box of its own and KOReader
+    -- joins the boxes with spaces ("林 黛 玉" for 林黛玉), so the whole-word
+    -- test never held and every mention of such a name was dropped (audit
+    -- 2026-11-12). There is no word boundary to check there, as in a
+    -- reflowable book.
+    if XrayParser._skipBoundaryCheck(needle) then return true end
     return #XrayParser._collectMatchSpans(XrayParser.matchNormalize(matched_text), needle) > 0
 end
 XrayBrowser._pdfWholeWord = pdfWholeWord

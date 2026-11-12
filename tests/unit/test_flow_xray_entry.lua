@@ -918,6 +918,10 @@ TestRunner:test("a PDF hit counts when the term is the matched words as a whole 
     TestRunner:assertTrue(whole("\226\128\156Christ\226\128\157", "Christ") == true, "quotes around it")
     TestRunner:assertTrue(whole(nil, "Christ") == true, "no matched text: nothing to judge, kept")
     TestRunner:assertTrue(whole("Christian", "") == true, "no term: kept")
+    -- audit 2026-11-12: the PDF engine hands each character of a script
+    -- written without spaces back as a word of its own, joined by spaces
+    TestRunner:assertTrue(whole("\230\158\151 \233\187\155 \231\142\137", "\230\158\151\233\187\155\231\142\137") == true,
+        "a Chinese name whose characters arrive spaced apart keeps its mention")
 end)
 
 -- ------------------------------------------------------------------ cleanup
