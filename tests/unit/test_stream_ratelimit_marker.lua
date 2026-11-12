@@ -570,6 +570,48 @@ end)
 -- ------------------------------------------------------------------
 RL._reset()
 package.loaded["koassistant.request.stream_handler"] = nil
+-- A refused request on the transport every device uses: the provider's body
+-- comes BEFORE the status line (seen in the real app, 2026-11-12). A one-line
+-- body (Anthropic, DeepSeek, OpenRouter) starts with "{" and was taken as an
+-- NDJSON error event: its message alone was reported, without the HTTP status
+-- and the error's own code. An indented body (Gemini, OpenAI) lost its first
+-- line, a lone "{", and with it the code, which the account-limit tip reads.
+local STATUS_401 = "\r\nX-NON-200-STATUS:Error 401: Unauthorized\n\n"
+local ONE_LINE_401 = '{"type":"error","error":{"type":"authentication_error","message":"invalid x-api-key"}}'
+
+TestRunner:test("a refused request's one-line body keeps its status and its error type", function()
+    local ok, _c, err = runStream(ONE_LINE_401 .. STATUS_401)
+    TestRunner:assertTrue(not ok, "reported as a failure")
+    TestRunner:assertTrue(type(err) == "string" and err:find("^HTTP 401: invalid x%-api%-key") ~= nil,
+        "the status leads the provider's sentence: " .. tostring(err))
+    TestRunner:assertTrue(err:find("authentication_error", 1, true) ~= nil, "the error's type rides with it: " .. err)
+    ok, _c, err = runStream({ { text = ONE_LINE_401, delay = 0 }, { text = STATUS_401, delay = 1 } })
+    TestRunner:assertTrue(not ok and type(err) == "string" and err:find("^HTTP 401: ") ~= nil,
+        "also when the status line trails by a poll: " .. tostring(err))
+    ok, _c, err = runStream({ { text = ONE_LINE_401 .. MARKER, delay = 0 }, { text = STATUS_401, delay = 1 } })
+    TestRunner:assertTrue(not ok and type(err) == "string" and err:find("^HTTP 401: ") ~= nil,
+        "and when the allowance marker came a poll before it: " .. tostring(err))
+end)
+
+TestRunner:test("an indented error body keeps the provider's code, so an empty account is not read as a rate limit", function()
+    local body = '{\n  "error": {\n    "message": "You exceeded your current quota, please check your plan and billing details.",\n'
+        .. '    "type": "insufficient_quota",\n    "param": null,\n    "code": "insufficient_quota"\n  }\n}\n'
+    local ok, _c, err = runStream(body .. "\r\nX-NON-200-STATUS:Error 429: Too Many Requests\n\n")
+    TestRunner:assertTrue(not ok, "reported as a failure")
+    TestRunner:assertTrue(type(err) == "string" and err:find("^HTTP 429: You exceeded your current quota") ~= nil,
+        "the status and the provider's sentence: " .. tostring(err))
+    TestRunner:assertTrue(err:find("insufficient_quota", 1, true) ~= nil, "the code is there: " .. err)
+    TestRunner:assertTrue(require("koassistant.request.model_constraints").isBillingWall(err),
+        "and the account-limit tip recognises its case")
+end)
+
+TestRunner:test("an error event in a stream that was answered 200 is still its message alone", function()
+    -- Ollama's mid-stream error: no status line follows
+    local ok, _c, err = runStream('{"error":"model requires more system memory"}\n')
+    TestRunner:assertTrue(not ok, "reported as a failure")
+    TestRunner:assertEqual(err, "model requires more system memory", "the message, as before")
+end)
+
 for _idx, k in ipairs(SAVED_KEYS) do package.loaded[k] = saved[k] end
 
 print(string.format("\n  test_stream_ratelimit_marker: %d passed, %d failed",

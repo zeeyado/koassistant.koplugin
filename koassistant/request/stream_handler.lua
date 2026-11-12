@@ -313,6 +313,32 @@ end
 
 -- Exposed for unit testing (the locals above are the canonical implementations).
 StreamHandler.extractApiError = extractApiError
+
+--- The reader's sentence for a refused request on the streaming path: the
+--- status from the fetch child's marker ("HTTP 401: ..." on macOS, "Error
+--- 401: ..." on the transport every device uses) and the provider's own
+--- sentence from the JSON body that streamed before it, read as a whole
+--- answer's error is (the sentence, the machine code, the quota facts). The
+--- marker's text when the body gives nothing.
+--- @param marker_text string what follows the marker's prefix
+--- @param body string|nil the error body's lines, joined
+--- @return string
+function StreamHandler.non200Message(marker_text, body)
+    marker_text = tostring(marker_text or ""):match("^%s*(.-)%s*$")
+    body = type(body) == "string" and body:match("^%s*(.-)%s*$") or ""
+    local clean = #body > 0 and extractApiError(body) or nil
+    if clean then
+        -- The status code is the marker's, the sentence the body's: keep both
+        local code = marker_text:match("^HTTP%s+(%d+)") or marker_text:match("^Error%s+(%d+)")
+        if code and not clean:match("^HTTP%s+%d+") then
+            clean = "HTTP " .. code .. ": " .. clean
+        end
+    else
+        clean = marker_text
+    end
+    if not clean or clean == "" then clean = "Request failed" end
+    return clean
+end
 StreamHandler.harvestWebSources = harvestWebSources
 StreamHandler.closeWebSearchSegment = closeWebSearchSegment
 
@@ -753,6 +779,20 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             ui_update_task = nil
         end
         UIManager:close(streamDialog)
+
+        -- An error event that was a refused request's body (see the NDJSON
+        -- branch): with the status marker the drain collected, it is reported
+        -- as every other refused request, status and error code included. The
+        -- message alone named no status, and the tips read the wrong case (an
+        -- account out of credit got the rate-limit tip and Try again; seen in
+        -- the real app on the device transport, 2026-11-12).
+        if stream_error and not non200 and #error_body_lines > 0 and type(partial_data) == "string" then
+            local marker_text = partial_data:match("X%-NON%-200%-STATUS:([^\r\n]*)")
+            if marker_text then
+                stream_error = self.non200Message(marker_text, table.concat(error_body_lines))
+            end
+            for _idx = #error_body_lines, 1, -1 do error_body_lines[_idx] = nil end
+        end
 
         -- If unrecognized lines were buffered but no error marker fired, this was a
         -- genuine (if unusual) content stream — flush them so nothing is lost.
@@ -1703,7 +1743,12 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
 
     local function endStream()
         partial_data = harvestMarkers(partial_data)
-        if marker_seen or not parent_read_fd or drain_polls >= DRAIN_MAX_POLLS then
+        -- Behind an error event the status line may still be on its way (the
+        -- child writes it after the allowance marker): that marker alone does
+        -- not end the wait then
+        local awaiting_status = stream_error and not non200
+            and not (type(partial_data) == "string" and partial_data:find("X-NON-200-STATUS:", 1, true))
+        if (marker_seen and not awaiting_status) or not parent_read_fd or drain_polls >= DRAIN_MAX_POLLS then
             partial_data = dropHalfMarker(partial_data)
             finishStream()
             return
@@ -2106,6 +2151,13 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 partial_data = data:sub(pos)
                                 completed = true
                                 stream_error = tostring(err_message)
+                                -- This line may be a REFUSED request's whole body
+                                -- (Anthropic, DeepSeek and OpenRouter answer a
+                                -- non-200 with one JSON line): on the transport
+                                -- every device uses it comes before the status
+                                -- marker. Kept for finishStream, which reads it
+                                -- with the marker's status once the drain has it.
+                                table.insert(error_body_lines, line)
                                 endStream()
                                 return
                             -- Check for Ollama done signal
@@ -2172,6 +2224,15 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                             end
                         else
                             logger.warn("Failed to parse NDJSON line:", line)
+                            -- The first line of an indented error body is a lone
+                            -- "{" (Gemini, OpenAI): kept with the lines that
+                            -- follow, so the body decodes whole at the status
+                            -- marker and keeps the provider's error code. It was
+                            -- dropped, and the sentence then came from a pattern,
+                            -- without the code the account-limit tip reads.
+                            if not has_streamed_content and #result_buffer == 0 then
+                                table.insert(error_body_lines, line)
+                            end
                         end
                     elseif line:sub(1, #PROTOCOL_NON_200) == PROTOCOL_NON_200 then
                         non200 = true
@@ -2180,20 +2241,8 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         -- in koassistant/request/gpt_query.lua. macOS sends only the marker (no body), so
                         -- error_body_lines is empty and we fall back to the marker text, which is
                         -- already clean ("HTTP <code>: <message>" from BaseHandler.formatNon200).
-                        local marker_text = line:sub(#PROTOCOL_NON_200 + 1):match("^%s*(.-)%s*$")
-                        local body = table.concat(error_body_lines):match("^%s*(.-)%s*$") or ""
-                        local clean = #body > 0 and extractApiError(body) or nil
-                        if clean then
-                            -- The status code is the marker's, the sentence the body's:
-                            -- keep both, as the macOS path does
-                            local code = marker_text:match("^HTTP%s+(%d+)") or marker_text:match("^Error%s+(%d+)")
-                            if code and not clean:match("^HTTP%s+%d+") then
-                                clean = "HTTP " .. code .. ": " .. clean
-                            end
-                        else
-                            clean = marker_text
-                        end
-                        if not clean or clean == "" then clean = "Request failed" end
+                        local clean = self.non200Message(line:sub(#PROTOCOL_NON_200 + 1),
+                            table.concat(error_body_lines))
                         -- result_buffer must hold ONLY the clean message. Clear in place
                         -- (closures hold this upvalue by reference).
                         for _idx = #result_buffer, 1, -1 do result_buffer[_idx] = nil end
