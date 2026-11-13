@@ -477,6 +477,26 @@ TestRunner:test("queryWith delegates to query_fn when shouldUse is false", funct
     TestRunner:assertEqual(final.answer, "direct answer", "direct path answer propagated")
 end)
 
+TestRunner:test("queryWith sends a chat's first question once (the shown copy stays out)", function()
+    -- The stored chat after its first answer, as the input dialog's Send leaves it
+    local stored = {
+        { role = "user", content = "[User Question]\nhow are you today", is_context = true },
+        { role = "user", content = "how are you today", is_context = false },
+        { role = "assistant", content = "Well, thanks." },
+        { role = "user", content = "and now?", is_context = false },
+    }
+    local sent
+    BookToolRunner.queryWith(function(messages, _cfg, callback)
+        sent = messages
+        callback(true, "fine")
+    end, stored, { provider = "perplexity", features = {} }, function() end, {}, nil)
+    TestRunner:assertEqual(#sent, 3, "three messages go out")
+    TestRunner:assertEqual(sent[1], stored[1], "the context message, which holds the question")
+    TestRunner:assertEqual(sent[2].role, "assistant", "then the answer")
+    TestRunner:assertEqual(sent[3].content, "and now?", "then the reply")
+    TestRunner:assertEqual(#stored, 4, "the stored chat is untouched")
+end)
+
 TestRunner:test("queryWith routes through tool runner when shouldUse is true", function()
     local query_calls = 0
     local function query_fn(_messages, _cfg, callback)

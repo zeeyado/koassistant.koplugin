@@ -753,6 +753,115 @@ end
 -- Run All Tests
 -- =============================================================================
 
+-- =============================================================================
+-- wireMessages: what a request sends
+-- =============================================================================
+
+local function runWireMessagesTests()
+    print("\n--- wireMessages (the shown copy of the first question stays out) ---")
+
+    -- The history as the input dialog's Send leaves it once the answer is in
+    local function freeformChat(question, attach)
+        local h = MessageHistory:new()
+        h:addUserMessage(table.concat({ "[Context]", "A general chat.", "", "[User Question]", question }, "\n"), true)
+        if attach then h:addUserMessage("Attached notebook:\n" .. attach, true) end
+        h:addUserMessage(question, false)
+        h:addAssistantMessage("An answer.")
+        return h
+    end
+
+    local function contents(messages)
+        local out = {}
+        for i, m in ipairs(messages) do out[i] = m.role .. ":" .. m.content end
+        return table.concat(out, " | ")
+    end
+
+    TestRunner:test("a reply sends the first question once", function()
+        local h = freeformChat("how are you today")
+        h:addUserMessage("a reply", false)
+        local wire = MessageHistory.wireMessages(h:getMessages())
+        TestRunner:assertEqual(#wire, 3)
+        TestRunner:assertEqual(wire[1], h.messages[1], "the context message itself, not a copy")
+        TestRunner:assertEqual(wire[2].role, "assistant")
+        TestRunner:assertEqual(wire[3].content, "a reply")
+        local _text, count = contents(wire):gsub("how are you today", "")
+        TestRunner:assertEqual(count, 1, "the question's text once in the whole request")
+        TestRunner:assertEqual(#h.messages, 4, "the stored chat keeps the shown message")
+    end)
+
+    TestRunner:test("an action's typed text: the tail block and the shown copy", function()
+        local h = MessageHistory:new()
+        h:addUserMessage("Explain the passage.\n\n[Additional user input]\nin simple words", true)
+        h:addUserMessage("in simple words", false)
+        h:addAssistantMessage("Explained.")
+        h:addUserMessage("thanks", false)
+        TestRunner:assertEqual(contents(MessageHistory.wireMessages(h:getMessages())),
+            "user:Explain the passage.\n\n[Additional user input]\nin simple words | assistant:Explained. | user:thanks")
+    end)
+
+    TestRunner:test("typed text inside the prompt ({user_input})", function()
+        local h = MessageHistory:new()
+        h:addUserMessage("Compare this book with: the other one. Be brief.", true)
+        h:addUserMessage("the other one", false)
+        h:addAssistantMessage("Compared.")
+        TestRunner:assertEqual(#MessageHistory.wireMessages(h:getMessages()), 2)
+    end)
+
+    TestRunner:test("attachment messages between the context and the shown copy", function()
+        local h = freeformChat("what does my notebook say", "a note")
+        h:addUserMessage("and then?", false)
+        local wire = MessageHistory.wireMessages(h:getMessages())
+        TestRunner:assertEqual(#wire, 4)
+        TestRunner:assertEqual(wire[2].is_context, true)
+        TestRunner:assertEqual(wire[3].role, "assistant")
+    end)
+
+    TestRunner:test("a system message first", function()
+        local h = MessageHistory:new("You are helpful")
+        h:addUserMessage("[User Question]\nhello there", true)
+        h:addUserMessage("hello there", false)
+        h:addAssistantMessage("Hi.")
+        local wire = MessageHistory.wireMessages(h:getMessages())
+        TestRunner:assertEqual(#wire, 3)
+        TestRunner:assertEqual(wire[1].role, "system")
+    end)
+
+    TestRunner:test("nothing to leave out returns the same table", function()
+        local first = MessageHistory:new()
+        first:addUserMessage("[User Question]\nhello", true)
+        TestRunner:assertEqual(MessageHistory.wireMessages(first.messages), first.messages, "the first send")
+
+        local no_input = MessageHistory:new()
+        no_input:addUserMessage("Summarize the book.", true)
+        no_input:addAssistantMessage("A summary.")
+        no_input:addUserMessage("Summarize", false)
+        TestRunner:assertEqual(MessageHistory.wireMessages(no_input.messages), no_input.messages,
+            "a reply after the answer is never the shown copy, whatever its words")
+
+        local unanswered = MessageHistory:new()
+        unanswered:addUserMessage("[User Question]\nhello", true)
+        unanswered:addUserMessage("hello", false)
+        TestRunner:assertEqual(MessageHistory.wireMessages(unanswered.messages), unanswered.messages,
+            "a question with no answer after it is being asked now")
+
+        local other_text = MessageHistory:new()
+        other_text:addUserMessage("[User Question]\nhello", true)
+        other_text:addUserMessage("something else", false)
+        other_text:addAssistantMessage("Hi.")
+        TestRunner:assertEqual(MessageHistory.wireMessages(other_text.messages), other_text.messages,
+            "a message the context does not hold is kept")
+
+        TestRunner:assertNil(MessageHistory.wireMessages(nil))
+    end)
+
+    TestRunner:test("a chat sent without its stored context keeps its question", function()
+        -- DataAccess.sendableMessages took the context messages out first
+        local h = freeformChat("how are you today")
+        local sendable = { h.messages[2], h.messages[3] }
+        TestRunner:assertEqual(MessageHistory.wireMessages(sendable), sendable)
+    end)
+end
+
 local function runAll()
     print("\n=== Testing MessageHistory ===")
 
@@ -765,6 +874,7 @@ local function runAll()
     runGetSuggestedTitleTests()
     runCreateResultTextTests()
     runProvenanceTests()
+    runWireMessagesTests()
 
     print(string.format("\n=== Results: %d passed, %d failed ===\n", TestRunner.passed, TestRunner.failed))
     return TestRunner.failed == 0

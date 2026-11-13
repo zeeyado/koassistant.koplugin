@@ -130,6 +130,45 @@ function MessageHistory:getMessages()
     return self.messages
 end
 
+--- The messages a request sends: the stored ones minus the shown copy of the
+--- first question. A chat opens with its context message, which already holds
+--- what the reader typed (under "[User Question]" or "[Additional user input]",
+--- or inside the prompt of an action with {user_input}); once the answer is in,
+--- the same text is stored again as a message of its own so the chat shows it.
+--- Sent too, every reply carried the first question twice. The shape is exact:
+--- the context message first, any attachment messages after it, the shown copy,
+--- then the answer. A chat whose stored context is left out keeps its question.
+--- Pure; returns the given table when there is nothing to leave out.
+function MessageHistory.wireMessages(messages)
+    if type(messages) ~= "table" then return messages end
+    local start = 1
+    while type(messages[start]) == "table" and messages[start].role == MessageHistory.ROLES.SYSTEM do
+        start = start + 1
+    end
+    local first = messages[start]
+    if type(first) ~= "table" or first.role ~= MessageHistory.ROLES.USER
+            or not first.is_context or type(first.content) ~= "string" then
+        return messages
+    end
+    local at = start + 1
+    while type(messages[at]) == "table" and messages[at].role == MessageHistory.ROLES.USER
+            and messages[at].is_context do
+        at = at + 1
+    end
+    local shown, answer = messages[at], messages[at + 1]
+    if type(shown) ~= "table" or shown.role ~= MessageHistory.ROLES.USER or shown.is_context
+            or type(shown.content) ~= "string" or shown.content == ""
+            or type(answer) ~= "table" or answer.role ~= MessageHistory.ROLES.ASSISTANT
+            or not first.content:find(shown.content, 1, true) then
+        return messages
+    end
+    local out = {}
+    for i, message in ipairs(messages) do
+        if i ~= at then out[#out + 1] = message end
+    end
+    return out
+end
+
 function MessageHistory:getLastMessage()
     if #self.messages > 0 then
         return self.messages[#self.messages]
