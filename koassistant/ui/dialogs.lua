@@ -2498,6 +2498,8 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
             update_debug_callback = state.update_debug_callback,
             -- Pass recreate function for subsequent rotations
             _recreate_func = recreate_func,
+            -- where the reader was (the viewer lands there before its first paint)
+            _initial_place = state.place,
         }
         -- Set close_callback after creation so new_viewer is defined.
         -- Inherits the stacked-view restore duty (see showResponseDialog's close_callback).
@@ -2512,11 +2514,6 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
 
         -- Show the new viewer
         UIManager:show(new_viewer)
-
-        -- Restore scroll position
-        if state.scroll_ratio and state.scroll_ratio > 0 then
-            new_viewer:restoreScrollPosition(state.scroll_ratio)
-        end
     end
 
     -- Check if compact view should be used

@@ -44,6 +44,7 @@ local UIConstants = require("koassistant.ui.constants")
 local Languages = require("koassistant.core.languages")
 local Constants = require("koassistant.core.constants")
 local ScriptFonts = require("koassistant.ui.script_fonts")
+local Place = require("koassistant.ui.viewer_place")
 
 -- Task lists ("- [ ] to do", "- [x] done", GitHub's extension): the Markdown
 -- library knows no task items and MuPDF draws no form controls, so the box is
@@ -294,6 +295,29 @@ local function uprefix(s, n)
     i = i + step
   end
   return s
+end
+
+-- The text the plain-text view counts in. That view shows the transcript with
+-- its Markdown stripped (a rule drawn as a line of fifteen characters, the
+-- bold marks taken out by the widget itself), so a position found in the
+-- transcript is somewhere else in it: every search for a place in the
+-- plain-text view reads this, never self.text.
+local function shownPlainText(viewer)
+  local tw = viewer.scroll_text_w and viewer.scroll_text_w.text_widget
+  if tw and type(tw.text) == "string" then return tw.text end
+  return viewer.text
+end
+
+-- Put a line of the plain-text view at the top of the window, through the
+-- widget's own scroll path (free, render, layout): scrollToRatio(r, false)
+-- shows line 1 + floor(r * #lines - lines_per_page / 2), solved here for
+-- `line` with half a line of margin. The widget never scrolls past a full
+-- last screen. No cursor is placed: TextBoxWidget:moveCursorToCharPos draws
+-- one and scrolls the view back to a character above it.
+local function topAlignLine(scroll_text_w, line)
+  local tw = scroll_text_w.text_widget
+  scroll_text_w:scrollToRatio(
+    (line - 1 + tw.lines_per_page / 2 + 0.5) / #tw.vertical_string_list, false)
 end
 
 local function extractCarryAnchor(snippet)
@@ -3737,17 +3761,19 @@ function ChatGPTViewer:landOnStreamPosition()
     end
     return true
   elseif self.scroll_text_w.moveCursorToCharPos and self.text then
-    -- Plain text carries the response verbatim. The anchor came from the
+    -- Searched in the text the widget shows (shownPlainText): the anchor is a
+    -- run of plain words, the same in both. The anchor came from the
     -- newest reply, so search FROM its marker: first occurrence after it is
     -- the reader's spot — bare "last occurrence" mis-landed when the phrase
     -- repeated inside the reply itself (device 2026-08-13). Marker-less text
     -- (streamed artifacts) keeps the last-occurrence rule. Then top-align
     -- the line — the same line-precise recipe as the marker landing.
+    local shown = shownPlainText(self)
     local marker_byte
     do
       local msearch = 1
       while true do
-        local s = self.text:find("◉ KOAssistant:", msearch, true)
+        local s = shown:find("◉ KOAssistant:", msearch, true)
         if not s then break end
         marker_byte = s
         msearch = s + 1
@@ -3760,7 +3786,7 @@ function ChatGPTViewer:landOnStreamPosition()
       local want = tonumber(self._stream_carry_occurrence) or 1
       local from = marker_byte
       for _n = 1, want do
-        local s = self.text:find(anchor, from, true)
+        local s = shown:find(anchor, from, true)
         if not s then break end
         last_byte = s
         from = s + 1
@@ -3769,7 +3795,7 @@ function ChatGPTViewer:landOnStreamPosition()
     if not last_byte then
       local search_start = 1
       while true do
-        local s = self.text:find(anchor, search_start, true)
+        local s = shown:find(anchor, search_start, true)
         if not s then break end
         last_byte = s
         search_start = s + 1
@@ -3779,27 +3805,18 @@ function ChatGPTViewer:landOnStreamPosition()
       logger.dbg("KOAssistant: stream-position carry txt — anchor not found")
       return false
     end
-    local _stripped, nchars = self.text:sub(1, last_byte - 1):gsub("[^\128-\191]", "")
-    local target_pos = nchars + 1
+    local target_pos = Place.charOfByte(shown, last_byte)
     local tw = self.scroll_text_w.text_widget
     if tw and tw.lines_per_page and tw.vertical_string_list
         and #tw.vertical_string_list > 0 and self.scroll_text_w.scrollToRatio then
       local lines = tw.vertical_string_list
-      local L = 1
-      for i = #lines, 1, -1 do
-        if (lines[i].offset or 1) <= target_pos then
-          L = i
-          break
-        end
-      end
+      local L = Place.lineOfChar(lines, target_pos)
       logger.dbg("KOAssistant: stream-position carry txt — line", L, "of", #lines, "to top")
       if L > tw.lines_per_page then
-        self.scroll_text_w:scrollToRatio(
-          (L - 1 + tw.lines_per_page / 2 + 0.5) / #lines, false)
+        topAlignLine(self.scroll_text_w, L)
       else
         self.scroll_text_w:scrollToRatio(0, false)
       end
-      self.scroll_text_w:moveCursorToCharPos(target_pos)
     else
       logger.dbg("KOAssistant: stream-position carry txt — cursor to char", target_pos)
       self.scroll_text_w:moveCursorToCharPos(target_pos, 5)
@@ -3875,11 +3892,16 @@ function ChatGPTViewer:scrollToLastQuestion()
       logger.dbg("KOAssistant: scrollToLastQuestion md — findText/scrollToRatio unavailable, using ratio fallback")
     end
   elseif self.scroll_text_w.moveCursorToCharPos then
+    -- The label is looked for in the text the widget shows (shownPlainText):
+    -- its position in the transcript is another one, further off with every
+    -- rule and bold word before it (the maintainer's report of 2026-11-13: a
+    -- fifth reply opened five lines above its label)
+    local shown = shownPlainText(self)
     local last_byte
     for _idx, marker in ipairs(markers) do
       local search_start = 1
       while true do
-        local s = self.text:find(marker, search_start, true)
+        local s = shown:find(marker, search_start, true)
         if not s then break end
         last_byte = s
         search_start = s + 1
@@ -3887,31 +3909,19 @@ function ChatGPTViewer:scrollToLastQuestion()
       if last_byte then break end
     end
     if last_byte then
-      -- moveCursorToCharPos wants UTF-8 CHARS, not bytes: count the
-      -- non-continuation bytes before the marker
-      local _stripped, nchars = self.text:sub(1, last_byte - 1):gsub("[^\128-\191]", "")
-      local target_pos = nchars + 1
+      -- the line table counts UTF-8 CHARS, not bytes
+      local target_pos = Place.charOfByte(shown, last_byte)
       local f = self.configuration and self.configuration.features
       local tw = self.scroll_text_w.text_widget
       if not (f and f.chat_exchange_page_breaks == false)
           and tw and tw.lines_per_page and tw.vertical_string_list
           and #tw.vertical_string_list > 0 and self.scroll_text_w.scrollToRatio then
-        -- TXT mode: put the marker's LINE at the top of the view (a line
-        -- scroller can top any line — hard-page snapping only reached the
-        -- screenful CONTAINING the marker, round-11 device round). Ride the
-        -- widget's OWN scroll path (free + re-render + layout — writing
-        -- virtual_line_num directly desyncs state from screen since
-        -- moveCursorToCharPos only paints the cursor for in-view targets).
-        -- scrollToRatio(r, false): line = 1 + floor(r*#lines - lpp/2); solve
-        -- for our line with a +0.5 margin so floor lands exactly.
+        -- TXT mode: put a LINE at the top of the view (a line scroller can
+        -- top any line — hard-page snapping only reached the screenful
+        -- CONTAINING the marker, round-11 device round), through
+        -- topAlignLine.
         local lines = tw.vertical_string_list
-        local L = 1
-        for i = #lines, 1, -1 do
-          if (lines[i].offset or 1) <= target_pos then
-            L = i
-            break
-          end
-        end
+        local L = Place.lineOfChar(lines, target_pos)
         -- The reply's first line of TEXT, past the label and the blank line
         -- under it (an empty line has end_offset = offset - 1): the landed
         -- screen opens with the reply, the label and the question sit on the
@@ -3925,10 +3935,7 @@ function ChatGPTViewer:scrollToLastQuestion()
         end
         if R > #lines then R = L end
         logger.dbg("KOAssistant: scrollToLastQuestion txt — line", R, "of", #lines, "to top")
-        self.scroll_text_w:scrollToRatio(
-          (R - 1 + tw.lines_per_page / 2 + 0.5) / #lines, false)
-        -- Cursor placement on the freshly rendered view (cursor-only paint)
-        self.scroll_text_w:moveCursorToCharPos(target_pos)
+        topAlignLine(self.scroll_text_w, R)
       else
         -- Centered variant (count 5, TextViewer's find pattern) — the bare
         -- call scrolls MINIMALLY and parks the target on the BOTTOM line
@@ -3965,7 +3972,12 @@ function ChatGPTViewer:onShow()
   -- anchor (consumed at init) routes even viewers that would not otherwise
   -- scroll — a FIRST streamed reply opens at the top, a streamed artifact
   -- view has no transcript markers.
-  if self._stream_carry_anchor then
+  if self._initial_place then
+    -- A window rebuilt for a rotation or a size toggle: where the reader was
+    local place = self._initial_place
+    self._initial_place = nil
+    self:restorePlace(place)
+  elseif self._stream_carry_anchor then
     -- The carry exists only when the reader deliberately scrolled away
     -- during the stream, so it outranks the exchange landing (2026-09-07:
     -- from the second reply on, scroll_to_last_question was tested first and
@@ -4722,7 +4734,9 @@ end
 -- Extracted from toggleMarkdown so other display-setting changes (strip-markdown in
 -- text mode, slice (e) note E) can re-render in place without flipping the mode.
 function ChatGPTViewer:rebuildScrollWidget()
-  -- Rebuild the scroll widget with new rendering mode
+  -- Rebuild the scroll widget with new rendering mode, at the place the old
+  -- one shows
+  local place = self:capturePlace()
   local textw_height = self.textw:getSize().h
   
   local needs_rtl_fix = self:_needsRtlFix()
@@ -4768,7 +4782,9 @@ function ChatGPTViewer:rebuildScrollWidget()
     button:setText(self.render_markdown and "MD ON" or "TXT ON", button.width)
   end
 
-  -- Refresh display (view toggle always starts at top - no scroll restoration)
+  if place then self:restorePlace(place) end
+
+  -- Refresh display
   UIManager:setDirty(self, function()
     return "ui", self.frame.dimen
   end)
@@ -5731,26 +5747,13 @@ end
 
 -- Capture current viewer state for restoration after recreation
 function ChatGPTViewer:captureState()
-  -- The place in the answer as the ratio scrollToRatio takes back (B611; the
-  -- two names asked for before existed in no KOReader, so every rotation,
-  -- resize and window-size toggle reopened the answer at its top): the HTML
-  -- widget's page ratio, or the plain-text widget's first visible line
-  local scroll_ratio = 0
-  local w = self.scroll_text_w
-  if w then
-    if w.getCurrentRatio then
-      scroll_ratio = w:getCurrentRatio() or 0
-    elseif w.text_widget and w.text_widget.getVisibleHeightRatios then
-      scroll_ratio = (w.text_widget:getVisibleHeightRatios()) or 0
-    end
-  end
-
   return {
     title = self.title,
     text = self.text,
     render_markdown = self.render_markdown,
     show_debug_in_chat = self.show_debug_in_chat,
-    scroll_ratio = scroll_ratio,
+    -- where the reader is, for the rebuilt window (capturePlace; nil = the top)
+    place = self:capturePlace(),
     configuration = self.configuration,
     original_history = self.original_history,
     original_highlighted_text = self.original_highlighted_text,
@@ -5774,21 +5777,77 @@ function ChatGPTViewer:captureState()
   }
 end
 
--- Restore scroll position after recreation
-function ChatGPTViewer:restoreScrollPosition(scroll_ratio)
-  if not self.scroll_text_w or not scroll_ratio or scroll_ratio == 0 then
-    return
-  end
+-- How many pages each side of the expected one the Markdown view is read for
+-- the place's words
+local PLACE_PAGES = 4
 
-  -- Schedule scroll restoration after widget is fully rendered
-  UIManager:scheduleIn(0.2, function()
-    if self.scroll_text_w then
-      if self.scroll_text_w.scrollToRatio then
-        self.scroll_text_w:scrollToRatio(scroll_ratio)
+--- The place this window shows, to find again in another layout of the same
+--- text (the view switched, the window's size toggled, the screen rotated):
+--- { ratio = how far through, words = the first words on screen }, nil at the
+--- top. Read from KOReader's own widgets: the HTML widget's page (the names
+--- are checked against the installed bundle in tests/unit/test_viewer_place.lua)
+--- or the plain-text widget's first visible line.
+function ChatGPTViewer:capturePlace()
+  local w = self.scroll_text_w
+  if not w then return nil end
+  local box = w.htmlbox_widget
+  if box then
+    local page, count = tonumber(box.page_number), tonumber(box.page_count)
+    if not (page and count and page > 1 and count > 0 and box.document) then return nil end
+    return { ratio = (page - 1) / count, words = Place.anchor(Place.pageText(box, page)) }
+  end
+  local tw = w.text_widget
+  local lines = tw and tw.vertical_string_list
+  local top = tw and tonumber(tw.virtual_line_num)
+  if not (type(lines) == "table" and top and top > 1 and lines[top]) then return nil end
+  local words
+  if type(tw.text) == "string" then
+    local from = Place.byteOfChar(tw.text, lines[top].offset or 1)
+    words = Place.anchor(tw.text:sub(from, from + 600))
+  end
+  return { ratio = (top - 1) / #lines, words = words }
+end
+
+--- Show the place a capture describes (capturePlace): the copy of its words
+--- nearest as far through this layout, else as far through. The Markdown view
+--- shows the page the words start on; the plain-text view tops their line.
+--- Returns false when there is nothing to do it with.
+function ChatGPTViewer:restorePlace(place)
+  local w = self.scroll_text_w
+  if not (w and w.scrollToRatio and type(place) == "table") then return false end
+  local ratio = math.max(0, math.min(1, tonumber(place.ratio) or 0))
+  local box = w.htmlbox_widget
+  if box then
+    local count = tonumber(box.page_count) or 1
+    if count <= 1 then return false end
+    local expected = math.min(count, 1 + math.floor(ratio * count))
+    local target = expected
+    if place.words and box.document then
+      local pages = {}
+      for n = math.max(1, expected - PLACE_PAGES), math.min(count, expected + PLACE_PAGES) do
+        pages[#pages + 1] = { number = n, text = Place.pageText(box, n) }
       end
-      UIManager:setDirty(self, "ui")
+      target = Place.findPage(pages, place.words, expected) or expected
     end
-  end)
+    logger.dbg("KOAssistant: restorePlace md — page", target, "of", count, "expected", expected)
+    if target ~= box.page_number then
+      -- mid-page ratio: 1 + floor(count * (target - 0.5) / count) == target
+      w:scrollToRatio((target - 0.5) / count)
+    end
+    return true
+  end
+  local tw = w.text_widget
+  local lines = tw and tw.vertical_string_list
+  if not (type(lines) == "table" and #lines > 0 and tw.lines_per_page) then return false end
+  local line
+  if place.words and type(tw.text) == "string" then
+    local at = Place.find(tw.text, place.words, math.floor(ratio * #tw.text))
+    if at then line = Place.lineOfChar(lines, Place.charOfByte(tw.text, at)) end
+  end
+  line = line or (1 + math.floor(ratio * #lines))
+  logger.dbg("KOAssistant: restorePlace txt — line", line, "of", #lines)
+  topAlignLine(w, line)
+  return true
 end
 
 -- Helper to get display name for text alignment

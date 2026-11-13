@@ -227,36 +227,10 @@ function StreamMarkdown:jumpToEnd()
 end
 StreamMarkdown.scrollToBottom = StreamMarkdown.jumpToEnd
 
--- A character of a script written without spaces (CJK, kana, Hangul): MuPDF
--- hands such text back in odd segments, which join back without a space
-local function spaceless(ch)
-    local b = ch:byte(1)
-    return b ~= nil and b >= 0xE3 and b <= 0xED
-end
-
--- The words of a page of the document, joined by a space except between two
--- spaceless-script segments
+-- The words of a page of the document (one reader for every HTML widget: the
+-- chat window keeps its place with the same)
 local function pageText(box, n)
-    local ok, page = pcall(box.document.openPage, box.document, n)
-    if not ok or not page then return "" end
-    local ok_t, lines = pcall(page.getPageText, page)
-    pcall(page.close, page)
-    if not ok_t or type(lines) ~= "table" then return "" end
-    local out = {}
-    for _idx, line in ipairs(lines) do
-        if type(line) == "table" then
-            for _jdx, w in ipairs(line) do
-                if type(w) == "table" and type(w.word) == "string" and w.word ~= "" then
-                    local prev = out[#out]
-                    if prev and not (spaceless(prev:sub(-3)) and spaceless(w.word:sub(1, 3))) then
-                        out[#out + 1] = " "
-                    end
-                    out[#out + 1] = w.word
-                end
-            end
-        end
-    end
-    return table.concat(out)
+    return require("koassistant.ui.viewer_place").pageText(box, n)
 end
 
 --- The reader's spot for the completion viewer: the first words of their

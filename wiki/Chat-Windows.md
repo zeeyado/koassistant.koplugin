@@ -153,7 +153,7 @@ KOAssistant offers two view modes for displaying AI responses.
 
 **How to switch:**
 
-- **This chat**: tap **MD ON / TXT ON** in the window's bottom row. The choice stays with the chat: replies, closing it and reopening it keep it.
+- **This chat**: tap **MD ON / TXT ON** in the window's bottom row. The window stays at the text you were reading, and the choice stays with the chat: replies, closing it and reopening it keep it.
 - **Your default**: **Settings → Display Settings → Rendering → View Mode**, or long-press **MD ON / TXT ON** and tap **Default view mode**. Every chat you have not switched follows it.
 
 Long-pressing **MD ON / TXT ON** opens the **Display** menu: **Default view mode**, **Latest reply on new page**, **Font Size**, **Alignment** and **Strip markdown in text mode**, the same settings as in the gear menu and Display Settings.
@@ -194,14 +194,14 @@ In a highlight chat the window shows the text you highlighted above the conversa
 - **Standard** (default): 95% of the screen.
 - **Expanded**: only a hairline around them, keeping KOReader's status bar visible while a book is open. It fits more text but leaves less room to tap outside.
 
-Changed from the gear menu, it redraws the window you are in where it can; otherwise it applies from the next window, and the notice says so. The streaming window follows it while Large Stream Dialog is on.
+Changed from the gear menu, it redraws the window you are in where it can, at the text you were reading; otherwise it applies from the next window, and the notice says so. The streaming window follows it while Large Stream Dialog is on.
 
 Some windows size themselves to their text:
 
 - **Translate and artifact windows** fit their text as laid out, up to the full height, without a band of empty space at the bottom.
 - **The compact dictionary popup** opens at 60% of the screen height and grows to fit a long answer, up to 80%. Window Size leaves it alone, so there is always room to tap outside it.
 
-**Rotation:** KOAssistant automatically resizes windows when you rotate your device, adapting the chat window and the input dialog to the new orientation. The chat window keeps your place, its view mode and your reply draft, and a compact popup stays compact, fitted to its text again.
+**Rotation:** KOAssistant automatically resizes windows when you rotate your device, adapting the chat window and the input dialog to the new orientation. The chat window keeps your place (it shows the text you were reading), its view mode and your reply draft, and a compact popup stays compact, fitted to its text again.
 
 ## Selecting text in a window
 

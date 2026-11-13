@@ -2051,7 +2051,7 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
     end
 
     -- Function to create and show the chat viewer
-    -- state param for rotation: {text, scroll_ratio, scroll_to_last_question}
+    -- state param for rotation: the viewer's captureState()
     -- session_web_search param: preserved session web search override (nil/true/false)
     local function showChatViewer(content_text, state, session_web_search, session_tools, render_mode)
         -- Always close existing viewer first
@@ -2451,8 +2451,9 @@ function ChatHistoryDialog:continueChat(ui, document_path, chat, chat_history_ma
                 -- This preserves all the same callbacks and settings through closure
                 showChatViewer(nil, captured_state)
             end,
-            -- Restore scroll position if provided (from rotation)
-            _initial_scroll_ratio = state and state.scroll_ratio or nil,
+            -- where the reader was before a rotation or a size toggle (the
+            -- viewer lands there before its first paint)
+            _initial_place = state and state.place or nil,
         }
 
         self_ref.current_chat_viewer = viewer
