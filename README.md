@@ -106,7 +106,7 @@ The full model, the double-gating of book text, what each action accesses, and t
 
 ## Supported providers
 
-KOAssistant has **33 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin, *Docs-based* below) implemented from provider documentation; plus any number of custom OpenAI-compatible providers you add yourself. OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login.
+KOAssistant has **34 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin, *Docs-based* below) implemented from provider documentation; plus any number of custom OpenAI-compatible providers you add yourself. OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login.
 
 | Provider | Description | Status | Get API key |
 |----------|-------------|--------|-------------|
@@ -141,6 +141,7 @@ KOAssistant has **33 built-in providers**: a **curated set** the maintainer test
 | **Chutes** | Decentralized GPU marketplace | Docs-based* | [chutes.ai](https://chutes.ai/) |
 | **Featherless** | Huge open-model catalog | Docs-based* | [featherless.ai](https://featherless.ai/) |
 | **Vercel AI Gateway** | 200+ models behind one key | Docs-based* | [vercel.com](https://vercel.com/) |
+| **UberLLM** | OpenAI-compatible gateway; 200+ chat models from many labs behind one key, usually below list price | Docs-based* | [uberllm.dev](https://uberllm.dev/) |
 | **OpenCode Zen** | Pay-as-you-go credit; open-weight models (GLM, DeepSeek, Kimi, MiniMax, Qwen) | Tested | [opencode.ai/auth](https://opencode.ai/auth) |
 | **OpenCode Go** | The monthly subscription with its own model list; the same account key, entered under `opencode_go` | Tested | [opencode.ai/docs/go](https://opencode.ai/docs/go/) |
 | **A2Agent** | Gateway to Chinese models (DeepSeek, GLM, Kimi, Qwen, MiniMax) behind one key | Tested | [a2agent.me](https://a2agent.me/) |

@@ -1,10 +1,10 @@
 # Providers and Models
 
-KOAssistant works with 33 built-in AI providers and with any OpenAI-compatible service you add yourself. This page lists the providers and what each can do, what is free, how to use a subscription instead of API credits, how API keys work, and how to choose, add and rank models.
+KOAssistant works with 34 built-in AI providers and with any OpenAI-compatible service you add yourself. This page lists the providers and what each can do, what is free, how to use a subscription instead of API credits, how API keys work, and how to choose, add and rank models.
 
 ## Supported providers
 
-KOAssistant has **33 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin and *Docs-based* below) implemented from provider documentation. You can add any number of custom OpenAI-compatible providers yourself ([Custom providers](#custom-providers)). OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login. The name in brackets is the provider's id, which `apikeys.lua` (for its key) and `custom_models.lua` use. Please test and give feedback: fixes are quickly implemented.
+KOAssistant has **34 built-in providers**: a **curated set** the maintainer tests with real keys and automated probes, and a **community set** (marked `*` in the plugin and *Docs-based* below) implemented from provider documentation. You can add any number of custom OpenAI-compatible providers yourself ([Custom providers](#custom-providers)). OpenAI is listed twice: once for API keys, once for the ChatGPT-subscription login. The name in brackets is the provider's id, which `apikeys.lua` (for its key) and `custom_models.lua` use. Please test and give feedback: fixes are quickly implemented.
 
 | Provider | Description | Status | Get API key |
 |----------|-------------|--------|-------------|
@@ -39,6 +39,7 @@ KOAssistant has **33 built-in providers**: a **curated set** the maintainer test
 | **Chutes** (`chutes`) | Decentralized GPU marketplace | Docs-based* | [chutes.ai](https://chutes.ai/) |
 | **Featherless** (`featherless`) | Huge open-model catalog | Docs-based* | [featherless.ai](https://featherless.ai/) |
 | **Vercel AI Gateway** (`vercel`) | 200+ models behind one key | Docs-based* | [vercel.com](https://vercel.com/) |
+| **UberLLM** (`uberllm`) | OpenAI-compatible gateway; 200+ chat models from many labs behind one key, usually below list price | Docs-based* | [uberllm.dev](https://uberllm.dev/) |
 | **OpenCode Zen** (`opencode`) | Pay-as-you-go credit; open-weight models (GLM, DeepSeek, Kimi, MiniMax, Qwen). GPT, Claude and Gemini through OpenCode are not supported yet (they use other endpoints). Sends the conversation header OpenCode requires | Tested | [opencode.ai/auth](https://opencode.ai/auth) |
 | **OpenCode Go** (`opencode_go`) | The monthly subscription with its own model list. Same account key as Zen, entered separately under `opencode_go` ([more](#opencode-go)) | Tested | [opencode.ai/docs/go](https://opencode.ai/docs/go/) |
 | **A2Agent** (`a2agent`) | Paid gateway to Chinese models (DeepSeek, GLM, Kimi, Qwen, MiniMax) behind one key | Tested | [a2agent.me](https://a2agent.me/) |
@@ -118,7 +119,7 @@ The credits arrive each billing month, are spent before any credits you bought, 
 
 ## Choosing a provider and model
 
-**Settings → Model** is one row for both: it reads "Model: claude-sonnet-5-5 (Anthropic)", or whatever you use. Tap it for the provider and model menu (33 built-in providers plus your custom ones). The Provider and Model buttons of the Quick Settings panel open shorter versions of the same lists ([Setup, Gestures and Panels](Setup-Gestures-and-Panels)).
+**Settings → Model** is one row for both: it reads "Model: claude-sonnet-5-5 (Anthropic)", or whatever you use. Tap it for the provider and model menu (34 built-in providers plus your custom ones). The Provider and Model buttons of the Quick Settings panel open shorter versions of the same lists ([Setup, Gestures and Panels](Setup-Gestures-and-Panels)).
 
 ### The provider list
 
@@ -232,7 +233,7 @@ Some providers can't ship as presets because signup or auth is restricted. **Sil
 
 ## Fetching and testing models
 
-Most built-in providers ship a full model list. The community hosts (Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless, Vercel AI Gateway and Amazon Bedrock) ship only a *seed* list ([Current default models](#current-default-models)). Two rows of a provider's model menu fill the gap; pick the provider in **Settings → Model** and add its key in **Settings → API Keys & Auth** first.
+Most built-in providers ship a full model list. The community hosts (Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless, Vercel AI Gateway, UberLLM and Amazon Bedrock) ship only a *seed* list ([Current default models](#current-default-models)). Two rows of a provider's model menu fill the gap; pick the provider in **Settings → Model** and add its key in **Settings → API Keys & Auth** first.
 
 - **Fetch models from provider...** pulls the provider's live model list into a picker. Tap a model to add it to your custom models (✓ marks the ones you already have). **Filter models...** narrows a long list (the picker shows the first 30), and **Add all (N)** appears when 20 or fewer are listed. Every provider has it except the OpenAI Subscription, which has no model list, and Ollama, whose menu already lists the installed models (**Refresh installed models**). Gemini needs a key to list its models.
 - **Test provider...** runs a quick capability check on the provider's current model: five small requests for Reachability, Streaming (SSE), Tool calling, Forced tool use (the search phase of AI Book Tools) and the Reasoning effort parameter. Each request is built the way a real one is (route, region, thinking off for the tool steps), and a failed step shows the provider's own explanation. Reachability also checks that KOAssistant can read the answer: a host that answers in another shape fails the step with the reason (a real request would fail too), the reply is shown when there is one, and a model that reasons first may answer the 16-token probe without text, which passes. When tool calling or the reasoning parameter passes, **Record capabilities for this model** saves the result, which makes features like AI Book Tools work where the model supports them.
@@ -327,6 +328,7 @@ The community hosts ship short built-in lists (the first id is the default). Som
 | **Chutes** | `deepseek-ai/DeepSeek-V4-Flash-0731-TEE` |
 | **Featherless** | `Qwen/Qwen3-32B` |
 | **Vercel AI Gateway** | `openai/gpt-5.5`, `anthropic/claude-sonnet-5` |
+| **UberLLM** | `deepseek/deepseek-v4.1-flash`, `anthropic/claude-sonnet-5` |
 | **Amazon Bedrock** | `deepseek.v3.2`, `openai.gpt-oss-120b-1:0`, `openai.gpt-oss-20b-1:0`, `amazon.nova-pro-v1:0`, `amazon.nova-2-lite-v1:0`, `amazon.nova-micro-v1:0`, `global.anthropic.claude-sonnet-5`, `global.anthropic.claude-sonnet-4-6` and 11 more |
 <!-- /generated: community -->
 
@@ -362,7 +364,7 @@ A named tier is exact: when your provider has no model for it, the request keeps
 
 For a pin that overrides the tier system everywhere (not just one provider), **Settings → Advanced → Tier Models (Global)** locks a tier to one specific provider and model for every tier-hinted request. A pin applies only when an action or Quick Answer asks for a speed tier, and only to that request; normal chats and the models you pick are never affected. Each tier reads "Follow active provider" (the default) or the pinned provider and model, and **Clear all pins** removes them. An unusable pin (missing key) is ignored automatically. A provider's **Model tiers...** names the global pins that outrank it.
 
-Meta-routers (OpenRouter, Requesty, OpenCode Zen, OpenCode Go, A2Agent, Perplexity) ship without curated tier placements, because a router ladder would hop vendors on a speed hint; so do Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless and Vercel AI Gateway. You can add your own with **Model tiers...** or `custom_models.lua`, custom providers included.
+Meta-routers (OpenRouter, Requesty, OpenCode Zen, OpenCode Go, A2Agent, UberLLM, Perplexity) ship without curated tier placements, because a router ladder would hop vendors on a speed hint; so do Cerebras, MiniMax, DeepInfra, Novita AI, Hyperbolic, Nebius AI Studio, Chutes, Featherless and Vercel AI Gateway. You can add your own with **Model tiers...** or `custom_models.lua`, custom providers included.
 
 ### Current tier picks
 

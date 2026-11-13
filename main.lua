@@ -3126,6 +3126,7 @@ function AskGPT:getProviderDisplayName(provider_id)
     novita = "Novita AI",
     nebius = "Nebius AI Studio",
     vercel = "Vercel AI Gateway",
+    uberllm = "UberLLM",
     opencode = "OpenCode Zen",
     opencode_go = "OpenCode Go",
     a2agent = "A2Agent",
