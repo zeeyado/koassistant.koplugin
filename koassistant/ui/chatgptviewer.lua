@@ -45,6 +45,45 @@ local Languages = require("koassistant.core.languages")
 local Constants = require("koassistant.core.constants")
 local ScriptFonts = require("koassistant.ui.script_fonts")
 
+-- Task lists ("- [ ] to do", "- [x] done", GitHub's extension): the Markdown
+-- library knows no task items and MuPDF draws no form controls, so the box is
+-- written as a character at the item's start. Lines inside a code fence are
+-- left as typed. One copy for both views (the plain-text view strips through
+-- it too).
+local TASK_OPEN, TASK_DONE = "☐", "☑"
+local function taskListBoxes(text)
+    if not text or not text:find("%[[ xX]%]") then return text end
+    local out, in_fence = {}, false
+    for typed in (text .. "\n"):gmatch("([^\n]*)\n") do
+        local line = typed
+        if line:match("^%s*```") then in_fence = not in_fence end
+        if not in_fence then
+            line = line:gsub("^(%s*[-*+]%s+)%[([ xX])%](%s)", function(lead, mark, gap)
+                return lead .. (mark == " " and TASK_OPEN or TASK_DONE) .. gap
+            end, 1)
+            line = line:gsub("^(%s*%d+[.)]%s+)%[([ xX])%](%s)", function(lead, mark, gap)
+                return lead .. (mark == " " and TASK_OPEN or TASK_DONE) .. gap
+            end, 1)
+        end
+        out[#out + 1] = line
+    end
+    return table.concat(out, "\n")
+end
+
+-- A task item draws its box in the bullet's place: an item of a bulleted
+-- list of the Markdown view's HTML that begins with a box gets no marker
+-- (inline, which MuPDF applies). A numbered item keeps its number.
+local function taskListItems(html)
+    if not html:find(TASK_OPEN, 1, true) and not html:find(TASK_DONE, 1, true) then return html end
+    return (html:gsub("<ul>.-</ul>", function(list)
+        for _i, box in ipairs({ TASK_OPEN, TASK_DONE }) do
+            list = list:gsub("<li>(%s*)" .. box, '<li style="list-style-type: none">%1' .. box)
+            list = list:gsub("<li>(%s*<p>%s*)" .. box, '<li style="list-style-type: none">%1' .. box)
+        end
+        return list
+    end))
+end
+
 -- Strip markdown syntax for text mode (preserves readability without formatting)
 -- Used when render_markdown is false - converts markdown to plain text with visual hints
 -- Uses universal symbols that work for ALL scripts (Arabic, CJK, etc.)
@@ -62,7 +101,8 @@ local function stripMarkdown(text, is_rtl)
     -- In RTL mode, skip LRM to let para_direction_rtl control paragraph direction
     local LRM = is_rtl and "" or "\u{200E}"  -- Left-to-Right Mark - resets direction after RTL text
 
-    local result = text
+    -- task boxes while the code fences still stand (lines inside one are left)
+    local result = taskListBoxes(text)
 
     -- Code blocks FIRST (before other transformations can affect content inside)
     -- ```lang\ncode\n``` → indented with 4 spaces
@@ -140,6 +180,8 @@ local function stripMarkdown(text, is_rtl)
     result = result:gsub("^[%-]%s+", "• ")
     -- For * lists, only at start of line (not mid-line asterisks)
     result = result:gsub("\n%*%s+", "\n• ")
+    -- a task item shows its box in the bullet's place
+    result = result:gsub("• " .. TASK_OPEN, TASK_OPEN):gsub("• " .. TASK_DONE, TASK_DONE)
 
     -- Horizontal rules: --- or *** or ___ → line (15 chars, subtle separator)
     local hr_line = "───────────────"
@@ -1305,7 +1347,7 @@ local function markdownHtml(viewer, text, opts)
   local source_text = text or ""
   if opts.ipa_fix then source_text = fixIPABidi(source_text) end
   local auto_linked = autoLinkUrls(applyMath(viewer, source_text))
-  local bracket_escaped = preprocessBrackets(auto_linked)
+  local bracket_escaped = preprocessBrackets(taskListBoxes(auto_linked))
   local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
   local html_body, err = MD(preprocessed_text, {})
   if err then
@@ -1313,6 +1355,7 @@ local function markdownHtml(viewer, text, opts)
     -- Fallback to plain text if HTML generation fails
     html_body = "<pre>" .. (text or "Missing text.") .. "</pre>"
   end
+  html_body = taskListItems(html_body)
   html_body = addHtmlBidiAttributes(html_body, { use_starts_with_rtl = opts.ipa_fix, text_align = viewer.text_align })
   local reply_break
   html_body, reply_break = applyExchangePageBreaks(html_body, viewer.configuration,
@@ -6240,6 +6283,9 @@ end
 -- detection) rather than growing its own. Any text-mode rendering fix made here
 -- reaches the popup for free.
 ChatGPTViewer.stripMarkdown = stripMarkdown
+-- the task-list passes, for tests
+ChatGPTViewer._taskListBoxes = taskListBoxes
+ChatGPTViewer._taskListItems = taskListItems
 ChatGPTViewer.fixIPABidi = fixIPABidi
 ChatGPTViewer.hasDominantRTL = hasDominantRTL
 

@@ -134,7 +134,7 @@ KOAssistant offers two view modes for displaying AI responses.
 
 **Markdown view** (default)
 
-- Full formatting: bold, italic, headers, lists, code blocks, tables
+- Full formatting: bold, italic, headers, lists, task lists (`- [ ]` and `- [x]` drawn as ☐ and ☑), code blocks, tables
 - Best for most users with Latin scripts
 
 **Plain Text view**
@@ -146,7 +146,7 @@ KOAssistant offers two view modes for displaying AI responses.
   - **Bold** → renders as actual bold
   - *Italics* (asterisks) → preserved as `*text*` for prose readability
   - _Italics_ (underscores) → bold (for dictionary part of speech)
-  - Lists → bullet points (•)
+  - Lists → bullet points (•); task items → ☐ and ☑
   - Code → `'quoted'`
   - Line spacing tuned to match the visual density of the Markdown view
 - **BiDi support**: mixed RTL/LTR content (e.g., Arabic headwords with English definitions) displays correctly; RTL-only headers align naturally to the right
