@@ -1,6 +1,6 @@
 -- Unit tests for koassistant/request/stream_markdown.lua (B562, 2026-11-07):
 -- the Markdown view of the streaming window. The render policy (the first
--- text, a short text, a line end past the floor, the floor growing with the
+-- text, a short text, any change past the floor, the floor following the
 -- render's cost), the widget replacing its HTML widget in place (the last
 -- page while following, the reader's page kept while paused, the old widget
 -- freed), the position capture (the page's first words, the anchor's ordinal
@@ -173,8 +173,46 @@ TestRunner:test("following shows the last page; paused keeps the reader's page w
     clock = t
     w.follow = true
     w:setText(w.text .. "\nanother line")
-    TestRunner:assertTrue(w.floor >= SM.FLOOR and w.floor <= 6 * 1.01 * 1, "the floor from the cost: " .. tostring(w.floor))
+    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 1, "the floor from the layout's cost")
+    -- the page is rastered at the first paint after a render: that second counts too
+    w:paintTo(nil, 0, 0)
+    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 2, "and from the paint's")
+    w:paintTo(nil, 0, 0)
+    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 2, "a later paint of the same render adds nothing")
     SM._now = real_now
+end)
+
+TestRunner:test("a cheap render: the floor is a fifth of a second, several renders a second", function()
+    TestRunner:assertEqual(SM.FLOOR, 0.2)
+    local long = string.rep("a line of the answer\n", 40)
+    local st = { rendered = long, rendered_at = 10, floor = math.max(SM.FLOOR, 0.035 * SM.COST_FACTOR) }
+    TestRunner:assertTrue(not SM.renderDue(st, long .. "x", 10.1), "a tenth of a second after: not yet")
+    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 10.21), "a fifth of a second after a 35 ms render: due")
+    st.floor = math.max(SM.FLOOR, 0.5 * SM.COST_FACTOR)
+    TestRunner:assertTrue(not SM.renderDue(st, long .. "x", 11.5), "a half-second render: two seconds between renders")
+    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 12.01))
+end)
+
+TestRunner:test("healTail: the last line's open bold or code mark is closed for the render, nothing else", function()
+    local heal = SM.healTail
+    TestRunner:assertEqual(heal("A title\n\n**The Last Bak"), "A title\n\n**The Last Bak**", "an open bold pair")
+    TestRunner:assertEqual(heal("He said **yes** and **no"), "He said **yes** and **no**", "the second pair open")
+    TestRunner:assertEqual(heal("Run `luac -p fi"), "Run `luac -p fi`", "an open code tick")
+    TestRunner:assertEqual(heal("Run `a ** b"), "Run `a ** b`", "inside code the stars are not markup")
+    TestRunner:assertEqual(heal("All **closed** here"), "All **closed** here")
+    TestRunner:assertEqual(heal("Then **"), "Then **", "a pair that only just opened")
+    TestRunner:assertEqual(heal("**open on the line before\nplain last line"), "**open on the line before\nplain last line",
+        "only the last line")
+    TestRunner:assertEqual(heal("text\n```lua\nlocal a = b ** c"), "text\n```lua\nlocal a = b ** c", "inside an open fence")
+    TestRunner:assertEqual(heal("text\n```"), "text\n```", "a fence line itself")
+    TestRunner:assertEqual(heal("- one\n- two\n-"), "- one\n- two\n", "a list item's dash alone waits for its first word")
+    TestRunner:assertEqual(heal("1. one\n2."), "1. one\n", "a number alone")
+    TestRunner:assertEqual(heal("text\n\n##"), "text\n\n", "a heading's hashes alone")
+    TestRunner:assertEqual(heal("text\n\n> "), "text\n\n", "a quote's bracket alone")
+    TestRunner:assertEqual(heal("- one\n- t"), "- one\n- t", "an item with its first letter is shown")
+    TestRunner:assertEqual(heal("ends with a newline\n"), "ends with a newline\n")
+    TestRunner:assertEqual(heal(""), "")
+    TestRunner:assertEqual(heal(nil), nil)
 end)
 
 TestRunner:test("the position capture: the page's first words and the anchor's ordinal across the pages before", function()

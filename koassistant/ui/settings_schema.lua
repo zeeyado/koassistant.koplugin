@@ -576,7 +576,7 @@ local SettingsSchema = {
                                 local f = plugin.settings:readSetting("features") or {}
                                 return f.render_markdown ~= false
                             end,
-                            help_text = _("Show the answer rendered while it streams (bold, headings, lists, the fonts of every script) instead of plain text swapped for the rendered view at the end. It re-renders at line ends, about every two seconds and less often as the answer grows; each render lays the whole answer out again, which takes longer on slow devices and in long answers. Grayed out while Plain Text is your default."),
+                            help_text = _("Show the answer rendered while it streams (bold, headings, lists, the fonts of every script) instead of plain text swapped for the rendered view at the end. It is drawn again several times a second where the device keeps up, and less often on a slow device or as the answer grows, since each time the whole answer is laid out again. Grayed out while Plain Text is your default."),
                         },
                         {
                             id = "large_stream_dialog",

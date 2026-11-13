@@ -9,12 +9,19 @@ It stands in for InputText inside the stream handler's InputDialog
 Quick, the scroll buttons) and the handler's cadence stay as they are; it
 answers the subset of InputText's interface the dialog and the handler call,
 and the handler branches on `markdown_stream` where it reads the plain
-widget's lines. A render is a re-layout of the whole text by MuPDF (about
-0.2 s at 3,000 words on the device, 0.5 s at 9,000), so it happens at line
-ends with a floor between renders that grows with the cost of the last one,
-and at once for a short text (the waiting animation, the first words); a
-render the floor held back is scheduled for the floor's end, so a pause in
-the chunks (a web search, a slow provider) still shows what arrived.
+widget's lines. A render is a re-layout of the whole text by MuPDF and a
+paint of its page (35 to 70 ms at 3,500 words on a desktop, several times
+that on a device), so renders keep a floor between them that follows the cost
+of the last one: FLOOR at least, COST_FACTOR times the layout and the paint.
+Where a render is cheap the answer is drawn several times a second, close to
+the plain view's pace; where it is not, rendering takes a quarter of the time
+at most (the first version waited 1.5 s whatever a render cost: "big chunks",
+the maintainer on the desktop app, 2026-11-13). A short text (the waiting
+animation, the first words) renders at once; a render the floor held back is
+scheduled for the floor's end, so a pause in the chunks (a web search, a slow
+provider) still shows what arrived. The last line's unclosed bold or code
+mark is closed for the render (healTail), so a phrase is bold from its first
+letter instead of showing its asterisks until the closing pair arrives.
 Pagination is stable top-down (probed 2026-10-28), so a paused reader keeps
 their page while the tail grows; following shows the last page. The reader's
 spot for the completion viewer is the first line of their page, read from the
@@ -50,8 +57,8 @@ local StreamMarkdown = InputContainer:extend{
 }
 
 StreamMarkdown.SHORT = 400          -- bytes: a text this short renders at once
-StreamMarkdown.FLOOR = 1.5          -- seconds between renders, at least
-StreamMarkdown.COST_FACTOR = 6      -- the floor grows to this many times the last render's cost
+StreamMarkdown.FLOOR = 0.2          -- seconds between renders, at least
+StreamMarkdown.COST_FACTOR = 4      -- the floor grows to this many times the last render's cost (layout and paint)
 StreamMarkdown.CAPTURE_PAGES = 10   -- pages read back for the occurrence count at most (each a text extraction)
 
 -- Wall-clock seconds (a floor between renders must not count CPU time, which
@@ -76,6 +83,33 @@ function StreamMarkdown.renderDue(state, text, now)
     local left = (state.floor or StreamMarkdown.FLOOR) - (now - (state.rendered_at or 0))
     if left > 0 then return false, left end
     return true
+end
+
+--- The text as it stands mid-stream, readied for the render: what its last
+--- line opened and has not closed yet is closed (a bold pair, a code tick),
+--- and a last line that is so far only a block's mark (a list item's dash or
+--- number, a heading's hashes, a quote's bracket) waits for its first word
+--- instead of showing as a stray "-". Only the last line, and never inside an
+--- open code fence. Pure; display only (the text itself is never changed).
+function StreamMarkdown.healTail(text)
+    if type(text) ~= "string" or text == "" then return text end
+    local last = text:match("([^\n]*)$")
+    if last == "" or last:match("^%s*```") then return text end
+    local fences = 0
+    for line in text:gmatch("[^\n]+") do
+        if line:match("^%s*```") then fences = fences + 1 end
+    end
+    if fences % 2 == 1 then return text end
+    if last:match("^%s*[-*+>]%s*$") or last:match("^%s*%d+[.)]?%s*$") or last:match("^%s*#+%s*$") then
+        return text:sub(1, #text - #last)
+    end
+    local _ticked, ticks = last:gsub("`", "")
+    -- inside a code span nothing else is markup
+    if ticks % 2 == 1 then return text .. "`" end
+    local _paired, pairs_of_stars = last:gsub("%*%*", "")
+    -- a pair that only just opened has nothing to make bold yet
+    if pairs_of_stars % 2 == 1 and not last:match("%*%*%s*$") then return text .. "**" end
+    return text
 end
 
 function StreamMarkdown:init()
@@ -115,7 +149,8 @@ function StreamMarkdown:initTextBox()
     local t0 = StreamMarkdown._now()
     local Viewer = require("koassistant.ui.chatgptviewer")
     local opts = self:_opts()
-    local ok, html = pcall(Viewer.markdownHtml, text, { features = opts.features, text_align = opts.text_align })
+    local ok, html = pcall(Viewer.markdownHtml, StreamMarkdown.healTail(text),
+        { features = opts.features, text_align = opts.text_align })
     if not ok or type(html) ~= "string" then
         logger.warn("KOAssistant: Markdown stream render failed:", tostring(html))
         html = "<pre>" .. text:gsub("&", "&amp;"):gsub("<", "&lt;") .. "</pre>"
@@ -145,11 +180,26 @@ function StreamMarkdown:initTextBox()
     self:_dropPending()
     self.rendered = text
     self.rendered_at = StreamMarkdown._now()
-    local cost = self.rendered_at - t0
-    self.floor = math.max(StreamMarkdown.FLOOR, cost * StreamMarkdown.COST_FACTOR)
+    -- the layout's cost now; the page is rastered when it is painted, and
+    -- paintTo adds that
+    self.cost = self.rendered_at - t0
+    self._paint_owed = true
+    self.floor = math.max(StreamMarkdown.FLOOR, self.cost * StreamMarkdown.COST_FACTOR)
     self.renders = (self.renders or 0) + 1
     -- "fast" as the plain stream widget repaints: the text area alone, no flash
     UIManager:setDirty(self.parent, function() return "fast", self.dimen end)
+end
+
+--- The first paint after a render rasters the new page: part of what the
+--- render costs, counted into the floor
+function StreamMarkdown:paintTo(bb, x, y)
+    local t0 = StreamMarkdown._now()
+    if InputContainer.paintTo then InputContainer.paintTo(self, bb, x, y) end
+    if self._paint_owed then
+        self._paint_owed = nil
+        self.cost = (self.cost or 0) + (StreamMarkdown._now() - t0)
+        self.floor = math.max(StreamMarkdown.FLOOR, self.cost * StreamMarkdown.COST_FACTOR)
+    end
 end
 
 -- The render the floor held back, scheduled for the floor's end; dropped by
