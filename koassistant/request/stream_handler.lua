@@ -1323,6 +1323,13 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         if auto_scroll_active then
             auto_scroll_active = false
             logger.dbg("KOAssistant: stream autoscroll paused —", cause or "toggle")
+            -- The rendered view learns it now, not at the next tick: a
+            -- drawing it holds back (the floor between drawings) comes
+            -- before that tick whenever the answer stops arriving for a
+            -- moment, and showed the last page again right after the
+            -- reader's step up
+            local iw = streamDialog._input_widget
+            if iw and iw.markdown_stream then iw.follow = false end
             -- Update button to show current state (OFF)
             local btn = streamDialog.button_table:getButtonById("scroll_control")
             if btn then
@@ -2223,7 +2230,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                                 end
                             end
                         else
-                            logger.warn("Failed to parse NDJSON line:", line)
+                            -- Its length only (the line can be a piece of an
+                            -- answer), and at debug level: the "{" that opens an
+                            -- indented error body lands here on every such error
+                            logger.dbg("KOAssistant: unreadable NDJSON line,", #line, "bytes")
                             -- The first line of an indented error body is a lone
                             -- "{" (Gemini, OpenAI): kept with the lines that
                             -- follow, so the body decodes whole at the status
