@@ -193,4 +193,48 @@ TestRunner:test("each message of a chat has its own main direction", function()
     TestRunner:assertTrue(translated:find("<p>▶ A long English original", 1, true) ~= nil, "the original left-to-right")
 end)
 
+TestRunner:test("a text without one right-to-left letter: no block is read, nothing is marked", function()
+    -- what the shortcut rests on: such a block is left-to-right whatever the options say
+    for _idx, text in ipairs({ "An English line.", "1234 - 5678", "", "日本語の文", "Ελληνικά", "русский текст", "☑ ✓ 🙂" }) do
+        TestRunner:assertEqual(Bidi.blockDirection(text, { main = "rtl" }), "ltr", "main right-to-left: " .. text)
+        TestRunner:assertEqual(Bidi.blockDirection(text, { use_starts_with_rtl = true }), "ltr", "a dictionary window: " .. text)
+    end
+    local html = "<h2>A heading</h2>\n<p>A paragraph with <strong>bold</strong> words.</p>\n"
+        .. "<ul>\n<li>one</li>\n<li>two</li>\n</ul>\n<ol><li>first</li></ol>"
+        .. '<table><thead><tr><th style="text-align:left">Key</th></tr></thead>'
+        .. '<tbody><tr><td style="text-align:right">1</td></tr></tbody></table>'
+        .. "<blockquote><p>a quote</p></blockquote><p>• one\n• two</p>"
+    local want = "<h2>A heading</h2><p>A paragraph with <strong>bold</strong> words.</p>"
+        .. "<ul><li>one</li><li>two</li></ul><ol><li>first</li></ol>"
+        .. '<table><thead><tr><th style="text-align:left">Key</th></tr></thead>'
+        .. '<tbody><tr><td style="text-align:right">1</td></tr></tbody></table>'
+        .. "<blockquote><p>a quote</p></blockquote><p>• one</p><p>• two</p>"
+    local read = 0
+    local real = Bidi.blockDirection
+    Bidi.blockDirection = function(...) read = read + 1; return real(...) end
+    for _idx, opts in ipairs({ {}, { text_align = "left" }, { text_align = "right" }, { use_starts_with_rtl = true } }) do
+        TestRunner:assertEqual(Bidi.addHtmlBidiAttributes(html, opts), want,
+            "the blocks as they were, the fake bullets one paragraph each")
+    end
+    TestRunner:assertEqual(read, 0, "no block's words were read")
+    Bidi.addHtmlBidiAttributes("<p>" .. AR .. "</p><p>English</p>", {})
+    Bidi.blockDirection = real
+    TestRunner:assertTrue(read >= 2, "with a right-to-left letter in the text every block is")
+end)
+
+TestRunner:test("the space between two marks inside a line stays; the gaps between blocks go", function()
+    TestRunner:assertEqual(pass("<p><strong>bold</strong> <em>italic</em> and <strong>x</strong> <code>y</code></p>"),
+        "<p><strong>bold</strong> <em>italic</em> and <strong>x</strong> <code>y</code></p>", "bold, italic and code side by side")
+    TestRunner:assertEqual(pass('<p>See <a href="https://a.example">one</a> <a href="https://b.example">two</a>.</p>'),
+        '<p>See <a href="https://a.example">one</a> <a href="https://b.example">two</a>.</p>', "two links in a row")
+    TestRunner:assertEqual(pass("<p><em>first line</em>\n<strong>second line</strong></p>"),
+        "<p><em>first line</em>\n<strong>second line</strong></p>", "a line break between two marks is a space too")
+    TestRunner:assertEqual(pass("<p>x<sup>2</sup> <i>y</i></p>"), "<p>x<sup>2</sup> <i>y</i></p>", "the math pass's tags")
+    TestRunner:assertEqual(pass("<h2>Title</h2>\n<p>Text</p>\n<ul>\n<li> <strong>one</strong> </li>\n<li>two</li>\n</ul>\n<hr>\n<p>End</p>"),
+        "<h2>Title</h2><p>Text</p><ul><li><strong>one</strong></li><li>two</li></ul><hr><p>End</p>",
+        "between blocks, and between a block's tag and a mark, the gap is layout noise")
+    TestRunner:assertEqual(pass("<p>" .. AR .. " <strong>" .. AR2 .. "</strong> <em>" .. HE .. "</em></p>"),
+        '<p dir="rtl">' .. AR .. " <strong>" .. AR2 .. "</strong> <em>" .. HE .. "</em></p>", "in a right-to-left block too")
+end)
+
 return TestRunner:summary()

@@ -615,6 +615,7 @@ tests/
 │   ├── mock_koreader.lua      # KOReader module mocks
 │   ├── ui_recorder.lua        # Flow tests: records shown dialogs, taps their buttons
 │   ├── koamock.lua            # The mock_series fixture as parsed test data
+│   ├── markdown_samples.lua   # Markdown of every shape an answer takes (the stream view's piece-by-piece conversion)
 │   ├── test_runner.lua        # Assertion/reporting harness every unit file uses
 │   ├── test_helpers.lua       # Integration-test helpers (sync HTTP instead of KOReader subprocesses)
 │   ├── constraint_utils.lua   # Plugin constraint utilities wrapper

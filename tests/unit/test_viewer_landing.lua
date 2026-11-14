@@ -3,9 +3,8 @@
 -- the usage line and the label stay on the page before and the landed page
 -- starts with the reply's first line; a short first question gets the page
 -- too (the 2026-08-12 skip is gone); the first answer of a chat lands like
--- any other; and a step up while the stream is followed pauses the follow
--- AND scrolls (the consumed press of 2026-08-15 is gone), except on the
--- first page where it only pauses.
+-- any other; and the first step up while the stream is followed only stops
+-- the following, the page stays (the next step scrolls).
 --
 -- Run: lua tests/unit/test_viewer_landing.lua  (or lua tests/run_tests.lua --unit)
 
@@ -173,7 +172,7 @@ TestRunner:test("the line after the label and its blank line", function()
 end)
 
 print("")
-print("  [the first answer lands, the stream's first step up scrolls]")
+print("  [the first answer lands, the stream's first step up stops the following]")
 
 TestRunner:test("dialogs.lua lands the first answer too", function()
     local src = read("koassistant/ui/dialogs.lua")
@@ -185,14 +184,15 @@ TestRunner:test("dialogs.lua lands the first answer too", function()
         "the reply viewer lands on every reply")
 end)
 
-TestRunner:test("the stream window's up hooks pause and then scroll", function()
+TestRunner:test("the stream window's up hooks: the first step up only stops the following", function()
+    -- "stop the page where it is": the step is eaten, the next one scrolls
     local src = read("koassistant/request/stream_handler.lua")
-    TestRunner:assertTrue(src:find('turnOffAutoScroll%("scroll%-up button"%)\n%s*end\n%s*return original_scrollUp%(self_widget, %.%.%.%)') ~= nil,
-        "the dialog's up button scrolls after the pause")
-    TestRunner:assertTrue(src:find('turnOffAutoScroll%("swipe/key up"%)\n%s*end\n%s*return orig_scrollText%(self_w, direction, %.%.%.%)') ~= nil,
-        "a swipe or key up scrolls after the pause")
-    TestRunner:assertTrue(src:find('turnOffAutoScroll%("page%-up"%)\n%s*local handled = orig_onScrollUp%(self_w, %.%.%.%)') ~= nil,
-        "page-up scrolls after the pause and is consumed only on the first page")
+    TestRunner:assertTrue(src:find('turnOffAutoScroll%("scroll%-up button"%)\n%s*return\n%s*end\n%s*return original_scrollUp%(self_widget, %.%.%.%)') ~= nil,
+        "the dialog's up button")
+    TestRunner:assertTrue(src:find('turnOffAutoScroll%("swipe/key up"%)\n%s*return\n%s*end\n%s*return orig_scrollText%(self_w, direction, %.%.%.%)') ~= nil,
+        "a swipe up")
+    TestRunner:assertTrue(src:find('turnOffAutoScroll%("page%-up"%)\n%s*return true\n%s*end\n%s*return orig_onScrollUp%(self_w, %.%.%.%)') ~= nil,
+        "the page-up key, consumed so nothing behind the window takes it")
 end)
 
 print("")
@@ -306,11 +306,19 @@ TestRunner:test("one Markdown pipeline: every HTML build goes through it, the sp
     TestRunner:assertEqual(widgets, 4, "the content widget built in one place, used four times")
     local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(html_body%)%)", "")
     TestRunner:assertEqual(css_sites, 1, "one CSS site")
+    -- the pipeline's two halves (the streaming window keeps the first half's
+    -- result for an answer's finished part): the whole conversion is both
     local a = src:find("local function markdownHtml(viewer, text, opts)", 1, true)
     local body = src:sub(a, src:find("\nend\n", a, true))
-    local breaks = body:find("applyExchangePageBreaks(", 1, true)
-    local spans = body:find("ScriptFonts.markRuns(", 1, true)
-    TestRunner:assertTrue(breaks and spans and spans > breaks, "the spans after the page breaks")
+    TestRunner:assertTrue(body:find("return finishHtml(viewer, markdownBlocks(viewer, text, opts), opts)", 1, true) ~= nil,
+        "the first half, then the second")
+    local f = src:find("local function finishHtml(viewer, html_body, opts)", 1, true)
+    local finish = src:sub(f, src:find("\nend\n", f, true))
+    local direction = finish:find("addHtmlBidiAttributes(", 1, true)
+    local breaks = finish:find("applyExchangePageBreaks(", 1, true)
+    local spans = finish:find("ScriptFonts.markRuns(", 1, true)
+    TestRunner:assertTrue(direction and breaks and spans and breaks > direction and spans > breaks,
+        "the direction pass, the page breaks, the spans last")
 end)
 
 return TestRunner:summary()

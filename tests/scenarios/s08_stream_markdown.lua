@@ -3,8 +3,9 @@ Markdown while streaming (B562), headless: a child process writes SSE chunks
 as a provider would, the stream dialog opens with the Markdown view, the
 chunks are rendered through the viewer's pipeline by the app's own MuPDF
 (a heading, a list, an emoji span), following shows the last page, a pause
-keeps the reader's page while the tail grows, a step up keeps it too when a
-drawing was being held back, and the stream completes with the whole text.
+keeps the reader's page while the tail grows, the first step up only stops
+the following and the next one goes back a page, which a drawing that was
+being held back keeps, and the stream completes with the whole text.
 Run: sh tests/scenarios/run.sh <scratch dir> s08_stream_markdown
 ]]
 local S = dofile(os.getenv("KOA_PLUGIN") .. "/tests/scenarios/boot.lua")
@@ -120,20 +121,20 @@ end)
 S.check(w2 and w2:pageCount() > 1, "paused: more than one page")
 S.check(w2 and w2:currentPage() == 1, "paused: the first page kept (page " .. tostring(w2 and w2:currentPage()) .. ")")
 
--- A step up while a drawing is held back. On a device a drawing costs enough
+-- Steps up while a drawing is held back. On a device a drawing costs enough
 -- that the floor between drawings holds one back most of the time (here the
 -- floor is set to what a drawing of 0.6 s gives), and the answer stops
 -- arriving for a while, so no tick of the handler comes between the reader's
--- step and the held drawing. The step pauses the follow and moves up a page:
--- the held drawing must keep that page. It showed the last page again, since
--- the view was told about the pause only at the handler's next tick (a reader
--- with page keys, 2026-11-14: the key "goes up, it doesnt stop auto streaming
--- on first press").
+-- steps and the held drawing. The first step up while the view follows only
+-- stops the following, the page stays ("stop the page where it is"); the next
+-- one goes back a page: the held drawing must keep that page. It showed the
+-- last page again, since the view was told about the pause only at the
+-- handler's next tick (a reader with page keys, 2026-11-14).
 local floor = StreamMarkdown.FLOOR
 StreamMarkdown.FLOOR = 2.5
 local burst = #expectedOf(60)   -- the text when the answer stops arriving
 local step = {}
-local w3 = run("a step up before a held drawing", nil, {
+local w3 = run("steps up before a held drawing", nil, {
     n = 70, pause_after = 60, pause_seconds = 3,
     on_poll = function(widget)
         if not widget then return end
@@ -147,19 +148,23 @@ local w3 = run("a step up before a held drawing", nil, {
             step.pressed = true
             step.before = widget:currentPage()
             widget.text_widget:onScrollUp()   -- what a press of the previous-page key calls
-            step.after = widget:currentPage()
+            step.first = widget:currentPage()
             local btn = widget.parent.button_table:getButtonById("scroll_control")
             step.button = btn and btn.text
+            widget.text_widget:onScrollUp()
+            step.after = widget:currentPage()
         end
     end,
 })
 StreamMarkdown.FLOOR = floor
 S.check(step.pressed == true, "a drawing was held back when the answer stopped arriving, past the first page")
-S.check(step.pressed and step.after == step.before - 1 and step.button == "Autoscroll OFF ↓",
-    "one step up pauses the follow and moves up a page (page " .. tostring(step.before) .. " to " .. tostring(step.after)
-    .. ", " .. tostring(step.button) .. ")")
+S.check(step.pressed and step.first == step.before and step.button == "Autoscroll OFF ↓",
+    "the first step up only stops the following: the page stays (page " .. tostring(step.before) .. " to "
+    .. tostring(step.first) .. ", " .. tostring(step.button) .. ")")
+S.check(step.pressed and step.after == step.before - 1,
+    "the next one goes back a page (page " .. tostring(step.after) .. ")")
 S.check(step.pressed and step.after_held == step.after,
-    "the held drawing keeps the reader's page (page " .. tostring(step.after_held) .. ", the step left page "
+    "the held drawing keeps the reader's page (page " .. tostring(step.after_held) .. ", the steps left page "
     .. tostring(step.after) .. ")")
 S.check(w3 and step.pressed and w3:currentPage() == step.after,
     "and so does the rest of the answer (page " .. tostring(w3 and w3:currentPage()) .. " of "

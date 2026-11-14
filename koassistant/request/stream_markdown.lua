@@ -9,19 +9,26 @@ It stands in for InputText inside the stream handler's InputDialog
 Quick, the scroll buttons) and the handler's cadence stay as they are; it
 answers the subset of InputText's interface the dialog and the handler call,
 and the handler branches on `markdown_stream` where it reads the plain
-widget's lines. A render is a re-layout of the whole text by MuPDF and a
-paint of its page (35 to 70 ms at 3,500 words on a desktop, several times
-that on a device), so renders keep a floor between them that follows the cost
-of the last one: FLOOR at least, COST_FACTOR times the layout and the paint.
-Where a render is cheap the answer is drawn several times a second, close to
-the plain view's pace; where it is not, rendering takes a quarter of the time
-at most (the first version waited 1.5 s whatever a render cost: "big chunks",
-the maintainer on the desktop app, 2026-11-13). A short text (the waiting
-animation, the first words) renders at once; a render the floor held back is
-scheduled for the floor's end, so a pause in the chunks (a web search, a slow
-provider) still shows what arrived. The last line's unclosed bold or code
-mark is closed for the render (healTail), so a phrase is bold from its first
-letter instead of showing its asterisks until the closing pair arrives.
+widget's lines.
+
+A drawing is the text converted to HTML, the whole HTML laid out by MuPDF and
+its page painted. The conversion was most of that (four fifths at 2,000 words,
+measured in the app, 2026-11-14), and nearly all of it is the answer's
+finished part converted again, so that part is converted once and kept
+(convert, cut where safeCut says the pieces give the whole conversion's HTML);
+what a drawing still does on the whole answer is the direction pass, the
+script runs and MuPDF's layout. Drawings keep a floor between them that
+follows the cost of the last one: FLOOR at least, COST_FACTOR times the
+conversion, the layout and the paint. Where a drawing is cheap the answer is
+drawn several times a second, close to the plain view's pace; where it is
+not, drawing takes a quarter of the time at most (the first version waited
+1.5 s whatever a drawing cost: "big chunks", the maintainer on the desktop
+app, 2026-11-13). A short text (the waiting animation, the first words)
+renders at once; a render the floor held back is scheduled for the floor's
+end, so a pause in the chunks (a web search, a slow provider) still shows
+what arrived. The last line's unclosed bold or code mark is closed for the
+render (healTail), so a phrase is bold from its first letter instead of
+showing its asterisks until the closing pair arrives.
 Pagination is stable top-down (probed 2026-10-28), so a paused reader keeps
 their page while the tail grows; following shows the last page. The reader's
 spot for the completion viewer is the first line of their page, read from the
@@ -85,6 +92,129 @@ function StreamMarkdown.renderDue(state, text, now)
     return true
 end
 
+-- How a line starts, as the Markdown library counts indentation: at the
+-- margin unless its first byte is a space, a tab or a quote's bracket
+local function atMargin(line)
+    local first = line:byte(1)
+    return first ~= 32 and first ~= 9 and first ~= 62
+end
+
+-- A line's count of a plain string
+local function count(line, plain)
+    local n, from = 0, 1
+    while true do
+        local _s, e = line:find(plain, from, true)
+        if not e then return n end
+        n, from = n + 1, e + 1
+    end
+end
+
+-- Whether the math pass (koassistant/ui/math.lua, convertSegment) has nothing
+-- open at the end of a stretch of text between code fences: its spans paired
+-- as it pairs them, in its order (code spans, "$$", "\[", "\("), and no mark
+-- left over that a later one could close
+local function mathClosed(stretch)
+    if not stretch:find("[`$\\]") then return true end
+    local rest = stretch:gsub("(`+)(.-)%1", " ")
+    if rest:find("`", 1, true) then return false end
+    rest = rest:gsub("%$%$(.-)%$%$", " ")
+    if rest:find("$$", 1, true) then return false end
+    rest = rest:gsub("\\%[(.-)\\%]", " ")
+    if rest:find("\\[", 1, true) then return false end
+    rest = rest:gsub("\\%((.-)\\%)", " ")
+    return not rest:find("\\(", 1, true)
+end
+
+-- Whether the passes that run before the Markdown library leave nothing open
+-- at the end of a piece (text[from, cut - 1]; `stretch` = where its last
+-- stretch between code fences starts). They pair marks across lines, each on
+-- the text the pass before it left: the math pass first (it takes a "\[" and
+-- its "\]" out, so the link passes after it see other brackets than the
+-- source has), then the two link passes (a "[" with its "]", then balanced
+-- parentheses), then the shield that keeps math from the emphasis pass
+-- ("$$" pairs, through code too).
+local function marksClosed(text, from, stretch, cut, math)
+    if math and not mathClosed(text:sub(stretch, cut - 1)) then return false end
+    local piece = text:sub(from, cut - 1)
+    if math then piece = math(piece) end
+    if piece:find("[", 1, true) then
+        if piece:find("%[[^%]]*$") then return false end
+        local at = 1
+        while true do
+            local _s, e = piece:find("](", at, true)
+            if not e then break end
+            if not piece:find("^%b()", e) then return false end
+            at = e + 1
+        end
+    end
+    return not piece:find("$$", 1, true) or count(piece, "$$") % 2 == 0
+end
+
+--- Where the text can be cut so that the part before the cut converts to
+--- the same HTML alone as it does inside the whole text (the first half of
+--- the viewer's pipeline, ChatGPTViewer.markdownBlocks): the answer's finished
+--- part is then converted once and kept, and a drawing converts only what
+--- came after. Returns the offset of the line the next piece starts with (the
+--- last such line after `from`, itself a line start), or nil.
+---
+--- A cut sits after a blank line, where the Markdown library is back at its
+--- top level: not inside a code fence, and not inside a list's indented
+--- content, which runs across blank lines until a line at the margin (so
+--- either the last line before the blank one is at the margin, or the line
+--- after it is and is no list item, which could carry the list on). And the
+--- passes before the library must have nothing open there (marksClosed). A
+--- text that stays open (a stray backtick) is converted whole from there on,
+--- as before.
+--- opts.math: the math pass as the pipeline applies it, nil when math
+--- rendering is off; opts.rejected: a table that remembers the lines already
+--- found open, for the caller that asks again as the text grows (a verdict
+--- on a line never changes: the text before it is final).
+function StreamMarkdown.safeCut(text, from, opts)
+    local pos = from or 1
+    local first = pos
+    local len = #text
+    local in_fence, after_blank, prev_at_margin = false, false, true
+    local stretch = pos         -- where the text since the last fence line starts
+    local found = {}            -- the lines a piece may start with: offset, its stretch's start
+    while pos <= len do
+        local nl = text:find("\n", pos, true)
+        local line = text:sub(pos, (nl or len + 1) - 1)
+        if line:find("^%s*$") then
+            after_blank = true
+        else
+            -- a line still arriving has no kind yet: there only the line before decides
+            if after_blank and not in_fence and (prev_at_margin or (nl and atMargin(line)
+                and not line:find("^[-*+]%s") and not line:find("^%d+[.)]%s"))) then
+                found[#found + 1] = pos
+                found[#found + 1] = stretch
+            end
+            if not nl then break end
+            if line:find("^%s*```") then
+                in_fence = not in_fence
+                stretch = nl + 1
+            end
+            after_blank = false
+            prev_at_margin = atMargin(line)
+        end
+        if not nl then break end
+        pos = nl + 1
+    end
+    -- the last one with nothing open before it; a few tries a call, since a
+    -- text that stays open is long and each try reads it
+    local math, rejected = opts and opts.math, opts and opts.rejected
+    local tries = 0
+    for i = #found - 1, 1, -2 do
+        local cut = found[i]
+        if not (rejected and rejected[cut]) then
+            if marksClosed(text, first, found[i + 1], cut, math) then return cut end
+            if rejected then rejected[cut] = true end
+            tries = tries + 1
+            if tries >= 3 then break end
+        end
+    end
+    return nil
+end
+
 --- The text as it stands mid-stream, readied for the render: what its last
 --- line opened and has not closed yet is closed (a bold pair, a code tick),
 --- and a last line that is so far only a block's mark (a list item's dash or
@@ -141,18 +271,63 @@ function StreamMarkdown:_buildScrollWidget(html_body)
     }
 end
 
+-- The math pass as the viewer's pipeline applies it (applyMath), nil when
+-- math rendering is off
+local function mathPass(features)
+    if features and features.render_math == false then return nil end
+    local MathRender = require("koassistant.ui.math")
+    return function(piece)
+        if not MathRender.hasMath(piece) then return piece end
+        return MathRender.render(piece)
+    end
+end
+
+--- The text as HTML, the finished part of the answer converted once: `kept`
+--- = { text = the part of the answer already converted (it ends at a safeCut),
+--- html = its blocks, off = true once a piece failed to convert alone }.
+--- Each call converts what came since the last cut, and the tail after the
+--- newest cut with its open marks healed; the passes that read the whole
+--- document run on the joined blocks. Another text than the kept one (the
+--- reasoning shown before the answer, a cleared window) starts over. The
+--- same HTML as ChatGPTViewer.markdownHtml(healTail(text)) gives.
+function StreamMarkdown.convert(kept, text, opts)
+    local Viewer = require("koassistant.ui.chatgptviewer")
+    if not kept.off then
+        if kept.text ~= "" and text:sub(1, #kept.text) ~= kept.text then
+            kept.text, kept.html, kept.rejected = "", "", nil
+        end
+        kept.rejected = kept.rejected or {}
+        local cut = StreamMarkdown.safeCut(text, #kept.text + 1,
+            { math = mathPass(opts and opts.features), rejected = kept.rejected })
+        if cut then
+            local html = Viewer.markdownBlocks(text:sub(#kept.text + 1, cut - 1), opts)
+            if html then
+                kept.text, kept.html, kept.rejected = text:sub(1, cut - 1), kept.html .. html, nil
+            else
+                kept.off = true
+            end
+        end
+        if not kept.off then
+            local tail = Viewer.markdownBlocks(StreamMarkdown.healTail(text:sub(#kept.text + 1)), opts)
+            if tail then return Viewer.markdownFinish(kept.html .. tail, opts) end
+        end
+    end
+    return Viewer.markdownHtml(StreamMarkdown.healTail(text), opts)
+end
+
 --- The render: the text through the viewer's pipeline into a new HTML widget
 --- in place of the old one; the last page while following, the reader's page
 --- otherwise. The handler wraps this method to re-hook each new widget.
 function StreamMarkdown:initTextBox()
     local text = self.text or ""
     local t0 = StreamMarkdown._now()
-    local Viewer = require("koassistant.ui.chatgptviewer")
     local opts = self:_opts()
-    local ok, html = pcall(Viewer.markdownHtml, StreamMarkdown.healTail(text),
+    self.kept = self.kept or { text = "", html = "" }
+    local ok, html = pcall(StreamMarkdown.convert, self.kept, text,
         { features = opts.features, text_align = opts.text_align })
     if not ok or type(html) ~= "string" then
         logger.warn("KOAssistant: Markdown stream render failed:", tostring(html))
+        self.kept.off = true
         html = "<pre>" .. text:gsub("&", "&amp;"):gsub("<", "&lt;") .. "</pre>"
     end
     local old = self.scroll_w
@@ -314,6 +489,10 @@ end
 function StreamMarkdown:onCloseWidget()
     self._closed = true
     self:_dropPending()
+    -- what the drawings cost, for a report from a device (Console Debug)
+    logger.dbg("KOAssistant: Markdown stream closed:", self.renders or 0, "drawings,", #(self.text or ""),
+        "bytes,", self.kept and #self.kept.text or 0, "of them kept; the last drawing took",
+        math.floor((self.cost or 0) * 1000 + 0.5), "ms")
     -- the renders repaint with "fast"; a flashui at the end clears e-ink
     -- ghosting, as the plain stream widget does
     UIManager:setDirty(self.parent, function() return "flashui", self.dimen end)

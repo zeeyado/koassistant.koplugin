@@ -788,8 +788,9 @@ local WIDE_TABLE_COLS = 3
 -- every MD() call site. (The third, footnote escaping, is unnecessary:
 -- preprocessBrackets already entity-escapes "[^1]" — probed 2026-08-25.)
 --  1. Fence heal: an odd number of ``` fences (a response cut short inside a
---     code block) makes luamd throw (md.lua:280, match on nil) and the whole
---     viewer falls back to plain text; append the closing fence instead.
+--     code block, or one still streaming) makes luamd throw (md.lua:280,
+--     match on nil) and the whole viewer falls back to plain text; append the
+--     closing fence instead.
 --  2. Math protection: inside $...$ / $$...$$ spans, luamd's emphasis pass
 --     pairs underscores/asterisks ACROSS spans ("$a_1$ and $b_2$" -> <em>);
 --     entity-escape them so the math text renders literally and intact.
@@ -831,13 +832,21 @@ end
 
 local function healMarkdown(text)
     if not text then return text end
-    -- 1. fence heal
-    local fences = 0
+    -- 1. fence heal, at the open fence's own indentation: luamd closes a
+    -- fence only with one at the same depth, so a code block under a list
+    -- item ("1. Run:" then an indented fence) closed at the margin still
+    -- threw, and the whole answer showed as plain text for as long as that
+    -- block was streaming
+    local fences, open_indent = 0, ""
     for line in text:gmatch("[^\n]*") do
-        if line:match("^%s*```") then fences = fences + 1 end
+        local indent = line:match("^(%s*)```")
+        if indent then
+            fences = fences + 1
+            if fences % 2 == 1 then open_indent = indent end
+        end
     end
     if fences % 2 == 1 then
-        text = text .. "\n```\n"
+        text = text .. "\n" .. open_indent .. "```\n"
     end
     -- 2. math protection ($$...$$ first, then single-$ spans on one line)
     local function shield(body)
@@ -1366,8 +1375,16 @@ end
 -- paragraph keeps its direction, 2026-08-15), then the script runs' spans
 -- last, since the page breaks match the HTML by its text. `viewer` is any
 -- table with render_math, text_align and configuration.
-local function markdownHtml(viewer, text, opts)
-  opts = opts or {}
+--
+-- Two halves, so the streaming window can keep the first half's result for
+-- the part of an answer that is finished and convert only what is new
+-- (koassistant/request/stream_markdown.lua, which also says where a text may
+-- be cut): markdownBlocks = the text to the Markdown library's HTML, block by
+-- block, and what it costs most of; finishHtml = the passes that read the
+-- whole document (a message's main direction, the reply's page break, the
+-- script runs). opts.quiet: no log line and no plain-text stand-in when the
+-- library fails, nil and the error instead.
+local function markdownBlocks(viewer, text, opts)
   local source_text = text or ""
   if opts.ipa_fix then source_text = fixIPABidi(source_text) end
   local auto_linked = autoLinkUrls(applyMath(viewer, source_text))
@@ -1375,16 +1392,25 @@ local function markdownHtml(viewer, text, opts)
   local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
   local html_body, err = MD(preprocessed_text, {})
   if err then
+    if opts.quiet then return nil, err end
     logger.warn("ChatGPTViewer: could not generate HTML", err)
     -- Fallback to plain text if HTML generation fails
     html_body = "<pre>" .. (text or "Missing text.") .. "</pre>"
   end
-  html_body = taskListItems(html_body)
+  return taskListItems(html_body)
+end
+
+local function finishHtml(viewer, html_body, opts)
   html_body = addHtmlBidiAttributes(html_body, { use_starts_with_rtl = opts.ipa_fix, text_align = viewer.text_align })
   local reply_break
   html_body, reply_break = applyExchangePageBreaks(html_body, viewer.configuration,
     opts.carry_anchor, opts.carry_occurrence, viewer.scroll_to_last_question)
   return ScriptFonts.markRuns(html_body), reply_break
+end
+
+local function markdownHtml(viewer, text, opts)
+  opts = opts or {}
+  return finishHtml(viewer, markdownBlocks(viewer, text, opts), opts)
 end
 
 -- This window's HTML for its text: the pipeline above on its own settings
@@ -6353,15 +6379,26 @@ ChatGPTViewer.hasDominantRTL = hasDominantRTL
 -- opts = { features = the request's features, text_align = the setting }.
 -- The exchange page breaks need the transcript markers, which a streamed
 -- answer has none of, so none are added there.
-function ChatGPTViewer.markdownHtml(text, opts)
+local function standInViewer(opts)
   opts = opts or {}
   local features = opts.features or {}
-  local stand_in = {
+  return {
     render_math = features.render_math ~= false,
     text_align = opts.text_align or features.text_align or "auto",
     configuration = { features = features },
   }
-  return (markdownHtml(stand_in, text, {}))
+end
+function ChatGPTViewer.markdownHtml(text, opts)
+  return (markdownHtml(standInViewer(opts), text, {}))
+end
+-- The pipeline's two halves (see markdownBlocks above): the first for a
+-- piece of the text, nil and the error when the Markdown library fails on
+-- it; the second for the joined HTML of the pieces
+function ChatGPTViewer.markdownBlocks(text, opts)
+  return markdownBlocks(standInViewer(opts), text, { quiet = true })
+end
+function ChatGPTViewer.markdownFinish(html_body, opts)
+  return (finishHtml(standInViewer(opts), html_body, {}))
 end
 function ChatGPTViewer.viewerCSS(text_align, features, html_body)
   return getViewerCSS(text_align or "auto", ScriptFonts.css(features, html_body))

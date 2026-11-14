@@ -146,8 +146,17 @@ local RTL_ATTRS = ' dir="rtl"'
 -- The blocks of one message (or of a whole document that has no messages)
 local function addPieceAttributes(html, opts)
     local align = alignStyle(opts.text_align)
-    local block_opts = { use_starts_with_rtl = opts.use_starts_with_rtl, main = Bidi.mainDirection(stripTags(html)) }
+    -- A piece without one right-to-left letter has no block to mark: a
+    -- block's direction is then left-to-right whatever the options say
+    -- (blockDirection), and reading every block's words to learn it was most
+    -- of this pass on such a text, on every window build and stream drawing.
+    -- All that changes there is a "fake" bullet list.
+    local plain = not Bidi.hasRTL(html)
+    if plain and not html:find("<p>•", 1, true) then return html end
+    local block_opts = { use_starts_with_rtl = opts.use_starts_with_rtl,
+        main = plain and "ltr" or Bidi.mainDirection(stripTags(html)) }
     local function dirOf(content)
+        if plain then return "ltr" end
         return Bidi.blockDirection(stripTags(content), block_opts)
     end
     local function open(tag, content)
@@ -178,8 +187,10 @@ local function addPieceAttributes(html, opts)
         end
         return table.concat(out)
     end
-    html = html:gsub("<ol>(.-)</ol>", function(c) return convertList("ol", c) end)
-    html = html:gsub("<ul>(.-)</ul>", function(c) return convertList("ul", c) end)
+    if not plain then
+        html = html:gsub("<ol>(.-)</ol>", function(c) return convertList("ol", c) end)
+        html = html:gsub("<ul>(.-)</ul>", function(c) return convertList("ul", c) end)
+    end
 
     -- Paragraphs; a "fake" bullet list (lines starting with •, which models
     -- write) becomes one paragraph per line, each in its own direction
@@ -198,6 +209,7 @@ local function addPieceAttributes(html, opts)
         end
         return open("p", content) .. content .. "</p>"
     end)
+    if plain then return html end
 
     -- Headings
     for _, tag in ipairs({ "h1", "h2", "h3", "h4", "h5", "h6" }) do
@@ -230,6 +242,14 @@ local function addPieceAttributes(html, opts)
     return html
 end
 
+-- The tags that sit inside a line of text (the Markdown library's, the math
+-- pass's, the ones a model writes)
+local INLINE_TAGS = {}
+for _, name in ipairs({ "a", "b", "i", "u", "s", "em", "strong", "code", "strike", "del", "span", "sub", "sup",
+    "small", "mark", "kbd", "q", "cite", "abbr", "img", "br" }) do
+    INLINE_TAGS[name] = true
+end
+
 -- A message starts at a paragraph that opens with its marker: "▶ User:" and
 -- "◉ KOAssistant:" in a chat, "▶ " and "◉ " before the text in the compact
 -- and translate views
@@ -243,8 +263,14 @@ local MESSAGE_STARTS = { "<p>▶", "<p>◉" }
 function Bidi.addHtmlBidiAttributes(html, opts)
     if not html then return html end
     opts = opts or {}
-    -- Whitespace between tags is layout noise to the patterns of the pass
-    html = html:gsub(">%s+<", "><")
+    -- Whitespace between two tags is layout noise to the patterns of the
+    -- pass, unless both sit inside a line of text: there it is the space
+    -- between two words ("**bold** *italic*", two links in a row), which
+    -- taking every such gap out glued together
+    html = html:gsub("(</?(%w+)[^<>]*>)%s+()%f[<]", function(tag, name, at)
+        if INLINE_TAGS[name] and INLINE_TAGS[html:match("^</?(%w+)", at) or ""] then return nil end
+        return tag
+    end)
     local out, at = {}, 1
     while true do
         local next_start

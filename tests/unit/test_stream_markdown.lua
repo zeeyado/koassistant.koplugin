@@ -81,8 +81,18 @@ package.loaded["ui/uimanager"] = { setDirty = function() dirty = dirty + 1 end, 
     unschedule = function(_s, fn) for i, q in ipairs(queued) do if q.fn == fn then table.remove(queued, i); break end end end }
 package.loaded["ui/widget/container/framecontainer"].getSize = function() return { w = 600, h = 400 } end
 local rendered_texts = {}
+local whole_texts = {}
+local failing_piece = nil   -- a piece the stand-in's first half fails on
 package.loaded["koassistant.ui.chatgptviewer"] = {
-    markdownHtml = function(text) rendered_texts[#rendered_texts + 1] = text; return "<p>" .. text .. "</p>" end,
+    -- the pipeline's two halves: the text of a piece to its blocks, the joined blocks finished
+    markdownBlocks = function(text)
+        if failing_piece and text:find(failing_piece, 1, true) then return nil, "the library failed" end
+        rendered_texts[#rendered_texts + 1] = text
+        return "<p>" .. text .. "</p>"
+    end,
+    markdownFinish = function(html) return html end,
+    -- the whole conversion, for a text the pieces gave up on
+    markdownHtml = function(text) whole_texts[#whole_texts + 1] = text; return "<pre>" .. text .. "</pre>" end,
     viewerCSS = function() return "" end,
     extractCarryAnchor = function(s) return s:match("^(%S+%s+%S+%s+%S+)") end,
 }
@@ -213,6 +223,173 @@ TestRunner:test("healTail: the last line's open bold or code mark is closed for 
     TestRunner:assertEqual(heal("ends with a newline\n"), "ends with a newline\n")
     TestRunner:assertEqual(heal(""), "")
     TestRunner:assertEqual(heal(nil), nil)
+end)
+
+-- The math pass as the pipeline applies it (the real module: it is pure)
+local MathRender = require("koassistant.ui.math")
+local function mathPass(piece)
+    if not MathRender.hasMath(piece) then return piece end
+    return MathRender.render(piece)
+end
+
+TestRunner:test("safeCut: an answer is cut after a blank line, where the Markdown library is back at its top level", function()
+    local function cut(text, from, no_math)
+        return SM.safeCut(text, from, { math = not no_math and mathPass or nil })
+    end
+    local function lineAt(text, offset) return offset and text:sub(offset):match("^[^\n]*") end
+    TestRunner:assertEqual(cut("One paragraph.\nIts second line.\n"), nil, "no blank line, no cut")
+    local t = "One paragraph.\n\nThe next one, still arriv"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "The next one, still arriv", "before a line still arriving, after a line at the margin")
+    t = "One.\n\nTwo.\n\nThree.\n"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "Three.", "the last cut of several")
+    TestRunner:assertEqual(lineAt(t, cut(t, t:find("Two", 1, true))), "Three.", "from an earlier cut on")
+    TestRunner:assertEqual(cut(t, t:find("Three", 1, true)), nil, "nothing after the last one")
+    -- a code fence
+    t = "Before.\n\n```\ncode\n\nmore code\n"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "```", "before the fence, never inside it")
+    t = t .. "```\n\nAfter the fence.\n"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "After the fence.", "once it is closed")
+    -- a list's indented content runs across blank lines
+    t = "1. First\n   - sub\n\n2. Second\n"
+    TestRunner:assertEqual(cut(t), nil, "an item after indented content could carry the list on")
+    t = "1. First\n   - sub\n\nAfter the list.\n"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "After the list.", "a line at the margin that is no item ends it")
+    TestRunner:assertEqual(cut("1. First\n   - sub\n\nAfter the li"), nil, "but not while that line is still arriving")
+    TestRunner:assertEqual(cut("1. First\n   - sub\n\n  indented again\n"), nil, "nor before an indented line")
+    TestRunner:assertEqual(cut("1. First\n   - sub\n\n> a quote\n"), nil, "nor before a quote (the library counts its bracket as indentation)")
+    t = "- one\n\n- two\n"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "- two", "after an item at the margin the library has closed the list")
+    -- marks the passes before the library pair across lines
+    TestRunner:assertEqual(cut("A stray ` tick.\n\nNext.\n"), nil, "an open code span (the math pass pairs it)")
+    t = "A stray ` tick.\n\nNext.\n"
+    TestRunner:assertEqual(lineAt(t, cut(t, nil, true)), "Next.", "which matters only while math is rendered")
+    TestRunner:assertEqual(cut("A display $$ opens\n\nand goes on\n"), nil, "an open display")
+    TestRunner:assertEqual(cut("\\(a +\n\nb\\) closes\n"), nil, "an open \\( span")
+    t = "\\(a +\n\nb\\) closes.\n\nNext.\n"
+    TestRunner:assertEqual(lineAt(t, cut(t)), "Next.", "closed again")
+    TestRunner:assertEqual(cut("An open [bracket\n\nand its ](https://example.org) end.\n"), nil, "an open bracket")
+    TestRunner:assertEqual(cut("A [link](https://example.org/a\n\nb) goes on.\n"), nil, "a link's open parentheses")
+    TestRunner:assertEqual(cut("```\necho $$\n```\n\nBetween.\n", nil, true), nil, "an odd $$, in code too")
+    -- the math pass takes "\[" and "\]" out: the brackets left are what the link pass sees
+    TestRunner:assertEqual(cut("Code `\\[` and a display \\[ y \\] after.\n\nand then ](https://example.org) later.\n"), nil,
+        "a bracket the math pass uncovers")
+    -- a verdict on a line is final, and remembered
+    local rejected = {}
+    t = "A stray ` tick.\n\nNext.\n\nAnd more.\n"
+    TestRunner:assertEqual(SM.safeCut(t, 1, { math = mathPass, rejected = rejected }), nil)
+    TestRunner:assertTrue(rejected[t:find("Next", 1, true)] and rejected[t:find("And more", 1, true)], "both lines remembered as open")
+    local asked = 0
+    SM.safeCut(t, 1, { math = function(piece) asked = asked + 1; return piece end, rejected = rejected })
+    TestRunner:assertEqual(asked, 0, "and not read again")
+end)
+
+TestRunner:test("convert: the finished part is converted once, the tail again each time", function()
+    rendered_texts, whole_texts = {}, {}
+    local kept = { text = "", html = "" }
+    local opts = { features = {}, text_align = "auto" }
+    TestRunner:assertEqual(SM.convert(kept, "One.\n\nTwo", opts), "<p>One.\n\n</p><p>Two</p>", "the piece, then the tail")
+    TestRunner:assertEqual(kept.text, "One.\n\n", "the part before the cut is kept")
+    rendered_texts = {}
+    TestRunner:assertEqual(SM.convert(kept, "One.\n\nTwo more.\n\nThree **bo", opts),
+        "<p>One.\n\n</p><p>Two more.\n\n</p><p>Three **bo**</p>", "the joined blocks, the tail's open bold closed")
+    TestRunner:assertEqual(#rendered_texts, 2, "two conversions")
+    TestRunner:assertEqual(rendered_texts[1], "Two more.\n\n", "the new piece")
+    TestRunner:assertEqual(rendered_texts[2], "Three **bo**", "and the tail: the first piece is not converted again")
+    TestRunner:assertEqual(kept.text, "One.\n\nTwo more.\n\n")
+    -- another text than the kept one (the reasoning shown before the answer): start over
+    TestRunner:assertEqual(SM.convert(kept, "The answer.\n\nIts second paragraph", opts),
+        "<p>The answer.\n\n</p><p>Its second paragraph</p>")
+    TestRunner:assertEqual(kept.text, "The answer.\n\n", "the kept part is the new text's")
+    -- a piece the library fails on alone: the whole conversion from there on
+    failing_piece = "breaks"
+    local html = SM.convert(kept, "The answer.\n\nA piece that breaks.\n\nAfter", opts)
+    failing_piece = nil
+    TestRunner:assertTrue(kept.off == true, "the pieces are given up")
+    TestRunner:assertEqual(html, "<pre>The answer.\n\nA piece that breaks.\n\nAfter</pre>", "the whole text converted")
+    whole_texts = {}
+    SM.convert(kept, "The answer.\n\nA piece that breaks.\n\nAfter more", opts)
+    TestRunner:assertEqual(#whole_texts, 1, "and on every later call")
+    -- a tail the library fails on is converted whole that time only
+    kept = { text = "", html = "" }
+    failing_piece = "tail"
+    whole_texts = {}
+    SM.convert(kept, "Fine.\n\nA failing tail", opts)
+    failing_piece = nil
+    TestRunner:assertTrue(#whole_texts == 1 and not kept.off, "the tail alone failed: the kept part stays")
+    TestRunner:assertEqual(kept.text, "Fine.\n\n")
+end)
+
+TestRunner:test("the pieces give the whole conversion's HTML through the real pipeline (where the app is installed)", function()
+    local md_path = "/Applications/KOReader.app/Contents/koreader/frontend/apps/filemanager/lib/md.lua"
+    local probe = io.open(md_path, "r")
+    if not probe then
+        print("    (skipped: KOReader's Markdown library is not at " .. md_path .. ")")
+        return
+    end
+    probe:close()
+    -- the real library and the real viewer, in place of this file's stand-ins
+    local keys = { "apps/filemanager/lib/md", "koassistant.ui.chatgptviewer", "koassistant.request.stream_markdown", "ffi/util" }
+    local before = {}
+    for _idx, k in ipairs(keys) do before[k] = package.loaded[k] end
+    local util = package.loaded["ffi/util"] or {}
+    local ordered = util.orderedPairs
+    util.orderedPairs = util.orderedPairs or function(t)
+        local names = {}
+        for k in pairs(t) do names[#names + 1] = k end
+        table.sort(names)
+        local i = 0
+        return function() i = i + 1; if names[i] ~= nil then return names[i], t[names[i]] end end
+    end
+    package.loaded["ffi/util"] = util
+    package.loaded["apps/filemanager/lib/md"] = dofile(md_path)
+    package.loaded["koassistant.ui.chatgptviewer"] = nil
+    package.loaded["koassistant.request.stream_markdown"] = nil
+    local ok, err = pcall(function()
+        local Viewer = require("koassistant.ui.chatgptviewer")
+        local Pieces = require("koassistant.request.stream_markdown")
+        local quiet = require("koassistant.core.logger")
+        local warn = quiet.warn
+        quiet.warn = function() end
+        local samples = dofile(PLUGIN_DIR .. "/tests/lib/markdown_samples.lua")
+        local opts = { features = {}, text_align = "auto" }
+        local steps, bad, first, kept_bytes = 0, 0, nil, 0
+        for _idx, sample in ipairs(samples) do
+            local text = sample.text
+            local kept = { text = "", html = "" }
+            local at = 0
+            while at < #text do
+                -- every line's end and its first bytes (where a cut is decided), and a point inside it
+                local nl = text:find("\n", at + 1, true) or #text
+                at = (at + 4 < nl - 1) and math.min(nl - 1, at + 23) or at + 1
+                while at < #text and text:byte(at + 1) >= 128 and text:byte(at + 1) < 192 do at = at + 1 end
+                local prefix = text:sub(1, at)
+                local a = Pieces.convert(kept, prefix, opts)
+                local b = Viewer.markdownHtml(Pieces.healTail(prefix), opts)
+                steps = steps + 1
+                if a ~= b then
+                    bad = bad + 1
+                    first = first or (sample.name .. ", byte " .. at)
+                end
+            end
+            kept_bytes = kept_bytes + #kept.text
+        end
+        quiet.warn = warn
+        TestRunner:assertEqual(bad, 0, "steps that differ of " .. steps .. (first and (" (first: " .. first .. ")") or ""))
+        TestRunner:assertTrue(kept_bytes > 1000, "and pieces were kept (" .. kept_bytes .. " bytes)")
+        -- a code block under a list item, its closing fence not here yet: closed
+        -- at its own depth, so the answer stays rendered while the block streams
+        for _idx, open in ipairs({ "Steps:\n\n1. Run:\n   ```\n   code line\n", "- first:\n  ```lua\n  local a = 1\n\n  more" }) do
+            local html = Viewer.markdownHtml(Pieces.healTail(open), opts)
+            TestRunner:assertTrue(html:find("<pre><code", 1, true) ~= nil and not html:find("^<pre>"),
+                "an open fence under a list item renders as code: " .. html)
+        end
+        local margin = Viewer.markdownHtml("Text.\n\n```\ncode", opts)
+        TestRunner:assertTrue(margin:find("<p>Text.</p>", 1, true) ~= nil and margin:find("<pre><code>code", 1, true) ~= nil,
+            "an open fence at the margin as before")
+    end)
+    util.orderedPairs = ordered
+    for _idx, k in ipairs(keys) do package.loaded[k] = before[k] end
+    if not ok then error(err, 0) end
 end)
 
 TestRunner:test("the position capture: the page's first words and the anchor's ordinal across the pages before", function()
