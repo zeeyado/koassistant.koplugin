@@ -56,10 +56,13 @@ Pagination is stable top-down (probed 2026-10-28), so a paused reader keeps
 their page while the tail grows; following shows the last page. The reader's
 spot for the completion viewer is the first line of their page, read from the
 page's text (capturePosition; CJK segments joined without spaces, as the text
-has none). Settings: features.stream_markdown (off by
-default), applied when the chat shows Markdown (koassistant/request/gpt_query.lua
-builds the stream settings; the dialog carries `koa_stream` = the features,
-the alignment and the font size for the render).
+has none). Settings: features.stream_markdown, on by default (since
+2026-11-15, the maintainer after the Kobo round: "it workes very well, clean
+and crisp"); which requests stream into this view is `applies` (an answer
+that is prose, a window that will show it as Markdown; never a hidden
+stream, the handler's rule). koassistant/request/gpt_query.lua builds the
+stream settings with it; the dialog carries `koa_stream` = the features, the
+alignment and the font size for the render.
 ]]
 
 local Device = require("device")
@@ -109,6 +112,22 @@ StreamMarkdown._now = nowSeconds
 -- How a drawing is sent to the screen: as the plain view's updates reach it
 -- (the header says how that was found)
 StreamMarkdown.REFRESH = "ui"
+
+--- Whether a request's answer streams into this view, pure (`features` = the
+--- request's own): the setting, on unless turned off; an answer that is
+--- prose (features.plain_streaming marks one that is data, an X-Ray build's
+--- JSON, which this view would flow into one paragraph); and a window that
+--- will show the answer as Markdown: Plain Text in a dictionary window when
+--- Text Mode for Dictionary says so (the viewer's own rule), else the chat's
+--- own MD/TXT tap, else the View Mode.
+function StreamMarkdown.applies(features)
+    if type(features) ~= "table" or features.stream_markdown == false or features.plain_streaming then
+        return false
+    end
+    if require("koassistant.ui.chatgptviewer").dictionaryPlainText(features) then return false end
+    if features._chat_view_mode ~= nil then return features._chat_view_mode == true end
+    return features.render_markdown ~= false
+end
 
 -- What a stream's updates cost, for a report from a device (Console Debug):
 -- the work of every drawing since the last paint (the conversion, the

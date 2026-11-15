@@ -1932,7 +1932,7 @@ function ChatGPTViewer:init()
     -- language. The Markdown view needs no switch: every block is laid out
     -- in its own direction and every script drawn in its own face (B621).
     if self.compact_view or self.dictionary_view then
-      if self.configuration.features.dictionary_text_mode then
+      if ChatGPTViewer.dictionaryPlainText(self.configuration.features, self) then
         self.render_markdown = false
       end
       if Languages.isRTL(self.configuration.features.dictionary_language) then
@@ -6409,6 +6409,17 @@ end
 -- extractor is shared rather than duplicated (inline-required there — no
 -- module cycle: capture runs long after both modules are loaded)
 ChatGPTViewer.extractCarryAnchor = extractCarryAnchor
+
+--- Whether a dictionary window (compact or full-size) shows Plain Text
+--- whatever the View Mode: the reader's Text Mode for Dictionary. One rule
+--- for the window (`window` = the viewer, whose caller may have set its kind
+--- on it) and for the stream that fills it (the request's features alone:
+--- StreamMarkdown.applies).
+function ChatGPTViewer.dictionaryPlainText(features, window)
+    if type(features) ~= "table" or not features.dictionary_text_mode then return false end
+    return (features.compact_view or features.dictionary_view
+        or (window and (window.compact_view or window.dictionary_view))) and true or false
+end
 -- Test seam (tests/unit/test_viewer_landing.lua): the spacer after the label
 ChatGPTViewer._applyExchangePageBreaks = applyExchangePageBreaks
 

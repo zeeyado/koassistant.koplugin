@@ -570,7 +570,7 @@ local SettingsSchema = {
                             type = "toggle",
                             text = _("Markdown While Streaming"),
                             path = "features.stream_markdown",
-                            default = false,
+                            default = true,
                             depends_on = { id = "enable_streaming", value = true },
                             enabled_func = function(plugin)
                                 local f = plugin.settings:readSetting("features") or {}

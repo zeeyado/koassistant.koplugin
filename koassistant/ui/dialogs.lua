@@ -4073,6 +4073,13 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
         temp_config.features.hidden_streaming = true
     end
 
+    -- An answer that is data, not prose (an X-Ray build's JSON), streams as
+    -- the text it is: Markdown While Streaming would flow it into one paragraph
+    if prompt.cache_as_xray then
+        temp_config.features = temp_config.features or {}
+        temp_config.features.plain_streaming = true
+    end
+
     -- NEW ARCHITECTURE (v0.5.2+): Unified request config for all providers
     -- System prompt is built by buildUnifiedRequestConfig and passed in config.system
     -- No longer embedded in the consolidated message

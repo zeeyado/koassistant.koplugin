@@ -99,6 +99,7 @@ package.loaded["koassistant.ui.chatgptviewer"] = {
     markdownHtml = function(text) whole_texts[#whole_texts + 1] = text; return "<pre>" .. text .. "</pre>" end,
     viewerCSS = function() return "" end,
     extractCarryAnchor = function(s) return s:match("^(%S+%s+%S+%s+%S+)") end,
+    dictionaryPlainText = RealViewer.dictionaryPlainText,   -- the window's own rule, pure
 }
 package.loaded["koassistant.request.stream_markdown"] = nil
 local SM = require("koassistant.request.stream_markdown")
@@ -563,10 +564,55 @@ TestRunner:test("the stream handler: the Markdown view where the plain widget's 
     local g = assert(io.open(PLUGIN_DIR .. "/koassistant/request/gpt_query.lua", "r"))
     local gq = g:read("*a")
     g:close()
-    TestRunner:assertTrue(gq:find("config.features._chat_view_mode == true", 1, true) ~= nil
-        and gq:find("config.features._chat_view_mode == nil and config.features.render_markdown ~= false", 1, true) ~= nil,
-        "the chat's own tap first, else the View Mode")
-    TestRunner:assertTrue(gq:find("stream_markdown = (config.features and config.features.stream_markdown == true", 1, true) ~= nil, "the setting")
+    TestRunner:assertTrue(gq:find('stream_markdown = require("koassistant.request.stream_markdown").applies(config.features),', 1, true) ~= nil,
+        "the stream settings ask the one rule")
+    TestRunner:assertTrue(not gq:find("_chat_view_mode", 1, true), "and spell no part of it themselves")
+end)
+
+TestRunner:test("which answers stream as Markdown: on by default, prose only, a window that shows Markdown", function()
+    local applies = SM.applies
+    TestRunner:assertTrue(applies({}), "nothing set: on (the default), the View Mode is Markdown")
+    TestRunner:assertTrue(applies({ stream_markdown = true }))
+    TestRunner:assertTrue(not applies({ stream_markdown = false }), "the reader turned it off")
+    TestRunner:assertTrue(not applies(nil), "no features")
+    -- the window the answer lands in
+    TestRunner:assertTrue(not applies({ render_markdown = false }), "Plain Text is the View Mode")
+    TestRunner:assertTrue(applies({ render_markdown = false, _chat_view_mode = true }), "this chat was switched to Markdown")
+    TestRunner:assertTrue(not applies({ _chat_view_mode = false }), "this chat was switched to Plain Text")
+    -- a dictionary window with Text Mode for Dictionary shows Plain Text whatever else says
+    TestRunner:assertTrue(applies({ compact_view = true }), "a dictionary popup shows Markdown by default")
+    TestRunner:assertTrue(not applies({ compact_view = true, dictionary_text_mode = true }), "Text Mode for Dictionary, the popup")
+    TestRunner:assertTrue(not applies({ dictionary_view = true, dictionary_text_mode = true, _chat_view_mode = true }),
+        "and the full-size dictionary window, whatever the chat's own mode")
+    TestRunner:assertTrue(applies({ dictionary_text_mode = true }), "the setting alone does not touch a chat")
+    -- an answer that is data
+    TestRunner:assertTrue(not applies({ plain_streaming = true }), "an X-Ray build's JSON streams as the text it is")
+    -- the same rule the window itself applies, its caller's marks included
+    TestRunner:assertTrue(RealViewer.dictionaryPlainText({ dictionary_text_mode = true }, { compact_view = true }),
+        "a window marked by its caller")
+    TestRunner:assertTrue(not RealViewer.dictionaryPlainText({ dictionary_text_mode = true }, {}), "a chat window")
+    TestRunner:assertTrue(not RealViewer.dictionaryPlainText({ compact_view = true }, { compact_view = true }), "the setting off")
+end)
+
+TestRunner:test("the default and the marks the rule reads, at their sources", function()
+    local function read(rel)
+        local f = assert(io.open(PLUGIN_DIR .. "/" .. rel, "r"))
+        local src = f:read("*a")
+        f:close()
+        return src
+    end
+    local row = read("koassistant/ui/settings_schema.lua"):match('id = "stream_markdown",(.-)help_text')
+    TestRunner:assertTrue(row and row:find('path = "features.stream_markdown"', 1, true) ~= nil
+        and row:find("default = true", 1, true) ~= nil, "the schema's default is on, as the rule reads a missing value")
+    local dialogs = read("koassistant/ui/dialogs.lua")
+    TestRunner:assertTrue(dialogs:find("if prompt.cache_as_xray then\n        temp_config.features = temp_config.features or {}\n"
+        .. "        temp_config.features.plain_streaming = true", 1, true) ~= nil, "an X-Ray build marks its answer as data")
+    local viewer = read("koassistant/ui/chatgptviewer.lua")
+    TestRunner:assertTrue(viewer:find("if ChatGPTViewer.dictionaryPlainText(self.configuration.features, self) then\n"
+        .. "        self.render_markdown = false", 1, true) ~= nil, "the window asks the rule the stream asks")
+    local handler = read("koassistant/request/stream_handler.lua")
+    TestRunner:assertTrue(handler:find("settings.stream_markdown == true and not hidden_streaming", 1, true) ~= nil,
+        "and a hidden stream never shows it")
 end)
 
 TestRunner:test("the plain stream widget's own request is the released one", function()

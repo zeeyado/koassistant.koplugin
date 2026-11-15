@@ -285,7 +285,7 @@ TestRunner:test("no plain-text switch for right-to-left text is left; the window
         TestRunner:assertTrue(src:find(gone, 1, true) == nil, gone .. " is gone from the viewer")
     end
     -- the dictionary and translate windows set the plain-text widget's direction, nothing else
-    local a = src:find("if self.compact_view or self.dictionary_view then\n      if self.configuration.features.dictionary_text_mode then", 1, true)
+    local a = src:find("if self.compact_view or self.dictionary_view then\n      if ChatGPTViewer.dictionaryPlainText(self.configuration.features, self) then", 1, true)
     TestRunner:assertTrue(a ~= nil, "the dictionary block")
     local block = src:sub(a, src:find("  end\n", src:find("translate_view and Languages.isRTL", a, true), true))
     local _, forced = block:gsub("self%.render_markdown = false", "")
