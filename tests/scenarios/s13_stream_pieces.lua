@@ -10,6 +10,8 @@ Lua), no book opened:
 - every sample of tests/lib/markdown_samples.lua streamed byte by byte, and
   400 documents put together from their blocks at random, streamed in random
   steps: the kept conversion equals the whole one at every step;
+- a table and a link streamed byte by byte: no line of pipes and no address
+  is shown while they arrive (healTail);
 - every rule of the cut taken out in turn (a changed copy of the module's
   source, never the file): the same check must then find differences, so no
   rule is left without a sample that needs it.
@@ -84,6 +86,34 @@ local steps, bad, first, kept_bytes, all_bytes = compare(1, 400, 12345)
 S.check(bad == 0, string.format("the kept conversion equals the whole one at every step (%d steps, %d differ%s)",
     steps, bad, first and ("; first: " .. first) or ""))
 S.check(kept_bytes * 3 > all_bytes, string.format("and it does keep: %d of %d bytes were converted once", kept_bytes, all_bytes))
+
+-- ── What is still arriving is not shown raw ─────────────────────────────────
+-- (healTail: a table's row waits until it is whole, a link shows its words
+-- while its address arrives; the samples hold no pipe and no address of
+-- their own outside the marks)
+local function everyStep(text, shown_right)
+    local kept = { text = "", html = "" }
+    local bad, first = 0, nil
+    for at = 1, #text do
+        if not shown_right(SM.convert(kept, text:sub(1, at), OPTS)) then
+            bad = bad + 1
+            first = first or at
+        end
+    end
+    return bad, first
+end
+local TABLE = "Here is the comparison:\n\n| Device | Screen | Battery |\n|--------|:------:|--------:|\n"
+    .. "| Kobo Clara | 6 inch | weeks |\n| Kindle | 6.8 inch | weeks |\n\nThat is the table.\n"
+local bad_rows, first_row = everyStep(TABLE, function(html) return not html:find("|", 1, true) end)
+S.check(bad_rows == 0, string.format("a table streamed byte by byte never shows a line of pipes (%d steps do%s)",
+    bad_rows, first_row and (", first at byte " .. first_row) or ""))
+S.check(SM.convert({ text = "", html = "" }, TABLE, OPTS):find("<td[^>]*>Kindle</td>") ~= nil, "and the whole table is there at the end")
+local LINK = "Read [the guide](https://example.org/guides/which-one) and [another](https://example.org/b) too.\n"
+local bad_links, first_link = everyStep(LINK, function(html)
+    return not html:gsub('href="[^"]*"', ""):find("example", 1, true) and not html:find("&#93;(", 1, true)
+end)
+S.check(bad_links == 0, string.format("a link never shows its address while it arrives (%d steps do%s)",
+    bad_links, first_link and (", first at byte " .. first_link) or ""))
 
 -- ── Every rule of the cut is needed ─────────────────────────────────────────
 -- name, the source text of the rule, what replaces it

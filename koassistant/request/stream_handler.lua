@@ -359,14 +359,33 @@ function StreamText:addChars(chars)
 end
 
 function StreamText:initTextBox(text, char_added)
+    local t0 = StreamMarkdown._now()
     self.for_measurement_only = true                -- trick the method from super class
     InputText.initTextBox(self, text, char_added)   -- skips `UIManager:setDirty`
-    -- use our own method of refresh, `fast` is suitable for stream responding
+    -- use our own method of refresh, `fast` is suitable for stream responding.
+    -- What reaches the screen is mostly "ui" all the same: a tick lays the
+    -- text out twice (the text, then the padded page), each new widget flips
+    -- the scroll buttons' at-top state, InputDialog then refreshes its whole
+    -- frame as "ui", and UIManager joins overlapping requests under the
+    -- higher type (measured in the app, 2026-11-15: 86 of 103 updates of a
+    -- stream sent as "ui" over the window, 17 as "fast" over the text). That
+    -- is why this view is crisp on e-ink while it fills; the Markdown view
+    -- asks for "ui" itself.
     UIManager:setDirty(self.parent, function() return "fast", self.dimen end)
     self.for_measurement_only = false
+    -- what the updates cost, for a report from a device (Console Debug)
+    self.koa_stats = self.koa_stats or StreamMarkdown.Stats.new()
+    self.koa_stats:work("layout", StreamMarkdown._now() - t0, #(text or self.text or ""))
+end
+
+function StreamText:paintTo(bb, x, y)
+    local t0 = StreamMarkdown._now()
+    if InputText.paintTo then InputText.paintTo(self, bb, x, y) end
+    if self.koa_stats then self.koa_stats:painted(t0, StreamMarkdown._now() - t0) end
 end
 
 function StreamText:onCloseWidget()
+    logger.dbg("KOAssistant: text stream closed:", (self.koa_stats or StreamMarkdown.Stats.new()):line())
     -- fast mode makes screen dirty, clean it with `flashui`
     UIManager:setDirty(self.parent, function() return "flashui", self.dimen end)
     return InputText.onCloseWidget(self)

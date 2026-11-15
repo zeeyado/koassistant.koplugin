@@ -75,8 +75,12 @@ function FakeScroll:scrollToRatio(r) self.htmlbox_widget.page_number = r == 0 an
 package.loaded["ui/widget/scrollhtmlwidget"] = FakeScroll
 package.loaded["device"] = { screen = { scaleBySize = function(_s, n) return n end, getWidth = function() return 600 end, getHeight = function() return 800 end } }
 local dirty = 0
+local last_refresh = nil    -- the refresh type the newest setDirty asked for
 local queued = {}
-package.loaded["ui/uimanager"] = { setDirty = function() dirty = dirty + 1 end, show = function() end, close = function() end,
+package.loaded["ui/uimanager"] = { setDirty = function(_s, _w, how)
+        dirty = dirty + 1
+        if type(how) == "function" then last_refresh = how() else last_refresh = how end
+    end, show = function() end, close = function() end,
     scheduleIn = function(_s, sec, fn) queued[#queued + 1] = { sec = sec, fn = fn } end,
     unschedule = function(_s, fn) for i, q in ipairs(queued) do if q.fn == fn then table.remove(queued, i); break end end end }
 package.loaded["ui/widget/container/framecontainer"].getSize = function() return { w = 600, h = 400 } end
@@ -183,24 +187,78 @@ TestRunner:test("following shows the last page; paused keeps the reader's page w
     clock = t
     w.follow = true
     w:setText(w.text .. "\nanother line")
-    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 1, "the floor from the layout's cost")
+    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 2, "the floor from the conversion's and the layout's cost (a second each)")
     -- the page is rastered at the first paint after a render: that second counts too
     w:paintTo(nil, 0, 0)
-    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 2, "and from the paint's")
+    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 3, "and from the paint's")
     w:paintTo(nil, 0, 0)
-    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 2, "a later paint of the same render adds nothing")
+    TestRunner:assertEqual(w.floor, SM.COST_FACTOR * 3, "a later paint of the same render adds nothing")
     SM._now = real_now
 end)
 
-TestRunner:test("a cheap render: the floor is a fifth of a second, several renders a second", function()
-    TestRunner:assertEqual(SM.FLOOR, 0.2)
+TestRunner:test("the floor: the reader's shortest interval at least, a rest as long as the drawing took (half of the time at most)", function()
+    TestRunner:assertEqual(SM.FLOOR, 0.1)
+    TestRunner:assertEqual(SM.COST_FACTOR, 1)
     local long = string.rep("a line of the answer\n", 40)
     local st = { rendered = long, rendered_at = 10, floor = math.max(SM.FLOOR, 0.035 * SM.COST_FACTOR) }
-    TestRunner:assertTrue(not SM.renderDue(st, long .. "x", 10.1), "a tenth of a second after: not yet")
-    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 10.21), "a fifth of a second after a 35 ms render: due")
+    TestRunner:assertTrue(not SM.renderDue(st, long .. "x", 10.05), "a twentieth of a second after: not yet")
+    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 10.11), "a tenth of a second after a 35 ms drawing: due")
+    st.floor = math.max(SM.FLOOR, 0.15 * SM.COST_FACTOR)
+    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 10.31),
+        "a 150 ms drawing: due at the handler's next tick (a quarter of a second after the last), as the plain view is")
     st.floor = math.max(SM.FLOOR, 0.5 * SM.COST_FACTOR)
-    TestRunner:assertTrue(not SM.renderDue(st, long .. "x", 11.5), "a half-second render: two seconds between renders")
-    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 12.01))
+    TestRunner:assertTrue(not SM.renderDue(st, long .. "x", 10.4), "a half-second drawing: half a second of rest after it")
+    TestRunner:assertTrue(SM.renderDue(st, long .. "x", 10.51))
+end)
+
+TestRunner:test("a text that shows nothing new is not drawn again", function()
+    built = {}
+    local w = widget()
+    clock = clock + 10
+    local head = string.rep("A line of the answer.\n", 30) .. "\n| Device | Screen |\n|---|---|\n"
+    w:setText(head)
+    local renders, widgets = w.renders, #built
+    clock = clock + 10
+    w:setText(head .. "| Kobo Cl")
+    TestRunner:assertEqual(w.renders, renders, "a row still arriving: the same page, no drawing")
+    TestRunner:assertEqual(#built, widgets, "no new widget (the handler's hooks stay on the one there is)")
+    TestRunner:assertEqual(w.rendered, head .. "| Kobo Cl", "the text counts as shown")
+    TestRunner:assertEqual(w.same, 1)
+    clock = clock + 10
+    w:setText(head .. "| Kobo Clara | 6 inch |\n")
+    TestRunner:assertEqual(w.renders, renders + 1, "the whole row is drawn")
+    TestRunner:assertEqual(#built, widgets + 1)
+end)
+
+TestRunner:test("a drawing is sent to the screen as the plain view's updates reach it: no quick refresh", function()
+    TestRunner:assertEqual(SM.REFRESH, "ui", "the type KOReader uses for a text box being typed into")
+    last_refresh = nil
+    local w = widget()
+    TestRunner:assertEqual(last_refresh, "ui", "the first drawing")
+    clock = clock + 10
+    last_refresh = nil
+    w:setText(string.rep("A line of the answer.\n", 40))
+    TestRunner:assertEqual(last_refresh, "ui", "every drawing (the quick type draws black and white only on e-ink)")
+    w:onCloseWidget()
+    TestRunner:assertEqual(last_refresh, "flashui", "and one clean refresh at close")
+end)
+
+TestRunner:test("the stream's own numbers: every drawing's work, closed by the paint that shows it", function()
+    local st = SM.Stats.new()
+    TestRunner:assertEqual(st:line(), "no update of a long text (0 bytes at the most)")
+    st:work("layout", 0.5, 100)     -- a short text (the waiting animation): left out
+    st:painted(1, 0.1)
+    TestRunner:assertEqual(st.n, 0)
+    st:work("conversion", 0.010, 1000)
+    st:work("layout", 0.030, 1000)
+    st:painted(10, 0.020)
+    st:work("layout", 0.050, 1000)  -- the plain view lays its text out twice a tick
+    st:work("layout", 0.050, 1000)
+    st:painted(10.5, 0.020)
+    st:painted(11, 0.5)             -- a paint with no new drawing is no update
+    TestRunner:assertEqual(st.n, 2)
+    TestRunner:assertEqual(st:line(), "2 updates in 0.5 s (2.0 a second); an update took 90 ms on average "
+        .. "(conversion 5, layout 65, paint 20), 120 ms at most; the longest wait between two 0.50 s; 1000 bytes at the most")
 end)
 
 TestRunner:test("healTail: the last line's open bold or code mark is closed for the render, nothing else", function()
@@ -223,6 +281,47 @@ TestRunner:test("healTail: the last line's open bold or code mark is closed for 
     TestRunner:assertEqual(heal("ends with a newline\n"), "ends with a newline\n")
     TestRunner:assertEqual(heal(""), "")
     TestRunner:assertEqual(heal(nil), nil)
+end)
+
+TestRunner:test("healTail: a table's row waits until it is whole, its header until the line under it", function()
+    local heal = SM.healTail
+    local lead = "Here it is:\n\n"
+    TestRunner:assertEqual(heal(lead .. "| Device | Scr"), lead, "a header still arriving is held back")
+    TestRunner:assertEqual(heal(lead .. "| Device | Screen |\n"), lead, "a whole header waits for the line under it")
+    TestRunner:assertEqual(heal(lead .. "| Device | Screen |\n|---"), lead, "which is still arriving")
+    local head = lead .. "| Device | Screen |\n|---|---|"
+    TestRunner:assertEqual(heal(head), head, "the line under it makes the two a table: shown")
+    TestRunner:assertEqual(heal(head .. "\n"), head .. "\n")
+    TestRunner:assertEqual(heal(head .. "\n| Kobo Cl"), head .. "\n", "a row still arriving waits")
+    TestRunner:assertEqual(heal(head .. "\n| Kobo Clara | 6 inch |"), head .. "\n", "until its line ends")
+    TestRunner:assertEqual(heal(head .. "\n| Kobo Clara | 6 inch |\n"), head .. "\n| Kobo Clara | 6 inch |\n", "then it is shown")
+    TestRunner:assertEqual(heal(head .. "\n| Kobo Clara | 6 inch |\n| Kin"), head .. "\n| Kobo Clara | 6 inch |\n",
+        "and the next one waits")
+    TestRunner:assertEqual(heal(head .. "\n| a | b |\n\nAfter the ta"), head .. "\n| a | b |\n\nAfter the ta",
+        "text after the table is text")
+    TestRunner:assertEqual(heal("A paragraph.\n| Device | Scr"), "A paragraph.\n", "a table right under a paragraph")
+    TestRunner:assertEqual(heal("- a point\n  | Device | Scr"), "- a point\n", "an indented one")
+    -- what is no table shows as it arrives
+    TestRunner:assertEqual(heal("|x| is the absolute value of x.\n"), "|x| is the absolute value of x.\n",
+        "a line of prose that ends without a pipe")
+    local long = "| " .. string.rep("a long line of prose ", 10)
+    TestRunner:assertEqual(heal(long), long, "a line longer than a header is")
+    TestRunner:assertEqual(heal("| a | b |\n| c | d"), "| a | b |\n| c | d", "two lines of pipes with no line under the first")
+    TestRunner:assertEqual(heal("```\n| a | b"), "```\n| a | b", "nothing inside an open code fence")
+end)
+
+TestRunner:test("healTail: a link shows its words while its address arrives", function()
+    local heal = SM.healTail
+    TestRunner:assertEqual(heal("See [the guide](https://exam"), "See [the guide](https://exam)", "the parenthesis closed")
+    TestRunner:assertEqual(heal("See [the guide]("), "See [the guide]()", "from its first character")
+    TestRunner:assertEqual(heal("**See [the guide](https://exam"), "**See [the guide](https://exam)**", "inside an open bold pair")
+    TestRunner:assertEqual(heal("See [the guide](https://example.org/a) and more"), "See [the guide](https://example.org/a) and more",
+        "a closed link is left")
+    TestRunner:assertEqual(heal("See [the gui"), "See [the gui", "a bracket still open is left")
+    TestRunner:assertEqual(heal("Call `f[0](x` then g[1](y z"), "Call `f[0](x` then g[1](y z",
+        "not in a code span, not with a space after it")
+    TestRunner:assertEqual(heal("A [link](https://en.example.org/wiki/Name_(disambig"), "A [link](https://en.example.org/wiki/Name_(disambig",
+        "nor an address with a parenthesis of its own")
 end)
 
 -- The math pass as the pipeline applies it (the real module: it is pure)
@@ -468,6 +567,20 @@ TestRunner:test("the stream handler: the Markdown view where the plain widget's 
         and gq:find("config.features._chat_view_mode == nil and config.features.render_markdown ~= false", 1, true) ~= nil,
         "the chat's own tap first, else the View Mode")
     TestRunner:assertTrue(gq:find("stream_markdown = (config.features and config.features.stream_markdown == true", 1, true) ~= nil, "the setting")
+end)
+
+TestRunner:test("the plain stream widget's own request is the released one", function()
+    -- it asks for "fast"; what reaches the screen is mostly "ui", joined with
+    -- the dialog's own refresh (the module's comment has the numbers). A
+    -- change here changes how every plain stream looks on e-ink.
+    local f = assert(io.open(PLUGIN_DIR .. "/koassistant/request/stream_handler.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    local plain = src:match("function StreamText:initTextBox%(text, char_added%)(.-)\nend\n")
+    TestRunner:assertTrue(plain and plain:find('UIManager:setDirty(self.parent, function() return "fast", self.dimen end)', 1, true) ~= nil,
+        "the text area, the quick type")
+    TestRunner:assertTrue(src:find('UIManager:setDirty(self.parent, function() return "flashui", self.dimen end)', 1, true) ~= nil,
+        "and a clean refresh at close")
 end)
 
 for k, v in pairs(SAVED) do package.loaded[k] = v end
