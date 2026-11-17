@@ -191,7 +191,7 @@ package.loaded["ui/size"] = {
     padding = { default = 0, large = 0 },
     margin = { default = 0 },
     line = { thick = 1 },
-    border = { default = 1 },
+    border = { default = 1, window = 1 },
 }
 package.loaded["device"] = {
     screen = {

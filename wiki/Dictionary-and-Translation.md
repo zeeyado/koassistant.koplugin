@@ -161,6 +161,8 @@ Every translation action (Translate from the highlight menu, the highlight bypas
 | **Language** | Runs the translation again into another of your languages; your setting stays as it is |
 | **Close** | Closes the window. Long-press to close everything down to the page |
 
+In the Markdown view every line of the original and of the translation is its own paragraph, so the paragraphs of a page or of a longer selection stay apart (KOReader hands them over one line break apart, and a translation usually keeps those breaks). Lists, tables, headings and code in a translation are shown as in any chat window.
+
 Translations are not auto-saved by default: like dictionary lookups, they are meant to be read and let go ([Saving lookups and translations](#saving-lookups-and-translations)).
 
 ### Translate settings

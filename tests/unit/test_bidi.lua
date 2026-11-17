@@ -19,8 +19,9 @@ local function setupPaths()
         tests_dir .. "/lib/?.lua",
         package.path,
     }, ";")
+    return plugin_dir
 end
-setupPaths()
+local PLUGIN_DIR = setupPaths()
 
 local Bidi = require("koassistant.ui.bidi")
 local TestRunner = require("test_runner"):new()
@@ -112,17 +113,116 @@ TestRunner:test("an explicit alignment is swapped on right-to-left blocks (logic
         '<p dir="rtl" style="text-align: left;">• ' .. AR2 .. "</p>", "list paragraphs too")
 end)
 
-TestRunner:test("headings, quotes and table cells", function()
+TestRunner:test("headings and quotes", function()
     TestRunner:assertEqual(pass("<h2>" .. HE .. "</h2>"), '<h2 dir="rtl">' .. HE .. "</h2>", "heading")
     TestRunner:assertEqual(pass("<h2>Title</h2>"), "<h2>Title</h2>", "heading untouched")
     TestRunner:assertEqual(pass("<blockquote><p>" .. AR .. "</p></blockquote>"),
         '<blockquote dir="rtl" style="border-left: none; border-right: 3px solid #ccc; padding-left: 0; padding-right: 1em;">'
         .. '<p dir="rtl">' .. AR .. "</p></blockquote>", "a right-to-left quote mirrors its border and inset")
     TestRunner:assertEqual(pass("<blockquote><p>quoted</p></blockquote>"), "<blockquote><p>quoted</p></blockquote>", "quote untouched")
-    TestRunner:assertEqual(pass('<td style="text-align:right">' .. AR .. "</td>"),
-        '<td dir="rtl" style="text-align:left">' .. AR .. "</td>", "a cell keeps its attributes, its alignment swapped")
-    TestRunner:assertEqual(pass('<th style="text-align:left">Column</th>'), '<th style="text-align:left">Column</th>', "cell untouched")
-    TestRunner:assertEqual(pass("<td>" .. AR2 .. "</td>"), '<td dir="rtl">' .. AR2 .. "</td>", "a bare cell")
+end)
+
+-- Tables (B693, the maintainer's Android round of 2026-11-17: in an Arabic
+-- answer every cell's text sat on the far side of its cell). The viewer's
+-- table step writes every cell with its column's alignment, "left" unless
+-- the answer says otherwise, and the Markdown library wraps the table in a
+-- paragraph.
+local function cell(tag, align, text) return "<" .. tag .. ' style="text-align:' .. align .. '">' .. text .. "</" .. tag .. ">" end
+local function grid(head, rows)
+    local out = { "<p><table><thead><tr>" }
+    for _i, c in ipairs(head) do out[#out + 1] = cell("th", c[2] or "left", c[1]) end
+    out[#out + 1] = "</tr></thead><tbody>"
+    for _i, row in ipairs(rows) do
+        out[#out + 1] = "<tr>"
+        for _j, c in ipairs(row) do out[#out + 1] = cell("td", c[2] or "left", c[1]) end
+        out[#out + 1] = "</tr>"
+    end
+    out[#out + 1] = "</tbody></table></p>"
+    return table.concat(out)
+end
+local AR_LINE = "<p>" .. AR .. " " .. AR2 .. "</p>"
+local RTL_LINE = '<p dir="rtl">' .. AR .. " " .. AR2 .. "</p>"
+
+TestRunner:test("a right-to-left table is the left-to-right one mirrored: first column on the right, each cell on its side", function()
+    local out = pass(AR_LINE .. grid({ { "الكلمة" }, { "المعنى" }, { "English" } },
+        { { { "عاصمة" }, { "المدينة الرئيسية" }, { "capital." } } }))
+    TestRunner:assertEqual(out, RTL_LINE .. '<p dir="rtl"><table><thead><tr>'
+        .. '<th dir="ltr" style="text-align:right">English</th>'
+        .. '<th dir="rtl" style="text-align:left">المعنى</th>'
+        .. '<th dir="rtl" style="text-align:left">الكلمة</th>'
+        .. "</tr></thead><tbody><tr>"
+        .. '<td dir="ltr" style="text-align:right">capital.</td>'
+        .. '<td dir="rtl" style="text-align:left">المدينة الرئيسية</td>'
+        .. '<td dir="rtl" style="text-align:left">عاصمة</td>'
+        .. "</tr></tbody></table></p>",
+        "the rows in reverse (MuPDF lays columns out left to right); a right-to-left cell keeps the keyword, "
+        .. "logical there; a Latin cell names its own direction and takes the other keyword")
+end)
+
+TestRunner:test("a table with an Arabic column in an English answer keeps its order", function()
+    local out = pass("<p>Here are the words of the lesson, with their meanings.</p>"
+        .. grid({ { "Word" }, { "Meaning" } }, { { { "عاصمة" }, { "capital" } }, { { "نهر" }, { "river" } } }))
+    TestRunner:assertEqual(out, "<p>Here are the words of the lesson, with their meanings.</p>"
+        .. '<p><table><thead><tr><th dir="ltr" style="text-align:left">Word</th><th dir="ltr" style="text-align:left">Meaning</th>'
+        .. "</tr></thead><tbody>"
+        .. '<tr><td dir="rtl" style="text-align:right">عاصمة</td><td dir="ltr" style="text-align:left">capital</td></tr>'
+        .. '<tr><td dir="rtl" style="text-align:right">نهر</td><td dir="ltr" style="text-align:left">river</td></tr>'
+        .. "</tbody></table></p>",
+        "left-to-right: the Arabic cells at the left of their column (the other keyword, logical on them), "
+        .. "and the paragraph around the table names no direction")
+    -- what made it right-to-left before: the cells' words read as one word
+    TestRunner:assertTrue(not out:find('<p dir="rtl"><table', 1, true), "a Latin cell beside an Arabic one are two words")
+end)
+
+TestRunner:test("a table without one right-to-left letter is left as it is, in an Arabic answer too", function()
+    local english = grid({ { "City" }, { "People", "right" } }, { { { "Paris" }, { "2 million", "right" } } })
+    TestRunner:assertEqual(pass(AR_LINE .. english), RTL_LINE .. english)
+end)
+
+TestRunner:test("a mirrored table: the columns' alignments mirror, a short row keeps its columns", function()
+    local out = pass(AR_LINE .. grid({ { "الكلمة", "left" }, { "العدد", "center" }, { "السعر", "right" } },
+        { { { "قلم", "left" }, { "3", "center" }, { "12", "right" } }, { { "كتاب", "left" } } }))
+    TestRunner:assertTrue(out:find('<tr><th dir="rtl" style="text-align:right">السعر</th>'
+        .. '<th dir="rtl" style="text-align:center">العدد</th><th dir="rtl" style="text-align:left">الكلمة</th></tr>', 1, true) ~= nil,
+        "the header: the right-aligned column is now the left one, its text at its left: " .. out)
+    TestRunner:assertTrue(out:find('<tr><td dir="ltr" style="text-align:left">12</td><td dir="ltr" style="text-align:center">3</td>'
+        .. '<td dir="rtl" style="text-align:left">قلم</td></tr>', 1, true) ~= nil,
+        "a number is a left-to-right cell: the physical keyword of the mirrored side")
+    TestRunner:assertTrue(out:find('<tr><td></td><td></td><td dir="rtl" style="text-align:left">كتاب</td></tr>', 1, true) ~= nil,
+        "a row of one cell: filled up, then reversed, so the cell stays in the first column")
+end)
+
+TestRunner:test("a table too wide for a grid: a right-to-left stacked row has its rule on the right, every line right-to-left", function()
+    local function stacked(lines)
+        local out = { Bidi.STACK_OPEN }
+        for _i, l in ipairs(lines) do out[#out + 1] = Bidi.STACK_LINE .. "<b>" .. l[1] .. ":</b> " .. l[2] .. "</p>" end
+        out[#out + 1] = "</div>"
+        return table.concat(out)
+    end
+    local out = pass(AR_LINE .. stacked({ { "الكلمة", "عاصمة" }, { "English", "capital" } }))
+    TestRunner:assertEqual(out, RTL_LINE .. Bidi.STACK_OPEN_RTL
+        .. Bidi.STACK_LINE_RTL .. "<b>الكلمة:</b> عاصمة</p>"
+        .. Bidi.STACK_LINE_RTL .. "<b>English:</b> capital</p></div>",
+        "the Latin line too: it stands at the right, under the others")
+    local english = stacked({ { "City", "Paris" }, { "People", "2 million" } })
+    TestRunner:assertEqual(pass(AR_LINE .. english), RTL_LINE .. english, "a left-to-right stacked row is left as it is")
+    -- the viewer's table step writes these very tags
+    local f = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/chatgptviewer.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    TestRunner:assertTrue(src:find("table.insert(table_html, Bidi.STACK_OPEN)", 1, true) ~= nil
+        and src:find("Bidi.STACK_LINE .. ", 1, true) ~= nil, "the stacked row's tags come from the direction pass")
+    TestRunner:assertTrue(not src:find("border-left:2px solid #ccc", 1, true), "and are spelled once")
+end)
+
+TestRunner:test("the words of two blocks are two words", function()
+    -- a quote of two paragraphs in an English answer, a Latin word and an
+    -- Arabic one: read as one word it was a right-to-left word, and the quote
+    -- right-to-left with its rule on the right
+    local out = pass("<p>English text about a book, a long sentence in English here.</p>"
+        .. "<blockquote><p>book</p><p>كتاب</p></blockquote>")
+    TestRunner:assertTrue(out:find('<blockquote><p>book</p><p dir="rtl">كتاب</p></blockquote>', 1, true) ~= nil,
+        "the quote opens in the answer's direction and keeps it; its Arabic paragraph has its own: " .. out)
 end)
 
 -- A block that begins in its message's main direction keeps it (2026-11-12:

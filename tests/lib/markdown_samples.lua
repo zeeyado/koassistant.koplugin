@@ -535,4 +535,38 @@ And one written the lazy way:
 End of the lists.
 ]])
 
+-- A right-to-left table is written with its rows in reverse and a table's
+-- direction is judged on the whole document (koassistant/ui/bidi.lua, B693):
+-- the pieces must give the whole conversion's table, in an Arabic answer and
+-- in an English one that holds an Arabic column
+add("tables in a right-to-left answer", [[
+هذه كلمات الدرس مع معانيها، في جدول من ثلاثة أعمدة:
+
+| الكلمة | المعنى | English |
+|--------|:------:|--------:|
+| عاصمة | المدينة الرئيسية في البلاد | capital. |
+| نهر | مجرى ماء |
+| جسر | بناء فوق النهر | bridge |
+
+وهذا جدول أعرض، يظهر كل صف فيه كسطور:
+
+| الكلمة | المعنى | النوع | English |
+|--------|--------|-------|---------|
+| عاصمة | المدينة الرئيسية | اسم | capital |
+| نهر | مجرى ماء | اسم | river |
+
+وهذا آخر سطر في الجواب.
+]])
+
+add("an arabic column in an english table", [[
+Here are the words of the lesson, with their meanings:
+
+| Word | Meaning | Note |
+|------|---------|------|
+| عاصمة | capital | the main city of a country |
+| نهر | river | a stream of water |
+
+That is the end of the answer.
+]])
+
 return samples

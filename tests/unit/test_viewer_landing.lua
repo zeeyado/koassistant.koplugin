@@ -56,6 +56,11 @@ print("  [the break on the newest label]")
 -- the label was a page's last line, and the window landed on that empty page
 -- (tests/scenarios/s09_reply_landing.lua shows it in the real widget)
 local BREAK_LABEL = '<p class="koa-exchange-break">◉ KOAssistant:</p>'
+-- An empty block after the label, with no break of its own (B696): MuPDF gives
+-- the first block after a forced break no top margin, and this one takes that
+-- place, so the reply's first block keeps its margin as at a document's start
+-- and stands where the stream window showed it
+local KEEP_MARGIN = "<div></div>"
 
 TestRunner:test("the question, the usage line and the label stay before the break", function()
     local body = "<p>▶ User:</p><p>q</p><p>🧠 Reasoning used</p>" .. LABEL .. "<p>the answer</p><p>more</p>"
@@ -63,11 +68,11 @@ TestRunner:test("the question, the usage line and the label stay before the brea
     TestRunner:assertEqual(placed, true)
     TestRunner:assertEqual(count(out, BREAK_LABEL), 1)
     TestRunner:assertEqual(count(out, SPACER), 0)
-    TestRunner:assertTrue(out:find(BREAK_LABEL .. "<p>the answer</p>", 1, true) ~= nil,
-        "the label carries the break and the reply's first paragraph follows it")
+    TestRunner:assertTrue(out:find(BREAK_LABEL .. KEEP_MARGIN .. "<p>the answer</p>", 1, true) ~= nil,
+        "the label carries the break; the empty block and the reply's first paragraph follow it")
     TestRunner:assertTrue(out:find("<p>🧠 Reasoning used</p>" .. BREAK_LABEL, 1, true) ~= nil,
         "the usage line keeps its place before the label")
-    TestRunner:assertEqual(#out, #body + #BREAK_LABEL - #LABEL)
+    TestRunner:assertEqual(#out, #body + #BREAK_LABEL + #KEEP_MARGIN - #LABEL)
 end)
 
 TestRunner:test("the newest reply only", function()
@@ -75,7 +80,7 @@ TestRunner:test("the newest reply only", function()
     local out, placed = breaks(body, ON, nil, nil)
     TestRunner:assertEqual(placed, true)
     TestRunner:assertEqual(count(out, BREAK_LABEL), 1)
-    TestRunner:assertTrue(out:find(BREAK_LABEL .. "<p>a2</p>", 1, true) ~= nil, "on the second label")
+    TestRunner:assertTrue(out:find(BREAK_LABEL .. KEEP_MARGIN .. "<p>a2</p>", 1, true) ~= nil, "on the second label")
     TestRunner:assertTrue(out:find(LABEL .. "<p>a1</p>", 1, true) ~= nil, "the first exchange untouched")
 end)
 
@@ -112,6 +117,21 @@ TestRunner:test("the viewer hands its landing flag to the break", function()
         "markdownHtml passes scroll_to_last_question")
     TestRunner:assertTrue(src:find("\n.koa%-exchange%-break {") ~= nil,
         "the CSS rule serves the label paragraph and the carry's spacer div alike")
+end)
+
+TestRunner:test("a table's cells carry no rule that breaks a word (B702)", function()
+    -- MuPDF gives a column of single words exactly its word's width, and the
+    -- rule then split a word whenever the room it found was a rounding short;
+    -- it never made a column narrower, so nothing is lost with it
+    local css = ChatGPTViewer.viewerCSS("auto", {}, "")
+    local cells = css:match("\ntd, th (%b{})")
+    TestRunner:assertTrue(cells ~= nil, "the cells' rule is there")
+    TestRunner:assertTrue(not cells:find("break-word", 1, true), "no overflow-wrap / word-wrap: break-word in it: " .. tostring(cells))
+    TestRunner:assertTrue(cells:find("border: 1px solid #ccc", 1, true) ~= nil and cells:find("padding:", 1, true) ~= nil,
+        "the border and the padding stay")
+    -- a code block still wraps its long lines (MuPDF cannot scroll one)
+    local pre = css:match("\npre (%b{})")
+    TestRunner:assertTrue(pre and pre:find("word-wrap: break-word", 1, true) ~= nil, "the code block's own rule is untouched")
 end)
 
 TestRunner:test("a short first question gets the page too", function()

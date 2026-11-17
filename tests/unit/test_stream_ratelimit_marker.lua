@@ -612,6 +612,73 @@ TestRunner:test("an error event in a stream that was answered 200 is still its m
     TestRunner:assertEqual(err, "model requires more system memory", "the message, as before")
 end)
 
+TestRunner:suite("the stream window in the chat window's frame (B696)")
+
+-- A dialog as InputDialog builds one, as far as the frame builder reads it:
+-- what it adds around its text is `chrome`, whatever the text's height
+local function fakeDialogs(chrome)
+    local made = {}
+    return made, function(text_height)
+        local bar = { title_multilines = true, bottom_v_padding = 0, cleared = 0, order = {} }
+        function bar:clear() self.cleared = self.cleared + 1; self.order[#self.order + 1] = "clear" end
+        function bar:init() self.order[#self.order + 1] = "init" end
+        local d = { text_height = text_height, title_bar = bar,
+            vgroup = { resetLayout = function(g) g.reset = true end },
+            dialog_frame = { getSize = function() return { w = 100, h = text_height + chrome } end },
+            free = function(dlg) dlg.freed = true end }
+        made[#made + 1] = d
+        return d
+    end
+end
+
+TestRunner:test("what a dialog adds around its text is measured: a window built on a wrong guess is built once more", function()
+    local build = StreamHandler._buildInChatFrame
+    local border = require("ui/size").border.window
+    local made, make = fakeDialogs(231)     -- not the guess (120 and the border twice)
+    local close = function() end
+    local d = build(make, 1000, "test-kind-a", close)
+    TestRunner:assertEqual(#made, 2, "the first on the guess, the second at the measure")
+    TestRunner:assertTrue(made[1].freed == true and d == made[2], "the first one is freed, the second returned")
+    TestRunner:assertEqual(d.dialog_frame:getSize().h, 1000 + 2 * border, "the chat window's frame: its height and its border")
+    -- the title bar as the chat window's, laid out again KOReader's way
+    local bar = d.title_bar
+    TestRunner:assertEqual(bar.close_callback, close, "the close button")
+    TestRunner:assertEqual(bar.title_multilines, false, "one line, as the chat window's title")
+    TestRunner:assertEqual(bar.bottom_v_padding, nil, "the bar's own space under its line (InputDialog gives it none)")
+    TestRunner:assertEqual(bar.title_face, require("koassistant.ui.chatgptviewer").title_face, "the chat window's face")
+    TestRunner:assertEqual(table.concat(bar.order, " "), "clear init", "cleared first: the first layout's title and line would stay underneath")
+    TestRunner:assertTrue(d.vgroup.reset == true, "and the dialog measures its bar again")
+    -- the next window of that kind is exact at once
+    local made2, make2 = fakeDialogs(231)
+    local d2 = build(make2, 800, "test-kind-a", close)
+    TestRunner:assertEqual(#made2, 1, "built once")
+    TestRunner:assertEqual(d2.dialog_frame:getSize().h, 800 + 2 * border)
+end)
+
+TestRunner:test("a right guess builds once; a dialog with no frame to measure is left as built", function()
+    local build = StreamHandler._buildInChatFrame
+    local border = require("ui/size").border.window
+    local made, make = fakeDialogs(120 + 2 * border)    -- the guess exactly
+    local d = build(make, 1000, "test-kind-b", function() end)
+    TestRunner:assertEqual(#made, 1)
+    TestRunner:assertEqual(d.dialog_frame:getSize().h, 1000 + 2 * border)
+    local bare = build(function(th) return { text_height = th, title_bar = { init = function() end } } end,
+        1000, "test-kind-c", function() end)
+    TestRunner:assertEqual(bare.text_height, 1000 - 120, "the guess, as before")
+end)
+
+TestRunner:test("both stream windows are built through it, at their sources", function()
+    local root = debug.getinfo(1, "S").source:match("@?(.*)"):match("(.+)/tests/unit/[^/]+$") or "."
+    local f = assert(io.open(root .. "/koassistant/request/stream_handler.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    local _a, dialogs = src:gsub("InputDialog:new{", "")
+    local _b, framed = src:gsub("buildInChatFrame%(function%(text_height%)%s*return InputDialog:new{", "")
+    TestRunner:assertEqual(dialogs, 2, "the lookup status window and the stream window")
+    TestRunner:assertEqual(framed, dialogs, "each inside the frame builder")
+    TestRunner:assertTrue(not src:find("title_bar:init()", 1, true), "no title bar is laid out again without the clear")
+end)
+
 for _idx, k in ipairs(SAVED_KEYS) do package.loaded[k] = saved[k] end
 
 print(string.format("\n  test_stream_ratelimit_marker: %d passed, %d failed",

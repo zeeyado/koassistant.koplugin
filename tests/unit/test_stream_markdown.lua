@@ -616,6 +616,54 @@ TestRunner:test("the default and the marks the rule reads, at their sources", fu
         "and a hidden stream never shows it")
 end)
 
+TestRunner:test("the text box sits where the chat window's does: its inset and its width, the outer size kept (B696)", function()
+    -- what InputDialog hands its input widget on a 300 dpi screen (a dialog
+    -- 1018 wide with a border of 3: 1018 - 2 * (3 + 9 + 9)), and the chat
+    -- window's inset there (text padding 18 + text margin 4)
+    local box = { width = 976, height = 1160, padding = 9, margin = 9 }
+    local p = SM.place(box, 1018, 22)
+    TestRunner:assertEqual(p.width, 974, "the chat window's text width: the dialog's minus its inset twice")
+    TestRunner:assertEqual(p.left, 19, "the inset from the dialog's edge, less the border InputDialog already left")
+    TestRunner:assertEqual(p.right, 19)
+    TestRunner:assertEqual(p.top, 22, "the chat window's space under the title bar")
+    TestRunner:assertEqual(p.bottom, 22)
+    TestRunner:assertEqual(p.height, 1152)
+    TestRunner:assertEqual(p.left + p.width + p.right, 976 + 36, "the outer width is the one InputDialog laid out")
+    TestRunner:assertEqual(p.top + p.height + p.bottom, 1160 + 36, "and the outer height")
+    -- nothing to go by (no dialog, no chat window values): its own insets
+    for _i, own in ipairs({ SM.place(box, nil, 22), SM.place(box, 1018, nil) }) do
+        TestRunner:assertEqual(own.left, 18)
+        TestRunner:assertEqual(own.top, 18)
+        TestRunner:assertEqual(own.width, 976)
+        TestRunner:assertEqual(own.height, 1160)
+    end
+    -- an inset inside the dialog's border, a box with no room: its own insets too
+    TestRunner:assertEqual(SM.place(box, 1018, 1).width, 976, "the text cannot start inside the border")
+    TestRunner:assertEqual(SM.place({ width = 976, height = 4, padding = 9, margin = 9 }, 1018, 22).height, 4, "no room left")
+
+    -- the widget: the HTML widget it builds takes that place
+    local stub = package.loaded["koassistant.ui.chatgptviewer"]
+    stub.text_padding, stub.text_margin = 10, 2
+    built = {}
+    local parent = { koa_stream = { features = {}, text_align = "auto", font_size = 20 }, width = 540 }
+    local w = SM:new{ text = "", width = 500, height = 400, padding = 5, margin = 5, parent = parent }
+    w:init()
+    stub.text_padding, stub.text_margin = nil, nil
+    TestRunner:assertEqual(built[1].width, 516, "540 - 2 * 12")
+    TestRunner:assertEqual(built[1].height, 396, "400 + 2 * 10 - 2 * 12")
+    TestRunner:assertEqual(w[1].padding_left, 2, "(520 - 516) / 2")
+    TestRunner:assertEqual(w[1].padding_top, 12)
+    TestRunner:assertEqual(w[1].margin, 0)
+    w:setText(string.rep("word ", 200))
+    TestRunner:assertEqual(built[#built].width, 516, "every later drawing too")
+    -- with no chat window values (the stub's own state), the widget's own size
+    built = {}
+    local plain = widget()
+    TestRunner:assertEqual(built[1].width, 500)
+    TestRunner:assertEqual(built[1].height, 400)
+    TestRunner:assertTrue(plain ~= nil)
+end)
+
 TestRunner:test("the plain stream widget's own request is the released one", function()
     -- it asks for "fast"; what reaches the screen is mostly "ui", joined with
     -- the dialog's own refresh (the module's comment has the numbers). A

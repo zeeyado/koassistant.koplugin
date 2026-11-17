@@ -414,12 +414,42 @@ function StreamMarkdown.healTail(text)
     return text
 end
 
+--- Where the HTML widget sits inside the box InputDialog gives its input
+--- widget, pure: `box` = { width, height, padding, margin } as InputDialog
+--- hands them over, `dialog_width` the dialog's own width, `inset` the chat
+--- window's space between its frame and its text (its text padding and
+--- margin). The chat window that takes the stream's place lays its text out
+--- at that inset and at the width it leaves; InputDialog's own insets put
+--- this view's text a pixel to the side and made it two pixels wider on a
+--- 300 dpi screen, so a word could wrap on another line when the stream ended
+--- (B696). The outer size stays what InputDialog expects of the widget.
+--- @return table { left, right, top, bottom, width, height }
+function StreamMarkdown.place(box, dialog_width, inset)
+    local own = (box.padding or 0) + (box.margin or 0)
+    local outer_w, outer_h = box.width + 2 * own, box.height + 2 * own
+    local place = { left = own, right = own, top = own, bottom = own, width = box.width, height = box.height }
+    if not (dialog_width and inset) then return place end
+    local width, height = dialog_width - 2 * inset, outer_h - 2 * inset
+    local side = (outer_w - width) / 2
+    -- a dialog narrower than its input's box, or no room left: its own insets
+    if width <= 0 or height <= 0 or side < 0 or side ~= math.floor(side) then return place end
+    return { left = side, right = side, top = inset, bottom = inset, width = width, height = height }
+end
+
 function StreamMarkdown:init()
     self.text = self.text or ""
+    local Viewer = require("koassistant.ui.chatgptviewer")
+    local place = StreamMarkdown.place(self, self.parent and self.parent.width,
+        Viewer.text_padding and Viewer.text_margin and (Viewer.text_padding + Viewer.text_margin) or nil)
+    self.inner_width, self.inner_height = place.width, place.height
     self[1] = FrameContainer:new{
         bordersize = 0,
-        padding = self.padding,
-        margin = self.margin,
+        margin = 0,
+        padding = 0,
+        padding_left = place.left,
+        padding_right = place.right,
+        padding_top = place.top,
+        padding_bottom = place.bottom,
     }
     self:initTextBox()
 end
@@ -438,8 +468,8 @@ function StreamMarkdown:_buildScrollWidget(html_body)
         css = css,
         html_resource_directory = font_dir,
         default_font_size = Screen:scaleBySize(opts.font_size or 20),
-        width = self.width,
-        height = self.height,
+        width = self.inner_width or self.width,
+        height = self.inner_height or self.height,
         dialog = self.parent,
         highlight_text_selection = false,
     }

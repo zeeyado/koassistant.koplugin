@@ -429,6 +429,59 @@ local function clampDialogToChatRegion(dialog)
     end
 end
 
+--- A stream window's title bar as the chat window's (B696): the same face on
+--- one line and the same space under its line, so the bar is as tall as the
+--- chat window's and its line stays where it is when that window takes the
+--- stream's place. InputDialog builds its bar in its own bold face, with room
+--- for several lines and no space under the line (seven pixels lower on a
+--- 300 dpi screen); the bar is laid out again with the chat window's values
+--- and the close button InputDialog has none of.
+local function titleBarLikeChat(dialog, close_callback)
+    local bar = dialog.title_bar
+    bar.close_callback = close_callback
+    bar.title_face = require("koassistant.ui.chatgptviewer").title_face or bar.title_face
+    bar.title_multilines = false
+    bar.bottom_v_padding = nil  -- the title bar's own default under its line, as the chat window's has
+    -- KOReader's own way to lay a title bar out again (TitleBar:setTitle):
+    -- without the clear, the first layout's title and line stay underneath
+    if bar.clear then bar:clear() end
+    bar:init()
+    if dialog.vgroup and dialog.vgroup.resetLayout then dialog.vgroup:resetLayout() end
+end
+
+-- What an InputDialog adds around its text (its border, the title bar, the
+-- input widget's insets, the button row), by the kind of its input widget:
+-- measured on the first window of a session, exact from then on
+local dialog_chrome = {}
+
+--- A stream window in the chat window's frame (B696): `build(text_height)`
+--- makes the InputDialog, `height` is the chat window's height (the inside of
+--- its frame; UIConstants), `kind` names the input widget ("markdown" |
+--- "plain"). The height of the text was the window's minus a guess at
+--- everything around it (120 scaled pixels), so the stream's frame stood a
+--- few pixels off the chat window's wherever the guess was not exact. What
+--- the dialog adds is read off the built window; one built on a wrong guess
+--- is built once more, and the measure serves every later window.
+local function buildInChatFrame(build, height, kind, close_callback)
+    local outer = height + 2 * Size.border.window
+    local text_height = outer - (dialog_chrome[kind] or (Screen:scaleBySize(120) + 2 * Size.border.window))
+    local dialog = build(text_height)
+    titleBarLikeChat(dialog, close_callback)
+    local frame = dialog.dialog_frame
+    if not (frame and frame.getSize) then return dialog end
+    local chrome = frame:getSize().h - text_height
+    if chrome ~= dialog_chrome[kind] then
+        dialog_chrome[kind] = chrome
+        if outer - chrome ~= text_height and outer - chrome > 0 then
+            if dialog.free then dialog:free() end
+            dialog = build(outer - chrome)
+            titleBarLikeChat(dialog, close_callback)
+        end
+    end
+    return dialog
+end
+StreamHandler._buildInChatFrame = buildInChatFrame   -- for tests
+
 --- Lightweight status dialog for the gather phase of tool workflows: same geometry and
 --- look as the streaming dialog, but with externally-pushed text (no subprocess of its
 --- own). The tool runner updates it per lookup round, closes it, and the phase-2 streamed
@@ -446,12 +499,10 @@ function StreamHandler.showToolStatusDialog(opts)
     opts = opts or {}
     local settings = opts.settings or {}
 
-    -- Mirror the stream dialog's sizing (chrome: title bar + 1 button row + padding)
-    local chrome_height = Screen:scaleBySize(120)
+    -- The stream dialog's size: the chat window's frame (buildInChatFrame)
     local large_dialog = settings.large_stream_dialog ~= false
     local width = UIConstants.CHAT_WIDTH({ compact = not large_dialog })
-    local text_height = (large_dialog and UIConstants.CHAT_HEIGHT()
-        or UIConstants.COMPACT_DIALOG_HEIGHT()) - chrome_height
+    local window_height = large_dialog and UIConstants.CHAT_HEIGHT() or UIConstants.COMPACT_DIALOG_HEIGHT()
     local font_size = settings.response_font_size or 20
 
     local closed = false
@@ -490,26 +541,26 @@ function StreamHandler.showToolStatusDialog(opts)
             end,
         })
     end
-    dialog = InputDialog:new{
-        title = opts.title or _("AI is responding"),
-        inputtext_class = StreamText,
-        input_face = Font:getFace("infofont", font_size),
-        width = width,
-        text_height = text_height,
-        is_movable = not large_dialog,
-        readonly = true,
-        fullscreen = false,
-        allow_newline = true,
-        add_nav_bar = false,
-        cursor_at_end = false,
-        add_scroll_buttons = true,
-        condensed = true,
-        auto_para_direction = true,
-        scroll_by_pan = true,
-        buttons = { button_row },
-    }
-    dialog.title_bar.close_callback = stop
-    dialog.title_bar:init()
+    dialog = buildInChatFrame(function(text_height)
+        return InputDialog:new{
+            title = opts.title or _("AI is responding"),
+            inputtext_class = StreamText,
+            input_face = Font:getFace("infofont", font_size),
+            width = width,
+            text_height = text_height,
+            is_movable = not large_dialog,
+            readonly = true,
+            fullscreen = false,
+            allow_newline = true,
+            add_nav_bar = false,
+            cursor_at_end = false,
+            add_scroll_buttons = true,
+            condensed = true,
+            auto_para_direction = true,
+            scroll_by_pan = true,
+            buttons = { button_row },
+        }
+    end, window_height, "plain", stop)
     if large_dialog then clampDialogToChatRegion(dialog) end
     UIManager:show(dialog)
 
@@ -1072,21 +1123,19 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         finishStream()
     end
 
-    -- Dialog size configuration (uses UIConstants for consistency)
-    local width, text_height, is_movable
+    -- Dialog size configuration (uses UIConstants for consistency): the chat
+    -- window's own frame, whose inside is window_height tall (buildInChatFrame)
+    local width, window_height, is_movable
     local large_dialog = settings and settings.large_stream_dialog ~= false
     if large_dialog then
         -- Large streaming dialog (95% of screen)
-        -- Streaming dialog chrome: title bar (~50px), 1 button row (~50px), borders/padding (~20px)
-        local chrome_height = Screen:scaleBySize(120)
         width = UIConstants.CHAT_WIDTH()
-        text_height = UIConstants.CHAT_HEIGHT() - chrome_height
+        window_height = UIConstants.CHAT_HEIGHT()
         is_movable = false
     else
         -- Compact streaming dialog (same size as compact chat view)
-        local chrome_height = Screen:scaleBySize(120)
         width = UIConstants.CHAT_WIDTH({ compact = true })
-        text_height = UIConstants.COMPACT_DIALOG_HEIGHT() - chrome_height
+        window_height = UIConstants.COMPACT_DIALOG_HEIGHT()
         is_movable = true
     end
 
@@ -1478,9 +1527,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     end
 
     -- Title: the action being run, else the generic state line. Capped so the
-    -- title stays on one line: InputDialog's title bar wraps, and the dialog
-    -- height above is sized for a single title line. The cap counts display
-    -- width, a 3- or 4-byte character (CJK, kana, Hangul) as two units.
+    -- title ends on a whole character with its ellipsis: the title bar shows
+    -- one line (titleBarLikeChat) and would cut a longer one itself. The cap
+    -- counts display width, a 3- or 4-byte character (CJK, kana, Hangul) as
+    -- two units.
     local stream_title = _("AI is responding")
     local req_title = settings and settings.request_title
     if type(req_title) == "string" and req_title:find("%S") then
@@ -1497,38 +1547,38 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         end
     end
 
-    streamDialog = InputDialog:new{
-        title = stream_title,
-        inputtext_class = markdown_stream and StreamMarkdown or StreamText,
-        input_face = Font:getFace("infofont", font_size),
+    -- The window in the chat window's frame, its title bar as that window's
+    -- and with the close button (buildInChatFrame)
+    streamDialog = buildInChatFrame(function(text_height)
+        return InputDialog:new{
+            title = stream_title,
+            inputtext_class = markdown_stream and StreamMarkdown or StreamText,
+            input_face = Font:getFace("infofont", font_size),
 
-        -- size parameters
-        width = width,
-        text_height = text_height,
-        is_movable = is_movable,
+            -- size parameters
+            width = width,
+            text_height = text_height,
+            is_movable = is_movable,
 
-        -- behavior parameters
-        readonly = true,
-        fullscreen = false,
-        allow_newline = true,
-        add_nav_bar = false,
-        cursor_at_end = true,
-        add_scroll_buttons = true,
-        condensed = true,
-        auto_para_direction = true,
-        scroll_by_pan = true,
-        buttons = dialog_buttons,
-        -- The Markdown view's render options (koassistant/request/stream_markdown.lua)
-        koa_stream = markdown_stream and {
-            features = settings and settings.features,
-            text_align = settings and settings.text_align,
-            font_size = font_size,
-        } or nil,
-    }
-
-    -- Add close button to title bar
-    streamDialog.title_bar.close_callback = _closeStreamDialog
-    streamDialog.title_bar:init()
+            -- behavior parameters
+            readonly = true,
+            fullscreen = false,
+            allow_newline = true,
+            add_nav_bar = false,
+            cursor_at_end = true,
+            add_scroll_buttons = true,
+            condensed = true,
+            auto_para_direction = true,
+            scroll_by_pan = true,
+            buttons = dialog_buttons,
+            -- The Markdown view's render options (koassistant/request/stream_markdown.lua)
+            koa_stream = markdown_stream and {
+                features = settings and settings.features,
+                text_align = settings and settings.text_align,
+                font_size = font_size,
+            } or nil,
+        }
+    end, window_height, markdown_stream and "markdown" or "plain", _closeStreamDialog)
     if large_dialog then clampDialogToChatRegion(streamDialog) end
     UIManager:show(streamDialog)
 

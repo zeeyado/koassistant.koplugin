@@ -13,6 +13,8 @@ the majority of its tokens, the first strong token breaking a tie. A list
 with dir="rtl"
 draws NO marker in any configuration, so a list with a right-to-left item
 becomes paragraphs with a literal marker; a list without one stays a list.
+A table's columns run left to right whatever its direction, so a
+right-to-left table's rows are written in reverse (B693).
 LTR blocks are left as they are (the body is LTR), so the markers other
 passes look for ("<p>◉ KOAssistant:</p>") stay untouched. Direction only:
 the fonts of the scripts are the script_fonts pass, which runs after this one.
@@ -123,8 +125,23 @@ function Bidi.hasDominantRTL(text, sample_size)
     return rtl > latin
 end
 
+-- The tags a word ends at: the words on the two sides of one are two words
+local WORD_ENDS = {}
+for _i, name in ipairs({ "p", "div", "li", "td", "th", "tr", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote",
+    "pre", "table", "ul", "ol" }) do
+    WORD_ENDS[name] = true
+end
+
+-- The text of a piece of HTML: its tags taken out, a space where a block, a
+-- cell or a line ends. (With nothing there, the last word of a block and the
+-- first of the next counted as one word, a right-to-left one whenever either
+-- was: a table with one Arabic column read as right-to-left as a whole, and
+-- so did the paragraph the Markdown library wraps it in, B693.)
 local function stripTags(s)
-    return (s:gsub("<[^>]+>", ""))
+    s = s:gsub("</(%w+)>", function(name)
+        if WORD_ENDS[name] then return " " end
+    end)
+    return (s:gsub("<br%s*/?>", " "):gsub("<[^>]+>", ""))
 end
 
 -- An explicit alignment is logical under dir="rtl": the physical side the
@@ -142,6 +159,25 @@ local QUOTE_RTL = ' style="border-left: none; border-right: 3px solid #ccc; padd
 -- A right-to-left block carries its direction alone: the fonts ride the
 -- script runs' spans (koassistant/ui/script_fonts.lua, B558, B621)
 local RTL_ATTRS = ' dir="rtl"'
+-- A left-to-right cell says so: a block that names no direction takes the
+-- one of the block it stands in
+local LTR_ATTRS = ' dir="ltr"'
+
+-- A cell's inline alignment the other way round
+local function swapAlign(attrs)
+    return (attrs:gsub("text%-align:%s*left", "text-align:\1")
+        :gsub("text%-align:%s*right", "text-align:left")
+        :gsub("text%-align:\1", "text-align:right"))
+end
+
+-- A row of a table too wide for a grid, stacked as "header: value" lines
+-- (the viewer's table step writes these tags; the pass finds them by them)
+Bidi.STACK_OPEN = '<div style="margin:0.6em 0; padding-left:0.6em; border-left:2px solid #ccc">'
+Bidi.STACK_LINE = '<p style="margin:0.15em 0">'
+Bidi.STACK_OPEN_RTL = '<div dir="rtl" style="margin:0.6em 0; padding-right:0.6em; border-right:2px solid #ccc">'
+Bidi.STACK_LINE_RTL = '<p dir="rtl" style="margin:0.15em 0">'
+local function asPattern(plain_text) return (plain_text:gsub("%p", "%%%0")) end
+local STACK_OPEN_PATTERN, STACK_LINE_PATTERN = asPattern(Bidi.STACK_OPEN), asPattern(Bidi.STACK_LINE)
 
 -- The blocks of one message (or of a whole document that has no messages)
 local function addPieceAttributes(html, opts)
@@ -217,20 +253,56 @@ local function addPieceAttributes(html, opts)
             return open(tag, content) .. content .. "</" .. tag .. ">"
         end)
     end
-    -- Table cells keep their own attributes (the column's inline alignment),
-    -- whose left/right are logical on a right-to-left cell and swap with it
-    for _, tag in ipairs({ "th", "td" }) do
-        html = html:gsub("<" .. tag .. "(%s[^>]*)>(.-)</" .. tag .. ">", function(attrs, content)
-            if dirOf(content) ~= "rtl" then return nil end
-            attrs = attrs:gsub("text%-align:%s*left", "text-align:\1")
-                :gsub("text%-align:%s*right", "text-align:left")
-                :gsub("text%-align:\1", "text-align:right")
-            return "<" .. tag .. RTL_ATTRS .. attrs .. ">" .. content .. "</" .. tag .. ">"
+    -- Tables (B693). A table has one direction, found the way every block's
+    -- is, and a right-to-left table is the left-to-right one mirrored: its
+    -- first column on the right, a column's "left" its right side. MuPDF lays
+    -- columns out left to right whatever the direction, so the rows of a
+    -- right-to-left table are written in reverse, a short row filled up first
+    -- so its cells stay in their columns. Each cell keeps the direction of
+    -- its own words (a Latin cell in an Arabic table keeps its full stop at
+    -- its end) and says it: the Markdown library wraps a table in a
+    -- paragraph, a right-to-left one where the table is, and a cell that
+    -- named no direction took that paragraph's, so every Latin cell was laid
+    -- out right-to-left and every cell sat on the far side of its column.
+    -- A column's alignment is logical on a right-to-left cell and physical on
+    -- a left-to-right one (MuPDF), so its keyword is swapped where the cell's
+    -- direction is not the table's. A table without one right-to-left letter
+    -- is left as it is.
+    html = html:gsub("(<table[^>]*>)(.-)(</table>)", function(table_open, body, table_close)
+        if not Bidi.hasRTL(body) then return nil end
+        local table_rtl = dirOf(body) == "rtl"
+        local columns = 0
+        for row in body:gmatch("<tr[^>]*>(.-)</tr>") do
+            local _cells, n = row:gsub("<t[hd][%s>]", "")
+            if n > columns then columns = n end
+        end
+        body = body:gsub("(<tr[^>]*>)(.-)(</tr>)", function(row_open, row, row_close)
+            local cells, kind = {}, "td"
+            for tag, attrs, content in row:gmatch("<(t[hd])([^>]*)>(.-)</t[hd]>") do
+                kind = tag
+                local cell_rtl = dirOf(content) == "rtl"
+                if cell_rtl ~= table_rtl then attrs = swapAlign(attrs) end
+                cells[#cells + 1] = "<" .. tag .. (cell_rtl and RTL_ATTRS or LTR_ATTRS) .. attrs .. ">"
+                    .. content .. "</" .. tag .. ">"
+            end
+            if #cells == 0 then return nil end
+            if table_rtl then
+                for _n = #cells + 1, columns do cells[#cells + 1] = "<" .. kind .. "></" .. kind .. ">" end
+                local n = #cells
+                for i = 1, math.floor(n / 2) do cells[i], cells[n + 1 - i] = cells[n + 1 - i], cells[i] end
+            end
+            return row_open .. table.concat(cells) .. row_close
         end)
-        html = html:gsub("<" .. tag .. ">(.-)</" .. tag .. ">", function(content)
-            return open(tag, content) .. content .. "</" .. tag .. ">"
-        end)
-    end
+        return table_open .. body .. table_close
+    end)
+    -- A table too wide for a grid is shown as its rows stacked, each a block
+    -- of "header: value" lines: a right-to-left row has its rule on the right
+    -- and every line laid out right-to-left whatever its own words, so a
+    -- Latin line stands at the right under the others
+    html = html:gsub(STACK_OPEN_PATTERN .. "(.-)</div>", function(content)
+        if dirOf(content) ~= "rtl" then return nil end
+        return Bidi.STACK_OPEN_RTL .. content:gsub(STACK_LINE_PATTERN, Bidi.STACK_LINE_RTL) .. "</div>"
+    end)
 
     -- A right-to-left quote (its paragraphs already carry their own dir)
     html = html:gsub("<blockquote>(.-)</blockquote>", function(content)

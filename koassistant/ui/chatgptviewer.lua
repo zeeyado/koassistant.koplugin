@@ -581,6 +581,15 @@ local function applyExchangePageBreaks(html_body, configuration, carry_anchor, c
   --    As an empty spacer block after it, the block spilled onto a page of
   --    its own whenever the label was a page's last line, and the window
   --    landed on that empty page.
+  -- 4. The reply's first block keeps its top margin (B696): MuPDF gives the
+  --    first block after a forced break none, while the same block at a
+  --    document's start has it, so the reply sat higher in this window than
+  --    in the stream window it takes over from (18 to 24 pixels on a 300 dpi
+  --    screen: "finished stream shifts a bit up"). An empty block after the
+  --    label's paragraph, with no break of its own, restores the margin for
+  --    every kind of block (probed through the app's MuPDF: heading,
+  --    paragraph, list, table, code, quote, formula); a sibling rule with a
+  --    padding missed code blocks and formulas.
   -- Returns the body and whether the landing's break went in (the landing
   -- reads it: the reply is then on the page after the label's).
   local marker = "<p>◉ KOAssistant:</p>"
@@ -622,7 +631,7 @@ local function applyExchangePageBreaks(html_body, configuration, carry_anchor, c
   end
   logger.dbg("KOAssistant: exchange page break after the last reply's label: yes")
   return html_body:sub(1, last_pos - 1)
-    .. '<p class="koa-exchange-break">◉ KOAssistant:</p>'
+    .. '<p class="koa-exchange-break">◉ KOAssistant:</p><div></div>'
     .. html_body:sub(after), true
 end
 
@@ -966,14 +975,13 @@ local function preprocessMarkdownTables(text)
             local table_html = {}
             if #header_cells > WIDE_TABLE_COLS then
                 -- Too wide for MuPDF to fit -- stack each row as labeled blocks.
+                -- (the direction pass finds these blocks by their tags: Bidi.STACK_OPEN / STACK_LINE)
                 for _r, cells in ipairs(body_rows) do
-                    table.insert(table_html,
-                        '<div style="margin:0.6em 0; padding-left:0.6em; border-left:2px solid #ccc">')
+                    table.insert(table_html, Bidi.STACK_OPEN)
                     for j = 1, #header_cells do
                         local val = cells[j]
                         if val and val ~= "" then
-                            table.insert(table_html, string.format(
-                                '<p style="margin:0.15em 0"><b>%s:</b> %s</p>', header_cells[j], val))
+                            table.insert(table_html, Bidi.STACK_LINE .. "<b>" .. header_cells[j] .. ":</b> " .. val .. "</p>")
                         end
                     end
                     table.insert(table_html, '</div>')
@@ -1011,6 +1019,57 @@ local function preprocessMarkdownTables(text)
     end
 
     return table.concat(result, "\n")
+end
+
+-- A translate window's lines are paragraphs (B697). KOReader hands a page or
+-- a selection over with one line break between its paragraphs, a model that
+-- translates it answers the same way, and Markdown reads a single line break
+-- as a space: the page's paragraphs, the original's and the translation's,
+-- showed as one block (the Plain Text view showed them apart). Display only:
+-- a blank line goes between two lines of plain text, so each is a paragraph
+-- of its own. Lines the Markdown library gives a meaning are left alone (a
+-- list item, a heading, a quote, a table row, a rule or a heading's
+-- underline, an HTML block, indented code), and so is everything inside a
+-- code fence or a display formula. A line's fate rests on the line before it
+-- alone, never across a blank line, so a text converted in pieces cut at
+-- blank lines (the Markdown stream view) gives the whole conversion's HTML.
+local function isTextLine(line)
+  if not line:find("%S") or line:find("^    ") or line:find("^\t") then return false end
+  local s = line:match("^%s*(.*)$")
+  return not (s:find("^[-*+]%s") or s:find("^%d+[.)]%s") or s:find("^#") or s:find("^>") or s:find("^<")
+    or s:find("^[=%-_%*]+%s*$") or s:find("|", 1, true) or s:find("^%$%$") or s:find("^\\[%[%]]"))
+end
+
+local function lineParagraphs(text)
+  if type(text) ~= "string" or not text:find("\n", 1, true) then return text end
+  local out, in_fence, in_formula, in_bracket, after_text = {}, false, false, false, false
+  for line in (text .. "\n"):gmatch("([^\n]*)\n") do
+    local is_text = false
+    if line:find("^%s*```") or line:find("^%s*~~~") then
+      in_fence = not in_fence
+    elseif not in_fence then
+      -- a display formula across lines: "$$" on a line of its own or \[ ... \]
+      local was_inside = in_formula or in_bracket
+      local _d, dollars = line:gsub("%$%$", "")
+      if dollars % 2 == 1 then in_formula = not in_formula end
+      local _o, opens = line:gsub("\\%[", "")
+      local _c, closes = line:gsub("\\%]", "")
+      if opens > closes then in_bracket = true elseif closes > opens then in_bracket = false end
+      is_text = not was_inside and not in_formula and not in_bracket and isTextLine(line)
+    end
+    if is_text and after_text then out[#out + 1] = "" end
+    out[#out + 1] = line
+    after_text = is_text
+  end
+  return table.concat(out, "\n")
+end
+
+-- Whether a window shows a translation: the viewer's own mark, else the
+-- request's (the stream view's stand-in has only the features)
+local function linesAreParagraphs(viewer)
+  if viewer.translate_view ~= nil then return viewer.translate_view == true end
+  local f = viewer.configuration and viewer.configuration.features
+  return (f and f.translate_view == true) or false
 end
 
 -- Auto-linkify plain URLs that aren't already part of markdown links
@@ -1217,11 +1276,18 @@ table {
     table-layout: fixed;
 }
 
+/* No "overflow-wrap: break-word" on cells (B702). MuPDF never makes a column
+   narrower than its widest word (its min width is that word's, whatever this
+   property says: a long word runs off the page with it and without it, probed
+   2026-11-17), so the property only ever acted where a column holds single
+   words: such a column is given exactly its word's width, the room MuPDF
+   then finds in the cell differs from it by a rounding, and half of the time
+   the word was split over two lines ("capital" and its full stop, an Arabic
+   word after its second letter). Without it a word that is a hair too wide
+   has no place to break and stays whole. */
 td, th {
     border: 1px solid #ccc;
     padding: 0.3em 0.5em;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
 }
 
 th {
@@ -1429,6 +1495,7 @@ end
 local function markdownBlocks(viewer, text, opts)
   local source_text = text or ""
   if opts.ipa_fix then source_text = fixIPABidi(source_text) end
+  if linesAreParagraphs(viewer) then source_text = lineParagraphs(source_text) end
   local auto_linked = autoLinkUrls(applyMath(viewer, source_text))
   local bracket_escaped = preprocessBrackets(taskListBoxes(auto_linked))
   local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
@@ -6424,6 +6491,7 @@ ChatGPTViewer.stripMarkdown = stripMarkdown
 -- the task-list passes, for tests
 ChatGPTViewer._taskListBoxes = taskListBoxes
 ChatGPTViewer._taskListItems = taskListItems
+ChatGPTViewer._lineParagraphs = lineParagraphs
 ChatGPTViewer.fixIPABidi = fixIPABidi
 ChatGPTViewer.hasDominantRTL = hasDominantRTL
 

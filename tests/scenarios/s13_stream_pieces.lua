@@ -42,7 +42,8 @@ end
 --- documents in random steps, each step compared with the whole conversion.
 --- Returns the steps, the ones that differ, the first of them, and how many
 --- bytes of how many were kept at the streams' ends.
-local function compare(sample_step, documents, seed)
+local function compare(sample_step, documents, seed, opts)
+    opts = opts or OPTS
     local steps, bad, first, kept_bytes, all_bytes = 0, 0, nil, 0, 0
     local function stream(name, text, step_of)
         local kept = { text = "", html = "" }
@@ -52,8 +53,8 @@ local function compare(sample_step, documents, seed)
             -- never inside a character (the stream handler joins the pieces of one)
             while at < #text and text:byte(at + 1) >= 128 and text:byte(at + 1) < 192 do at = at + 1 end
             local prefix = text:sub(1, at)
-            local ok, a = pcall(SM.convert, kept, prefix, OPTS)
-            local b = Viewer.markdownHtml(SM.healTail(prefix), OPTS)
+            local ok, a = pcall(SM.convert, kept, prefix, opts)
+            local b = Viewer.markdownHtml(SM.healTail(prefix), opts)
             steps = steps + 1
             if not ok or a ~= b then
                 bad = bad + 1
@@ -86,6 +87,18 @@ local steps, bad, first, kept_bytes, all_bytes = compare(1, 400, 12345)
 S.check(bad == 0, string.format("the kept conversion equals the whole one at every step (%d steps, %d differ%s)",
     steps, bad, first and ("; first: " .. first) or ""))
 S.check(kept_bytes * 3 > all_bytes, string.format("and it does keep: %d of %d bytes were converted once", kept_bytes, all_bytes))
+
+-- A translate window shows every line of plain text as a paragraph (B697):
+-- a blank line goes between two such lines before the library sees them, and
+-- the pieces must still give the whole conversion's HTML
+local TRANSLATE = { features = { translate_view = true }, text_align = "auto" }
+local t_steps, t_bad, t_first = compare(3, 60, 777, TRANSLATE)
+S.check(t_bad == 0, string.format("in a translate window too, where a line is a paragraph (%d steps, %d differ%s)",
+    t_steps, t_bad, t_first and ("; first: " .. t_first) or ""))
+local LINES = "First line of a translated page.\nSecond line, its own paragraph.\nThird line.\n"
+S.check(select(2, Viewer.markdownHtml(LINES, TRANSLATE):gsub("<p", "")) == 3
+    and select(2, Viewer.markdownHtml(LINES, OPTS):gsub("<p", "")) == 1,
+    "three lines are three paragraphs in a translate window and one in a chat window")
 
 -- ── What is still arriving is not shown raw ─────────────────────────────────
 -- (healTail: a table's row waits until it is whole, a link shows its words
