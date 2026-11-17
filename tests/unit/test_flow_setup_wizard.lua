@@ -109,6 +109,50 @@ TestRunner:test("a key entry cancelled from the wizard's provider list comes bac
     ui:restore()
 end)
 
+TestRunner:test("the key just saved is the key in use, an added one and one replacing a picked file key (#125)", function()
+    local ui = Recorder.install()
+    local Base = require("koassistant.api.base")
+    local saved_apikeys = package.loaded["apikeys"]
+    local OLD, NEW = "old-test-not-a-real-key-0000-1111", "new-test-not-a-real-key-2222-3333"
+    local FILE = "file-test-not-a-real-key-4444-5555"
+    local store = { features = {} }
+    local plugin = {
+        settings = {
+            readSetting = function(_s, k) return store[k] end,
+            saveSetting = function(_s, k, v) store[k] = v end,
+            flush = function() end,
+        },
+        updateConfigFromSettings = function() end,
+        isProviderConfigured = function() return true end,
+        getCurrentProvider = function() return "gemini" end,
+        getEffectiveDefaultModel = function() return "m" end,
+        showApiKeyDialog = keyDialog(),
+    }
+    local function save(append, text)
+        ui.stack = {}
+        plugin:showApiKeyDialog("gemini", "Gemini", false, nil, append)
+        local dlg = ui:top()
+        TestRunner:assertEqual(dlg and dlg._widget, "ui/widget/inputdialog", "the key window")
+        TestRunner:assertTrue(type(dlg.input_hint) == "string" and dlg.input_hint:find("\n\n", 1, true) ~= nil,
+            "the hint carries the note on copying under its first line")
+        ui:type(text)
+        ui:tap("Save")
+    end
+    -- the key list's Add API key...: an app key in use, nothing picked
+    package.loaded["apikeys"] = {}
+    store.features = { api_keys = { gemini = { { key = OLD } } } }
+    save(true, NEW)
+    TestRunner:assertEqual(Base.getApiKey("gemini", plugin.settings), NEW, "the added key is in use")
+    TestRunner:assertEqual(#store.features.api_keys.gemini, 2, "the old key is kept in the list")
+    -- a key typed over an app key while a file key was picked in the list
+    package.loaded["apikeys"] = { gemini = FILE }
+    store.features = { api_keys = { gemini = OLD }, api_key_selected = { gemini = Base.keyFingerprint(FILE) } }
+    save(false, NEW)
+    TestRunner:assertEqual(Base.getApiKey("gemini", plugin.settings), NEW, "the saved key wins over the picked file key")
+    package.loaded["apikeys"] = saved_apikeys
+    ui:restore()
+end)
+
 TestRunner:test("a single-topic Icons install asks KOReader's own restart question", function()
     local src = read("koassistant/ui/setup_wizard.lua")
     local a = src:find("local function restartThen()", 1, true)

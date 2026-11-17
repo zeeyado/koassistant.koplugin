@@ -5280,6 +5280,11 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
   else
     hint_text = _("Enter API key...")
   end
+  -- KOReader's selection starts at the start of the letters and digits under
+  -- the finger, and a dot, dash or underscore ends them: a key copied in a
+  -- file opened in KOReader loses its start ("AQ.", "sk-") unless the hold
+  -- began on its first character, and nothing at Save can tell (#125).
+  hint_text = hint_text .. "\n\n" .. _("Copied the key in KOReader? Check its start after pasting: a selection that does not begin on the key's first character can leave out its first few characters.")
 
   local InputDialog = require("ui/widget/inputdialog")
   local input_dialog
@@ -5354,6 +5359,11 @@ function AskGPT:showApiKeyDialog(provider, display_name, key_optional, on_change
               else
                 f.api_keys[provider] = new_key
               end
+              -- The key just saved is the key in use (#125): an added key used
+              -- to wait behind the first one until it was tapped in the key
+              -- list, so a reader replacing a dead key kept sending the dead one.
+              f.api_key_selected = f.api_key_selected or {}
+              f.api_key_selected[provider] = require("koassistant.api.base").keyFingerprint(new_key)
               local message = T(_("%1 API key saved"), display_name)
               if removed > 0 then
                 -- Never silent: the user typed/pasted something we changed.

@@ -69,7 +69,7 @@ There are three ways. Use whichever suits you.
 ### Option A: In Settings
 
 1. Go to **Settings → API Keys & Auth**.
-2. Tap a provider and enter your API key.
+2. Tap a provider and enter your API key. Copying it from a file opened in KOReader? Start the hold on the key's first character, or its first few characters can be left out ([Troubleshooting](Troubleshooting#api-key-not-valid)).
 3. Saved keys are shown masked: only their first and last few characters.
 
 Your first key also selects its provider, so it is ready to use.

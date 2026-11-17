@@ -153,7 +153,7 @@ The credits arrive each billing month, are spent before any credits you bought, 
 
 - You can enter keys right there, with no file editing ([Getting Started](Getting-Started) also shows the `apikeys.lua` route). Keys entered in the app take priority over keys in the file.
 - Tap a provider to enter its first key. Once a key exists, tapping opens the key manager instead. Each provider's model menu has the same door (**API key...**).
-- The key dialog shows the saved key masked (its first 3 and last 4 characters) and offers **Save**, **Clear** and **Cancel**. A pasted key is cleaned: spaces and line breaks anywhere in it, and invisible characters, are removed, and the confirmation says how many. Placeholders left from the sample file (such as `YOUR_GEMINI_API_KEY`) are ignored.
+- The key dialog shows the saved key masked (its first 3 and last 4 characters) and offers **Save**, **Clear** and **Cancel**. A pasted key is cleaned: spaces and line breaks anywhere in it, and invisible characters, are removed, and the confirmation says how many. Placeholders left from the sample file (such as `YOUR_GEMINI_API_KEY`) are ignored. The key you save becomes the one in use. While the box is empty, a gray note says to check the start of a key copied in KOReader, whose selection can leave out a key's first few characters ([Troubleshooting](Troubleshooting#api-key-not-valid)).
 - Your first key also selects its provider.
 - **OpenAI Subscription** is managed here too, but opens a Connect / Disconnect dialog instead of key entry (device login with your ChatGPT plan: [OpenAI Subscription](#openai-subscription)).
 
@@ -164,7 +164,7 @@ You can store more than one key for the same provider (a free Gemini key and a p
 - The key manager ("Gemini API keys (tap to use, hold to manage)") lists every key you have for that provider, masked (`AIz...x3Fq`), each labeled with where it came from (added in app, or apikeys.lua); ● marks the one in use.
 - **Tap a key to use it.** The switch applies from the next request, everywhere (chat, provider tests, image generation).
 - **Hold a key** to rename or delete it. Keys from `apikeys.lua` are changed by editing that file instead.
-- **Add API key...** adds another key. Give keys names like "free" or "paid" so the list stays readable.
+- **Add API key...** adds another key and makes it the one in use (tap another key to switch back). Give keys names like "free" or "paid" so the list stays readable.
 - The manager is also reachable from the provider's own model menu (the **API keys (N)...** row).
 - In `apikeys.lua`, several keys are written as a list of named entries:
 

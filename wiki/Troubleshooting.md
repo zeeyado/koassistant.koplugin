@@ -85,6 +85,13 @@ Add the key for the selected provider in **Settings → API Keys & Auth** or in 
 
 Once any provider has a key, the provider pickers (inside the **Settings → Model** row and in Quick Settings) list only the providers that have one, plus keyless ones such as Ollama and the current provider marked "(no key)"; **Show all providers** at the end of the list shows the rest. A provider missing from the list has no key yet.
 
+## "API key not valid"
+
+The provider did not recognize the key it was sent. Under such an error, KOAssistant names the key that was sent: its name if you gave it one, whether it was added in the app or comes from `apikeys.lua`, its first 3 characters and its length. Compare them with your key:
+
+- **The start differs?** A key copied from a file opened in KOReader often loses its start. KOReader's selection starts at the start of the letters and digits under your finger, and a dot, dash or underscore ends them, so a selection that does not begin on the key's first character leaves out its first few characters (the `AQ.` of a Gemini key, the `sk-` of an OpenAI key). What is left still looks like a key, so it saves without complaint. Hold the key's first character and drag to its end, check the start after pasting (the key window's gray note says the same), or put the key in `apikeys.lua`.
+- **Not the key you meant?** The key in use is the one marked ● in the provider's key list (**Settings → API Keys & Auth**, then the provider). A key you save in the app becomes the one in use; a key you add to `apikeys.lua` does not replace one entered in the app, so tap it in the list.
+
 ## No response or a timeout
 
 1. Check the internet connection.

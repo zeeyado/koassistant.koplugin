@@ -2913,6 +2913,56 @@ ModelConstraints.HINT_HEADS = {
     plan = "Tip: your ChatGPT plan",
 }
 
+--- The key a refused request carried, when the refusal is about the key (#125): an
+--- authentication status (401), a 403 that names the key, or a sentence saying the
+--- key is not valid whatever the status (Google answers a key it cannot read with
+--- 400). Its name and source, its first 3 characters and its length, so a key cut
+--- short on its way in (copied in KOReader without its start) or not the key the
+--- reader meant shows at the moment it fails. Never the key's end: a decorated
+--- error reaches crash.log (a background update's failure, an AI merge's) and the
+--- image index (the prompt writer's failure), and a key's start is mostly its
+--- public prefix ("AQ.", "sk-") while its end is not. Only a key among the
+--- reader's own (the app's or apikeys.lua's): an OAuth token is nothing to compare.
+--- Read on the provider's words before a tip adds any; a message already decorated
+--- gets none. A fact under the refusal, not a tip (no HINT_HEADS entry).
+--- @param err_msg string: the refusal, prefixed with the provider and model
+--- @param provider string|nil
+--- @param config table|nil: the request's config (api_key, features.api_keys)
+--- @return string|nil
+local KEY_SENT_HEAD = "The key sent ("
+function ModelConstraints.keySentLine(err_msg, provider, config)
+    if type(err_msg) ~= "string" or err_msg == "" or type(config) ~= "table" then return nil end
+    local key = config.api_key
+    if type(key) ~= "string" or key == "" then return nil end
+    if err_msg:find(KEY_SENT_HEAD, 1, true) then return nil end
+    for _name, head in pairs(ModelConstraints.HINT_HEADS) do
+        if err_msg:find(head, 1, true) then return nil end
+    end
+    local status = err_msg:match("HTTP%s+(%d%d%d)") or err_msg:match("Error%s+(%d%d%d)")
+    local l = err_msg:lower()
+    local names_key = l:find("api[ _%-]?key") ~= nil
+    local says_invalid = l:find("not valid", 1, true) or l:find("invalid", 1, true)
+        or l:find("incorrect", 1, true)
+    if not (status == "401" or (names_key and (status == "403" or says_invalid))) then
+        return nil
+    end
+    local Base = require("koassistant.api.base")
+    local features = type(config.features) == "table" and config.features or {}
+    local entry
+    for _idx, e in ipairs(Base.listApiKeys(provider, { readSetting = function() return features end })) do
+        if e.key == key then
+            entry = e
+            break
+        end
+    end
+    if not entry then return nil end
+    local start = #key > 8 and ('begins with "' .. key:sub(1, 3) .. '" and ') or ""
+    return KEY_SENT_HEAD .. (entry.alias and ('"' .. entry.alias .. '", ') or "")
+        .. (entry.source == "gui" and "added in the app" or "from apikeys.lua") .. ") "
+        .. start .. "is " .. #key .. " characters long. Compare it with your key: a key copied "
+        .. "in KOReader can be missing its first few characters."
+end
+
 --- Single decoration point for API request failures: name the model, then append
 --- whichever hints apply. The query sites call this instead of nesting maybeAppend*
 --- calls, so a new hint is wired in one place.
@@ -2923,10 +2973,12 @@ ModelConstraints.HINT_HEADS = {
 --- @return string
 function ModelConstraints.decorateRequestError(err_msg, provider, model, config)
     local out = ModelConstraints.prefixProviderModel(err_msg, provider, model)
+    local key_line = ModelConstraints.keySentLine(out, provider, config)
     out = ModelConstraints.maybeAppendGemini3GroundingHint(out, provider, model, config)
     out = ModelConstraints.maybeAppendRateLimitHint(out, provider, model, config)
     out = ModelConstraints.maybeAppendContextLimitHint(out, provider, model, config)
     out = ModelConstraints.maybeAppendSubscriptionPlanHint(out, provider, model, config)
+    if key_line then out = out .. "\n\n" .. key_line end
     return out
 end
 
