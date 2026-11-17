@@ -532,8 +532,14 @@ function MessageHistory:createResultText(highlightedText, config)
             -- views; display only)
             table.insert(result, self.source_excerpt .. "\n\n")
         else
-            -- Default: highlighted text from reader
-            table.insert(result, "Highlighted text: \"" .. highlightedText .. "\"\n\n")
+            -- Default: highlighted text from reader. KOReader hands a selection
+            -- over with ONE line break between its paragraphs, which the
+            -- Markdown view reads as a space: a blank line between them shows
+            -- them apart in both views (display only; the request is built
+            -- elsewhere). A PDF selection has no line break at all
+            local lead, core, trail = highlightedText:match("^(%s*)(.-)(%s*)$")
+            core = core:gsub("[ \t]*\n[ \t\n]*", "\n\n")
+            table.insert(result, "Highlighted text: \"" .. lead .. core .. trail .. "\"\n\n")
         end
     end
 

@@ -1194,6 +1194,11 @@ function ContextExtractor:getVisiblePageText()
             end
             if #lines > 0 then
                 page_text = table.concat(lines, "\n")
+                -- The text layer of a PDF or DjVu page knows printed lines, not
+                -- paragraphs: a line break here ends a LINE of the page, where a
+                -- reflowable page has one between its paragraphs. Whoever shows
+                -- this text needs to know which (the translate window)
+                result.printed_lines = true
             end
 
             -- Fallback: try getTextFromPositions with text box bounds

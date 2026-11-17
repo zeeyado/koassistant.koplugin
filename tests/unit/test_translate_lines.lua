@@ -100,4 +100,54 @@ TestRunner:test("only a translate window does it: the viewer's mark, else the re
         and rule:find("f.translate_view == true", 1, true) ~= nil, "the window's own mark, else the request's features")
 end)
 
+-- A PDF or DjVu page (found the day B697 landed, never released): KOReader's
+-- text layer there knows printed lines, not paragraphs, so the page is handed
+-- over with a line break at the end of every LINE and the answer may keep
+-- them. Each of them a paragraph showed a page as thirty one-line paragraphs.
+local rule = ChatGPTViewer._linesAreParagraphs
+local function window(features, translate_view)
+    return { translate_view = translate_view, configuration = { features = features } }
+end
+
+TestRunner:test("a page of printed lines is joined, as Markdown reads a line break", function()
+    TestRunner:assertEqual(rule(window({ translate_view = true })), true, "a reflowable page in the stream view: paragraphs")
+    TestRunner:assertEqual(rule(window({ translate_view = true, page_printed_lines = true })), false, "a PDF page in the stream view")
+    TestRunner:assertEqual(rule(window({}, true)), true, "the translate window itself")
+    TestRunner:assertEqual(rule(window({ page_printed_lines = true }, true)), false, "the translate window of a PDF page")
+    TestRunner:assertEqual(rule(window({ translate_view = true }, false)), false, "the window's own mark comes first")
+    TestRunner:assertEqual(rule(window({}, false)), false)
+    TestRunner:assertEqual(rule({}), false, "a window without a request")
+end)
+
+TestRunner:test("the hand-off: the extractor names a page of printed lines, Translate Page passes it on, the window joins them", function()
+    local ContextExtractor = require("koassistant.request.context_extractor")
+    local pdf = { getTextBoxes = function()
+        return { { { word = "first" }, { word = "line" } }, { { word = "second" }, { word = "line" } } }
+    end }
+    local page = ContextExtractor:new({ document = pdf, view = { state = { page = 1 } } }, {}):getVisiblePageText()
+    TestRunner:assertEqual(page.text, "first line\nsecond line")
+    TestRunner:assertEqual(page.printed_lines, true, "the extractor says what its line breaks are")
+    local epub = {
+        getXPointer = function() return "/body" end,
+        getTextFromPositions = function() return { text = "A paragraph.\nAnother." } end,
+    }
+    local flow = ContextExtractor:new({ document = epub, view = { dimen = { w = 600, h = 800 } } }, {}):getVisiblePageText()
+    TestRunner:assertEqual(flow.text, "A paragraph.\nAnother.")
+    TestRunner:assertEqual(flow.printed_lines, nil, "a reflowable page's line breaks are its paragraphs'")
+    -- Translate Page's own expression, cut from the source and run on both results
+    local f = assert(io.open(PLUGIN_DIR .. "/main.lua", "r"))
+    local main_src = f:read("*a")
+    f:close()
+    local rhs = main_src:match("config_copy%.features%.page_printed_lines = ([^\n]+)")
+    TestRunner:assertTrue(rhs ~= nil, "Translate Page sets the mark on its own copy of the features")
+    local mark = assert((loadstring or load)("local page_result = ...; return " .. rhs))
+    TestRunner:assertEqual(rule(window({ translate_view = true, page_printed_lines = mark(page) })), false,
+        "the PDF page: its printed lines joined")
+    TestRunner:assertEqual(rule(window({ translate_view = true, page_printed_lines = mark(flow) })), true,
+        "the reflowable page: its paragraphs apart")
+    -- and the mark is the request's own: never read from the saved settings, cleared with the page mark
+    TestRunner:assertTrue(main_src:find("    page_printed_lines = true,\n  }", 1, true) ~= nil, "a runtime-only key")
+    TestRunner:assertTrue(main_src:find("configuration.features.page_printed_lines = nil", 1, true) ~= nil, "cleared on the shared table")
+end)
+
 return TestRunner:summary()

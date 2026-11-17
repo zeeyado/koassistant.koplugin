@@ -187,7 +187,7 @@ The languages themselves are set on [Languages](Languages).
 
 ## Quotes
 
-In a highlight chat the window shows the text you highlighted above the conversation.
+In a highlight chat the window shows the text you highlighted above the conversation. A highlight of several paragraphs is quoted with its paragraphs apart.
 
 - Tap **Hide Quote** / **Show Quote** to hide or show it in this chat (useful for long selections).
 - Long-press it for **Quote display (new chats)**: **Hide quotes by default**, and **Auto-hide long quotes** (used only while the first is off).

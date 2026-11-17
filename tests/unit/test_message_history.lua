@@ -480,6 +480,23 @@ local function runCreateResultTextTests()
         TestRunner:assertContains(result, "Response text")
     end)
 
+    -- KOReader hands a selection over with ONE line break between its
+    -- paragraphs, which the Markdown view reads as a space: the quote at the
+    -- top of a chat showed a highlight of several paragraphs as one block
+    TestRunner:test("a highlight of several paragraphs is quoted with its paragraphs apart", function()
+        local h = MessageHistory:new()
+        h:addUserMessage("Q")
+        h:addAssistantMessage("Response text")
+        local quoted = function(text) return h:createResultText(text, emptyConfig()) end
+        TestRunner:assertContains(quoted("First paragraph.\nSecond paragraph.\nThird."),
+            'Highlighted text: "First paragraph.\n\nSecond paragraph.\n\nThird."\n\n')
+        TestRunner:assertContains(quoted("One.  \n \t Two."), 'Highlighted text: "One.\n\nTwo."', "the spaces around the break go with it")
+        TestRunner:assertContains(quoted("One.\n\n\nTwo."), 'Highlighted text: "One.\n\nTwo."', "one blank line, however many there were")
+        TestRunner:assertContains(quoted("a\nb\nc"), 'Highlighted text: "a\n\nb\n\nc"', "lines of one character too")
+        TestRunner:assertContains(quoted("no line break here"), 'Highlighted text: "no line break here"\n\n', "a PDF selection, a single paragraph: as it was")
+        TestRunner:assertContains(quoted("ends with a break\n"), 'Highlighted text: "ends with a break\n"', "the highlight's own end is left alone")
+    end)
+
     TestRunner:test("dictionary excerpt stands in for the quote, hidden with it", function()
         local h = MessageHistory:new()
         h.source_excerpt = "She found the **derelict** ship"

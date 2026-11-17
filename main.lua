@@ -1826,6 +1826,7 @@ function AskGPT:updateConfigFromSettings(opts)
     dictionary_view = true,
     minimal_buttons = true,
     is_full_page_translate = true,
+    page_printed_lines = true,
   }
   if not configuration.features then
     configuration.features = features
@@ -1861,6 +1862,7 @@ function AskGPT:updateConfigFromSettings(opts)
   configuration.features.dictionary_view = nil
   configuration.features.minimal_buttons = nil
   configuration.features.is_full_page_translate = nil  -- Only set by translateCurrentPage
+  configuration.features.page_printed_lines = nil  -- likewise
 
   -- Push GUI tier placements + global tier pins into the pure override layer
   -- (tier GUI, docs/tier_gui_plan.md). ModelOverrides never reads settings
@@ -19741,6 +19743,10 @@ function AskGPT:translateCurrentPage()
   -- Mark this as full page translate so handlePredefinedPrompt can apply translate_hide_full_page setting
   -- Note: The actual hiding is handled in handlePredefinedPrompt which respects user's translate_hide_highlight_mode
   config_copy.features.is_full_page_translate = true
+  -- A PDF or DjVu page comes as its printed lines (the extractor says so):
+  -- the translate window then joins them, where it shows a reflowable page's
+  -- lines as the paragraphs they are
+  config_copy.features.page_printed_lines = page_result.printed_lines or nil
   -- Clear selection_data - there's no actual user highlight for page translation,
   -- so the "Save to Note" button should be disabled (prevents using stale data from prior highlights)
   config_copy.features.selection_data = nil

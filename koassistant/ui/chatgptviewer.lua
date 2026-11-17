@@ -1064,12 +1064,18 @@ local function lineParagraphs(text)
   return table.concat(out, "\n")
 end
 
--- Whether a window shows a translation: the viewer's own mark, else the
--- request's (the stream view's stand-in has only the features)
+-- Whether a window shows a translation whose lines are paragraphs: the
+-- viewer's own mark, else the request's (the stream view's stand-in has only
+-- the features). Not for a PDF or DjVu page (the request's page_printed_lines,
+-- set by Translate Page from what the extractor says): such a page is handed
+-- over with a line break at the end of every printed LINE, the answer may
+-- keep them, and Markdown's own reading of a line break, a space, is the
+-- right one there
 local function linesAreParagraphs(viewer)
-  if viewer.translate_view ~= nil then return viewer.translate_view == true end
   local f = viewer.configuration and viewer.configuration.features
-  return (f and f.translate_view == true) or false
+  local translate = (f and f.translate_view == true) or false
+  if viewer.translate_view ~= nil then translate = viewer.translate_view == true end
+  return translate and not (f and f.page_printed_lines == true)
 end
 
 -- Auto-linkify plain URLs that aren't already part of markdown links
@@ -6492,6 +6498,7 @@ ChatGPTViewer.stripMarkdown = stripMarkdown
 ChatGPTViewer._taskListBoxes = taskListBoxes
 ChatGPTViewer._taskListItems = taskListItems
 ChatGPTViewer._lineParagraphs = lineParagraphs
+ChatGPTViewer._linesAreParagraphs = linesAreParagraphs
 ChatGPTViewer.fixIPABidi = fixIPABidi
 ChatGPTViewer.hasDominantRTL = hasDominantRTL
 
