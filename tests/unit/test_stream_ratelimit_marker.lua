@@ -679,6 +679,68 @@ TestRunner:test("both stream windows are built through it, at their sources", fu
     TestRunner:assertTrue(not src:find("title_bar:init()", 1, true), "no title bar is laid out again without the clear")
 end)
 
+TestRunner:suite("a stream that pauses after its first words shows the waiting dots (B709, #126)")
+
+-- Some Android e-readers sleep about 5 s after the last screen update, and a
+-- stream redraws only while words come: a pause (a web search, a slow
+-- provider) waited for the next tap. The dots after the text are display only.
+local function chunk(text)
+    return 'data: {"choices":[{"index":0,"delta":{"content":"' .. text .. '"},"finish_reason":null}]}\n\n'
+end
+local FINISH = 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n'
+
+--- The texts the stream window showed during one replay
+local function shownDuring(segments)
+    local shown = {}
+    local saved_set = InputTextStub.setText
+    InputTextStub.setText = function(_self, text) shown[#shown + 1] = text end
+    local ok, content = runStream(segments)
+    InputTextStub.setText = saved_set
+    return shown, ok, content
+end
+
+local function withDots(text, shown)
+    for _idx, t in ipairs(shown) do
+        for _f, frame in ipairs(require("koassistant.ui.waiting").FRAMES) do
+            if t == text .. "\n\n" .. frame then return true end
+        end
+    end
+    return false
+end
+
+TestRunner:test("a pause shows the dots after the text, the next words take them away, the answer has none", function()
+    local shown, ok, content = shownDuring({ { text = chunk("First words."), delay = 0 },
+        { text = chunk(" More words."), delay = 12 }, { text = FINISH, delay = 1 } })
+    TestRunner:assertTrue(ok, "stream completed")
+    TestRunner:assertEqual(content, "First words. More words.", "the answer carries no dots")
+    TestRunner:assertTrue(withDots("First words.", shown),
+        "the dots showed after the text while nothing came: " .. table.concat(shown, " | "))
+    local plain = false
+    for _idx, t in ipairs(shown) do
+        if t == "First words. More words." then plain = true end
+    end
+    TestRunner:assertTrue(plain, "the next words showed without them: " .. table.concat(shown, " | "))
+end)
+
+TestRunner:test("words that keep coming show no dots", function()
+    local segments = {}
+    for i = 1, 6 do segments[i] = { text = chunk("w" .. i .. " "), delay = i == 1 and 0 or 1 } end
+    segments[7] = { text = FINISH, delay = 1 }
+    local shown, ok = shownDuring(segments)
+    TestRunner:assertTrue(ok, "stream completed")
+    for _idx, t in ipairs(shown) do
+        TestRunner:assertTrue(not t:find("\n\n%.+$"), "no dots while words come: " .. t)
+    end
+end)
+
+TestRunner:test("before the first words the waiting dots stand alone; the pause dots need words first", function()
+    local shown = shownDuring({ { text = chunk("Late."), delay = 10 }, { text = FINISH, delay = 1 } })
+    TestRunner:assertEqual(shown[1], ".", "the window opens on the waiting dots")
+    for _idx, t in ipairs(shown) do
+        TestRunner:assertTrue(not t:find("^\n\n"), "no pause dots before any word: " .. t)
+    end
+end)
+
 for _idx, k in ipairs(SAVED_KEYS) do package.loaded[k] = saved[k] end
 
 print(string.format("\n  test_stream_ratelimit_marker: %d passed, %d failed",

@@ -5,6 +5,7 @@ local _ = require("koassistant.core.gettext")
 local InputText = require("ui/widget/inputtext")
 local InputDialog = require("ui/widget/inputdialog")
 local StreamMarkdown = require("koassistant.request.stream_markdown")
+local Waiting = require("koassistant.ui.waiting")
 local UIManager = require("ui/uimanager")
 local Font = require("ui/font")
 local Size = require("ui/size")
@@ -395,25 +396,14 @@ end
 StreamHandler.StreamText = StreamText
 
 
---- Create a bouncing dot animation for waiting state
+--- The waiting dots: one source for every wait (koassistant/ui/waiting.lua, B709)
 function StreamHandler:createWaitingAnimation()
-    local frames = { ".", "..", "...", "..", "." }
-    local currentIndex = 1
-
-    return {
-        getNextFrame = function()
-            local frame = frames[currentIndex]
-            currentIndex = currentIndex + 1
-            if currentIndex > #frames then
-                currentIndex = 1
-            end
-            return frame
-        end,
-        reset = function()
-            currentIndex = 1
-        end
-    }
+    return Waiting.dots()
 end
+
+--- Quiet ticks (0.4 s each) after the last words before a stream shows the
+--- waiting dots after its text (B709, #126): about a second
+StreamHandler.PAUSE_TICKS = 2
 
 --- Keep an expanded-mode stream dialog clear of the status bar and aligned with
 --- the viewer that replaces it. InputDialog centres itself in a CenterContainer
@@ -599,6 +589,11 @@ function StreamHandler:showStreamDialog(backgroundQueryFunc, provider_name, mode
     local stream_finished = false  -- finishStream runs once, whoever calls it twice
     local ui_update_task = nil  -- Forward declaration for display throttling
     local first_content_received = false
+    -- A stream that pauses after its first words shows the waiting dots after
+    -- its text until words come again (B709, #126; display only, the answer
+    -- is never touched): what the pause tick saw last (n chunks, the web
+    -- status), its quiet ticks, the frame shown, its stop
+    local pause = { quiet = 0 }
 
     -- Stream processing state
     local pid, parent_read_fd = nil, nil
@@ -797,6 +792,10 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         if animation_task then
             UIManager:unschedule(animation_task)
             animation_task = nil
+        end
+        if pause.stop then
+            pause.stop()
+            pause.stop = nil
         end
         if poll_task then
             UIManager:unschedule(poll_task)
@@ -1356,6 +1355,11 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
                         display = #display > 0 and (display .. "\n\n" .. status_suffix)
                             or status_suffix
                     end
+                    -- The pause dots, unless words came since the pause tick looked
+                    if pause.frame and #result_buffer + #reasoning_buffer == pause.n
+                            and web_search_status == pause.status then
+                        display = #display > 0 and (display .. "\n\n" .. pause.frame) or pause.frame
+                    end
                 end
                 if iw.markdown_stream then
                     -- The rendered view decides when to re-render (line ends, a
@@ -1721,7 +1725,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
         if completed or stream_finished then return end
         if not first_content_received then
             streamDialog._input_widget:setText(getWaitingText(), true)
-            UIManager:scheduleIn(0.4, updateAnimation)
+            UIManager:scheduleIn(Waiting.INTERVAL, updateAnimation)
         elseif hidden_streaming then
             -- Sole frame owner for the hidden placeholder (B2). Keep ticking even
             -- while the output is revealed (Show pressed) so the dots resume
@@ -1730,14 +1734,39 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
             if not hidden_output_visible then
                 streamDialog._input_widget:setText(hiddenDisplay(), true)
             end
-            UIManager:scheduleIn(0.4, updateAnimation)
+            UIManager:scheduleIn(Waiting.INTERVAL, updateAnimation)
         end
     end
     -- Holds the FUNCTION (UIManager:scheduleIn returns nothing and unschedule
     -- takes the action, as for poll_task): cleanup and stopWaitingAnimation
     -- drop the pending tick through it
     animation_task = updateAnimation
-    UIManager:scheduleIn(0.4, updateAnimation)
+    UIManager:scheduleIn(Waiting.INTERVAL, updateAnimation)
+
+    -- After the first words the stream redraws only while words come: on an
+    -- e-reader that sleeps about 5 s after the last screen update, a pause
+    -- (a web search, a slow provider) waited for the next tap (B709, #126).
+    -- After PAUSE_TICKS quiet ticks the dots show after the text and move;
+    -- words arriving take them away
+    pause.dots = self:createWaitingAnimation()
+    pause.stop = Waiting.tick(function()
+        if completed or stream_finished then return false end
+        if not first_content_received or hidden_streaming then return end
+        local n = #result_buffer + #reasoning_buffer
+        if n ~= pause.n or web_search_status ~= pause.status then
+            pause.n, pause.status, pause.quiet = n, web_search_status, 0
+            if pause.frame then
+                pause.frame = nil
+                scheduleUIUpdate()
+            end
+            return
+        end
+        pause.quiet = pause.quiet + 1
+        if pause.quiet >= StreamHandler.PAUSE_TICKS then
+            pause.frame = pause.dots.getNextFrame()
+            scheduleUIUpdate()
+        end
+    end)
 
     -- Mark streaming as active (for update checker to defer popups)
     _G.KOAssistantStreaming = true

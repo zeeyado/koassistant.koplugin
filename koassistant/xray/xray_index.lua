@@ -958,8 +958,7 @@ function XrayIndex.buildNow(ui, forms, opts)
             return { stamp = stamp, forms = XrayIndex.scan(doc, forms, span[1], span[2]), span = span }
         end
         local Trapper = require("ui/trapper")
-        local InfoMessage = require("ui/widget/infomessage")
-        local info = InfoMessage:new{ text = _("Finding the X-Ray names in this section… (tap to cancel)") }
+        local info = require("koassistant.ui.waiting").message{ text = _("Finding the X-Ray names in this section… (tap to cancel)") }
         UIManager:show(info)
         UIManager:forceRePaint()
         UIManager:unschedule(startPass)
@@ -985,8 +984,7 @@ function XrayIndex.buildNow(ui, forms, opts)
     if running and running.file == file then XrayIndex.stop() end
     UIManager:unschedule(startPass)
     local Trapper = require("ui/trapper")
-    local InfoMessage = require("ui/widget/infomessage")
-    local info = InfoMessage:new{ text = _("Finding the X-Ray names in the book… (tap to cancel)") }
+    local info = require("koassistant.ui.waiting").message{ text = _("Finding the X-Ray names in the book… (tap to cancel)") }
     UIManager:show(info)
     UIManager:forceRePaint()
     local started = os.time()

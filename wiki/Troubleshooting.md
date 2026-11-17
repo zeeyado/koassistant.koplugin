@@ -100,6 +100,18 @@ The provider did not recognize the key it was sent. Under such an error, KOAssis
 4. Be patient with very long requests: the plugin waits up to 15 minutes for the provider to send something, so a big X-Ray or a full-document run on a slow model is not cut off early.
 5. If the provider stopped the answer for a reason of its own (a content filter, a recitation block, a refusal), the reply says so by name instead of reporting a broken response; a partial answer is kept and marked as cut short, never saved as complete. For Gemini, see **Settings → Advanced → Provider Settings → Gemini Content Filter**.
 
+## A wait stops until you touch the screen
+
+Some Android e-readers put the processor to sleep a few seconds after the last touch, even while a page is on screen; on a Boox it was about 5 seconds. KOReader stops with the device and goes on when it wakes, at your next touch or the next change on screen. While KOAssistant waits, something on the screen keeps moving, which keeps such a device awake: the chat window's waiting dots, a line with the seconds and dots under a waiting message, and dots after an answer that pauses (during a web search, or when the provider is slow).
+
+These can still stop until you touch the screen:
+
+- **KOReader's start.** KOReader draws nothing while it starts, so a start that takes longer than those few seconds goes on only when the device wakes. Every plugin adds a little to the start.
+- **Work in the background.** X-Ray updates while you read, checkpoint builds and AI merges go on at each page turn.
+- **Fetch models and Test provider.** They hold the screen still while they run.
+
+To keep the device awake while KOReader is open, use KOReader's gear menu → Screen → Screen timeout → Keep screen on. The device then does not go to sleep on its own while KOReader is open and uses more battery, so press the power button when you put it down. Your device may also have a power-saving option of its own. The background is in [issue #126](https://github.com/zeeyado/koassistant.koplugin/issues/126).
+
 ## Streaming not working
 
 Check **Settings → Chat & Export Settings → Streaming**; some providers differ in what they support. Dictionary and translate windows also have their own **Enable Streaming** row (under **Settings → Dictionary Settings** and **Settings → Translate Settings**), and answers shown in the Minimal Popup never stream.

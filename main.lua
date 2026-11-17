@@ -7098,7 +7098,7 @@ end
 function AskGPT:showOpenRouterImageCatalog(on_pick, on_close)
   local self_ref = self
   NetworkMgr:runWhenConnected(function()
-    local note = InfoMessage:new{ text = _("Fetching OpenRouter's image models…") }
+    local note = require("koassistant.ui.waiting").message{ text = _("Fetching OpenRouter's image models…") }
     UIManager:show(note)
     require("koassistant.images.image_generator").fetchOpenRouterCatalog(function(models, err)
       UIManager:close(note)

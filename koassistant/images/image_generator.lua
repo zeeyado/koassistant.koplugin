@@ -2151,26 +2151,22 @@ function ImageGenerator._run(st)
     local writer_cancel  -- the writer request's cancel, while it runs
     local start_ts = os.time()
     local phase_text = ""
-    local status, tick
-    local ticking = false
-    -- The chat window's waiting dots, at its pace (0.4 s): an Onyx Boox
-    -- stopped waking KOReader about 10 s into a picture while this window
-    -- redrew every 5 s (frozen until a tap, the picture waiting in the pipe);
-    -- the chat and quiz windows, redrawn every 0.4 s, never froze
-    local dots = StreamHandler:createWaitingAnimation()
+    local status, stop_tick
+    -- The waiting line at the chat window's pace (koassistant/ui/waiting.lua):
+    -- an Onyx Boox stopped waking KOReader about 10 s into a picture while
+    -- this window redrew every 5 s (frozen until a tap, the picture waiting in
+    -- the pipe); the chat and quiz windows, redrawn every 0.4 s, never froze
+    -- (B709, #126: such a device sleeps about 5 s after a screen update)
+    local Waiting = require("koassistant.ui.waiting")
+    local dots = Waiting.dots()
     local function statusText()
-        return phase_text .. "\n\n" .. T(_("Elapsed: %1 s"), os.time() - start_ts) .. "  " .. dots.getNextFrame()
+        return phase_text .. "\n\n" .. Waiting.line(os.time() - start_ts, dots.getNextFrame())
     end
     local function stopTicker()
-        if ticking then
-            UIManager:unschedule(tick)
-            ticking = false
+        if stop_tick then
+            stop_tick()
+            stop_tick = nil
         end
-    end
-    tick = function()
-        if not ticking then return end
-        status.setText(statusText())
-        UIManager:scheduleIn(0.4, tick)
     end
     local function cancelRequest()
         cancelled = true
@@ -2193,8 +2189,7 @@ function ImageGenerator._run(st)
             initial_text = statusText(),
             on_stop = cancelRequest,
         })
-        ticking = true
-        UIManager:scheduleIn(0.4, tick)
+        stop_tick = Waiting.tick(function() status.setText(statusText()) end)
     end
 
     -- pollSubprocess callbacks run from the UI task queue, outside generate()'s

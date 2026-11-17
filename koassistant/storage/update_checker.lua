@@ -1822,7 +1822,9 @@ performUpdate = function(update_info)
     end
 
     -- Show download progress
-    local progress_msg = InfoMessage:new{
+    -- The message keeps moving while it waits (B709, #126): some Android
+    -- e-readers sleep about 5 s after the last screen update
+    local progress_msg = require("koassistant.ui.waiting").message{
         text = T(_("Downloading update %1..."), update_info.latest_version),
     }
     UIManager:show(progress_msg)
@@ -2023,7 +2025,7 @@ function UpdateChecker.checkForUpdates(auto, include_prereleases)
     local loading_msg = nil
     if not auto then
         loadUI()
-        loading_msg = InfoMessage:new{
+        loading_msg = require("koassistant.ui.waiting").message{
             text = _("Checking for updates..."),
         }
         UIManager:show(loading_msg)

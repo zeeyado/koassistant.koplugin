@@ -170,7 +170,6 @@ end
 ---        four routine routes (audit F3) and lands in the "?" bucket.
 local function handleNonStreamingBackground(background_fn, provider, on_complete, response_parser, config, dispatch_model)
     local UIManager = require("ui/uimanager")
-    local InfoMessage = require("ui/widget/infomessage")
     local BaseHandler = require("koassistant.api.base")
     local T = require("ffi/util").template
 
@@ -278,25 +277,19 @@ local function handleNonStreamingBackground(background_fn, provider, on_complete
         local minimal_trap = config and config.features
             and config.features._minimal_popup_eligible == true
             and config.features.loading_message ~= nil
-        if minimal_trap then
-            local TrapWidget = require("ui/widget/trapwidget")
-            loading_dialog = TrapWidget:new{
-                text = loading_text,
-                dismiss_callback = function()
-                    user_cancelled = true
-                    finish(false, nil, _("Request cancelled by user."))
-                end,
-            }
-        else
-            loading_dialog = InfoMessage:new{
-                text = loading_text,
-                dismissable = true,
-            }
-            loading_dialog.dismiss_callback = function()
-                user_cancelled = true
-                finish(false, nil, _("Request cancelled by user."))
-            end
+        -- Either one keeps moving while it waits (B709, #126): some Android
+        -- e-readers sleep about 5 s after the last screen update and the
+        -- request waited for the next tap
+        local cancel = function()
+            user_cancelled = true
+            finish(false, nil, _("Request cancelled by user."))
         end
+        loading_dialog = require("koassistant.ui.waiting").message{
+            text = loading_text,
+            corner = minimal_trap == true,
+            dismissable = true,
+            dismiss_callback = cancel,
+        }
         UIManager:show(loading_dialog)
         UIManager:forceRePaint()
     end

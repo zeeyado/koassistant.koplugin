@@ -428,7 +428,7 @@ end
 --- @return table|nil hits, nil when the reader cancelled
 local function gatherMentionHitsInSubprocess(ui, terms, exclude)
     local Trapper = require("ui/trapper")
-    local info = InfoMessage:new{ text = _("Searching the book… (tap to cancel)") }
+    local info = require("koassistant.ui.waiting").message{ text = _("Searching the book… (tap to cancel)") }
     UIManager:show(info)
     UIManager:forceRePaint()
     local completed, hits = Trapper:dismissableRunInSubprocess(function()
@@ -7342,7 +7342,7 @@ function XrayBrowser:_showChapterMentions(item, category_key, item_title, chapte
         else
             require("ui/trapper"):wrap(function()
                 local Trapper = require("ui/trapper")
-                local info = InfoMessage:new{ text = _("Collecting the mentions… (tap to cancel)") }
+                local info = require("koassistant.ui.waiting").message{ text = _("Collecting the mentions… (tap to cancel)") }
                 UIManager:show(info)
                 UIManager:forceRePaint()
                 local completed, rows = Trapper:dismissableRunInSubprocess(function()
