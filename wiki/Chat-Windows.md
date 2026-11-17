@@ -211,7 +211,7 @@ Some windows size themselves to their text:
 - **Translate and artifact windows** fit their text as laid out, up to the full height, without a band of empty space at the bottom.
 - **The compact dictionary popup** opens at 60% of the screen height and grows to fit a long answer, up to 80%. Window Size leaves it alone, so there is always room to tap outside it.
 
-**Rotation:** KOAssistant automatically resizes windows when you rotate your device, adapting the chat window and the input dialog to the new orientation. The chat window keeps your place (it shows the text you were reading), its view mode and your reply draft, and a compact popup stays compact, fitted to its text again.
+**Rotation:** KOAssistant's windows follow the screen when you turn your device. The chat window is laid out again and keeps your place (it shows the text you were reading), its view mode and your reply draft; a compact popup stays compact, fitted to its text again. The chat's input box, the reply box, Save Chat and New Tag stay open, on top, with what you typed. Two windows wait: turned while an answer streams, the stream window keeps its shape until the answer ends (the chat window that follows fits the screen), and the minimal popup stays where it was (a tap outside closes it).
 
 ## Selecting text in a window
 

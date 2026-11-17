@@ -2092,36 +2092,12 @@ local function createSaveDialog(document_path, history, chat_history_manager, is
         },
     }
 
-    -- Add rotation support to save dialog
-    local recreate_save_dialog  -- Forward declaration for recursive calls
-    recreate_save_dialog = function(input_text)
-        local new_dialog
-        new_dialog = InputDialog:new{
-            title = _("Save Chat"),
-            input = input_text or suggested_title,
-            buttons = save_dialog.buttons,
-        }
-        new_dialog.onScreenResize = function(self, dimen)
-            local current_input = self:getInputText()
-            UIManager:close(self)
-            UIManager:scheduleIn(0.2, function()
-                recreate_save_dialog(current_input)
-            end)
-            return true
-        end
-        new_dialog.onSetRotationMode = function(self, rotation)
-            return self:onScreenResize(nil)
-        end
-        save_dialog = new_dialog  -- the buttons close and read THIS dialog now
-        UIManager:show(new_dialog)
-    end
-
+    -- A turned screen (an Android device, a resized window): the dialog lays
+    -- itself out again in place, KOReader's own way, with what was typed. It
+    -- used to close and come back a moment later as a new dialog, at the same
+    -- moment as the chat window under it, which then landed on top of it
     save_dialog.onScreenResize = function(self, dimen)
-        local current_input = self:getInputText()
-        UIManager:close(self)
-        UIManager:scheduleIn(0.2, function()
-            recreate_save_dialog(current_input)
-        end)
+        self:reinit()
         return true
     end
 
@@ -2330,38 +2306,9 @@ local function showTagsMenu(document_path, chat_id, chat_history_manager)
                     },
                 }
 
-                -- Add rotation support to tag input dialog
-                local recreate_tag_dialog
-                recreate_tag_dialog = function(input_text)
-                    local new_tag_dialog
-                    new_tag_dialog = InputDialog:new{
-                        title = _("New Tag"),
-                        input = input_text or "",
-                        input_hint = _("Enter tag name"),
-                        buttons = tag_input.buttons,
-                    }
-                    new_tag_dialog.onScreenResize = function(self, dimen)
-                        local current = self:getInputText()
-                        UIManager:close(self)
-                        UIManager:scheduleIn(0.2, function()
-                            recreate_tag_dialog(current)
-                        end)
-                        return true
-                    end
-                    new_tag_dialog.onSetRotationMode = function(self, rotation)
-                        return self:onScreenResize(nil)
-                    end
-                    tag_input = new_tag_dialog  -- the buttons act on THIS dialog now
-                    UIManager:show(new_tag_dialog)
-                    new_tag_dialog:onShowKeyboard()
-                end
-
+                -- A turned screen: laid out again in place with what was typed
                 tag_input.onScreenResize = function(self, dimen)
-                    local current_input = self:getInputText()
-                    UIManager:close(self)
-                    UIManager:scheduleIn(0.2, function()
-                        recreate_tag_dialog(current_input)
-                    end)
+                    self:reinit()
                     return true
                 end
 
@@ -11321,9 +11268,20 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
         return true
     end
 
-    -- Rotation support via in-place refresh (no close-and-reopen gap)
+    -- A change of the screen (a turned Android device, a resized window): the
+    -- dialog is rebuilt for the new size with its text. On the next tick,
+    -- never inside the event: KOReader BROADCASTS a resize to every window and
+    -- starts over whenever a new window appears, so a dialog that replaced
+    -- itself inside its handler was told again as the new dialog, and again,
+    -- and the app hung (25,000 rebuilds in the first resize run in the real
+    -- app). Once per dialog, and not for one that was closed meanwhile
     input_dialog.onScreenResize = function(self, dimen)
-        refreshInputDialog()
+        if not self._koa_resize_pending then
+            self._koa_resize_pending = true
+            UIManager:nextTick(function()
+                if not self._koa_closed then refreshInputDialog() end
+            end)
+        end
         return true
     end
     input_dialog.onSetRotationMode = function(self, rotation)
@@ -11339,6 +11297,7 @@ local function showChatGPTDialog(ui_instance, highlighted_text, config, prompt_t
     -- paths (redundant-harmless here). Read the text before teardown; pcall for safety.
     local koaOrigOnCloseWidget = input_dialog.onCloseWidget
     input_dialog.onCloseWidget = function(self_dlg)
+        self_dlg._koa_closed = true  -- a rebuild waiting for its tick stands down
         if plugin and not self_dlg._koa_internal_close then
             local ok, txt = pcall(function() return self_dlg:getInputText() end)
             if ok and txt and txt ~= "" then plugin._last_input = txt end

@@ -131,7 +131,7 @@ TestRunner:test("find: of several copies, the one nearest the expected position"
     TestRunner:assertEqual(Place.find(text, words, 2), 1)
 end)
 
-TestRunner:test("findPage: the page the copy starts on, a copy that runs over a page's end included", function()
+TestRunner:test("findPage: the page that holds the copy, or the larger part of one that runs over a page's end", function()
     local pages = {
         { number = 4, text = "intro words here and more of them" },
         { number = 5, text = "then the lantern keeper" },
@@ -139,7 +139,14 @@ TestRunner:test("findPage: the page the copy starts on, a copy that runs over a 
     }
     TestRunner:assertEqual(Place.findPage(pages, Place.anchor("counted the steps to the"), 5), 6)
     TestRunner:assertEqual(Place.findPage(pages, Place.anchor("the lantern keeper counted the steps"), 6), 5,
-        "starts on page 5, ends on 6")
+        "starts on page 5, ends on 6, the larger part on 5")
+    -- a place whose first word is a page's last word: the reader reads on from
+    -- the next page (a turned screen showed the page before their place)
+    TestRunner:assertEqual(Place.findPage(pages, Place.anchor("keeper counted the steps to the"), 5), 6,
+        "one word on page 5, the rest on 6")
+    TestRunner:assertEqual(Place.findPage(pages, Place.anchor("keeper counted the steps to the"), 6), 6)
+    local last = { { number = 9, text = "and so the lantern keeper" } }
+    TestRunner:assertEqual(Place.findPage(last, Place.anchor("the lantern keeper"), 9), 9, "no page after it")
     TestRunner:assertEqual(Place.findPage(pages, Place.anchor("nothing of the kind here"), 5), nil)
     TestRunner:assertEqual(Place.findPage({}, Place.anchor("counted the steps to the"), 5), nil)
 end)

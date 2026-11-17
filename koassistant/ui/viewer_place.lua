@@ -69,32 +69,36 @@ end
 
 --- Where `words` stand in `text`, in order, whatever separates them: the byte
 --- position of the copy nearest `expected` (a byte position; the first copy
---- without one), nil when the text does not hold them.
+--- without one) and of that copy's last byte, nil when the text does not hold
+--- them.
 function Place.find(text, words, expected)
     if type(text) ~= "string" or type(words) ~= "table" or #words == 0 then return nil end
     -- no word boundary is asked before the first word: a direction mark may
     -- stand right against it, and several words in a row name one place anyway
     local pattern = table.concat(words, SEPARATOR)
-    local best, best_distance
+    local best, best_end, best_distance
     local from = 1
     while true do
-        local at = text:find(pattern, from)
+        local at, last = text:find(pattern, from)
         if not at then break end
         local distance = expected and math.abs(at - expected) or 0
         if not best or distance < best_distance then
-            best, best_distance = at, distance
+            best, best_end, best_distance = at, last, distance
         end
         -- copies only get farther once past the expected position
         if not expected or at >= expected then break end
         from = at + 1
     end
-    return best
+    return best, best_end
 end
 
---- The page on which the copy of `words` nearest `expected_page` starts.
+--- The page that holds the copy of `words` nearest `expected_page`: the page
+--- it starts on, or the next one when the copy runs over that page's end and
+--- more of it stands there (a place whose first word is a page's last word
+--- reads on from the next page: a turned screen put the reader a page before
+--- their place).
 --- `pages` = { { number = n, text = "the page's words" }, ... } in order (the
---- pages around the expected one; a copy may run over a page's end). Nil when
---- none of them holds the words.
+--- pages around the expected one). Nil when none of them holds the words.
 function Place.findPage(pages, words, expected_page)
     if type(pages) ~= "table" or #pages == 0 then return nil end
     local parts, starts, at, expected = {}, {}, 1, nil
@@ -104,10 +108,16 @@ function Place.findPage(pages, words, expected_page)
         if page.number == expected_page then expected = at end
         at = at + #parts[i] + 1
     end
-    local found = Place.find(table.concat(parts, " "), words, expected)
+    local found, found_end = Place.find(table.concat(parts, " "), words, expected)
     if not found then return nil end
     for i = #starts, 1, -1 do
-        if starts[i] <= found then return pages[i].number end
+        if starts[i] <= found then
+            local next_start = starts[i + 1]
+            if next_start and found_end >= next_start and found_end - next_start + 1 > next_start - found then
+                return pages[i + 1].number
+            end
+            return pages[i].number
+        end
     end
     return pages[1].number
 end

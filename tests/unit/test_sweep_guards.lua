@@ -97,9 +97,15 @@ TestRunner:test("the checkpoint size safeguard reads the build flag where it liv
         "never the features copy the request's creation cleared")
 end)
 
-TestRunner:test("a rotated Save Chat or New Tag dialog becomes the one its buttons act on", function()
-    TestRunner:assertTrue(dialogs:find("save_dialog = new_dialog  -- the buttons close and read THIS dialog now\n        UIManager:show(new_dialog)", 1, true) ~= nil, "Save Chat")
-    TestRunner:assertTrue(dialogs:find("tag_input = new_tag_dialog  -- the buttons act on THIS dialog now\n                    UIManager:show(new_tag_dialog)", 1, true) ~= nil, "New Tag")
+TestRunner:test("a rotated Save Chat or New Tag dialog stays the one its buttons act on", function()
+    -- the buttons close and read `save_dialog` / `tag_input`. The dialog used
+    -- to be replaced by a new one at a turn, which the buttons had to be
+    -- pointed at; it is laid out again in place now (the same dialog, B713;
+    -- tests/unit/test_screen_change.lua), so nothing may reassign either name
+    TestRunner:assertTrue(dialogs:find("save_dialog = new_dialog", 1, true) == nil
+        and select(2, dialogs:gsub("\n    save_dialog = InputDialog:new{", "")) == 1, "Save Chat is built once")
+    TestRunner:assertTrue(dialogs:find("tag_input = new_tag_dialog", 1, true) == nil
+        and select(2, dialogs:gsub("\n%s*tag_input = InputDialog:new{", "")) == 1, "New Tag is built once")
 end)
 
 TestRunner:test("a library chat tags under its own store", function()

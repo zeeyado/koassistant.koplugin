@@ -3746,11 +3746,23 @@ function ChatGPTViewer:askAnotherQuestion()
       },
     },
   }
-  -- Non-bold title (Regular weight, same size as default Bold)
-  input_dialog.title_bar.title_face = Font:getFace("smallinfofont")
-  input_dialog.title_bar:init()
-  -- Lighter input field border
-  input_dialog._input_widget._frame_textwidget.color = Blitbuffer.COLOR_GRAY
+  local function styleReplyBox()
+    -- Non-bold title (Regular weight, same size as default Bold)
+    input_dialog.title_bar.title_face = Font:getFace("smallinfofont")
+    input_dialog.title_bar:init()
+    -- Lighter input field border
+    input_dialog._input_widget._frame_textwidget.color = Blitbuffer.COLOR_GRAY
+  end
+  styleReplyBox()
+  -- A turned screen (an Android device, a resized window): the box lays
+  -- itself out again in place, KOReader's own way, with what was typed. It
+  -- stays where it is in the window list, over the chat window, which is
+  -- rebuilt beneath it
+  input_dialog.onScreenResize = function(dialog)
+    dialog:reinit()
+    styleReplyBox()
+    return true
+  end
   UIManager:show(input_dialog)
   input_dialog:onShowKeyboard()
 end
@@ -5943,6 +5955,41 @@ end
 -- Internal function to handle rotation/resize recreation
 -- Called by both onSetRotationMode and onScreenResize, and by cycleWindowSize
 -- with immediate=true (see the schedule below).
+-- The windows KOReader shows over `widget`, bottom to top (UIManager's own
+-- window list, read and reordered here for one purpose: the two functions
+-- below keep an order, they add and remove nothing)
+local function windowsAbove(widget)
+  local stack = UIManager._window_stack
+  local above, seen = {}, false
+  for _i, entry in ipairs(type(stack) == "table" and stack or {}) do
+    if seen then above[#above + 1] = entry.widget end
+    if entry.widget == widget then seen = true end
+  end
+  return above
+end
+
+-- A rebuilt window is shown on top, where KOReader puts every new window.
+-- Back under the windows that stood over the old one and still are shown: a
+-- reply box, Save Chat, a menu. Without this a turned screen left the reader
+-- looking at the chat window with the dialog they were in hidden beneath it
+local function settleBelow(above)
+  local stack = UIManager._window_stack
+  if type(stack) ~= "table" or #above == 0 or #stack < 2 then return end
+  local was_above = {}
+  for _i, w in ipairs(above) do was_above[w] = true end
+  local top = stack[#stack]
+  if was_above[top.widget] then return end
+  for i = 1, #stack - 1 do
+    if was_above[stack[i].widget] then
+      table.remove(stack, #stack)
+      table.insert(stack, i, top)
+      UIManager:setDirty("all", "ui")
+      return
+    end
+  end
+end
+ChatGPTViewer._windowsAbove, ChatGPTViewer._settleBelow = windowsAbove, settleBelow
+
 function ChatGPTViewer:_handleScreenChange(immediate)
   if not self._recreate_func then
     return false
@@ -5956,6 +6003,7 @@ function ChatGPTViewer:_handleScreenChange(immediate)
 
   -- Capture current state before closing
   local state = self:captureState()
+  local above = windowsAbove(self)
 
   -- Close current viewer
   UIManager:close(self)
@@ -5967,22 +6015,36 @@ function ChatGPTViewer:_handleScreenChange(immediate)
   -- Use 0.2s to ensure Screen:getWidth()/getHeight() return new values.
   -- A window-size toggle has nothing to settle — the screen is unchanged and
   -- the new geometry is already in the constants — so it recreates at once.
+  local function recreate()
+    self._recreate_func(state)
+    settleBelow(above)
+  end
   if immediate then
-    UIManager:nextTick(function()
-      self._recreate_func(state)
-    end)
+    UIManager:nextTick(recreate)
   else
-    UIManager:scheduleIn(0.2, function()
-      self._recreate_func(state)
-    end)
+    UIManager:scheduleIn(0.2, recreate)
   end
 
   return true
 end
 
 -- Handle screen rotation by recreating the viewer with new dimensions
--- This preserves state (text, scroll position, settings) across rotation
+-- This preserves state (text, scroll position, settings) across rotation.
+-- A device whose own sensor KOReader reads (a Kobo, a Kindle) hands a turn to
+-- the window on top and to nobody else: the window turns the screen itself,
+-- through the reader or the file browser underneath, as KOReader's own
+-- full-screen lists do (Menu:onSetRotationMode). It did not, so the screen
+-- stayed as it was and the window was rebuilt for nothing. An Android device
+-- turns its own surface and tells every window (onScreenResize below).
 function ChatGPTViewer:onSetRotationMode(rotation)
+  if self._recreate_func and rotation ~= nil and rotation ~= Screen:getRotationMode() then
+    local ui = ChatGPTViewer.liveUI()
+    if ui and ui.view and ui.view.onSetRotationMode then
+      ui.view:onSetRotationMode(rotation)
+    elseif ui and ui.onSetRotationMode then
+      ui:onSetRotationMode(rotation)
+    end
+  end
   return self:_handleScreenChange()
 end
 
