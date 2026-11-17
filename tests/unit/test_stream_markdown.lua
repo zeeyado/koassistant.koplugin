@@ -530,6 +530,36 @@ TestRunner:test("the position capture: the page's first words and the anchor's o
     FakeScroll.doc = nil
 end)
 
+-- A quiet stream shows the waiting dots in a paragraph after its text (B709).
+-- Where the text ends at the foot of a page they land alone on a new one, and
+-- the view that follows showed that page: the answer gone, for the whole pause
+TestRunner:test("following never shows a page that holds only the waiting dots", function()
+    local function boxOf(pages)
+        return { page_count = #pages, document = {
+            openPage = function(_self, n)
+                return { getPageText = function() return pages[n] end, close = function() end }
+            end,
+        } }
+    end
+    local text = { { { word = "The" }, { word = "answer" }, { word = "so" }, { word = "far." } } }
+    TestRunner:assertEqual(SM._followPage(boxOf({ text, { { { word = "..." } } } })), 1, "the dots alone on a new page: the text's page")
+    TestRunner:assertEqual(SM._followPage(boxOf({ text, text, { { { word = "." } } } })), 2, "one dot, the same")
+    TestRunner:assertEqual(SM._followPage(boxOf({ text, { { { word = ".." } }, {} } })), 1, "whatever white space is around them")
+    TestRunner:assertEqual(SM._followPage(boxOf({ text, { { { word = "far." }, { word = "..." } } } })), 2, "dots under a line of text: that page")
+    TestRunner:assertEqual(SM._followPage(boxOf({ text, { { { word = "日本語" } } } })), 2, "a page in a script without Latin letters is a page of text")
+    TestRunner:assertEqual(SM._followPage(boxOf({ text, { { { word = "…" } } } })), 2, "only the waiting dots count, not the answer's own marks")
+    TestRunner:assertEqual(SM._followPage(boxOf({ { { { word = "..." } } } })), 1, "a single page is the page")
+    TestRunner:assertEqual(SM._followPage({ page_count = 3 }), 3, "no document to read: the last page, as before")
+    -- the render and the jump to the end both ask it
+    local f = assert(io.open(PLUGIN_DIR .. "/koassistant/request/stream_markdown.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    TestRunner:assertTrue(src:find("local page = self.follow and followPage(box) or math.min(keep_page, box.page_count)", 1, true) ~= nil,
+        "the render")
+    local jump = src:match("function StreamMarkdown:jumpToEnd%(%)(.-)\nend\n")
+    TestRunner:assertTrue(jump ~= nil and jump:find("followPage(box) < box.page_count", 1, true) ~= nil, "the jump to the end")
+end)
+
 TestRunner:test("the hand-off: the captured words land through the viewer's own split and ordinal", function()
     -- the snippet the capture builds (the page's words joined by spaces) is what
     -- the viewer's landing reads: the anchor it extracts splits the holding

@@ -276,7 +276,7 @@ Words on the page that match an X-Ray entry's name or alias get a discreet dotte
 
 An exact hit (tapping a marked word, or selecting text that matches an entry) opens a compact card first: the name, category and role, and a one-line identification, with the full entry one tap on the card away. Tapping elsewhere closes it. The card can be a **footnote panel** at the bottom of the screen (like KOReader's footnote popups, following the book's margins and font size) or a **floating popup** next to the tapped word, or you can turn the card off to open the full entry directly.
 
-For an entry in your installed X-Ray, the card shows its first sentence; **Card Shows** can make it show the whole entry (swipe to scroll the footnote panel; the floating popup cuts it where it runs out of room). A card also says where an entry comes from: **From the section X-Ray: *section*** for a section X-Ray's entry, **Also in *Title*'s X-Ray** when other books of the group know the name too, and the carried list or the book's name for a name this book has not reached.
+For an entry in your installed X-Ray, the card shows its first sentence; **Card Shows** can make it show the whole entry (swipe to scroll it, in the footnote panel and in the floating popup alike). A card also says where an entry comes from: **From the section X-Ray: *section*** for a section X-Ray's entry, **Also in *Title*'s X-Ray** when other books of the group know the name too, and the carried list or the book's name for a name this book has not reached.
 
 ### Upcoming entities
 

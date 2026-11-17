@@ -1829,7 +1829,19 @@ local SettingsSchema = {
                         { value = "short", label = _("When it fits") },
                         { value = "always", label = _("Always") },
                     },
-                    help_text = _("Show responses from the actions below in a small popup next to the highlighted text: just the response, no buttons. Tap the popup to open the full window; tap outside to dismiss. 'When it fits' shows the popup only when the whole response fits inside it; longer responses open the full window directly. 'Always' shows the popup regardless, trimmed with an ellipsis. Streaming is skipped for these requests. Never applies to full-page translation."),
+                    help_text = _("Show responses from the actions below in a small popup: just the response, no buttons. Tap the popup to open the full window; tap outside to dismiss. 'When it fits' shows the popup only when the whole response fits inside it; longer responses open the full window directly. 'Always' shows the popup for any response; one that is too long scrolls inside it (swipe up or down, or use the page-turn keys). Streaming is skipped for these requests. Never applies to full-page translation."),
+                },
+                {
+                    id = "minimal_popup_style",
+                    type = "dropdown",
+                    text = _("Popup Style"),
+                    path = "features.minimal_popup_style",
+                    default = "box",
+                    options = {
+                        { value = "box", label = _("Floating box (near the selection)") },
+                        { value = "panel", label = _("Footnote panel (bottom of the screen)") },
+                    },
+                    help_text = _("Where the popup appears. The floating box sits next to the selected text and is as wide as the chat window. The footnote panel sits at the bottom of the screen from edge to edge, like KOReader's footnote popups. Either one is as tall as the response needs, up to about half the screen."),
                 },
                 {
                     id = "minimal_popup_actions",

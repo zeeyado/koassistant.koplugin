@@ -6309,8 +6309,8 @@ function AskGPT:_toggleMinimalPopupAction(action_id)
 end
 
 -- Minimal Popup quick settings (QS tile hold, maintainer design 2026-08-17):
--- the view mode as one radio row, then the action registry as tap-to-toggle
--- rows, two per row. Self-rebuilding on every change (fresh marks); Close and
+-- the view mode as one radio row, the shape as a second, then the action
+-- registry as tap-to-toggle rows, two per row. Self-rebuilding on every change (fresh marks); Close and
 -- tap-outside both return to the caller via on_close.
 function AskGPT:showMinimalPopupQuickSettings(on_close)
   local ButtonDialog = require("ui/widget/buttondialog")
@@ -6318,12 +6318,23 @@ function AskGPT:showMinimalPopupQuickSettings(on_close)
   local function dot(active) return active and "\u{25CF} " or "\u{25CB} " end
   local f = self.settings:readSetting("features") or {}
   local mode = f.minimal_popup_mode or "short"
+  local style = f.minimal_popup_style == "panel" and "panel" or "box"
   local set = Constants.resolveMinimalPopupActions(f.minimal_popup_actions)
 
   local dialog
   local function reshow()
     UIManager:close(dialog)
     self_ref:showMinimalPopupQuickSettings(on_close)
+  end
+  local function setStyle(new_style)
+    return function()
+      local ff = self_ref.settings:readSetting("features") or {}
+      ff.minimal_popup_style = new_style
+      self_ref.settings:saveSetting("features", ff)
+      self_ref.settings:flush()
+      self_ref:updateConfigFromSettings()
+      reshow()
+    end
   end
   local function setMode(new_mode)
     return function()
@@ -6341,6 +6352,11 @@ function AskGPT:showMinimalPopupQuickSettings(on_close)
       { text = dot(mode == "off") .. _("Off"), callback = setMode("off") },
       { text = dot(mode == "short") .. _("When it fits"), callback = setMode("short") },
       { text = dot(mode == "always") .. _("Always"), callback = setMode("always") },
+    },
+    -- the shape (Settings: Minimal Popup, Popup Style)
+    {
+      { text = dot(style == "box") .. _("Floating box"), callback = setStyle("box") },
+      { text = dot(style == "panel") .. _("Footnote panel"), callback = setStyle("panel") },
     },
   }
 

@@ -122,17 +122,18 @@ Dictionary and translate lookups have their own switches (**Settings → Diction
 
 ## Minimal Popup
 
-Short answers can skip the full-screen window entirely. With the minimal popup on (default: **When it fits**), answers from its registered actions land in a small popup with no buttons, anchored right at your selection (in EPUBs; centered elsewhere), instead of opening their usual window.
+Short answers can skip the full-screen window entirely. With the minimal popup on (default: **When it fits**), answers from its registered actions land in a small popup with no buttons instead of opening their usual window.
 
 - **Which actions:** Translate, Quick Define and Quick Explain by default. Pick the set under **Settings → Minimal Popup** (its **Actions Using Minimal Popup** row). Any highlight action that answers with text can join.
-- **When** (the **Minimal Popup View** row): **When it fits** (default) uses the popup only when the whole answer fits in it (the popup is up to about half the screen tall); longer answers open the usual window directly. **Always** keeps even long answers in the popup, trimmed, with a muted "Tap to show the full response" hint. **Off** disables the feature.
+- **When** (the **Minimal Popup View** row): **When it fits** (default) uses the popup only when the whole answer fits in it (the popup is up to about half the screen tall); longer answers open the usual window directly. **Always** keeps even long answers in the popup, where they scroll: swipe up or down, or use the page-turn keys. **Off** disables the feature.
+- **Where** (the **Popup Style** row): **Floating box** (the default) sits right at your selection (in EPUBs; centered elsewhere) and is as wide as the chat window. **Footnote panel** sits at the bottom of the screen from edge to edge, like KOReader's footnote popups.
+- **What it shows:** the answer the way the window it opens would show it. In the Markdown view that is bold, italics, lists, each script in its own face and each paragraph in its own direction; with your view on Plain Text it is the plain text ([Markdown and plain text](#markdown-and-plain-text)).
 - **Tap to expand:** tapping the popup opens the answer in the action's usual window (the translate window for Translate, the compact dictionary window for Quick Define, the chat window for Quick Explain), where replies and all the usual buttons live.
-- **Dismiss:** tap outside the popup, or press a page-turn or Back key.
+- **Dismiss:** tap outside the popup, or press Back. A page-turn key closes it too, once there is nothing more to scroll that way (at once for an answer that fits). The footnote panel also closes on a swipe down above it.
 - **No streaming:** these requests skip the streaming window. A small notice in the corner ("Translating…", or the action's name) keeps the page visible while the request runs; a tap, a key press or a swipe cancels it. Replies in the expanded window follow your streaming setting again.
 - It applies only to actions run on a highlight, and never to full-page translation.
-- The popup shows the answer as plain text, following **Apply Markdown Stripping**, laid out right-to-left when the answer mostly is; in an answer that mixes both, each line takes its own direction ([Markdown and plain text](#markdown-and-plain-text)).
 - The popup stands aside automatically when a dictionary window is covering the book.
-- A Quick Settings tile (**Minimal Popup: On** / **Off**) toggles the whole feature and remembers whether you had When it fits or Always. Hold the tile for the mode and the per-action toggles.
+- A Quick Settings tile (**Minimal Popup: On** / **Off**) toggles the whole feature and remembers whether you had When it fits or Always. Hold the tile for the mode, the style and the per-action toggles.
 
 ## Markdown and plain text
 

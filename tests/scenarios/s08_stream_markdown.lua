@@ -170,5 +170,62 @@ S.check(w3 and step.pressed and w3:currentPage() == step.after,
     "and so does the rest of the answer (page " .. tostring(w3 and w3:currentPage()) .. " of "
     .. tostring(w3 and w3:pageCount()) .. ")")
 
+-- A quiet stream shows the waiting dots in a paragraph after its text (B709).
+-- Where the text ends at the foot of a page, the dots land alone on a new
+-- one: the view that follows must stay on the text's page, or the answer is
+-- gone for as long as the pause lasts. Answers that grow a line at a time, so
+-- one of them ends at the foot of the page, each going quiet at its end.
+local function lineChunk(i)
+    if i == 1 then return "# The title\\n\\nA first line of the answer, with a few words in it.\\n\\n" end
+    return string.format("Paragraph %d of the answer.\\n", i)
+end
+local ViewerPlace = require("koassistant.ui.viewer_place")
+local quiet = { runs = 0, measured = 0, spilled = 0, lost = 0 }
+for n = 31, 43 do
+    last_widget = nil
+    local done = false
+    local before, with_dots
+    StreamHandler:new():showStreamDialog(function(_pid, fd)
+        for i = 1, n do
+            ffiutil.writeToFD(fd, sse(lineChunk(i)))
+            ffiutil.usleep(20000)
+        end
+        ffiutil.usleep(2000000)
+        ffiutil.writeToFD(fd, 'data: {"choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}\n\ndata: [DONE]\n\n')
+    end, "openai", "gpt-test", {
+        stream_markdown = true, features = { render_math = true }, text_align = "auto",
+        provider_name = "openai", model = "gpt-test", poll_interval_ms = 50, display_interval_ms = 100,
+        prompt_chars = 100, stream_auto_scroll = true, stream_page_scroll = true, response_font_size = 20,
+        large_stream_dialog = true, stream_keep_read_position = true,
+    }, function() done = true end)
+    S.waitFor(function()
+        local widget = last_widget
+        if widget and widget.rendered and not done then
+            local dots = widget.rendered:find("\n\n%.+%s*$") ~= nil
+            if not before and not dots and widget.rendered:find("Paragraph " .. n .. " of the answer", 1, true) then
+                before = widget:pageCount()
+            elseif before and dots and not with_dots then
+                local box = widget.scroll_w.htmlbox_widget
+                with_dots = { pages = widget:pageCount(), page = widget:currentPage(),
+                    words = ViewerPlace.pageText(box, box.page_number) or "" }
+            end
+        end
+        return done
+    end, 30)
+    quiet.runs = quiet.runs + 1
+    if before and with_dots then
+        quiet.measured = quiet.measured + 1
+        if with_dots.pages > before then quiet.spilled = quiet.spilled + 1 end
+        if not with_dots.words:find("answer", 1, true) then
+            quiet.lost = quiet.lost + 1
+            S.note("a quiet stream of " .. n .. " lines: page " .. with_dots.page .. " of " .. with_dots.pages
+                .. " holds [" .. with_dots.words:sub(1, 40) .. "]")
+        end
+    end
+end
+S.check(quiet.measured == quiet.runs, "every quiet stream showed the waiting dots after its text (" .. quiet.measured .. " of " .. quiet.runs .. ")")
+S.check(quiet.spilled >= 1, "in one of them at least the dots landed on a page of their own (" .. quiet.spilled .. ")")
+S.check(quiet.lost == 0, "and the view kept the page of the answer's last words in every one (" .. quiet.lost .. " lost)")
+
 StreamMarkdown.initTextBox = orig_init
 S.finish()

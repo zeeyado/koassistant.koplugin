@@ -551,9 +551,33 @@ function StreamMarkdown:_draw()
     self:initTextBox()
 end
 
+-- The words of a page of the document (one reader for every HTML widget: the
+-- chat window keeps its place with the same)
+local function pageText(box, n)
+    return require("koassistant.ui.viewer_place").pageText(box, n)
+end
+
+--- The page a view that follows shows: the last one, unless that page holds
+--- nothing but dots. A stream that goes quiet shows the waiting dots in a
+--- paragraph after its text (B709); where the text ends at the foot of a
+--- page they land alone on a new one, and following there took the page the
+--- reader was reading away for as long as the pause lasted.
+local function followPage(box)
+    local last = box.page_count or 1
+    if last > 1 and box.document then
+        local ok, words = pcall(pageText, box, last)
+        if ok and type(words) == "string" and words:gsub("%s+", ""):find("^%.+$") then
+            return last - 1
+        end
+    end
+    return last
+end
+StreamMarkdown._followPage = followPage
+
 --- The render: the text through the viewer's pipeline into a new HTML widget
---- in place of the old one; the last page while following, the reader's page
---- otherwise. The handler wraps this method to re-hook each new widget.
+--- in place of the old one; the last page while following (followPage), the
+--- reader's page otherwise. The handler wraps this method to re-hook each new
+--- widget.
 function StreamMarkdown:initTextBox()
     local text = self.text or ""
     local ready = self._ready
@@ -578,7 +602,7 @@ function StreamMarkdown:initTextBox()
     end
     local box = new.htmlbox_widget
     if box and box.page_count then
-        local page = self.follow and box.page_count or math.min(keep_page, box.page_count)
+        local page = self.follow and followPage(box) or math.min(keep_page, box.page_count)
         if page ~= box.page_number and box.setPageNumber then
             box:setPageNumber(page)
         end
@@ -690,15 +714,17 @@ end
 --- The last page, painted (following resumed, the tail wanted): the
 --- widget's own scroll, which drops the page's old bitmap and redraws
 function StreamMarkdown:jumpToEnd()
-    if self.scroll_w and self.scroll_w.scrollToRatio then self.scroll_w:scrollToRatio(1) end
+    local w = self.scroll_w
+    if not (w and w.scrollToRatio) then return end
+    local box = w.htmlbox_widget
+    if box and box.page_count and followPage(box) < box.page_count then
+        -- the middle of the page before the dots' own: the widget floors a ratio to a page
+        w:scrollToRatio((box.page_count - 1.5) / box.page_count)
+    else
+        w:scrollToRatio(1)
+    end
 end
 StreamMarkdown.scrollToBottom = StreamMarkdown.jumpToEnd
-
--- The words of a page of the document (one reader for every HTML widget: the
--- chat window keeps its place with the same)
-local function pageText(box, n)
-    return require("koassistant.ui.viewer_place").pageText(box, n)
-end
 
 --- The reader's spot for the completion viewer: the first words of their
 --- page, and the ordinal of that text's anchor among the pages before it

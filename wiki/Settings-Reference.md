@@ -226,7 +226,8 @@ Explained on [Chat Windows](Chat-Windows).
 
 | Row | Type | Does | Default | Choices | Page |
 |---|---|---|---|---|---|
-| Minimal Popup View | choice | Show responses from the actions below in a small popup next to the highlighted text: just the response, no buttons. Tap the popup to open the full window; tap outside to dismiss. 'When it fits' shows the popup only when the whole response fits inside it; longer responses open the full window directly. 'Always' shows the popup regardless, trimmed with an ellipsis. Streaming is skipped for these requests. Never applies to full-page translation. | When it fits | Off / When it fits / Always | [Chat Windows](Chat-Windows) |
+| Minimal Popup View | choice | Show responses from the actions below in a small popup: just the response, no buttons. Tap the popup to open the full window; tap outside to dismiss. 'When it fits' shows the popup only when the whole response fits inside it; longer responses open the full window directly. 'Always' shows the popup for any response; one that is too long scrolls inside it (swipe up or down, or use the page-turn keys). Streaming is skipped for these requests. Never applies to full-page translation. | When it fits | Off / When it fits / Always | [Chat Windows](Chat-Windows) |
+| Popup Style | choice | Where the popup appears. The floating box sits next to the selected text and is as wide as the chat window. The footnote panel sits at the bottom of the screen from edge to edge, like KOReader's footnote popups. Either one is as tall as the response needs, up to about half the screen. | Floating box (near the selection) | Floating box (near the selection) / Footnote panel (bottom of the screen) | [Chat Windows](Chat-Windows) |
 | Actions Using Minimal Popup: … | submenu | Which highlight actions open in the minimal popup. Translate, Quick Define and Quick Explain by default. |  |  | [Chat Windows](Chat-Windows) |
 
 ## Highlight Settings

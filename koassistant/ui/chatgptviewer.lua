@@ -1550,8 +1550,9 @@ end
 -- The content widget of the HTML view, one copy: the CSS with the script
 -- fonts' rules and the folder MuPDF reads those fonts from (since 1.28 it
 -- loads a font a page's style sheet names from the page's resource folder
--- only), the font size, the link handler
-function ChatGPTViewer:_htmlWidget(html_body, width, height)
+-- only), the font size, the link handler. `dialog` = the window that shows
+-- the widget when that is not this viewer (the minimal popup)
+function ChatGPTViewer:_htmlWidget(html_body, width, height, dialog)
   local font_css, font_dir = self:_scriptFontCSS(html_body)
   return ScrollHtmlWidget:new {
     html_body = html_body,
@@ -1560,10 +1561,51 @@ function ChatGPTViewer:_htmlWidget(html_body, width, height)
     default_font_size = Screen:scaleBySize(self.markdown_font_size),
     width = width,
     height = height,
-    dialog = self,
+    dialog = dialog or self,
     highlight_text_selection = true,
     html_link_tapped_callback = handleLinkTap,
   }
+end
+
+-- The content widget of the Plain Text view, one copy as well. `dialog` as
+-- above; the window's own widget also tells the button row where it scrolled
+function ChatGPTViewer:_plainWidget(display_text, width, height, dialog)
+  local scroll_callback
+  if not dialog then scroll_callback = self._buttons_scroll_callback end
+  return ScrollTextWidget:new {
+    text = display_text,
+    face = self.text_face,
+    fgcolor = self.fgcolor,
+    line_height = 0.2,  -- Denser than default 0.3 to match markdown view
+    width = width,
+    height = height,
+    dialog = dialog or self,
+    alignment = self.alignment,
+    justified = self.justified,
+    lang = self.lang,
+    para_direction_rtl = self.para_direction_rtl,
+    auto_para_direction = self.auto_para_direction,
+    alignment_strict = self.alignment_strict,
+    scroll_callback = scroll_callback,
+    highlight_text_selection = true,
+  }
+end
+
+--- One answer of this chat the way this window would show it, for a window
+--- that is not this viewer (the minimal popup): the HTML view when the window
+--- renders Markdown, the plain-text widget otherwise, in this window's font,
+--- size, alignment and direction. Nothing of the window's own state is
+--- touched (its own pipeline call records where its reply breaks; this one
+--- does not).
+function ChatGPTViewer:answerWidget(text, width, height, dialog)
+  if self.render_markdown then
+    local html_body = markdownHtml(self, text, { ipa_fix = self:_needsRtlFix() })
+    return self:_htmlWidget(html_body, width, height, dialog)
+  end
+  local display_text = self.strip_markdown_in_text_mode and stripMarkdown(text, self.para_direction_rtl) or text
+  if self:_needsRtlFix() then display_text = fixIPABidi(display_text) end
+  -- a trailing line break would be a blank last line, and count against the fit
+  return self:_plainWidget((display_text:gsub("%s+$", "")), width, height, dialog)
 end
 
 --- An artifact window is about its own book. Its creators build it on the
@@ -3187,23 +3229,7 @@ function ChatGPTViewer:init()
     if html_body then
       return self:_htmlWidget(html_body, self.width - 2 * self.text_padding - 2 * self.text_margin, h)
     end
-    return ScrollTextWidget:new {
-      text = display_text,
-      face = self.text_face,
-      fgcolor = self.fgcolor,
-      line_height = 0.2,  -- Denser than default 0.3 to match markdown view
-      width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-      height = h,
-      dialog = self,
-      alignment = self.alignment,
-      justified = self.justified,
-      lang = self.lang,
-      para_direction_rtl = self.para_direction_rtl,
-      auto_para_direction = self.auto_para_direction,
-      alignment_strict = self.alignment_strict,
-      scroll_callback = self._buttons_scroll_callback,
-      highlight_text_selection = true,
-    }
+    return self:_plainWidget(display_text, self.width - 2 * self.text_padding - 2 * self.text_margin, h)
   end
   local fit = self._fit_height
   self._fit_height = nil
@@ -3740,6 +3766,12 @@ function ChatGPTViewer:_fitContent(build, floor_h, ceil_h, start_h)
     end
   end
   return widget, cur
+end
+
+-- The same fit for a window that is not this viewer (the minimal popup)
+function ChatGPTViewer.fitContent(build, floor_h, ceil_h, start_h, font_size)
+  return ChatGPTViewer._fitContent({ markdown_font_size = font_size or ChatGPTViewer.markdown_font_size },
+    build, floor_h, ceil_h, start_h)
 end
 
 -- Calculate scroll ratio to show the last user question at top of viewport
@@ -4767,23 +4799,9 @@ function ChatGPTViewer:update(new_text, scroll_to_bottom)
     if (self.compact_view or self.dictionary_view) and self.para_direction_rtl then
       display_text = fixIPABidi(display_text)
     end
-    self.scroll_text_w = ScrollTextWidget:new {
-      text = display_text,
-      face = self.text_face,
-      fgcolor = self.fgcolor,
-      line_height = 0.2,  -- Denser than default 0.3 to match markdown view
-      width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-      height = self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin,
-      dialog = self,
-      alignment = self.alignment,
-      justified = self.justified,
-      lang = self.lang,
-      para_direction_rtl = self.para_direction_rtl,
-      auto_para_direction = self.auto_para_direction,
-      alignment_strict = self.alignment_strict,
-      scroll_callback = self._buttons_scroll_callback,
-      highlight_text_selection = true,
-    }
+    self.scroll_text_w = self:_plainWidget(display_text,
+      self.width - 2 * self.text_padding - 2 * self.text_margin,
+      self.textw:getSize().h - 2 * self.text_padding - 2 * self.text_margin)
 
     -- Update the frame container with the new scroll widget
     self.textw:clear()
@@ -4904,23 +4922,9 @@ function ChatGPTViewer:rebuildScrollWidget()
     if needs_rtl_fix then
       display_text = fixIPABidi(display_text)
     end
-    self.scroll_text_w = ScrollTextWidget:new {
-      text = display_text,
-      face = self.text_face,
-      fgcolor = self.fgcolor,
-      line_height = 0.2,  -- Denser than default 0.3 to match markdown view
-      width = self.width - 2 * self.text_padding - 2 * self.text_margin,
-      height = textw_height - 2 * self.text_padding - 2 * self.text_margin,
-      dialog = self,
-      alignment = self.alignment,
-      justified = self.justified,
-      lang = self.lang,
-      para_direction_rtl = self.para_direction_rtl,
-      auto_para_direction = self.auto_para_direction,
-      alignment_strict = self.alignment_strict,
-      scroll_callback = self._buttons_scroll_callback,
-      highlight_text_selection = true,
-    }
+    self.scroll_text_w = self:_plainWidget(display_text,
+      self.width - 2 * self.text_padding - 2 * self.text_margin,
+      textw_height - 2 * self.text_padding - 2 * self.text_margin)
   end
 
   -- Update the frame container
@@ -5425,21 +5429,9 @@ function ChatGPTViewer:toggleTranslateQuoteVisibility()
   else
     -- Plain text mode with optional markdown stripping
     local display_text = self.strip_markdown_in_text_mode and stripMarkdown(self.text, self.para_direction_rtl) or self.text
-    self.scroll_text_w = ScrollTextWidget:new {
-      text = display_text,
-      face = self.text_face,
-      fgcolor = self.fgcolor,
-      width = self.scroll_text_w.width,
-      height = self.scroll_text_w.height,
-      dialog = self,
-      alignment = self.alignment,
-      justified = self.justified,
-      lang = self.lang,
-      para_direction_rtl = self.para_direction_rtl,
-      auto_para_direction = self.auto_para_direction,
-      alignment_strict = self.alignment_strict,
-      highlight_text_selection = true,
-    }
+    -- (the one builder: this site once left the line height and the button
+    -- row's scroll report out, so Show Original changed the line spacing)
+    self.scroll_text_w = self:_plainWidget(display_text, self.scroll_text_w.width, self.scroll_text_w.height)
   end
 
   -- Update the frame container

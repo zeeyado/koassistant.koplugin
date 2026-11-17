@@ -3452,16 +3452,20 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     }
 
     -- Minimal popup view (Minimal Popup settings): registered highlight actions
-    -- open their response in a chrome-less popup next to the selection; tapping
-    -- it opens this full viewer. Eligibility (registration, highlight launch,
+    -- open their response in a chrome-less popup next to the selection (or in
+    -- a panel at the foot of the screen, minimal_popup_style); tapping it
+    -- opens this full viewer. Eligibility (registration, highlight launch,
     -- not full-page translate) was decided at dispatch (createTempConfig,
     -- _minimal_popup_eligible); the fit decision is made HERE because it needs
     -- the finished response ("When it fits" = only_if_fits below — the popup
-    -- reports whether the whole response renders without the ellipsis, so
-    -- script density and font size are handled by construction). The viewer is
+    -- reports whether the whole response fits under its height cap, measured
+    -- laid out, so script density and font size are handled by construction;
+    -- "Always" shows it whatever its length, scrolling). The viewer is
     -- fully built either way — the popup only defers showing it, so expand
     -- keeps every callback/history wire intact and dismissing leaves
     -- ActiveChatViewer untouched (no restore needed: it was never claimed).
+    -- The popup's content is this viewer's own drawing of the answer
+    -- (answerWidget): what the window would show, in the popup's frame.
     local mp_f = temp_config and temp_config.features
     local use_minimal_popup = mp_f and mp_f._minimal_popup_eligible == true
         and not mp_f.is_full_page_translate
@@ -3497,20 +3501,11 @@ local function showResponseDialog(title, history, highlightedText, addMessage, t
     if use_minimal_popup then
         popup_shown = require("koassistant.ui.minimal_popup").showForResponse({
             history = history,
+            viewer = chatgpt_viewer,
+            style = mp_f.minimal_popup_style,
             selection_data = selection_data,
             ui = ui_instance,
             only_if_fits = (mp_f.minimal_popup_mode or "short") == "short",
-            -- RTL hint: translate renders in the translation language, the
-            -- dictionary family in the dictionary language; anything else
-            -- auto-detects (dominant-RTL, same gate as the standard chat view).
-            rtl_language = (use_translate_view and mp_f.translation_language)
-                or ((use_compact_view or use_dictionary_view) and mp_f.dictionary_language)
-                or nil,
-            -- Text-mode settings + the dict-family gate for the IPA bidi fix:
-            -- the popup renders through the viewer's shared text-mode pipeline
-            -- and honors the same settings (strip_markdown_in_text_mode).
-            features = mp_f,
-            is_dictionary = (use_compact_view or use_dictionary_view) or nil,
             on_expand = function()
                 _G.ActiveChatViewer = chatgpt_viewer
                 UIManager:show(chatgpt_viewer)

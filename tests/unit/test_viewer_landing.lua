@@ -325,7 +325,7 @@ TestRunner:test("one Markdown pipeline: every HTML build goes through it, the sp
     local _, builds = src:gsub("self:_markdownHtml%(", "")
     TestRunner:assertEqual(builds, 4, "init, update, rebuild, the translate toggle")
     local _, widgets = src:gsub("self:_htmlWidget%(", "")
-    TestRunner:assertEqual(widgets, 4, "the content widget built in one place, used four times")
+    TestRunner:assertEqual(widgets, 5, "the content widget built in one place: the four above, and one answer for the minimal popup")
     local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, font_css%)", "")
     TestRunner:assertEqual(css_sites, 1, "one CSS site")
     TestRunner:assertTrue(src:find("local font_css, font_dir = self:_scriptFontCSS(html_body)", 1, true) ~= nil
