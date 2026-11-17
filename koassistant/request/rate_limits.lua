@@ -105,19 +105,32 @@ function RateLimits.fromHeaders(headers)
     return any and out or nil
 end
 
+--- fromHeaders with every value reduced to a safe charset: what a fetch child
+--- sends its parent through the pipe (the marker line below, and the Test
+--- provider probe's fetch through BaseHandler.fetchAsync's keep_headers).
+--- @param headers table|nil raw response headers
+--- @return table|nil fields
+function RateLimits.safeFields(headers)
+    local fields = RateLimits.fromHeaders(headers)
+    if not fields then return nil end
+    for name, v in pairs(fields) do
+        fields[name] = (tostring(v):gsub("[^%w%.:%-]", ""))
+    end
+    return fields
+end
+
 --- Child side: one marker line for the pipe. Values are sanitized to a safe charset.
 --- @param headers table|nil raw response headers
 --- @return string|nil the full line (with the surrounding newlines), nil when empty
 function RateLimits.encodeMarker(headers)
-    local fields = RateLimits.fromHeaders(headers)
+    local fields = RateLimits.safeFields(headers)
     if not fields then return nil end
     local names = {}
     for name in pairs(fields) do names[#names + 1] = name end
     table.sort(names)
     local parts = {}
     for _idx, name in ipairs(names) do
-        local v = tostring(fields[name]):gsub("[^%w%.:%-]", "")
-        parts[#parts + 1] = name .. "=" .. v
+        parts[#parts + 1] = name .. "=" .. fields[name]
     end
     return "\r\n" .. RateLimits.PROTOCOL_MARKER .. table.concat(parts, ";") .. "\n\n"
 end

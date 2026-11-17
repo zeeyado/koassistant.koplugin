@@ -1040,9 +1040,10 @@ local function isTextLine(line)
     or s:find("^[=%-_%*]+%s*$") or s:find("|", 1, true) or s:find("^%$%$") or s:find("^\\[%[%]]"))
 end
 
-local function lineParagraphs(text)
-  if type(text) ~= "string" or not text:find("\n", 1, true) then return text end
-  local out, in_fence, in_formula, in_bracket, after_text = {}, false, false, false, false
+-- Every line of a text with what it is: fn(line, is_text), is_text = a line
+-- of plain text outside a code fence and a display formula
+local function eachLine(text, fn)
+  local in_fence, in_formula, in_bracket = false, false, false
   for line in (text .. "\n"):gmatch("([^\n]*)\n") do
     local is_text = false
     if line:find("^%s*```") or line:find("^%s*~~~") then
@@ -1057,10 +1058,44 @@ local function lineParagraphs(text)
       if opens > closes then in_bracket = true elseif closes > opens then in_bracket = false end
       is_text = not was_inside and not in_formula and not in_bracket and isTextLine(line)
     end
+    fn(line, is_text)
+  end
+end
+
+local function lineParagraphs(text)
+  if type(text) ~= "string" or not text:find("\n", 1, true) then return text end
+  local out, after_text = {}, false
+  eachLine(text, function(line, is_text)
     if is_text and after_text then out[#out + 1] = "" end
     out[#out + 1] = line
     after_text = is_text
-  end
+  end)
+  return table.concat(out, "\n")
+end
+
+-- The reader's own lines are paragraphs too (B712). A message typed with line
+-- breaks in it showed as one block in the Markdown view, for the same reason
+-- (the Plain Text view shows the lines as typed). Display only, and in the
+-- chat window's conversion of its whole text alone (the stream view shows an
+-- answer): inside a message of the reader's, from its "▶ User:" label to the
+-- next "◉ KOAssistant:" label, the rule above. A window without the labels (a
+-- dictionary or compact view) is as it was. Not a line break tag: MuPDF adds
+-- the paragraph's bottom margin after a paragraph's first <br> and after no
+-- later one (probed 2026-11-17: line tops 36, 26, 26 px apart), so three
+-- typed lines showed as one line and a pair.
+local function typedLineParagraphs(text)
+  if type(text) ~= "string" or not text:find("▶ User:", 1, true) then return text end
+  local out, after_text, typed = {}, false, false
+  eachLine(text, function(line, is_text)
+    if line == "▶ User:" then
+      typed = true
+    elseif line == "◉ KOAssistant:" then
+      typed = false
+    end
+    if typed and is_text and after_text then out[#out + 1] = "" end
+    out[#out + 1] = line
+    after_text = is_text
+  end)
   return table.concat(out, "\n")
 end
 
@@ -1537,7 +1572,7 @@ end
 -- This window's HTML for its text: the pipeline above on its own settings
 -- and carry anchor; the reply break it finds is kept for the landing
 function ChatGPTViewer:_markdownHtml(text)
-  local html_body, reply_break = markdownHtml(self, text, {
+  local html_body, reply_break = markdownHtml(self, typedLineParagraphs(text), {
     ipa_fix = self:_needsRtlFix(),
     main = self:_answerDirection(text),
     carry_anchor = self._stream_carry_anchor,
@@ -6557,6 +6592,7 @@ ChatGPTViewer.stripMarkdown = stripMarkdown
 ChatGPTViewer._taskListBoxes = taskListBoxes
 ChatGPTViewer._taskListItems = taskListItems
 ChatGPTViewer._lineParagraphs = lineParagraphs
+ChatGPTViewer._typedLineParagraphs = typedLineParagraphs
 ChatGPTViewer._linesAreParagraphs = linesAreParagraphs
 ChatGPTViewer.fixIPABidi = fixIPABidi
 ChatGPTViewer.hasDominantRTL = hasDominantRTL

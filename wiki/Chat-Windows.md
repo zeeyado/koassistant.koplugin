@@ -144,6 +144,7 @@ KOAssistant offers two view modes for displaying AI responses.
 
 - Full formatting: bold, italic, headers, lists, task lists (`- [ ]` and `- [x]` drawn as ☐ and ☑), code blocks, tables
 - A numbered list keeps the numbers the answer wrote: items with blank lines between them count on (1, 2, 3), and a list that goes on after a paragraph, a quote, a table or bullets, or that starts past 1, is shown with the answer's own numbers
+- A message you typed with line breaks in it shows each line as a paragraph of its own (Plain Text shows the lines as typed)
 - Best for most users with Latin scripts
 
 **Plain Text view**

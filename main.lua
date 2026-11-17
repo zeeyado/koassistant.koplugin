@@ -2554,16 +2554,15 @@ function AskGPT:providerSupportsTest(provider_id)
   return type(d.base_url) == "string" and d.base_url:find("/chat/completions$") ~= nil
 end
 
--- Fetch the live model list from a provider's list endpoint (18g; universal
--- since REVISION 2 M2). Synchronous like fetchDerivedModelCaps — only called
--- behind an explicit user action. Returns a sorted array of ids, or nil + error.
-function AskGPT:fetchProviderModels(provider_id, opts)
+-- The request for a provider's live model list (18g; universal since REVISION 2
+-- M2): its list endpoint, its auth and the fields its answer names the ids in.
+-- Returns { url, headers, list_field, name_field }, or nil + error.
+function AskGPT:modelListRequest(provider_id)
   local d = self:getProviderDescriptor(provider_id)
   if not d or not d.base_url or d.base_url == "" then
     return nil, _("Provider has no base URL")
   end
   local BaseHandler = require("koassistant.api.base")
-  local json = require("json")
   local key = BaseHandler.getApiKey(provider_id, self.settings)
   if not (type(key) == "string" and key ~= "" and not BaseHandler.isPlaceholderKey(key)) then
     key = nil
@@ -2599,15 +2598,19 @@ function AskGPT:fetchProviderModels(provider_id, opts)
     models_url = models_url:gsub("/+$", "") .. "/models"
     headers = key and { ["Authorization"] = "Bearer " .. key } or nil
   end
+  return { url = models_url, headers = headers, list_field = list_field, name_field = name_field }
+end
 
-  local code, body = BaseHandler.fetchInSubprocess(models_url,
-    { timeout = (opts and opts.timeout) or 15, headers = headers })
+-- The ids in a model list's answer (`req` = modelListRequest's): a sorted
+-- array, or nil + error.
+function AskGPT:parseModelList(req, code, body)
+  local json = require("json")
   if not tonumber(code) then
     return nil, T(_("Network error: %1"), tostring(body))
   end
   if tonumber(code) ~= 200 then
     -- never echo the key (gemini rides it in the URL)
-    local msg = T(_("HTTP %1 from %2"), tostring(code), models_url:gsub("key=[^&]+", "key=***"))
+    local msg = T(_("HTTP %1 from %2"), tostring(code), req.url:gsub("key=[^&]+", "key=***"))
     local n = tonumber(code)
     if n == 401 or n == 403 then
       msg = msg .. "\n" .. _("This provider needs an API key. Add one in Settings → API Keys & Auth.")
@@ -2620,6 +2623,7 @@ function AskGPT:fetchProviderModels(provider_id, opts)
   end
   -- Type-check every level: luajson decodes JSON null to a truthy function sentinel.
   local rows
+  local list_field, name_field = req.list_field, req.name_field
   if list_field then
     rows = type(decoded[list_field]) == "table" and decoded[list_field] or {}
   else
@@ -2648,24 +2652,47 @@ function AskGPT:fetchProviderModels(provider_id, opts)
   return ids
 end
 
--- Shared entry for the fetch flow (notification -> fetch -> picker/error)
+-- The live model list, fetched while the caller waits: for the short local
+-- fetch of Ollama's installed models (refreshOllamaModels), behind an explicit
+-- user action. Returns a sorted array of ids, or nil + error.
+function AskGPT:fetchProviderModels(provider_id, opts)
+  local req, err = self:modelListRequest(provider_id)
+  if not req then return nil, err end
+  local code, body = require("koassistant.api.base").fetchInSubprocess(req.url,
+    { timeout = (opts and opts.timeout) or 15, headers = req.headers })
+  return self:parseModelList(req, code, body)
+end
+
+-- Shared entry for the fetch flow (waiting message -> fetch -> picker/error).
+-- The fetch runs off the UI loop behind a message that moves (B709: a blocked
+-- loop can show nothing that moves, and a device that sleeps between screen
+-- updates stopped mid-fetch until a touch). A tap on the message stops it.
 function AskGPT:startFetchModels(provider_id, on_change)
   local self_ref = self
-  UIManager:show(Notification:new{
+  local function failed(err)
+    UIManager:show(InfoMessage:new{
+      text = T(_("Could not fetch models: %1"), err or _("unknown error")),
+    })
+  end
+  local req, req_err = self:modelListRequest(provider_id)
+  if not req then return failed(req_err) end
+  local cancel
+  local note = require("koassistant.ui.waiting").message{
     text = _("Fetching model list..."),
-    timeout = 1,
-  })
-  -- Delayed so the notification paints before the synchronous fetch
-  UIManager:scheduleIn(0.2, function()
-    local ids, err = self_ref:fetchProviderModels(provider_id)
-    if ids then
-      self_ref:showFetchedModelsPicker(provider_id, ids, nil, on_change)
-    else
-      UIManager:show(InfoMessage:new{
-        text = T(_("Could not fetch models: %1"), err or _("unknown error")),
-      })
-    end
-  end)
+    dismiss_callback = function() if cancel then cancel() end end,
+  }
+  UIManager:show(note)
+  cancel = require("koassistant.api.base").fetchAsync(req.url, { timeout = 15, headers = req.headers },
+    function(code, body)
+      note.dismiss_callback = nil  -- our own close is not the reader's tap
+      UIManager:close(note)
+      local ids, err = self_ref:parseModelList(req, code, body)
+      if ids then
+        self_ref:showFetchedModelsPicker(provider_id, ids, nil, on_change)
+      else
+        failed(err)
+      end
+    end)
 end
 
 -- Tap-to-add picker over a fetched model list (18g). Tapping a model adds it to the
@@ -2882,21 +2909,27 @@ function AskGPT:testProvider(provider_id)
   })
   if provider.is_custom then base.base_url = provider.base_url end
 
-  local function post(step)
-    local req = ProviderProbe.request(handler, base, step)
-    local code, body, resp_headers = BaseHandler.fetchInSubprocess(req.url, {
+  -- One probe request, off the UI loop (B709: a blocked loop can show nothing
+  -- that moves, and a device that sleeps between screen updates stopped
+  -- mid-test until a touch). done(code, body, responses); the function
+  -- returned stops the request, and done is not called then.
+  local RL = require("koassistant.request.rate_limits")
+  local function post(probe, done)
+    local req = ProviderProbe.request(handler, base, probe)
+    return BaseHandler.fetchAsync(req.url, {
       method = "POST", headers = req.headers, body = req.payload, timeout = 20,
-    })
-    -- Per-minute admission limits (docs/tpm_admission_plan.md): the probe's
-    -- response headers name the plan's tokens-per-minute allowance, so the
-    -- first real request is already sized to fit (Groq free: 8K/min against
-    -- a 32K default budget refused every request until this was learned).
-    local RL = require("koassistant.request.rate_limits")
-    if RL.record(provider_id, key_model, RL.fromHeaders(resp_headers), "probe") then
-      logger.dbg("KOAssistant: test probe learned per-minute allowance",
-        RL.known(provider_id, key_model).limit_tokens, "for", provider_id, key_model)
-    end
-    return code, body, req.responses
+      keep_headers = RL.safeFields,
+    }, function(code, body, limits)
+      -- Per-minute admission limits (docs/tpm_admission_plan.md): the probe's
+      -- response headers name the plan's tokens-per-minute allowance, so the
+      -- first real request is already sized to fit (Groq free: 8K/min against
+      -- a 32K default budget refused every request until this was learned).
+      if RL.record(provider_id, key_model, limits, "probe") then
+        logger.dbg("KOAssistant: test probe learned per-minute allowance",
+          RL.known(provider_id, key_model).limit_tokens, "for", provider_id, key_model)
+      end
+      done(code, body, req.responses)
+    end)
   end
 
   -- The server's own explanation of a refusal, when the body carries one
@@ -2922,9 +2955,11 @@ function AskGPT:testProvider(provider_id)
   local results = {}  -- { {label, ok = true|false|nil(skipped), detail} }
   local caps = {}     -- positive findings for the derived layer
 
+  -- Each step: the request it sends (`probe`), what the answer means (`judge`
+  -- returns ok and a detail) and, where it rests on an earlier step, `skip`
+  -- (a reason = the request is not sent)
   local steps = {
-    { label = _("Reachability"), run = function()
-        local code, body, responses = post("plain")
+    { label = _("Reachability"), probe = "plain", judge = function(code, body, responses)
         local n = tonumber(code)
         if n == 200 then
           -- The parser's verdict on the 200 (B484): an answer in a shape it
@@ -2946,8 +2981,7 @@ function AskGPT:testProvider(provider_id)
         if not n or serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - check base URL and model id"), n)
       end },
-    { label = _("Streaming (SSE)"), run = function()
-        local code, body = post("stream")
+    { label = _("Streaming (SSE)"), probe = "stream", judge = function(code, body)
         if tonumber(code) ~= 200 then return false, failure(code, body) end
         if type(body) == "string" and (body:find("^data:") or body:find("\ndata:")
             or body:find("^event:") or body:find("\nevent:")) then
@@ -2955,17 +2989,18 @@ function AskGPT:testProvider(provider_id)
         end
         return false, _("200 but not SSE - streaming may be unsupported")
       end },
-    { label = _("Tool calling"), run = function()
-        local code, body, responses = post("tools")
+    { label = _("Tool calling"), probe = "tools", judge = function(code, body, responses)
         if tonumber(code) == 200 then
           caps.tools = true
           return true, responses and _("sent to the Responses endpoint, which book tools use on this model") or nil
         end
         return false, failure(code, body)
       end },
-    { label = _("Forced tool use (book-tools search)"), run = function()
-        if not caps.tools then return nil, _("skipped - tools not accepted") end
-        local code, body = post("forced_tools")
+    { label = _("Forced tool use (book-tools search)"), probe = "forced_tools",
+      skip = function()
+        if not caps.tools then return _("skipped - tools not accepted") end
+      end,
+      judge = function(code, body)
         if tonumber(code) == 200 then return true end
         -- a model that refuses a forced call cannot serve the gather round:
         -- Record must not grant it tools (the sweep of 2026-11-06)
@@ -2973,8 +3008,7 @@ function AskGPT:testProvider(provider_id)
         if serverSays(body) then return false, failure(code, body) end
         return false, T(_("HTTP %1 - book tools' search phase may not work"), tostring(code))
       end },
-    { label = _("Reasoning effort parameter"), run = function()
-        local code, body = post("effort")
+    { label = _("Reasoning effort parameter"), probe = "effort", judge = function(code, body)
         if tonumber(code) == 200 then
           caps.reasoning = true
           return true, _("accepted (some hosts silently ignore it)")
@@ -2984,33 +3018,52 @@ function AskGPT:testProvider(provider_id)
   }
 
   local step_i = 0
-  local function runNext()
+  local runNext
+  local function record(step, ok, detail)
+    table.insert(results, { label = step.label, ok = ok, detail = detail })
+    if step_i == 1 and ok == false then
+      -- Baseline failed: the rest would just repeat the same error
+      self_ref:showProviderTestReport(provider, model, results, caps)
+      return
+    end
+    runNext()
+  end
+  runNext = function()
     step_i = step_i + 1
     local step = steps[step_i]
     if not step then
       self_ref:showProviderTestReport(provider, model, results, caps)
       return
     end
-    UIManager:show(Notification:new{
+    local skipped = step.skip and step.skip()
+    if skipped then return record(step, nil, skipped) end
+    -- The step's wait moves while its request runs; a tap on it stops the test
+    local cancel
+    local note = require("koassistant.ui.waiting").message{
       text = T(_("Testing %1/%2: %3"), step_i, #steps, step.label),
-      timeout = 1,
-    })
-    -- Delayed so the notification paints before the synchronous request
-    UIManager:scheduleIn(0.3, function()
-      -- A crashing step must render as a result, never a silent empty report
-      local run_ok, ok, detail = pcall(step.run)
-      if not run_ok then
-        detail = T(_("test error: %1"), tostring(ok))
-        ok = false
-      end
-      table.insert(results, { label = step.label, ok = ok, detail = detail })
-      if step_i == 1 and ok == false then
-        -- Baseline failed: the rest would just repeat the same error
-        self_ref:showProviderTestReport(provider, model, results, caps)
-        return
-      end
-      runNext()
+      dismiss_callback = function() if cancel then cancel() end end,
+    }
+    local function closeNote()
+      note.dismiss_callback = nil  -- our own close is not the reader's tap
+      UIManager:close(note)
+    end
+    UIManager:show(note)
+    -- A crashing step must render as a result, never a silent empty report
+    local sent, err = pcall(function()
+      cancel = post(step.probe, function(code, body, responses)
+        closeNote()
+        local run_ok, ok, detail = pcall(step.judge, code, body, responses)
+        if not run_ok then
+          detail = T(_("test error: %1"), tostring(ok))
+          ok = false
+        end
+        record(step, ok, detail)
+      end)
     end)
+    if not sent then
+      closeNote()
+      record(step, false, T(_("test error: %1"), tostring(err)))
+    end
   end
   runNext()
 end

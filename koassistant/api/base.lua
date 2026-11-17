@@ -711,25 +711,34 @@ end
 --- @param url string
 --- @param opts table: same fields as fetchInSubprocess (method, headers, body,
 ---                    timeout); resolved_ip is filled here (parent-side DNS —
----                    a forked child must NEVER resolve on macOS)
---- @param on_done function(status_code|nil, body_or_error) — called once on the
----        UI loop; never called after cancel. May be called synchronously when
----        the subprocess cannot start.
+---                    a forked child must NEVER resolve on macOS).
+---                    keep_headers = function(response_headers) -> table|nil,
+---                    run in the child: the small table of plain strings it
+---                    returns comes back as on_done's third argument (the
+---                    response's headers do not cross the pipe otherwise)
+--- @param on_done function(status_code|nil, body_or_error, kept_headers|nil) —
+---        called once on the UI loop; never called after cancel. May be called
+---        synchronously when the subprocess cannot start.
 --- @return function|nil cancel: terminates the subprocess and suppresses on_done
 function BaseHandler.fetchAsync(url, opts, on_done)
     opts = opts or {}
     local resolved_ip = BaseHandler.resolveForSubprocess(url)
     local fetch_fn = function(pid, child_write_fd)
         if not pid or not child_write_fd then return end
-        local ok, status_code, body = pcall(BaseHandler.fetchInSubprocess, url, {
+        local ok, status_code, body, resp_headers = pcall(BaseHandler.fetchInSubprocess, url, {
             method = opts.method,
             headers = opts.headers,
             body = opts.body,
             timeout = opts.timeout,
             resolved_ip = resolved_ip,
         })
+        local kept
+        if ok and opts.keep_headers then
+            local k_ok, k = pcall(opts.keep_headers, resp_headers)
+            if k_ok and type(k) == "table" then kept = k end
+        end
         local payload = ok
-            and json.encode({ status_code = status_code, body = body or "" })
+            and json.encode({ status_code = status_code, body = body or "", headers = kept })
             or json.encode({ status_code = 0, body = tostring(status_code) })
         BaseHandler.writeAllToFD(child_write_fd, payload)
         ffi.C.close(child_write_fd)
@@ -757,9 +766,10 @@ function BaseHandler.fetchAsync(url, opts, on_done)
             -- luajson decodes JSON null to a truthy sentinel — type-check both fields.
             local status = type(decoded.status_code) == "number" and decoded.status_code or nil
             local body = type(decoded.body) == "string" and decoded.body or ""
+            local kept = type(decoded.headers) == "table" and decoded.headers or nil
             -- The child encodes a transport error as status 0 + message body.
             if status == 0 then status = nil end
-            on_done(status, body)
+            on_done(status, body, kept)
         else
             on_done(nil, "failed to parse fetch subprocess response")
         end
