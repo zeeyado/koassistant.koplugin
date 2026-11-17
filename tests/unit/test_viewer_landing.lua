@@ -298,14 +298,19 @@ end)
 
 TestRunner:test("one Markdown pipeline: every HTML build goes through it, the span pass last", function()
     local src = read("koassistant/ui/chatgptviewer.lua")
-    local _, md_calls = src:gsub("MD%(preprocessed_text, {}%)", "")
+    local _, md_calls = src:gsub("= MD%(", "")
     TestRunner:assertEqual(md_calls, 1, "luamd is called in one place")
+    TestRunner:assertTrue(src:find('MD(require("koassistant.ui.list_numbers").mark(preprocessed_text), {})', 1, true) ~= nil,
+        "on the text whose numbered items carry their numbers (B691)")
     local _, builds = src:gsub("self:_markdownHtml%(", "")
     TestRunner:assertEqual(builds, 4, "init, update, rebuild, the translate toggle")
     local _, widgets = src:gsub("self:_htmlWidget%(", "")
     TestRunner:assertEqual(widgets, 4, "the content widget built in one place, used four times")
-    local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(html_body%)%)", "")
+    local _, css_sites = src:gsub("getViewerCSS%(self%.text_align, font_css%)", "")
     TestRunner:assertEqual(css_sites, 1, "one CSS site")
+    TestRunner:assertTrue(src:find("local font_css, font_dir = self:_scriptFontCSS(html_body)", 1, true) ~= nil
+        and src:find("html_resource_directory = font_dir,", 1, true) ~= nil,
+        "the script fonts' rules and the folder the renderer reads them from, together")
     -- the pipeline's two halves (the streaming window keeps the first half's
     -- result for an answer's finished part): the whole conversion is both
     local a = src:find("local function markdownHtml(viewer, text, opts)", 1, true)
@@ -314,11 +319,12 @@ TestRunner:test("one Markdown pipeline: every HTML build goes through it, the sp
         "the first half, then the second")
     local f = src:find("local function finishHtml(viewer, html_body, opts)", 1, true)
     local finish = src:sub(f, src:find("\nend\n", f, true))
+    local numbers = finish:find('require("koassistant.ui.list_numbers").resolve(', 1, true)
     local direction = finish:find("addHtmlBidiAttributes(", 1, true)
     local breaks = finish:find("applyExchangePageBreaks(", 1, true)
     local spans = finish:find("ScriptFonts.markRuns(", 1, true)
-    TestRunner:assertTrue(direction and breaks and spans and breaks > direction and spans > breaks,
-        "the direction pass, the page breaks, the spans last")
+    TestRunner:assertTrue(numbers and direction and breaks and spans and direction > numbers and breaks > direction and spans > breaks,
+        "the lists' numbers, the direction pass, the page breaks, the spans last")
 end)
 
 return TestRunner:summary()

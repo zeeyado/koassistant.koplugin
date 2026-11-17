@@ -154,7 +154,7 @@ local function addPieceAttributes(html, opts)
     local plain = not Bidi.hasRTL(html)
     if plain and not html:find("<p>•", 1, true) then return html end
     local block_opts = { use_starts_with_rtl = opts.use_starts_with_rtl,
-        main = plain and "ltr" or Bidi.mainDirection(stripTags(html)) }
+        main = plain and "ltr" or opts.main or Bidi.mainDirection(stripTags(html)) }
     local function dirOf(content)
         if plain then return "ltr" end
         return Bidi.blockDirection(stripTags(content), block_opts)
@@ -259,7 +259,11 @@ local MESSAGE_STARTS = { "<p>▶", "<p>◉" }
 --- opts.use_starts_with_rtl: see blockDirection; opts.text_align: the viewer's
 --- setting ("auto" | "left" | "right" | "justify"). Each message of a chat is
 --- judged on its own: its main direction is its own language's (a chat can
---- change language, and a translation follows its original).
+--- change language, and a translation follows its original). opts.main
+--- ("rtl" | "ltr"): the main direction where the caller knows it and the
+--- words would mislead: a dictionary window shows the book's own sentence
+--- above the answer with no marker between them, and a long Arabic sentence
+--- outvoted a short English definition.
 function Bidi.addHtmlBidiAttributes(html, opts)
     if not html then return html end
     opts = opts or {}

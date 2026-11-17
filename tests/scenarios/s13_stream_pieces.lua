@@ -121,8 +121,10 @@ local RULES = {
     { "a cut needs a blank line before it", "if after_blank and not in_fence", "if not in_fence" },
     { "none inside a code fence", "if after_blank and not in_fence and (prev_at_margin", "if after_blank and (prev_at_margin" },
     { "none inside a list's indented content", "(prev_at_margin or (nl and atMargin(line)", "(true or (nl and atMargin(line)" },
-    { "after indented content the next line is no list item",
-        "and not line:find(\"^[-*+]%s\") and not line:find(\"^%d+[.)]%s\")", "" },
+    -- (a rule left 2026-11-17: "after indented content the next line is no
+    -- list item". Lists that only white space separates are joined when the
+    -- pieces are finished, so a piece that starts with a list item gives the
+    -- whole conversion's HTML; this scenario found no sample that needed it)
     { "after indented content the next line is at the margin", "(nl and atMargin(line)", "(nl and true" },
     { "nothing open before a cut", "if marksClosed(text, first, found[i + 1], cut, math) then return cut end",
         "if true then return cut end" },

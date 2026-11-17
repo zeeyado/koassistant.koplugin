@@ -668,7 +668,11 @@ function SystemPrompts.buildLanguageInstruction(user_languages, primary_override
         "IMPORTANT - Response language: Always respond in %s. " ..
         "The language of any quoted text, excerpts, or source material you are asked to analyze does NOT affect your response language. " ..
         "The user understands: %s. " ..
-        "Only switch languages if the user explicitly writes their own question or comment in another language from this list.",
+        -- "asks you to answer in another language" (B698): without it a reader
+        -- who wrote "answer in Arabic" in their own language met no clause, and
+        -- a model that follows the instruction stayed in the primary language
+        "Only switch languages if the user explicitly asks you to answer in another language, " ..
+        "or writes their own question or comment in another language from this list.",
         primary,
         languages_list
     )

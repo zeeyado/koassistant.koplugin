@@ -5,8 +5,11 @@
 -- through crengine, the fixed faces (Hebrew, Devanagari, Bengali from
 -- KOReader's folder, emoji from the plugin's), the memo, the Settings row's
 -- label and rows, the run pass (script runs and emoji in spans), the
--- direction pass writing direction alone, the viewer's one pipeline, and the
--- files in the installed KOReader when it is there.
+-- direction pass writing direction alone, the viewer's one pipeline, the
+-- files in the installed KOReader when it is there, and the folder the
+-- renderer reads the faces from (MuPDF 1.28 loads a font a page's style sheet
+-- names only from the page's resource folder: the maintainer's Android
+-- readers, 2026-11-17).
 
 local function setupPaths()
     local info = debug.getinfo(1, "S")
@@ -49,11 +52,15 @@ print("\nScript fonts (B558, B621)")
 local FAKE_DIR = "/fake/fonts"
 local FAKE_PLUGIN = "/fake/plugin"
 local files = {}
-local saved = { dir = SF._fontsDir, plugin = SF._pluginDir, exists = SF._fileExists, cre = SF._cre }
+local saved = { dir = SF._fontsDir, plugin = SF._pluginDir, exists = SF._fileExists, cre = SF._cre,
+    resource = SF._resourceDir, size = SF._fileSize, mkdir = SF._makeDir, copy = SF._copyFile }
 SF._fontsDir = function() return FAKE_DIR end
 SF._pluginDir = function() return FAKE_PLUGIN end
 SF._fileExists = function(path) return files[path] == true end
 SF._cre = function() return nil end
+-- No resource folder in the tests of the rules themselves: each file is named
+-- by its path there. The folder has its own tests below.
+SF._resourceDir = function() return nil end
 local function have(...)
     files = {}
     for _idx, rel in ipairs({ ... }) do
@@ -304,8 +311,10 @@ TestRunner:test("the viewer: one CSS site with the rules, the pipeline ends with
     local f = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/chatgptviewer.lua", "r"))
     local src = f:read("*a")
     f:close()
-    local _, sites = src:gsub("getViewerCSS%(self%.text_align, self:_scriptFontCSS%(html_body%)%)", "")
+    local _, sites = src:gsub("local font_css, font_dir = self:_scriptFontCSS%(html_body%)", "")
     TestRunner:assertEqual(sites, 1, "the content widget's one builder, the document's HTML passed for its faces")
+    TestRunner:assertTrue(src:find("css = getViewerCSS(self.text_align, font_css),", 1, true) ~= nil
+        and src:find("html_resource_directory = font_dir,", 1, true) ~= nil, "it hands the renderer the rules and the folder their fonts are in")
     local _, bare = src:gsub("getViewerCSS%(self%.text_align%)", "")
     TestRunner:assertEqual(bare, 0, "no site without the rules")
     TestRunner:assertTrue(src:find("]], align_rule) .. (rtl_css or \"\")", 1, true) ~= nil, "the builder appends them last")
@@ -341,7 +350,167 @@ TestRunner:test("the installed KOReader ships the faces and they resolve by file
     end
 end)
 
+-- ── The folder the renderer reads the faces from ───────────────────────────
+-- A fake disk: sizes per path; a copy gives its target the source's size
+local RES = "/data/koassistant_fonts"
+local sizes, copies, made, copy_fails = {}, {}, {}, {}
+local function disk(list)
+    files, sizes, copies, made, copy_fails = {}, {}, {}, {}, {}
+    for path, size in pairs(list) do
+        files[path] = true
+        sizes[path] = size
+    end
+    SF.reset()
+end
+SF._fontsDir = function() return FAKE_DIR end
+SF._pluginDir = function() return FAKE_PLUGIN end
+SF._fileExists = function(path) return files[path] == true end
+SF._resourceDir = function() return RES end
+SF._fileSize = function(path) return sizes[path] end
+SF._makeDir = function(dir)
+    made[#made + 1] = dir
+    return true
+end
+SF._copyFile = function(from, to)
+    copies[#copies + 1] = { from, to }
+    if copy_fails[from] then return false end
+    files[to], sizes[to] = true, sizes[from]
+    return true
+end
+local REG = FAKE_DIR .. "/noto/NotoNaskhArabic-Regular.ttf"
+local BOLD = FAKE_DIR .. "/noto/NotoNaskhArabic-Bold.ttf"
+local EMOJI = FAKE_PLUGIN .. "/fonts/NotoEmoji-Regular.ttf"
+
+TestRunner:test("the faces are copied once into the plugin's own folder, named there by file name and size, and the folder is handed over", function()
+    disk({ [REG] = 133024, [BOLD] = 132732, [EMOJI] = 879832 })
+    local css, dir = SF.css({})
+    TestRunner:assertEqual(dir, RES, "the folder for the window's html_resource_directory")
+    TestRunner:assertTrue(css:find("@font-face { font-family: 'KOA RTL'; src: url('NotoNaskhArabic-Regular-133024.ttf'); }", 1, true) ~= nil,
+        "the regular file by its name in the folder")
+    TestRunner:assertTrue(css:find("src: url('NotoNaskhArabic-Bold-132732.ttf'); font-weight: bold; }", 1, true) ~= nil, "the bold file")
+    TestRunner:assertTrue(css:find("src: url('NotoEmoji-Regular-879832.ttf')", 1, true) ~= nil, "the emoji file")
+    TestRunner:assertTrue(css:find("url('/", 1, true) == nil, "no rule names a path on disk (MuPDF 1.28 refuses one)")
+    TestRunner:assertEqual(#copies, 3, "three files copied")
+    TestRunner:assertEqual(copies[1][1], REG, "from where KOReader keeps it")
+    TestRunner:assertEqual(copies[1][2], RES .. "/NotoNaskhArabic-Regular-133024.ttf", "into the folder")
+    TestRunner:assertEqual(made[1], RES, "the folder made first")
+    -- built once: the next window copies nothing; nor does the next KOReader start
+    SF.css({})
+    TestRunner:assertEqual(#copies, 3, "memoized: no copy for the next window")
+    SF.reset()
+    local again, dir2 = SF.css({})
+    TestRunner:assertEqual(#copies, 3, "after a restart the copies are found by name and size")
+    TestRunner:assertEqual(again, css, "the same rules")
+    TestRunner:assertEqual(dir2, RES, "and the folder")
+    -- a document declares only the faces its spans name, and gets the folder only with a rule
+    local none, none_dir = SF.css({}, "<p>plain english</p>")
+    TestRunner:assertEqual(none, "", "an English document declares no face")
+    TestRunner:assertEqual(none_dir, nil, "and takes no folder")
+    local _only, only_dir = SF.css({}, '<p><span class="koa-emoji">x</span></p>')
+    TestRunner:assertEqual(only_dir, RES, "the emoji face alone: the folder")
+end)
+
+TestRunner:test("a file that left the folder is copied again; a font KOReader replaced takes a new name", function()
+    disk({ [REG] = 133024, [BOLD] = 132732 })
+    SF.css({}, '<p><span class="koa-arab">x</span></p>')
+    TestRunner:assertEqual(#copies, 2, "copied")
+    -- the folder is safe to delete: the next window finds the file gone
+    local gone = RES .. "/NotoNaskhArabic-Regular-133024.ttf"
+    files[gone], sizes[gone] = nil, nil
+    local css, dir = SF.css({}, '<p><span class="koa-arab">x</span></p>')
+    TestRunner:assertEqual(#copies, 3, "the missing file copied again, the other left alone")
+    TestRunner:assertEqual(copies[3][2], gone, "the same name")
+    TestRunner:assertTrue(css:find("NotoNaskhArabic-Regular-133024.ttf", 1, true) ~= nil and dir == RES, "the rules as before")
+    -- a KOReader update ships another file under the same name
+    sizes[REG] = 140000
+    SF.reset()
+    local newer = SF.css({}, '<p><span class="koa-arab">x</span></p>')
+    TestRunner:assertTrue(newer:find("url('NotoNaskhArabic-Regular-140000.ttf')", 1, true) ~= nil, "the new file under a new name")
+    TestRunner:assertEqual(copies[#copies][2], RES .. "/NotoNaskhArabic-Regular-140000.ttf", "copied beside the old one, never over it")
+end)
+
+TestRunner:test("a name the folder and the style sheet can both hold", function()
+    disk({ ["/fonts dir/W_qalam Regular.ttf"] = 100, ["/x/Odd'Name(1).otf"] = 7, ["/x/noext"] = 5 })
+    TestRunner:assertEqual(SF.resource("/fonts dir/W_qalam Regular.ttf"), "W_qalam_Regular-100.ttf", "a space")
+    TestRunner:assertEqual(SF.resource("/x/Odd'Name(1).otf"), "Odd_Name_1_-7.otf", "a quote and brackets")
+    TestRunner:assertEqual(SF.resource("/x/noext"), "noext-5", "no extension")
+    TestRunner:assertEqual(SF.resource("/x/not-there.ttf"), nil, "a file that is not there")
+    TestRunner:assertEqual(SF.resource(nil), nil, "no path")
+end)
+
+TestRunner:test("a face that cannot be copied is named by its path (MuPDF before 1.28 loads it); no folder when no rule needs one", function()
+    disk({ [REG] = 133024, [BOLD] = 132732, [EMOJI] = 879832 })
+    copy_fails[REG], copy_fails[BOLD], copy_fails[EMOJI] = true, true, true
+    local css, dir = SF.css({})
+    TestRunner:assertTrue(css:find("src: url('" .. REG .. "'); }", 1, true) ~= nil, "the regular file by its path")
+    TestRunner:assertTrue(css:find("src: url('" .. EMOJI .. "')", 1, true) ~= nil, "the emoji file by its path")
+    TestRunner:assertEqual(dir, nil, "no rule names a file in the folder: none handed over")
+    -- one face in the folder, another not: the folder is handed over for the one
+    disk({ [REG] = 133024, [BOLD] = 132732, [EMOJI] = 879832 })
+    copy_fails[EMOJI] = true
+    local mixed, mixed_dir = SF.css({})
+    TestRunner:assertTrue(mixed:find("url('NotoNaskhArabic-Regular-133024.ttf')", 1, true) ~= nil, "the Arabic face from the folder")
+    TestRunner:assertTrue(mixed:find("src: url('" .. EMOJI .. "')", 1, true) ~= nil, "the emoji face by its path")
+    TestRunner:assertEqual(mixed_dir, RES, "the folder for the Arabic face")
+    -- no data folder at all (a runtime without KOReader's): every file by its path
+    disk({ [REG] = 133024, [BOLD] = 132732 })
+    SF._resourceDir = function() return nil end
+    local bare, bare_dir = SF.css({}, '<p><span class="koa-arab">x</span></p>')
+    TestRunner:assertTrue(bare:find("src: url('" .. REG .. "'); }", 1, true) ~= nil and bare_dir == nil, "by path, no folder")
+    TestRunner:assertEqual(#copies, 0, "nothing copied")
+    SF._resourceDir = function() return RES end
+end)
+
+TestRunner:test("the real copy: whole, byte for byte, never a cut file under the final name", function()
+    local dir = os.tmpname()
+    os.remove(dir)
+    local from, to = dir .. "_from.bin", dir .. "_to.bin"
+    local body = {}
+    for i = 1, 200000 do body[i] = string.char(i % 256) end
+    body = table.concat(body)
+    local f = assert(io.open(from, "wb"))
+    f:write(body)
+    f:close()
+    TestRunner:assertTrue(saved.copy(from, to), "copied")
+    local g = assert(io.open(to, "rb"))
+    local copied = g:read("*a")
+    g:close()
+    TestRunner:assertTrue(copied == body, "byte for byte (200000 bytes, past one chunk)")
+    TestRunner:assertTrue(io.open(to .. ".part", "rb") == nil, "nothing left beside it")
+    TestRunner:assertTrue(not saved.copy(dir .. "_missing.bin", to), "a source that is not there: false")
+    TestRunner:assertTrue(not saved.copy(from, dir .. "_nodir/x.bin"), "a folder that is not there: false")
+    os.remove(from)
+    os.remove(to)
+end)
+
+TestRunner:test("the stream view hands the folder over too; the folder is registered", function()
+    local f = assert(io.open(PLUGIN_DIR .. "/koassistant/request/stream_markdown.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    TestRunner:assertTrue(src:find("local css, font_dir = Viewer.viewerCSS(opts.text_align, opts.features, html_body)", 1, true) ~= nil
+        and src:find("html_resource_directory = font_dir,", 1, true) ~= nil, "the stream view's widget")
+    local v = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/chatgptviewer.lua", "r"))
+    local vsrc = v:read("*a")
+    v:close()
+    TestRunner:assertTrue(vsrc:find("return getViewerCSS(text_align or \"auto\", font_css), font_dir", 1, true) ~= nil,
+        "the export returns the style sheet and the folder")
+    -- every ScrollHtmlWidget built on the viewer's style sheet passes the folder
+    for _idx, file in ipairs({ "koassistant/ui/chatgptviewer.lua", "koassistant/request/stream_markdown.lua" }) do
+        local h = assert(io.open(PLUGIN_DIR .. "/" .. file, "r"))
+        local text = h:read("*a")
+        h:close()
+        local _, widgets = text:gsub("ScrollHtmlWidget:new", "")
+        local _, handed = text:gsub("html_resource_directory = font_dir,", "")
+        TestRunner:assertEqual(handed, widgets, file .. ": each HTML widget gets the folder")
+    end
+    local r = assert(io.open(PLUGIN_DIR .. "/koassistant/storage/storage_registry.lua", "r"))
+    local reg = r:read("*a")
+    r:close()
+    TestRunner:assertTrue(reg:find('location = "data_dir", ref = "' .. SF.FOLDER .. '"', 1, true) ~= nil, "the folder is in the storage registry")
+end)
+
 SF._fontsDir, SF._pluginDir, SF._fileExists, SF._cre = saved.dir, saved.plugin, saved.exists, saved.cre
+SF._resourceDir, SF._fileSize, SF._makeDir, SF._copyFile = saved.resource, saved.size, saved.mkdir, saved.copy
 SF.reset()
 
 print(string.format("\nResults: %d passed, %d failed", TestRunner.passed, TestRunner.failed))

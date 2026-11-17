@@ -199,25 +199,50 @@ local function stripMarkdown(text, is_rtl)
     -- Clean up multiple blank lines
     result = result:gsub("\n\n\n+", "\n\n")
 
-    -- BiDi fix: Prepend LRM to lines containing RTL characters to establish LTR base direction
-    -- Without this, lines starting with RTL text get RTL paragraph direction, reversing everything
-    -- Skip in RTL mode: para_direction_rtl already sets the correct base direction
+    -- A line that mixes right-to-left and Latin letters takes the direction
+    -- the Markdown view gives its block (Bidi.blockDirection: the line's own
+    -- words, and the language of the message it stands in), said with a mark
+    -- at its start, since the text widget reads a paragraph's direction from
+    -- its first letter alone. An English definition that opens with an Arabic
+    -- headword stays left-to-right (the left-to-right mark); an Arabic
+    -- sentence with an English name in it stays right-to-left (the
+    -- right-to-left mark: until 2026-11-17 EVERY mixed line was made
+    -- left-to-right, and such a sentence came out in the wrong order in the
+    -- Plain Text view and the minimal popup). Lines of one script and headers
+    -- keep the widget's own reading.
+    -- Skip in RTL mode: para_direction_rtl already sets the base direction
     if not is_rtl then
-        -- Add LRM only to truly mixed RTL+Latin lines (right-to-left letters of
-        -- any script, koassistant/ui/bidi.lua). Pure RTL lines (even with
-        -- numbers/punctuation) should align right naturally
-        local latin_pattern = "[a-zA-Z]"  -- Latin letters indicate mixed content needing LTR base
+        local RLM = "\u{200F}"
+        local latin_pattern = "[a-zA-Z]"  -- Latin letters indicate mixed content
         local header_pattern = "^%s*[▉◤◆✿❖·]"  -- Header symbols from header processing above
-        local fixed_lines = {}
-        for line in result:gmatch("([^\n]*)\n?") do
-            -- Add LRM only to mixed RTL+Latin lines (not headers, not pure RTL)
-            if Bidi.hasRTL(line) and line:match(latin_pattern) and not line:match(header_pattern) then
-                table.insert(fixed_lines, LRM .. line)
-            else
-                table.insert(fixed_lines, line)
+        local rows = {}
+        for line in result:gmatch("([^\n]*)\n?") do rows[#rows + 1] = line end
+        -- A message runs from one "▶" / "◉" marker to the next
+        local main, piece_end = nil, 0
+        for i, row in ipairs(rows) do
+            if i > piece_end then
+                piece_end = #rows
+                for j = i + 1, #rows do
+                    if rows[j]:find("^\226\150\182") or rows[j]:find("^\226\151\137") then
+                        piece_end = j - 1
+                        break
+                    end
+                end
+                main = Bidi.mainDirection(table.concat(rows, "\n", i, piece_end))
+            end
+            if Bidi.hasRTL(row) and not row:match(header_pattern) then
+                local line = row
+                local rtl = Bidi.blockDirection(line, { main = main }) == "rtl"
+                -- The left-to-right mark after a bold word (above) is for a
+                -- right-to-left headword in a left-to-right line; in a
+                -- right-to-left line it turned what follows the word around
+                -- ("**word** (Name)," lost its space to the far side)
+                if rtl then line = line:gsub(PTF_BOLD_END .. LRM, PTF_BOLD_END) end
+                if line:match(latin_pattern) then line = (rtl and RLM or LRM) .. line end
+                rows[i] = line
             end
         end
-        result = table.concat(fixed_lines, "\n")
+        result = table.concat(rows, "\n")
     end
 
     -- Trim the trailing newline the line-loops above append (gmatch's final
@@ -1353,7 +1378,9 @@ local ChatGPTViewer = InputContainer:extend {
 -- The script fonts' CSS rules for this window (Settings > Display Settings >
 -- Rendering > Right-to-left text font for the Arabic face; the fixed faces for
 -- Hebrew, Devanagari, Bengali and emoji; B558, B621), read from the window's
--- own configuration so a chat opened before a change keeps its look
+-- own configuration so a chat opened before a change keeps its look. Second
+-- value: the folder the renderer reads those fonts from, for the widget's
+-- html_resource_directory (nil when the rules name no file in it)
 function ChatGPTViewer:_scriptFontCSS(html_body)
   local features = self.configuration and self.configuration.features
   return ScriptFonts.css(features, html_body)
@@ -1365,6 +1392,21 @@ function ChatGPTViewer:_needsRtlFix()
   local dict_lang = self.configuration and self.configuration.features
       and self.configuration.features.dictionary_language
   return (self.compact_view or self.dictionary_view) and Languages.isRTL(dict_lang) or false
+end
+
+-- The direction of the answer in a dictionary window that shows the book's
+-- own sentence above it (the excerpt). The two have no marker between them,
+-- so the direction pass would count the excerpt's words into the answer's
+-- main direction: an English definition under a long Arabic sentence was
+-- judged an Arabic text, and its line, which opens with the Arabic headword,
+-- was laid out right-to-left. The answer's direction is the answer's own
+-- words'. nil = no excerpt shown (the pass counts as everywhere else).
+function ChatGPTViewer:_answerDirection(text)
+  if not (self.compact_view or self.dictionary_view) or type(text) ~= "string" then return nil end
+  local history = self._message_history or self.original_history
+  local excerpt = history and history.source_excerpt
+  if type(excerpt) ~= "string" or excerpt == "" or text:sub(1, #excerpt) ~= excerpt then return nil end
+  return Bidi.mainDirection(text:sub(#excerpt + 1))
 end
 
 -- THE Markdown pipeline, one copy for every build of the HTML view (init,
@@ -1390,7 +1432,9 @@ local function markdownBlocks(viewer, text, opts)
   local auto_linked = autoLinkUrls(applyMath(viewer, source_text))
   local bracket_escaped = preprocessBrackets(taskListBoxes(auto_linked))
   local preprocessed_text = preprocessMarkdownTables(bracket_escaped)
-  local html_body, err = MD(preprocessed_text, {})
+  -- Each numbered item carries its own number through the library, which
+  -- drops it (koassistant/ui/list_numbers.lua; resolved in finishHtml)
+  local html_body, err = MD(require("koassistant.ui.list_numbers").mark(preprocessed_text), {})
   if err then
     if opts.quiet then return nil, err end
     logger.warn("ChatGPTViewer: could not generate HTML", err)
@@ -1401,7 +1445,11 @@ local function markdownBlocks(viewer, text, opts)
 end
 
 local function finishHtml(viewer, html_body, opts)
-  html_body = addHtmlBidiAttributes(html_body, { use_starts_with_rtl = opts.ipa_fix, text_align = viewer.text_align })
+  -- Numbered lists as the answer numbered them: before the direction pass,
+  -- which writes a right-to-left list's markers by counting its items
+  html_body = require("koassistant.ui.list_numbers").resolve(html_body)
+  html_body = addHtmlBidiAttributes(html_body,
+    { use_starts_with_rtl = opts.ipa_fix, main = opts.main, text_align = viewer.text_align })
   local reply_break
   html_body, reply_break = applyExchangePageBreaks(html_body, viewer.configuration,
     opts.carry_anchor, opts.carry_occurrence, viewer.scroll_to_last_question)
@@ -1418,6 +1466,7 @@ end
 function ChatGPTViewer:_markdownHtml(text)
   local html_body, reply_break = markdownHtml(self, text, {
     ipa_fix = self:_needsRtlFix(),
+    main = self:_answerDirection(text),
     carry_anchor = self._stream_carry_anchor,
     carry_occurrence = self._stream_carry_occurrence,
   })
@@ -1426,11 +1475,15 @@ function ChatGPTViewer:_markdownHtml(text)
 end
 
 -- The content widget of the HTML view, one copy: the CSS with the script
--- fonts' rules, the font size, the link handler
+-- fonts' rules and the folder MuPDF reads those fonts from (since 1.28 it
+-- loads a font a page's style sheet names from the page's resource folder
+-- only), the font size, the link handler
 function ChatGPTViewer:_htmlWidget(html_body, width, height)
+  local font_css, font_dir = self:_scriptFontCSS(html_body)
   return ScrollHtmlWidget:new {
     html_body = html_body,
-    css = getViewerCSS(self.text_align, self:_scriptFontCSS(html_body)),
+    css = getViewerCSS(self.text_align, font_css),
+    html_resource_directory = font_dir,
     default_font_size = Screen:scaleBySize(self.markdown_font_size),
     width = width,
     height = height,
@@ -6400,8 +6453,11 @@ end
 function ChatGPTViewer.markdownFinish(html_body, opts)
   return (finishHtml(standInViewer(opts), html_body, {}))
 end
+-- Returns the style sheet and the folder its fonts are read from: a window
+-- built on this style sheet passes the folder as html_resource_directory
 function ChatGPTViewer.viewerCSS(text_align, features, html_body)
-  return getViewerCSS(text_align or "auto", ScriptFonts.css(features, html_body))
+  local font_css, font_dir = ScriptFonts.css(features, html_body)
+  return getViewerCSS(text_align or "auto", font_css), font_dir
 end
 
 -- Exported for the stream capture side (2026-08-15): the occurrence ordinal

@@ -454,6 +454,13 @@ Registry.entries = {
         notes = "Kept images from highlight image generation (keep-all policy 2026-07-16); filenames carry date + prompt; koassistant/images/image_browser.lua manages deletion. Also holds koassistant_index.lua (the images index: book, prompt, who drew it, agenda 2b and image round S7) and thumbnails/ (one small JPEG per image, image round S7) — covered by dir-level flows, no separate entries. Preserved on teardown like exports.",
     },
     {
+        id = "fonts_dir", label = "Fonts of the Markdown view",
+        location = "data_dir", ref = "koassistant_fonts",
+        category = "internal", backup = false, rebuildable = true,
+        reset_in = { "wipe_all" }, uninstall = true,
+        notes = "Copies of the font files the Markdown view draws Arabic, Hebrew, Devanagari and emoji with (koassistant/ui/script_fonts.lua, resource()): MuPDF 1.28 loads a font that a page's style sheet names only from the page's resource folder, so each face in use is copied here once and the window hands this folder to the renderer. Safe to delete: a missing file is copied again when an answer needs it.",
+    },
+    {
         id = "notebooks_vault_dir", label = "Notebook vault (default)",
         location = "data_dir", ref = "koassistant_notebooks",
         category = "notebooks", backup = false,

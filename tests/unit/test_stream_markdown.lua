@@ -351,7 +351,8 @@ TestRunner:test("safeCut: an answer is cut after a blank line, where the Markdow
     TestRunner:assertEqual(lineAt(t, cut(t)), "After the fence.", "once it is closed")
     -- a list's indented content runs across blank lines
     t = "1. First\n   - sub\n\n2. Second\n"
-    TestRunner:assertEqual(cut(t), nil, "an item after indented content could carry the list on")
+    TestRunner:assertEqual(lineAt(t, cut(t)), "2. Second",
+        "an item after indented content is a cut: the piece starts a list the finished pieces join to the one before (B691)")
     t = "1. First\n   - sub\n\nAfter the list.\n"
     TestRunner:assertEqual(lineAt(t, cut(t)), "After the list.", "a line at the margin that is no item ends it")
     TestRunner:assertEqual(cut("1. First\n   - sub\n\nAfter the li"), nil, "but not while that line is still arriving")

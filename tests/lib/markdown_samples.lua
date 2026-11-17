@@ -494,4 +494,45 @@ A closing ` tick and $z_3$.
 End.
 ]])
 
+-- Numbered lists as answers number them (koassistant/ui/list_numbers.lua): a
+-- list with blank lines between its items, a list that goes on after another
+-- block, a list that starts past 1, every item written "1."
+add("numbered lists that go on", [[
+Three steps, with blank lines between them:
+
+1. **Fill** the lantern with oil.
+
+2. **Trim** the wick to a finger's width.
+
+3. **Light** it before the tide turns.
+
+Then the same steps with their reasons under them:
+
+1. **Fill** the lantern
+
+The oil must reach the brass ring, no higher.
+
+2. **Trim** the wick
+
+- a long wick smokes
+- a short one gutters
+
+3. **Light** it
+
+> Before the tide turns, the keeper said.
+
+The count goes on from where the last page stopped:
+
+4. Close the shutter.
+5. Note the hour in the ledger.
+
+And one written the lazy way:
+
+1. first
+1. second
+1. third
+
+End of the lists.
+]])
+
 return samples

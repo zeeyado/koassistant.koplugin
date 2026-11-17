@@ -26,7 +26,7 @@ Your settings and data are not touched by an update, automatic or manual:
 - all settings (provider, model, features, privacy and the rest) live outside the plugin folder;
 - API keys entered in Settings live outside the plugin folder;
 - chat history, notebooks and saved results live in KOReader's settings and sidecar files;
-- backups, exports and generated images live under KOReader's data folder (`koassistant_backups/`, `koassistant_exports/`, `koassistant_images/`).
+- backups, exports and generated images live under KOReader's data folder (`koassistant_backups/`, `koassistant_exports/`, `koassistant_images/`), next to `koassistant_fonts/`, the Markdown view's copies of the fonts it draws Arabic, Hebrew, Devanagari and emoji with (not part of a backup; refilled when needed).
 
 The updater also preserves the optional files inside the plugin folder listed above.
 

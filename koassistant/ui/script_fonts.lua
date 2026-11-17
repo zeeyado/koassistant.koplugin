@@ -34,6 +34,19 @@ so css() takes the document's HTML and emits only the faces its spans name
 regular and its bold file (the regular again where there is none, so MuPDF
 emboldens it); an italic span takes the regular face (probed 2026-10-28 and
 2026-11-07, docs/research/2026-10-28/arabic-font.md).
+
+Where MuPDF reads the files from. Up to MuPDF 1.27 a page's style sheet could
+name any file on disk. MuPDF 1.28 (KOReader's nightlies since 2026-11-08)
+loads a font that a page's own style sheet names ONLY from the page's
+resource folder ("cannot locate font ... specified by css" otherwise, and the
+letters fall back to the window's font; KOReader's own footnote popup font
+went the same way). So each face in use is copied once into one folder of the
+plugin's own (koassistant_fonts in KOReader's data folder, see resource()),
+the rules name it by its file name there, and css() returns that folder for
+the window to hand to the renderer (ScrollHtmlWidget's
+html_resource_directory). Every MuPDF reads the resource folder first, so
+one way serves old and new. A face that cannot be copied is named by its
+path, which MuPDF before 1.28 still loads.
 ]]
 
 local ScriptFonts = {}
@@ -92,6 +105,95 @@ function ScriptFonts._cre()
     if not ok or type(CreDocument) ~= "table" or type(CreDocument.engineInit) ~= "function" then return nil end
     local ok_init, cre = pcall(CreDocument.engineInit, CreDocument)
     if ok_init and type(cre) == "table" then return cre end
+    return nil
+end
+
+-- The resource folder's seams: where it is (nil where KOReader has no data
+-- folder to offer), a file's size, making the folder, copying a file into it
+ScriptFonts.FOLDER = "koassistant_fonts"
+
+function ScriptFonts._resourceDir()
+    local ok, DataStorage = pcall(require, "datastorage")
+    if not ok or type(DataStorage) ~= "table" or type(DataStorage.getDataDir) ~= "function" then return nil end
+    local ok_dir, dir = pcall(DataStorage.getDataDir, DataStorage)
+    if not ok_dir or type(dir) ~= "string" or dir == "" then return nil end
+    return dir .. "/" .. ScriptFonts.FOLDER
+end
+
+function ScriptFonts._fileSize(path)
+    local ok, lfs = pcall(require, "libs/libkoreader-lfs")
+    if not ok then return nil end
+    if lfs.attributes(path, "mode") ~= "file" then return nil end
+    return lfs.attributes(path, "size")
+end
+
+function ScriptFonts._makeDir(dir)
+    local ok, lfs = pcall(require, "libs/libkoreader-lfs")
+    if not ok then return false end
+    if lfs.attributes(dir, "mode") == "directory" then return true end
+    lfs.mkdir(dir)
+    return lfs.attributes(dir, "mode") == "directory"
+end
+
+-- Written beside its place and renamed over it, so a copy that was cut short
+-- never stands under the name the rules use
+function ScriptFonts._copyFile(from, to)
+    local fin = io.open(from, "rb")
+    if not fin then return false end
+    local part = to .. ".part"
+    local fout = io.open(part, "wb")
+    if not fout then
+        fin:close()
+        return false
+    end
+    local ok = true
+    while true do
+        local chunk = fin:read(65536)
+        if not chunk then break end
+        if not fout:write(chunk) then
+            ok = false
+            break
+        end
+    end
+    fin:close()
+    if not fout:close() then ok = false end
+    if ok and not os.rename(part, to) then ok = false end
+    if not ok then os.remove(part) end
+    return ok
+end
+
+local function log(level, ...)
+    local ok, logger = pcall(require, "koassistant.core.logger")
+    if ok and type(logger) == "table" and type(logger[level]) == "function" then logger[level](...) end
+end
+
+local not_copied = {}   -- the files that could not be put into the folder, said once each
+
+--- The name under which the face file at `path` sits in the resource folder,
+--- copied there when it is not: its own file name with its size in it, so
+--- another file of the same name never takes its place and a file KOReader
+--- replaced is copied again. nil when it cannot be put there (no data folder,
+--- a copy that failed): the rules then name the file by its path.
+function ScriptFonts.resource(path)
+    if type(path) ~= "string" or path == "" then return nil end
+    local dir = ScriptFonts._resourceDir()
+    local size = dir and ScriptFonts._fileSize(path)
+    if not size then return nil end
+    local base = path:match("([^/]+)$") or path
+    local stem, ext = base:match("^(.*)(%.[^.]*)$")
+    if not stem or stem == "" then stem, ext = base, "" end
+    local name = (stem:gsub("[^%w%._%-]", "_")) .. "-" .. tostring(size) .. (ext:gsub("[^%w%.]", "_"))
+    local to = dir .. "/" .. name
+    if ScriptFonts._fileSize(to) == size then return name end
+    if ScriptFonts._makeDir(dir) and ScriptFonts._copyFile(path, to) then
+        log("dbg", "KOAssistant: a font for the Markdown view was copied into its folder:", name)
+        return name
+    end
+    if not not_copied[path] then
+        not_copied[path] = true
+        log("warn", "KOAssistant: a font for the Markdown view could not be copied into", dir,
+            "(" .. base .. "): a KOReader with MuPDF 1.28 or newer will draw its letters in the window's font")
+    end
     return nil
 end
 
@@ -169,29 +271,67 @@ end
 -- family name (faces[1] and faces[3] of the four combos) and the class rule,
 -- 'Noto Sans' after the family so a file that goes missing falls back to the
 -- window's font, never to Times. opts.no_bold = the regular alone (emoji).
+-- Each file is named by its name in the resource folder, or by its path where
+-- it could not be put there. Returns { css, files }: the rules and the folder's
+-- files they name (none when every file is named by its path).
 local function rulesFor(family, class, faces, opts)
+    local files = {}
+    local function src(path)
+        local name = ScriptFonts.resource(path)
+        if not name then return path end
+        files[#files + 1] = ScriptFonts._resourceDir() .. "/" .. name
+        return name
+    end
     local rules = {
-        string.format("@font-face { font-family: '%s'; src: url('%s'); }", family, faces[1].path),
+        string.format("@font-face { font-family: '%s'; src: url('%s'); }", family, src(faces[1].path)),
     }
     if not (opts and opts.no_bold) then
         rules[#rules + 1] = string.format("@font-face { font-family: '%s'; src: url('%s'); font-weight: bold; }",
-            family, faces[3].path)
+            family, src(faces[3].path))
     end
     rules[#rules + 1] = string.format(".%s { font-family: '%s', 'Noto Sans'; }", class, family)
-    return table.concat(rules, "\n")
+    return { css = table.concat(rules, "\n"), files = files }
 end
 
+local NONE = { css = "", files = {} }
 local memo = {}         -- the Arabic rules per family
-local fixed_memo = {}   -- the fixed faces' rules per class ("" without the file)
+local fixed_memo = {}   -- the fixed faces' rules per class (NONE without the file)
+
+-- A face's rules from its memo: built when they are not there yet, and again
+-- when a file they name has left the resource folder (it is safe to delete)
+local function remembered(store, key, build)
+    local entry = store[key]
+    if entry then
+        for _idx, file in ipairs(entry.files) do
+            if not ScriptFonts._fileExists(file) then
+                entry = nil
+                break
+            end
+        end
+    end
+    if not entry then
+        entry = build()
+        store[key] = entry
+    end
+    return entry
+end
 
 -- A fixed face's rules, resolved once
 local function fixedRules(entry)
-    local cached = fixed_memo[entry.class]
-    if cached ~= nil then return cached end
-    local faces = ScriptFonts.fixedFaces(entry)
-    local css = faces and rulesFor(entry.family, entry.class, faces, { no_bold = entry.class == ScriptFonts.EMOJI_CLASS }) or ""
-    fixed_memo[entry.class] = css
-    return css
+    return remembered(fixed_memo, entry.class, function()
+        local faces = ScriptFonts.fixedFaces(entry)
+        return faces and rulesFor(entry.family, entry.class, faces, { no_bold = entry.class == ScriptFonts.EMOJI_CLASS })
+            or NONE
+    end)
+end
+
+local function arabicRules(features)
+    local family = ScriptFonts.family(features)
+    if not family then return NONE end
+    return remembered(memo, family, function()
+        local faces = ScriptFonts.faces(family)
+        return faces and rulesFor(ScriptFonts.FAMILY, ScriptFonts.CLASS, faces) or NONE
+    end)
 end
 
 -- Whether the document names a class (the run pass writes class="...")
@@ -202,39 +342,36 @@ end
 --- The Arabic face's rules alone, "" without a family or its files (the
 --- Settings row's "(not found)" reads this).
 function ScriptFonts.arabicCSS(features)
-    local family = ScriptFonts.family(features)
-    if not family then return "" end
-    local cached = memo[family]
-    if cached ~= nil then return cached end
-    local faces = ScriptFonts.faces(family)
-    local css = faces and rulesFor(ScriptFonts.FAMILY, ScriptFonts.CLASS, faces) or ""
-    memo[family] = css
-    return css
+    return arabicRules(features).css
 end
 
 --- The CSS fragment for a document: the rules of the faces its spans name
 --- (every present face when html is nil), each only with its files there;
---- "" when none. The rules themselves are memoized (the files are resolved
---- once per KOReader start); MuPDF loads only what a document declares.
+--- "" when none. Second value: the resource folder the window must hand to
+--- the renderer with these rules (html_resource_directory), nil when no rule
+--- names a file in it. The rules themselves are memoized (the files are
+--- resolved once per KOReader start); MuPDF loads only what a document
+--- declares.
 function ScriptFonts.css(features, html)
-    local parts = {}
-    if documentUses(html, ScriptFonts.CLASS) then
-        local arabic = ScriptFonts.arabicCSS(features)
-        if arabic ~= "" then parts[#parts + 1] = arabic end
-    end
-    for _idx, entry in ipairs(ScriptFonts.FIXED) do
-        if documentUses(html, entry.class) then
-            local rules = fixedRules(entry)
-            if rules ~= "" then parts[#parts + 1] = rules end
+    local parts, from_folder = {}, false
+    local function add(rules)
+        if rules.css ~= "" then
+            parts[#parts + 1] = rules.css
+            if #rules.files > 0 then from_folder = true end
         end
     end
-    if #parts == 0 then return "" end
-    return "\n" .. table.concat(parts, "\n") .. "\n"
+    if documentUses(html, ScriptFonts.CLASS) then add(arabicRules(features)) end
+    for _idx, entry in ipairs(ScriptFonts.FIXED) do
+        if documentUses(html, entry.class) then add(fixedRules(entry)) end
+    end
+    if #parts == 0 then return "", nil end
+    return "\n" .. table.concat(parts, "\n") .. "\n", from_folder and ScriptFonts._resourceDir() or nil
 end
 
 function ScriptFonts.reset()
     memo = {}
     fixed_memo = {}
+    not_copied = {}
 end
 
 --- The label of the Settings row: the family, "None" without one, "(not

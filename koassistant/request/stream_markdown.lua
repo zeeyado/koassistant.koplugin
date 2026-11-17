@@ -261,10 +261,13 @@ end
 --- top level: not inside a code fence, and not inside a list's indented
 --- content, which runs across blank lines until a line at the margin (so
 --- either the last line before the blank one is at the margin, or the line
---- after it is and is no list item, which could carry the list on). And the
---- passes before the library must have nothing open there (marksClosed). A
---- text that stays open (a stray backtick) is converted whole from there on,
---- as before.
+--- after it is). A list item after the cut is no trouble: the library would
+--- have carried the list on where the piece starts a new one, and the lists
+--- that only white space separates are joined when the pieces are finished
+--- (koassistant/ui/list_numbers.lua; until then such a line was no cut). And
+--- the passes before the library must have nothing open there (marksClosed).
+--- A text that stays open (a stray backtick) is converted whole from there
+--- on, as before.
 --- opts.math: the math pass as the pipeline applies it, nil when math
 --- rendering is off; opts.rejected: a table that remembers the lines already
 --- found open, for the caller that asks again as the text grows (a verdict
@@ -283,8 +286,7 @@ function StreamMarkdown.safeCut(text, from, opts)
             after_blank = true
         else
             -- a line still arriving has no kind yet: there only the line before decides
-            if after_blank and not in_fence and (prev_at_margin or (nl and atMargin(line)
-                and not line:find("^[-*+]%s") and not line:find("^%d+[.)]%s"))) then
+            if after_blank and not in_fence and (prev_at_margin or (nl and atMargin(line))) then
                 found[#found + 1] = pos
                 found[#found + 1] = stretch
             end
@@ -430,9 +432,11 @@ end
 function StreamMarkdown:_buildScrollWidget(html_body)
     local opts = self:_opts()
     local Viewer = require("koassistant.ui.chatgptviewer")
+    local css, font_dir = Viewer.viewerCSS(opts.text_align, opts.features, html_body)
     return ScrollHtmlWidget:new{
         html_body = html_body,
-        css = Viewer.viewerCSS(opts.text_align, opts.features, html_body),
+        css = css,
+        html_resource_directory = font_dir,
         default_font_size = Screen:scaleBySize(opts.font_size or 20),
         width = self.width,
         height = self.height,

@@ -325,6 +325,17 @@ TestRunner:test("builds instruction with primary", function()
     TestRunner:assertContains(result, "respond in English", "primary in response")
 end)
 
+-- B698 (the maintainer, 2026-11-17: "refuse to write in a langauge even when
+-- you say do it?"): the instruction allowed a switch only when the question
+-- itself was written in another language, so "answer in Arabic", written in
+-- the primary language, met no clause
+TestRunner:test("a reader who asks for another language is answered in it", function()
+    local result = SystemPrompts.buildLanguageInstruction("English, Arabic", nil)
+    TestRunner:assertContains(result, "Only switch languages if the user explicitly asks you to answer in another language, "
+        .. "or writes their own question or comment in another language from this list.", "both ways to ask for a switch")
+    TestRunner:assertContains(result, "does NOT affect your response language", "quoted text still changes nothing")
+end)
+
 TestRunner:test("respects primary_override", function()
     -- Language instruction uses English names for AI clarity
     local result = SystemPrompts.buildLanguageInstruction("English, German", "German")

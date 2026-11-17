@@ -130,7 +130,7 @@ Short answers can skip the full-screen window entirely. With the minimal popup o
 - **Dismiss:** tap outside the popup, or press a page-turn or Back key.
 - **No streaming:** these requests skip the streaming window. A small notice in the corner ("Translating…", or the action's name) keeps the page visible while the request runs; a tap, a key press or a swipe cancels it. Replies in the expanded window follow your streaming setting again.
 - It applies only to actions run on a highlight, and never to full-page translation.
-- The popup shows the answer as plain text, following **Apply Markdown Stripping**, laid out right-to-left when the answer mostly is ([Markdown and plain text](#markdown-and-plain-text)).
+- The popup shows the answer as plain text, following **Apply Markdown Stripping**, laid out right-to-left when the answer mostly is; in an answer that mixes both, each line takes its own direction ([Markdown and plain text](#markdown-and-plain-text)).
 - The popup stands aside automatically when a dictionary window is covering the book.
 - A Quick Settings tile (**Minimal Popup: On** / **Off**) toggles the whole feature and remembers whether you had When it fits or Always. Hold the tile for the mode and the per-action toggles.
 
@@ -141,6 +141,7 @@ KOAssistant offers two view modes for displaying AI responses.
 **Markdown view** (default)
 
 - Full formatting: bold, italic, headers, lists, task lists (`- [ ]` and `- [x]` drawn as ☐ and ☑), code blocks, tables
+- A numbered list keeps the numbers the answer wrote: items with blank lines between them count on (1, 2, 3), and a list that goes on after a paragraph, a quote, a table or bullets, or that starts past 1, is shown with the answer's own numbers
 - Best for most users with Latin scripts
 
 **Plain Text view**
@@ -155,7 +156,7 @@ KOAssistant offers two view modes for displaying AI responses.
   - Lists → bullet points (•); task items → ☐ and ☑
   - Code → `'quoted'`
   - Line spacing tuned to match the visual density of the Markdown view
-- **BiDi support**: mixed RTL/LTR content (e.g., Arabic headwords with English definitions) displays correctly; RTL-only headers align naturally to the right
+- **BiDi support**: a line that mixes right-to-left and Latin words is laid out by the rule of the Markdown view (below): an English definition that opens with an Arabic headword stays left-to-right, an Arabic sentence with an English name in it stays right-to-left. RTL-only headers align naturally to the right
 
 **How to switch:**
 
@@ -168,7 +169,7 @@ Long-pressing **MD ON / TXT ON** opens the **Display** menu: **Default view mode
 
 **Math formulas:** in Markdown view, LaTeX math in responses (`$...$`, `$$...$$`, `\(...\)`, `\[...\]`) is shown as readable formulas: Greek letters and operators as real symbols, superscripts and subscripts, vector arrows and hats, roots, fractions as `a/b`, and `$$` blocks on their own centered line. This is display-only: saved chats, copies, exports and notebook entries keep the original LaTeX, which apps like Obsidian render fully. Plain Text view shows the LaTeX as written. Toggle it under **Settings → Display Settings → Rendering → Render Math Formulas** (on by default; grayed out while Plain Text is your default). True typesetting (stacked fractions, matrices) is not possible in the window's renderer; those flatten to `a/b` and `(a, b; c, d)`.
 
-**Right-to-left text in the Markdown view.** Every paragraph, heading, list item, quote and table cell is laid out in its own direction. A block that begins in the language direction of the message it belongs to keeps that direction (in an English answer, a line such as **Synonyms:** followed by Arabic words stays left-to-right; in an Arabic answer, a line that opens in Arabic and lists Latin terms stays right-to-left); any other block goes by the majority of its words (the first word when they tie). So a chat that mixes directions reads right block by block: an Arabic answer with a Latin name in it, an English answer quoting Arabic, an earlier right-to-left reply above a later English one. Arabic, Persian, Urdu, Syriac and the other right-to-left scripts all count. A right-to-left quote mirrors its border, and the Left and Right alignments keep their side for both directions. Left-to-right lists are real lists (nested ones indented); a list with a right-to-left item is shown as marked lines, since the renderer draws no markers for a right-to-left list. Arabic, Persian and Urdu letters are drawn in **Noto Naskh Arabic**, the face KOReader gives Arabic books, bold included, wherever they appear: a whole paragraph, or a word quoted inside an English sentence. Hebrew and Devanagari take the faces KOReader's own interface uses for them, and emoji are drawn with the plugin's bundled emoji font, no install needed. The **Right-to-left text font** row below picks another Arabic face.
+**Right-to-left text in the Markdown view.** Every paragraph, heading, list item, quote and table cell is laid out in its own direction. A block that begins in the language direction of the message it belongs to keeps that direction (in an English answer, a line such as **Synonyms:** followed by Arabic words stays left-to-right; in an Arabic answer, a line that opens in Arabic and lists Latin terms stays right-to-left); any other block goes by the majority of its words (the first word when they tie). So a chat that mixes directions reads right block by block: an Arabic answer with a Latin name in it, an English answer quoting Arabic, an earlier right-to-left reply above a later English one. Arabic, Persian, Urdu, Syriac and the other right-to-left scripts all count. A right-to-left quote mirrors its border, and the Left and Right alignments keep their side for both directions. Left-to-right lists are real lists (nested ones indented); a list with a right-to-left item is shown as marked lines, since the renderer draws no markers for a right-to-left list. Arabic, Persian and Urdu letters are drawn in **Noto Naskh Arabic**, the face KOReader gives Arabic books, bold included, wherever they appear: a whole paragraph, or a word quoted inside an English sentence. Hebrew and Devanagari take the faces KOReader's own interface uses for them, and emoji are drawn with the plugin's bundled emoji font, no install needed. The **Right-to-left text font** row below picks another Arabic face. A dictionary window that shows the book's sentence above the answer judges the answer by its own words: an English definition under an Arabic sentence stays left-to-right, even where it opens with the Arabic headword.
 
 **Right-to-left text** (all under **Settings → Display Settings → Rendering**):
 

@@ -237,4 +237,90 @@ TestRunner:test("the space between two marks inside a line stays; the gaps betwe
         '<p dir="rtl">' .. AR .. " <strong>" .. AR2 .. "</strong> <em>" .. HE .. "</em></p>", "in a right-to-left block too")
 end)
 
+-- The maintainer's screenshot of 2026-11-17 (a Quick Define window on an
+-- Arabic novel, English definitions): the definition, which opens with the
+-- Arabic headword, was laid out right-to-left, its full stop at the left.
+-- The sentence here is invented; the shape is the screenshot's.
+TestRunner:test("a dictionary window: the book's sentence above the answer does not decide the answer's direction", function()
+    local WORD = "النظر"
+    local sentence = "⋯كان الطريق إلى المدينة طويلا والمطر لا يتوقف، فتوقف المسافر عند الجسر القديم وأطال <strong>"
+        .. WORD .. "</strong> إلى النهر قبل أن يكمل سيره⋯"
+    local definition = "<strong>" .. WORD .. "</strong>, noun — the act of looking, gazing, "
+        .. "or directing one's sight toward someone or something."
+    local html = "<p>" .. sentence .. "</p><p>" .. definition .. "</p>"
+    -- counted together, the sentence's words make the window an Arabic text, and
+    -- the definition, which opens with an Arabic word, keeps that direction
+    TestRunner:assertEqual(Bidi.mainDirection((html:gsub("<[^>]*>", ""))), "rtl", "the sentence outvotes the definition")
+    local counted = Bidi.addHtmlBidiAttributes(html, {})
+    TestRunner:assertTrue(counted:find('<p dir="rtl">' .. definition, 1, true) ~= nil, "what the count alone gives: the definition right-to-left")
+    -- the answer judged on its own words: an English line; the sentence stays right-to-left
+    TestRunner:assertEqual(Bidi.mainDirection(definition), "ltr", "the answer's own direction")
+    local named = Bidi.addHtmlBidiAttributes(html, { main = "ltr" })
+    TestRunner:assertTrue(named:find("<p>" .. definition, 1, true) ~= nil, "the definition left-to-right")
+    TestRunner:assertTrue(named:find('<p dir="rtl">' .. sentence, 1, true) ~= nil, "the sentence right-to-left, by its own words")
+    -- the window: its answer's direction from the text after the excerpt, only where an excerpt is shown
+    require("mock_koreader")   -- the window's module needs KOReader's widgets to load
+    local Viewer = require("koassistant.ui.chatgptviewer")
+    local plain = sentence:gsub("</?strong>", "**")
+    local text = plain .. "\n\n**" .. WORD .. "**, noun — the act of looking."
+    local window = { compact_view = true, original_history = { source_excerpt = plain } }
+    TestRunner:assertEqual(Viewer._answerDirection(window, text), "ltr", "a dictionary window with its excerpt: the answer's words")
+    TestRunner:assertEqual(Viewer._answerDirection({ compact_view = true, original_history = {} }, text), nil, "no excerpt shown: the pass counts")
+    TestRunner:assertEqual(Viewer._answerDirection({ original_history = { source_excerpt = plain } }, text), nil, "a chat window: the pass counts")
+    TestRunner:assertEqual(Viewer._answerDirection({ dictionary_view = true, _message_history = { source_excerpt = "other" } }, text), nil,
+        "an excerpt that is not what the text opens with: the pass counts")
+    TestRunner:assertEqual(Viewer._answerDirection(window, plain), nil, "no answer yet: nothing to judge by")
+    -- a dictionary window of a right-to-left language keeps its own rule
+    TestRunner:assertTrue(Bidi.addHtmlBidiAttributes("<p>" .. AR2 .. " noun, a thing</p>", { use_starts_with_rtl = true, main = "ltr" })
+        :find('<p dir="rtl">', 1, true) ~= nil, "the headword rule of a right-to-left dictionary language stands")
+end)
+
+-- The plain-text paths (the Plain Text view, the minimal popup) say a mixed
+-- line's direction with a mark at its start. Until 2026-11-17 every line that
+-- held both scripts got the left-to-right mark, so an Arabic sentence with an
+-- English name in it came out in the wrong order (the maintainer: "rtl mixed
+-- also broken"; seen in the real app the same day).
+TestRunner:test("plain text: a mixed line takes the Markdown view's direction, said with a mark at its start", function()
+    require("mock_koreader")
+    local strip = require("koassistant.ui.chatgptviewer").stripMarkdown
+    local LRM, RLM = "\226\128\142", "\226\128\143"
+    -- (the text opens with the widget's formatting header, U+FFF1: not part of a line)
+    local function lines(text)
+        local out = {}
+        for l in (strip(text, nil):gsub("^\239\191\177", "") .. "\n"):gmatch("([^\n]*)\n") do out[#out + 1] = l end
+        return out
+    end
+    local function starts(line, mark) return line:sub(1, 3) == mark end
+    -- an Arabic answer: a sentence with English names in it, a list item, a line that opens with a Latin name
+    local arabic = lines("عاصمة فرنسا هي باريس (Paris)، وهي أكبر مدن البلاد وأشهرها.\n\n"
+        .. "1. المدينة تقع على نهر السين (the Seine).\n\n"
+        .. "Paris هي عاصمة فرنسا وأكبر مدنها.\n\n"
+        .. "اللغة الرسمية هي الفرنسية.\n\n"
+        .. "A short English note with كلمة inside it, written in English.")
+    TestRunner:assertTrue(starts(arabic[1], RLM), "an Arabic sentence with an English name: right-to-left")
+    TestRunner:assertTrue(starts(arabic[3], RLM), "an Arabic list item with an English name: right-to-left")
+    TestRunner:assertTrue(starts(arabic[5], RLM), "an Arabic line that opens with a Latin name: right-to-left")
+    TestRunner:assertTrue(not starts(arabic[7], RLM) and not starts(arabic[7], LRM), "a line of one script: no mark, the widget reads it")
+    TestRunner:assertTrue(starts(arabic[9], LRM), "an English line with an Arabic word, in an Arabic answer: left-to-right")
+    -- an English answer: a definition that opens with the headword, a label with Arabic words after it
+    local english = lines("**النظر**, noun, the act of looking or directing one's sight toward something.\n\n"
+        .. "Synonyms: نظرة، رؤية، مشاهدة، بصر\n\n"
+        .. "It is common in modern prose and in classical texts alike.")
+    TestRunner:assertTrue(starts(english[1], LRM), "an English definition that opens with the Arabic headword: left-to-right")
+    TestRunner:assertTrue(starts(english[3], LRM), "a label in the answer's language, then Arabic words: left-to-right (the Markdown view's rule)")
+    TestRunner:assertTrue(not starts(english[5], LRM) and not starts(english[5], RLM), "an English line: no mark")
+    -- each message of a chat on its own language
+    local chat = lines("▶ User:\n\nWhat does كتاب mean?\n\n◉ KOAssistant:\n\nكتاب (book) هو مجموعة من الأوراق المكتوبة أو المطبوعة.")
+    TestRunner:assertTrue(starts(chat[3], LRM), "the English question that quotes an Arabic word")
+    TestRunner:assertTrue(starts(chat[7], RLM), "the Arabic answer that glosses in English")
+    -- the left-to-right mark after a bold word belongs to left-to-right lines only
+    local bold = lines("عاصمة فرنسا هي **باريس** (Paris)، وهي أكبر مدن البلاد.")
+    TestRunner:assertTrue(not bold[1]:find(LRM, 1, true), "a right-to-left line: no left-to-right mark after its bold word")
+    local headword = lines("**كتاب**, noun, a set of written pages bound together.")
+    TestRunner:assertTrue(select(2, headword[1]:gsub(LRM, "")) == 2, "a left-to-right line: the mark at its start and after its bold headword")
+    -- a window that is right-to-left as a whole says nothing per line
+    local whole = strip("عاصمة فرنسا هي باريس (Paris).", true)
+    TestRunner:assertTrue(not whole:find(LRM, 1, true) and not whole:find(RLM, 1, true), "a right-to-left window: no marks")
+end)
+
 return TestRunner:summary()
