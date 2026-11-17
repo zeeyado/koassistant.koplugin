@@ -1591,15 +1591,32 @@ function ChatGPTViewer:_plainWidget(display_text, width, height, dialog)
   }
 end
 
+-- The first block of a document without its top margin. MuPDF gives a block
+-- its top margin at the top of the first page and none at the top of any
+-- later one, so a frame that pads its content (the minimal popup) had that
+-- margin above the text on top of its own padding, on the first page only.
+-- Written inline on the block's own tag: MuPDF applies an inline style (the
+-- direction pass relies on it already), while a first-child selector was not
+-- checked on the older MuPDF versions readers run.
+local function flushTop(html)
+  return (html:gsub("^(%s*<%a%w*)([^>]-)(/?>)", function(open, attrs, close)
+    local styled, n = attrs:gsub('style="', 'style="margin-top:0;', 1)
+    if n == 0 then styled = attrs .. ' style="margin-top:0"' end
+    return open .. styled .. close
+  end, 1))
+end
+ChatGPTViewer._flushTop = flushTop
+
 --- One answer of this chat the way this window would show it, for a window
 --- that is not this viewer (the minimal popup): the HTML view when the window
 --- renders Markdown, the plain-text widget otherwise, in this window's font,
 --- size, alignment and direction. Nothing of the window's own state is
 --- touched (its own pipeline call records where its reply breaks; this one
---- does not).
+--- does not). The text starts at the top of its area on every page (no
+--- margin above the first block): the frame around it is the other window's.
 function ChatGPTViewer:answerWidget(text, width, height, dialog)
   if self.render_markdown then
-    local html_body = markdownHtml(self, text, { ipa_fix = self:_needsRtlFix() })
+    local html_body = flushTop(markdownHtml(self, text, { ipa_fix = self:_needsRtlFix() }))
     return self:_htmlWidget(html_body, width, height, dialog)
   end
   local display_text = self.strip_markdown_in_text_mode and stripMarkdown(text, self.para_direction_rtl) or text
@@ -3723,11 +3740,15 @@ end
 -- footnote popup sizes itself), plain text counts its lines. The height is
 -- clamped to [floor_h, ceil_h]; start_h is the first layout tried (the floor
 -- when most texts fit there, so they cost one layout). Returns the widget and
--- its text-area height.
-function ChatGPTViewer:_fitContent(build, floor_h, ceil_h, start_h)
+-- its text-area height. `hug` (a frame with nothing under its text: the
+-- minimal popup): a text longer than the ceiling gets an area as tall as what
+-- its first page holds, so the frame ends under that page's last line and
+-- not up to a line lower (one layout more).
+function ChatGPTViewer:_fitContent(build, floor_h, ceil_h, start_h, hug)
   -- MuPDF moves a line to the next page by its line box, and the measure is
   -- ink: leave the last line its descent and leading (line-height 1.3)
-  local slack = math.ceil(0.6 * Screen:scaleBySize(self.markdown_font_size))
+  local em = Screen:scaleBySize(self.markdown_font_size)
+  local slack = math.ceil(0.6 * em)
   -- The height the text needs (nil: unknown, HTML past one page) and whether
   -- it fits a text area h tall
   local function need(w, h)
@@ -3742,17 +3763,49 @@ function ChatGPTViewer:_fitContent(build, floor_h, ceil_h, start_h)
   local function free(w)
     if w.htmlbox_widget then w.htmlbox_widget:free() else w.text_widget:free(true) end
   end
+  -- What the first page of a text longer than its area h needs: where its ink
+  -- ends and the last line's slack (HTML), its whole lines (plain text)
+  local function firstPage(w, h)
+    local box = w.htmlbox_widget
+    if not box then
+      local line_h = w:getLineHeight()
+      return math.floor(h / line_h) * line_h
+    end
+    local ok, bottom = pcall(function()
+      local page = box.document:openPage(1)
+      local _x0, _y0, _x1, y1 = page:getUsedBBox()
+      page:close()
+      return y1
+    end)
+    if ok and type(bottom) == "number" then return math.ceil(bottom) + slack end
+  end
+  -- A text longer than its area, hugged. Not when the first page ends more
+  -- than a line and a paragraph's gap above the foot: something that cannot
+  -- break (a table's row) went to the next page, and needs the room there
+  local function hugged(w, cur)
+    if not hug then return w, cur end
+    local h = firstPage(w, cur)
+    if not h or h >= cur or h < floor_h or cur - h > 2.5 * em then return w, cur end
+    local tight = build(h)
+    if tight.htmlbox_widget and firstPage(tight, h) ~= h then
+      -- a line moved to the next page: the first layout stays
+      free(tight)
+      return w, cur
+    end
+    free(w)
+    return tight, h
+  end
   local widget, cur = build(start_h), start_h
   local want, fits = need(widget, cur)
   if fits and cur <= floor_h then return widget, cur end
   if not want then
-    if cur >= ceil_h then return widget, cur end
+    if cur >= ceil_h then return hugged(widget, cur) end
     -- Longer than the floor: lay it out at the ceiling to learn its height
     local tall = build(ceil_h)
     free(widget)
     widget, cur = tall, ceil_h
     want = need(tall, ceil_h)
-    if not want then return widget, cur end  -- longer than the ceiling too
+    if not want then return hugged(widget, cur) end  -- longer than the ceiling too
   end
   local h = math.max(floor_h, math.min(ceil_h, want))
   if h ~= cur then
@@ -3765,13 +3818,14 @@ function ChatGPTViewer:_fitContent(build, floor_h, ceil_h, start_h)
       free(exact)
     end
   end
+  if want > cur then return hugged(widget, cur) end  -- plain text longer than the ceiling
   return widget, cur
 end
 
 -- The same fit for a window that is not this viewer (the minimal popup)
-function ChatGPTViewer.fitContent(build, floor_h, ceil_h, start_h, font_size)
+function ChatGPTViewer.fitContent(build, floor_h, ceil_h, start_h, font_size, hug)
   return ChatGPTViewer._fitContent({ markdown_font_size = font_size or ChatGPTViewer.markdown_font_size },
-    build, floor_h, ceil_h, start_h)
+    build, floor_h, ceil_h, start_h, hug)
 end
 
 -- Calculate scroll ratio to show the last user question at top of viewport
@@ -4468,7 +4522,12 @@ function ChatGPTViewer.isSingleWord(text)
   return tokens == 1
 end
 
-function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_idx, to_source_index_func)
+--- @param elsewhere table|nil the selection was made in another window that
+---   shows this chat's text (the minimal popup, which hands every selection
+---   here so both windows do the same with one): { clear_highlight = that
+---   window's }. This window's reply box is not on screen then, so the
+---   selection popup has no Add to reply.
+function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_idx, to_source_index_func, elsewhere)
   if self.text_selection_callback then
     self.text_selection_callback(text, hold_duration, start_idx, end_idx, to_source_index_func)
     return
@@ -4485,22 +4544,32 @@ function ChatGPTViewer:handleTextSelection(text, hold_duration, start_idx, end_i
       if book == "__GENERAL_CHATS__" or book == "__LIBRARY_CHATS__" then book = nil end
       ui.dictionary._koassistant_lookup_book = book
       ui.dictionary:onLookupWord(text)
-      self:clearTextHighlight()
+      if elsewhere and elsewhere.clear_highlight then
+        elsewhere.clear_highlight()
+      else
+        self:clearTextHighlight()
+      end
       return
     end
   end
 
   -- 2+ words, or single word + long hold: show selection popup
-  self:showTextSelectionPopup(text)
+  self:showTextSelectionPopup(text, elsewhere)
 end
 
-function ChatGPTViewer:showTextSelectionPopup(text)
+function ChatGPTViewer:showTextSelectionPopup(text, elsewhere)
   local ui = self._ui or (self.configuration and self.configuration._rerun_ui)
   local document_path = self.configuration and self.configuration.document_path
   local plugin = self._plugin
   local self_ref = self
 
   local ReplyQuote = require("koassistant.ui.reply_quote")
+  local add_to_reply
+  if not elsewhere and ReplyQuote.eligible(self) then
+    add_to_reply = function(selected_text)
+      self_ref:addSelectionToReply(selected_text)
+    end
+  end
   ChatGPTViewer.buildTextSelectionPopup(text, {
     ui = ui,
     plugin = plugin,
@@ -4509,10 +4578,8 @@ function ChatGPTViewer:showTextSelectionPopup(text)
     append_to_notebook = function(selected_text)
       self_ref:appendSelectionToNotebook(selected_text)
     end,
-    add_to_reply = ReplyQuote.eligible(self) and function(selected_text)
-      self_ref:addSelectionToReply(selected_text)
-    end or nil,
-    clear_highlight = function()
+    add_to_reply = add_to_reply,
+    clear_highlight = elsewhere and elsewhere.clear_highlight or function()
       self_ref:clearTextHighlight()
     end,
   })

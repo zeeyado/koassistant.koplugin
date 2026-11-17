@@ -129,6 +129,7 @@ Short answers can skip the full-screen window entirely. With the minimal popup o
 - **Where** (the **Popup Style** row): **Floating box** (the default) sits right at your selection (in EPUBs; centered elsewhere) and is as wide as the chat window. **Footnote panel** sits at the bottom of the screen from edge to edge, like KOReader's footnote popups.
 - **What it shows:** the answer the way the window it opens would show it. In the Markdown view that is bold, italics, lists, each script in its own face and each paragraph in its own direction; with your view on Plain Text it is the plain text ([Markdown and plain text](#markdown-and-plain-text)).
 - **Tap to expand:** tapping the popup opens the answer in the action's usual window (the translate window for Translate, the compact dictionary window for Quick Define, the chat window for Quick Explain), where replies and all the usual buttons live.
+- **Hold a word:** a word held in the popup is looked up, and a longer selection or a long hold opens the selection popup (Copy, Dictionary, Translate and the rest), as in any KOAssistant window ([Selecting text in a window](#selecting-text-in-a-window)). The popup stays underneath.
 - **Dismiss:** tap outside the popup, or press Back. A page-turn key closes it too, once there is nothing more to scroll that way (at once for an answer that fits). The footnote panel also closes on a swipe down above it.
 - **No streaming:** these requests skip the streaming window. A small notice in the corner ("Translating…", or the action's name) keeps the page visible while the request runs; a tap, a key press or a swipe cancels it. Replies in the expanded window follow your streaming setting again.
 - It applies only to actions run on a highlight, and never to full-page translation.
@@ -213,7 +214,7 @@ Some windows size themselves to their text:
 
 ## Selecting text in a window
 
-Text selection works the same in every KOAssistant window: chat, artifact, X-Ray browser, quiz, compact, dictionary and translate windows.
+Text selection works the same in every KOAssistant window: chat, artifact, X-Ray browser, quiz, compact, dictionary and translate windows, and the [Minimal Popup](#minimal-popup).
 
 | Selection | Short hold | Long hold |
 |---|---|---|
@@ -234,7 +235,7 @@ A long hold is about three times KOReader's long-press interval: 1.5 seconds wit
 | **Look up in X-Ray** | Search the book's X-Ray for the selected text. Shown when the window's book has an X-Ray. The only entity lookup available from a chat opened out of the file browser, and the only one that handles multi-word names |
 | **Translate** | Translate via KOAssistant's Translate action |
 | **Add to Notebook** | Append the text with a timestamp to the book's notebook (created if needed). Book chats only, not general or library chats |
-| **Add to reply** | Quote the selected text into your reply draft and open the Reply box. Full chat windows only |
+| **Add to reply** | Quote the selected text into your reply draft and open the Reply box. Full chat windows only (not the Minimal Popup, which has no Reply box) |
 
 - **Highlight clearing**: the selection's highlight clears automatically after any action or when you dismiss the popup.
 - **Chaining lookups**: look up a word, see an unfamiliar word in the AI response, select it to look that up too. The window stays open underneath throughout.

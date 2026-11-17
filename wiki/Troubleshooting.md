@@ -110,7 +110,7 @@ These can still stop until you touch the screen:
 - **Work in the background.** X-Ray updates while you read, checkpoint builds and AI merges go on at each page turn.
 - **Fetch models and Test provider.** They hold the screen still while they run.
 
-To keep the device awake while KOReader is open, use KOReader's gear menu → Screen → Screen timeout → Keep screen on. The device then does not go to sleep on its own while KOReader is open and uses more battery, so press the power button when you put it down. Your device may also have a power-saving option of its own. The background is in [issue #126](https://github.com/zeeyado/koassistant.koplugin/issues/126).
+What helps is a touch: tap the screen once when a start or a wait seems stuck. KOReader's own **Keep screen on** (gear menu → Screen → Screen timeout) does not stop this sleep: on the Boox where it was tried, starts stayed as slow with it, while touching the screen during a start cut it from 30 seconds or more to about 10. A start that finishes within those few seconds is never interrupted, which is why the same device starts in 3 seconds one time and in a minute the next. Your device may have a power-saving option of its own for the app. The background is in [issue #126](https://github.com/zeeyado/koassistant.koplugin/issues/126).
 
 ## Streaming not working
 

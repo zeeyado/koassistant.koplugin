@@ -303,6 +303,157 @@ TestRunner:test("the chat window's builders work for a window that is not it", f
     TestRunner:assertTrue(h >= 120 and h < 400 and w.height == h, "then at the height the text needs (" .. tostring(h) .. ")")
 end)
 
+-- ── No blank the text does not need ─────────────────────────────────────────
+-- (the maintainer, 2026-11-17: "why so much padding at top and bottom of
+-- them? no need")
+TestRunner:test("under a text that fits the frame pads only what the fit left out", function()
+    -- an inset of 22: the fit leaves 22 under the ink, the frame adds its least
+    TestRunner:assertEqual(MinimalPopup.footPadding(22, 22, 4), 4)
+    TestRunner:assertEqual(MinimalPopup.footPadding(22, 30, 4), 4, "never less than the least")
+    TestRunner:assertEqual(MinimalPopup.footPadding(22, 10, 4), 12, "what is missing to the inset")
+    TestRunner:assertEqual(MinimalPopup.footPadding(22, 0, 4), 22, "nothing left blank (plain text, a text that scrolls): the inset")
+    withWidgets(function()
+        local viewer = { markdown_font_size = 20, answerWidget = function(_self, _text, w, h) return htmlWidget(100)(w, h) end }
+        MinimalPopup.showForResponse({ history = history("fits"), viewer = viewer })
+        local blank = shown.text_h - 100
+        TestRunner:assertTrue(blank > 0, "the fit leaves the last line its leading (" .. blank .. ")")
+        TestRunner:assertEqual(shown.frame.padding_bottom, MinimalPopup.footPadding(shown.frame.padding, blank, Size.padding.small),
+            "the frame's foot is the inset less that blank")
+    end)
+    local viewer_src = read("koassistant/ui/chatgptviewer.lua")
+    local answer = viewer_src:match("function ChatGPTViewer:answerWidget%(text, width, height, dialog%)(.-)\nend\n")
+    TestRunner:assertTrue(answer:find("flushTop(markdownHtml(", 1, true) ~= nil,
+        "one answer's first block has no margin above it: the popup's frame is the blank above the text")
+end)
+
+TestRunner:test("the first block loses its top margin, and only that", function()
+    local flush = Viewer._flushTop
+    TestRunner:assertEqual(flush("<p>One.</p>\n<p>Two.</p>"), '<p style="margin-top:0">One.</p>\n<p>Two.</p>')
+    TestRunner:assertEqual(flush('\n<p dir="rtl" style="text-align:right">One.</p>'),
+        '\n<p dir="rtl" style="margin-top:0;text-align:right">One.</p>', "a style the direction pass wrote is kept")
+    TestRunner:assertEqual(flush("<ul>\n<li>a</li>\n</ul>"), '<ul style="margin-top:0">\n<li>a</li>\n</ul>')
+    TestRunner:assertEqual(flush("<hr/>\n<p>a</p>"), '<hr style="margin-top:0"/>\n<p>a</p>', "a tag that closes itself stays closed")
+    TestRunner:assertEqual(flush("Plain words, <b>then</b> a tag."), "Plain words, <b>then</b> a tag.", "text before any tag: nothing to take off")
+    TestRunner:assertEqual(flush(""), "")
+end)
+
+-- A Markdown view of lines 26 px tall (ink ends 8 px above a line's foot): a
+-- page holds the whole lines its height has room for
+local function pagedHtml(lines, first_page_ink)
+    return function(height)
+        local width = 300
+        local w = { width = width, height = height, freed = false }
+        local per_page = math.floor(height / 26)
+        local ink = first_page_ink or (26 * math.min(per_page, lines) - 8)
+        w.htmlbox_widget = {
+            page_count = math.max(1, math.ceil(lines / math.max(1, per_page))),
+            free = function() w.freed = true end,
+            document = { openPage = function()
+                return { getUsedBBox = function() return 0, 0, width, ink end, close = function() end }
+            end },
+        }
+        function w.getSinglePageHeight() return w.htmlbox_widget.page_count == 1 and ink or nil end
+        built[#built + 1] = w
+        return w
+    end
+end
+
+TestRunner:test("a text that scrolls gets an area as tall as its first page", function()
+    built = {}
+    -- 400 px hold 15 lines: their ink ends at 382, the last line's slack is 12
+    local w, h = Viewer.fitContent(pagedHtml(60), 10, 400, 400, 20, true)
+    TestRunner:assertEqual(h, 394, "the first page's ink and the last line's slack")
+    TestRunner:assertEqual(w.height, 394)
+    TestRunner:assertTrue(w.htmlbox_widget.page_count > 1, "it still scrolls")
+    local kept = 0
+    for _i, b in ipairs(built) do if not b.freed then kept = kept + 1 end end
+    TestRunner:assertEqual(kept, 1, "the first layout is let go")
+    -- the other fitted windows (a button row under their text) keep the ceiling
+    local _w2, h2 = Viewer.fitContent(pagedHtml(60), 10, 400, 400, 20)
+    TestRunner:assertEqual(h2, 400, "only a window that asks for it")
+    -- something that cannot break went to the next page: the room stays
+    local _w3, h3 = Viewer.fitContent(pagedHtml(60, 100), 10, 400, 400, 20, true)
+    TestRunner:assertEqual(h3, 400, "a first page that ends far above the foot is not hugged")
+    -- plain text: its whole lines
+    local w4, h4 = Viewer.fitContent(function(height) return plainWidget(200, 26)(300, height) end, 10, 400, 400, 20, true)
+    TestRunner:assertEqual(h4, 390, "fifteen whole lines")
+    TestRunner:assertEqual(w4.height, 390)
+    -- a text that fits is as before
+    local _w5, h5 = Viewer.fitContent(pagedHtml(3), 10, 400, 400, 20, true)
+    TestRunner:assertEqual(h5, 26 * 3 - 8 + 12)
+end)
+
+-- ── A word held in the popup ────────────────────────────────────────────────
+TestRunner:test("a word or a passage held in the popup goes to the chat window's own handler", function()
+    withWidgets(function()
+        local got
+        local viewer = {
+            markdown_font_size = 20,
+            answerWidget = function(_self, _text, w, h) return htmlWidget(50)(w, h) end,
+            handleTextSelection = function(_self, ...) got = { n = select("#", ...), ... } end,
+        }
+        MinimalPopup.showForResponse({ history = history("An answer."), viewer = viewer })
+        TestRunner:assertTrue(type(shown.on_select) == "function", "the popup is given the handler")
+        local cleared = false
+        shown.on_select("ledger", 123, function() cleared = true end)
+        TestRunner:assertEqual(got[1], "ledger")
+        TestRunner:assertEqual(got[2], 123, "how long it was held decides between the lookup and the menu")
+        TestRunner:assertEqual(got.n, 6)
+        got[6].clear_highlight()
+        TestRunner:assertEqual(cleared, true, "the highlight to clear is the popup's")
+    end)
+    -- a caller with no chat window (the X-Ray card's popup style) is as before
+    withWidgets(function()
+        local ScrollText = require("ui/widget/scrolltextwidget")
+        local real = ScrollText.new
+        ScrollText.new = function(_self, o) return plainWidget(2, 20)(o.width, o.height) end
+        local ok, err = pcall(function()
+            MinimalPopup.showForResponse({ history = history("An answer."), features = {} })
+            TestRunner:assertEqual(shown.on_select, nil)
+        end)
+        ScrollText.new = real
+        if not ok then error(err, 0) end
+    end)
+end)
+
+TestRunner:test("the chat window does with a selection made elsewhere what it does with its own", function()
+    local real_build = Viewer.buildTextSelectionPopup
+    local given
+    Viewer.buildTextSelectionPopup = function(text, opts) given = { text = text, opts = opts } end
+    local ok, err = pcall(function()
+        local looked, own_cleared, popup_cleared = nil, 0, 0
+        local window = {
+            _ui = { dictionary = { onLookupWord = function(_d, word) looked = word end } },
+            configuration = { document_path = "/books/a.epub" },
+            onAskQuestion = function() end,  -- a window with a reply box
+            clearTextHighlight = function() own_cleared = own_cleared + 1 end,
+            showTextSelectionPopup = Viewer.showTextSelectionPopup,
+        }
+        local elsewhere = { clear_highlight = function() popup_cleared = popup_cleared + 1 end }
+        -- one word: looked up, in the book the chat is about
+        Viewer.handleTextSelection(window, "ledger", nil, nil, nil, nil, elsewhere)
+        TestRunner:assertEqual(looked, "ledger")
+        TestRunner:assertEqual(window._ui.dictionary._koassistant_lookup_book, "/books/a.epub")
+        TestRunner:assertEqual(popup_cleared, 1, "the other window's highlight is cleared")
+        TestRunner:assertEqual(own_cleared, 0, "not this window's, which is not on screen")
+        TestRunner:assertEqual(given, nil, "no menu for a word")
+        -- a passage: the selection menu, without Add to reply
+        Viewer.handleTextSelection(window, "the toll ledger", nil, nil, nil, nil, elsewhere)
+        TestRunner:assertEqual(given.text, "the toll ledger")
+        TestRunner:assertEqual(given.opts.add_to_reply, nil, "its reply box is not on screen")
+        TestRunner:assertEqual(given.opts.clear_highlight, elsewhere.clear_highlight)
+        TestRunner:assertTrue(type(given.opts.append_to_notebook) == "function", "the rest of the menu is the window's")
+        -- in the window itself nothing changed
+        given = nil
+        Viewer.handleTextSelection(window, "the toll ledger")
+        TestRunner:assertTrue(type(given.opts.add_to_reply) == "function", "the window's own selection keeps Add to reply")
+        given.opts.clear_highlight()
+        TestRunner:assertEqual(own_cleared, 1)
+    end)
+    Viewer.buildTextSelectionPopup = real_build
+    if not ok then error(err, 0) end
+end)
+
 for i = #added, 1, -1 do added[i][1][added[i][2]] = nil end
 for _i, name in ipairs(stubbed) do package.loaded[name] = nil end
 

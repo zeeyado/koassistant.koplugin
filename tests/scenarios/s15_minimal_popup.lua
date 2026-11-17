@@ -8,11 +8,15 @@ What a reader must see:
   Markdown view (an italic is an italic, a script's face is its own), or the
   plain-text widget when the reader's view is Plain Text;
 - the box is as wide as the chat window and as tall as its answer, up to its
-  cap; the panel runs from edge to edge at the foot of the screen;
+  cap; the panel runs from edge to edge at the foot of the screen; the text
+  is about as far from the frame's top and bottom as from its sides, and a
+  long answer's box ends under its first page's last line;
 - "When it fits" hands an answer taller than the cap back (the full window
   opens instead); "Always" shows it and it scrolls: a swipe, or a page key,
   which closes the popup once there is nothing more that way;
 - a tap inside opens the full window, a tap outside closes the popup;
+- a word held in the text is looked up and a passage gets the selection
+  menu, as in the chat window; the popup stays;
 - the X-Ray card's popup style (plain text, no chat window behind it) still
   shows and opens its entry.
 ]]
@@ -65,6 +69,7 @@ local function ask(answer, opts)
         configuration = config,
         original_history = h,
         _message_history = h,
+        _ui = opts.ui,
     }
     local r = { viewer = v, expanded = 0, closed = 0 }
     r.shown = MinimalPopup.showForResponse({
@@ -102,6 +107,36 @@ local function gesture(kind, x, y, direction)
     S.settle(1)
 end
 local function page(r) return r.popup.scroll_w.htmlbox_widget.page_number end
+-- where the ink of a page of the Markdown view starts and ends, in its area
+local function ink(p, n)
+    local pg = p.scroll_w.htmlbox_widget.document:openPage(n)
+    local _x0, y0, _x1, y1 = pg:getUsedBBox()
+    pg:close()
+    return y0, y1
+end
+-- the blank between the frame's inner edge and the text's ink, above and below
+local function blank(p)
+    local box, f = p.scroll_w.htmlbox_widget, p.frame.dimen
+    local y0, y1 = ink(p, box.page_number)
+    local border = p.frame.bordersize
+    return box.dimen.y + y0 - (f.y + border), (f.y + f.h - border) - (box.dimen.y + y1)
+end
+-- the middle of a word on the page shown, on screen
+local function wordAt(p, word)
+    local box = p.scroll_w.htmlbox_widget
+    local pg = box.document:openPage(box.page_number)
+    local lines = pg:getPageText()
+    pg:close()
+    for _i, line in ipairs(lines) do
+        for _j, w in ipairs(line) do
+            if type(w) == "table" and w.word == word then
+                return box.dimen.x + math.floor((w.x0 + w.x1) / 2), box.dimen.y + math.floor((w.y0 + w.y1) / 2)
+            end
+        end
+    end
+end
+local inset = Viewer.text_padding + Viewer.text_margin
+local em = Screen:scaleBySize(Viewer.markdown_font_size)
 
 local chat_text_w = UIConstants.CHAT_WIDTH() - 2 * (Viewer.text_padding + Viewer.text_margin)
 local sw, sh = Screen:getWidth(), Screen:getHeight()
@@ -118,6 +153,10 @@ if r.popup then
     S.check(p.scroll_w.width == chat_text_w, "the text is as wide as the chat window's (" .. p.scroll_w.width .. " of " .. chat_text_w .. ")")
     S.check(not p:hasOverflow() and p.text_h < p.cap, "as tall as its answer (" .. p.text_h .. " px under a cap of " .. p.cap .. ")")
     S.check(p.movable ~= nil and p.frame.dimen.x > 0, "the default shape is the box")
+    local above, below = blank(p)
+    S.check(math.abs(above - inset) <= 0.3 * em and math.abs(below - inset) <= 0.3 * em,
+        string.format("the text is as far from the frame's top and bottom as from its sides (%.0f above, %.0f below, %d at the sides)",
+            above, below, inset))
     S.shot("popup_box_short")
     local f = p.frame.dimen
     gesture("tap", f.x + math.floor(f.w / 2), f.y + math.floor(f.h / 2))
@@ -136,7 +175,14 @@ S.check(r.shown == true and r.popup ~= nil and r.popup:hasOverflow(), "Always: t
 if r.popup then
     local p = r.popup
     local pages = p.scroll_w.htmlbox_widget.page_count
-    S.check(p.text_h == p.cap and pages > 1 and page(r) == 1, "at its cap, page 1 of " .. pages)
+    S.check(p.text_h <= p.cap and p.text_h > p.cap - 2.5 * em and pages > 1 and page(r) == 1,
+        "near its cap (" .. p.text_h .. " of " .. p.cap .. "), page 1 of " .. pages)
+    local top1, foot1 = ink(p, 1)
+    local top2 = ink(p, 2)
+    S.check(math.abs(top1 - top2) < 1.5, string.format("the first page starts where the others do (%.1f and %.1f)", top1, top2))
+    S.check(p.text_h - foot1 <= 0.6 * em + 2, string.format("the box ends under its first page's last line (%.0f px under the ink)", p.text_h - foot1))
+    local above = blank(p)
+    S.check(math.abs(above - inset) <= 0.3 * em, string.format("and its text starts as far from the top as from the sides (%.0f)", above))
     S.shot("popup_box_long")
     key("RPgFwd")
     S.check(isUp(r) and page(r) == 2, "the next-page key scrolls it")
@@ -181,6 +227,9 @@ if S.check(r.popup ~= nil, "the panel is shown") then
     S.check(r.popup.movable == nil and f.x == 0 and f.w == sw, "from edge to edge (" .. f.w .. " of " .. sw .. ")")
     S.check(f.y + f.h == sh, "on the foot of the screen")
     S.check(r.popup.scroll_w.width == sw - 2 * (Viewer.text_padding + Viewer.text_margin), "its text inset is the chat window's")
+    local above, below = blank(r.popup)
+    S.check(math.abs(above - inset) <= 0.3 * em and math.abs(below - inset) <= 0.3 * em,
+        string.format("no blank the text does not need (%.0f above, %.0f below)", above, below))
     S.shot("popup_panel_short")
     gesture("swipe", math.floor(sw / 2), math.floor(f.y / 2), "south")
     S.check(not isUp(r) and r.closed == 1, "a swipe down above the panel closes it, as KOReader's footnote popup closes")
@@ -200,6 +249,8 @@ if S.check(r.popup ~= nil, "Plain Text view: the popup is shown") then
     local p = r.popup
     S.check(p.scroll_w.text_widget ~= nil and p.scroll_w.htmlbox_widget == nil, "it is the plain-text widget")
     S.check(p:hasOverflow() and p.scroll_w.width == chat_text_w, "the long answer scrolls, at the chat window's width")
+    S.check(p.text_h % p.scroll_w:getLineHeight() == 0 and p.text_h > p.cap - p.scroll_w:getLineHeight(),
+        "its box holds whole lines (" .. p.text_h .. " px of " .. p.scroll_w:getLineHeight() .. ")")
     local first = p.scroll_w.text_widget.virtual_line_num
     key("RPgFwd")
     S.check(isUp(r) and p.scroll_w.text_widget.virtual_line_num > first, "the page key scrolls it")
@@ -209,7 +260,60 @@ r = ask(long(), { features = { render_markdown = false }, only_if_fits = true })
 S.check(r.shown == false, "Plain Text view, When it fits: the long answer is handed back as well")
 done(r)
 
--- 7. A caller with no chat window (the fallback) and the X-Ray card's popup style
+-- 7. A word held in the text: what the chat window does with one
+local looked = {}
+local lookup_ui = { dictionary = { onLookupWord = function(_d, word) looked[#looked + 1] = word end } }
+r = ask(SHORT, { ui = lookup_ui })
+if S.check(r.popup ~= nil, "a popup to hold a word in") then
+    local box = r.popup.scroll_w.htmlbox_widget
+    local x, y = wordAt(r.popup, "ledger")
+    if S.check(x ~= nil, "the word is on the popup's page") then
+        gesture("hold", x, y)
+        S.check(box.highlight_text == "ledger", "the held word is marked (" .. tostring(box.highlight_text) .. ")")
+        gesture("hold_release", x, y)
+        S.check(looked[1] == "ledger" and #looked == 1, "and looked up (" .. tostring(looked[1]) .. ")")
+        S.check(lookup_ui.dictionary._koassistant_non_reader_lookup == true, "as a lookup from a window, not from the page")
+        S.check(isUp(r) and r.expanded == 0 and r.closed == 0, "the popup stays, and is not opened")
+        S.check(box.highlight_rects == nil, "its mark is taken off")
+        -- a passage: the selection menu, as in the chat window
+        local x2, y2 = wordAt(r.popup, "moved.")
+        gesture("hold", x, y)
+        gesture("hold_pan", x2, y2)
+        gesture("hold_release", x2, y2)
+        local menu = S.top()
+        local rows = table.concat(S.texts(menu), " | ")
+        -- the labels in the language the run is in (an earlier scenario may have changed it)
+        local tr = require("koassistant.core.gettext")
+        S.check(menu ~= r.popup and rows:find(tr("Copy"), 1, true) ~= nil, "a passage gets the selection menu (" .. rows .. ")")
+        S.check(rows:find(tr("Add to reply"), 1, true) == nil, "without Add to reply: no reply box is on screen")
+        S.check(#looked == 1, "and is not looked up")
+        if menu ~= r.popup then
+            UIManager:close(menu)
+            S.settle(1)
+        end
+        S.check(isUp(r), "the popup is still there under the menu")
+        -- a hold beside the text is not a selection
+        local f = r.popup.frame.dimen
+        gesture("hold", f.x + 3, f.y + 3)
+        gesture("hold_release", f.x + 3, f.y + 3)
+        S.check(#looked == 1 and isUp(r), "a hold on the frame's edge selects nothing")
+    end
+end
+done(r)
+-- the Plain Text view's widget selects too
+looked = {}
+r = ask(long(), { ui = lookup_ui, features = { render_markdown = false } })
+if S.check(r.popup ~= nil and r.popup.scroll_w.text_widget ~= nil, "a Plain Text popup to hold a word in") then
+    local tw = r.popup.scroll_w.text_widget
+    local x, y = tw.dimen.x + math.floor(em * 1.5), tw.dimen.y + math.floor(r.popup.scroll_w:getLineHeight() / 2)
+    gesture("hold", x, y)
+    gesture("hold_release", x, y)
+    S.check(looked[1] == "Paragraph", "Plain Text view: a held word is looked up (" .. tostring(looked[1]) .. ")")
+    S.check(isUp(r), "and the popup stays")
+end
+done(r)
+
+-- 8. A caller with no chat window (the fallback) and the X-Ray card's popup style
 r = ask(SHORT, { no_viewer = true })
 S.check(r.popup ~= nil and r.popup.scroll_w.text_widget ~= nil, "without a chat window the answer is shown as plain text")
 done(r)
@@ -222,6 +326,7 @@ UIManager:show(card)
 S.settle()
 UIManager:forceRePaint()
 S.check(S.top() == card and card.scroll_w.text_widget ~= nil and not card:hasOverflow(), "the X-Ray card's popup style shows its text")
+S.check(card.ges_events.HoldReleaseText == nil, "a hold in it is the box's, as before (no selection)")
 S.check(card.scroll_w.width == chat_text_w, "in the same box")
 S.shot("popup_card")
 local cf = card.frame.dimen

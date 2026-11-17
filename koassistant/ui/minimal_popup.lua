@@ -5,7 +5,14 @@ A small window with just the answer: no title bar, no buttons. Tap inside =
 hand off to the full viewer (on_expand); tap outside = dismiss. As tall as its
 answer up to a cap (CAP of the screen); a longer answer scrolls inside it (a
 swipe up or down, or the page keys, which close the popup once there is
-nothing more that way).
+nothing more that way). A word or a passage held in the text is its caller's
+(on_select): for an answer, what the chat window does with one (a word is
+looked up, a passage gets the selection menu).
+
+The text sits as far from the frame's top and bottom as from its sides: the
+content starts at the top of its area (no margin of its own above the first
+line, see ChatGPTViewer:answerWidget), and under a text that fits the frame
+pads only what the fit did not already leave blank there (footPadding).
 
 Two shapes (`style`, features.minimal_popup_style):
 - "box" (default): a rounded box next to the highlight via MovableContainer's
@@ -65,6 +72,7 @@ local MinimalPopup = InputContainer:extend{
     lang = nil,             -- BCP-ish language hint for xtext, optional (plain text only)
     on_expand = nil,        -- tap inside the popup
     on_close = nil,         -- dismissed without expanding
+    on_select = nil,        -- function(text, hold_duration, clear_highlight): a word or a passage held in the text
 }
 
 -- How tall the text may be, of the screen's height, before it scrolls
@@ -83,6 +91,26 @@ function MinimalPopup.geometry(style, screen_w, screen_h, chat_w, inset, border)
         text_w = (panel and screen_w or chat_w) - 2 * inset,
         cap = math.floor(screen_h * MinimalPopup.CAP),
     }
+end
+
+--- The frame's padding under the text, pure. A text that fits ends above the
+--- foot of its area (the fit measures ink and leaves the last line its
+--- leading): the frame adds only what is missing to the inset the text has on
+--- its other sides, and never less than `least`.
+function MinimalPopup.footPadding(inset, blank, least)
+    return math.max(least, inset - blank)
+end
+
+-- What a content widget leaves blank under its last line, in a text area
+-- text_h tall: the Markdown view on one page says where its ink ends. Nothing
+-- for a text that scrolls (it ends where its page does) and for the plain
+-- widget (its area is its lines exactly).
+local function blankUnder(widget, text_h)
+    if widget.htmlbox_widget and widget.getSinglePageHeight then
+        local used = widget:getSinglePageHeight()
+        if used then return math.max(0, text_h - used) end
+    end
+    return 0
 end
 
 --- The plain-text content, for a caller with no chat window of its own
@@ -141,10 +169,11 @@ function MinimalPopup:init()
         return MinimalPopup.plainWidget(self.text, w, h, dialog, self)
     end
     -- As tall as the text needs, up to the cap: measured laid out, the way the
-    -- fitted windows are (two layouts for a text that fits, one for a longer one)
+    -- fitted windows are (two layouts either way: a text that fits at its own
+    -- height, a longer one at what its first page holds)
     self.cap = g.cap
     self.scroll_w, self.text_h = Viewer.fitContent(function(h) return build(g.text_w, h, self) end,
-        Screen:scaleBySize(10), g.cap, g.cap, self.font_size)
+        Screen:scaleBySize(10), g.cap, g.cap, self.font_size, true)
     -- A tap inside opens the full window, so the content widget's own tap (a
     -- scroll step by the half of the screen it lands in) stands down. On the
     -- instance: the switch for it is newer than some KOReader releases
@@ -154,6 +183,7 @@ function MinimalPopup:init()
         radius = not g.panel and Size.radius.window or nil,
         bordersize = g.border,
         padding = inset,
+        padding_bottom = MinimalPopup.footPadding(inset, blankUnder(self.scroll_w, self.text_h), Size.padding.small),
         margin = 0,
         background = Blitbuffer.COLOR_WHITE,
         self.scroll_w,
@@ -175,6 +205,9 @@ function MinimalPopup:init()
     else
         self.movable = MovableContainer:new{
             anchor = self:buildAnchor(),
+            -- A hold is the text's first (a word to look up); one the text
+            -- does not take is handed on to the box below, as before
+            ignore_events = self.on_select and { "hold", "hold_pan", "hold_release" } or nil,
             self.frame,
         }
         self[1] = WidgetContainer:new{
@@ -191,6 +224,19 @@ function MinimalPopup:init()
             -- as KOReader's footnote popup closes: a swipe down or back. One
             -- that starts on the text is the content's (it scrolls)
             self.ges_events.Swipe = { GestureRange:new{ ges = "swipe", range = whole } }
+        end
+        if self.on_select then
+            -- The content widget selects (these events reach it first, the
+            -- chat window's wiring); the release hands it this callback
+            self.ges_events.HoldStartText = { GestureRange:new{ ges = "hold", range = whole } }
+            self.ges_events.HoldPanText = { GestureRange:new{ ges = "hold_pan", range = whole,
+                rate = Screen.low_pan_rate and 5.0 or 30.0 } }
+            self.ges_events.HoldReleaseText = {
+                GestureRange:new{ ges = "hold_release", range = whole },
+                args = function(text, hold_duration)
+                    self.on_select(text, hold_duration, function() self:clearHighlight() end)
+                end,
+            }
         end
     end
     if Device:hasKeys() then
@@ -263,6 +309,28 @@ function MinimalPopup:onSwipe(_arg, ges)
     return false
 end
 
+-- A hold the text did not take (on the frame's edge): the box's own
+function MinimalPopup:onHoldStartText(arg, ges)
+    return self.movable and self.movable:onMovableHold(arg, ges) or false
+end
+
+function MinimalPopup:onHoldPanText(arg, ges)
+    return self.movable and self.movable:onMovableHoldPan(arg, ges) or false
+end
+
+function MinimalPopup:onHoldReleaseText(arg, ges)
+    return self.movable and self.movable:onMovableHoldRelease(arg, ges) or false
+end
+
+--- Take a selection's highlight off the text
+function MinimalPopup:clearHighlight()
+    local w = self.scroll_w
+    local inner = w and (w.htmlbox_widget or w.text_widget)
+    if inner and inner.clearHighlight and inner:clearHighlight() and inner.redrawHighlight then
+        inner:redrawHighlight()
+    end
+end
+
 function MinimalPopup:onClose()
     UIManager:close(self)
     if self.on_close then self.on_close() end
@@ -289,7 +357,8 @@ end
 --               features, is_dictionary }
 --        viewer: the chat window a tap opens (built, not shown). The popup
 --        shows the answer the way that window would (answerWidget): its view
---        mode, font, size, alignment and direction.
+--        mode, font, size, alignment and direction; a word or a passage held
+--        in it goes to that window's own handler (handleTextSelection).
 --        style: "box" (default) or "panel".
 --        only_if_fits: "When it fits" mode: build the popup, and if the whole
 --        answer does not fit under the cap, discard it and return false so
@@ -326,6 +395,13 @@ function MinimalPopup.showForResponse(opts)
     if viewer and viewer.answerWidget then
         spec.content = function(w, h, dialog) return viewer:answerWidget(text, w, h, dialog) end
         spec.font_size = viewer.markdown_font_size
+        if viewer.handleTextSelection then
+            -- what that window does with a held word or passage, here
+            spec.on_select = function(selected, hold_duration, clear_highlight)
+                viewer:handleTextSelection(selected, hold_duration, nil, nil, nil,
+                    { clear_highlight = clear_highlight })
+            end
+        end
     else
         local para_direction_rtl = nil
         if opts.rtl_language then
