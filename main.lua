@@ -23629,9 +23629,13 @@ end
 --- plugin's own sidecar files for every book the plugin can find. Runs at
 --- plugin init while chat_storage_version == 2 (v1 installs go through the
 --- v1 import, which now writes straight into the new files and stamps 3).
---- Per book: copy, verify, then delete + flush — idempotent, so an
---- interrupted pass simply re-runs on the next start; the version stamp is
---- written only after a pass with zero failures. Once per process.
+--- Per book: copy, verify, then delete + flush (idempotent). ONE pass,
+--- whatever it met: the version stamp follows it even when a book failed or
+--- the pass stopped, because a book it did not move still holds its data in
+--- metadata.lua and moves on its next read (BookStore.wrap's check, the
+--- chats read's, the book's open). Stamping only after a pass with zero
+--- failures sent every start through every book again while one book kept
+--- failing (B700). Once per process.
 function AskGPT:_runBookStoreMigration()
   local version = G_reader_settings:readSetting("chat_storage_version", 1)
   if version ~= 2 then return end
@@ -23641,20 +23645,18 @@ function AskGPT:_runBookStoreMigration()
   local features = self.settings:readSetting("features") or {}
   logger.info("KOAssistant: moving per-book data out of metadata.lua (chat storage v2 -> v3)")
   local ok, report = pcall(BookStore.migrateAll, self.ui, features)
+  G_reader_settings:saveSetting("chat_storage_version", 3)
+  G_reader_settings:flush()
   if not ok then
-    logger.warn("KOAssistant: book store migration crashed:", report)
+    logger.warn("KOAssistant: book store migration crashed (the books it did not reach move on their next read):", report)
     return
   end
   logger.info("KOAssistant: book store migration:", report.candidates, "candidates,",
     report.moved, "moved (" .. report.chats .. " chats, " .. report.keys .. " keys),",
     report.clean, "clean,", report.skipped, "skipped,", report.failed, "failed")
   for _idx, f in ipairs(report.failures) do
-    logger.info("KOAssistant: book store migration failure:", f)
+    logger.info("KOAssistant: book store migration failure (moves on its next read):", f)
   end
-  if report.failed == 0 then
-    G_reader_settings:saveSetting("chat_storage_version", 3)
-  end
-  G_reader_settings:flush()
   if report.moved > 0 then
     local moved = report.moved
     UIManager:scheduleIn(2, function()

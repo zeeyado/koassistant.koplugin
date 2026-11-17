@@ -12,7 +12,10 @@ Unit tests: koassistant/storage/book_store.lua (Track 37 — plugin data out of 
   index refreshed with the moved chats
 - ensureMigrated: straggler net once per session, retries after a failure;
   a chats read with no chats file folds the book's legacy chats in first
-- migrateAll: candidates walked, version-bump contract (zero failures)
+- migrateAll: candidates walked, failures named
+- main.lua's bulk pass (cut from the source and run, B700): the version stamp
+  follows one pass whatever it met (a failed book, a pass that stops), the
+  next start walks nothing, and the failed book moves on its next read
 - SafeDocSettings.resolve returns a facade; resolveRaw the DocSettings
 - STRUCTURAL GATES: no chats key read/write outside the store, no direct
   `ui.doc_settings:` calls in main.lua, no sidecar_dockey registry entries
@@ -191,6 +194,7 @@ local function reset()
     mock_location = "doc"
     BookStore._resetForTests()
     BookStore._resetMigrationMemoForTests()
+    BookStore._bulk_ran = nil
 end
 function TestRunner:test(name, fn)
     reset()
@@ -518,7 +522,7 @@ TestRunner:test("walks the candidates: moved / clean / skipped counted, failures
     eq(report.keys, 1, "keys counted")
 end)
 
-TestRunner:test("a failure is reported (caller keeps the version stamp for a retry)", function()
+TestRunner:test("a failure is reported, naming the book", function()
     bookFile(BOOK)
     local raw = MockDS:open(BOOK)
     raw.data.koassistant_book_domain = "history"
@@ -527,6 +531,80 @@ TestRunner:test("a failure is reported (caller keeps the version stamp for a ret
     local report = BookStore.migrateAll(nil, {})
     eq(report.failed, 1, "one failure")
     truthy(report.failures[1]:find(BOOK, 1, true), "failure names the book")
+end)
+
+-- main.lua's bulk pass, cut from the source and run against this file's
+-- store (B700). Its upvalues in main.lua are passed in as locals; the log
+-- lines are collected as "<level> <args...>".
+local function runBulkPass(log)
+    local fh = assert(io.open(plugin_dir .. "/main.lua", "r"))
+    local src = fh:read("*all"); fh:close()
+    local body = src:match("\nfunction AskGPT:_runBookStoreMigration%(%).-\nend\n")
+    assert(body, "AskGPT:_runBookStoreMigration not found in main.lua")
+    local chunk = assert(load("local AskGPT, logger, UIManager, InfoMessage, T, _ = ...\n"
+        .. body .. "\nreturn AskGPT", "=_runBookStoreMigration"))
+    local function line(level, ...)
+        local parts = { level }
+        for i = 1, select("#", ...) do parts[#parts + 1] = tostring((select(i, ...))) end
+        table.insert(log, table.concat(parts, " "))
+    end
+    local AskGPT = chunk({},
+        { info = function(...) line("info", ...) end, warn = function(...) line("warn", ...) end,
+          dbg = function() end },
+        { scheduleIn = function() end, show = function() end },
+        { new = function(_self, t) return t end },
+        function(s) return s end,
+        function(s) return s end)
+    AskGPT._runBookStoreMigration({ settings = { readSetting = function() return {} end } })
+end
+local function logHas(log, level, text)
+    for _idx, l in ipairs(log) do
+        if l:sub(1, #level + 1) == level .. " " and l:find(text, 1, true) then return true end
+    end
+    return false
+end
+
+TestRunner:test("the bulk pass stamps v3 when a book fails; the next start walks nothing and the book moves on its next read (B700)", function()
+    bookFile(BOOK)
+    local raw = MockDS:open(BOOK)
+    raw.data.koassistant_book_domain = "history"
+    raw.data._fail_flush = true   -- KOReader's file cannot be written: the book fails
+    candidates = { BOOK }
+    g_store.chat_storage_version = 2
+    local log = {}
+    runBulkPass(log)
+    eq(g_store.chat_storage_version, 3, "stamped after a pass with a failure")
+    truthy(logHas(log, "info", BOOK), "the log names the failed book")
+
+    -- The next start: the stamp ends the walk
+    BookStore._bulk_ran = nil
+    local log2 = {}
+    runBulkPass(log2)
+    eq(#log2, 0, "no second walk")
+
+    -- The next read, in a later session: metadata.lua still holds the key
+    -- (its write failed), the first touch moves it out
+    raw.data._fail_flush = false
+    raw.data.koassistant_book_domain = "history"
+    BookStore._resetForTests()
+    BookStore._resetMigrationMemoForTests()
+    local f = SafeDocSettings.resolve(BOOK)
+    truthy(BookStore.isFacade(f), "resolved through the facade")
+    eq(raw.data.koassistant_book_domain, nil, "moved out of metadata.lua")
+    eq(f:readSetting("koassistant_book_domain"), "history", "read from the plugin's own file")
+end)
+
+TestRunner:test("the bulk pass stamps v3 when the pass itself stops (B700)", function()
+    local rebuilder = package.loaded["koassistant.artifacts.index_rebuilder"]
+    local walk = rebuilder.collectCandidates
+    rebuilder.collectCandidates = function() error("walk broke") end
+    g_store.chat_storage_version = 2
+    local log = {}
+    local ok, err = pcall(runBulkPass, log)
+    rebuilder.collectCandidates = walk
+    truthy(ok, "the pass's error stays inside it: " .. tostring(err))
+    eq(g_store.chat_storage_version, 3, "stamped")
+    truthy(logHas(log, "warn", "crashed"), "the stop is a warning in the log")
 end)
 
 -- ============================================================

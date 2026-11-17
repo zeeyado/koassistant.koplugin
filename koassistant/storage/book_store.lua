@@ -28,10 +28,12 @@ our own file. Writes persist immediately (small file, rare writes, crash-safe).
 
 MIGRATION: `migrateBook` moves one book's keys out of metadata.lua
 (copy first, verify, THEN delete from metadata.lua, then flush KOReader's
-file), idempotent so an interrupted pass re-runs safely; the bulk pass runs at
-plugin init while chat_storage_version == 2 and the straggler check runs on
-first store access per book per session (an older plugin build writing into
-metadata.lua after the move is folded in, never destroyed).
+file), idempotent so an interrupted pass re-runs safely; the bulk pass runs
+ONCE at plugin init while chat_storage_version == 2 (the stamp follows the
+pass whatever it met, B700) and the straggler check runs on first store
+access per book per session, which also moves a book the pass failed (an
+older plugin build writing into metadata.lua after the move is folded in,
+never destroyed).
 ]]
 
 local lfs = require("libs/libkoreader-lfs")
@@ -585,8 +587,9 @@ function BookStore.migrateBook(document_path, raw_ds)
     data[BookStore.LEGACY_CHATS_KEY] = nil
     local okf, errf = pcall(raw_ds.flush, raw_ds)
     if not okf then
-        -- Copies are in place; the keys stay in metadata.lua and the next
-        -- pass finds them again (existing file data wins, so nothing is lost)
+        -- Copies are in place; the keys stay in metadata.lua and the book's
+        -- next read finds them again (ensureMigrated; existing file data
+        -- wins, so nothing is lost)
         logger.warn("KOAssistant BookStore: metadata.lua flush failed for", document_path, ":", errf)
         return "failed", errf
     end
@@ -651,8 +654,9 @@ end
 --- Bulk pass over every book the plugin can find (first start after the
 --- update). Candidates = the index rebuilder's discovery set (chat/notebook/
 --- artifact/pinned indexes + ReadHistory + central sidecar dirs + user index
---- folders). Books that are only reachable later are covered by
---- ensureMigrated on first access.
+--- folders). Books that are only reachable later, and the books this pass
+--- fails, are covered by ensureMigrated on first access (the caller stamps
+--- the version after one pass whatever it met, B700).
 --- @param ui table|nil ReaderUI/FileManager (live DocSettings for the open book)
 --- @param features table|nil plugin features (index_scan_folders)
 --- @return table report { candidates, moved, clean, failed, skipped, chats, keys, failures = {path,...} }
