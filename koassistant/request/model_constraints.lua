@@ -51,6 +51,9 @@ local ModelConstraints = {
         -- [0.0, 2.0)", 2026-09-28: the 3.8 family and 3.7-plus); 1.9 answers. The
         -- settings allow up to 2.0.
         _provider_max_temperature = 1.9,
+        -- Kimi K3.1 Pro as Model Studio serves it (battery 2026-11-18): "Parameter
+        -- 'temperature'=0.7 is not supported for kimi-k3 model"; 1 answers.
+        ["kimi-k3.1-pro"] = { temperature = 1.0 },
     },
     mistral = {
         _provider_max_temperature = 1.0,   -- Large 4 refuses 2.0 (battery 2026-11-06); the edge models accept it but lose nothing by the clamp
@@ -69,6 +72,7 @@ ModelConstraints.capabilities = {
         adaptive_thinking = {
             "claude-sonnet-5-5",      -- Sonnet 5.5 (adaptive ON at API default, off = "between_tools")
             "claude-opus-5-5",        -- Opus 5.5 (adaptive ON at API default, disable REJECTED)
+            "claude-fable-5-2",       -- Fable 5.2 (adaptive ON at API default, disable REJECTED; battery 2026-11-18)
             "claude-fable-5-1",       -- Fable 5.1 (off at API default, disable REJECTED: off = send nothing)
             "claude-haiku-5-5",       -- Haiku 5.5 (adaptive ON at API default, disable accepted)
             "claude-opus-5",          -- Opus 5 (adaptive ON at API default, disable accepted)
@@ -86,6 +90,7 @@ ModelConstraints.capabilities = {
         no_sampling_params = {
             "claude-sonnet-5-5",
             "claude-opus-5-5",
+            "claude-fable-5-2",       -- "temperature is deprecated for this model" (battery 2026-11-18)
             "claude-fable-5-1",
             "claude-haiku-5-5",
             "claude-opus-5",
@@ -99,10 +104,12 @@ ModelConstraints.capabilities = {
         -- thinking param: a refusal of the model itself). The book-tool gather rounds
         -- send tool_choice auto instead (anthropic_request.lua); a round that answers
         -- in prose is accepted by the runner. Under auto both called the tool and the
-        -- two-round replay held. Sonnet 5.5 the same (probed 2026-09-29).
+        -- two-round replay held. Sonnet 5.5 the same (probed 2026-09-29), and Fable 5.2
+        -- (battery 2026-11-18).
         no_forced_tool_choice = {
             "claude-sonnet-5-5",
             "claude-opus-5-5",
+            "claude-fable-5-2",
             "claude-fable-5-1",
         },
         -- Models that support extended thinking (manual budget_tokens mode)
@@ -255,6 +262,7 @@ ModelConstraints.capabilities = {
         -- openai_compatible.lua sends auto on gather rounds.
         no_forced_tool_choice = {
             "anthropic/claude-sonnet-5.5", "anthropic/claude-opus-5.5", "anthropic/claude-fable-5.1",
+            "anthropic/claude-fable-5.2",   -- battery 2026-11-18: "Provider returned error" on a forced call, auto calls the tool
             "qwen/qwen3.8-",   -- Qwen backends refuse "required" (probed on 3.8-flash here and all four
                                -- 3.8 ids direct); "qwen/qwen3" grants their tools
         },
@@ -263,6 +271,7 @@ ModelConstraints.capabilities = {
             "z-ai/glm-5.3", "moonshotai/kimi-k3", "minimax/minimax-m3",   -- batteries 2026-09-28
             "deepseek/deepseek-v4", "x-ai/grok-4", "meta-llama/llama-3.3-70b-instruct",
             "mistralai/mistral-large", "mistralai/mistral-medium", "qwen/qwen3",
+            "qwen/qwen4",   -- qwen4-max: tools + a forced call + the replay green (battery 2026-11-18)
             "moonshotai/kimi-k2", "minimax/minimax-m2",
             "openai/gpt-oss",   -- open-weight; groq probe grants the same family
         },
@@ -476,6 +485,7 @@ ModelConstraints.capabilities = {
             "glm-5.3-flash",
             "glm-5.3",
             "kimi-k3",
+            "qwen4-max",                  -- battery 2026-11-18 (forced + replay green while reasoning)
             "qwen3.8-max",
             "qwen3.8-flash",
             "MiniMax-M3",
@@ -489,6 +499,7 @@ ModelConstraints.capabilities = {
             "glm-5.3-flash",
             "glm-5.3",
             "kimi-k3",
+            "qwen4-max",                  -- battery 2026-11-18 (forced + replay green while reasoning)
             "qwen3.8-max",
             "qwen3.8-flash",
             "MiniMax-M3",
@@ -508,8 +519,12 @@ ModelConstraints.capabilities = {
         -- replay. (qwen3-max, the tools model before, was retired 2026-10-10.)
         -- enable_search web search is wired in qwen.lua (server-side injection; no
         -- sources on this wire).
-        thinking = { "qwen3.8-", "qwen3.7-", "qwen3.5-", "deepseek-v4.1-flash-1017" },   -- the DeepSeek id: enable_thinking on and off (battery 2026-11-06)
-        tools = { "qwen3.8-max", "qwen3.8-flash", "qwen3.5-plus", "qwen3.5-flash", "deepseek-v4.1-flash-1017" },
+        -- qwen4-max and kimi-k3.1-pro (batteries 2026-11-18): reason by default,
+        -- enable_thinking on and off accepted, tools + a forced call + the replay green.
+        thinking = { "qwen4-", "qwen3.8-", "qwen3.7-", "qwen3.5-", "deepseek-v4.1-flash-1017", "kimi-k3.1-pro" },   -- the DeepSeek id: enable_thinking on and off (battery 2026-11-06)
+        -- Reasoning-class models (in sync with reasoning_profiles; read by the debug view)
+        reasoning = { "qwen4-", "qwen3.8-", "qwen3.7-", "qwen3.5-", "deepseek-v4.1-flash-1017", "kimi-k3.1-pro" },
+        tools = { "qwen4-max", "qwen3.8-max", "qwen3.8-flash", "qwen3.5-plus", "qwen3.5-flash", "deepseek-v4.1-flash-1017", "kimi-k3.1-pro" },
     },
     kimi = {
         -- kimi-k2.6 probed live 2026-08-15 (international platform): thinks by
@@ -560,7 +575,7 @@ ModelConstraints.capabilities = {
         reasoning = {
             "nvidia/nemotron-3",
             "stepfun-ai/step-5-preview",   -- reasoning_content by default (battery 2026-11-06)
-            "openai/gpt-oss-20b",          -- effort low/medium/high (battery 2026-10-20); its profile sat ungated
+            "mistralai/mistral-large-4",   -- reasons by default, effort low/medium/high (battery 2026-11-18)
         },
         -- Function calling. EXACT ids, never a family prefix: within the very same
         -- nemotron-3 family some models emit structured tool_calls under
@@ -588,6 +603,9 @@ ModelConstraints.capabilities = {
         -- openai/gpt-oss-20b each returned real tool_calls under auto, forced and
         -- the replay in ONE battery; a grant waits for the repeated samples this
         -- note asks for (gpt-oss-20b answered prose under auto before).
+        -- 2026-11-18: gpt-oss-20b reached its end of life (410). mistralai/
+        -- mistral-large-4-1t-a52b returned real tool_calls under auto, forced and the
+        -- replay in one battery; the same wait applies.
         tools = {},
     },
     perplexity = {
@@ -683,7 +701,8 @@ ModelConstraints._max_output_tokens = {
         ["gemini-3"] = 65536,            -- 3.x family (docs; OpenRouter catalog agrees)
         ["gemini-4"] = 32768,            -- Argon: models-endpoint outputTokenLimit and the guide's
                                          -- per-request cap without streaming (65536 streaming; a larger
-                                         -- ask is accepted, 2026-10-14)
+                                         -- ask is accepted, 2026-10-14); Carbon's outputTokenLimit too
+        ["gemini-4-hydrogen"] = 65536,   -- models-endpoint outputTokenLimit (battery 2026-11-18)
         ["gemini-2.5"] = 65536,          -- 2.5 family (docs)
     },
     xai = {
@@ -700,6 +719,10 @@ ModelConstraints._max_output_tokens = {
         ["qwen3-max"] = 65536,           -- ceiling from oversized-max_tokens error (probed 2026-08-15)
         -- Oversized-max_tokens error text, --recheck --ceilings / battery 2026-09-28:
         ["qwen3.8-"] = 131072,           -- max, flash, 27b, 2.4t-a95b ("-": "." is a wildcard here)
+        ["kimi-k3.1-pro"] = 1048576,     -- stated in the refusal (battery 2026-11-18)
+        ["qwen4-max"] = 131072,          -- OpenRouter's largest endpoint cap for the model (2026-11-18); the
+                                         -- direct API took an oversized ask without a word, so this raises
+                                         -- the default answer length to the 3.8 pair's and cannot 400
         ["qwen3.7-"] = 131072,           -- plus (battery); max/flash unprobed, same family
         ["qwen3.5-plus"] = 65536,
         ["qwen3.5-flash"] = 65536,
@@ -707,7 +730,7 @@ ModelConstraints._max_output_tokens = {
         ["qwen-turbo"] = 16384,
     },
     nvidia = {
-        ["openai/gpt-oss-20b"] = 131072,  -- oversized-request error text (recheck 2026-09-28)
+        ["mistralai/mistral-large-4-1t-a52b"] = 1048576,       -- stated in the refusal (battery 2026-11-18)
         ["nvidia/nemotron-3.5-super-vl-120b-a12b"] = 1048576,  -- stated by the oversized-request refusal (battery 2026-10-20)
         ["nvidia/nemotron-3-ultra-550b-a55b"] = 1048576,       -- stated in the refusal (recheck 2026-11-06)
         ["nvidia/nemotron-3-nano-omni-30b-a3b-reasoning"] = 1048576,   -- same
@@ -731,6 +754,7 @@ ModelConstraints._max_output_tokens = {
         ["google/gemini-4"] = 65536,     -- Google's streaming per-request cap (the endpoints state 943718,
                                          -- long decode, which this plugin does not use)
         ["qwen/qwen3.8-max"] = 131072,   -- largest endpoint cap (battery 2026-10-14)
+        ["qwen/qwen4-max"] = 131072,     -- largest endpoint cap (battery 2026-11-18)
         ["deepseek/deepseek-v4-pro"] = 384000,
         ["deepseek/deepseek-v4-flash"] = 131072,
         ["meta-llama/llama-3.3-70b-instruct"] = 16384,
@@ -803,6 +827,7 @@ ModelConstraints._max_output_tokens = {
         ["MiniMax-M3"] = 524288,
         ["MiniMax-M3.1-Flash"] = 524288,          -- battery 2026-11-06
         ["DeepSeek-V4.1-Flash-1017"] = 393216,    -- battery 2026-11-06
+        ["deepseek-v4-flash"] = 393216,           -- stated in the refusal (recheck 2026-11-18)
         ["deepseek-v4-pro"] = 393216,             -- stated in the refusal (recheck 2026-11-06)
         ["deepseek-v4.1-flash"] = 393216,         -- same
     },
@@ -961,6 +986,7 @@ ModelConstraints._context_windows = {
         ["google/gemini-3"]             = 1048576,
         ["google/gemini-4"]             = 1048576, -- [OR] catalog 2026-10-14
         ["qwen/qwen3.8-max"]            = 1000000, -- [OR] catalog 2026-10-14
+        ["qwen/qwen4-max"]              = 1000000, -- Alibaba's model page 2026-11-18 (1M; max input 991,808)
         ["deepseek/deepseek-v4"]        = 1000000,
         ["x-ai/grok-4.3"]               = 1000000,
         ["x-ai/grok-4.20"]              = 1000000, -- [probe] xAI's own API; [OR]'s 2M rejected
@@ -1143,6 +1169,9 @@ ModelConstraints.reasoning_profiles = {
         -- rejected — verified 2026-07-24), rejects sampling params, full effort ladder incl.
         -- xhigh/max (max accepted). can_disable=false → minimal stance drops to lowest effort,
         -- not off. default_state="on" also triggers the display=summarized carve-out.
+        -- Fable 5.2 (2026-11-09, $8/$40; battery 2026-11-18) is this shape and is matched
+        -- by this prefix: a thinking block on a bare request, disabled and budget mode
+        -- refused, low..max accepted, 128K out, sampling refused.
         { match = "claude-fable-5", axis = "adaptive_effort", default_state = "on",
           can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh", "max" }, default_option = "high",
@@ -1246,6 +1275,14 @@ ModelConstraints.reasoning_profiles = {
           can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "xhigh" } } },
+        -- GPT-6.2 Sol and Astra (2026-11-17; batteries 2026-11-18): the 6.1-sol shape.
+        -- Reason by default, "none", "minimal" and "max" refused, low..xhigh accepted;
+        -- the family entry below would send "none" on Minimal and 400. The prefix
+        -- covers later 6.2 ids on the safe side, as the 6.1 row does.
+        { match = "gpt-6.2-", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { state = "on", option = "xhigh" } } },
         { match = "gpt-6", axis = "effort", default_state = "on",
           can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
@@ -1297,6 +1334,15 @@ ModelConstraints.reasoning_profiles = {
         -- thinkingBudget is accepted but only maps to the nearest level ("returns a
         -- warning"): budget 0 thought 174 tokens on the harder prompt, so no disable.
         { match = "gemini-4-argon", axis = "effort", default_state = "on",
+          can_disable = false, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
+        -- gemini-4-carbon and gemini-4-hydrogen (batteries 2026-11-18, paid key): the
+        -- Argon shape. Think by default, low/medium/high OK, MINIMAL rejected, a budget
+        -- of 0 accepted and ignored (435 and 1151 thought tokens), temperature accepted,
+        -- tools + ANY/NONE + replay + SSE green. A family row: a later Gemini 4 id
+        -- inherits the shape that cannot 400 (no MINIMAL, no off).
+        { match = "gemini-4", axis = "effort", default_state = "on",
           can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
@@ -1436,6 +1482,12 @@ ModelConstraints.reasoning_profiles = {
         -- also catch qwen3-8b.)
         { match = "deepseek-v4.1-flash-1017", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },   -- battery 2026-11-06
+        { match = "kimi-k3.1-pro", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },   -- battery 2026-11-18
+        -- qwen4-max (2026-11-16; battery 2026-11-18): a few reasoning tokens on the bare
+        -- request, enable_thinking on and off accepted
+        { match = "qwen4-", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         { match = "qwen3.8-", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
           stance_map = { minimal = { state = "off" }, maximum = { state = "on" } } },
         { match = "qwen3.7-", axis = "binary", default_state = "on", can_disable = true, can_enable = true,
@@ -1501,6 +1553,11 @@ ModelConstraints.reasoning_profiles = {
         { match = "openai/gpt-6.1-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
+        -- GPT-6.2 Sol and Astra (batteries 2026-11-18): "Reasoning is mandatory" for
+        -- effort none and enabled=false, as on their own API.
+        { match = "openai/gpt-6.2-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
+          stance_map = { minimal = { option = "low" }, maximum = { option = "xhigh" } } },
         { match = "openai/gpt-6", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high", "xhigh" }, default_option = "medium",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "xhigh" } } },
@@ -1540,6 +1597,11 @@ ModelConstraints.reasoning_profiles = {
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
         { match = "minimax/minimax-m3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
+          options = { "low", "medium", "high" }, default_option = "high",
+          stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
+        -- qwen/qwen4-max (battery 2026-11-18): reasons by default; effort none and
+        -- enabled=false accepted, every effort value accepted (OpenRouter normalizes them).
+        { match = "qwen/qwen4-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "high" } } },
         -- qwen/qwen3.8-max-0902 (battery 2026-10-14): "Reasoning is mandatory" for effort
@@ -1617,10 +1679,11 @@ ModelConstraints.reasoning_profiles = {
         { match = "nvidia/nemotron-3", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high", off_option = "none",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
-        -- gpt-oss-20b reasons by default (recheck 2026-09-28); battery 2026-10-20:
-        -- effort low/medium/high accepted, "none", "minimal", "xhigh" and "max"
-        -- refused (literal_error), so no off (Groq's gpt-oss shape).
-        { match = "openai/gpt-oss-20b", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+        -- mistralai/mistral-large-4-1t-a52b (battery 2026-11-18): reasons by default;
+        -- effort low/medium/high accepted, "none", "minimal", "xhigh" and "max" refused
+        -- ("Invalid request"), so no off. (openai/gpt-oss-20b, the same shape, reached
+        -- its end of life 2026-11-18: its row left with it.)
+        { match = "mistralai/mistral-large-4", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
           options = { "low", "medium", "high" }, default_option = "high",
           stance_map = { minimal = { option = "low" }, maximum = { option = "high" } } },
     },
@@ -1839,6 +1902,12 @@ ModelConstraints.reasoning_profiles = {
         { match = "qwen3.8-", axis = "effort", default_state = "on", can_disable = true, can_enable = true,
           options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
           stance_map = { minimal = { state = "off" }, maximum = { state = "on", option = "max" } } },
+        -- qwen4-max (battery 2026-11-18): reasons by default, every effort value answers
+        -- 200. Its off (thinking disabled, this gateway's switch) was not checked
+        -- against the reply, so the row never sends one: Minimal = the lowest effort.
+        { match = "qwen4-", axis = "effort", default_state = "on", can_disable = false, can_enable = true,
+          options = { "minimal", "low", "medium", "high", "xhigh", "max" }, default_option = "high",
+          stance_map = { minimal = { state = "on", option = "minimal" }, maximum = { state = "on", option = "max" } } },
         -- Reasoning arrives as <think> tags; reasoning_effort is ignored and
         -- thinking={type="enabled"} is refused (allowed: adaptive, disabled),
         -- so on = the default (nothing sent), off = thinking disabled.

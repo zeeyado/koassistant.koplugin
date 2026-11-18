@@ -1635,7 +1635,79 @@ TestRunner:test("every NVIDIA id with an effort profile has the reasoning capabi
             TestRunner:assertTrue(ModelConstraints.supportsCapability("nvidia", id, "reasoning"), "gated: " .. id)
         end
     end
-    TestRunner:assertTrue(ModelConstraints.supportsCapability("nvidia", "openai/gpt-oss-20b", "reasoning"))
+    -- gpt-oss-20b, the id this was written for, reached its end of life 2026-11-18;
+    -- Mistral Large 4 has the same shape there (effort low/medium/high, no off)
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("nvidia", "mistralai/mistral-large-4-1t-a52b", "reasoning"))
+    local prof = ModelConstraints.getReasoningProfile("nvidia", "mistralai/mistral-large-4-1t-a52b")
+    TestRunner:assertEqual(prof and prof.can_disable, false, "no off: Minimal sends the lowest effort")
+    TestRunner:assertEqual(ModelLists._retired.nvidia["openai/gpt-oss-20b"], ModelLists._tiers.fast.nvidia,
+        "the retired fast pick moves to today's")
+end)
+
+TestRunner:test("round 2026-11-18: Minimal and an action's off send only what the new models accept", function()
+    local ModelLists = require("koassistant.request.model_lists")
+    local function both(provider, model)
+        local minimal = offWire(provider, model)
+        local off = offWire(provider, model, { action_override = { force = "off" } })
+        return minimal, off
+    end
+    -- Fable 5.2: a thinking block on a bare request, "disabled" refused, low..max accepted
+    for _i, ap in ipairs({ both("anthropic", "claude-fable-5-2") }) do
+        TestRunner:assertEqual(ap.thinking and ap.thinking.type, "adaptive", "fable 5.2 is never sent disabled")
+        TestRunner:assertEqual(ap.output_config and ap.output_config.effort, "low", "its lowest effort")
+    end
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("anthropic", "claude-fable-5-2", "no_forced_tool_choice"),
+        "fable 5.2 refuses a forced tool call: gather rounds send auto")
+    TestRunner:assertEqual(ModelConstraints.resolveReasoning("anthropic", "claude-fable-5-2", { global_stance = "maximum" }).effort,
+        "max", "max is accepted")
+    -- GPT-6.2 Sol and Astra: "none" and "minimal" refused on their own API and through OpenRouter
+    for _i, model in ipairs({ "gpt-6.2-sol", "gpt-6.2-astra" }) do
+        for _j, ap in ipairs({ both("openai", model) }) do
+            TestRunner:assertEqual(ap.reasoning and ap.reasoning.effort, "low", model .. ": lowest, never none")
+        end
+        for _j, ap in ipairs({ both("openrouter", "openai/" .. model) }) do
+            TestRunner:assertEqual(ap.openrouter_reasoning and ap.openrouter_reasoning.effort, "low", "OR " .. model .. ": lowest")
+            TestRunner:assertEqual(ap.openrouter_reasoning.enabled, nil, "OR " .. model .. ": never enabled=false")
+        end
+        TestRunner:assertEqual(ModelConstraints.resolveReasoning("openai", model, { global_stance = "maximum" }).effort,
+            "xhigh", model .. ": max is refused, xhigh is the top")
+    end
+    -- Gemini 4 Carbon and Hydrogen: MINIMAL refused, a budget of 0 is no off
+    for _i, model in ipairs({ "gemini-4-carbon", "gemini-4-hydrogen" }) do
+        for _j, ap in ipairs({ both("gemini", model) }) do
+            TestRunner:assertEqual(ap.thinking_level, "low", model .. ": low, never minimal")
+            TestRunner:assertEqual(ap.thinking_budget, nil, model .. ": no budget")
+        end
+    end
+    TestRunner:assertEqual(offWire("openrouter", "anthropic/claude-fable-5.2").openrouter_reasoning.effort, "low",
+        "OR fable 5.2: reasoning is mandatory there")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("openrouter", "anthropic/claude-fable-5.2", "no_forced_tool_choice"))
+    -- Qwen4-Max: enable_thinking=false accepted on Model Studio, effort none on OpenRouter;
+    -- on A2Agent its off was not checked against a reply, so none is sent
+    TestRunner:assertEqual(offWire("qwen", "qwen4-max").qwen_thinking.enabled, false, "Model Studio: off is enable_thinking=false")
+    TestRunner:assertEqual(offWire("openrouter", "qwen/qwen4-max").openrouter_reasoning.enabled, false, "OR qwen4-max turns off")
+    TestRunner:assertEqual(offWire("a2agent", "qwen4-max").a2agent_reasoning.effort, "minimal", "A2Agent: the lowest effort, no off")
+    TestRunner:assertTrue(ModelConstraints.supportsCapability("qwen", "qwen4-max", "tools"))
+    TestRunner:assertEqual(ModelConstraints.supportsCapability("a2agent", "qwen4-max", "no_forced_tool_choice"), false,
+        "A2Agent's qwen4-max took the forced call while reasoning")
+    -- Kimi K3.1 Pro on Model Studio: temperature 1 only
+    local body = { temperature = 0.7 }
+    ModelConstraints.apply("qwen", "kimi-k3.1-pro", body)
+    TestRunner:assertEqual(body.temperature, 1.0, "Model Studio's kimi-k3.1-pro takes temperature 1 only")
+    -- every id the round listed is in its picker, and none that left is
+    local function listed(provider, id)
+        for _i, m in ipairs(ModelLists[provider]) do if m == id then return true end end
+        return false
+    end
+    for _i, pm in ipairs({ { "anthropic", "claude-fable-5-2" }, { "openai", "gpt-6.2-sol" }, { "openai", "gpt-6.2-astra" },
+            { "a2agent", "qwen4-max" }, { "openrouter", "anthropic/claude-fable-5.2" }, { "openrouter", "openai/gpt-6.2-sol" },
+            { "openrouter", "qwen/qwen4-max" }, { "perplexity", "openai/gpt-6.2-sol" },
+            { "nvidia", "mistralai/mistral-large-4-1t-a52b" } }) do
+        TestRunner:assertTrue(listed(pm[1], pm[2]), pm[1] .. " lists " .. pm[2])
+    end
+    for _i, pm in ipairs({ { "anthropic", "claude-fable-5" }, { "openai", "gpt-6-sol" }, { "nvidia", "openai/gpt-oss-20b" } }) do
+        TestRunner:assertEqual(listed(pm[1], pm[2]), false, pm[2] .. " left " .. pm[1] .. "'s picker")
+    end
 end)
 
 return TestRunner:summary()

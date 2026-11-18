@@ -25,18 +25,18 @@ The Reasoning tile in Quick Settings shows the effective state for the current m
 | Claude Sonnet 5, Opus 5, Haiku 5.5 | adaptive, on by default | Off / effort low to max, xhigh included |
 | Claude Opus 5.5 | adaptive, on by default | effort low to max, xhigh included; cannot be fully disabled |
 | Claude Fable 5.1 | adaptive, off by default (thinks when asked) | Off / effort low to max, xhigh included |
-| Claude Fable 5 | adaptive, always on | effort low to max, xhigh included; cannot be fully disabled |
+| Claude Fable 5.2, Fable 5 | adaptive, always on | effort low to max, xhigh included; cannot be fully disabled |
 | Claude Opus 4.8 / 4.7 / 4.6, Sonnet 4.6 | adaptive, off by default | Off / effort low to high; Opus adds xhigh, max |
-| Gemini 4 Argon, Gemini 3 (3.8 / 3.6 flash, 3.1 pro) | thinks by default | effort low to high (3.6 flash also minimal); cannot be fully disabled |
+| Gemini 4 (Carbon, Hydrogen, Argon), Gemini 3 (3.8 / 3.6 flash, 3.1 pro) | thinks by default | effort low to high (3.6 flash also minimal); cannot be fully disabled |
 | Gemini 3 flash-lite (3.5, 3.1) | off by default | Off / effort minimal to high |
 | OpenAI GPT-6 sol / luna | reasons by default | Off / effort low to xhigh |
-| OpenAI GPT-6 astra, GPT-6.1 sol | reasons by default | effort low to xhigh; cannot be fully disabled |
+| OpenAI GPT-6.2 sol / astra, GPT-6.1 sol, GPT-6 astra | reasons by default | effort low to xhigh; cannot be fully disabled |
 | OpenAI GPT-6.1 terra (the default), GPT-5.6 terra, GPT-5.6 family | reasons by default (medium) | Off / effort low to xhigh |
 | OpenAI GPT-5.4 family | off by default (gated) | Off / effort low to xhigh |
 | OpenAI GPT-5.5 | reasons by default | effort low / medium / high; cannot be fully disabled |
 | DeepSeek V4 and Flash, Z.AI GLM-4.7 to 5.2 | thinks by default | On / Off |
 | Z.AI GLM-5.3 family | always thinks | no control |
-| Qwen 3.8 / 3.7 / 3.5 (the Qwen provider) | reasons by default | Off / On |
+| Qwen4-Max, Qwen 3.8 / 3.7 / 3.5 (the Qwen provider) | reasons by default | Off / On |
 | xAI Grok 4.7, 4.6, 4.5 | reasons by default | effort minimal to xhigh; cannot be fully disabled |
 | xAI Grok 4.3 | reasons by default | Off / effort low / medium / high |
 | xAI Grok 4.20 reasoning | always reasons | no control |

@@ -18,15 +18,16 @@ local ModelLists = {
         -- picks (flagship, frontier, fast), then one previous version per line.
         "claude-sonnet-5-5",            -- default + standard (2026-09-28, $2/$10, balanced); adaptive thinking on, off = "between_tools", no forced tool calls
         "claude-opus-5-5",              -- flagship: deep reasoning (2026-09-22, $4/$20); thinking on, NO disable, no forced tool calls
-        "claude-fable-5-1",             -- frontier: most capable (2026-09-01, $10/$50); thinks only when asked, no forced tool calls
+        "claude-fable-5-2",             -- frontier: most capable (2026-11-09, $8/$40; battery 2026-11-18); thinks by default, NO disable, effort low..max, no forced tool calls
         "claude-haiku-5-5",             -- fast + ultrafast (2026-10-07, $0.10/$0.50 up to 100K prompt tokens, 5x above); adaptive thinking on, disable ok
                                         -- (replaces claude-haiku-4-5-20251001, still served: saved picks keep working)
         -- Previous generation, one per line. Still served, so an explicit pick of an id
         -- that left the picker is kept (resolveModelRefresh); a default baked long ago
         -- moves to today's default. Left 2026-10-11: claude-sonnet-4-6, claude-opus-4-8.
+        -- Left 2026-11-18: claude-fable-5 (Fable 5.1 is the one previous frontier now).
         "claude-sonnet-5",              -- previous default; adaptive thinking on, disable ok, rejects sampling params
         "claude-opus-5",                -- previous flagship (2026-07-24, $5/$25); adaptive thinking on, disable ok, rejects sampling
-        "claude-fable-5",               -- previous frontier; adaptive thinking ALWAYS-ON (no disable), rejects sampling, premium price
+        "claude-fable-5-1",             -- previous frontier (2026-09-01, $10/$50); thinks only when asked, no forced tool calls
     },
 
     openai = {
@@ -44,15 +45,21 @@ local ModelLists = {
         -- previous terra. GPT-5.6's own page now names medium as its default
         -- effort (web check 2026-11-06; the recheck saw a few reasoning tokens).
         -- Prices per M tokens from OpenRouter's catalog, 2026-10-11 and 2026-11-06.
+        -- GPT-6.2 Sol and Astra (2026-11-17; batteries 2026-11-18): the 6.1-sol
+        -- shape, reason by default and cannot turn it off ("none" and "minimal"
+        -- refused), low..xhigh (no max), 128K out, temperature 1.0 only, tools +
+        -- web search on Responses; they take the flagship and frontier slots.
         "gpt-6.1-terra",                -- default + standard: the balanced pick ($1/$5)
-        "gpt-6.1-sol",                  -- flagship ($2/$10, like 6-sol); cannot turn reasoning off
-        "gpt-6-astra",                  -- frontier ($10/$50); cannot turn reasoning off
+        "gpt-6.2-sol",                  -- flagship ($2/$10, like 6.1-sol); cannot turn reasoning off
+        "gpt-6.2-astra",                -- frontier ($8/$40, below 6-astra's $10/$50); cannot turn reasoning off
         "gpt-6-luna",                   -- fast + ultrafast: the cheapest OpenAI model ($0.10/$0.50; half of 5.6-luna, below 5.4-nano); off = "none"
         -- Previous generation, one per line. Still served on the API, so an explicit
         -- pick of an id that left the picker is kept (resolveModelRefresh). Left
         -- 2026-10-11: gpt-5.6-sol, gpt-5.5, gpt-5.4, gpt-5.4-mini, gpt-5.4-nano.
+        -- Left 2026-11-18: gpt-6-sol (6.1-sol is the one previous sol now).
         "gpt-5.6-terra",                -- previous terra ($2/$12); the default until 2026-11-06
-        "gpt-6-sol",                    -- previous sol ($2/$10); turns reasoning off
+        "gpt-6.1-sol",                  -- previous sol ($2/$10); cannot turn reasoning off
+        "gpt-6-astra",                  -- previous astra ($10/$50); cannot turn reasoning off
         "gpt-5.6-luna",                 -- previous luna ($0.20/$1.20); reasoning opt-in
         -- NOTE: *-pro variants are v1/responses only (not chat-completions): excluded.
     },
@@ -99,19 +106,25 @@ local ModelLists = {
                                         -- low/medium/high, MINIMAL rejected, tools + replay +
                                         -- streaming green, grounding on the paid key, answers
                                         -- on a free key)
-        "gemini-4-argon",               -- frontier (GA 2026-10-13, paid only: $2/$10 to 2026-11-30, then
-                                        -- $4/$20). Battery 2026-10-14: thinks by default, low/medium/high,
-                                        -- MINIMAL rejected, a budget of 0 does not turn it off; tools,
-                                        -- replay, streaming and grounding green
+        -- Gemini 4 (batteries 2026-10-14 and 2026-11-18, paid key): all three think by
+        -- default, take low/medium/high, reject MINIMAL, and a budget of 0 does not turn
+        -- thinking off; tools, replay and streaming green (grounding was probed on Argon
+        -- alone; Carbon and Hydrogen take it from the family grant).
+        "gemini-4-carbon",              -- frontier: Google's "strongest reasoning model" (GA 2026-11-10,
+                                        -- paid only: $2/$10 to 2026-11-30, then $4/$20)
+        "gemini-4-hydrogen",            -- Google's general-purpose Gemini 4 model, its named upgrade from
+                                        -- 3.8 Flash (GA 2026-11-12, $1.50/$7.50; free tier per its pricing
+                                        -- page, not checked with a free key). No tier slot yet: 3.8 Flash
+                                        -- costs half until 2026-12-31 and the same from 2027-01-01
         "gemini-3.5-flash-lite",        -- fast/ultrafast (newest lite)
         -- Since 2026-10-08 Google answers gemini-3.7-flash with 3.8-flash and gemini-3.5-flash
         -- with 3.6-flash (the response's modelVersion says so): both left the picker and
         -- saved picks move via _retired.
+        "gemini-4-argon",               -- previous frontier (GA 2026-10-13, paid only; the same price as
+                                        -- Carbon, "faster responses and lower token spend per turn")
         "gemini-3.6-flash",             -- previous flash
-        "gemini-3.1-pro-preview",       -- previous frontier, reasoning (paid only; full battery green
-                                        -- on a paid key 2026-08-15: effort low/medium/high, no
-                                        -- disable, tools + grounding work)
-        "gemini-3.1-flash-lite",        -- previous lite
+        "gemini-3.1-flash-lite",        -- previous lite (Google shuts it down 2027-05-07)
+        -- gemini-3.1-pro-preview left the picker 2026-11-18 (one previous frontier: Argon).
         -- The 2.5 models left the picker 2026-10-14 (maintainer: one previous version per
         -- line). Google serves them only to accounts that used them before (2026-09-18);
         -- an explicit pick is kept (resolveModelRefresh) and Fetch models adds them back.
@@ -217,24 +230,26 @@ local ModelLists = {
         -- applied here 2026-10-14): the current models first, then one previous version
         -- per line. Left the picker 2026-10-14, still served (a saved pick is kept):
         -- claude-sonnet-4.6, claude-opus-4.8, gpt-5.6-sol, gpt-5.5, gpt-5.4, gpt-5.4-mini.
+        -- Left 2026-11-18 the same way: claude-fable-5, gpt-6-sol.
 
         -- Anthropic
         "anthropic/claude-sonnet-5.5",  -- default (2026-09-28; battery 2026-09-29); reasoning cannot be turned off here, Minimal = low
         "anthropic/claude-opus-5.5",    -- deep reasoning flagship (2026-09-22; battery 2026-09-28)
-        "anthropic/claude-fable-5.1",   -- most capable / frontier (2026-09-01; battery 2026-09-28)
+        "anthropic/claude-fable-5.2",   -- most capable / frontier (2026-11-09; battery 2026-11-18: reasoning mandatory, forced tool calls refused)
         "anthropic/claude-haiku-5.5",   -- fast (2026-10-07; battery 2026-10-08: reasons by default, turns off here)
         "anthropic/claude-sonnet-5",    -- previous default
         "anthropic/claude-opus-5",      -- previous flagship (a -fast variant exists at 2x price; not listed)
-        "anthropic/claude-fable-5",     -- previous frontier
+        "anthropic/claude-fable-5.1",   -- previous frontier (2026-09-01; battery 2026-09-28)
 
         -- OpenAI (gpt-6: astra > sol > luna, reason by default; battery 2026-09-28;
         -- gpt-5.6: sol > terra > luna)
         "openai/gpt-6.1-terra",         -- 2026-10-26; battery 2026-11-06 (reasons by default, off = none)
-        "openai/gpt-5.6-terra",
-        "openai/gpt-6.1-sol",           -- cannot turn reasoning off (battery 2026-09-30)
-        "openai/gpt-6-astra",
+        "openai/gpt-6.2-sol",           -- 2026-11-17; battery 2026-11-18 (reasoning mandatory here)
+        "openai/gpt-6.2-astra",         -- 2026-11-17; battery 2026-11-18 (reasoning mandatory here)
         "openai/gpt-6-luna",
-        "openai/gpt-6-sol",             -- previous sol
+        "openai/gpt-5.6-terra",         -- previous terra
+        "openai/gpt-6.1-sol",           -- previous sol; cannot turn reasoning off (battery 2026-09-30)
+        "openai/gpt-6-astra",           -- previous astra
         "openai/gpt-5.6-luna",          -- previous luna
         -- OpenAI open-weight (Apache 2.0; ids live-verified on the catalog
         -- 2026-08-04, a 20b ":free" variant also exists)
@@ -243,7 +258,9 @@ local ModelLists = {
 
         -- Google
         "google/gemini-3.8-flash",      -- battery 2026-09-28 (reasoning mandatory here)
-        "google/gemini-4-argon",        -- battery 2026-10-14 (reasoning mandatory here; $2/$10 to 2026-11-30)
+        "google/gemini-4-carbon",       -- 2026-11-10; battery 2026-11-18 (reasoning mandatory here; $2/$10 to 2026-11-30, then $4/$20)
+        "google/gemini-4-hydrogen",     -- 2026-11-12; battery 2026-11-18 (reasoning mandatory here; $1.50/$7.50)
+        "google/gemini-4-argon",        -- battery 2026-10-14 (reasoning mandatory here; the same price as Carbon)
         "google/gemini-3.6-flash",
         "google/gemini-3.5-flash-lite",
         -- google/gemini-3.7-flash and 3.5-flash left the picker 2026-10-14: Google's own API
@@ -274,6 +291,7 @@ local ModelLists = {
 
         -- Qwen (qwen3-max and qwen3-235b-a22b answer 404 "deprecated on Oct 9, 2026";
         -- saved picks move via _retired)
+        "qwen/qwen4-max",                               -- 2026-11-16; battery 2026-11-18 (reasons by default, turns off here; tools + forced + replay green)
         "qwen/qwen3.8-max-0902",                        -- battery 2026-10-14 (reasoning mandatory here, forced tools OK)
         "qwen/qwen3.8-flash",                           -- battery 2026-09-28 (forced tool calls refused: auto)
 
@@ -333,7 +351,8 @@ local ModelLists = {
         -- Fable 5.1 with a dot, unlike Sonnet/Opus 5.5)
         "anthropic/claude-sonnet-5-5",
         "anthropic/claude-opus-5-5",    -- deep-reasoning flagship
-        "anthropic/claude-fable-5.1",   -- frontier
+        "anthropic/claude-fable-5.2",   -- frontier (in the catalog 2026-11-18, dotted like 5.1)
+        "anthropic/claude-fable-5.1",   -- previous frontier
         "anthropic/claude-sonnet-5",
         "anthropic/claude-opus-5",      -- previous flagship (no dotted version, so the hyphenation rule is moot)
         "anthropic/claude-fable-5",     -- previous frontier (verified in catalog 2026-07-28)
@@ -354,11 +373,19 @@ local ModelLists = {
         -- Qwen3.8 (2026-08/09, 1M context). Probed 2026-09-28: reason by default
         -- (enable_thinking=false turns it off on the wire, api_params.qwen_thinking, B368), temp
         -- [0, 2), 128K out; forced tool calls refused while thinking, so no tools.
-        "qwen3.8-max",                  -- default + flagship (since 2026-10-14)
-        "qwen3.8-flash",
-        "qwen3.5-plus",                 -- standard
+        -- Qwen4-Max (2026-11-16, $1.50/$4.50, 1M context; battery 2026-11-18): reasons by
+        -- default, enable_thinking on and off, temp [0, 2), tools + a forced call + the
+        -- replay green while thinking (the 3.8 pair refuses the forced call then).
+        "qwen4-max",                    -- default + flagship (since 2026-11-18)
+        "qwen3.8-flash",                -- standard (since 2026-11-18: Qwen's own replacement for 3.5-plus)
         "qwen3.5-flash",                -- fast + ultrafast
+        "qwen3.8-max",                  -- previous flagship; the default from 2026-10-14 to 2026-11-18
+        "qwen3.5-plus",                 -- Qwen retires it 2027-01-19 (its notice of 2026-11-18 names
+                                        -- 3.5-plus, its two dated snapshots and 3.5-397b-a17b; the
+                                        -- replacement it names is qwen3.8-flash). Still served: listed
+                                        -- until the release nearest that date, no tier points at it
         "deepseek-v4.1-flash-1017",     -- DeepSeek V4.1 Flash (2026-10-17) as Model Studio serves it; battery 2026-11-06: thinks by default, enable_thinking off works, temperature 0 to 2, tools + forced + replay green
+        "kimi-k3.1-pro",                -- Kimi K3.1 Pro as Model Studio serves it; battery 2026-11-18: thinks by default, enable_thinking on and off, temperature 1 only, 1M out, tools + forced + replay green
         -- Gone 2026-10-14 (saved picks move via _retired): qwen3-max and qwen3-coder-plus
         -- answer 404 "Model not exist" (Alibaba's retirement of 2026-10-10); qwen-turbo
         -- left the list and answers only 429 "exceeded your current request limit".
@@ -436,9 +463,12 @@ local ModelLists = {
         -- gpt-oss (Production tier)
         "gpt-oss-120b",                                      -- flagship (default)
         -- (the DeepSeek V3 pair left the catalog by 2026-11-06; catalog evidence, the key is refused)
-        -- Llama 3.x
-        "Meta-Llama-3.3-70B-Instruct",                       -- standard/fast
+        -- (Meta-Llama-3.3-70B-Instruct, the standard and fast pick, left the live model list
+        -- and the pricing page by 2026-11-18; the docs page still names it. Catalog
+        -- evidence: the key is refused. Saved picks move via _retired.)
         -- Other
+        "GLM-5.3",                                           -- in the catalog since 2026-11-11 ("Z.ai's flagship";
+                                                             -- reasoning_effort low/high/max per SambaNova; not probed)
         "MiniMax-M3.1-Flash",                                -- replaced MiniMax-M3 in the catalog by 2026-11-06
                                                              -- (catalog only: the key is refused)
         "gemma-4-31B-it",
@@ -478,8 +508,9 @@ local ModelLists = {
     perplexity = {
         "perplexity/sonar",             -- default: Perplexity's own model (every retired Sonar id lands here)
         "openai/gpt-6-luna",            -- the model Perplexity's own fast/low/medium presets run
-        "openai/gpt-6-sol",
-        "openai/gpt-6.1-sol",           -- searched and cited 2026-09-30; takes no temperature
+        "openai/gpt-6.2-sol",           -- searched and cited 2026-11-18 (web on and off, a temperature and effort none..high accepted)
+        "openai/gpt-6.1-sol",           -- previous sol; searched and cited 2026-09-30; takes no temperature
+                                        -- (openai/gpt-6-sol left the picker 2026-11-18: one previous sol)
         "openai/gpt-6.1-terra",         -- searched and cited 2026-11-06; takes temperature and effort none..high
         "anthropic/claude-sonnet-5-5",  -- replaces claude-sonnet-5 (same price; searched and cited 2026-09-29)
         "anthropic/claude-haiku-5-5",   -- searched and cited 2026-11-06
@@ -548,11 +579,15 @@ local ModelLists = {
         -- 404 "Function not found for account" on 2026-10-20 (three requests, fine
         -- the day before, the other three ids answering): listed, not served, the
         -- same way nemotron-nano-3-30b-a3b went. Saved picks move via _retired.
+        "nvidia/nemotron-3.5-bolt-e4b",             -- fast + ultrafast since 2026-11-18 (0.2 s that day); a compact model (8B, 65,536-token context per NVIDIA's page); battery 2026-11-06: no reasoning by default (every effort accepted, as this gateway does)
         "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning", -- ~1.2s 2026-08-29 (effort low/none ok, SSE ok, 65536 ok; forced tools 503 ~1 in 3, so no tools grant); answered 2026-09-28 15:47 then HUNG (3 x 90 s) at 16:40 while the rest answered in 0-2 s, so it lost the fast/ultrafast picks
-        "openai/gpt-oss-20b",                       -- fast + ultrafast (1 s, 2026-09-28); reasons by default, 131072 out
         "stepfun-ai/step-5-preview",                -- battery 2026-11-06: reasons by default (reasoning_content), none..max accepted, 1M out
-        "nvidia/nemotron-3.5-bolt-e4b",             -- battery 2026-11-06: no reasoning by default (every effort accepted, as this gateway does), 1M out
-        -- minimaxai/minimax-m3.1-flash never answered the first request (read timeout, two tries 2026-11-06): not listed.
+        "mistralai/mistral-large-4-1t-a52b",        -- battery 2026-11-18: reasons by default, effort low/medium/high (none, minimal, xhigh, max refused), temperature 0 to 2, 1M out; one green tools pass (no grant: see model_constraints)
+        -- openai/gpt-oss-20b, the fast and ultrafast pick since 2026-09-28: HTTP 410
+        -- "has reached its end of life on 2026-11-18T08:00:00Z". Saved picks move via
+        -- _retired; the tiers went to nemotron-3.5-bolt-e4b.
+        -- minimaxai/minimax-m3.1-flash and moonshotai/kimi-k3.1-pro never answered the first
+        -- request (read timeouts, 2026-11-06 and 2026-11-18): not listed.
         -- RETIRED BY NVIDIA 2026-09-01 (HTTP 410 Gone, recheck 2026-09-28):
         --   nvidia/nemotron-3-nano-30b-a3b (was the ultrafast pick and the only
         --   tools grant), openai/gpt-oss-120b, minimaxai/minimax-m3. Listed but NOT
@@ -686,6 +721,7 @@ local ModelLists = {
         "glm-5.3",
         "glm-5.3-flash",
         "kimi-k3",
+        "qwen4-max",                                -- 2026-11-16; battery 2026-11-18: reasons by default, none..max accepted, temperature 0 to under 2, tools + forced + replay green
         "qwen3.8-max",                              -- book tools without a forced call (refused while thinking; B368)
         "qwen3.8-flash",                            -- same
         "MiniMax-M3",                               -- reasoning arrives as <think> tags (parser strips)
@@ -759,7 +795,7 @@ local ModelLists = {
         xai        = { "grok-4.7", "grok-4.6", "grok-4.5", "grok-4.3", "grok-4.20-beta-0309-non-reasoning", "grok-4-1-fast-non-reasoning" },
         openrouter = { "anthropic/claude-sonnet-5.5", "anthropic/claude-sonnet-5", "anthropic/claude-sonnet-4.6", "anthropic/claude-sonnet-4.5" },
         requesty   = { "openai/gpt-4o-mini" },
-        qwen       = { "qwen3.8-max", "qwen3-max" },
+        qwen       = { "qwen4-max", "qwen3.8-max", "qwen3-max" },
         kimi       = { "kimi-k3", "kimi-k2.6", "kimi-k2.5", "kimi-k2-0905-preview" },
         together   = { "deepseek-ai/DeepSeek-V4-Pro-0813", "deepseek-ai/DeepSeek-V4-Pro", "meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8" },
         fireworks  = { "accounts/fireworks/models/deepseek-v4p1-flash", "accounts/fireworks/models/gpt-oss-120b", "accounts/fireworks/models/deepseek-v4-pro", "accounts/fireworks/models/llama4-maverick-instruct-basic" },
@@ -807,8 +843,11 @@ local ModelLists = {
             ["groq/compound-mini"] = "openai/gpt-oss-20b",
         },
         nvidia = {
-            ["nvidia/nemotron-3-nano-30b-a3b"] = "openai/gpt-oss-20b",
-            ["openai/gpt-oss-120b"] = "openai/gpt-oss-20b",
+            -- 2026-11-18: openai/gpt-oss-20b reached its own end of life (410); it and the
+            -- two ids that pointed at it go to the new fast pick
+            ["nvidia/nemotron-3-nano-30b-a3b"] = "nvidia/nemotron-3.5-bolt-e4b",
+            ["openai/gpt-oss-120b"] = "nvidia/nemotron-3.5-bolt-e4b",
+            ["openai/gpt-oss-20b"] = "nvidia/nemotron-3.5-bolt-e4b",
             -- 2026-10-20: the super-120b default stopped serving (404 "Function not
             -- found"); it and the earlier mapping onto it go to the 3.5 Super VL
             ["nvidia/nemotron-3-super-120b-a12b"] = "nvidia/nemotron-3.5-super-vl-120b-a12b",
@@ -900,6 +939,8 @@ local ModelLists = {
             ["MiniMax-M3"] = "MiniMax-M3.1-Flash",
             ["DeepSeek-V3.1"] = "gpt-oss-120b",
             ["DeepSeek-V3.2"] = "gpt-oss-120b",
+            -- Gone from the live model list and the pricing page by 2026-11-18.
+            ["Meta-Llama-3.3-70B-Instruct"] = "gpt-oss-120b",
         },
     },
 
@@ -918,16 +959,16 @@ local ModelLists = {
         -- REQUEST falls to flagship; a flagship request never climbs here).
         -- Sparse by design: most providers have no frontier-class model.
         frontier = {
-            anthropic = "claude-fable-5-1",
-            openai = "gpt-6-astra",                  -- $10/$50; cannot turn reasoning off
+            anthropic = "claude-fable-5-2",          -- $8/$40 (2026-11-09); thinks by default, cannot turn it off
+            openai = "gpt-6.2-astra",                -- $8/$40 (2026-11-17); cannot turn reasoning off
             openai_codex = "gpt-6-astra",            -- opt-in like every frontier pick; needs a paid plan (refused on free accounts with the plan tip, 2026-10-11)
-            gemini = "gemini-4-argon",               -- paid only (no free tier); GA, replaces 3.1-pro-preview here 2026-10-14
+            gemini = "gemini-4-carbon",              -- paid only (no free tier); Google's strongest, replaces Argon here 2026-11-18
         },
 
         -- Provider's most capable general-purpose model
         flagship = {
             anthropic = "claude-opus-5-5",           -- deep-reasoning flagship; sonnet-5-5 is the standard tier
-            openai = "gpt-6.1-sol",                  -- same price as 6-sol; reasons by default and cannot turn it off
+            openai = "gpt-6.2-sol",                  -- same price as 6.1-sol ($2/$10); reasons by default and cannot turn it off
             openai_codex = "gpt-6.1-sol",   -- needs a paid plan: refused on free accounts with the plan tip (maintainer 2026-10-11, amending the 2026-08-15 ruling for flagship alone)
             deepseek = "deepseek-v4-pro",
             gemini = "gemini-3.8-flash",             -- Pro models are paid-only; keep tier free-tier usable (3.8-flash answers on a free key 2026-09-28)
@@ -939,7 +980,7 @@ local ModelLists = {
             together = "deepseek-ai/DeepSeek-V4-Pro-0813",
             fireworks = "accounts/fireworks/models/glm-5p3",       -- deepseek-v4-pro stopped serving 2026-09
             sambanova = "gpt-oss-120b",              -- Maverick deprecated 2026-06-09
-            qwen = "qwen3.8-max",                    -- qwen3-max retired 2026-10-10
+            qwen = "qwen4-max",                      -- 2026-11-16; 3.8-max before it (qwen3-max retired 2026-10-10)
             kimi = "kimi-k3.1-pro",                  -- K3.1 Pro (battery 2026-11-06); k2.6 is closed to new accounts (the old note: kimi-k3 probed on the international platform only; China-region keys exist (the pre-v0.21 migration), tier hints must never 400
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5.3",                         -- always thinks (the 5.2 default can turn it off)
@@ -960,8 +1001,8 @@ local ModelLists = {
             ollama = "llama3.3",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-120b leaves serverless 2026-11-07
-            sambanova = "Meta-Llama-3.3-70B-Instruct",
-            qwen = "qwen3.5-plus",
+            sambanova = "gpt-oss-120b",              -- Llama 3.3 left the catalog by 2026-11-18; this is its cheapest model
+            qwen = "qwen3.8-flash",                  -- 3.5-plus retires 2027-01-19; this is the replacement Qwen names
             kimi = "kimi-k3",                        -- k2.6 closed to new accounts (2026-11-06)
             doubao = "doubao-seed-2.0-pro-32k",
             zai = "glm-5",
@@ -982,12 +1023,12 @@ local ModelLists = {
             ollama = "llama3.2:3b",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-120b leaves serverless 2026-11-07
-            sambanova = "Meta-Llama-3.3-70B-Instruct",
+            sambanova = "gpt-oss-120b",              -- Llama 3.3 left the catalog by 2026-11-18; this is its cheapest model
             qwen = "qwen3.5-flash",
             kimi = "kimi-k3",   -- reasoning off for the fast-tier actions; k2.6 closed to new accounts (2026-11-06)
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-5-turbo",
-            nvidia = "openai/gpt-oss-20b",  -- 1 s; nano-omni hung 2026-09-28, lightning pulled: see the array note
+            nvidia = "nvidia/nemotron-3.5-bolt-e4b",  -- 0.2 s (2026-11-18); gpt-oss-20b reached end of life that day (410)
         },
 
         -- Smallest/cheapest models for basic tasks
@@ -1004,12 +1045,12 @@ local ModelLists = {
             ollama = "tinyllama",
             together = "meta-llama/Llama-3.3-70B-Instruct-Turbo",
             fireworks = "accounts/fireworks/models/deepseek-v4p1-flash", -- gpt-oss-20b stopped serving 2026-09; reasoning can turn off
-            sambanova = "Meta-Llama-3.3-70B-Instruct",
+            sambanova = "gpt-oss-120b",              -- Llama 3.3 left the catalog by 2026-11-18; this is its cheapest model
             qwen = "qwen3.5-flash",                  -- qwen-turbo gone 2026-10-14; the fast pick fills both
             kimi = "kimi-k3",   -- see the fast tier
             doubao = "doubao-seed-2.0-lite",
             zai = "glm-4.7-flash",
-            nvidia = "openai/gpt-oss-20b",  -- nano-30b retired 2026-09-01 (410); nano-omni and lightning hang
+            nvidia = "nvidia/nemotron-3.5-bolt-e4b",  -- gpt-oss-20b retired 2026-11-18 (410), nano-30b 2026-09-01; nano-omni and lightning hang
         },
     },
 

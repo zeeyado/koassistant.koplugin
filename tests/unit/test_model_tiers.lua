@@ -152,12 +152,12 @@ TestRunner.assert(ModelLists.normalizeTier(nil) == "standard", "nil tier -> stan
 print("== getModelForTier ==")
 
 -- Direct hits
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "frontier", false) == "claude-fable-5-1",
-    "anthropic frontier = claude-fable-5-1")
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "frontier", false) == "claude-fable-5-2",
+    "anthropic frontier = claude-fable-5-2")
 TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", false) == "claude-opus-5-5",
     "anthropic flagship = claude-opus-5-5")
-TestRunner.assert(ModelLists.getModelForTier("openai", "frontier", false) == "gpt-6-astra",
-    "openai frontier = gpt-6-astra")
+TestRunner.assert(ModelLists.getModelForTier("openai", "frontier", false) == "gpt-6.2-astra",
+    "openai frontier = gpt-6.2-astra")
 
 -- Legacy "reasoning" request resolves to the flagship entry, never frontier
 TestRunner.assert(ModelLists.getModelForTier("anthropic", "reasoning", true) == "claude-opus-5-5",
@@ -170,7 +170,7 @@ TestRunner.assert(ModelLists.getModelForTier("deepseek", "frontier", true) == "d
 TestRunner.assert(ModelLists.getModelForTier("deepseek", "frontier", false) == nil,
     "deepseek has no frontier entry")
 -- A flagship request never climbs into frontier
-TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", true) ~= "claude-fable-5-1",
+TestRunner.assert(ModelLists.getModelForTier("anthropic", "flagship", true) ~= "claude-fable-5-2",
     "flagship request must not climb to frontier")
 
 -- Unknown provider (e.g. custom without overrides) resolves to nothing

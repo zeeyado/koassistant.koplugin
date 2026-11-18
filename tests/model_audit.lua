@@ -175,6 +175,7 @@ ModelAudit.DELIBERATE_SKIPS = {
         ["claude-opus-4-7"] = "superseded by opus-5-5 (custom-add if wanted)",
         ["claude-opus-4-8"] = "left the picker 2026-10-11: one previous version per line (opus-5)",
         ["claude-sonnet-4-6"] = "left the picker 2026-10-11: one previous version per line (sonnet-5)",
+        ["claude-fable-5"] = "left the picker 2026-11-18: one previous version per line (fable-5-1)",
     },
     gemini = {
         ["gemini-3-flash-preview"] = "3.0 preview, superseded by 3.1+ stable",
@@ -189,11 +190,13 @@ ModelAudit.DELIBERATE_SKIPS = {
         ["gemini-2.0-flash-lite-001"] = "old generation",
         -- gemini-2.5-flash and -pro are in _retired since 2026-11-07 (rerouted 2026-12-01)
         ["gemini-2.5-flash-lite"] = "left the picker 2026-10-14: served only to accounts that used 2.5 before",
+        ["gemini-3.1-pro-preview"] = "left the picker 2026-11-18: one previous frontier per line (argon)",
     },
     openai = {
         ["chat-latest"] = "ChatGPT-tuned rolling alias",
         ["gpt-5.3-chat-latest"] = "ChatGPT-tuned rolling alias",
         ["gpt-5.6-sol"] = "left the picker 2026-10-11: one previous sol per line (6-sol)",
+        ["gpt-6-sol"] = "left the picker 2026-11-18: one previous sol per line (6.1-sol)",
         ["gpt-5.5"] = "left the picker 2026-10-11: previous flagship, pricier than 6.1-sol",
         ["gpt-5.4"] = "left the picker 2026-10-11: the 5.4 line ended, 6-luna is cheaper",
         ["gpt-5.4-mini"] = "left the picker 2026-10-11: the 5.4 line ended, 6-luna is cheaper",
@@ -324,6 +327,8 @@ ModelAudit.REVIEWED = {
             "writer/palmyra-creative-122b", "writer/palmyra-fin-70b-32k",
             "writer/palmyra-med-70b", "writer/palmyra-med-70b-32k", "z-ai/glm-5.3",
             "z-ai/glm-5.3-flash", "zyphra/zamba2-7b-instruct",
+            -- 2026-11-18: read timeouts on the first request (m3.1-flash on 2026-11-06 too)
+            "minimaxai/minimax-m3.1-flash", "moonshotai/kimi-k3.1-pro",
     } },
     -- The whole /v1/models catalog probed through the handler 2026-09-28
     -- (docs/perplexity_agent_plan.md, round 2); exceptions live in
@@ -365,6 +370,13 @@ ModelAudit.REVIEWED = {
             "perplexity/nemotron-3-ultra-550b-a55b", "xai/grok-4.20-multi-agent",
             "xai/grok-4.20-non-reasoning", "xai/grok-4.20-reasoning", "xai/grok-4.3",
             "xai/grok-4.5", "xai/grok-4.6",
+            -- 2026-11-18: fable-5-2 and gpt-6.2-astra searched and cited with the handler's
+            -- default body (not listed: no frontier id is, here); gemini-4-carbon searched
+            -- and cited, its stream leg cut by the account's quota, gemini-4-hydrogen and
+            -- the nemotron id not probed for the same reason; gpt-6-sol left the picker
+            "anthropic/claude-fable-5-2", "openai/gpt-6.2-astra", "openai/gpt-6-sol",
+            "google/gemini-4-carbon", "google/gemini-4-hydrogen",
+            "perplexity/nemotron-3.5-super-120b-a12b",
     } },
 }
 
