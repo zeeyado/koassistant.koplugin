@@ -4151,7 +4151,46 @@ local function renameTarget(new_item, lookup, never_set, new_key)
     return target
 end
 
-local function mergeArrayCategory(old_items, new_items, never_set)
+--- B732: whether an incoming entry that carries only an ALIAS of a stored
+--- entry as its name is that entry. An alias is a weaker claim than a name:
+--- two people of one name are the common case (a maid with her mistress's
+--- first name, a grandfather with the title and surname his grandson was
+--- first met under), and folding them replaced one person's entry with the
+--- other's, silently. The fold stands when the update itself joins the two
+--- names (the stored main name among the incoming aliases, the bridge the
+--- prompt asks for at a rename), or when the alias is the READER's on that
+--- entry (a name they renamed away from, a name the duplicate review folded
+--- in, a name they added: `reader_names`, ActionCache.readerNamesFrom).
+--- Otherwise the incoming entry is its own entry; a true duplicate is then
+--- two visible entries that share a name, which the duplicate review finds.
+local function aliasIsSameEntry(keep, new_item, key, reader_names)
+    local keep_name = getItemSearchName(keep)
+    local keep_key = keep_name and keep_name:lower()
+    if not keep_key then return false end
+    if type(new_item.aliases) == "table" then
+        for _ai, alias in ipairs(new_item.aliases) do
+            if type(alias) == "string" and alias:lower() == keep_key then return true end
+        end
+    end
+    local theirs = type(reader_names) == "table" and reader_names[keep_key]
+    return type(theirs) == "table" and theirs[key] == true
+end
+
+--- B733: a re-emitted text that is no description: missing, blank, or a
+--- small fraction of a long stored one (an update wrote two words of
+--- housekeeping over an entry's description, and seven later updates left it
+--- so). Such a text never replaces the stored one.
+local STUB_MIN_STORED = 200   -- bytes of stored text from which a fraction is judged
+local STUB_PERCENT = 15       -- a new text under this share of the stored one is a stub
+local function isStubOf(new_text, old_text)
+    if type(old_text) ~= "string" or old_text:match("^%s*$") then return false end
+    if type(new_text) ~= "string" or new_text:match("^%s*$") then return true end
+    return #old_text >= STUB_MIN_STORED and #new_text * 100 < #old_text * STUB_PERCENT
+end
+
+--- @param guard table|nil { alias_needs_bridge = bool, reader_names = table }:
+---   the model update's own rules (XrayParser.merge opts)
+local function mergeArrayCategory(old_items, new_items, never_set, guard)
     local lookup = {}
     for i, item in ipairs(old_items) do
         local name = getItemSearchName(item)
@@ -4185,6 +4224,12 @@ local function mergeArrayCategory(old_items, new_items, never_set)
         if not idx and key then
             idx = alias_of[key]
             via_alias = idx ~= nil
+            if via_alias and guard and guard.alias_needs_bridge
+                    and not aliasIsSameEntry(old_items[idx], new_item, key, guard.reader_names) then
+                -- another holder of the name: its own entry (B732)
+                idx, via_alias = nil, false
+                logger.info("KOAssistant: X-Ray merge kept an entry apart from the one that lists its name as an alias")
+            end
         end
         local via_rename = false
         if not idx and key then
@@ -4219,6 +4264,14 @@ local function mergeArrayCategory(old_items, new_items, never_set)
             -- strings, nil when both sides are empty, dedup absorbs overlap.
             new_item.connections = unionStringArrays(new_item.connections, keep.connections)
             new_item.references = unionStringArrays(new_item.references, keep.references)
+            -- A stub never replaces a description (B733)
+            for _fi, field in ipairs({ "description", "definition" }) do
+                if isStubOf(new_item[field], keep[field]) then
+                    logger.info("KOAssistant: X-Ray merge kept a stored " .. field .. " of " .. #keep[field]
+                        .. " bytes; the update's was " .. (type(new_item[field]) == "string" and #new_item[field] or 0))
+                    new_item[field] = keep[field]
+                end
+            end
             if via_rename then
                 -- Rename fold: the new name IS the point — it stays primary
                 -- (the old one rides in aliases, it is the bridge we matched on)
@@ -5379,7 +5432,11 @@ end
 --- The AI outputs only new/changed entries; this merges them into the full dataset.
 --- @param old_data table Complete existing X-Ray data (mutated in place)
 --- @param new_data table Partial update from AI
---- @param opts table|nil { never_pairs = ActionCache.getNeverMergePairs output }
+--- @param opts table|nil { never_pairs = ActionCache.getNeverMergePairs output,
+---   alias_needs_bridge = bool, reader_names = ActionCache.readerNamesFrom output }:
+---   the last two are the reading-along update's (ActionCache.updateMergeOptions,
+---   B732); a merge of two books' X-Rays leaves them out, since the same person
+---   under a shorter name in another book is what such a merge is for
 ---   — reader-ruled non-identical pairs the rename fold must not merge
 --- @return table old_data The merged result
 function XrayParser.merge(old_data, new_data, opts)
@@ -5418,7 +5475,7 @@ function XrayParser.merge(old_data, new_data, opts)
                 end
             else
                 if type(new_data[key]) == "table" then
-                    old_data[key] = mergeArrayCategory(old_data[key] or {}, new_data[key], never_set)
+                    old_data[key] = mergeArrayCategory(old_data[key] or {}, new_data[key], never_set, opts)
                 end
             end
         end

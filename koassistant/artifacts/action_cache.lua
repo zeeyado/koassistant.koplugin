@@ -1606,6 +1606,51 @@ function ActionCache.neverMergePairsFrom(aliases_table)
     return pairListFrom(aliases_table, ActionCache.NEVER_MERGE_KEY)
 end
 
+--- The names the READER gave each entry, by the entry's main name (both
+--- lowercased): the names they added (the duplicate review's folded-in names
+--- land there too), the names they typed, and the AI's name an entry was
+--- renamed away from. The update's merge folds an incoming entry that carries
+--- one of these into that entry; a name only the model listed as an alias
+--- folds nothing (B732). Pure.
+--- @param aliases_table table getUserAliases output
+--- @return table names { [main_name_lower] = { [name_lower] = true } }
+function ActionCache.readerNamesFrom(aliases_table)
+    local names = {}
+    for main, rec in pairs(type(aliases_table) == "table" and aliases_table or {}) do
+        if type(main) == "string" and main:sub(1, 2) ~= "__" and type(rec) == "table" then
+            local set, any = {}, false
+            for _idx, list_key in ipairs({ "add", "typed" }) do
+                for _i, name in ipairs(type(rec[list_key]) == "table" and rec[list_key] or {}) do
+                    if type(name) == "string" and name ~= "" then
+                        set[name:lower()] = true
+                        any = true
+                    end
+                end
+            end
+            if type(rec.ai_name) == "string" and rec.ai_name ~= "" then
+                set[rec.ai_name:lower()] = true
+                any = true
+            end
+            if any then names[main:lower()] = set end
+        end
+    end
+    return names
+end
+
+--- What the reading-along update's merge takes from the reader's own file:
+--- the pairs never to merge, and the rule that an alias-only match needs the
+--- update's own bridge or the reader's name (B732). One read of the file.
+--- @param document_path string
+--- @return table opts for XrayParser.merge
+function ActionCache.updateMergeOptions(document_path)
+    local all = ActionCache.getUserAliases(document_path)
+    return {
+        never_pairs = ActionCache.neverMergePairsFrom(all),
+        alias_needs_bridge = true,
+        reader_names = ActionCache.readerNamesFrom(all),
+    }
+end
+
 --- Already-offered dedup-ask pairs (round 18). Pure.
 --- @param aliases_table table getUserAliases output
 --- @return table pairs Array of { name_a, name_b }

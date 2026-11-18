@@ -5563,10 +5563,11 @@ if prune_book_text then
                     -- Merge partial update into existing data when available
                     if using_cache and message_data._parsed_old_xray then
                         -- To debug X-Ray merge: uncomment koassistant_debug_utils.dumpXrayMerge() below
-                        local never_pairs = cache_file
-                            and require("koassistant.artifacts.action_cache").getNeverMergePairs(cache_file)
-                        parsed = XrayParser.merge(message_data._parsed_old_xray, parsed,
-                            never_pairs and { never_pairs = never_pairs } or nil)
+                        -- the reader's never-merge pairs, and the update's own
+                        -- rule for a name that is only somebody's alias (B732)
+                        local merge_opts = cache_file
+                            and require("koassistant.artifacts.action_cache").updateMergeOptions(cache_file)
+                        parsed = XrayParser.merge(message_data._parsed_old_xray, parsed, merge_opts or nil)
                         logger.dbg("KOAssistant: Merged incremental X-Ray update into existing data")
                         -- Wake-pass (carry layer 2): entities arriving in this
                         -- slice promote their carried history

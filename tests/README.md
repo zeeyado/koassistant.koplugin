@@ -270,6 +270,7 @@ The 104 files, with what each one pins:
 - `test_ollama_num_ctx.lua` - per-request `num_ctx` sizing (the silent-truncation guard)
 - `test_ollama_tools_request.lua` - Ollama tool declarations, decoded-object arguments, ignored `tool_choice`
 - `test_one_shot_cache.lua` - a request whose answer is saved as a result carries no prompt-cache mark for its messages (Anthropic, OpenRouter): the rule, the hand-off from the request bake to both handlers, a chat keeping its mark, and every handler that sends a mark reading the flag
+- `test_xray_update_guards.lua` - the reading-along update's merge: a second person of a name (an incoming entry whose name is only an alias of a stored one) is its own entry unless the update bridges the two names or the alias is the reader's; a missing, blank or stub text never replaces a description; a merge of two books' X-Rays passes neither rule (B732, B733)
 - `test_openai_codex_handler.lua` - OpenAI Subscription: codex endpoint, OAuth headers, collected-SSE transport, web-search and tool wire
 - `test_openai_codex_oauth.lua` - device-code OAuth: user-code / poll / exchange / refresh requests, JWT claims
 - `test_openai_compatible.lua` - the OpenAI-compatible base handler and its hooks
