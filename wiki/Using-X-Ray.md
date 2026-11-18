@@ -241,7 +241,7 @@ The X-Ray browser's ☰ menu holds:
 - **Link and merge…**: the same group as in the X-Ray popup, here whether or not the book is in a group.
 - **→ Group**, in a book group: the group's books; tap one to switch to its X-Ray, at the same entry when it has one.
 - **Carried entries: …**, when the book has carried entries: whether they also show inside the categories.
-- **Info**: model, progress, date, type, source, whether reasoning or web search was used, merges and the books background came from, how many checkpoints exist and which one is installed.
+- **Info**: model, progress, date, type, what it was built with (the preset, or Custom with its categories, depth and status block), source, whether reasoning or web search was used, merges and the books background came from, how many checkpoints exist and which one is installed.
 - **Open Book**, when the X-Ray was opened from the file browser.
 
 A version you are viewing gets **Install or delete this version…** (**Install or delete this checkpoint…** for a checkpoint) and **Other versions…** instead. A section X-Ray's menu has **Delete Section X-Ray** and **Info**.
@@ -412,7 +412,7 @@ Section X-Rays are focused X-Rays of one chapter, part or section, chosen from t
 - Scope gating replaces spoiler gating: chapters outside the section's pages are dimmed (whatever you have read). Tap one to reveal it after a scope warning, or **Reveal beyond scope** for all of them.
 - Complete only: no updates and no version history, since the section is analyzed whole in one request. To redo one, generate it again under the same name.
 - The reading position marker shows only while your page is inside the section.
-- The ☰ menu has **Delete Section X-Ray** and **Info** (the section, its pages, the model).
+- The ☰ menu has **Delete Section X-Ray** and **Info** (the section, its pages, the model, the preset it was built with).
 - Font-size independence: they store document positions next to page numbers, so after a font-size change the page ranges in the list and the browser follow the new layout (EPUB).
 
 **Merging them.** **AI merge section X-Rays…** (in the section list, in **Link and merge…**, and in the Section X-Rays group of a book with no main X-Ray) has the AI combine the section X-Rays you tick: into the main X-Ray (**Merge into main X-Ray**, **Replace main X-Ray (old version is archived)**, or **Create main X-Ray from sections** when there is none), or into one **combined section X-Ray**. It warns about gaps between the sections and about text past your reading position. Merging into the main X-Ray needs the book open, unless the main X-Ray covers the whole book (the [complete track](#two-tracks-incremental-and-complete), or an incremental X-Ray updated to 100%): only with the book open can it place the sections against a partial X-Ray's coverage, wherever each was built. After a merge into the main X-Ray you can keep the sections or delete them.

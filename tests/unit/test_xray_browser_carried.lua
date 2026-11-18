@@ -737,6 +737,44 @@ TestRunner:test("history from another book is not enough; the hand-added record 
     if not ok then error(err, 0) end
 end)
 
+-- ------------------------------------------------------------------ Info: what it was built with (B568)
+TestRunner:test("Info names the preset an X-Ray was built with, or Custom with its dials", function()
+    local function lines(entry, academic)
+        return table.concat(XrayBrowser.buildLines(entry, academic), " | ")
+    end
+    TestRunner:assertEqual(lines({ xray_categories = "people,places,ideas,terms" }), "Preset: Reference",
+        "the default preset by its name, one line")
+    TestRunner:assertEqual(lines({ xray_categories = "people", xray_status = "off" }), "Preset: Characters only",
+        "a preset with the status block off")
+    TestRunner:assertEqual(lines({ xray_depth = "deep" }), "Preset: Deep study", "all categories at Deep")
+    TestRunner:assertEqual(lines({}), "Preset: Everything",
+        "an entry from before the dials carries no stamp: all categories, standard, the status block on")
+    TestRunner:assertEqual(lines({ xray_categories = "people,places,ideas,terms", xray_depth = "deep" }),
+        "Preset: Custom | Categories: Reference | Depth: Deep | Status block: On",
+        "dials that match no preset are listed themselves")
+    TestRunner:assertEqual(lines({ xray_categories = "people,places", xray_status = "off" }),
+        "Preset: Custom | Categories: 2 of 5 | Depth: Standard | Status block: Off", "with the status block off")
+    TestRunner:assertEqual(lines({ xray_categories = "people" }, true), "", "the research track takes no dials: no lines")
+    TestRunner:assertEqual(lines(nil), "", "no saved entry, no lines")
+end)
+
+TestRunner:test("the Info row reads the shown X-Ray's own saved entry", function()
+    local info = debug.getinfo(1, "S").source:match("@?(.*)")
+    local root = info:match("(.+)/tests/unit/[^/]+$") or "."
+    local f = assert(io.open(root .. "/koassistant/xray/xray_browser.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    local from = src:find("-- What it was built with (B568)", 1, true)
+    TestRunner:assertTrue(from ~= nil, "the block is there")
+    local block = src:sub(from, src:find("if self.metadata.source_label then", from, true))
+    TestRunner:assertTrue(block:find("self.metadata.checkpoint and self.metadata.checkpoint_data", 1, true) ~= nil,
+        "a version shown from the versions list brings its own entry")
+    TestRunner:assertTrue(block:find('(self.scope and self.scope.cache_key) or "_xray_cache"', 1, true) ~= nil,
+        "a section X-Ray reads its own entry, the main X-Ray the live one")
+    TestRunner:assertTrue(block:find("XrayBrowser.buildLines(built_entry, XrayParser.isAcademic(self.xray_data))", 1, true) ~= nil,
+        "and the lines are the helper's")
+end)
+
 -- ------------------------------------------------------------------ cleanup
 SDS.resolve = saved_resolve
 ActionCache.getAvailableArtifactsWithPinned = saved_artifacts

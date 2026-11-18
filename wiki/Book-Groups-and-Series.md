@@ -168,7 +168,7 @@ An AI merge asks the model to combine two X-Rays. It matches entries by name, al
 - Every confirm says how many requests it will send, and whether a book was merged in before. Merging one book again sends both X-Rays again, which is worth it only when one of them has changed. The series and project merges skip the books already merged and up to date (**AI merge new only**), run again the ones whose X-Ray changed, and can run everything again (**Re-run all**, **AI merge all**).
 - After the confirm it asks once for what the X-Rays were built from, where that is still on Ask; a book whose text is set to Never is refused, with a button to its settings.
 - When the two books share nothing, it says so and changes nothing. When the merge may have left one figure under two names, it offers **Review duplicates…**.
-- The X-Ray browser's ☰ menu → **Info** lists the books AI merges brought in under **Includes background from:**, each "up to date" or "changed since the AI merge".
+- The X-Ray browser's ☰ menu → **Info** lists the books AI merges brought in under **Includes background from:**, each marked (up to date) or (changed since the AI merge).
 
 ### The AI merge rows
 

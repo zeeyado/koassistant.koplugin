@@ -1386,6 +1386,27 @@ end
 ---   with no carried list is not parsed (this runs when the popup opens, and
 ---   a long series' X-Ray is large)
 --- @return string|nil
+--- What an X-Ray was built with, as lines for its Info (B568): the preset its
+--- three dials match, or "Custom" with the dials themselves. The values are
+--- the saved entry's own stamps (an entry from before a dial existed carries
+--- none, which is that dial's widest value: all categories, standard depth,
+--- the status block on). The research track takes no dials. Pure.
+--- @param entry table|nil the saved X-Ray entry (xray_categories, xray_depth, xray_status)
+--- @param academic boolean the X-Ray is on the research track
+--- @return table lines
+function XrayBrowser.buildLines(entry, academic)
+    if type(entry) ~= "table" or academic then return {} end
+    local BookSettings = require("koassistant.books.book_settings")
+    local preset = BookSettings.xrayPresetFor(entry.xray_categories, entry.xray_status, entry.xray_depth)
+    local lines = { _("Preset:") .. " " .. BookSettings.xrayPresetLabel(preset) }
+    if not preset then
+        lines[#lines + 1] = _("Categories:") .. " " .. BookSettings.xrayCategoriesLabel(entry.xray_categories)
+        lines[#lines + 1] = _("Depth:") .. " " .. BookSettings.xrayDepthLabel(entry.xray_depth)
+        lines[#lines + 1] = _("Status block:") .. " " .. (entry.xray_status == "off" and _("Off") or _("On"))
+    end
+    return lines
+end
+
 function XrayBrowser.carriedListLabel(book_file, raw)
     if type(raw) == "string"
             and not raw:find('"' .. XrayParser.DORMANT_KEY .. '"', 1, true) then
@@ -8622,6 +8643,19 @@ function XrayBrowser:showOptions()
         or XrayParser.isFiction(self.xray_data) and _("Fiction")
         or _("Non-Fiction")
     table.insert(info_parts, _("Type:") .. " " .. type_label)
+    -- What it was built with (B568), from the saved entry itself, read at the
+    -- tap like the checkpoints line below: the shown version's own entry, a
+    -- section's, or the live X-Ray's
+    do
+        local built_entry = self.metadata.checkpoint and self.metadata.checkpoint_data or nil
+        if not self.metadata.checkpoint and self.metadata.book_file then
+            built_entry = require("koassistant.artifacts.action_cache").get(self.metadata.book_file,
+                (self.scope and self.scope.cache_key) or "_xray_cache")
+        end
+        for _idx, line in ipairs(XrayBrowser.buildLines(built_entry, XrayParser.isAcademic(self.xray_data))) do
+            table.insert(info_parts, line)
+        end
+    end
     if self.metadata.source_label then
         table.insert(info_parts, _("Source:") .. " " .. self.metadata.source_label)
     end
@@ -8652,8 +8686,8 @@ function XrayBrowser:showOptions()
                 local src = ProvActionCache.getXrayCache(rec.file)
                 local src_ts = src and tonumber(src.timestamp)
                 if src_ts then
-                    line = line .. " — " .. (src_ts > tonumber(rec.source_ts)
-                        and _("changed since the AI merge") or _("up to date"))
+                    line = line .. " (" .. (src_ts > tonumber(rec.source_ts)
+                        and _("changed since the AI merge") or _("up to date")) .. ")"
                 end
             end
             table.insert(info_parts, line)
