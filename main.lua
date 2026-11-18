@@ -12121,7 +12121,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       -- the same; only each request shrinks).
       hint = (mode == "extend" and not pick_rebuild)
         and _("Continues from your current coverage in bounded background steps, each a spoiler-safe version. Keep reading, cancel anytime, resume later.")
-        or _("Covers the range in bounded background steps, each a spoiler-safe version up to its position. A usable X-Ray installs after the first step; keep reading, cancel anytime, resume later.")
+        or _("Covers the range in bounded background steps, each a spoiler-safe version up to its position. A usable X-Ray installs after the first step; keep reading, cancel anytime, resume later. It finds more of the minor names and hard words than a single request, for several times the requests.")
     elseif cr.delivery == "one_bg" then
       hint = _("The same single request in the background; a notification arrives when it is ready. The book must stay open.")
       if cr.coverage ~= "whole" then
@@ -12137,7 +12137,7 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
         hint = _("Updates your existing X-Ray to the end of the chosen section in one background request; a notification arrives when it is ready.")
       end
     elseif cr.coverage == "whole" then
-      hint = _("Analyzes the whole book in a single request, shown as it streams in. Large for long books, no spoiler-safe intermediate versions.")
+      hint = _("Analyzes the whole book in a single request, shown as it streams in: the cheapest way, and every entry is written with the whole story in view. Large for long books, no spoiler-safe intermediate versions.")
     elseif cr.coverage == "position" then
       hint = _("Reads the book up to your position in a single request, shown as it streams in.")
         .. " " .. later_line
