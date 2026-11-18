@@ -136,8 +136,10 @@ end)
 TestRunner:test("the notebook viewer marks its chat, and the launcher passes the mark on", function()
     local main_src = source("main.lua")
     local viewer = main_src:match("function AskGPT:openNotebookInChatViewer%(.-\nend\n")
+    -- the chat gets the notebook without the title line the plugin writes at
+    -- its top (tests/unit/test_notebook_naming.lua holds that rule)
     TestRunner:assertTrue(viewer and viewer:find(
-        '_buildLaunchChatCallback(document_path, book_title, book_author, content, _("Notebook"),\n      { notebook = true })', 1, true),
+        '_buildLaunchChatCallback(document_path, book_title, book_author,\n      Notebook.stripHeader(content), _("Notebook"), { notebook = true })', 1, true),
         "the viewer asks for the notebook check")
     local params_body = main_src:match("\nfunction AskGPT:_buildLaunchChatCallback%((.-)\nend\n")
     TestRunner:assertTrue(params_body, "the launcher")

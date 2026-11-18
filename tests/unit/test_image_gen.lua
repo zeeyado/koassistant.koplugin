@@ -24,6 +24,12 @@ package.loaded["mime"] = {
     b64 = function(s) return s end,
     unb64 = function(s) return s end,
 }
+-- The suite runs every file in one process, and a file that ran before this one
+-- may have loaded the image generator with luasocket's own mime (found when
+-- luarocks is on the path, as the model audit needs it): three tests here then
+-- decoded their stand-in bytes for real and failed. Load a fresh copy, so the
+-- stub above is the one it holds.
+package.loaded["koassistant.images.image_generator"] = nil
 
 local ModelLists = require("koassistant.request.model_lists")
 local BaseHandler = require("koassistant.api.base")

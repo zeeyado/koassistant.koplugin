@@ -81,33 +81,36 @@ Prompt caching lowers cost and latency by reusing previously processed prompt pr
 
 What is cached is the stable prefix of each request: the system message (behavior, domain, language instruction) and the conversation so far, so book text embedded in the first message is cached on later follow-ups. Each follow-up resends the whole conversation; without caching you pay full price for it every turn, with caching the seen content costs 10 to 50% of the normal rate. The more stable content a conversation starts with, the larger the saving.
 
+An action that saves its result (an X-Ray, a summary, a recap and the other artifact actions) has no follow-up that could read a cache back: the saved result opens, and a chat about it starts from the result. With Claude, directly or through OpenRouter, writing a cache costs a quarter more than plain input, so such a request is sent without the marker for its messages and the book's text is billed at the plain rate: about 18% less for an X-Ray of a whole book (measured on Claude Sonnet 5.5). On Anthropic the system message keeps its own marker (through OpenRouter such a request carries none), and the marker stays on a request that searches the web. The other side: running the very same action again within five minutes pays for the text in full.
+
 ## Text extraction limits, context windows and costs
 
 Roughly 100 pages make 100,000 to 170,000 characters (25,000 to 40,000 tokens), depending on the layout and the font size. The default extraction limit is 4,000,000 characters (about a million tokens), configurable up to 10,000,000 (**Settings → Privacy & Data → Text Extraction → Max Text Characters**); the default page limit for PDF, DJVU, CBZ and the like is 2,000 pages, up to 5,000. The default is sized for Gemini's 1M-token context; smaller models hit their limit long before it, and the limit is a safety cap, not a target: **the model's context window is the real bound.** A request whose text exceeds it is rejected by the API, so a **large extraction warning** appears before a request above 500K characters (about 125K tokens), or earlier when the model's known context window is exceeded, with the chance to cancel; **Don't warn about large extractions** under the same submenu turns it off. If the text exceeds the character limit and is truncated, a blocking **truncation warning** shows the covered range ("Extracted text was truncated (covers 0%–85% of the document).") with Cancel or Continue Anyway, before the large-extraction warning; **Don't warn about truncated extractions** turns that one off. KOReader's hidden flows exclude front matter, appendices and endnotes from extraction, which saves tokens and improves results without lowering the limits ([Using X-Ray](Using-X-Ray#hidden-flows-and-tables-of-contents)). Two extraction types exist: `{book_text_section}` reads from the start to your position (spoiler-safe, X-Ray and Recap), `{full_document_section}` reads the whole document whatever the position (Document Summary, Document Analysis and a complete X-Ray; actions with source selection use `{document_context_section}`, which carries the source you pick).
 
 | Provider | Context window | Maximum English text (about 4 characters per token) |
 |---|---|---|
-| Gemini 2.5 and 3 (Pro and Flash) | 1M tokens | about 4M characters, any book |
-| Claude (Sonnet 5.5, Haiku 5.5, Sonnet 5, Sonnet 4.6) | 1M tokens | about 4M characters, any book |
-| OpenAI GPT-6 and GPT-5.6 (and the older GPT-5.5, GPT-5.4) | about 920K tokens of input | about 3.7M characters |
-| OpenAI GPT-5.4-mini, GPT-5.4-nano | 272K tokens of input | about 1.1M characters |
+| Gemini 3.8 Flash and the other Gemini 3 and Gemini 4 models | 1M tokens | about 4M characters, any book |
+| Claude (Sonnet 5.5, Opus 5.5, Haiku 5.5, Fable 5.2) | 1M tokens | about 3M characters, any book (Claude counts about 3 characters per token, see below) |
+| OpenAI GPT-6 and GPT-5.6 models | about 920K tokens of input | about 3.7M characters |
 | DeepSeek V4 | 1M tokens | about 4M characters, any book |
 | others (Mistral, Qwen, Grok, GLM and the rest) | 128K to 1M tokens, by model (a local model: what its server allows) | about 500K to 4M characters |
 
 CJK and other non-Latin text tokenizes at about two characters per token, which roughly halves these estimates.
 
-Cost per request, input only, English:
+Cost per request, input only, English (list prices in November 2026; DeepSeek's row is from an earlier check):
 
 | Model | 250K characters (about 60K tokens) | 500K (125K) | 1M (250K) |
 |---|---|---|---|
-| Gemini 2.5 Flash | $0.02 | $0.04 | $0.08 |
 | DeepSeek V4 | $0.02 | $0.04 | $0.07 |
-| Claude Haiku 5.5 | $0.01 | $0.06 | $0.13 |
-| GPT-5.4-mini | $0.16 | $0.31 | $0.63 |
-| Claude Sonnet 5 / 4.6 | $0.19 | $0.38 | $0.75 |
-| Gemini 2.5 Pro | $0.08 | $0.16 | $0.38 |
-| Claude Opus 4.8 | $0.31 | $0.63 | $1.25 |
-| GPT-5.5 | $0.63 | $1.25 | $2.50 |
+| Claude Haiku 5.5 | $0.01 | $0.09 | $0.17 |
+| Gemini 3.8 Flash | $0.05 | $0.09 | $0.19 |
+| GPT-6.1 Terra | $0.06 | $0.13 | $0.25 |
+| Gemini 4 Hydrogen | $0.09 | $0.19 | $0.38 |
+| GPT-6.2 Sol | $0.13 | $0.25 | $0.50 |
+| Claude Sonnet 5.5 | $0.17 | $0.35 | $0.70 |
+| Claude Opus 5.5 | $0.35 | $0.70 | $1.40 |
+
+The token counts in the header are the usual estimate of four characters per token. Claude's current models count English prose at about three (measured in November 2026: a novel of 681,000 characters, 119,000 words, is 238,000 tokens), so the three Claude rows are computed at about 87K, 175K and 350K tokens. Measured on that novel: an X-Ray of the whole book in one request cost $0.54 on Claude Sonnet 5.5 (by the same count about $0.14 on Haiku 5.5 and $1.10 on Opus 5.5), and built in checkpoints as you read about three times as much. Gemini 3.8 Flash doubles in price on January 1, 2027.
 
 Claude Haiku 5.5 bills a request at five times its base rate, input and output, once the prompt passes 100K tokens, hence the jump between its first two columns. Prompt caching cuts the repeated parts by 50 to 90%; the new content of each turn (your latest question and the previous answer) is charged in full.
 

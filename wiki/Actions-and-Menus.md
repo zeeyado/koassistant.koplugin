@@ -96,7 +96,7 @@ Don't like how a built-in action behaves? Change its settings, or make a copy yo
    - standard models for Explain, Summarize and ELI5 (balanced quality and cost);
    - reasoning models for Deep Analysis, Key Arguments and academic tasks (complex thinking). Deep Analysis turns reasoning off for itself; set its **Reasoning** to **Global (use setting)** to let the model reason.
 
-   For example claude-haiku-5-5, gpt-6-luna or llama3.2:3b for lookups; claude-sonnet-5-5, gpt-5.6-terra or llama3.3 for general use; claude-opus-5-5, gpt-6.2-sol or deepseek-v4-pro for analysis.
+   For example claude-haiku-5-5, gpt-6-luna or llama3.2:3b for lookups; claude-sonnet-5-5, gpt-6.1-terra or llama3.3 for general use; claude-opus-5-5, gpt-6.2-sol or deepseek-v4-pro for analysis.
 3. **An action without the domain or your languages?** A translation action you created gives unexpected results because of your domain, for example: domain context can alter the style and register of a translation. Set its **Domain** to **None (no domain)**, and tick **Skip language** to leave out your language preferences. Translate, Dictionary, Quick Define, Deep Analysis and Grammar already skip the domain.
 4. **Compare approaches.** Duplicate an action several times with different prompts, name the copies "Explain (brief)", "Explain (detailed)" and "Explain (ELI5)", and test which works best for your reading.
 

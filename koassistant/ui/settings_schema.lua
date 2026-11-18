@@ -274,7 +274,7 @@ local SettingsSchema = {
                                 local f = plugin.settings:readSetting("features") or {}
                                 return f.render_markdown ~= false
                             end,
-                            help_text = _("The font of Arabic, Persian and Urdu letters in the Markdown view, wherever they appear: a whole paragraph or a word inside an English sentence. Noto Naskh Arabic, the default, is the face KOReader gives Arabic books; Noto Sans Arabic UI is the face of its plain-text windows; any font KOReader knows can be picked (a font copied into KOReader's fonts folder appears after a restart). None shows those letters in the window's own fallback font. Hebrew, Devanagari and Bengali have their own fixed faces, the ones KOReader's interface uses."),
+                            help_text = _("The font of Arabic, Persian and Urdu letters in the Markdown view, wherever they appear: a whole paragraph or a word inside an English sentence. Noto Naskh Arabic, the default, is the face KOReader gives Arabic books; Noto Sans Arabic UI is the face of its plain-text windows; any font KOReader knows can be picked (a font copied into KOReader's fonts folder appears after a restart). None shows those letters in the window's own fallback font. Hebrew and Devanagari have their own fixed faces, the ones KOReader's interface uses."),
                         },
                         {
                             id = "chat_exchange_page_breaks",
@@ -1186,7 +1186,7 @@ local SettingsSchema = {
                                 { value = "sentence", text = _("First sentence only") },
                                 { value = "full", text = _("Full entry") },
                             },
-                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. First sentence keeps the card to a one-line identification, with the full entry a tap away. Full entry shows the whole description (swipe to scroll the footnote panel; the floating popup cuts it where it runs out of room). Can be overridden per book."),
+                            help_text = _("How much of an entry the card shows for entities already in your installed X-Ray. First sentence keeps the card to a one-line identification, with the full entry a tap away. Full entry shows the whole description (swipe to scroll it). Can be overridden per book."),
                         },
                         {
                             id = "xray_card_landing",

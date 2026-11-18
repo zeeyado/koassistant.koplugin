@@ -25141,8 +25141,12 @@ function AskGPT:openNotebookInChatViewer(notebook_path, document_path)
     on_export = on_export,
     -- Chat directly about the notebook content (controls parity slice (e) note C),
     -- reusing the artifact viewer's → Chat launcher with notebook-specific wording.
-    on_launch_chat = self_ref:_buildLaunchChatCallback(document_path, book_title, book_author, content, _("Notebook"),
-      { notebook = true }),
+    -- The window shows the notebook as it is; the chat is sent its entries
+    -- without the title line this plugin writes at its top, which names the
+    -- book whatever Book info says (B727: the extractor and Attach already
+    -- read it so; this path handed over the shown text).
+    on_launch_chat = self_ref:_buildLaunchChatCallback(document_path, book_title, book_author,
+      Notebook.stripHeader(content), _("Notebook"), { notebook = true }),
     launch_chat_title = _("Chat about this notebook"),
     launch_chat_hold_hint = _("Start a new chat about this notebook"),
     _plugin = self_ref,

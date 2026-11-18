@@ -342,7 +342,11 @@ function AnthropicRequest:build(config)
     -- prefix in the default config (1024 tokens on Sonnet 5; system block is
     -- ~571) and measurably cached nothing (probed 2026-08-14). Explicit
     -- block-level breakpoints coexist with the automatic one.
-    if not (config.system and config.system.enable_caching == false) then
+    -- Not on a one-shot request (config.system.one_shot, set by the dispatch for
+    -- an answer that is saved as a result, B728): no later request shares its
+    -- messages, and the write costs 1.25 times the input price. The system
+    -- block's own breakpoint stays.
+    if not (config.system and (config.system.enable_caching == false or config.system.one_shot)) then
         request_body.cache_control = { type = "ephemeral" }
     end
 

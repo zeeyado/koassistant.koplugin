@@ -42,7 +42,13 @@ function OpenRouterHandler:customizeRequestBody(body, config)
     -- Backends without explicit caching ignore it. session_id sticky routing
     -- (pins a chat to one endpoint so caches actually hit) needs a per-chat
     -- id — carried since B285 (2026-09-05) as config.conversation_id.
-    body.cache_control = { type = "ephemeral" }
+    -- Not on a one-shot request (config.system.one_shot, B728): an answer saved
+    -- as a result has no later turn, and a cache write is billed above the
+    -- input price (a quarter more on a Claude backend; the same probe's first
+    -- run: $0.0172).
+    if not (type(config.system) == "table" and config.system.one_shot) then
+        body.cache_control = { type = "ephemeral" }
+    end
     -- session_id sticky routing: every turn of one chat lands on the endpoint
     -- holding its cache. nil (no conversation) = omitted.
     body.session_id = config.conversation_id

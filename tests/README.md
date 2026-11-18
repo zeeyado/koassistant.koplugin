@@ -269,6 +269,7 @@ The 104 files, with what each one pins:
 - `test_ollama_endpoints.lua` - Ollama server address normalization and the wire routing at the active endpoint
 - `test_ollama_num_ctx.lua` - per-request `num_ctx` sizing (the silent-truncation guard)
 - `test_ollama_tools_request.lua` - Ollama tool declarations, decoded-object arguments, ignored `tool_choice`
+- `test_one_shot_cache.lua` - a request whose answer is saved as a result carries no prompt-cache mark for its messages (Anthropic, OpenRouter): the rule, the hand-off from the request bake to both handlers, a chat keeping its mark, and every handler that sends a mark reading the flag
 - `test_openai_codex_handler.lua` - OpenAI Subscription: codex endpoint, OAuth headers, collected-SSE transport, web-search and tool wire
 - `test_openai_codex_oauth.lua` - device-code OAuth: user-code / poll / exchange / refresh requests, JWT claims
 - `test_openai_compatible.lua` - the OpenAI-compatible base handler and its hooks

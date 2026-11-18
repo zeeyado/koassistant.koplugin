@@ -195,6 +195,22 @@ TestRunner:test("every path that sends the notebook reads it without the header"
         "the extractor does")
     TestRunner:assertTrue(src("koassistant/request/attachments.lua"):find("Notebook.readForRequest(", 1, true) ~= nil,
         "the attachment does")
+    -- The notebook's own window reads it whole, to show it, and starts "Chat
+    -- about this notebook" with that text: the chat must get it without the
+    -- header (it named the book under Book info None until 2026-11-18).
+    local main = src("main.lua")
+    local reads = 0
+    for _ in main:gmatch("Notebook%.read%(") do reads = reads + 1 end
+    TestRunner:assertEqual(reads, 1, "main.lua reads the notebook whole in one place, the window that shows it")
+    local from = main:find("function AskGPT:openNotebookInChatViewer", 1, true)
+    TestRunner:assertTrue(from ~= nil, "the notebook's window is found")
+    local window = main:sub(from, main:find("\nend\n", from, true) or #main)
+    local launch = window:match("on_launch_chat = self_ref:_buildLaunchChatCallback(%b())")
+    TestRunner:assertTrue(launch ~= nil, "the window starts a chat about the notebook")
+    TestRunner:assertTrue(launch ~= nil and launch:find("Notebook.stripHeader(content)", 1, true) ~= nil,
+        "the chat about the notebook is sent it without the header")
+    TestRunner:assertTrue(launch ~= nil and launch:find("book_author, content,", 1, true) == nil,
+        "never the shown text as it is")
 end)
 
 os.execute("rm -rf '" .. base .. "'")

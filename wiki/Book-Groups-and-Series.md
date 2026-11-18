@@ -101,7 +101,7 @@ Carried entries are what the other books of a group know that this book has not 
 - On its own, at no cost: nothing is sent. Building or updating any X-Ray of the group, and any change to the group (books added, removed or moved, the kind changed), refreshes the books' carried lists in the background.
 - The carried list follows the group as it is now. When a book leaves the group, the group is deleted, the books are put in another order or the kind changes, each book drops the carried entries, and the "From" lines on its own entries, of the books it no longer takes from: a book that left, every book of a deleted group, in a series a book that now comes after it, everything in a plain group. What an AI merge added stays, and so do an entry you carried by hand (**Add to this book's carried list**), an entry you added from the carried list, and the ones you removed. Putting a book back brings its entries back.
 - In a series, a book's list comes from the nearest earlier book with an X-Ray, and that book's own carried list comes along with it, so one book passes on everything before it. In a project it comes from every other book with an X-Ray.
-- A book holds a carried list once it has its own main X-Ray. Only X-Rays your privacy settings let the AI read are used: text extraction allowed for that book, or a trusted provider (see [Privacy and Data](Privacy-and-Data)).
+- A book holds a carried list once it has its own main X-Ray. A book whose text is set to Never contributes nothing; a book on Ask is carried too, since carrying sends nothing (see [Privacy and Data](Privacy-and-Data)).
 - An entry this book already has gets what the other book says about it attached as a line naming that book, also at no cost. "Already has" means an entry of the same kind (a person as a person, a place as a place): the earlier book's character "the Warden" is carried even when this book has the term "Warden".
 - A book's timeline (or argument development) and its status block are never carried: they belong to that book.
 - When the earlier books name one character differently (a short name in one volume, the full name in the next), the list still shows one row, with the other volume's description as a "From earlier books" line. When two books carry the same entry, each book's text is kept as that book's line.
@@ -153,7 +153,7 @@ In an entry's **More…** popup, **Link with a group member's entry…** asks fo
 
 ### Adding another book's entry to this book
 
-An entry found in another book of the group (by a lookup, a card or the search) opens read-only with **Open in *Title*'s X-Ray** and **Add to this book's carried list**: it then waits on this book's carried list like any carried entry, at no cost. The row reads **Already in this book's X-Ray** or **Already on this book's carried list** when that is so, judged by an entry of the same kind. Adding needs text extraction allowed for the other book, or a trusted provider.
+An entry found in another book of the group (by a lookup, a card or the search) opens read-only with **Open in *Title*'s X-Ray** and **Add to this book's carried list**: it then waits on this book's carried list like any carried entry, at no cost. The row reads **Already in this book's X-Ray** or **Already on this book's carried list** when that is so, judged by an entry of the same kind. Adding is refused only when the other book's text is set to Never.
 
 ## AI merge (paid)
 
@@ -166,7 +166,7 @@ An AI merge asks the model to combine two X-Rays. It matches entries by name, al
 - It brings in everything the other X-Ray covers, later events included. A book that comes later in the series can be merged in; the confirm cautions that its background includes events beyond this book.
 - The receiving X-Ray is archived first, so an AI merge can be undone from **All versions**.
 - Every confirm says how many requests it will send, and whether a book was merged in before. Merging one book again sends both X-Rays again, which is worth it only when one of them has changed. The series and project merges skip the books already merged and up to date (**AI merge new only**), run again the ones whose X-Ray changed, and can run everything again (**Re-run all**, **AI merge all**).
-- It needs both X-Rays readable under your privacy settings: text extraction allowed for each book, or a trusted provider. A merge missing that for a book does not start.
+- After the confirm it asks once for what the X-Rays were built from, where that is still on Ask; a book whose text is set to Never is refused, with a button to its settings.
 - When the two books share nothing, it says so and changes nothing. When the merge may have left one figure under two names, it offers **Review duplicates…**.
 - The X-Ray browser's ☰ menu → **Info** lists the books AI merges brought in under **Includes background from:**, each "up to date" or "changed since the AI merge".
 
@@ -221,7 +221,7 @@ In a series, lookups look past a book only once it is read (marked **Finished**,
 
 - When a later book with an X-Ray is held back, the search results and the no-results message carry a row naming it: **Search *Title* too (may contain spoilers)…**. The row shows whether or not that book has a hit, so it gives nothing away.
 - Each confirm (**Search this book**) opens exactly one more book, on its own page (**Results for "…" in *Title***), stacked over the page you confirmed from, so going back steps to the previous book. That page carries the row for the next one. A reveal does not stick: the next search starts at the chain again.
-- In the member list (**→ Group**), a held-back book is listed as "(later in the series)" without checking whether the entry appears in it, and opens only after a confirm (**Open it**). The Group Hub's book rows say and ask the same before that book's Book Hub opens, when the hub was reached from an earlier book (its Group button, Book Hub or X-Ray); from the Groups list nothing is held back.
+- In the member list (**→ Group**), a held-back book is listed as "(later in the series)" without checking whether the entry appears in it, and opens only after a confirm (**Open it**). The Group Hub's book rows say and ask the same before that book's Book Hub opens, judged from the book the hub was opened for (its Group button, Book Hub or X-Ray), or from the open book when you come from the Groups list; with no book open nothing is held back.
 - Marks, entity cards and matching selections never reach past the chain.
 - A project shares between all its books in both directions; a plain group shares nothing.
 

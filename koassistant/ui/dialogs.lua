@@ -466,6 +466,29 @@ local function webSearchPreview(action, features, provider)
     if features.enable_web_search ~= nil then return features.enable_web_search == true end
     return provider == "perplexity"
 end
+
+-- A request whose answer is saved as a result has no later turn (B728): the
+-- window that opens is the saved result's, and a chat about it starts from the
+-- result, never from this prompt. A prompt-cache mark on such a request buys a
+-- cache nothing reads (Anthropic bills the write at 1.25 times the input price:
+-- 18% of a whole-book X-Ray, measured 2026-11-18), so the request says it is
+-- one-shot and the handlers that send a mark for the messages leave it off
+-- (anthropic_request.lua, openrouter.lua; the system block keeps its own mark,
+-- which a chain of checkpoint steps reads back). Not with web search on: the
+-- provider runs several passes inside that one request, which was not measured.
+-- config.system is built per request, so the mark ends with the request.
+-- Returns whether it marked.
+local function markOneShot(config, saves_result)
+    if not saves_result or type(config) ~= "table" or type(config.system) ~= "table" then
+        return false
+    end
+    local web = config.enable_web_search
+    if web == nil then web = config.features and config.features.enable_web_search end
+    if web == true then return false end
+    config.system.one_shot = true
+    return true
+end
+
 local function ensureReasoningHeadroom(api_params, provider, decision)
     if not (api_params and api_params.max_tokens and decision) then return end
     local might_reason = decision.mode == "on"
@@ -6309,6 +6332,8 @@ if prune_book_text then
         -- handleResponse's error display. Predefined actions carry _tools_active=false, so
         -- shouldUse returns false and this stays a plain send — queryWith just adds the
         -- quick-retry interception. This is the only send path that bypassed queryWith.
+        -- An answer that is saved as a result has no later turn: no cache mark (B728)
+        markOneShot(temp_config, cache_enabled)
         local result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, handleResponse, plugin, ui)
 
         -- If streaming is in progress, return nil (result comes via callback)
@@ -14240,6 +14265,7 @@ return {
     -- Test seam (tests/unit/test_run_options.lua): the request bake
     _buildUnifiedRequestConfig = buildUnifiedRequestConfig,
     webSearchPreview = webSearchPreview,  -- the message's web flag before the bake (B588)
+    _markOneShot = markOneShot,  -- test seam: the request that has no later turn (B728)
     DISPATCH_TRANSIENTS = DISPATCH_TRANSIENTS,  -- the keys a dispatch consumes from its source config
     dropDispatchTransients = dropDispatchTransients,  -- the funnel's Cancel clears them as a dispatch would
     -- Test seam (tests/unit/test_front_matter_flow.lua): what a headless run hands back
