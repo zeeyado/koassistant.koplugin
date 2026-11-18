@@ -1314,6 +1314,35 @@ TestRunner:test("xrayPromotionHold: only the \"position\" sentinel pins (device 
         fakeDocSettings({ koassistant_book_xray_promotion = true })), false, "other values -> no hold")
 end)
 
+TestRunner:test("xrayCheckpointNote: the creation form's sentence follows the installs' own rule (B717)", function()
+    -- the same two reads the engine's installs make: the posture, then the hold
+    local text, case = BookSettings.xrayCheckpointNote(fakeDocSettings({}), {})
+    TestRunner:assertEqual(case, "follows", "protection on by default: the X-Ray follows the position")
+    TestRunner:assertEqual(text:find("up to your position", 1, true) ~= nil, true, "and the sentence says so")
+    text, case = BookSettings.xrayCheckpointNote(fakeDocSettings({}), { spoiler_free_chat = false })
+    TestRunner:assertEqual(case, "newest", "protection off: the newest checkpoint is shown")
+    TestRunner:assertEqual(text:find("ahead of you", 1, true) ~= nil, true, "the sentence names the consequence")
+    local _text, book_case = BookSettings.xrayCheckpointNote(
+        fakeDocSettings({ koassistant_book_spoiler_free = false }), { spoiler_free_chat = true })
+    TestRunner:assertEqual(book_case, "newest", "the book's own Off counts, over the global On")
+    _text, book_case = BookSettings.xrayCheckpointNote(
+        fakeDocSettings({ koassistant_book_research_mode = true }), { spoiler_free_chat = true })
+    TestRunner:assertEqual(book_case, "newest", "research stands protection down for the installs too")
+    text, case = BookSettings.xrayCheckpointNote(
+        fakeDocSettings({ koassistant_book_xray_promotion = "position" }), { spoiler_free_chat = false })
+    TestRunner:assertEqual(case, "held", "protection off with X-Ray updates on Follow my position")
+    TestRunner:assertEqual(text:find("follow your position", 1, true) ~= nil, true, "which the sentence names")
+    -- the hold means nothing while protection is on (the posture already follows)
+    _text, book_case = BookSettings.xrayCheckpointNote(
+        fakeDocSettings({ koassistant_book_xray_promotion = "position" }), { spoiler_free_chat = true })
+    TestRunner:assertEqual(book_case, "follows", "with protection on the hold changes nothing")
+    -- every case is one sentence of its own, none of them an em dash
+    for _idx, s in ipairs({ text, (BookSettings.xrayCheckpointNote(fakeDocSettings({}), {})),
+            (BookSettings.xrayCheckpointNote(fakeDocSettings({}), { spoiler_free_chat = false })) }) do
+        TestRunner:assertEqual(s:find("\226\128\148", 1, true) == nil, true, "no em dash")
+    end
+end)
+
 TestRunner:test("resolveXrayPosture: per-book spoiler override wins both ways", function()
     local ds_on = fakeDocSettings({ koassistant_book_spoiler_free = true })
     local ds_off = fakeDocSettings({ koassistant_book_spoiler_free = false })

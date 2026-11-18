@@ -3,6 +3,7 @@ local LuaSettings = require("luasettings")
 local logger = require("koassistant.core.logger")
 local lfs = require("libs/libkoreader-lfs")
 local _ = require("koassistant.core.gettext")
+local T = require("ffi/util").template
 local DocSettings = require("docsettings")
 local SafeDocSettings = require("koassistant.storage.doc_settings")
 local BookStore = require("koassistant.storage.book_store")
@@ -618,7 +619,7 @@ function BackupManager:_decodeJSON(json_str)
         return nil, pos
     end
 
-    local value, _ = parse_value(json_str, 1)
+    local value = parse_value(json_str, 1)
     return value
 end
 
@@ -750,7 +751,7 @@ function BackupManager:_countItems(options)
 
         counts.custom_behaviors = 0
         if features.custom_behaviors then
-            for _idx, _ in pairs(features.custom_behaviors) do
+            for _idx in pairs(features.custom_behaviors) do
                 counts.custom_behaviors = counts.custom_behaviors + 1
             end
         end
@@ -1262,7 +1263,7 @@ function BackupManager:validateBackup(backup_path)
     local manifest_file = io.open(temp_dir .. "/manifest.json", "r")
     if not manifest_file then
         -- Clean up and return error
-        local safe_temp, _ = self:_sanitizePath(temp_dir)
+        local safe_temp = self:_sanitizePath(temp_dir)
         if safe_temp then
             os.execute(string.format('rm -rf "%s"', safe_temp))
         end
@@ -1275,7 +1276,7 @@ function BackupManager:validateBackup(backup_path)
     local manifest, parse_err = self:_parseManifest(manifest_text)
     if not manifest then
         -- Clean up and return error
-        local safe_temp, _ = self:_sanitizePath(temp_dir)
+        local safe_temp = self:_sanitizePath(temp_dir)
         if safe_temp then
             os.execute(string.format('rm -rf "%s"', safe_temp))
         end
@@ -1283,7 +1284,7 @@ function BackupManager:validateBackup(backup_path)
     end
 
     -- Clean up temp directory
-    local safe_temp, _ = self:_sanitizePath(temp_dir)
+    local safe_temp = self:_sanitizePath(temp_dir)
     if safe_temp then
         os.execute(string.format('rm -rf "%s"', safe_temp))
     end
@@ -1301,7 +1302,7 @@ function BackupManager:validateBackup(backup_path)
         -- Simple version comparison (would need more sophisticated logic for production)
         -- For now, just warn if versions differ
         if manifest.plugin_version ~= current_version then
-            table.insert(warnings, "Backup was created with a different plugin version (" .. manifest.plugin_version .. ")")
+            table.insert(warnings, T(_("Backup was created with a different plugin version (%1)"), manifest.plugin_version))
         end
     end
 
@@ -1377,7 +1378,7 @@ function BackupManager:_validateActionOverrides(overrides)
             valid_overrides[action_id] = override_config
         else
             -- Action no longer exists, skip and warn
-            table.insert(warnings, string.format("Skipped override for missing action: %s", action_id))
+            table.insert(warnings, T(_("Skipped override for missing action: %1"), action_id))
             logger.warn("BackupManager: Skipped override for missing action:", action_id)
         end
     end
@@ -1402,7 +1403,7 @@ function BackupManager:_validateCustomActions(custom_actions)
         if type(action_config) == "table" and action_config.text and (action_config.prompt or action_config.template) then
             valid_actions[action_id] = action_config
         else
-            table.insert(warnings, string.format("Skipped invalid custom action: %s", action_id))
+            table.insert(warnings, T(_("Skipped invalid custom action: %1"), action_id))
             logger.warn("BackupManager: Skipped invalid custom action:", action_id)
         end
     end
@@ -1784,7 +1785,7 @@ function BackupManager:restoreBackup(backup_path, options)
                 new_settings:flush()
 
                 if not options.restore_api_keys or not manifest.contents.api_keys then
-                    table.insert(warnings, "API keys were not included in the backup; the keys you had are kept.")
+                    table.insert(warnings, _("API keys were not included in the backup; the keys you had are kept."))
                 end
             end
         end
@@ -1870,7 +1871,7 @@ function BackupManager:restoreBackup(backup_path, options)
             local json_success, json_err = self:restoreChatsFromJSON(json_path, options.merge_mode)
             if not json_success then
                 logger.err("BackupManager: Failed to restore chats from JSON:", json_err)
-                table.insert(warnings, "Failed to restore some chats: " .. (json_err or "unknown error"))
+                table.insert(warnings, T(_("Failed to restore some chats: %1"), json_err or _("Unknown error")))
             end
         elseif lfs.attributes(backup_chats_dir, "mode") == "directory" then
             -- v1: Legacy directory backup - restore to CHAT_DIR
@@ -1879,7 +1880,7 @@ function BackupManager:restoreBackup(backup_path, options)
             if not options.merge_mode then
                 -- Replace mode: clear existing chats first
                 if lfs.attributes(self.CHAT_DIR, "mode") == "directory" then
-                    local safe_path, _ = self:_sanitizePath(self.CHAT_DIR)
+                    local safe_path = self:_sanitizePath(self.CHAT_DIR)
                     if safe_path then
                         os.execute(string.format('rm -rf "%s"', safe_path))
                     end

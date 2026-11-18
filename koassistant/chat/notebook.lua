@@ -731,6 +731,33 @@ function Notebook.read(document_path)
     return Notebook.stripFrontmatter(content)
 end
 
+--- A notebook's text without the header this plugin writes at its top: the
+--- line "# Notebook: <the book's title>" and the rule under it (B727). Only
+--- that first line, as create() writes it; a heading the reader wrote further
+--- down is theirs.
+--- @param content string|nil
+--- @return string|nil
+function Notebook.stripHeader(content)
+    if type(content) ~= "string" then return content end
+    local rest = content:match("^%s*# Notebook: [^\n]*\n%s*%-%-%-[ \t]*\n(.*)$")
+        or content:match("^%s*# Notebook: [^\n]*\n(.*)$")
+        or content:match("^%s*# Notebook: [^\n]*$") and ""
+    if rest == nil then return content end
+    return (rest:gsub("^%s+", ""))
+end
+
+--- The notebook as a request carries it (B727): its entries, without the
+--- plugin's own header. That header names the book, and with Book info on
+--- None nothing the plugin writes may; with any other level the request's
+--- book line already names it, and the section's own label says what the
+--- text is. A notebook that holds nothing but its header is an empty one.
+--- Every path that sends the notebook reads it here; read() is for showing it.
+--- @param document_path string The document file path
+--- @return string|nil content
+function Notebook.readForRequest(document_path)
+    return Notebook.stripHeader(Notebook.read(document_path))
+end
+
 --- Get file stats for index
 --- Includes filename field in vault/central mode for fast index lookups
 --- @param document_path string The document file path

@@ -1159,7 +1159,12 @@ function SetupWizard.stepIcons(plugin, ctx, next_step)
     if registered then
         return showGlyphTest(plugin, ctx, next_step)
     end
-    SetupWizard.offerFontInstall(plugin, { wizard = ctx, done = next_step })
+    -- A reader who has not turned the icons on (the default: off) sees no
+    -- empty boxes; the offer says what the font is for, not what is broken
+    local f_now = feats(plugin)
+    local icons_on = (f_now.enable_emoji_icons or f_now.enable_emoji_panel_icons or f_now.enable_data_access_indicators) and true or false
+    SetupWizard.offerFontInstall(plugin, { wizard = ctx, done = next_step,
+        intro = not icons_on and _("KOAssistant can mark its menus, buttons and panels with emoji icons. KOReader ships no emoji font, so they need the bundled Noto Emoji font (about 860 KB). Install it into KOReader now?") or nil })
 end
 
 

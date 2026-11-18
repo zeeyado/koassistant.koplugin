@@ -351,6 +351,24 @@ function BookSettings.xrayPromotionHold(doc_settings)
     return (doc_settings and doc_settings:readSetting(BookSettings.KEY_XRAY_PROMOTION)) == "position"
 end
 
+--- What a reader is SHOWN of an X-Ray built in checkpoints (B717): the rows of
+--- the creation form build the same versions whatever the protection; the
+--- book's spoiler protection decides which one is installed. One sentence, from
+--- the two resolvers the engine's installs read (resolveXrayPosture and the
+--- promotion hold), for the hint under the form's checkpoint rows.
+--- @return string the sentence
+--- @return string "follows" | "newest" | "held" (the case, for tests)
+function BookSettings.xrayCheckpointNote(doc_settings, features)
+    local posture = BookSettings.resolveXrayPosture(doc_settings, features)
+    if posture == "track" then
+        return _("Spoiler protection is on for this book: you see the X-Ray up to your position, and each later checkpoint appears when you reach it."), "follows"
+    end
+    if BookSettings.xrayPromotionHold(doc_settings) then
+        return _("Spoiler protection is off for this book, and its X-Ray updates are set to follow your position: each checkpoint appears when you reach it."), "held"
+    end
+    return _("Spoiler protection is off for this book: the newest checkpoint is shown as soon as it is built, also when it is ahead of you."), "newest"
+end
+
 --- Forget the per-book state that described a DELETED X-Ray lineage: the
 --- coverage-ask stamp (a future from-nothing build should ask again), the
 --- promotion hold (it described the deleted timeline) and the Automatic X-Ray

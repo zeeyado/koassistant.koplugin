@@ -140,6 +140,63 @@ TestRunner:test("a file made by hand (no front matter) serves the book of its na
     TestRunner:assertTrue(Notebook.exists(D), "the hand-made file is the book's")
 end)
 
+-- What a request carries of a notebook (B727): its entries, never the header
+-- the plugin writes at its top, which names the book. With Book info on None
+-- "nothing names the book" was false for every request that held the notebook
+-- (found by the first privacy run in the real app).
+TestRunner:test("a request gets the notebook without the header that names the book", function()
+    local E = base .. "/e.epub"
+    touch(E)
+    storeFor(E):saveSetting("doc_props", { title = "A Private Title", authors = "Somebody" })
+    TestRunner:assertTrue(Notebook.create(E), "created")
+    TestRunner:assertTrue(Notebook.append(Notebook.getPath(E), "my own entry\n"), "an entry appended")
+    local shown, sent = Notebook.read(E), Notebook.readForRequest(E)
+    TestRunner:assertTrue(shown:find("# Notebook: A Private Title", 1, true) ~= nil, "the notebook as shown keeps its header")
+    TestRunner:assertTrue(sent:find("A Private Title", 1, true) == nil, "what a request gets does not name the book")
+    TestRunner:assertTrue(sent:find("Somebody", 1, true) == nil, "nor its author (the front matter is gone too)")
+    TestRunner:assertTrue(sent:find("my own entry", 1, true) ~= nil, "and holds the entry")
+    TestRunner:assertTrue(not sent:find("^%s"), "from its first character")
+    -- a notebook nothing was written into is an empty one for a request
+    local F = base .. "/f.epub"
+    touch(F)
+    storeFor(F):saveSetting("doc_props", { title = "Nothing Written" })
+    TestRunner:assertTrue(Notebook.create(F), "created")
+    TestRunner:assertEqual((Notebook.readForRequest(F):gsub("%s", "")), "", "a header-only notebook sends nothing")
+end)
+
+TestRunner:test("stripHeader takes the plugin's own first line and nothing the reader wrote", function()
+    TestRunner:assertEqual(Notebook.stripHeader("# Notebook: T\n\n---\n\nentry one\n"), "entry one\n", "the header and its rule")
+    TestRunner:assertEqual(Notebook.stripHeader("# Notebook: T\nentry\n"), "entry\n", "a header whose rule was removed by hand")
+    TestRunner:assertEqual(Notebook.stripHeader("# Notebook: T"), "", "a header alone")
+    TestRunner:assertEqual(Notebook.stripHeader("# my notes\n\nentry\n"), "# my notes\n\nentry\n", "a hand-made heading stays")
+    TestRunner:assertEqual(Notebook.stripHeader("entry\n\n# Notebook: later\n"), "entry\n\n# Notebook: later\n",
+        "the same words further down are the reader's")
+    TestRunner:assertEqual(Notebook.stripHeader("# Notebook: T\n\n---\n\nfirst\n\n---\n\nsecond\n"), "first\n\n---\n\nsecond\n",
+        "only the first rule goes: the rules between entries stay")
+    TestRunner:assertEqual(Notebook.stripHeader(nil), nil, "nothing in, nothing out")
+    TestRunner:assertEqual(Notebook.stripHeader(""), "", "an empty notebook stays empty")
+end)
+
+TestRunner:test("every path that sends the notebook reads it without the header", function()
+    local function src(rel)
+        local info = debug.getinfo(1, "S").source:match("@?(.*)")
+        local root = info:match("(.+)/tests/unit/[^/]+$") or "."
+        local f = assert(io.open(root .. "/" .. rel, "r"))
+        local s = f:read("*a")
+        f:close()
+        return s
+    end
+    for _idx, rel in ipairs({ "koassistant/request/context_extractor.lua", "koassistant/request/attachments.lua",
+            "koassistant/ui/dialogs.lua", "koassistant/tools/book_tool_runner.lua", "koassistant/request/message_builder.lua" }) do
+        local s = src(rel)
+        TestRunner:assertTrue(s:find("Notebook%.read%(") == nil, rel .. " reads the notebook through readForRequest")
+    end
+    TestRunner:assertTrue(src("koassistant/request/context_extractor.lua"):find("Notebook.readForRequest(", 1, true) ~= nil,
+        "the extractor does")
+    TestRunner:assertTrue(src("koassistant/request/attachments.lua"):find("Notebook.readForRequest(", 1, true) ~= nil,
+        "the attachment does")
+end)
+
 os.execute("rm -rf '" .. base .. "'")
 _G.G_reader_settings = orig_G_reader_settings
 package.loaded["docsettings"] = orig_docsettings

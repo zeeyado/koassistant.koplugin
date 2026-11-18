@@ -1895,6 +1895,8 @@ function ActionService:createDuplicateAction(action)
         skip_language_instruction = action.skip_language_instruction,
         skip_domain = action.skip_domain,
         skip_background = action.skip_background,
+        -- the action's own domain is a setting of the action like the rest (B575)
+        domain = action.domain,
         -- Web search override (tri-state: true/false/nil)
         enable_web_search = action.enable_web_search,
         -- The three pins a copy used to drop (the Quick audit, finding 16)

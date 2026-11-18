@@ -381,7 +381,7 @@ end
 function ContextExtractor.readSidecarNotebook(document_path)
     if not document_path then return "" end
     local Notebook = require("koassistant.chat.notebook")
-    return Notebook.read(document_path) or ""
+    return Notebook.readForRequest(document_path) or ""
 end
 
 --- Read reading progress from a book's sidecar file on disk.
@@ -1560,7 +1560,7 @@ function ContextExtractor:getNotebookContent()
     if not doc_path then return result end
 
     local Notebook = require("koassistant.chat.notebook")
-    local content = Notebook.read(doc_path)
+    local content = Notebook.readForRequest(doc_path)
     if content and content ~= "" then
         result.content = content
     end

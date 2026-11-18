@@ -86,7 +86,7 @@ A long-press on **Send** (in an input dialog, the reply window, or a chat about 
 Don't like how a built-in action behaves? Change its settings, or make a copy you can rewrite. Both start from its details screen (hold it in Manage Actions) or from a menu's long-press.
 
 - **Edit Settings** (**Edit…** in a long-press menu) customizes a built-in's settings without creating a new action: provider and model, tier, behavior, domain, temperature, reasoning, web search, background, view, and the checkboxes. The action is then marked ⚙, and **Reset to Default** restores its original settings. A built-in's prompt can't be changed there: duplicate the action instead.
-- **Duplicate** saves a copy at once as your own action, named "Explain Copy" for Explain (then "Explain Copy (2)" and so on), to use as a template for a slightly different variant. The copy keeps the prompt, behavior, model settings, view and data-access boxes, but it is a plain chat action: the menu placements, the Quick Answer opt-in, the source popup, smart retrieval, and saving the result as an artifact stay with the original. The details screens of X-Ray, Look up in X-Ray, Generate Image and the model button offer no Duplicate.
+- **Duplicate** saves a copy at once as your own action, named "Explain Copy" for Explain (then "Explain Copy (2)" and so on), to use as a template for a slightly different variant. The copy keeps the prompt, behavior, domain, model settings, the Quick preset switch, the spoiler and surrounding-text settings, and the view and data-access boxes, but it is a plain chat action: the menu placements, the source popup, smart retrieval, and saving the result as an artifact stay with the original. The details screens of X-Ray, Look up in X-Ray, Generate Image and the model button offer no Duplicate.
 
 **Common tweaks:**
 
@@ -130,7 +130,7 @@ Tap **+ Add Action** at the top of Manage Actions. The editor takes three steps:
 
 **Create** saves the action, turned on and marked ★.
 
-**Editing your own action later:** hold it in Manage Actions for **Quick Edit** (the name and every setting of step 3 on one screen, with **Full Editor** for the context or the prompt), **Duplicate** or **Delete**. In a menu, long-press it and tap **Edit…** for the full editor.
+**Editing your own action later:** hold it in Manage Actions for **Quick Edit** (the name and every setting of step 3 on one screen, with **Full Editor** for the context or the prompt), **Duplicate** or **Delete**. In a menu, long-press it and tap **Edit…** for the full editor. A Save writes only what you changed on that screen: every other setting of the action stays as it was, including ones no screen shows (a maximum length or a requirement set in a file, for instance). The same holds for a built-in action: saved with nothing changed it stores nothing, and keeps following new releases.
 
 ## Tips for custom actions
 

@@ -18,7 +18,7 @@ When you select a word in a document, KOReader normally shows its dictionary pop
 
 ### X-Ray entries come first
 
-If the book has an X-Ray and the word you look up (or the text you select) exactly matches an entry's name or alias, KOAssistant opens that entry instead of the dictionary or the highlight menu, ahead of any bypass action you set. Anything that does not match falls through to your normal behavior, and a very long press at the end of a selection always brings back KOReader's plain highlight menu.
+If the book has an X-Ray and the word you look up (or the text you select) exactly matches an entry's name or alias, KOAssistant opens that entry instead of the dictionary or the highlight menu, ahead of any bypass action you set. Anything that does not match falls through to your normal behavior, and a very long press at the end of a selection always brings back KOReader's plain highlight menu. KOReader's own **Dictionary** row in that menu opens KOReader's dictionary for the word, X-Ray entry or not.
 
 Exact hits open a compact entity card first (a footnote panel by default, or a floating popup next to the word), with the full entry one tap away; turn **Entity Card First** off to jump straight to the entry. All of it is on by default. Set it for all books under **Settings → Reading & Library → X-Ray** (**X-Ray Entry for Matching Selections**, **Entity Card First**, **Card Style**), or per book in Book Settings → X-Ray or the X-Ray popup's **Marking & lookup…**. See [Using X-Ray](Using-X-Ray#matching-selections).
 
@@ -97,6 +97,8 @@ With the bypass on, selecting a word skips KOReader's dictionary popup and runs 
 
 1. **Settings → Dictionary Settings → Bypass KOReader Dictionary**: on.
 2. **Settings → Dictionary Settings → Bypass Action**: choose the action (Quick Define by default).
+
+**KOReader's dictionary stays one step away.** Keep your finger on the word a few seconds longer (KOReader's very long press): KOReader's highlight menu opens, and its own **Dictionary** row opens KOReader's dictionary for that word, with the bypass still on. **Dictionary (KOA)** in the same menu is KOAssistant's action. A word you tap in the Vocabulary builder's review list also opens in KOReader's dictionary, where the builder's **Forgot** and **Got it** buttons are.
 
 Any highlight action, built-in or custom, can be the bypass action. Quick Define is the default because it is fast; switch to the full **Dictionary** action when you want etymology and synonyms, or point the bypass at a lightweight action of your own.
 

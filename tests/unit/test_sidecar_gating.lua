@@ -97,6 +97,12 @@ package.loaded["koassistant.chat.notebook"] = {
         if path then return mock_notebook_content end
         return ""
     end,
+    -- what a request reads (B727): the notebook without the plugin's own
+    -- header; this stand-in's content has none
+    readForRequest = function(path)
+        if path then return mock_notebook_content end
+        return ""
+    end,
 }
 
 -- Mock ActionCache for cache tests

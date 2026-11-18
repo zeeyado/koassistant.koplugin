@@ -875,7 +875,12 @@ function DataAccess.carriedKinds(md)
     local set = {}
     if has("book_text") or has("full_document") or has("incremental_book_text") then set.book_text = true end
     if has("highlights") then set.highlights = true end
-    if has("annotations") then set.annotations = true end
+    -- the annotations section holds the reader's notes unless it is the
+    -- highlights-only copy sent when notes were refused (B619: recorded as
+    -- notes, such a chat was refused at resume for notes it never held)
+    if has("annotations") then
+        if md._annotations_degraded == true then set.highlights = true else set.annotations = true end
+    end
     if has("notebook_content") then set.notebook = true end
     if has("library_content") then set.book_list = true end
     if type(md.stats_groups) == "table" and next(md.stats_groups) then set.habits = true end

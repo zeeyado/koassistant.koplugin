@@ -228,7 +228,7 @@ end
 function Attachments.makeNotebook(document_path)
     local ok, Notebook = pcall(require, "koassistant.chat.notebook")
     if not ok then return nil, _("Notebook module unavailable.") end
-    local content = Notebook.read(document_path)
+    local content = Notebook.readForRequest(document_path)
     if not content or content:gsub("%s", "") == "" then
         return nil, _("No notebook for this book yet.")
     end

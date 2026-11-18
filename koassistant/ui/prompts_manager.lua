@@ -79,6 +79,121 @@ local function getDomainDisplayText(state, custom_domains)
     end
 end
 
+-- ─── What an editor's Save stores (B575) ────────────────────────────────────
+-- Every editor of an action used to rebuild the whole stored record from the
+-- fields its own state happened to hold: a field it never loaded, or never
+-- knew (the spoiler and surrounding-text settings, requires, max_tokens, the
+-- description), left the record at the next Save, changed or not. The rule
+-- now, one copy for the editors of a custom action: the stored record stays,
+-- and a Save writes over it the fields the reader changed in THAT editor.
+
+local function sameValue(a, b)
+    if a == b then return true end
+    if type(a) ~= "table" or type(b) ~= "table" then return false end
+    for k, v in pairs(a) do
+        if not sameValue(v, b[k]) then return false end
+    end
+    for k in pairs(b) do
+        if a[k] == nil then return false end
+    end
+    return true
+end
+
+--- An action's temperature wherever its holder keeps it: this manager's list
+--- entries carry it at the top, the service's actions and the stored records
+--- in api_params
+local function actionTemperature(action)
+    if not action then return nil end
+    return action.temperature or (type(action.api_params) == "table" and action.api_params.temperature) or nil
+end
+
+-- The stored record's fields an editor's state stands for, in a fixed order
+-- (a nil value has no place in a table walked with pairs)
+local RECORD_FIELDS = {
+    "text", "behavior_variant", "behavior_override", "prompt", "context",
+    "include_book_context", "skip_language_instruction", "skip_domain", "skip_background",
+    "domain", "temperature", "reasoning_config", "extended_thinking", "thinking_budget",
+    "provider", "model", "model_tier",
+    "use_book_text", "use_highlights", "use_annotations", "use_reading_progress",
+    "use_reading_stats", "use_advanced_stats", "use_notebook", "use_library",
+    "accept_quick_answer", "translate_view", "compact_view", "dictionary_view",
+    "minimal_buttons", "enable_web_search",
+}
+
+--- An editor's state as the stored record writes it. `temperature` is the one
+--- field that is not a field of the record itself (it lives in api_params).
+local function recordView(state)
+    return {
+        text = state.name,
+        behavior_variant = state.behavior_variant,
+        behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil,
+        prompt = state.prompt,
+        context = state.context,
+        include_book_context = state.include_book_context or nil,
+        skip_language_instruction = state.skip_language_instruction or nil,
+        skip_domain = state.skip_domain or nil,
+        -- Tri-state: no `or nil` (false means "always include" and must survive)
+        skip_background = state.skip_background,
+        domain = state.domain,
+        temperature = state.temperature,
+        reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
+        -- Legacy fields (backward compatibility)
+        extended_thinking = state.extended_thinking,
+        thinking_budget = state.thinking_budget,
+        provider = state.provider,  -- nil = use global
+        model = state.model,        -- nil = use global
+        model_tier = state.model_tier,  -- 18e speed hint (nil = none)
+        -- Context extraction flags (off by default)
+        use_book_text = state.use_book_text or nil,
+        use_highlights = state.use_highlights or nil,
+        use_annotations = state.use_annotations or nil,
+        use_reading_progress = state.use_reading_progress or nil,
+        use_reading_stats = state.use_reading_stats or nil,
+        use_advanced_stats = state.use_advanced_stats or nil,
+        use_notebook = state.use_notebook or nil,
+        use_library = state.use_library or nil,
+        accept_quick_answer = state.accept_quick_answer or nil,
+        -- View mode flags
+        translate_view = state.translate_view or nil,
+        compact_view = state.compact_view or nil,
+        dictionary_view = state.dictionary_view or nil,
+        minimal_buttons = state.minimal_buttons or nil,
+        -- Web search (tri-state: nil/true/false, nil means follow global)
+        enable_web_search = state.enable_web_search,
+    }
+end
+
+--- An editor remembers what it opened with, so its Save can tell what the
+--- reader changed. Called once, right after the state is filled.
+function PromptsManager.rememberLoaded(state)
+    state._loaded = recordView(state)
+    return state
+end
+
+--- The record a Save stores: `stored` (the record as it is saved now) with the
+--- fields the reader changed in this editor written over it. A state that
+--- remembers nothing (a caller that built one by hand) writes every field it
+--- holds, still over the stored record, so what no editor knows is kept.
+function PromptsManager.mergeEdit(stored, state)
+    local data = {}
+    for k, v in pairs(type(stored) == "table" and stored or {}) do data[k] = v end
+    local now, was = recordView(state), state._loaded
+    for _idx, name in ipairs(RECORD_FIELDS) do
+        if not was or not sameValue(now[name], was[name]) then
+            if name == "temperature" then
+                local api = {}
+                for k, v in pairs(type(data.api_params) == "table" and data.api_params or {}) do api[k] = v end
+                api.temperature = now.temperature
+                data.api_params = next(api) ~= nil and api or nil
+            else
+                data[name] = now[name]
+            end
+        end
+    end
+    data.enabled = true
+    return data
+end
+
 function PromptsManager:new(plugin)
     local o = {
         plugin = plugin,
@@ -322,6 +437,13 @@ function PromptsManager:loadPrompts()
             -- Web search
             enable_web_search = prompt.enable_web_search,
         }
+        -- The rest of the action as the service holds it (B575): an editor or
+        -- Duplicate opened from this list reads its entry, so a field the
+        -- entry did not carry (the domain, the spoiler and surrounding-text
+        -- settings, requires, api_params) was a field they dropped
+        for k, v in pairs(prompt) do
+            if entry[k] == nil then entry[k] = v end
+        end
 
         -- Apply builtin action overrides if this is a builtin action
         if prompt.source == "builtin" and prompt.id then
@@ -1233,6 +1355,7 @@ function PromptsManager:duplicateAction(action)
         skip_language_instruction = duplicate.skip_language_instruction,
         skip_domain = duplicate.skip_domain,
         skip_background = duplicate.skip_background,
+        domain = duplicate.domain,
         enable_web_search = duplicate.enable_web_search,
         reasoning_config = duplicate.reasoning_config,
         extended_thinking = duplicate.extended_thinking,
@@ -1305,7 +1428,7 @@ function PromptsManager:showPromptEditor(existing_prompt)
         -- that would collapse an explicit false into "follow domain"
         skip_background = existing_prompt and existing_prompt.skip_background,
         domain = existing_prompt and existing_prompt.domain or nil,
-        temperature = existing_prompt and existing_prompt.temperature or nil,  -- nil = use global
+        temperature = actionTemperature(existing_prompt),  -- nil = use global
         -- New format: reasoning_config (nil = global, "off" = force off, table = per-provider)
         reasoning_config = existing_prompt and existing_prompt.reasoning_config or nil,
         -- Legacy format (for backward compatibility)
@@ -1328,10 +1451,12 @@ function PromptsManager:showPromptEditor(existing_prompt)
         compact_view = existing_prompt and existing_prompt.compact_view or false,
         dictionary_view = existing_prompt and existing_prompt.dictionary_view or false,
         minimal_buttons = existing_prompt and existing_prompt.minimal_buttons or false,
-        -- Web search (tri-state: nil/true/false)
-        enable_web_search = existing_prompt and existing_prompt.enable_web_search or nil,
+        -- Web search (tri-state: nil/true/false). No `or nil`: it turned an
+        -- action's Never (false) into Follow global (B575)
+        enable_web_search = existing_prompt and existing_prompt.enable_web_search,
         existing_prompt = existing_prompt,
     }
+    if is_edit then PromptsManager.rememberLoaded(state) end
 
     self:showStep1_NameAndContext(state)
 end
@@ -3531,7 +3656,7 @@ function PromptsManager:showBuiltinSettingsEditor(prompt)
         prompt = prompt,  -- Reference to the original prompt
         behavior_variant = prompt.behavior_variant,
         behavior_override = prompt.behavior_override or "",
-        temperature = prompt.temperature,
+        temperature = actionTemperature(prompt),
         skip_language_instruction = prompt.skip_language_instruction or false,
         skip_language_instruction_base = base_skip_lang,  -- Track base for comparison on save
         skip_domain = prompt.skip_domain or false,
@@ -4394,46 +4519,51 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
     local override = {}
     local has_any = false
 
-    if state.temperature then
+    -- A value equal to the shipped one is no override (B575: an editor saved
+    -- with nothing changed stored the shipped temperature, reasoning and
+    -- behavior, the row showed the override mark and those values stopped
+    -- following releases). The RAW built-in, not `prompt`, which already has
+    -- the stored override applied.
+    local base = Actions.getById(prompt.id) or {}
+    if state.temperature and state.temperature ~= actionTemperature(base) then
         override.temperature = state.temperature
         has_any = true
     end
     -- New format: reasoning_config. A built-in may PIN reasoning; nil cannot be
     -- stored, so an explicit "Global (use setting)" over a pin rides the
-    -- "global" sentinel or the pin would be unclearable. Read the RAW built-in,
-    -- not `prompt` (which already has overrides applied), so re-saving keeps it.
+    -- "global" sentinel or the pin would be unclearable.
     if state.reasoning_config then
-        override.reasoning_config = state.reasoning_config
-        has_any = true
-    else
-        local builtin = Actions.getById(prompt.id)
-        if builtin and builtin.reasoning_config ~= nil then
-            override.reasoning_config = "global"
+        if not sameValue(state.reasoning_config, base.reasoning_config) then
+            override.reasoning_config = state.reasoning_config
             has_any = true
         end
+    elseif base.reasoning_config ~= nil then
+        override.reasoning_config = "global"
+        has_any = true
     end
     -- Legacy format (backward compatibility)
-    if state.extended_thinking then
+    if state.extended_thinking and state.extended_thinking ~= base.extended_thinking then
         override.extended_thinking = state.extended_thinking
         has_any = true
     end
-    if state.thinking_budget then
+    if state.thinking_budget and state.thinking_budget ~= base.thinking_budget then
         override.thinking_budget = state.thinking_budget
         has_any = true
     end
-    if state.provider then
+    if state.provider and state.provider ~= base.provider then
         override.provider = state.provider
         has_any = true
     end
-    if state.model then
+    if state.model and state.model ~= base.model then
         override.model = state.model
         has_any = true
     end
-    if state.behavior_variant then
+    if state.behavior_variant and state.behavior_variant ~= base.behavior_variant then
         override.behavior_variant = state.behavior_variant
         has_any = true
     end
-    if state.behavior_override and state.behavior_override ~= "" then
+    if state.behavior_override and state.behavior_override ~= ""
+            and state.behavior_override ~= base.behavior_override then
         override.behavior_override = state.behavior_override
         has_any = true
     end
@@ -4592,7 +4722,10 @@ function PromptsManager:showCustomQuickSettings(prompt)
         -- Background gate (tri-state: nil/true/false — nil = follow domain)
         skip_background = prompt.skip_background,
         domain = prompt.domain,
-        temperature = prompt.temperature,
+        temperature = actionTemperature(prompt),
+        -- shown on this screen (Takes the Quick preset) and never read: the
+        -- box was always empty and a Save cleared the switch (B575)
+        accept_quick_answer = prompt.accept_quick_answer == true,
         reasoning_config = prompt.reasoning_config,
         extended_thinking = prompt.extended_thinking,
         thinking_budget = prompt.thinking_budget,
@@ -4617,6 +4750,7 @@ function PromptsManager:showCustomQuickSettings(prompt)
         enable_web_search = prompt.enable_web_search,
         existing_prompt = prompt,  -- For updatePrompt compatibility
     }
+    PromptsManager.rememberLoaded(state)
 
     self:showCustomQuickSettingsDialog(state)
 end
@@ -5574,59 +5708,13 @@ end
 function PromptsManager:addPrompt(state)
     local service = self.plugin.action_service
     if service then
-        -- Convert empty strings to nil
-        local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
-
-        -- Build api_params if temperature is set
-        local api_params = nil
-        if state.temperature then
-            api_params = { temperature = state.temperature }
-        end
-
         -- Calculate the action ID that will be assigned
         -- UI actions get IDs like "ui_1", "ui_2", etc.
         local current_ui_actions = self.plugin.settings:readSetting("custom_actions") or {}
         local new_action_id = "ui_" .. (#current_ui_actions + 1)
 
-        service:addUserAction({
-            text = state.name,
-            behavior_variant = state.behavior_variant,
-            behavior_override = behavior_override,
-            prompt = state.prompt,
-            context = state.context,
-            include_book_context = state.include_book_context or nil,
-            skip_language_instruction = state.skip_language_instruction or nil,
-            skip_domain = state.skip_domain or nil,
-            -- Tri-state: no `or nil` — false means "always include" and must survive
-            skip_background = state.skip_background,
-            domain = state.domain,
-            api_params = api_params,
-            reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
-            -- Legacy fields (backward compatibility)
-            extended_thinking = state.extended_thinking,
-            thinking_budget = state.thinking_budget,
-            provider = state.provider,  -- nil = use global
-            model = state.model,        -- nil = use global
-            model_tier = state.model_tier,  -- 18e speed hint (nil = none)
-            -- Context extraction flags (off by default)
-            use_book_text = state.use_book_text or nil,
-            use_highlights = state.use_highlights or nil,
-            use_annotations = state.use_annotations or nil,
-            use_reading_progress = state.use_reading_progress or nil,
-            use_reading_stats = state.use_reading_stats or nil,
-            use_advanced_stats = state.use_advanced_stats or nil,
-            use_notebook = state.use_notebook or nil,
-            use_library = state.use_library or nil,
-            accept_quick_answer = state.accept_quick_answer or nil,
-            -- View mode flags
-            translate_view = state.translate_view or nil,
-            compact_view = state.compact_view or nil,
-            dictionary_view = state.dictionary_view or nil,
-            minimal_buttons = state.minimal_buttons or nil,
-            -- Web search (tri-state: nil/true/false - nil means follow global)
-            enable_web_search = state.enable_web_search,
-            enabled = true,
-        })
+        -- the record as every editor writes it (one copy: mergeEdit)
+        service:addUserAction(PromptsManager.mergeEdit(nil, state))
 
         -- Add to highlight menu if requested (only for highlight-compatible contexts)
         local added_to_highlight_menu = false
@@ -5653,73 +5741,27 @@ end
 function PromptsManager:updatePrompt(existing_prompt, state)
     local service = self.plugin.action_service
     if service then
-        -- Convert empty strings to nil
-        local behavior_override = (state.behavior_override and state.behavior_override ~= "") and state.behavior_override or nil
-
-        -- Build api_params if temperature is set
-        local api_params = nil
-        if state.temperature then
-            api_params = { temperature = state.temperature }
-        end
-
         if existing_prompt.source == "ui" then
             -- Extract index from prompt ID (format: "ui_N")
             local index = nil
             if existing_prompt.id and existing_prompt.id:match("^ui_(%d+)$") then
                 index = tonumber(existing_prompt.id:match("^ui_(%d+)$"))
             end
-
-            local prompt_data = {
-                text = state.name,
-                behavior_variant = state.behavior_variant,
-                behavior_override = behavior_override,
-                prompt = state.prompt,
-                context = state.context,
-                include_book_context = state.include_book_context or nil,
-                skip_language_instruction = state.skip_language_instruction or nil,
-                skip_domain = state.skip_domain or nil,
-                -- Tri-state: no `or nil` — false means "always include" and must survive
-                skip_background = state.skip_background,
-                domain = state.domain,
-                api_params = api_params,
-                reasoning_config = state.reasoning_config,  -- nil = global, "off" = force off, table = per-provider
-                -- Legacy fields (backward compatibility)
-                extended_thinking = state.extended_thinking,
-                thinking_budget = state.thinking_budget,
-                provider = state.provider,
-                model = state.model,
-                model_tier = state.model_tier,  -- 18e speed hint (nil = none)
-                -- Context extraction flags (off by default)
-                use_book_text = state.use_book_text or nil,
-                use_highlights = state.use_highlights or nil,
-                use_annotations = state.use_annotations or nil,
-                use_reading_progress = state.use_reading_progress or nil,
-                use_reading_stats = state.use_reading_stats or nil,
-                use_advanced_stats = state.use_advanced_stats or nil,
-                use_notebook = state.use_notebook or nil,
-                use_library = state.use_library or nil,
-                accept_quick_answer = state.accept_quick_answer or nil,
-                -- View mode flags
-                translate_view = state.translate_view or nil,
-                compact_view = state.compact_view or nil,
-                dictionary_view = state.dictionary_view or nil,
-                minimal_buttons = state.minimal_buttons or nil,
-                -- Web search (tri-state: nil/true/false - nil means follow global)
-                enable_web_search = state.enable_web_search,
-                enabled = true,
-            }
+            -- The stored record with what the reader changed in this editor
+            -- written over it (mergeEdit, B575): never a record rebuilt from
+            -- the editor's own fields
+            local custom_prompts = self.plugin.settings:readSetting("custom_actions") or {}
 
             if index then
-                service:updateUserAction(index, prompt_data)
+                service:updateUserAction(index, PromptsManager.mergeEdit(custom_prompts[index], state))
                 UIManager:show(InfoMessage:new{
                     text = _("Action updated successfully"),
                 })
             else
                 -- Fallback: find by original name
-                local custom_prompts = self.plugin.settings:readSetting("custom_actions") or {}
                 for i, prompt in ipairs(custom_prompts) do
                     if prompt.text == existing_prompt.text then
-                        service:updateUserPrompt(i, prompt_data)
+                        service:updateUserAction(i, PromptsManager.mergeEdit(prompt, state))
                         UIManager:show(InfoMessage:new{
                             text = _("Action updated successfully"),
                         })

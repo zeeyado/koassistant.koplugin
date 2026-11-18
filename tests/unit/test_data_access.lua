@@ -58,6 +58,56 @@ TestRunner:test("carriedKinds lists what the gather put in the request, in KINDS
     TestRunner:assertEqual(DataAccess.carriedKinds({ highlights = "" }), nil, "an empty section is nothing")
 end)
 
+TestRunner:test("carriedKinds: a highlights-only copy sent under a notes refusal is highlights (B619)", function()
+    local k = DataAccess.carriedKinds({ annotations = "a passage, no note", _annotations_degraded = true })
+    TestRunner:assertEqual(table.concat(k, ","), "highlights", "the degraded copy holds no notes")
+    k = DataAccess.carriedKinds({ annotations = "a passage [Note: mine]", _annotations_degraded = false })
+    TestRunner:assertEqual(table.concat(k, ","), "annotations", "the full copy holds the notes")
+    k = DataAccess.carriedKinds({ annotations = "a passage [Note: mine]" })
+    TestRunner:assertEqual(table.concat(k, ","), "annotations", "with nothing said about it, the section is notes (the strict reading)")
+    -- and a pin made from such a chat is not stamped with notes either
+    local stamps = DataAccess.stampsFromKinds(DataAccess.carriedKinds({ annotations = "p", _annotations_degraded = true }))
+    TestRunner:assertEqual(stamps.used_annotations, false, "a pin of that chat carries no notes stamp")
+    TestRunner:assertEqual(stamps.used_highlights, true, "and the highlights one")
+end)
+
+-- The stamps a saved result is written with (B617), as the write site itself
+-- computes them: its own lines, cut from dialogs.lua and run on what the
+-- gather hands it, then read back by the gates' own reader.
+TestRunner:test("a result built with the reader's notes is stamped as built with notes (B617)", function()
+    local root = debug.getinfo(1, "S").source:match("@?(.*)"):match("(.+)/tests/unit/[^/]+$") or "."
+    local f = assert(io.open(root .. "/koassistant/ui/dialogs.lua", "r"))
+    local src = f:read("*a")
+    f:close()
+    local a = assert(src:find("local highlights_were_provided = (message_data.highlights", 1, true), "the write site's first line")
+    local b = assert(src:find("-- Position-irrelevant actions (no use_reading_progress) store 1.0", a, true), "its last")
+    local body = src:sub(a, b - 1)
+    TestRunner:assertEqual(src:find("used_annotations = annotations_were_provided or nil,", b, true) ~= nil, true,
+        "and the write passes the notes stamp on")
+    local stampsOf = assert(load("local message_data, using_cache = ...\n" .. body
+        .. "\nreturn { used_highlights = highlights_were_provided, used_annotations = annotations_were_provided or nil }",
+        "=dialogs.lua (the stamps)"))
+    local Gates = require("koassistant.request.privacy_gates")
+    local function kinds(md, using_cache)
+        local st = stampsOf(md, using_cache)
+        st.used_book_text = false
+        return table.concat(Gates.stampedList(st), ",")
+    end
+    TestRunner:assertEqual(kinds({ highlights = "h", annotations = "h [Note: n]", _annotations_degraded = false }),
+        "highlights,annotations", "notes sent: the result says so")
+    TestRunner:assertEqual(kinds({ annotations = "h [Note: n]", _annotations_degraded = false }),
+        "highlights,annotations", "also when the action asks for the notes section alone")
+    TestRunner:assertEqual(kinds({ highlights = "h", annotations = "h", _annotations_degraded = true }),
+        "highlights", "a highlights-only copy is highlights")
+    TestRunner:assertEqual(kinds({ highlights = "", annotations = "" }), "", "nothing sent, nothing stamped")
+    TestRunner:assertEqual(kinds({ highlights = "", annotations = "", _inherited_stamps = { annotations = true, highlights = true } }),
+        "highlights,annotations", "a result built from a result that held notes inherits the stamp")
+    TestRunner:assertEqual(kinds({ highlights = "", annotations = "", cached_used_highlights = true, cached_used_annotations = true }, true),
+        "highlights,annotations", "an update of a result built with notes keeps it")
+    TestRunner:assertEqual(kinds({ highlights = "", annotations = "", cached_used_annotations = true }, true),
+        "", "an old entry whose notes stamp meant highlights adds no notes stamp by itself")
+end)
+
 TestRunner:test("stampsFromKinds: a record as an artifact's stamps; nothing recorded is text-free", function()
     local s = DataAccess.stampsFromKinds({ "book_text", "notebook" })
     TestRunner:assertEqual(s.used_book_text, true)

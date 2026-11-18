@@ -12145,6 +12145,13 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       hint = _("Reads the book up to the end of the chosen section in one background request; a notification arrives when it is ready.")
         .. " " .. later_line
     end
+    -- The two checkpoint rows build the same versions whatever the book's
+    -- spoiler protection; which one the reader is SHOWN depends on it. The
+    -- hint says which case this book is in (B717).
+    if cr.delivery == "follow" or cr.delivery == "checkpoints" then
+      hint = hint .. " " .. (require("koassistant.books.book_settings").xrayCheckpointNote(
+        self_ref.ui.doc_settings, self_ref.settings:readSetting("features") or {}))
+    end
     -- Round 24: rebuild picks carry the replacement fact in the hint too
     -- (forced rebuilds skip it — "already covered" would be wrong for a
     -- whole-book force, and the state line above already names replacement)
@@ -20316,7 +20323,36 @@ function AskGPT:syncDictionaryBypass()
     end
 
     local self_ref = self
+    -- KOReader's own Dictionary row in the highlight menu is a pick of
+    -- KOReader's dictionary by name (B716): its callback runs lookupDict while
+    -- the menu is still open, which is what tells it from the default
+    -- highlight action "Dictionary" (no menu; that one stays the bypass's).
+    -- The mark lives for that one call.
+    local hl = self.ui.highlight
+    if hl and hl.lookupDict and not hl._koassistant_original_lookupDict then
+      hl._koassistant_original_lookupDict = hl.lookupDict
+      hl.lookupDict = function(hl_self, ...)
+        local dict = hl_self.ui and hl_self.ui.dictionary
+        if dict and hl_self.highlight_dialog then
+          dict._koassistant_explicit_dictionary = true
+        end
+        local result = hl._koassistant_original_lookupDict(hl_self, ...)
+        if dict then dict._koassistant_explicit_dictionary = nil end
+        return result
+      end
+    end
     dictionary.onLookupWord = function(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+      -- KOReader's own window, past the X-Ray intercept and the bypass, for a
+      -- lookup the reader asked KOReader's dictionary for by name (B716) and
+      -- for a word under the Vocabulary Builder's review, whose Forgot and
+      -- Got it buttons live on that window (B583; the builder's own test for
+      -- "the word under review"). The lookup flags stay for the normal chain.
+      local explicit = dict_self._koassistant_explicit_dictionary
+      dict_self._koassistant_explicit_dictionary = nil
+      local vocab = self_ref.ui and self_ref.ui.vocabbuilder  -- the plugin, by its folder name
+      if explicit or (vocab and vocab.widget and vocab.widget.current_lookup_word == word) then
+        return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+      end
       -- KOReader's own lookup cleans the selection first (readerdictionary.lua
       -- onLookupWord → cleanSelection: edge punctuation, curly apostrophe,
       -- possessive 's, French elisions): a PDF word box arrives as "word." and
@@ -20662,6 +20698,11 @@ function AskGPT:syncDictionaryBypass()
       dictionary.onLookupWord = dictionary._koassistant_original_onLookupWord
       dictionary._koassistant_original_onLookupWord = nil
       logger.dbg("KOAssistant: Dictionary bypass disabled, restored original dictionary lookup")
+    end
+    local hl = self.ui.highlight
+    if hl and hl._koassistant_original_lookupDict then
+      hl.lookupDict = hl._koassistant_original_lookupDict
+      hl._koassistant_original_lookupDict = nil
     end
   end
 end

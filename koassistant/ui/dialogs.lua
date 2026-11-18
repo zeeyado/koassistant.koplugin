@@ -5847,6 +5847,22 @@ if prune_book_text then
                 if message_data._inherited_stamps and message_data._inherited_stamps.highlights then
                     highlights_were_provided = true
                 end
+                -- The reader's notes (B617): the annotations section carries them
+                -- unless it was degraded to a highlights-only copy (notes refused,
+                -- highlights allowed), which is highlights. No write stamped
+                -- used_annotations, so a result built with notes read as built
+                -- with highlights alone and a chat about it never asked for notes.
+                local annotations_sent = type(message_data.annotations) == "string" and message_data.annotations ~= ""
+                local annotations_were_provided = annotations_sent and message_data._annotations_degraded ~= true
+                -- either form holds the highlighted passages themselves
+                if annotations_sent then highlights_were_provided = true end
+                if using_cache and message_data.cached_used_annotations == true
+                        and message_data.cached_used_highlights ~= nil then
+                    annotations_were_provided = true
+                end
+                if message_data._inherited_stamps and message_data._inherited_stamps.annotations then
+                    annotations_were_provided = true
+                end
                 -- Position-irrelevant actions (no use_reading_progress) store 1.0
                 -- so the popup correctly shows "Redo" instead of misleading "Update to X%"
                 local save_progress = prompt and prompt.use_reading_progress
@@ -5859,6 +5875,9 @@ if prune_book_text then
                     save_progress,
                     { model = ConfigHelper:getModelInfo(temp_config), used_book_text = book_text_was_provided, provider = temp_config.provider,
                       used_highlights = highlights_were_provided,
+                      -- stamped beside a stated used_highlights only: alone, an old
+                      -- entry's used_annotations means highlights (Gates.stampedKinds)
+                      used_annotations = annotations_were_provided or nil,
                       -- the notebook, stamped since B395 slice 5
                       used_notebook = (message_data.notebook_content ~= nil and message_data.notebook_content ~= "") or nil,
                       used_reasoning = (reasoning ~= nil and reasoning ~= ""),

@@ -2236,7 +2236,7 @@ local SettingsSchema = {
                     text = _("Reading position"),
                     path = "features.enable_basic_stats",
                     default = true,
-                    help_text = _("Your reading progress (percentage), the current chapter, chapters read and the time since you last read. On by default: spoiler protection relies on it. Sent or not; never asked. Used by X-Ray, Recap."),
+                    help_text = _("Your reading progress (percentage), the current chapter, chapters read and the time since you last read. A permission, on or off, never asked; on by default, since spoiler protection relies on it. It is sent only where something uses it: an action that asks for it (X-Ray, Recap, Reading Guide and others), the spoiler line of a book chat while spoiler protection is on, and every request when Book info is set to \"Title, author & position\"."),
                 },
                 {
                     id = "enable_library_scanning",
