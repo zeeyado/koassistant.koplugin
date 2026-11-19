@@ -315,6 +315,27 @@ TestRunner:test("Restore defaults on behaviors keeps the deleted ids reserved", 
     TestRunner:assertTrue(reserve ~= nil and save ~= nil and reserve < save, "ids reserved before the list is emptied")
 end)
 
+TestRunner:test("a chat about an X-Ray entry is tagged whichever way it starts: a typed question or a tapped action", function()
+    -- the X-Ray browser's "X-Ray chats" row counts chats by this tag; the
+    -- dialog's actions run through handlePredefinedPrompt, which makes its own
+    -- history, and a chat started that way was missing from the row
+    local dialogs = read("koassistant/ui/dialogs.lua")
+    TestRunner:assertTrue(dialogs:find('history.launched_from = is_xray_chat and "xray_chat" or nil', 1, true) ~= nil,
+        "the Send path tags the chat")
+    local a = dialogs:find("local xray_prefix = config.features and config.features._xray_context_prefix", 1, true)
+    TestRunner:assertTrue(a ~= nil, "the action path reads the entry's framing")
+    local near = dialogs:sub(a, a + 700)
+    TestRunner:assertTrue(near:find('if xray_prefix then history.launched_from = "xray_chat" end', 1, true) ~= nil,
+        "and tags its history when the framing is there")
+    -- the framing is set for a chat about an entry and for nothing else
+    local browser = read("koassistant/xray/xray_browser.lua")
+    local sets = 0
+    for _m in browser:gmatch("config%.features%._xray_context_prefix = ") do sets = sets + 1 end
+    TestRunner:assertEqual(sets, 1, "one place sets the framing: Chat about this")
+    TestRunner:assertTrue(browser:find('if c.launched_from == "xray_chat" then xchat_n = xchat_n + 1 end', 1, true) ~= nil,
+        "the row counts by the tag")
+end)
+
 TestRunner:test("a failed restore names its reason without a source position or the chats' text", function()
     local src = read("koassistant/storage/backup_manager.lua")
     for line in src:gmatch("[^\n]+") do

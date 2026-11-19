@@ -228,7 +228,7 @@ In a book group, an entry page also lists what the group's other X-Rays say abou
 
 ### Selecting text in the browser
 
-Hold to select text on an entry page. One word on a short hold opens the dictionary; anything else opens a popup with Copy, Dictionary, Wikipedia, Translate, Look up in X-Ray and Add to Notebook.
+Hold to select text on an entry page. One word on a short hold opens the dictionary, or the entry of that name when the word is another entry's name; anything else (a long press on one word included) opens a popup with Copy, Dictionary, Wikipedia, Translate, Look up in X-Ray and Add to Notebook.
 
 ### The browser menu
 
@@ -284,7 +284,7 @@ With **Upcoming Entities** on (the default), marking, matching selections and ca
 
 ### Matching selections
 
-Selecting text, or looking up a word in the dictionary, when it exactly matches an entry's name or alias opens that entry instead of the dictionary or the highlight menu, ahead of any bypass action you set there. Anything that does not match falls through to your normal dictionary or highlight menu, and a very long press at the end of a selection always brings the plain highlight menu. Only books with an X-Ray are affected. With **Tap Marked Words to Open** off, the marks are visual only, and a long press still opens matching entries. You can also set the dictionary bypass to **Look up in X-Ray**: a tapped word that an X-Ray name or alias contains is then looked up there (an exact match opens its entry, a partial one the results list), and any other word goes to KOReader's dictionary (see [Dictionary and Translation](Dictionary-and-Translation)).
+Selecting text, or looking up a word in the dictionary, when it exactly matches an entry's name or alias opens that entry instead of the dictionary or the highlight menu, ahead of any bypass action you set there. Anything that does not match falls through to your normal dictionary or highlight menu, and a very long press at the end of a selection always brings the plain highlight menu. To look a matching word up in the dictionary all the same: in the book, hold it longer for the highlight menu and tap KOReader's own **Dictionary** row; in a KOAssistant window (a chat, an X-Ray page), long-press it and tap **Dictionary** in the selection popup. Only books with an X-Ray are affected. With **Tap Marked Words to Open** off, the marks are visual only, and a long press still opens matching entries. You can also set the dictionary bypass to **Look up in X-Ray**: a tapped word that an X-Ray name or alias contains is then looked up there (an exact match opens its entry, a partial one the results list), and any other word goes to KOReader's dictionary (see [Dictionary and Translation](Dictionary-and-Translation)).
 
 ### Look up in X-Ray
 

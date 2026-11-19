@@ -184,6 +184,63 @@ TestRunner:test("an X-Ray name: a held word opens its card, the menu's Dictionar
     ActionCache.matchAnyXrayExact = saved
 end)
 
+TestRunner:test("an X-Ray name picked for the Dictionary in the plugin's own selection popup is never the card's", function()
+    -- the popup of a chat window or an X-Ray page: Dictionary and "Look up in
+    -- X-Ray" are two rows there, and the first one opened the card of a word
+    -- that is an entry. Its row marks the lookup for the one call.
+    local function pickPopupDictionary(ui, word)
+        ui.dictionary._koassistant_non_reader_lookup = true
+        ui.dictionary._koassistant_skip_xray = true
+        ui.dictionary:onLookupWord(word)
+        ui.dictionary._koassistant_skip_xray = nil
+    end
+    reset()
+    local saved = ActionCache.matchAnyXrayExact
+    ActionCache.matchAnyXrayExact = function() return true, "lantern" end
+    -- the bypass off: KOReader's dictionary
+    local plugin, ui, looked, cards, setIntercept = reader({})
+    setIntercept(true)
+    plugin:syncDictionaryBypass()
+    pickPopupDictionary(ui, "lantern")
+    TestRunner:assertEqual(#cards, 0, "no X-Ray card")
+    TestRunner:assertEqual(#looked, 1, "KOReader's dictionary opened")
+    TestRunner:assertTrue(ui.dictionary._koassistant_skip_xray == nil, "the mark is gone after the call")
+    -- the next held word is the card's again
+    ui.dictionary:onLookupWord("lantern", false, nil, ui.highlight)
+    TestRunner:assertEqual(#cards, 1, "a held word still opens the card")
+    -- the bypass on: the reader's own dictionary action, still not the card
+    reset()
+    plugin, ui, looked, cards, setIntercept = reader({ dictionary_bypass_enabled = true, dictionary_bypass_action = "quick_define" })
+    setIntercept(true)
+    plugin:syncDictionaryBypass()
+    pickPopupDictionary(ui, "lantern")
+    TestRunner:assertEqual(#cards, 0, "no X-Ray card with the bypass on either")
+    TestRunner:assertEqual(#ran, 1, "the bypass action ran, as for any word looked up there")
+    TestRunner:assertEqual(#looked, 0, "in place of KOReader's dictionary")
+    -- the bypass set to Look up in X-Ray: the pick is still the dictionary's
+    reset()
+    plugin, ui, looked, cards, setIntercept = reader({ dictionary_bypass_enabled = true, dictionary_bypass_action = "xray_lookup" })
+    plugin.action_service = { getAction = function(_s, _ctx, id) return { id = id, local_handler = id } end }
+    setIntercept(true)
+    plugin:syncDictionaryBypass()
+    pickPopupDictionary(ui, "lantern")
+    TestRunner:assertEqual(#cards, 0, "no X-Ray card")
+    TestRunner:assertEqual(#ran, 0, "and no X-Ray lookup in the bypass's name")
+    TestRunner:assertEqual(#looked, 1, "KOReader's dictionary opened")
+    ActionCache.matchAnyXrayExact = saved
+    -- and the row itself sets the mark around its one call
+    local f = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/chatgptviewer.lua", "r"))
+    local viewer_src = f:read("*a")
+    f:close()
+    local a = assert(viewer_src:find("function ChatGPTViewer.buildTextSelectionPopup(", 1, true))
+    local body = viewer_src:sub(a, assert(viewer_src:find("\nend\n", a, true)))
+    local set_at = body:find("dui.dictionary._koassistant_skip_xray = true", 1, true)
+    local call_at = body:find("dui.dictionary:onLookupWord(text)", 1, true)
+    local clear_at = body:find("dui.dictionary._koassistant_skip_xray = nil", 1, true)
+    TestRunner:assertTrue(set_at ~= nil and call_at ~= nil and clear_at ~= nil and set_at < call_at and call_at < clear_at,
+        "the popup's Dictionary row marks its lookup, then clears the mark")
+end)
+
 TestRunner:test("a word under the Vocabulary Builder's review gets KOReader's window, with its buttons", function()
     reset()
     local plugin, ui, looked = reader({ dictionary_bypass_enabled = true })

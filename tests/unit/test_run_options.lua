@@ -291,6 +291,34 @@ TestRunner:test("stateFor: live state for an unpinned prose action yields tier b
     TestRunner:assertTrue(found or ModelLists.anthropic[1] == fast, "Fast button targets the fast tier")
 end)
 
+TestRunner:test("stateFor: Without book info is offered for a one-request result, never for the X-Ray", function()
+    -- an X-Ray is built and continued by many requests (a chain of checkpoints
+    -- drops a run option, the steps built while reading and every later update
+    -- never had it): the choice could hold for the first request at most
+    local plugin = fakePlugin({ provider = "anthropic", model = "claude-sonnet-5" })
+    plugin._openBookDS = function() return { readSetting = function() return nil end } end
+    local Actions = require("koassistant.prompts.actions")
+    local summary = Actions.getById("summarize_full_document")
+    local xray = Actions.getById("xray")
+    TestRunner:assertTrue(summary ~= nil and xray ~= nil, "both built-ins exist")
+    TestRunner:assertFalse(RunOptions.spansRequests(summary), "a summary is one request")
+    TestRunner:assertTrue(RunOptions.spansRequests(xray), "an X-Ray is many")
+    local st = RunOptions.stateFor(plugin, summary, { surface = "quick_actions" })
+    TestRunner:assertTrue(st.book_info.applies, "the summary's hold menu offers the choice")
+    st = RunOptions.stateFor(plugin, xray, { surface = "quick_actions" })
+    TestRunner:assertFalse(st.book_info.applies, "the X-Ray's does not")
+    local b = RunOptions.buttons(RunOptions.list({}), xray, st)
+    for _idx, x in ipairs(b) do
+        TestRunner:assertEqual(x.variant.book_info, nil, "no book info button: " .. tostring(x.label))
+    end
+    -- the reason, kept true: a chain's steps do not take the run option
+    local f = assert(io.open(assert(package.searchpath("main", package.path)), "r"))
+    local main_src = f:read("*a")
+    f:close()
+    TestRunner:assertTrue(main_src:find("run_variant = one_shot and build_opts and build_opts.run_variant or nil", 1, true) ~= nil,
+        "a checkpoint chain still drops the run option (when it carries one, this rule can go)")
+end)
+
 TestRunner:test("stateFor: a pinned action's base is its pin; the input dialog's chips are the session", function()
     local plugin = fakePlugin({ provider = "anthropic", model = "claude-sonnet-5" })
     local st = RunOptions.stateFor(plugin, { id = "x", provider = "openai", model = "gpt-5.5" },

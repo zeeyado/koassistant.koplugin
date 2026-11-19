@@ -20353,6 +20353,12 @@ function AskGPT:syncDictionaryBypass()
       if explicit or (vocab and vocab.widget and vocab.widget.current_lookup_word == word) then
         return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
       end
+      -- A pick of Dictionary in the plugin's own selection popup (a chat
+      -- window, an X-Ray page): the dictionary flow the reader set up, the
+      -- bypass included, and never the X-Ray card, which has its own row in
+      -- that popup. The mark lives for that one call.
+      local skip_xray = dict_self._koassistant_skip_xray
+      dict_self._koassistant_skip_xray = nil
       -- KOReader's own lookup cleans the selection first (readerdictionary.lua
       -- onLookupWord → cleanSelection: edge punctuation, curly apostrophe,
       -- possessive 's, French elisions): a PDF word box arrives as "word." and
@@ -20376,7 +20382,7 @@ function AskGPT:syncDictionaryBypass()
         -- The raw word first (a name like "D'Arnel" matches as selected;
         -- cleaning drops its "D'"), then the cleaned one ("Voss's" → Voss).
         local hit_word
-        if i_file and self_ref:_xrayInterceptEnabled(i_file) then
+        if not skip_xray and i_file and self_ref:_xrayInterceptEnabled(i_file) then
           local matched, form = ActionCache.matchAnyXrayExact(i_file, word,
             { include_ahead = self_ref:_xrayAheadEnabled(i_file),
               position = self_ref:_xrayReaderPosition(i_file),
@@ -20458,6 +20464,15 @@ function AskGPT:syncDictionaryBypass()
             timeout = 5,
           })
         end
+        if dictionary._koassistant_original_onLookupWord then
+          return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
+        end
+        return
+      end
+
+      -- With Look up in X-Ray as the bypass action, Dictionary picked in the
+      -- selection popup still means the dictionary (its X-Ray row is beside it)
+      if skip_xray and bypass_action.local_handler == "xray_lookup" then
         if dictionary._koassistant_original_onLookupWord then
           return dictionary._koassistant_original_onLookupWord(dict_self, word, is_sane, boxes, highlight, link, dict_close_callback)
         end

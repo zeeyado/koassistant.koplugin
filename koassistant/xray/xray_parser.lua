@@ -1442,9 +1442,17 @@ function XrayParser.formatItemDetail(item, category_key, opts)
             table.insert(parts, item.significance)
             table.insert(parts, "")
         end
-        local characters = ensure_array(item.characters) or ensure_array(item.references)
+        -- Who or what the event involves: people in a story's timeline
+        -- ("characters"), key figures and concepts in a nonfiction work's
+        -- argument development ("references"), each under its own word. On
+        -- the browser's page they are buttons and a list, as connections are.
+        local characters = not omit_connections and ensure_array(item.characters)
+        local refs = not omit_connections and not (characters and #characters > 0)
+            and ensure_array(item.references)
         if characters and #characters > 0 then
             table.insert(parts, _("Characters:") .. " " .. table.concat(characters, ", "))
+        elseif refs and #refs > 0 then
+            table.insert(parts, _("References:") .. " " .. table.concat(refs, ", "))
         end
 
     elseif category_key == "current_state" or category_key == "current_position" then

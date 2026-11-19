@@ -308,6 +308,16 @@ function RunOptions.namesBook(action)
         or p:find("{author_clause}", 1, true)) ~= nil
 end
 
+--- Whether an action's result is built and continued by more requests than
+--- the one a run option rides: the X-Ray (a chain of checkpoints, the steps
+--- built while reading, every later update). A one-run privacy choice would
+--- reach the first request at most (a chain drops it: only a one-request
+--- build carries a run option), so Without book info is not offered there;
+--- the book's own Book info setting holds for all of them. Pure.
+function RunOptions.spansRequests(action)
+    return type(action) == "table" and action.cache_as_xray == true
+end
+
 function RunOptions.stateFor(plugin, action, opts)
     opts = opts or {}
     local ModelConstraints = require("koassistant.request.model_constraints")
@@ -390,9 +400,11 @@ function RunOptions.stateFor(plugin, action, opts)
     -- Book info for this run: a book or highlight action with a book in
     -- scope that names the book (namesBook), never one that cannot run
     -- without the title (the AI-knowledge actions, DataAccess.needsTitle)
+    -- nor one whose result takes more requests than this run (spansRequests)
     local book_info = { applies = false }
     if ds and action.context ~= "general" and action.context ~= "library"
             and RunOptions.namesBook(action)
+            and not RunOptions.spansRequests(action)
             and not require("koassistant.ui.data_access").needsTitle(action, nil) then
         -- the dialog's own switch (the gear menu's Send book info) counts
         local fv = features

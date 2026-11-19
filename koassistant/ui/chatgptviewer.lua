@@ -4726,7 +4726,13 @@ function ChatGPTViewer.buildTextSelectionPopup(text, opts)
         dui.dictionary._koassistant_non_reader_lookup = true
         -- Carry the surface's own book for bypass / dict-popup X-Ray lookups
         dui.dictionary._koassistant_lookup_book = book_path
+        -- Dictionary picked by name: the reader's dictionary flow, never the
+        -- X-Ray card (a name that is an entry opened its card from here, with
+        -- "Look up in X-Ray" one row away). Set for this one call: the
+        -- wrapper clears it, and so does this row when no wrapper is installed.
+        dui.dictionary._koassistant_skip_xray = true
         dui.dictionary:onLookupWord(text)
+        dui.dictionary._koassistant_skip_xray = nil
       end,
     })
   end

@@ -4152,6 +4152,10 @@ handlePredefinedPrompt = function(prompt_type_or_action, highlightedText, ui, co
     -- Consume X-Ray context prefix (transient flag set by action buttons from chatAboutItem)
     local xray_prefix = config.features and config.features._xray_context_prefix
     if config.features then config.features._xray_context_prefix = nil end
+    -- A chat about an X-Ray entry started by one of the dialog's actions is an
+    -- X-Ray chat like one started by a typed question (the Send sets the same
+    -- tag): the X-Ray browser's "X-Ray chats" row counts both
+    if xray_prefix then history.launched_from = "xray_chat" end
 
     local message_data = {
         highlighted_text = highlightedText,

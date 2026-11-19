@@ -1204,5 +1204,37 @@ TestRunner:test("audit: no text reaches KOReader's utf8proc without its invalid 
     end
 end)
 
+TestRunner:suite("formatItemDetail: who an event involves")
+TestRunner:test("a story's event lists its characters, an argument's step its references, each under its own word", function()
+    local story = XrayParser.formatItemDetail(
+        { event = "The bridge falls", chapter = "Chapter 4", significance = "The road north is cut.",
+            characters = { "Sella Varn", "Old Brask" } }, "timeline")
+    TestRunner:ok(story:find("Characters: Sella Varn, Old Brask", 1, true), "a timeline event names its characters")
+    local step = XrayParser.formatItemDetail(
+        { event = "The second objection", chapter = "Part II", significance = "The first reply no longer holds.",
+            references = { "Deferred cost", "Halden" } }, "argument_development")
+    TestRunner:ok(step:find("References: Deferred cost, Halden", 1, true), "an argument's step names its references")
+    TestRunner:ok(not step:find("Characters:", 1, true), "and never calls concepts characters")
+    -- an empty characters list does not hide the references
+    local mixed = XrayParser.formatItemDetail(
+        { event = "A turn", characters = {}, references = { "Deferred cost" } }, "argument_development")
+    TestRunner:ok(mixed:find("References: Deferred cost", 1, true), "an empty list is no list")
+end)
+TestRunner:test("the browser's page leaves the line out: the names are its buttons and its list", function()
+    for _idx, case in ipairs({
+        { key = "timeline", item = { event = "The bridge falls", significance = "Cut off.", characters = { "Sella Varn" } } },
+        { key = "argument_development", item = { event = "The second objection", significance = "A turn.",
+            references = { "Deferred cost" } } },
+    }) do
+        local page = XrayParser.formatItemDetail(case.item, case.key, { omit_connections = true })
+        TestRunner:ok(not page:find("Characters:", 1, true) and not page:find("References:", 1, true),
+            case.key .. ": no names line on the page")
+        TestRunner:ok(page:find(case.item.significance, 1, true), case.key .. ": the text stays")
+        -- what a chat about the entry sends keeps them
+        local sent = XrayParser.formatItemDetail(case.item, case.key)
+        TestRunner:ok(sent:find((case.item.characters or case.item.references)[1], 1, true), case.key .. ": the chat's text keeps the names")
+    end
+end)
+
 print(string.format("  Results: %d passed, %d failed", TestRunner.passed, TestRunner.failed))
 return TestRunner.failed == 0

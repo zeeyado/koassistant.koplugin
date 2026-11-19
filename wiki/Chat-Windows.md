@@ -222,7 +222,7 @@ Text selection works the same in every KOAssistant window: chat, artifact, X-Ray
 | **1 word** | Dictionary lookup | Selection popup |
 | **2+ words** | Selection popup | Selection popup |
 
-**A single word** opens KOReader's built-in offline dictionary, or your KOAssistant dictionary action when the dictionary bypass is on ([Dictionary and Translation](Dictionary-and-Translation)), in artifact windows too. The current window stays open underneath: the dictionary popup opens on top, and you return to your window when you close it. **Long-pressing** a single word shows the selection popup instead, giving access to Copy, Translate and the rest. A run of more than four Chinese, Japanese or Korean characters counts as a selection, not a word, since such text has no spaces.
+**A single word** opens KOReader's built-in offline dictionary, or your KOAssistant dictionary action when the dictionary bypass is on ([Dictionary and Translation](Dictionary-and-Translation)), in artifact windows too. A word that is a name in the X-Ray of the window's book opens its X-Ray entry instead ([Using X-Ray](Using-X-Ray#matching-selections)); long-press it and pick **Dictionary** to look it up all the same. The current window stays open underneath: the dictionary popup opens on top, and you return to your window when you close it. **Long-pressing** a single word shows the selection popup instead, giving access to Copy, Translate and the rest. A run of more than four Chinese, Japanese or Korean characters counts as a selection, not a word, since such text has no spaces.
 
 A long hold is about three times KOReader's long-press interval: 1.5 seconds with KOReader's default of 500 ms. The interval is set in **KOReader's gear menu → Taps and gestures → Gesture intervals → Long-press interval**.
 
@@ -231,7 +231,7 @@ A long hold is about three times KOReader's long-press interval: 1.5 seconds wit
 | Button | Action |
 |---|---|
 | **Copy** | Copy to clipboard |
-| **Dictionary** | KOReader's offline dictionary lookup |
+| **Dictionary** | The dictionary, as for a held word: KOReader's offline dictionary, or your dictionary action when the bypass is on. Never the X-Ray entry, also for a word that is an X-Ray name |
 | **Wikipedia** | KOReader's Wikipedia lookup (when the reader offers it) |
 | **Look up in X-Ray** | Search the book's X-Ray for the selected text. Shown when the window's book has an X-Ray. The only entity lookup available from a chat opened out of the file browser, and the only one that handles multi-word names |
 | **Translate** | Translate via KOAssistant's Translate action |
