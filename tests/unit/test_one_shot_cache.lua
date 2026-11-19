@@ -137,7 +137,7 @@ TestRunner:test("the one send function of an action applies the rule before it s
     local from = src:find("local function sendQuery()", 1, true)
     TestRunner:assertTrue(from ~= nil, "sendQuery found")
     local body = src:sub(from, (src:find("\n    end\n", from, true) or from) + 8)
-    local mark = body:find("markOneShot(temp_config, cache_enabled)", 1, true)
+    local mark = body:find("markOneShot(temp_config, cache_enabled or ", 1, true)
     local send = body:find("BookToolRunner.queryWith(", 1, true)
     TestRunner:assertTrue(mark ~= nil, "sendQuery calls the rule with the request's config and whether it saves")
     TestRunner:assertTrue(send ~= nil, "sendQuery sends through the funnel")
@@ -147,6 +147,36 @@ TestRunner:test("the one send function of an action applies the rule before it s
     local count = 0
     for _ in body:gmatch("BookToolRunner%.queryWith%(") do count = count + 1 end
     TestRunner:assertEqual(count, 1, "one send in sendQuery")
+end)
+
+TestRunner:test("a run on a section saves its answer too: sendQuery's own lines say so", function()
+    -- The section runner turns the action's own caching off on its copy and the
+    -- answer is saved under the section's key, so "saves a result" is the
+    -- action's cache OR a section scope with a key. The two lines are cut from
+    -- the source and run.
+    local src = readFile("koassistant/ui/dialogs.lua")
+    local a = src:find("        local section_saved = config.features", 1, true)
+    TestRunner:assertTrue(a ~= nil, "the section line found")
+    local tail = "section_saved.cache_key ~= nil))\n"
+    local b = src:find(tail, a, true)
+    TestRunner:assertTrue(b ~= nil, "the call found")
+    local load_fn = loadstring or load
+    local run = assert(load_fn("return function(config, cache_enabled, temp_config, markOneShot)\n"
+        .. src:sub(a, b + #tail - 1) .. "end"))()
+    local function saves(cache_enabled, features)
+        local got
+        run({ features = features }, cache_enabled, {}, function(_cfg, saved) got = saved end)
+        return got and true or false
+    end
+    TestRunner:assertEqual(saves("/books/a.epub", {}), true, "the action's own cache")
+    TestRunner:assertEqual(saves(nil, { _section_scope = { label = "Part Two", cache_key = "_summary_section:Part Two" } }),
+        true, "a section run that saves under the section's key")
+    TestRunner:assertEqual(saves(false, { _section_xray = { label = "Part Two", cache_key = "_xray_section:Part Two" } }),
+        true, "a section X-Ray")
+    TestRunner:assertEqual(saves(nil, { _section_scope = { label = "Up to 40%" } }), false,
+        "a scope without a key saves nothing: a chat that may go on keeps its mark")
+    TestRunner:assertEqual(saves(nil, {}), false, "a plain chat")
+    TestRunner:assertEqual(saves(nil, nil), false, "no features: no error")
 end)
 
 TestRunner:test("every handler that sends a mark for the messages reads the one-shot flag", function()

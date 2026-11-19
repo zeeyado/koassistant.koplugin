@@ -69,6 +69,14 @@ local Constants = require("koassistant.core.constants")
 --   menu_button      - A button of the highlight menu and the dictionary popup, not an
 --                      action on the selection (model_switch): it goes first when added,
 --                      and the input dialogs and the bypass pickers leave it out
+--   section_subject  - The prompt's first "{title}"{author_clause} is what the action works
+--                      on: a run on one section names the section there instead of the
+--                      whole work (Actions.scopedPrompt; the built-ins that can run on a
+--                      section) (optional)
+--   part_wording     - The prompt's sentences that speak of the whole work, each with what
+--                      a run on a part of it says instead: { { whole = "...", part = "..." } },
+--                      or `section` / `so_far` in place of `part` for one kind of run; a
+--                      pair whose `whole` is not in the prompt does nothing (optional)
 
 local _ = require("koassistant.core.gettext")
 
@@ -1972,6 +1980,7 @@ Aim for the most significant connections, not an exhaustive list. {conciseness_n
         source_selection = true,  -- Show source selection popup
         use_response_caching = true,
         storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
+        section_subject = true,  -- a run on a section names the section in the first line (Actions.scopedPrompt)
         -- No behavior_variant - uses user's global behavior
         -- No skip_domain - domain expertise shapes analysis approach
         prompt = [[Analyze the main arguments in "{title}"{author_clause}.{doi_clause}
@@ -2026,6 +2035,11 @@ This is an overview, not an essay. {conciseness_nudge} {hallucination_nudge}
         source_selection = true,  -- Show source selection popup
         use_response_caching = true,
         storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
+        section_subject = true,
+        part_wording = {
+            { whole = "Make the strongest case against ",
+              section = "Make the strongest case against what is argued in " },
+        },
         -- No skip_domain: domain expertise sharpens the critique
         prompt = [[Make the strongest case against "{title}"{author_clause}.{doi_clause}
 {document_context_section}
@@ -2073,6 +2087,11 @@ Adapt to the work's nature:
         use_response_caching = true,
         storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         in_quick_actions = 8,     -- Appears in Quick Actions menu
+        section_subject = true,
+        part_wording = {
+            { whole = "Note: These are general questions for the complete work. If the reader is mid-book, they can ask for spoiler-free questions in the follow-up. ",
+              part = "Note: These are questions for the part named above alone. " },
+        },
         -- User can mention reading progress in follow-up if needed
         prompt = [[Generate thoughtful discussion questions for "{title}"{author_clause}.{doi_clause}
 {document_context_section}
@@ -2123,6 +2142,7 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         interactive_quiz = true,  -- Route to quiz viewer instead of chat viewer
         reasoning_config = "off",  -- Quiz needs deterministic JSON; on adaptive-thinking-default models the thinking tokens bill against max_tokens and truncate the JSON
         in_quick_actions = 9,
+        section_subject = true,
         prompt = [[Create a comprehension quiz for "{title}"{author_clause}.
 
 {document_context_section}
@@ -2152,6 +2172,10 @@ Note: These are general questions for the complete work. If the reader is mid-bo
         source_selection = true,  -- Unified scope/source popup (source grayed: requires book_text)
         -- (in_reading_features removed)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
+        section_subject = true,
+        part_wording = {
+            { whole = "Analyze this document: ", section = "Analyze this part of a document: " },
+        },
         prompt = [[Analyze this document: "{title}"{author_clause}.{doi_clause}
 
 {full_document_section}
@@ -2188,6 +2212,14 @@ Provide analysis appropriate to this document's type and purpose. Address what's
         -- (in_reading_features removed)
         in_quick_actions = 4,  -- After About (3)
         storage_key = "__SKIP__",  -- Result lives in document cache, not chat history
+        -- A run on a section or on the part read so far (Actions.scopedPrompt): the
+        -- section is named where the work is, and the sentence that asks for the
+        -- whole work asks for that part
+        section_subject = true,
+        part_wording = {
+            { whole = "Cover the entire work evenly from beginning to end — do not front-load detail on early sections at the expense of later ones. This summary will be used as a stand-in for the full text in future queries and analysis,",
+              part = "Cover that part evenly from beginning to end — do not front-load detail on its opening at the expense of what follows — and leave out the rest of the work. This summary will be used as a stand-in for that part's text in future queries and analysis," },
+        },
         prompt = [[Summarize: "{title}"{author_clause}.{doi_clause}
 
 {full_document_section}
@@ -2212,6 +2244,11 @@ Provide a comprehensive summary capturing the essential content. Cover the entir
         source_selection = true,  -- Show source selection popup
         storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
         use_response_caching = true,
+        section_subject = true,
+        part_wording = {
+            { whole = "Distill what's most worth taking away from this work.",
+              part = "Distill what's most worth taking away from this part of the work." },
+        },
         prompt = [[Extract the key insights from: "{title}"{author_clause}.{doi_clause}
 
 {document_context_section}
@@ -2250,6 +2287,18 @@ Adapt to the work — a novel's insights look different from a research paper's 
         source_selection = true,  -- Unified scope/source popup
         use_response_caching = true,
         storage_key = "__SKIP__",  -- Result lives in artifact cache, not chat history
+        -- A run on one section is a guide to that section, for a reader about to
+        -- read it: the position lines speak of the section (the section pipeline
+        -- would resolve {reading_progress} to 100%). A so-far run keeps the prompt
+        -- and gets the reader's real position (Actions.scopedPrompt).
+        section_subject = true,
+        part_wording = {
+            { whole = "I'm at {reading_progress}.", section = "I am about to read this section." },
+            { whole = "Based on what I've read so far, help me read more attentively going forward:",
+              section = "Help me read this section attentively:" },
+            { whole = "CRITICAL: No spoilers beyond {reading_progress}. Guide attention without revealing outcomes.",
+              section = "CRITICAL: Do not give away how this section turns out or what it concludes. Guide attention without revealing outcomes." },
+        },
         prompt = [[Create a spoiler-free reading guide for what lies ahead in "{title}"{author_clause}.{doi_clause}
 
 I'm at {reading_progress}.
@@ -2690,6 +2739,93 @@ function Actions.getForContext(context)
     end)
 
     return result
+end
+
+-- ============================================================
+-- A run on part of the work
+-- ============================================================
+-- An action's prompt speaks of the whole work ("Summarize: <title>", "Cover the
+-- entire work evenly"). A run on one section, or on the part read so far, put a
+-- line in front of it ("Focus your analysis on this section only") and left
+-- those sentences standing, so one request asked for both (B741).
+-- Actions.scopedPrompt(action, scope) is the prompt such a run sends:
+--   * section_subject (action field): the prompt's first "{title}"{author_clause}
+--     is what the action works on, so a run on a section names the section there;
+--   * part_wording (action field): the sentences that speak of the whole work,
+--     each with what a run on a part says instead: { whole = "...", part = "..." },
+--     or `section` / `so_far` in place of `part` for one kind of run alone;
+--   * {reading_progress} is the reader's real position in a so-far run (the
+--     section pipeline resolves it to 100%).
+-- A prompt without the fields (a custom action, or a built-in whose prompt the
+-- reader rewrote and whose words are gone) keeps the line in front of it and
+-- changes in nothing else. Pure: the action is not touched.
+-- scope = { kind = "section", label, pages }                 a named section or a range
+--       | { kind = "so_far", position, label }               the start to the reader's position
+--       | { kind = "section_so_far", section, position }     a section's start to the position
+-- The so-far lines hold in both source modes: with extracted text (it ends at
+-- the position) and from the model's own knowledge (an instruction boundary).
+-- The position is the reading percentage alone: a contents title is ambiguous
+-- (the deepest heading, or its parent on a shared page) and differs by edition.
+local SCOPE_SUBJECT = '"{title}"{author_clause}'
+local SCOPE_BOUNDARY = "Cover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n"
+
+local function replaceFirstPlain(text, old, new)
+    local s, e = text:find(old, 1, true)
+    if not s then return text, false end
+    return text:sub(1, s - 1) .. new .. text:sub(e + 1), true
+end
+
+function Actions.scopedPrompt(action, scope)
+    local prompt = type(action) == "table" and action.prompt or nil
+    if type(prompt) ~= "string" or type(scope) ~= "table" then return prompt end
+    local so_far = scope.kind == "so_far" or scope.kind == "section_so_far"
+
+    if type(action.part_wording) == "table" then
+        for _idx, pair in ipairs(action.part_wording) do
+            local new = pair.part
+            if so_far and pair.so_far ~= nil then
+                new = pair.so_far
+            elseif not so_far and pair.section ~= nil then
+                new = pair.section
+            end
+            if type(pair.whole) == "string" and type(new) == "string" then
+                prompt = replaceFirstPlain(prompt, pair.whole, new)
+            end
+        end
+    end
+
+    local lead
+    if scope.kind == "so_far" then
+        lead = string.format('This concerns %s only up to the reader\'s current position (%s).\n',
+            SCOPE_SUBJECT, tostring(scope.position or scope.label or "")) .. SCOPE_BOUNDARY
+    elseif scope.kind == "section_so_far" then
+        lead = string.format('This concerns the section "%s" of %s, and only up to the reader\'s current position (%s of the whole work).\n',
+            tostring(scope.section or ""), SCOPE_SUBJECT, tostring(scope.position or "")) .. SCOPE_BOUNDARY
+    else
+        local label = tostring(scope.label or "")
+        local pages = type(scope.pages) == "string" and scope.pages ~= "" and scope.pages or nil
+        local named = false
+        if action.section_subject then
+            local section = pages
+                and string.format('the section "%s" (%s) of %s', label, pages, SCOPE_SUBJECT)
+                or string.format('the section "%s" of %s', label, SCOPE_SUBJECT)
+            prompt, named = replaceFirstPlain(prompt, SCOPE_SUBJECT, section)
+        end
+        if named then
+            lead = "This request is about one section of a longer work, not the whole work.\n\n"
+        else
+            lead = string.format('This is a section of %s.\nSection: "%s"%s\nFocus your analysis on this section only.\n\n',
+                SCOPE_SUBJECT, label, pages and (" (" .. pages .. ")") or "")
+        end
+    end
+
+    if so_far and scope.position then
+        -- A function, not a string: a percent sign in a replacement string is
+        -- gsub's own escape
+        local position = tostring(scope.position)
+        prompt = prompt:gsub("{reading_progress}", function() return position end)
+    end
+    return lead .. prompt
 end
 
 -- Get a specific action by ID

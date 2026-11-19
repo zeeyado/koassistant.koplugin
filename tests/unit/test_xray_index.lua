@@ -403,6 +403,43 @@ TestRunner:test("entityPages: a span limits the pages", function()
     local _c, total = XrayIndex.entityPages(LAYOUT, ein, nil, 2, 4)
     TestRunner:eq(total, 1)
 end)
+TestRunner:test("firstLast: the first and the last page an entity is written on (B748)", function()
+    local ein = XrayParser.matchTermSet(DATA.characters[1])
+    local lo, hi, indexed = XrayIndex.firstLast(LAYOUT, ein, nil)
+    TestRunner:eq(lo, 1, "first written on page 1")
+    TestRunner:eq(hi, 5, "last written on page 5")
+    TestRunner:eq(indexed, true)
+    -- the reader's reach ends at page 4: the last page up to there
+    lo, hi = XrayIndex.firstLast(LAYOUT, ein, nil, nil, 4)
+    TestRunner:eq(lo, 1)
+    TestRunner:eq(hi, 2, "page 5 is past the reach")
+    -- a section's own pages
+    lo, hi = XrayIndex.firstLast(LAYOUT, ein, nil, 2, 4)
+    TestRunner:eq(lo, 2)
+    TestRunner:eq(hi, 2, "one page in the span: first and last are the same")
+    -- never written in the range: indexed, no pages
+    lo, hi, indexed = XrayIndex.firstLast(LAYOUT, ein, nil, 3, 4)
+    TestRunner:eq(lo, nil)
+    TestRunner:eq(hi, nil)
+    TestRunner:eq(indexed, true, "indexed all the same")
+    -- a form the layout does not hold: not indexed, no claim
+    local unknown = XrayParser.matchTermSet({ name = "Mileva" })
+    lo, hi, indexed = XrayIndex.firstLast(LAYOUT, unknown, nil)
+    TestRunner:eq(lo, nil)
+    TestRunner:eq(indexed, false)
+    -- a page where the name is only part of another entry's longer name is not this entry's
+    local kub = XrayParser.matchTermSet(DATA.characters[2])
+    local handles = XrayParser.containingMatchHandles(DATA, DATA.characters[2])
+    local counts = XrayIndex.entityPages(LAYOUT, kub, handles)
+    local want_lo, want_hi
+    for page in pairs(counts) do
+        if not want_lo or page < want_lo then want_lo = page end
+        if not want_hi or page > want_hi then want_hi = page end
+    end
+    lo, hi = XrayIndex.firstLast(LAYOUT, kub, handles)
+    TestRunner:eq(lo, want_lo, "the same first page as the per-page counts give")
+    TestRunner:eq(hi, want_hi, "and the same last page")
+end)
 TestRunner:test("prevPage / covers / missing", function()
     local ein = XrayParser.matchTermSet(DATA.characters[1])
     TestRunner:eq(XrayIndex.prevPage(LAYOUT, ein, nil, 2), 1)

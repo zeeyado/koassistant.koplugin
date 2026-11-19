@@ -133,7 +133,8 @@ New X-Rays also see the table of contents of the text they receive. A very small
 
 | Preset | Tracks | Where things stand | Depth |
 |---|---|---|---|
-| **Characters only** | the cast alone (the cheapest) | off | Standard |
+| **Who's who** | the cast alone, one line each (the shortest and cheapest) | off | Light |
+| **Characters only** | the cast alone, a few sentences each | off | Standard |
 | **Characters and story** | the cast and the story arc | on | Standard |
 | **Reference** (the default) | people, places, ideas and terms | on | Standard |
 | **Everything** | all five categories, the story arc included (the largest) | on | Standard |
@@ -176,7 +177,11 @@ The browsable menu was first inspired by the [X-Ray Plugin for KOReader by 0zd3m
 
 ### Entry pages
 
-Tap an entry for its page: its description, the aliases the AI found (a nickname, a formal name, a title; shown for every category), and its connections as buttons. Along the bottom:
+Tap an entry for its page: its description, the aliases the AI found (a nickname, a formal name, a title; shown for every category), and its connections as buttons.
+
+Under the description, **First appears** and **Last seen** name the chapter and page where the book first writes the entry's name and where it last does, as far as you have read (with spoiler protection off, or in a finished book, the second line reads **Last appears** and counts the whole book). The two lines come from the book's name index, not from the AI, so they cost nothing and are exact; they show in EPUBs once the index holds the entry's names (the underlines keep it up to date, and Chapter Appearances builds it when asked). They are on the page only: **Chat about this** does not send them.
+
+Along the bottom:
 
 - **Chapter Appearances** and **AI Wiki** (**View AI Wiki** once one is written), described below.
 - **More…**: the rest of the entry (below).
@@ -341,6 +346,10 @@ A confirmation names the plan (how many checkpoints, where) and the number of re
 | Requests | one, as large as the text | one small request per step |
 | Price | the lowest | about three times as much |
 
+**With a small or fast model.** The same two novels on the cheapest Claude model, one build each (a tendency, not a law). In checkpoints it confused people who share a name: in the novel with a mother and a daughter of one name, one of them took over the other's entry at two of the three presets tried. A people-only X-Ray at Light depth cost a half to two thirds of the default and was shorter, not more accurate. In one request the same model kept that cast apart. So with a small model, build in one request when the book fits. The creation form says so when the model in use is its provider's fast one and you pick checkpoints or Deep depth. For a short, cheap X-Ray, the **Who's who** preset is the one to pick: it is smaller, not safer.
+
+**This part is still changing.** Today a version for every position needs checkpoints, and how a checkpoint step brings the entries up to date (the table's second row) is being reworked for a later release. If an X-Ray of yours comes out wrong (two people in one entry, an entry that describes someone else, a description that no longer says who the person is), a report with the model, the way it was built and the entry helps: see [Contributing](Contributing).
+
 **Three uses.** Checkpoints serve three purposes:
 
 - **Spoiler-safe reading**: every position gets an X-Ray that never runs ahead of you.
@@ -463,7 +472,7 @@ This works for EPUB and PDF. The hidden content is simply invisible to KOAssista
 
 - **Output size.** An X-Ray is large structured output (often 10K to 30K+ tokens), and the action asks for up to 64K output tokens to avoid truncation. It is a demanding task: weaker models struggle to follow the format, and when they manage it, the content is weaker. Models with low output caps (some Groq models stop at 8K) give shorter, possibly cut-off X-Rays. Use larger models with higher output limits for the best results.
 - **A model for X-Ray only.** In Settings → Actions & Prompts → Manage Actions, hold **X-Ray**, tap **Edit Settings**, and set **Provider** and **Model**. Your global model stays for everything else: for example a fast model as your global default for lookups and chat, and a more capable one for X-Ray. You can also switch your global model for one run and back, or [run it once with another model](#the-creation-form). See [Actions and Menus](Actions-and-Menus).
-- **Cheaper X-Rays.** The Characters only preset (the cheapest); leaving the timeline out (the default); Light depth (about half the cost); Where things stand off (shorter updates); a set type (a smaller request than Auto).
+- **Cheaper X-Rays.** In one request the book's own text is nearly all of the bill, so a smaller X-Ray saves little there (a few percent); the model is the lever. In checkpoints the size counts: the Who's who preset cost a half to two thirds of the default in our runs. Also: leaving the timeline out (the default); Where things stand off (shorter updates); a set type (a smaller request than Auto).
 - **Start early.** Updates send only new text, so an X-Ray started at 10% and updated as you read keeps each request small; starting at 80% of a long novel sends the whole 80% at once. A one-request build of a long book is large: the large-extraction warning (over 500K characters) and the truncation warning appear before such a request is sent (see [Artifacts and Caching](Artifacts-and-Caching)).
 - **Checkpoints** read the book once in total plus a fixed overhead per checkpoint: somewhat more than one full run, in small requests. Skipped front-matter steps are still requests.
 - **Automatic X-Ray** spends without a per-request tap once a book's first build is confirmed.

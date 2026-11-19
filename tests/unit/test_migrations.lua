@@ -175,7 +175,7 @@ TestRunner:test("chain reports changes and stamps every post-0.20.0 guard", func
         "_session_chips_attach_v1", "_session_chips_quick_v1",
         "_web_search_effort_migrated", "_dict_bypass_default_migrated",
         "_highlight_context_migrated", "_session_chips_registry_v1",
-        "_privacy_ask_migrated",
+        "_privacy_ask_migrated", "_stream_autoscroll_off_migrated",
     }) do
         TestRunner:assertEqual(f[stamp], true, stamp)
     end
@@ -481,6 +481,50 @@ TestRunner:test("the three switches are cleared whatever their value; nothing wi
     for k, v in pairs(f) do before[k] = v end
     Migrations.run(f)
     for k, v in pairs(before) do TestRunner:assertEqual(f[k], v, k .. " unchanged on the second run") end
+end)
+
+TestRunner:suite("Auto-scroll Streaming's new default, off (B752)")
+
+TestRunner:test("a stored on is cleared once; turned on again afterwards, it stays on", function()
+    local f = { stream_auto_scroll = true, _privacy_ask_migrated = true }
+    TestRunner:assertTrue(Migrations.run(f), "a change")
+    TestRunner:assertEqual(f.stream_auto_scroll, nil, "the old default leaves the file: the reader follows the new one")
+    TestRunner:assertEqual(f._stream_autoscroll_off_migrated, true, "stamped")
+    f.stream_auto_scroll = true   -- the reader turns it on in Settings
+    Migrations.run(f)
+    TestRunner:assertEqual(f.stream_auto_scroll, true, "the reader's own on is kept")
+end)
+
+TestRunner:test("a stored off and a file without the key are left as they are", function()
+    local f = { stream_auto_scroll = false, _privacy_ask_migrated = true }
+    Migrations.run(f)
+    TestRunner:assertEqual(f.stream_auto_scroll, false, "off stays off")
+    f = { _privacy_ask_migrated = true }
+    Migrations.run(f)
+    TestRunner:assertEqual(f.stream_auto_scroll, nil, "nothing written")
+    TestRunner:assertEqual(f._stream_autoscroll_off_migrated, true, "stamped all the same")
+end)
+
+TestRunner:test("the default and both readers agree: off unless the reader turned it on", function()
+    local Schema = require("koassistant.ui.settings_schema")
+    TestRunner:assertEqual(Schema.getDefaults()["features.stream_auto_scroll"], false, "the schema's default")
+    local function read(path)
+        local fh = assert(io.open(path, "r"))
+        local src = fh:read("*a")
+        fh:close()
+        return src
+    end
+    local router = read("koassistant/request/gpt_query.lua")
+    TestRunner:assertTrue(router:find("config.features.stream_auto_scroll == true", 1, true) ~= nil,
+        "the router reads it as off unless true")
+    TestRunner:assertTrue(not router:find("stream_auto_scroll ~= false", 1, true), "and nowhere as on unless false")
+    local window = read("koassistant/request/stream_handler.lua")
+    TestRunner:assertTrue(window:find("settings.stream_auto_scroll == true", 1, true) ~= nil,
+        "the stream window reads it the same way")
+    TestRunner:assertTrue(not window:find("stream_auto_scroll ~= false", 1, true), "and nowhere as on unless false")
+    -- a build whose answer is data is followed whatever the setting
+    TestRunner:assertTrue(router:find("or config.features.plain_streaming == true", 1, true) ~= nil,
+        "an answer that is data is followed")
 end)
 
 return TestRunner:summary()

@@ -157,6 +157,7 @@ Registry.SETTINGS_SUBKEYS = {
         "_privacy_ask_migrated",   -- the sharing switches reset to Ask (B395 slice 2, migrations.lua)
         "_privacy_notice_pending", -- the one-time notice of that reset, cleared when shown (data_access.lua)
         "_privacy_decided",        -- a privacy preset was picked or Ask kept: the Setup Wizard's privacy probe (main.lua applyPrivacyPreset, setup_wizard.lua stepPrivacy)
+        "_stream_autoscroll_off_migrated",  -- a stored "on" of Auto-scroll Streaming cleared once for the new default, off (B752, migrations.lua)
     },
 }
 

@@ -1609,6 +1609,10 @@ function AskGPT:initSettings()
       -- The Ask reset (B395 slice 2) is for installs that had switches; a
       -- fresh one starts at Ask and gets no notice
       _privacy_ask_migrated = true,
+      -- Auto-scroll Streaming's new default (B752) is cleared out of installs
+      -- that stored the old one; a fresh install's configuration.lua value is
+      -- the reader's own
+      _stream_autoscroll_off_migrated = true,
     }
     if user_config_loaded then
       for k, v in pairs(config_file_defaults.features) do
@@ -6362,8 +6366,8 @@ function AskGPT:_toggleMinimalPopupAction(action_id)
 end
 
 -- Minimal Popup quick settings (QS tile hold, maintainer design 2026-08-17):
--- the view mode as one radio row, the shape as a second, then the action
--- registry as tap-to-toggle rows, two per row. Self-rebuilding on every change (fresh marks); Close and
+-- the view mode as one radio row, the shape as a second, then, under a double
+-- line, the action registry as tap-to-toggle rows, two per row. Self-rebuilding on every change (fresh marks); Close and
 -- tap-outside both return to the caller via on_close.
 function AskGPT:showMinimalPopupQuickSettings(on_close)
   local ButtonDialog = require("ui/widget/buttondialog")
@@ -6416,6 +6420,7 @@ function AskGPT:showMinimalPopupQuickSettings(on_close)
   -- Registered actions, same eligibility as the Settings screen picker above
   local actions = self.action_service
     and self.action_service:getAllActions("highlight", true, true) or {}
+  local action_rows = {}
   local row = {}
   for _idx, action in ipairs(actions) do
     if (action.original_context or action.context) == "highlight" and action.id
@@ -6429,12 +6434,18 @@ function AskGPT:showMinimalPopupQuickSettings(on_close)
         end,
       })
       if #row == 2 then
-        table.insert(buttons, row)
+        table.insert(action_rows, row)
         row = {}
       end
     end
   end
-  if #row > 0 then table.insert(buttons, row) end
+  if #row > 0 then table.insert(action_rows, row) end
+  if #action_rows > 0 then
+    -- KOReader's group separator (an empty row, the double line of the hold
+    -- menus): how the popup shows above it, which actions use it below
+    table.insert(buttons, {})
+    for _idx, action_row in ipairs(action_rows) do table.insert(buttons, action_row) end
+  end
 
   table.insert(buttons, {
     {
@@ -9808,7 +9819,8 @@ function AskGPT:_showUnifiedActionPopup(action, action_id, opts)
                 local rsf_label = T(_("Up to %1"), reading_progress.formatted)
                 self_ref:_executeSectionAction(action, action_id,
                   { start_page = 1, end_page = current_page }, rsf_label,
-                  { source_mode = state.source, read_so_far = true, data_once = state.data_once })
+                  { source_mode = state.source, read_so_far = true, data_once = state.data_once,
+                    position = reading_progress.formatted })
               elseif state.scope == "chapter_so_far" then
                 -- Quiz-only preset: current chapter's start → current page, so-far framing.
                 -- The label carries the % so successive positions don't clobber each other.
@@ -12152,6 +12164,10 @@ function AskGPT:_showXrayCreationChooser(action, action_id, on_update, opts, for
       hint = hint .. " " .. (require("koassistant.books.book_settings").xrayCheckpointNote(
         self_ref.ui.doc_settings, self_ref.settings:readSetting("features") or {}))
     end
+    -- A fast model with a big ask (checkpoints, or Deep depth): said where
+    -- the choice is made (B747)
+    hint = (hint or "") .. require("koassistant.books.book_settings").xraySmallModelLine(self_ref, action,
+      cr.delivery, (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)
     -- Round 24: rebuild picks carry the replacement fact in the hint too
     -- (forced rebuilds skip it — "already covered" would be wrong for a
     -- whole-book force, and the state line above already names replacement)
@@ -12896,7 +12912,8 @@ end
 --- @param entry table TOC entry { title, start_page, end_page }
 --- @param label string Display label for the section
 --- @param opts table|nil { source_mode = string,
----   read_so_far = boolean,  -- "Up to current position" framing (label = the position)
+---   read_so_far = boolean,  -- "Up to current position" framing
+---   position = string,      -- with read_so_far: the reading percentage the prompt names
 ---   section_so_far = { section = string, position = string } | nil,  -- start→position framing
 ---     (quiz "Current chapter so far" preset + generic "From section… (to current position)")
 --- } for source_selection actions
@@ -12936,7 +12953,7 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
   section_action.cache_as_analyze = false
   section_action._section_scope = scope
 
-  -- Inject section scope context into the prompt
+  -- The prompt a run on part of the work sends (Actions.scopedPrompt, B741)
   if section_action.prompt then
     -- To-position actions ({book_text...}, e.g. recap) executed with a section scope: swap to
     -- the full-document placeholders — those are the ones _section_scope range-bounds in the
@@ -12944,37 +12961,19 @@ function AskGPT:_executeSectionAction(action, action_id, entry, label, opts)
     section_action.prompt = section_action.prompt
         :gsub("{book_text_section}", "{full_document_section}")
         :gsub("{book_text}", "{full_document}")
-    local scope_line
+    local prompt_scope
     if opts and opts.read_so_far then
-      -- Read-so-far framing: scope everything to the reader's current position and make the spoiler
-      -- boundary explicit. Phrased to hold in both modes — when text is extracted (it ends at this
-      -- point) and when the model works from its own knowledge (recap-style instruction boundary).
-      -- Position is the reading percentage only (like recap): a TOC-title pick is level-ambiguous
-      -- (deepest heading, or the parent on shared-start pages) and edition-dependent, so it's an
-      -- unreliable boundary signal; the percentage is sufficient and predictable.
-      scope_line = string.format(
-          'This concerns "{title}"{author_clause} only up to the reader\'s current position (%s).\nCover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n',
-          label)
+      -- "Up to current position": the start of the work to the reader's place
+      prompt_scope = { kind = "so_far", position = opts.position, label = label }
     elseif opts and opts.section_so_far then
-      -- Section-so-far framing (flexible scope phase 1): section boundary + spoiler boundary
-      -- in one. Used by the quiz "Current chapter so far" preset AND the generic "From
-      -- section… (to current position)" scope. Phrased to hold in both source modes —
-      -- extracted text ends at the position; AI-knowledge mode gets an instruction boundary
-      -- (like read_so_far).
-      scope_line = string.format(
-          'This concerns the section "%s" of "{title}"{author_clause}, and only up to the reader\'s current position (%s of the whole work).\nCover only material up to this point — do not use, reference, or reveal anything beyond it (no later events, results, or conclusions).\n\n',
-          opts.section_so_far.section, opts.section_so_far.position)
-      -- The section pipeline forces {reading_progress} to 100% (the _full_document_xray
-      -- progress override) — pre-resolve it with the real position so prompts that reference
-      -- it (e.g. recap's "No spoilers beyond {reading_progress}") stay true.
-      section_action.prompt = section_action.prompt:gsub("{reading_progress}",
-          function() return opts.section_so_far.position end)
+      -- A section's start to the reader's place: the quiz "Current chapter so far"
+      -- preset and the generic "From section… (to current position)"
+      prompt_scope = { kind = "section_so_far", section = opts.section_so_far.section,
+          position = opts.section_so_far.position }
     else
-      scope_line = string.format(
-          'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your analysis on this section only.\n\n',
-          label, scope.page_summary)
+      prompt_scope = { kind = "section", label = label, pages = scope.page_summary }
     end
-    section_action.prompt = scope_line .. section_action.prompt
+    section_action.prompt = require("koassistant.prompts.actions").scopedPrompt(section_action, prompt_scope)
   end
 
   local exec_opts = { section_scope = scope }

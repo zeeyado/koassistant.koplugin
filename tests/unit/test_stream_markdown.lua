@@ -694,16 +694,20 @@ TestRunner:test("the text box sits where the chat window's does: its inset and i
     TestRunner:assertTrue(plain ~= nil)
 end)
 
-TestRunner:test("the plain stream widget's own request is the released one", function()
-    -- it asks for "fast"; what reaches the screen is mostly "ui", joined with
-    -- the dialog's own refresh (the module's comment has the numbers). A
-    -- change here changes how every plain stream looks on e-ink.
+TestRunner:test("the plain stream widget asks for the Markdown view's refresh, never the fast one", function()
+    -- It asked for "fast" until B752 and was crisp on e-ink only while it
+    -- FOLLOWED the text (two layouts a tick made the dialog refresh its frame
+    -- as "ui"); a window that does not follow, the default since B752, reached
+    -- the screen as "fast" in 108 of 110 updates: black and white only on
+    -- e-ink. A change here changes how every plain stream looks on e-ink.
     local f = assert(io.open(PLUGIN_DIR .. "/koassistant/request/stream_handler.lua", "r"))
     local src = f:read("*a")
     f:close()
     local plain = src:match("function StreamText:initTextBox%(text, char_added%)(.-)\nend\n")
-    TestRunner:assertTrue(plain and plain:find('UIManager:setDirty(self.parent, function() return "fast", self.dimen end)', 1, true) ~= nil,
-        "the text area, the quick type")
+    TestRunner:assertTrue(plain and plain:find('UIManager:setDirty(self.parent, function() return StreamMarkdown.REFRESH, self.dimen end)', 1, true) ~= nil,
+        "the text area, the Markdown view's type")
+    TestRunner:assertTrue(plain and not plain:find('return "fast"', 1, true), "and never the fast one")
+    TestRunner:assertEqual(SM.REFRESH, "ui", "which is KOReader's type for a text box being typed into")
     TestRunner:assertTrue(src:find('UIManager:setDirty(self.parent, function() return "flashui", self.dimen end)', 1, true) ~= nil,
         "and a clean refresh at close")
 end)

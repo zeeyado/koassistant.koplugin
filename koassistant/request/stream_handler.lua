@@ -363,16 +363,18 @@ function StreamText:initTextBox(text, char_added)
     local t0 = StreamMarkdown._now()
     self.for_measurement_only = true                -- trick the method from super class
     InputText.initTextBox(self, text, char_added)   -- skips `UIManager:setDirty`
-    -- use our own method of refresh, `fast` is suitable for stream responding.
-    -- What reaches the screen is mostly "ui" all the same: a tick lays the
-    -- text out twice (the text, then the padded page), each new widget flips
-    -- the scroll buttons' at-top state, InputDialog then refreshes its whole
-    -- frame as "ui", and UIManager joins overlapping requests under the
-    -- higher type (measured in the app, 2026-11-15: 86 of 103 updates of a
-    -- stream sent as "ui" over the window, 17 as "fast" over the text). That
-    -- is why this view is crisp on e-ink while it fills; the Markdown view
-    -- asks for "ui" itself.
-    UIManager:setDirty(self.parent, function() return "fast", self.dimen end)
+    -- Our own refresh of the text area, the Markdown view's kind ("ui": "fast"
+    -- is black and white only on e-ink). This view asked for "fast" until
+    -- B752, and while it FOLLOWED the text most of its updates reached the
+    -- screen as "ui" all the same: a tick laid the text out twice (the text,
+    -- then the padded page), each new widget flipped the scroll buttons'
+    -- at-top state, InputDialog then refreshed its whole frame as "ui", and
+    -- UIManager joins overlapping requests under the higher type (measured in
+    -- the app, 2026-11-15: 86 of 103 updates as "ui"). A window that does not
+    -- follow, the default now, lays the text out once a tick and flips
+    -- nothing: 108 of its 110 updates reached the screen as "fast" (measured
+    -- 2026-11-19), rough text for as long as the answer arrived.
+    UIManager:setDirty(self.parent, function() return StreamMarkdown.REFRESH, self.dimen end)
     self.for_measurement_only = false
     -- what the updates cost, for a report from a device (Console Debug)
     self.koa_stats = self.koa_stats or StreamMarkdown.Stats.new()
@@ -1139,7 +1141,7 @@ The provider read about %1% of it (%2 tokens) and answered from that part. The r
     end
 
     local font_size = (settings and settings.response_font_size) or 20
-    local auto_scroll = settings and settings.stream_auto_scroll ~= false
+    local auto_scroll = settings and settings.stream_auto_scroll == true
 
     -- Auto-scroll state: starts based on setting, can be toggled by user
     local auto_scroll_active = auto_scroll

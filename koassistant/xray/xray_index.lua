@@ -541,6 +541,42 @@ function XrayIndex.entityPages(layout, set, handles, first, last)
     return counts, total
 end
 
+--- The first and the last page one entity is written on within [first, last]
+--- (both optional): what an entry page's "First appears" and "Last seen" read
+--- (B748). The candidate pages are walked from both ends, so a name on
+--- hundreds of pages costs two page counts, not hundreds.
+--- @return number|nil first_page, number|nil last_page, boolean indexed
+---   (false: a form is not in this layout; true with nil pages: never written
+---   in that range)
+function XrayIndex.firstLast(layout, set, handles, first, last)
+    if not XrayIndex.covers(layout, set, handles) then return nil, nil, false end
+    local seen, pages = {}, {}
+    for _i, f in ipairs(set.all) do
+        for _k, p in ipairs(XrayIndex.decode(layout, f).pages) do
+            if (not first or p >= first) and (not last or p <= last) and not seen[p] then
+                seen[p] = true
+                pages[#pages + 1] = p
+            end
+        end
+    end
+    table.sort(pages)
+    local lo, hi
+    for i = 1, #pages do
+        if countOnPage(layout, set, handles, pages[i]) > 0 then
+            lo = pages[i]
+            break
+        end
+    end
+    if not lo then return nil, nil, true end
+    for i = #pages, 1, -1 do
+        if countOnPage(layout, set, handles, pages[i]) > 0 then
+            hi = pages[i]
+            break
+        end
+    end
+    return lo, hi, true
+end
+
 --- The entity's nearest page before `before` with an occurrence: a page
 --- number, nil when there is none, false when a form is not indexed.
 function XrayIndex.prevPage(layout, set, handles, before)

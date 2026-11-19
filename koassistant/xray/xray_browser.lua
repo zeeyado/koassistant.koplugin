@@ -2903,6 +2903,65 @@ function XrayBrowser:_dismissDetail(viewer)
     self._detail_nav_close = nil
 end
 
+--- The words of "First appears" and "Last seen" (B748), pure.
+--- @param first table { page, chapter } the first page the entry is written on
+--- @param last table|nil the last one (nil or the same page: one statement)
+--- @param reach_limited boolean the reader's reach ends before the book does
+---   (spoiler protection): the last page is the last one SO FAR
+--- @return string
+function XrayBrowser.firstLastText(first, last, reach_limited)
+    local function where(at)
+        if type(at.chapter) == "string" and at.chapter:find("%S") then
+            return T(_("%1 (p. %2)"), at.chapter, at.page)
+        end
+        return T(_("p. %1"), at.page)
+    end
+    if not last or last.page == first.page then
+        return T(_("First appears: %1."), where(first))
+    end
+    if reach_limited then
+        return T(_("First appears: %1.\nLast seen: %2."), where(first), where(last))
+    end
+    return T(_("First appears: %1.\nLast appears: %2."), where(first), where(last))
+end
+
+--- That line for an entry of the open book, or nil (B748): the first and the
+--- last page its names are written on, up to the reader's reach (the gate
+--- Mentions clips at) or inside a section browser's own pages, read from the
+--- book's STORED name index. No model, no pass over the book and nothing new
+--- stored: nil while the index does not hold the entry's names (the marks
+--- keep it up to date; Chapter Appearances and Mentions build it when asked).
+--- @return string|nil
+function XrayBrowser:_firstLastLine(item, category_key, title)
+    local ui = self.ui
+    local doc = ui and ui.document
+    if not doc or DISTRIBUTION_EXCLUDED[category_key] or XrayParser.TEXT_MATCH_EXCLUDED[category_key] then
+        return nil
+    end
+    local owner = self.metadata and self.metadata.book_file
+    if owner and doc.file ~= owner then return nil end
+    local XrayIndex = require("koassistant.xray.xray_index")
+    if not XrayIndex.supported(doc) then return nil end
+    local layout = XrayIndex.layout(doc.file, XrayIndex.stamp(ui))
+    local set = layout and XrayParser.matchTermSet(item, title)
+    if not set then return nil end
+    local gate = self:_spoilerGate()
+    local from, to = nil, gate
+    if self.scope then from, to = self.scope_start, self.scope_end end
+    local lo, hi = XrayIndex.firstLast(layout, set,
+        XrayParser.containingMatchHandles(self.xray_data, item), from, to)
+    if not lo then return nil end
+    local function at(page)
+        local chapter
+        if ui.toc and ui.toc.getTocTitleByPage then
+            local ok, found = pcall(ui.toc.getTocTitleByPage, ui.toc, page)
+            chapter = ok and type(found) == "string" and found or nil
+        end
+        return { page = page, chapter = chapter }
+    end
+    return XrayBrowser.firstLastText(at(lo), hi and at(hi) or nil, gate ~= nil)
+end
+
 function XrayBrowser:showItemDetail(item, category_key, title, source, nav_context)
     require("koassistant.core.logger").dbg("KOAssistant XrayBrowser: entity",
         (item and item.name) or "?", "in", tostring(category_key),
@@ -2934,6 +2993,13 @@ function XrayBrowser:showItemDetail(item, category_key, title, source, nav_conte
     if (category_key == "current_state" or category_key == "current_position") and self.metadata.progress then
         detail_text = _("As of") .. " " .. self.metadata.progress .. "\n\n" .. detail_text
         chat_text = _("As of") .. " " .. self.metadata.progress .. "\n\n" .. chat_text
+    end
+    -- Where the book first writes this entry's name and where it last does,
+    -- as far as the reader has read (B748). On the page only: "Chat about
+    -- this" sends the entry, as before.
+    do
+        local ok_fl, first_last = pcall(self._firstLastLine, self, item, category_key, title)
+        if ok_fl and first_last then detail_text = detail_text:gsub("%s+$", "") .. "\n\n" .. first_last end
     end
     -- G2 (group hub plan, 2026-09-06): what the other books of the group say
     -- about this entry, as far as the chain reaches (earlier books; later

@@ -154,6 +154,7 @@ local InputTextStub = widgetClass("inputtext")
 function InputTextStub:setText() end
 function InputTextStub:addChars() end
 function InputTextStub:scrollToBottom() end
+function InputTextStub:resyncPos() end   -- a window that does not follow keeps the reader's place each tick (the default, B752)
 function InputTextStub:scrollUp() end
 function InputTextStub:scrollDown() end
 function InputTextStub:initTextBox() end

@@ -77,7 +77,7 @@ Several actions let you choose what the AI works from before they run. One popup
 
 - **Full document:** the entire document. For actions that already stop at your reading position (like Recap), this row reads **Up to current position (NN%)** instead.
 - **Up to current position (NN%):** for whole-document actions, limits the scope to what you have read so far (spoiler-safe). Offered from 1% of the book to about 98%.
-- **Pick section…:** a chapter or part from a hierarchical table-of-contents picker. The section's name appears below the scope buttons. Section results are saved as their own artifacts (for example "Section Key Arguments: Chapter 5").
+- **Pick section…:** a chapter or part from a hierarchical table-of-contents picker. The section's name appears below the scope buttons. Section results are saved as their own artifacts (for example "Section Key Arguments: Chapter 5"). The request is about that section alone; a Reading Guide of a section is a guide to that section, for when you are about to read it.
 - **From section… (to NN%):** from a section you pick up to your reading position.
 - **Pick section range…:** a start section and an end section.
 - **Current chapter** and **Current chapter so far:** Quiz only.

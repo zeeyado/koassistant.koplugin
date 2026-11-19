@@ -2379,9 +2379,12 @@ end
 -- spacing is left alone (it has no global or group layer to set).
 -- categories: canonical csv, or "full" for all five groups.
 BookSettings.XRAY_PRESETS = {
+    { id = "whoswho", categories = "people", status = "off", depth = "light",
+      label = _("Who's who"),
+      desc = _("the cast alone, one line each, no status block: the shortest and cheapest") },
     { id = "characters", categories = "people", status = "off", depth = "standard",
       label = _("Characters only"),
-      desc = _("the cast alone, no status block: the cheapest") },
+      desc = _("the cast alone, a few sentences each, no status block") },
     { id = "story", categories = "people,events", status = "on", depth = "standard",
       label = _("Characters and story"),
       desc = _("the cast and the story arc") },
@@ -2414,6 +2417,54 @@ function BookSettings.xrayPresetFor(categories, status, depth)
         if p_sel == sel and p.status == st and p.depth == dp then return p end
     end
     return nil
+end
+
+--- What the X-Ray creation form says when a fast model gets a big ask (B747).
+--- Pure. Measured on a provider's cheapest model (xray_knowledge_picture.md
+--- 13.15): a checkpoint chain mixes up people who share a name at every size
+--- of X-Ray, one request keeps them apart, and a smaller X-Ray is cheaper,
+--- not more accurate. So the sentence is about the model and the way of
+--- building, never about the preset.
+--- @param tier string the model's tier (ModelLists.getTierForModel)
+--- @param delivery string|nil the form's pick: "follow" | "checkpoints" | other
+--- @param depth string|nil "light" | "deep" | nil (= standard)
+--- @param model string the model, as the form names it
+--- @return string|nil sentence, string|nil case "checkpoints" | "deep"
+function BookSettings.xraySmallModelNote(tier, delivery, depth, model)
+    if tier ~= "fast" and tier ~= "ultrafast" then return nil end
+    if delivery == "follow" or delivery == "checkpoints" then
+        return T(_("Note: %1 is a fast model. Built in checkpoints, such a model tends to mix up people who share a name; a single request keeps them apart better, and a stronger model is the safer pick for checkpoints."), model),
+            "checkpoints"
+    end
+    if depth == "deep" then
+        return T(_("Note: %1 is a fast model, and Deep depth asks a lot of it: a stronger model writes fuller and more exact entries."), model),
+            "deep"
+    end
+    return nil
+end
+
+--- That sentence for the form, on a line of its own under the hint, or "": the model the
+--- X-Ray action runs on (its own pin or tier, else the main model: the run
+--- options' own resolver) and the depth the build will use (a continued
+--- X-Ray's own stamp, else the standing pick).
+--- @param plugin table the plugin instance
+--- @param action table|nil the X-Ray action
+--- @param delivery string|nil the form's pick
+--- @param lineage_entry table|nil the saved X-Ray a plain update continues
+function BookSettings.xraySmallModelLine(plugin, action, delivery, lineage_entry)
+    if not (plugin and plugin.getCurrentProvider and plugin.getCurrentModel and plugin.settings) then return "" end
+    local base = require("koassistant.request.run_options").stateFor(plugin, action or {}, {}).base
+    if not (base and base.provider and base.model) then return "" end
+    local depth
+    if lineage_entry then
+        depth = require("koassistant.prompts.actions").normalizeXrayDepth(lineage_entry.xray_depth)
+    else
+        depth = BookSettings.resolveXrayDepth(plugin._openBookDS and plugin:_openBookDS() or nil,
+            plugin.settings:readSetting("features") or {})
+    end
+    local tier = require("koassistant.request.model_lists").getTierForModel(base.provider, base.model)
+    local note = BookSettings.xraySmallModelNote(tier, delivery, depth, base.model)
+    return note and ("\n" .. note) or ""
 end
 
 local function xrayPresetById(id)

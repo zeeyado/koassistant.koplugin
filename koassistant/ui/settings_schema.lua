@@ -540,9 +540,9 @@ local SettingsSchema = {
                             type = "toggle",
                             text = _("Auto-scroll Streaming"),
                             path = "features.stream_auto_scroll",
-                            default = true,
+                            default = false,
                             depends_on = { id = "enable_streaming", value = true },
-                            help_text = _("Follow the arriving text while a response streams. Scrolling up pauses the follow for that response so you can read in place while the rest arrives; the Autoscroll button in the streaming window turns it back on."),
+                            help_text = _("Off: a response fills the first page and stays there while the rest arrives. You turn the pages as you read, and the finished chat opens on the page you are on. On: the window follows the arriving text, and a step up stops it for that response. Either way, the Autoscroll button in the streaming window switches it for one response. A result that is data (an X-Ray being built) is always followed."),
                         },
                         {
                             id = "stream_keep_read_position",
@@ -559,11 +559,8 @@ local SettingsSchema = {
                             text = _("Page-based Scroll (e-ink)"),
                             path = "features.stream_page_scroll",
                             default = true,
-                            depends_on = {
-                                { id = "enable_streaming", value = true },
-                                { id = "stream_auto_scroll", value = true },
-                            },
-                            help_text = _("Stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink. Disable for continuous bottom-scrolling."),
+                            depends_on = { id = "enable_streaming", value = true },
+                            help_text = _("While the window follows a response in the plain text view: stream text into empty page space instead of scrolling from the bottom. Reduces full-screen refreshes on e-ink. Disable for continuous bottom-scrolling."),
                         },
                         {
                             id = "stream_markdown",
@@ -1052,7 +1049,7 @@ local SettingsSchema = {
                             text = _("Preset for New X-Rays"),
                             callback = "showXrayDefaultPresetPicker",
                             keep_menu_open = true,
-                            help_text = _("One tap for the three settings below it: what a new X-Ray tracks, whether it keeps the status block (\"Where things stand\"), and how much each entry carries. Characters only is the cheapest (the cast, no status block); Reference is the default (people, places, ideas and terms); Everything adds the story arc; Light companion and Deep study change the depth as well. Each setting can still be changed on its own; the preset then reads Custom. A book can pick its own preset in Book Settings and a group in its Group Settings. Applies when an X-Ray is created or rebuilt."),
+                            help_text = _("One tap for the three settings below it: what a new X-Ray tracks, whether it keeps the status block (\"Where things stand\"), and how much each entry carries. Who's who is the shortest and cheapest (the cast, one line each, no status block); Characters only gives the cast a few sentences each; Reference is the default (people, places, ideas and terms); Everything adds the story arc; Light companion and Deep study change the depth as well. Each setting can still be changed on its own; the preset then reads Custom. A book can pick its own preset in Book Settings and a group in its Group Settings. Applies when an X-Ray is created or rebuilt."),
                         },
                         {
                             id = "xray_default_categories_picker",

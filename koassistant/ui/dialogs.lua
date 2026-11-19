@@ -6337,8 +6337,12 @@ if prune_book_text then
         -- handleResponse's error display. Predefined actions carry _tools_active=false, so
         -- shouldUse returns false and this stays a plain send — queryWith just adds the
         -- quick-retry interception. This is the only send path that bypassed queryWith.
-        -- An answer that is saved as a result has no later turn: no cache mark (B728)
-        markOneShot(temp_config, cache_enabled)
+        -- An answer that is saved as a result has no later turn: no cache mark (B728).
+        -- A run on a section is one too: its answer is saved under the section's
+        -- key, whatever the action's own caching says (the section runner turns
+        -- that off on its copy of the action)
+        local section_saved = config.features and (config.features._section_scope or config.features._section_xray)
+        markOneShot(temp_config, cache_enabled or (type(section_saved) == "table" and section_saved.cache_key ~= nil))
         local result = BookToolRunner.queryWith(queryChatGPT, history:getMessages(), temp_config, handleResponse, plugin, ui)
 
         -- If streaming is in progress, return nil (result comes via callback)
@@ -13908,13 +13912,9 @@ local function generateSummaryCache(ui, configuration, plugin, book_metadata, on
         section_action.use_reading_progress = false
         section_action.use_response_caching = false
         section_action._section_scope = section_scope  -- Scopes text extraction to section pages
-        -- Inject section scope context into prompt
-        if section_action.prompt then
-            local scope_line = string.format(
-                'This is a section of "{title}"{author_clause}.\nSection: "%s" (%s)\nFocus your summary on this section only.\n\n',
-                section_scope.label, section_scope.page_summary)
-            section_action.prompt = scope_line .. section_action.prompt
-        end
+        -- The prompt a run on one section sends (the one writer, B741)
+        section_action.prompt = Actions.scopedPrompt(section_action,
+            { kind = "section", label = section_scope.label, pages = section_scope.page_summary })
         summary_action = section_action
     end
 

@@ -480,6 +480,21 @@ function Migrations.run(features)
     needs_save = true
   end
 
+  -- ONE-TIME migration (B752): Auto-scroll Streaming became off by default.
+  -- A stored "on" is cleared so those installs follow the new default too: a
+  -- settings reset writes every schema default into the file
+  -- (SettingsSchema.applyDefaults), so a stored `true` says nothing about a
+  -- choice. The stamp means that turning it on afterwards sticks. A stored
+  -- "off" is the reader's own, and is the default now.
+  if not features._stream_autoscroll_off_migrated then
+    if features.stream_auto_scroll == true then
+      features.stream_auto_scroll = nil
+      logger.info("KOAssistant: Auto-scroll Streaming moved to its new default, off")
+    end
+    features._stream_autoscroll_off_migrated = true
+    needs_save = true
+  end
+
   return needs_save
 end
 

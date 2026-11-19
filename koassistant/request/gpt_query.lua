@@ -939,7 +939,12 @@ It is about %1 tokens (an estimate) and your %2 plan allows about %3 tokens a mi
 
         -- Get streaming settings
         local stream_settings = {
-            stream_auto_scroll = config.features and config.features.stream_auto_scroll ~= false,
+            -- Off unless the reader turned it on (B752): an answer is read
+            -- from its first page while the rest arrives. An answer that is
+            -- data (an X-Ray build's JSON) is read by nobody: its window
+            -- follows the text, which is the only sign the build is alive
+            stream_auto_scroll = config.features and (config.features.stream_auto_scroll == true
+                or config.features.plain_streaming == true),
             stream_page_scroll = config.features and config.features.stream_page_scroll ~= false,
             stream_keep_read_position = config.features and config.features.stream_keep_read_position ~= false,
             large_stream_dialog = config.features and config.features.large_stream_dialog ~= false,

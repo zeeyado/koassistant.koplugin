@@ -1314,6 +1314,82 @@ TestRunner:test("xrayPromotionHold: only the \"position\" sentinel pins (device 
         fakeDocSettings({ koassistant_book_xray_promotion = true })), false, "other values -> no hold")
 end)
 
+-- this file's runner has no assertTrue
+local function truthy(value, msg)
+    TestRunner:assertEqual(value and true or false, true, msg)
+end
+
+TestRunner:test("xraySmallModelNote: the form names a fast model only where the ask is big (B747)", function()
+    local note = BookSettings.xraySmallModelNote
+    -- a model that is not its provider's fast or ultrafast one: nothing, whatever the pick
+    for _i, tier in ipairs({ "standard", "flagship", "frontier" }) do
+        TestRunner:assertEqual(note(tier, "checkpoints", "deep", "m"), nil, tier .. " in checkpoints at Deep")
+    end
+    -- a fast model in one request at Standard or Light depth: nothing (it kept the cast apart there)
+    TestRunner:assertEqual(note("fast", nil, nil, "m"), nil, "one request, Standard")
+    TestRunner:assertEqual(note("fast", "one_bg", "light", "m"), nil, "one background request, Light")
+    -- checkpoints, either row, at any depth
+    for _i, delivery in ipairs({ "checkpoints", "follow" }) do
+        for _j, tier in ipairs({ "fast", "ultrafast" }) do
+            local text, case = note(tier, delivery, nil, "small-model")
+            TestRunner:assertEqual(case, "checkpoints", tier .. " / " .. delivery)
+            truthy(text:find("small-model", 1, true) ~= nil, "it names the model")
+            truthy(text:find("share a name", 1, true) ~= nil, "and says what was measured")
+        end
+    end
+    -- one request at Deep depth
+    local text, case = note("fast", nil, "deep", "small-model")
+    TestRunner:assertEqual(case, "deep")
+    truthy(text:find("Deep depth", 1, true) ~= nil)
+    -- checkpoints outrank the depth: one sentence, never two
+    local _t, both = note("fast", "checkpoints", "deep", "m")
+    TestRunner:assertEqual(both, "checkpoints")
+    -- no em dash in a sentence a reader sees
+    for _i, s in ipairs({ text, (note("fast", "follow", nil, "m")) }) do
+        truthy(not s:find("\226\128\148", 1, true), "no em dash")
+    end
+end)
+
+TestRunner:test("xraySmallModelLine: the form's own call, the model the X-Ray action runs on", function()
+    local saved = package.loaded["koassistant.request.run_options"]
+    local base = { provider = "anthropic", model = nil }
+    package.loaded["koassistant.request.run_options"] = { stateFor = function() return { base = base } end }
+    local ModelLists = require("koassistant.request.model_lists")
+    local fast = ModelLists.getModelForTier("anthropic", "fast")
+    local standard = ModelLists.getModelForTier("anthropic", "standard")
+    local plugin = {
+        getCurrentProvider = function() return "anthropic" end,
+        getCurrentModel = function() return fast end,
+        settings = { readSetting = function() return {} end },
+    }
+    base.model = fast
+    local line = BookSettings.xraySmallModelLine(plugin, {}, "checkpoints", nil)
+    truthy(line:sub(1, 1) == "\n" and line:find(fast, 1, true) ~= nil,
+        "the provider's fast model in checkpoints: the sentence, on a line of its own")
+    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, nil, nil), "", "in one request at the standing depth: nothing")
+    -- a plain update continues its X-Ray's own depth, whatever the standing pick
+    truthy(BookSettings.xraySmallModelLine(plugin, {}, nil, { xray_depth = "deep" }) ~= "",
+        "an update of a Deep X-Ray in one request")
+    plugin.settings.readSetting = function() return { xray_default_depth = "deep" } end
+    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, nil, { xray_depth = "light" }), "",
+        "an update of a Light X-Ray, though new ones would be Deep")
+    truthy(BookSettings.xraySmallModelLine(plugin, {}, nil, nil) ~= "", "a new X-Ray at the standing Deep")
+    base.model = standard
+    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, "checkpoints", nil), "", "the standard model: nothing")
+    -- a provider without curated tiers (a router, a custom one) is never called fast
+    base.provider, base.model = "openrouter", "anything/small"
+    TestRunner:assertEqual(BookSettings.xraySmallModelLine(plugin, {}, "checkpoints", nil), "", "no tier, no sentence")
+    -- a plugin the form's tests build without the model helpers: nothing, no error
+    TestRunner:assertEqual(BookSettings.xraySmallModelLine({}, {}, "checkpoints", nil), "")
+    package.loaded["koassistant.request.run_options"] = saved
+    -- and the form calls it where the hint is built
+    local fh = assert(io.open("main.lua", "r"))
+    local src = fh:read("*a")
+    fh:close()
+    truthy(src:find('xraySmallModelLine(self_ref, action,\n      cr.delivery, (mode == "extend" and not pick_rebuild and not force_rebuild) and base_entry or nil)', 1, true) ~= nil,
+        "the creation form appends it to its hint")
+end)
+
 TestRunner:test("xrayCheckpointNote: the creation form's sentence follows the installs' own rule (B717)", function()
     -- the same two reads the engine's installs make: the posture, then the hold
     local text, case = BookSettings.xrayCheckpointNote(fakeDocSettings({}), {})
@@ -1703,7 +1779,10 @@ TestRunner:test("every preset is recognized from its own values; anything else i
             p.status == "off" and "off" or nil, p.depth ~= "standard" and p.depth or nil)
         TestRunner:assertEqual(found and found.id, p.id, p.id .. " maps to itself")
     end
-    TestRunner:assertEqual(#BookSettings.XRAY_PRESETS, 6, "six built-in presets")
+    TestRunner:assertEqual(#BookSettings.XRAY_PRESETS, 7, "seven built-in presets")
+    local who = BookSettings.xrayPresetFor("people", "off", "light")
+    TestRunner:assertEqual(who and who.id, "whoswho", "people only at Light depth with no status block is Who's who (B747)")
+    TestRunner:assertEqual(BookSettings.xrayPresetFor("people", "off", nil).id, "characters", "at Standard depth it is Characters only")
     TestRunner:assertEqual(BookSettings.xrayPresetFor("people", nil, nil), nil,
         "characters with the status block on is no preset")
     TestRunner:assertEqual(BookSettings.xrayPresetFor("people,places", "off", "deep"), nil, "a mix is Custom")
