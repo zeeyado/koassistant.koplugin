@@ -305,7 +305,12 @@ Actions.highlight = {
 
 "{highlighted_text}"]],
         include_book_context = true,
-        skip_domain = true,  -- Speed posture: no domain layer, like the dictionary family
+        -- No skip_domain (B762): the fast sibling of Explain differs from it in
+        -- length and model, not in what it knows. The reader's domain and the
+        -- book's Background go with it, as with Explain; the domain shapes
+        -- identity rather than length and costs almost nothing in speed (the
+        -- Quick preset keeps it by default for the same reason). It set
+        -- skip_domain until v0.25.0 ("speed posture").
         model_tier = "fast",
         -- No compact_view / minimal_buttons (B263, maintainer 2026-09-27): not a
         -- dictionary action, so an answer the minimal popup cannot fit opens the

@@ -97,7 +97,7 @@ Don't like how a built-in action behaves? Change its settings, or make a copy yo
    - reasoning models for Deep Analysis, Key Arguments and academic tasks (complex thinking). Deep Analysis turns reasoning off for itself; set its **Reasoning** to **Global (use setting)** to let the model reason.
 
    For example claude-haiku-5-5, gpt-6-luna or llama3.2:3b for lookups; claude-sonnet-5-5, gpt-6.1-terra or llama3.3 for general use; claude-opus-5-5, gpt-6.2-sol or deepseek-v4-pro for analysis.
-3. **An action without the domain or your languages?** A translation action you created gives unexpected results because of your domain, for example: domain context can alter the style and register of a translation. Set its **Domain** to **None (no domain)**, and tick **Skip language** to leave out your language preferences. Translate, Dictionary, Quick Define, Deep Analysis and Grammar already skip the domain.
+3. **An action without the domain or your languages?** A translation action you created gives unexpected results because of your domain, for example: domain context can alter the style and register of a translation. Set its **Domain** to **None (no domain)**, and tick **Skip language** to leave out your language preferences. Translate, Dictionary, Quick Define, Deep Analysis and Grammar already skip the domain. The other way round works too: to give your domain to a built-in that leaves it out (Fact Check on a specialist text, for example), set its **Domain** to **Global** ([the full list](Prompts-Behaviors-and-Domains)).
 4. **Compare approaches.** Duplicate an action several times with different prompts, name the copies "Explain (brief)", "Explain (detailed)" and "Explain (ELI5)", and test which works best for your reading.
 
 **Quick workflow:**
@@ -208,7 +208,7 @@ What the request includes:
 - `enable_web_search`: override the global web search setting (`true` forces it on, `false` off, unset follows the global setting).
 - `include_book_context`: send the book's title and author with a highlight action, as far as Settings → Privacy & Data → Book info allows (at None nothing names the book).
 - `skip_language_instruction`: leave the language instruction out of the system message (default off; Translate and Dictionary set it, since the target language is in their prompt).
-- `skip_domain`: leave the domain out of the system message (default off; Translate and Dictionary set it).
+- `skip_domain`: leave the domain out of the system message (default off; Translate, the dictionary actions and the other built-ins listed on [Prompts, Behaviors and Domains](Prompts-Behaviors-and-Domains) set it).
 - `skip_background`: whether the action sends the per-book Background note (your standing note about the book). Unset follows `skip_domain`, `true` never sends it, `false` always does.
 - `skip_spoiler`: `true` leaves the action out of spoiler protection. The artifact, translation and dictionary actions do this, since their scope or their prompt handles spoilers ([Spoiler Protection](Spoiler-Protection)).
 

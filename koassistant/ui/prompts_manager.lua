@@ -4573,10 +4573,17 @@ function PromptsManager:saveBuiltinOverride(prompt, state)
         override.skip_language_instruction = state.skip_language_instruction
         has_any = true
     end
-    -- Save skip_domain if it differs from the base action's default
+    -- Save skip_domain if it differs from the base action's default. The Domain
+    -- picker clears it to nil for "Global" and for a named domain, and a nil
+    -- written into a table is no entry: a built-in that ships with the domain
+    -- left out (Translate, Fact Check, ...) kept leaving it out whatever was
+    -- picked, behind a row that read "Domain: Global" until the editor was
+    -- opened again (B762). Stored as false, which both readers of the override
+    -- take as "use the domain".
     local base_skip_domain = state.skip_domain_base or false
-    if state.skip_domain ~= base_skip_domain then
-        override.skip_domain = state.skip_domain
+    local skip_domain = state.skip_domain and true or false
+    if skip_domain ~= base_skip_domain then
+        override.skip_domain = skip_domain
         has_any = true
     end
     -- Save domain if it differs from the base action's default

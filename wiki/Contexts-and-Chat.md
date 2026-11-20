@@ -31,7 +31,7 @@ Two faster routes skip the dialog:
 | Action | What it does |
 |---|---|
 | **Explain** | Detailed explanation of the passage |
-| **Quick Explain** | A short explanation meant to land in the [minimal popup](Chat-Windows) rather than the full window. In the highlight menu by default |
+| **Quick Explain** | A short explanation (two or three sentences, on your provider's fast model) meant to land in the [minimal popup](Chat-Windows) rather than the full window. It knows what Explain knows: your domain and the book's Background note go with it. In the highlight menu by default |
 | **ELI5** | Explain Like I'm 5: a simplified explanation |
 | **Summarize** | Concise summary of the text |
 | **Elaborate** | Expands on concepts, with additional context and details |

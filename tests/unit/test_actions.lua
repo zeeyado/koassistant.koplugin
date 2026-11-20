@@ -647,6 +647,94 @@ function TestActions:runAll()
         self:assertEquals(result.temperature, 0.7)
     end)
 
+    -- ================================================================
+    -- The built-ins that leave the reader's domain out (B762)
+    -- ================================================================
+    print("\n--- skip_domain: which built-ins leave the domain out ---")
+
+    -- The domain is the reader's own instruction, so an action that leaves it
+    -- out is a decision, listed here and on the wiki page that owns domains.
+    -- Adding or removing one changes this list AND that page's sentence.
+    local LEAVES_DOMAIN_OUT = {
+        -- the language tools: a domain changes a translation or a definition
+        translate = true, dictionary = true, quick_define = true, dictionary_deep = true, grammar = true,
+        -- the lookups meant to stay neutral
+        fact_check = true, current_context = true, wiki = true,
+        -- the library actions
+        suggest_from_library = true, next_from_library = true, discover_books = true,
+        analyze_library = true, challenge_my_taste = true,
+        -- standardized formats
+        book_reviews = true, news_update = true,
+    }
+    local function builtins()
+        local out, seen = {}, {}
+        for _k, group in pairs(Actions) do
+            if type(group) == "table" then
+                for id, a in pairs(group) do
+                    if type(a) == "table" and a.id == id and a.builtin and not seen[id] then
+                        seen[id] = true
+                        out[#out + 1] = a
+                    end
+                end
+            end
+        end
+        return out
+    end
+
+    self:test("the built-ins that leave the domain out are the listed ones, no more and no fewer", function()
+        local extra, found = {}, {}
+        for _idx, a in ipairs(builtins()) do
+            if a.skip_domain then
+                found[a.id] = true
+                if not LEAVES_DOMAIN_OUT[a.id] then extra[#extra + 1] = a.id end
+            end
+        end
+        table.sort(extra)
+        self:assertEquals(table.concat(extra, ", "), "", "no built-in leaves the domain out without being listed")
+        local missing = {}
+        for id in pairs(LEAVES_DOMAIN_OUT) do
+            if not found[id] then missing[#missing + 1] = id end
+        end
+        table.sort(missing)
+        self:assertEquals(table.concat(missing, ", "), "", "every listed built-in still leaves it out")
+    end)
+
+    self:test("Quick Explain knows what Explain knows: neither leaves the domain or the Background out", function()
+        for _idx, id in ipairs({ "explain", "quick_explain" }) do
+            local a = Actions.getById(id)
+            self:assert(a ~= nil, id .. " is a built-in")
+            self:assert(not a.skip_domain, id .. " uses the domain")
+            self:assert(a.skip_background == nil, id .. " follows the domain for the Background")
+        end
+        self:assertEquals(Actions.getById("quick_explain").model_tier, "fast", "Quick Explain is still the fast one")
+    end)
+
+    self:test("only Reviews sends the Background while leaving the domain out", function()
+        local odd = {}
+        for _idx, a in ipairs(builtins()) do
+            if a.skip_domain and a.skip_background ~= nil then odd[#odd + 1] = a.id .. "=" .. tostring(a.skip_background) end
+        end
+        table.sort(odd)
+        self:assertEquals(table.concat(odd, ", "), "book_reviews=false")
+    end)
+
+    self:test("the wiki page that owns domains names every built-in that leaves the domain out", function()
+        local f = io.open("wiki/Prompts-Behaviors-and-Domains.md", "r")
+        self:assert(f ~= nil, "the page is there")
+        local page = f:read("*a")
+        f:close()
+        local sentence = page:match("These built%-in actions leave the domain out:([^\n]-)Every other built%-in uses it")
+        self:assert(sentence ~= nil, "the page has the sentence that lists them")
+        local unnamed = {}
+        for _idx, a in ipairs(builtins()) do
+            if a.skip_domain and not sentence:find(a.text, 1, true) then unnamed[#unnamed + 1] = a.text end
+        end
+        table.sort(unnamed)
+        self:assertEquals(table.concat(unnamed, ", "), "", "each is named by the words on its button")
+        -- and it does not name the two a reader would look for there
+        self:assert(not sentence:find("Explain", 1, true), "Explain and Quick Explain are not among them")
+    end)
+
     -- Summary
     print(string.format("\nResults: %d passed, %d failed\n", self.passed, self.failed))
     return self.failed == 0

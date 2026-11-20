@@ -376,6 +376,91 @@ TestRunner:test("an override that only repeats the shipped values goes at the ne
         "the stale override is gone: the action follows releases again")
 end)
 
+-- A built-in that ships with the domain left out (B762). The Domain picker
+-- clears the switch to nil for "Global"; written as nil into the override it
+-- was no entry at all, so the action kept leaving the domain out behind a row
+-- that read "Domain: Global" until the editor was opened again.
+TestRunner:test("a built-in that leaves the domain out can be given it back, from either door, and set back", function()
+    local id, context = "fact_check", "highlight"
+    local shipped = Actions.getById(id)
+    TestRunner:assertTrue(shipped ~= nil and shipped.skip_domain == true, "Fact Check ships with the domain left out")
+    local function row()
+        for _idx, t in ipairs(ui:texts()) do
+            if tostring(t):find("Domain: ", 1, true) then return t end
+        end
+        return nil
+    end
+    local function find(pm, service, from_list)
+        local prompt
+        if from_list then
+            pm:loadPrompts()
+            for _j, p in ipairs(pm.prompts) do
+                if p.id == id and p.source == "builtin" then prompt = p end
+            end
+        else
+            service.actions_cache = nil
+            for _j, p in ipairs(service:getAllPrompts(context, true)) do
+                if p.id == id then prompt = p end
+            end
+        end
+        assert(prompt, "the built-in is listed")
+        prompt.context = prompt.context or context
+        return prompt
+    end
+    for _idx, from_list in ipairs({ true, false }) do
+        local door = from_list and "from the list" or "from the hold menu"
+        reset()
+        local pm, service, data = world({})
+        local key = context .. ":" .. id
+
+        pm:showBuiltinSettingsEditor(find(pm, service, from_list))
+        TestRunner:assertEqual(tostring(row()), "Domain: None", door .. ": the row shows the shipped state")
+        ui:tap(row())
+        ui:tap((assert(hasButton("Global (use setting)"), "the picker's Global row")))
+        TestRunner:assertEqual(tostring(row()), "Domain: Global", door .. ": the row shows the pick")
+        ui:tap("Save")
+        local stored = data.builtin_action_overrides[key]
+        TestRunner:assertTrue(type(stored) == "table" and stored.skip_domain == false,
+            door .. ": the pick is stored (" .. tostring(stored and stored.skip_domain) .. ")")
+        TestRunner:assertEqual(find(pm, service, false).skip_domain, false, door .. ": the action a run gets uses the domain")
+
+        -- opened again it shows the pick, and a Save with nothing changed keeps it
+        reset()
+        pm:showBuiltinSettingsEditor(find(pm, service, from_list))
+        TestRunner:assertEqual(tostring(row()), "Domain: Global", door .. ": opened again, the row still shows the pick")
+        ui:tap("Save")
+        TestRunner:assertEqual(table.concat(diff({ skip_domain = false }, data.builtin_action_overrides[key] or {}), "; "), "",
+            door .. ": a Save with nothing changed keeps the one stored value")
+
+        -- and back to the shipped state: nothing is stored, the action follows releases again
+        reset()
+        pm:showBuiltinSettingsEditor(find(pm, service, from_list))
+        ui:tap(row())
+        ui:tap((assert(hasButton("None (no domain)"), "the picker's None row")))
+        ui:tap("Save")
+        TestRunner:assertTrue(data.builtin_action_overrides[key] == nil, door .. ": set back to None, nothing is stored")
+        TestRunner:assertEqual(find(pm, service, false).skip_domain, true, door .. ": and the action leaves the domain out again")
+    end
+end)
+
+TestRunner:test("a built-in that uses the domain can be set to leave it out", function()
+    reset()
+    local pm, service, data = world({})
+    pm:loadPrompts()
+    local prompt
+    for _j, p in ipairs(pm.prompts) do
+        if p.id == "explain" and p.source == "builtin" then prompt = p end
+    end
+    TestRunner:assertTrue(prompt ~= nil, "Explain is listed")
+    pm:showBuiltinSettingsEditor(prompt)
+    ui:tap((assert(hasButton("Domain: "), "the Domain row")))
+    ui:tap((assert(hasButton("None (no domain)"), "the picker's None row")))
+    ui:tap("Save")
+    local stored = data.builtin_action_overrides[prompt.context .. ":explain"]
+    TestRunner:assertTrue(type(stored) == "table" and stored.skip_domain == true, "None is stored as the switch on")
+    local _unused = service
+end)
+
 -- ------------------------------------------------------------------ the guard
 TestRunner:test("no editor stores a record it built itself", function()
     local f = assert(io.open(PLUGIN_DIR .. "/koassistant/ui/prompts_manager.lua", "r"))
